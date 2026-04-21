@@ -1483,7 +1483,7 @@ html, body {
           <input type="number" id="ayarAidat" placeholder="28500" min="0">
         </div>
         <div class="form-group">
-          <label>Taksit Sayısı</label>
+          <label>Dönem Uzunluğu</label>
           <select id="ayarTaksit">
             <option value="10">10 ay (Eylül - Haziran)</option>
             <option value="11">11 ay (Eylül - Temmuz)</option>
@@ -1494,7 +1494,7 @@ html, body {
 
       <div class="form-grid">
         <div class="form-group">
-          <label>Başlangıç Ayı (Dönem Ortası Kayıt İçin)</label>
+          <label>Kayıt (Başlangıç) Ayı</label>
           <select id="ayarBaslangic">
             <option value="2025-09" selected>Eylül 2025</option>
             <option value="2025-10">Ekim 2025</option>
@@ -1505,6 +1505,9 @@ html, body {
             <option value="2026-03">Mart 2026</option>
             <option value="2026-04">Nisan 2026</option>
             <option value="2026-05">Mayıs 2026</option>
+            <option value="2026-06">Haziran 2026</option>
+            <option value="2026-07">Temmuz 2026</option>
+            <option value="2026-08">Ağustos 2026</option>
           </select>
         </div>
         <div class="form-group">
@@ -1538,7 +1541,7 @@ html, body {
           <span class="total-value" id="totalAylik">0 TL</span>
         </div>
         <div class="total-row">
-          <span class="total-label">Taksit Sayısı</span>
+          <span class="total-label">Ödeme Süresi</span>
           <span class="total-value" id="totalTaksit">12 ay</span>
         </div>
         <div class="total-row" id="totalIndirimRow" style="display:none;">
@@ -1953,18 +1956,57 @@ function updatePesinCard() {
 }
 
 // Anlık toplam hesaplama
-["ayarAidat", "ayarTaksit", "ayarIndirim", "ayarPesin"].forEach(id => {
+["ayarAidat", "ayarTaksit", "ayarBaslangic", "ayarIndirim", "ayarPesin"].forEach(id => {
   document.getElementById(id).addEventListener("change", recalcTotals);
   document.getElementById(id).addEventListener("input", recalcTotals);
 });
 
+// Dönem sonu ayını taksit sayısına göre hesapla
+// Taksit sayısı = dönemin tam uzunluğu (Eylül'den itibaren)
+// 10 ay = Eylül-Haziran, 11 ay = Eylül-Temmuz, 12 ay = Eylül-Ağustos
+function getDonemSonu(taksitSayisi) {
+  const donemBaslangic = new Date(2025, 8, 1); // Eylül 2025 = ay 8 (0-indexed)
+  const donemSonu = new Date(donemBaslangic);
+  donemSonu.setMonth(donemSonu.getMonth() + taksitSayisi - 1);
+  return donemSonu;
+}
+
+// Başlangıç ayından dönem sonuna kadar kaç ay var hesapla
+function getGercekOdemeSayisi(baslangicAyi, taksitSayisi) {
+  // baslangicAyi formatı: "2025-09"
+  const [yil, ay] = baslangicAyi.split("-").map(Number);
+  const baslangic = new Date(yil, ay - 1, 1);
+  const donemSonu = getDonemSonu(taksitSayisi);
+  
+  // Kaç ay kaldığını hesapla
+  const aylar = (donemSonu.getFullYear() - baslangic.getFullYear()) * 12 
+              + (donemSonu.getMonth() - baslangic.getMonth()) + 1;
+  
+  // Güvenlik: negatif veya 0 olmasın
+  return Math.max(1, Math.min(aylar, taksitSayisi));
+}
+
+// Ay adı yazdırma ("2025-09" → "Eylül 2025")
+function ayAdi(yyyymm) {
+  const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran",
+                 "Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const [y, m] = yyyymm.split("-").map(Number);
+  return `${aylar[m-1]} ${y}`;
+}
+
 function recalcTotals() {
   const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
   const taksit = parseInt(document.getElementById("ayarTaksit").value) || 12;
+  const baslangic = document.getElementById("ayarBaslangic").value || "2025-09";
   const indirim = parseFloat(document.getElementById("ayarIndirim").value) || 0;
   const pesin = document.getElementById("ayarPesin").checked;
   
-  let brut = aidat * taksit;
+  // GERÇEK ödeme ay sayısı (dönem ortası kayıt için)
+  const gercekAy = getGercekOdemeSayisi(baslangic, taksit);
+  const donemSonu = getDonemSonu(taksit);
+  const donemSonuStr = `${["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"][donemSonu.getMonth()]} ${donemSonu.getFullYear()}`;
+  
+  let brut = aidat * gercekAy;
   let indirimTutar = 0;
   let net = brut;
   
@@ -1982,7 +2024,17 @@ function recalcTotals() {
   }
   
   document.getElementById("totalAylik").textContent = aidat.toLocaleString("tr-TR") + " TL";
-  document.getElementById("totalTaksit").textContent = taksit + " ay" + (pesin ? " (peşin)" : "");
+  
+  // Taksit gösterimi - gerçek ay sayısını göster
+  let taksitLabel;
+  if (gercekAy < taksit) {
+    // Dönem ortası kayıt
+    taksitLabel = `${gercekAy} ay (${ayAdi(baslangic)} → ${donemSonuStr})`;
+  } else {
+    taksitLabel = `${gercekAy} ay`;
+  }
+  if (pesin) taksitLabel += " (peşin)";
+  document.getElementById("totalTaksit").textContent = taksitLabel;
   
   if (indirimTutar > 0) {
     document.getElementById("totalIndirimRow").style.display = "flex";
@@ -2017,8 +2069,13 @@ window.saveAyarlar = async function() {
   const pesin = document.getElementById("ayarPesin").checked;
   const notlar = document.getElementById("ayarNotlar").value.trim();
   
-  // Toplam hesap
-  let brut = aidat * taksit;
+  // GERÇEK ödeme ay sayısı (dönem ortası kayıt için)
+  const gercekAy = getGercekOdemeSayisi(baslangic, taksit);
+  const donemSonu = getDonemSonu(taksit);
+  const donemSonuAyi = `${donemSonu.getFullYear()}-${String(donemSonu.getMonth()+1).padStart(2,"0")}`;
+  
+  // Toplam hesap (gerçek ay sayısı üzerinden)
+  let brut = aidat * gercekAy;
   let indirimTutar = 0;
   if (indirim > 0) indirimTutar += brut * (indirim / 100);
   let net = brut - indirimTutar;
@@ -2031,8 +2088,10 @@ window.saveAyarlar = async function() {
   const aidatAyarlari = {
     programTuru: program,
     aylikAidat: aidat,
-    taksitSayisi: taksit,
+    taksitSayisi: taksit,          // dönemin tam uzunluğu (10/11/12)
+    gercekAySayisi: gercekAy,      // YENİ: gerçek ödeme ay sayısı
     baslangicAyi: baslangic,
+    donemSonuAyi: donemSonuAyi,    // YENİ: dönem bitiş ayı
     indirimOrani: indirim,
     indirimNedeni: indirimNedeni,
     pesinOdeme: pesin,
@@ -2040,7 +2099,7 @@ window.saveAyarlar = async function() {
     toplamBrut: Math.round(brut),
     toplamIndirim: Math.round(indirimTutar),
     toplamBeklenen: Math.round(net),
-    toplamOdenen: 0,  // ilk kayıt
+    toplamOdenen: 0,
     kalan: Math.round(net),
     guncellendi: new Date().toISOString()
   };
