@@ -1778,12 +1778,15 @@ function renderTable() {
     
     // Durum filtre
     const ayar = ayarListesi[o.id];
+    // Güncel program değeri: önce ayar'dan, yoksa master'dan
+    const guncelProgram = (ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.programTuru) 
+                          || o.programTuru || "";
     if (activeFilter === "ayarli") return ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.aylikAidat > 0;
     if (activeFilter === "eksik") return !ayar || !ayar.aidatAyarlari || !ayar.aidatAyarlari.aylikAidat;
     if (activeFilter === "m2") return (o.sinif || "").includes("2");
     if (activeFilter === "m3") return (o.sinif || "").includes("3");
-    if (activeFilter === "tamgun") return o.programTuru === "Tam Gün";
-    if (activeFilter === "yarimgun") return o.programTuru === "Yarım Gün";
+    if (activeFilter === "tamgun") return guncelProgram === "Tam Gün";
+    if (activeFilter === "yarimgun") return guncelProgram === "Yarım Gün";
     return true;
   });
   
@@ -1813,7 +1816,9 @@ function renderTable() {
     const hasAyar = ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.aylikAidat > 0;
     const sinif = o.sinif || "-";
     const sinifClass = sinif.includes("2") ? "badge-m2" : sinif.includes("3") ? "badge-m3" : "badge-muted";
-    const program = o.programTuru || "-";
+    // Önce ayarlardaki program'ı göster (güncel), yoksa master data
+    const program = (ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.programTuru) 
+                    || o.programTuru || "-";
     const programClass = program === "Tam Gün" ? "badge-tam" : program === "Yarım Gün" ? "badge-yarim" : "badge-muted";
     
     const aidatTxt = hasAyar ? `${ayar.aidatAyarlari.aylikAidat.toLocaleString("tr-TR")} TL` : "—";
@@ -1902,10 +1907,15 @@ window.openAyarModal = function(ogrenciId) {
   
   currentOgrenci = o;
   
+  // Mevcut ayarları oku (başlıkta güncel program türünü göstermek için)
+  const mevcutAyar = ayarListesi[ogrenciId];
+  const mevcutProgram = (mevcutAyar && mevcutAyar.aidatAyarlari && mevcutAyar.aidatAyarlari.programTuru) 
+                        || o.programTuru || "-";
+  
   // Başlık
   document.getElementById("modalOgrenciAd").textContent = o.ogrenciAdSoyad;
   document.getElementById("modalOgrenciSub").textContent = 
-    `${o.sinif || "-"} • ${o.programTuru || "-"} • Doğum: ${o.dogumTarihi || "-"} ${o.yasYilAy ? `(${o.yasYilAy})` : ""}`;
+    `${o.sinif || "-"} • ${mevcutProgram} • Doğum: ${o.dogumTarihi || "-"} ${o.yasYilAy ? `(${o.yasYilAy})` : ""}`;
   
   // Mevcut ayarları yükle
   const ayar = ayarListesi[ogrenciId];
