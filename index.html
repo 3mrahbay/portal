@@ -1098,6 +1098,150 @@ html, body {
   border-top: 1px solid var(--gray-100);
 }
 
+/* ============ BÖLÜM BAŞLIKLARI (MODAL İÇİ) ============ */
+.section-divider {
+  margin: 28px 0 16px;
+  padding-top: 20px;
+  border-top: 2px solid var(--green-mist);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-divider:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--green-deep);
+  margin: 0;
+}
+
+.section-subtitle {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: 2px;
+}
+
+/* ============ DİĞER ÜCRETLER ============ */
+.diger-ucret-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+
+.diger-ucret-card {
+  background: var(--cream);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  transition: all 0.2s;
+}
+
+.diger-ucret-card:hover {
+  border-color: var(--green-medium);
+}
+
+.diger-ucret-card label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+.diger-ucret-card label .icon {
+  margin-right: 6px;
+}
+
+.diger-ucret-card input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: var(--font-body);
+}
+
+.diger-ucret-card input:focus {
+  outline: none;
+  border-color: var(--green-primary);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.diger-ucret-toplam {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--green-mist);
+  border-radius: var(--radius-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.diger-ucret-toplam strong {
+  color: var(--green-deep);
+  font-family: var(--font-display);
+  font-size: 17px;
+}
+
+/* ============ YAZ OKULU CHECKBOX ============ */
+.yaz-okulu-card {
+  background: linear-gradient(135deg, #fff7ed, #fef3c7);
+  border: 1.5px solid #fcd34d;
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin: 12px 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.yaz-okulu-card:hover {
+  border-color: #f59e0b;
+}
+
+.yaz-okulu-card.active {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-color: #d97706;
+}
+
+.yaz-okulu-card .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.yaz-okulu-card label {
+  cursor: pointer;
+  flex: 1;
+}
+
+.yaz-okulu-card label small {
+  display: block;
+  font-size: 12px;
+  color: #92400e;
+  margin-top: 3px;
+  font-weight: 400;
+}
+
+.yaz-okulu-card input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #d97706;
+}
+
+@media (max-width: 640px) {
+  .diger-ucret-grid { grid-template-columns: 1fr; }
+}
+
 .btn-save {
   background: var(--green-deep);
   color: white;
@@ -1496,18 +1640,7 @@ html, body {
         <div class="form-group">
           <label>Kayıt (Başlangıç) Ayı</label>
           <select id="ayarBaslangic">
-            <option value="2025-09" selected>Eylül 2025</option>
-            <option value="2025-10">Ekim 2025</option>
-            <option value="2025-11">Kasım 2025</option>
-            <option value="2025-12">Aralık 2025</option>
-            <option value="2026-01">Ocak 2026</option>
-            <option value="2026-02">Şubat 2026</option>
-            <option value="2026-03">Mart 2026</option>
-            <option value="2026-04">Nisan 2026</option>
-            <option value="2026-05">Mayıs 2026</option>
-            <option value="2026-06">Haziran 2026</option>
-            <option value="2026-07">Temmuz 2026</option>
-            <option value="2026-08">Ağustos 2026</option>
+            <!-- AKTIF_DONEM'e göre JavaScript tarafından doldurulur -->
           </select>
         </div>
         <div class="form-group">
@@ -1534,6 +1667,53 @@ html, body {
         </div>
       </div>
 
+      <!-- Yaz Okulu -->
+      <div class="yaz-okulu-card" id="yazOkuluCard" onclick="toggleYazOkulu()">
+        <div class="checkbox-row">
+          <input type="checkbox" id="ayarYazOkulu" onclick="event.stopPropagation(); toggleYazOkulu();">
+          <label for="ayarYazOkulu">
+            ☀️ Yaz Okulu Kayıtlı
+            <small>Temmuz & Ağustos ayları "Yaz Okulu" olarak işaretlenir ve raporlarda ayrıca analiz edilir. (Sadece 10 veya 11 aylık plan seçildiğinde anlamlıdır.)</small>
+          </label>
+        </div>
+      </div>
+
+      <!-- ============ DİĞER ÜCRETLER ============ -->
+      <div class="section-divider">
+        <div>
+          <h3 class="section-title">📦 Diğer Ücretler</h3>
+          <div class="section-subtitle">Yıllık sabit ek kalemler (aidata dahil değildir)</div>
+        </div>
+      </div>
+
+      <div class="diger-ucret-grid">
+        <div class="diger-ucret-card">
+          <label><span class="icon">📚</span>Eğitim Materyali (TL)</label>
+          <input type="number" id="ayarDigerEgitimMateryali" placeholder="0" min="0" value="0">
+        </div>
+        <div class="diger-ucret-card">
+          <label><span class="icon">👕</span>Okul Kıyafetleri (TL)</label>
+          <input type="number" id="ayarDigerOkulKiyafeti" placeholder="0" min="0" value="0">
+        </div>
+        <div class="diger-ucret-card">
+          <label><span class="icon">🌲</span>Orman Kıyafeti (TL)</label>
+          <input type="number" id="ayarDigerOrmanKiyafeti" placeholder="0" min="0" value="0">
+        </div>
+        <div class="diger-ucret-card">
+          <label><span class="icon">🚌</span>Servis I. Dönem (TL)</label>
+          <input type="number" id="ayarDigerServis1" placeholder="0" min="0" value="0">
+        </div>
+        <div class="diger-ucret-card">
+          <label><span class="icon">🚌</span>Servis II. Dönem (TL)</label>
+          <input type="number" id="ayarDigerServis2" placeholder="0" min="0" value="0">
+        </div>
+      </div>
+
+      <div class="diger-ucret-toplam">
+        <span>Diğer Ücretler Toplamı</span>
+        <strong id="digerUcretToplam">0 TL</strong>
+      </div>
+
       <!-- Toplam Kutusu -->
       <div class="total-box">
         <div class="total-row">
@@ -1549,7 +1729,15 @@ html, body {
           <span class="total-value" id="totalIndirimTutar">- 0 TL</span>
         </div>
         <div class="total-row">
-          <span class="total-label" style="font-weight:700;">TOPLAM BEKLENEN</span>
+          <span class="total-label">Aidat Beklenen</span>
+          <span class="total-value" id="totalAidatBeklenen">0 TL</span>
+        </div>
+        <div class="total-row" id="totalDigerRow" style="display:none;">
+          <span class="total-label">Diğer Ücretler</span>
+          <span class="total-value" id="totalDigerValue">0 TL</span>
+        </div>
+        <div class="total-row">
+          <span class="total-label" style="font-weight:700;">YILLIK TOPLAM</span>
           <span class="total-value big" id="totalBeklenen">0 TL</span>
         </div>
       </div>
@@ -1599,7 +1787,7 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 const ADMIN_EMAIL = "emrahby@gmail.com";
-const AKTIF_DONEM = "2025-2026";
+let AKTIF_DONEM = "2025-2026";  // Dropdown'dan değiştirilebilir
 
 // Global state
 let currentUser = null;
@@ -1900,13 +2088,46 @@ document.querySelectorAll(".tab").forEach(tab => {
   });
 });
 
+// ============ DÖNEM SEÇİCİ ============
+// Dropdown'dan dönem seçildiğinde AKTIF_DONEM güncellensin ve ayarlar yeniden yüklensin
+const donemSelectorEl = document.getElementById("donemSelector");
+if (donemSelectorEl) {
+  // Sayfa yüklenince dropdown'ı AKTIF_DONEM ile senkronize et
+  donemSelectorEl.value = AKTIF_DONEM;
+
+  donemSelectorEl.addEventListener("change", async (e) => {
+    const yeniDonem = e.target.value;
+    if (yeniDonem === AKTIF_DONEM) return;
+
+    AKTIF_DONEM = yeniDonem;
+    showToast(`Dönem değiştirildi: ${AKTIF_DONEM}`);
+
+    // Ayar listesini sıfırla ve yeniden yükle (loadOgrenciler içinde loadAyarlar çağırılıyor)
+    ayarListesi = {};
+    const wrap = document.getElementById("ogrenciTableWrap");
+    if (wrap) {
+      wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Yeni dönem verileri yükleniyor...</p></div>';
+    }
+    await loadAyarlar();
+    renderTable();
+    updateStats();
+
+    // Dashboard başlığındaki yıl metni güncellensin
+    const dashSubTitle = document.querySelector(".dash-title p");
+    if (dashSubTitle) dashSubTitle.textContent = `${AKTIF_DONEM} eğitim yılı öğrenci aidatları ve ek ücretler`;
+  });
+}
+
 // ============ AYAR MODAL ============
 window.openAyarModal = function(ogrenciId) {
   const o = ogrenciList.find(x => x.id === ogrenciId);
   if (!o) return;
   
   currentOgrenci = o;
-  
+
+  // Dönem seçimine göre başlangıç ayı dropdown'ını doldur
+  populateBaslangicDropdown();
+
   // Mevcut ayarları oku (başlıkta güncel program türünü göstermek için)
   const mevcutAyar = ayarListesi[ogrenciId];
   const mevcutProgram = (mevcutAyar && mevcutAyar.aidatAyarlari && mevcutAyar.aidatAyarlari.programTuru) 
@@ -1924,24 +2145,42 @@ window.openAyarModal = function(ogrenciId) {
     document.getElementById("ayarProgram").value = a.programTuru || o.programTuru || "Tam Gün";
     document.getElementById("ayarAidat").value = a.aylikAidat || "";
     document.getElementById("ayarTaksit").value = a.taksitSayisi || 12;
-    document.getElementById("ayarBaslangic").value = a.baslangicAyi || "2025-09";
+    document.getElementById("ayarBaslangic").value = a.baslangicAyi || getDefaultBaslangic();
     document.getElementById("ayarIndirim").value = a.indirimOrani || 0;
     document.getElementById("ayarIndirimNedeni").value = a.indirimNedeni || "";
     document.getElementById("ayarPesin").checked = !!a.pesinOdeme;
+    document.getElementById("ayarYazOkulu").checked = !!a.yazOkulu;
     document.getElementById("ayarNotlar").value = a.notlar || "";
+
+    // Diğer Ücretler (yoksa 0)
+    const d = a.digerUcretler || {};
+    document.getElementById("ayarDigerEgitimMateryali").value = d.egitimMateryali || 0;
+    document.getElementById("ayarDigerOkulKiyafeti").value = d.okulKiyafeti || 0;
+    document.getElementById("ayarDigerOrmanKiyafeti").value = d.ormanKiyafeti || 0;
+    document.getElementById("ayarDigerServis1").value = d.servis1 || 0;
+    document.getElementById("ayarDigerServis2").value = d.servis2 || 0;
   } else {
     // Yeni — default değerler
     document.getElementById("ayarProgram").value = o.programTuru || "Tam Gün";
     document.getElementById("ayarAidat").value = "";
     document.getElementById("ayarTaksit").value = 12;
-    document.getElementById("ayarBaslangic").value = "2025-09";
+    document.getElementById("ayarBaslangic").value = getDefaultBaslangic();
     document.getElementById("ayarIndirim").value = 0;
     document.getElementById("ayarIndirimNedeni").value = "";
     document.getElementById("ayarPesin").checked = false;
+    document.getElementById("ayarYazOkulu").checked = false;
     document.getElementById("ayarNotlar").value = "";
+
+    // Diğer Ücretler sıfırla
+    document.getElementById("ayarDigerEgitimMateryali").value = 0;
+    document.getElementById("ayarDigerOkulKiyafeti").value = 0;
+    document.getElementById("ayarDigerOrmanKiyafeti").value = 0;
+    document.getElementById("ayarDigerServis1").value = 0;
+    document.getElementById("ayarDigerServis2").value = 0;
   }
   
   updatePesinCard();
+  updateYazOkuluCard();
   recalcTotals();
   
   document.getElementById("ayarModal").classList.add("active");
@@ -1965,17 +2204,91 @@ function updatePesinCard() {
   card.classList.toggle("active", checked);
 }
 
+// ============ YAZ OKULU ============
+window.toggleYazOkulu = function() {
+  const cb = document.getElementById("ayarYazOkulu");
+  cb.checked = !cb.checked;
+  updateYazOkuluCard();
+  recalcTotals();
+};
+
+function updateYazOkuluCard() {
+  const card = document.getElementById("yazOkuluCard");
+  const checked = document.getElementById("ayarYazOkulu").checked;
+  card.classList.toggle("active", checked);
+}
+
+// ============ DİĞER ÜCRETLER — TOPLAM HESAP ============
+function getDigerUcretlerToplam() {
+  const ids = [
+    "ayarDigerEgitimMateryali",
+    "ayarDigerOkulKiyafeti",
+    "ayarDigerOrmanKiyafeti",
+    "ayarDigerServis1",
+    "ayarDigerServis2"
+  ];
+  let toplam = 0;
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el) toplam += parseFloat(el.value) || 0;
+  }
+  return toplam;
+}
+
+// AKTIF_DONEM'e göre varsayılan başlangıç ayı (örn: 2025-2026 → 2025-09)
+function getDefaultBaslangic() {
+  const [yil] = AKTIF_DONEM.split("-");
+  return `${yil}-09`;
+}
+
+// Başlangıç ayı dropdown'ını AKTIF_DONEM'e göre doldur (12 ay: Eylül → Ağustos)
+function populateBaslangicDropdown() {
+  const select = document.getElementById("ayarBaslangic");
+  if (!select) return;
+  const [yilBasStr, yilSonStr] = AKTIF_DONEM.split("-");
+  const yilBas = parseInt(yilBasStr);
+  const yilSon = parseInt(yilSonStr);
+  const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran",
+                 "Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+
+  let html = "";
+  // İlk yılın Eyl-Ara ayları
+  for (let m = 9; m <= 12; m++) {
+    const ay = String(m).padStart(2, "0");
+    const val = `${yilBas}-${ay}`;
+    html += `<option value="${val}">${aylar[m-1]} ${yilBas}</option>`;
+  }
+  // İkinci yılın Oca-Ağu ayları
+  for (let m = 1; m <= 8; m++) {
+    const ay = String(m).padStart(2, "0");
+    const val = `${yilSon}-${ay}`;
+    html += `<option value="${val}">${aylar[m-1]} ${yilSon}</option>`;
+  }
+  select.innerHTML = html;
+}
+
 // Anlık toplam hesaplama
 ["ayarAidat", "ayarTaksit", "ayarBaslangic", "ayarIndirim", "ayarPesin"].forEach(id => {
   document.getElementById(id).addEventListener("change", recalcTotals);
   document.getElementById(id).addEventListener("input", recalcTotals);
 });
 
+// Diğer Ücretler inputları için de canlı hesap
+["ayarDigerEgitimMateryali", "ayarDigerOkulKiyafeti", "ayarDigerOrmanKiyafeti", "ayarDigerServis1", "ayarDigerServis2"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener("change", recalcTotals);
+    el.addEventListener("input", recalcTotals);
+  }
+});
+
 // Dönem sonu ayını taksit sayısına göre hesapla
-// Taksit sayısı = dönemin tam uzunluğu (Eylül'den itibaren)
+// Taksit sayısı = dönemin tam uzunluğu (AKTIF_DONEM başlangıcından itibaren)
 // 10 ay = Eylül-Haziran, 11 ay = Eylül-Temmuz, 12 ay = Eylül-Ağustos
 function getDonemSonu(taksitSayisi) {
-  const donemBaslangic = new Date(2025, 8, 1); // Eylül 2025 = ay 8 (0-indexed)
+  // AKTIF_DONEM örn: "2025-2026" → dönem Eylül 2025'te başlar
+  const [yil] = AKTIF_DONEM.split("-").map(Number);
+  const donemBaslangic = new Date(yil, 8, 1); // Eylül = ay 8 (0-indexed)
   const donemSonu = new Date(donemBaslangic);
   donemSonu.setMonth(donemSonu.getMonth() + taksitSayisi - 1);
   return donemSonu;
@@ -2007,45 +2320,50 @@ function ayAdi(yyyymm) {
 function recalcTotals() {
   const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
   const taksit = parseInt(document.getElementById("ayarTaksit").value) || 12;
-  const baslangic = document.getElementById("ayarBaslangic").value || "2025-09";
+  const baslangic = document.getElementById("ayarBaslangic").value || getDefaultBaslangic();
   const indirim = parseFloat(document.getElementById("ayarIndirim").value) || 0;
   const pesin = document.getElementById("ayarPesin").checked;
-  
+
   // GERÇEK ödeme ay sayısı (dönem ortası kayıt için)
   const gercekAy = getGercekOdemeSayisi(baslangic, taksit);
   const donemSonu = getDonemSonu(taksit);
   const donemSonuStr = `${["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"][donemSonu.getMonth()]} ${donemSonu.getFullYear()}`;
-  
+
   let brut = aidat * gercekAy;
   let indirimTutar = 0;
-  let net = brut;
-  
+  let aidatNet = brut;
+
   // İndirim oranı
   if (indirim > 0) {
     indirimTutar += brut * (indirim / 100);
-    net = brut - indirimTutar;
+    aidatNet = brut - indirimTutar;
   }
-  
+
   // Peşin ödeme ek %10 indirim
   if (pesin) {
-    const pesinIndirim = net * 0.10;
+    const pesinIndirim = aidatNet * 0.10;
     indirimTutar += pesinIndirim;
-    net -= pesinIndirim;
+    aidatNet -= pesinIndirim;
   }
-  
+
+  // Diğer Ücretler toplamı
+  const digerToplam = getDigerUcretlerToplam();
+  const yillikToplam = aidatNet + digerToplam;
+
+  // UI güncelle
   document.getElementById("totalAylik").textContent = aidat.toLocaleString("tr-TR") + " TL";
-  
+
   // Taksit gösterimi - gerçek ay sayısını göster
   let taksitLabel;
   if (gercekAy < taksit) {
-    // Dönem ortası kayıt
     taksitLabel = `${gercekAy} ay (${ayAdi(baslangic)} → ${donemSonuStr})`;
   } else {
     taksitLabel = `${gercekAy} ay`;
   }
   if (pesin) taksitLabel += " (peşin)";
   document.getElementById("totalTaksit").textContent = taksitLabel;
-  
+
+  // İndirim satırı
   if (indirimTutar > 0) {
     document.getElementById("totalIndirimRow").style.display = "flex";
     let label = "Toplam İndirim";
@@ -2057,8 +2375,21 @@ function recalcTotals() {
   } else {
     document.getElementById("totalIndirimRow").style.display = "none";
   }
-  
-  document.getElementById("totalBeklenen").textContent = Math.round(net).toLocaleString("tr-TR") + " TL";
+
+  // Aidat beklenen (net)
+  document.getElementById("totalAidatBeklenen").textContent = Math.round(aidatNet).toLocaleString("tr-TR") + " TL";
+
+  // Diğer Ücretler satırı
+  document.getElementById("digerUcretToplam").textContent = Math.round(digerToplam).toLocaleString("tr-TR") + " TL";
+  if (digerToplam > 0) {
+    document.getElementById("totalDigerRow").style.display = "flex";
+    document.getElementById("totalDigerValue").textContent = Math.round(digerToplam).toLocaleString("tr-TR") + " TL";
+  } else {
+    document.getElementById("totalDigerRow").style.display = "none";
+  }
+
+  // Yıllık Toplam (aidat + diğer ücretler)
+  document.getElementById("totalBeklenen").textContent = Math.round(yillikToplam).toLocaleString("tr-TR") + " TL";
 }
 
 // ============ KAYDET ============
@@ -2077,8 +2408,20 @@ window.saveAyarlar = async function() {
   const indirim = parseFloat(document.getElementById("ayarIndirim").value) || 0;
   const indirimNedeni = document.getElementById("ayarIndirimNedeni").value.trim();
   const pesin = document.getElementById("ayarPesin").checked;
+  const yazOkulu = document.getElementById("ayarYazOkulu").checked;
   const notlar = document.getElementById("ayarNotlar").value.trim();
-  
+
+  // Diğer Ücretler
+  const digerUcretler = {
+    egitimMateryali: parseFloat(document.getElementById("ayarDigerEgitimMateryali").value) || 0,
+    okulKiyafeti: parseFloat(document.getElementById("ayarDigerOkulKiyafeti").value) || 0,
+    ormanKiyafeti: parseFloat(document.getElementById("ayarDigerOrmanKiyafeti").value) || 0,
+    servis1: parseFloat(document.getElementById("ayarDigerServis1").value) || 0,
+    servis2: parseFloat(document.getElementById("ayarDigerServis2").value) || 0
+  };
+  const digerToplam = digerUcretler.egitimMateryali + digerUcretler.okulKiyafeti +
+                      digerUcretler.ormanKiyafeti + digerUcretler.servis1 + digerUcretler.servis2;
+
   // GERÇEK ödeme ay sayısı (dönem ortası kayıt için)
   const gercekAy = getGercekOdemeSayisi(baslangic, taksit);
   const donemSonu = getDonemSonu(taksit);
@@ -2088,29 +2431,34 @@ window.saveAyarlar = async function() {
   let brut = aidat * gercekAy;
   let indirimTutar = 0;
   if (indirim > 0) indirimTutar += brut * (indirim / 100);
-  let net = brut - indirimTutar;
+  let aidatNet = brut - indirimTutar;
   if (pesin) {
-    const pi = net * 0.10;
+    const pi = aidatNet * 0.10;
     indirimTutar += pi;
-    net -= pi;
+    aidatNet -= pi;
   }
-  
+  const yillikToplam = aidatNet + digerToplam;
+
   const aidatAyarlari = {
     programTuru: program,
     aylikAidat: aidat,
     taksitSayisi: taksit,          // dönemin tam uzunluğu (10/11/12)
-    gercekAySayisi: gercekAy,      // YENİ: gerçek ödeme ay sayısı
+    gercekAySayisi: gercekAy,      // gerçek ödeme ay sayısı
     baslangicAyi: baslangic,
-    donemSonuAyi: donemSonuAyi,    // YENİ: dönem bitiş ayı
+    donemSonuAyi: donemSonuAyi,    // dönem bitiş ayı
     indirimOrani: indirim,
     indirimNedeni: indirimNedeni,
     pesinOdeme: pesin,
     pesinOdemeIndirim: pesin ? 10 : 0,
+    yazOkulu: yazOkulu,            // YENİ: Yaz Okulu işareti
+    digerUcretler: digerUcretler,  // YENİ: 5 kalem diğer ücret
+    digerUcretlerToplam: Math.round(digerToplam), // YENİ: diğer ücretler toplamı
     toplamBrut: Math.round(brut),
     toplamIndirim: Math.round(indirimTutar),
-    toplamBeklenen: Math.round(net),
+    toplamAidatBeklenen: Math.round(aidatNet), // sadece aidat neti
+    toplamBeklenen: Math.round(yillikToplam),  // aidat + diğer ücretler (yıllık toplam)
     toplamOdenen: 0,
-    kalan: Math.round(net),
+    kalan: Math.round(yillikToplam),
     guncellendi: new Date().toISOString()
   };
   
@@ -2118,8 +2466,8 @@ window.saveAyarlar = async function() {
     donemYili: AKTIF_DONEM,
     aktif: true,
     aidatAyarlari: aidatAyarlari,
-    aylikOdemeler: {},  // yarın doldurulacak
-    ekUcretler: {},     // yarın doldurulacak
+    aylikOdemeler: {},  // Parça 2'de doldurulacak
+    ekUcretler: {},     // (kullanılmayacak, yerine digerUcretler alanı var)
     notlar: notlar,
     olusturuldu: new Date().toISOString(),
     olusturan: currentUser.email
