@@ -793,6 +793,184 @@ html, body {
   opacity: 0.5;
 }
 
+/* ============ DURUM SEKMELERİ ============ */
+.durum-sekmeleri {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--gray-100);
+  padding-bottom: 0;
+  overflow-x: auto;
+  flex-wrap: wrap;
+}
+
+.durum-sekme {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-500);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.durum-sekme:hover {
+  color: var(--green-primary);
+  background: var(--cream);
+}
+
+.durum-sekme.active {
+  color: var(--green-deep);
+  border-bottom-color: var(--green-primary);
+  font-weight: 600;
+}
+
+.durum-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.durum-ad {
+  line-height: 1;
+}
+
+.durum-sayac {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  background: var(--gray-100);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-500);
+  line-height: 1;
+}
+
+.durum-sekme.active .durum-sayac {
+  background: var(--green-mist);
+  color: var(--green-deep);
+}
+
+.durum-sekme[data-durum="basvuru"].active .durum-sayac {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.durum-sekme[data-durum="yenileme"].active .durum-sayac {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.durum-sekme[data-durum="arsiv"].active .durum-sayac {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* Öğrenci kartında durum rozeti */
+.ogr-durum-rozet {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ogr-durum-rozet[data-durum="aktif"] {
+  background: var(--green-mist);
+  color: var(--green-deep);
+}
+
+.ogr-durum-rozet[data-durum="basvuru"] {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ogr-durum-rozet[data-durum="yenileme"] {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ogr-durum-rozet[data-durum="arsiv"] {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.ogr-kaynak-rozet {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  color: var(--gray-500);
+  background: var(--cream);
+  border: 1px solid var(--gray-300);
+}
+
+/* Durum değiştirme menüsü */
+.durum-menu-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.durum-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  min-width: 180px;
+  z-index: 100;
+  padding: 4px;
+  display: none;
+}
+
+.durum-menu.open {
+  display: block;
+}
+
+.durum-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  transition: background 0.1s;
+}
+
+.durum-menu-item:hover {
+  background: var(--cream);
+}
+
+.durum-menu-item.danger:hover {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
 .filter-chip {
   padding: 8px 14px;
   background: var(--warm-white);
@@ -2386,6 +2564,36 @@ html, body {
 
     <!-- ÖĞRENCILER TAB -->
     <div class="tab-panel active" id="tab-ogrenciler">
+
+      <!-- DURUM SEKMELERİ -->
+      <div class="durum-sekmeleri">
+        <button class="durum-sekme active" data-durum="aktif">
+          <span class="durum-icon">✓</span>
+          <span class="durum-ad">Aktif</span>
+          <span class="durum-sayac" id="sayacAktif">0</span>
+        </button>
+        <button class="durum-sekme" data-durum="basvuru">
+          <span class="durum-icon">📝</span>
+          <span class="durum-ad">Başvuru Bekliyor</span>
+          <span class="durum-sayac" id="sayacBasvuru">0</span>
+        </button>
+        <button class="durum-sekme" data-durum="yenileme">
+          <span class="durum-icon">🔄</span>
+          <span class="durum-ad">Yenileme Bekliyor</span>
+          <span class="durum-sayac" id="sayacYenileme">0</span>
+        </button>
+        <button class="durum-sekme" data-durum="arsiv">
+          <span class="durum-icon">📦</span>
+          <span class="durum-ad">Arşiv</span>
+          <span class="durum-sayac" id="sayacArsiv">0</span>
+        </button>
+        <button class="durum-sekme" data-durum="tumu">
+          <span class="durum-icon">📋</span>
+          <span class="durum-ad">Tümü</span>
+          <span class="durum-sayac" id="sayacTumu">0</span>
+        </button>
+      </div>
+
       <div class="toolbar">
         <div class="search-box">
           <input type="text" id="searchInput" placeholder="Öğrenci veya veli ara...">
@@ -2417,6 +2625,10 @@ html, body {
         <div>
           <h2 id="modalOgrenciAd">Öğrenci Adı</h2>
           <p id="modalOgrenciSub">Sınıf • Program</p>
+          <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
+            <span class="ogr-durum-rozet" id="modalDurumRozet" data-durum="aktif">Aktif</span>
+            <span class="ogr-kaynak-rozet" id="modalKaynakRozet">Elle</span>
+          </div>
         </div>
         <button class="btn-close" onclick="closeAyarModal()">×</button>
       </div>
@@ -3628,6 +3840,7 @@ let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
 let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
 let filteredList = [];     // Filtrelenmiş liste (tablo için)
 let activeFilter = "tumu";
+let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
 let currentOgrenci = null; // Modalda açık olan öğrenci
 
 // ============ AUTH ============
@@ -3757,6 +3970,7 @@ async function loadOgrenciler() {
     
     renderTable();
     updateStats();
+    updateDurumSayaclari();
   } catch (e) {
     console.error(e);
     wrap.innerHTML = `<div class="empty"><h3>Hata oluştu</h3><p>${e.message}</p></div>`;
@@ -3779,6 +3993,123 @@ async function loadAyarlar() {
   }
 }
 
+// ============ DURUM SİSTEMİ ============
+function getOgrenciDurum(o, ayar) {
+  // Öncelik sırası: ayar.durum > ogrenci.durum > "aktif" (varsayılan)
+  if (ayar && ayar.durum) return ayar.durum;
+  if (o.durum) return o.durum;
+  return "aktif";
+}
+
+function getOgrenciKaynak(o, ayar) {
+  if (ayar && ayar.kaynak) return ayar.kaynak;
+  if (o.kaynak) return o.kaynak;
+  return "manuel";
+}
+
+function getDurumLabel(durum) {
+  const labels = {
+    aktif: "Aktif",
+    basvuru: "Başvuru",
+    yenileme: "Yenileme",
+    arsiv: "Arşiv"
+  };
+  return labels[durum] || durum;
+}
+
+function getKaynakLabel(kaynak) {
+  const labels = {
+    yenikayit: "Yeni Kayıt",
+    kayityenileme: "Yenileme",
+    manuel: "Elle",
+    mevcut_2025: "2025-2026 Aktif"
+  };
+  return labels[kaynak] || kaynak;
+}
+
+function updateDurumSayaclari() {
+  const sayac = { aktif: 0, basvuru: 0, yenileme: 0, arsiv: 0, tumu: 0 };
+
+  for (const o of ogrenciList) {
+    const ayar = ayarListesi[o.id];
+    const durum = getOgrenciDurum(o, ayar);
+    if (sayac[durum] !== undefined) sayac[durum]++;
+    sayac.tumu++;
+  }
+
+  const setCount = (id, n) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = n;
+  };
+  setCount("sayacAktif", sayac.aktif);
+  setCount("sayacBasvuru", sayac.basvuru);
+  setCount("sayacYenileme", sayac.yenileme);
+  setCount("sayacArsiv", sayac.arsiv);
+  setCount("sayacTumu", sayac.tumu);
+}
+
+window.setAktifDurum = function(durum) {
+  activeDurum = durum;
+  document.querySelectorAll(".durum-sekme").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.durum === durum);
+  });
+  renderTable();
+};
+
+window.ogrenciDurumuDegistir = async function(ogrenciId, yeniDurum) {
+  if (!confirm(`Bu öğrencinin durumunu "${getDurumLabel(yeniDurum)}" olarak değiştirmek istediğinize emin misiniz?`)) return;
+
+  try {
+    const ref = doc(db, "ogrenciler", ogrenciId, "donemler", AKTIF_DONEM);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) {
+      await updateDoc(ref, {
+        durum: yeniDurum,
+        durumGuncellendi: new Date().toISOString(),
+        durumGuncelleyen: currentUser.email
+      });
+    } else {
+      await setDoc(ref, {
+        donemYili: AKTIF_DONEM,
+        aktif: true,
+        durum: yeniDurum,
+        durumGuncellendi: new Date().toISOString(),
+        durumGuncelleyen: currentUser.email,
+        olusturuldu: new Date().toISOString(),
+        olusturan: currentUser.email
+      });
+    }
+
+    // Lokal state güncelle
+    if (!ayarListesi[ogrenciId]) ayarListesi[ogrenciId] = {};
+    ayarListesi[ogrenciId].durum = yeniDurum;
+
+    showToast(`✓ Durum "${getDurumLabel(yeniDurum)}" olarak güncellendi`);
+    renderTable();
+    updateStats();
+    updateDurumSayaclari();
+  } catch (e) {
+    console.error(e);
+    showToast("Durum güncellenemedi: " + e.message, "error");
+  }
+};
+
+window.toggleDurumMenu = function(ogrenciId, event) {
+  event.stopPropagation();
+  // Diğer açık menüleri kapat
+  document.querySelectorAll(".durum-menu").forEach(m => {
+    if (m.dataset.ogrenciId !== ogrenciId) m.classList.remove("open");
+  });
+  const menu = document.querySelector(`.durum-menu[data-ogrenci-id="${ogrenciId}"]`);
+  if (menu) menu.classList.toggle("open");
+};
+
+// Herhangi bir yere tıklanırsa menüler kapansın
+document.addEventListener("click", () => {
+  document.querySelectorAll(".durum-menu.open").forEach(m => m.classList.remove("open"));
+});
+
 // ============ TABLO RENDER ============
 function renderTable() {
   const wrap = document.getElementById("ogrenciTableWrap");
@@ -3795,9 +4126,13 @@ function renderTable() {
         return false;
       }
     }
-    
-    // Durum filtre
+
+    // Durum filtre (durum sekmelerinden)
     const ayar = ayarListesi[o.id];
+    const durum = getOgrenciDurum(o, ayar);
+    if (activeDurum !== "tumu" && durum !== activeDurum) return false;
+
+    // Alt filtre (tüm öğrenciler üzerinde)
     // Güncel program değeri: önce ayar'dan, yoksa master'dan
     const guncelProgram = (ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.programTuru) 
                           || o.programTuru || "";
@@ -3825,6 +4160,7 @@ function renderTable() {
           <th>Aylık Aidat</th>
           <th>Toplam Beklenen</th>
           <th>Durum</th>
+          <th style="width:40px;"></th>
         </tr>
       </thead>
       <tbody>
@@ -3843,15 +4179,39 @@ function renderTable() {
     
     const aidatTxt = hasAyar ? `${ayar.aidatAyarlari.aylikAidat.toLocaleString("tr-TR")} TL` : "—";
     const toplamTxt = hasAyar ? `${(ayar.aidatAyarlari.toplamBeklenen || 0).toLocaleString("tr-TR")} TL` : "—";
-    
-    let durumBadge;
+
+    const durum = getOgrenciDurum(o, ayar);
+    const kaynak = getOgrenciKaynak(o, ayar);
+
+    let odemeBadge;
     if (hasAyar) {
-      if (ayar.aidatAyarlari.pesinOdeme) durumBadge = '<span class="badge badge-success">✓ Peşin</span>';
-      else durumBadge = '<span class="badge badge-success">✓ Ayarlı</span>';
+      if (ayar.aidatAyarlari.pesinOdeme) odemeBadge = '<span class="badge badge-success">✓ Peşin</span>';
+      else odemeBadge = '<span class="badge badge-success">✓ Ayarlı</span>';
     } else {
-      durumBadge = '<span class="badge badge-warning">⚠ Eksik</span>';
+      odemeBadge = '<span class="badge badge-warning">⚠ Eksik</span>';
     }
-    
+
+    // Durum rozeti + kaynak + değiştirme menüsü
+    const durumHucre = `
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
+        <span class="ogr-durum-rozet" data-durum="${durum}">${getDurumLabel(durum)}</span>
+        <span class="ogr-kaynak-rozet" title="Kaynak: ${getKaynakLabel(kaynak)}">${getKaynakLabel(kaynak)}</span>
+        ${odemeBadge}
+      </div>
+    `;
+
+    const durumMenu = `
+      <div class="durum-menu-wrap" onclick="event.stopPropagation();">
+        <button class="madde-action-btn" onclick="toggleDurumMenu('${o.id}', event)" title="Durumu değiştir">⋮</button>
+        <div class="durum-menu" data-ogrenci-id="${o.id}">
+          ${durum !== "aktif" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'aktif')">✓ Aktif olarak işaretle</button>` : ""}
+          ${durum !== "basvuru" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'basvuru')">📝 Başvuru Bekliyor</button>` : ""}
+          ${durum !== "yenileme" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'yenileme')">🔄 Yenileme Bekliyor</button>` : ""}
+          ${durum !== "arsiv" ? `<button class="durum-menu-item danger" onclick="ogrenciDurumuDegistir('${o.id}', 'arsiv')">📦 Arşive Taşı</button>` : ""}
+        </div>
+      </div>
+    `;
+
     html += `
       <tr class="ogrenci-row" onclick="openAyarModal('${o.id}')">
         <td>
@@ -3867,7 +4227,8 @@ function renderTable() {
         <td class="hide-mobile"><span class="badge ${programClass}">${program}</span></td>
         <td><strong>${aidatTxt}</strong></td>
         <td>${toplamTxt}</td>
-        <td>${durumBadge}</td>
+        <td>${durumHucre}</td>
+        <td style="width:40px;">${durumMenu}</td>
       </tr>
     `;
   }
@@ -3906,6 +4267,13 @@ document.querySelectorAll(".filter-chip").forEach(chip => {
     chip.classList.add("active");
     activeFilter = chip.dataset.filter;
     renderTable();
+  });
+});
+
+// Durum sekmeleri click handler
+document.querySelectorAll(".durum-sekme").forEach(btn => {
+  btn.addEventListener("click", () => {
+    setAktifDurum(btn.dataset.durum);
   });
 });
 
@@ -3951,6 +4319,7 @@ if (donemSelectorEl) {
     await loadAyarlar();
     renderTable();
     updateStats();
+    updateDurumSayaclari();
 
     // Dashboard başlığındaki yıl metni güncellensin
     const dashSubTitle = document.querySelector(".dash-title p");
@@ -3991,6 +4360,19 @@ window.openAyarModal = async function(ogrenciId) {
   document.getElementById("modalOgrenciAd").textContent = o.ogrenciAdSoyad;
   document.getElementById("modalOgrenciSub").textContent = 
     `${o.sinif || "-"} • ${mevcutProgram} • Doğum: ${o.dogumTarihi || "-"} ${o.yasYilAy ? `(${o.yasYilAy})` : ""}`;
+
+  // Durum ve kaynak rozetleri
+  const durum = getOgrenciDurum(o, mevcutAyar);
+  const kaynak = getOgrenciKaynak(o, mevcutAyar);
+  const durumRozet = document.getElementById("modalDurumRozet");
+  const kaynakRozet = document.getElementById("modalKaynakRozet");
+  if (durumRozet) {
+    durumRozet.dataset.durum = durum;
+    durumRozet.textContent = getDurumLabel(durum);
+  }
+  if (kaynakRozet) {
+    kaynakRozet.textContent = getKaynakLabel(kaynak);
+  }
   
   // Mevcut ayarları yükle
   const ayar = ayarListesi[ogrenciId];
