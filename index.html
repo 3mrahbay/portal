@@ -1826,6 +1826,181 @@ html, body {
   font-style: italic;
 }
 
+/* ============ ÇIKTI SEKMESİ ============ */
+.cikti-intro {
+  background: linear-gradient(135deg, var(--green-mist), var(--cream));
+  border: 1px solid var(--green-light);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.cikti-intro-left strong {
+  display: block;
+  font-size: 15px;
+  color: var(--green-deep);
+  margin-bottom: 2px;
+}
+
+.cikti-intro-left small {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.cikti-uyari {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.6;
+}
+
+.cikti-uyari ul {
+  margin: 8px 0 4px 20px;
+  font-size: 12px;
+}
+
+.cikti-uyari-not {
+  font-size: 12px;
+  margin-top: 6px;
+  opacity: 0.8;
+}
+
+.cikti-onizleme-karti {
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.cikti-onizleme-karti h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  margin: 0 0 12px;
+  color: var(--green-deep);
+  font-weight: 600;
+}
+
+.cikti-ozet-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 13px;
+}
+
+.cikti-ozet-row:last-child { border-bottom: none; }
+
+.cikti-ozet-row strong {
+  color: var(--gray-500);
+  font-weight: 500;
+}
+
+.cikti-ozet-row span {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.cikti-ozet-row .eksik {
+  color: var(--red);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.cikti-ozet-baslik {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1.5px solid var(--green-light);
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--green-deep);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.cikti-buton-grup {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 640px) {
+  .cikti-buton-grup { grid-template-columns: 1fr; }
+  .cikti-ozet-row { grid-template-columns: 1fr; gap: 2px; }
+}
+
+.btn-cikti {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  font-family: var(--font-body);
+}
+
+.btn-cikti:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-cikti-pdf:hover { border-color: #dc2626; background: #fef2f2; }
+.btn-cikti-word:hover { border-color: #2563eb; background: #eff6ff; }
+.btn-cikti-preview:hover { border-color: var(--green-primary); background: var(--green-mist); }
+
+.btn-cikti-icon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.btn-cikti-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.btn-cikti-content strong {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.btn-cikti-content small {
+  font-size: 11px;
+  color: var(--gray-500);
+}
+
+.cikti-bilgi-karti {
+  background: var(--cream);
+  border: 1px solid var(--sand);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.cikti-bilgi-karti strong {
+  color: var(--green-deep);
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.cikti-bilgi-karti p { margin: 0; }
+
 .btn-save {
   background: var(--green-deep);
   color: white;
@@ -1947,6 +2122,10 @@ html, body {
   .modal { padding: 24px; }
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
 
@@ -3190,13 +3369,56 @@ html, body {
         </div>
       </div>
 
-      <!-- ============ ÇIKTI SEKMESİ - PLACEHOLDER ============ -->
+      <!-- ============ ÇIKTI SEKMESİ ============ -->
       <div class="modal-tab-panel" id="panel-cikti">
-        <div class="tab-placeholder">
-          <span class="big-icon">🖨️</span>
-          <h4>Sözleşme Çıktısı</h4>
-          <p>Tüm bilgiler doldurulduktan sonra MEB formatında PDF (imza için) ve Word (düzenlenebilir yedek) olarak iki ayrı çıktı alabileceksin. Bu sekme sonraki güncellemede aktifleşecek.</p>
+
+        <div class="cikti-intro">
+          <div class="cikti-intro-left">
+            <strong>🖨️ Sözleşme Çıktısı</strong>
+            <small>Tüm alanlar doldurulduktan sonra MEB formatında çıktı alın</small>
+          </div>
         </div>
+
+        <div id="ciktiEksikUyari" class="cikti-uyari" style="display:none;">
+          <strong>⚠️ Eksik bilgiler var:</strong>
+          <ul id="ciktiEksikList"></ul>
+          <p class="cikti-uyari-not">Çıktıyı yine de alabilirsiniz, eksik alanlar boş bırakılır.</p>
+        </div>
+
+        <div class="cikti-onizleme-karti">
+          <h3>📑 Sözleşme İçeriği Özeti</h3>
+          <div id="ciktiOzet"></div>
+        </div>
+
+        <div class="cikti-buton-grup">
+          <button class="btn-cikti btn-cikti-pdf" onclick="sozlesmeCiktiPDF()">
+            <div class="btn-cikti-icon">📄</div>
+            <div class="btn-cikti-content">
+              <strong>PDF İndir</strong>
+              <small>Yazdırmaya hazır, imza için</small>
+            </div>
+          </button>
+          <button class="btn-cikti btn-cikti-word" onclick="sozlesmeCiktiWord()">
+            <div class="btn-cikti-icon">📝</div>
+            <div class="btn-cikti-content">
+              <strong>Word İndir</strong>
+              <small>Düzenlenebilir yedek (.docx)</small>
+            </div>
+          </button>
+          <button class="btn-cikti btn-cikti-preview" onclick="sozlesmeCiktiOnizleme()">
+            <div class="btn-cikti-icon">👁️</div>
+            <div class="btn-cikti-content">
+              <strong>Önizleme</strong>
+              <small>Yeni sekmede göster</small>
+            </div>
+          </button>
+        </div>
+
+        <div class="cikti-bilgi-karti">
+          <strong>💡 Bilgi</strong>
+          <p>Çıktıda yalnızca <strong>"Sözleşmede göster"</strong> işaretli bölümler yer alır. Eksik alanlar boş bırakılır — çıktı aldıktan sonra el ile doldurup imzalatabilirsiniz. Önerilen akış: <strong>PDF'yi yazdır → Veliye iki nüsha imzalat → Birini okul dosyasına, birini veliye teslim et.</strong></p>
+        </div>
+
       </div>
 
     </div>
@@ -3714,6 +3936,10 @@ window.switchModalTab = function(tabName) {
   document.querySelectorAll(".modal-tab-panel").forEach(p => {
     p.classList.toggle("active", p.id === `panel-${tabName}`);
   });
+
+  if (tabName === "cikti" && typeof renderCiktiOzet === "function") {
+    renderCiktiOzet();
+  }
 };
 
 function resetModalTab() {
@@ -4313,6 +4539,702 @@ window.saveSozlesmeSablon = async function() {
   } catch (e) {
     console.error(e);
     showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+// ============ ÇIKTI SEKMESİ — VERİ TOPLAMA ============
+function toplaSozlesmeVerisi() {
+  const o = currentOgrenci;
+  if (!o) return null;
+
+  const getVal = (id) => (document.getElementById(id)?.value || "").trim();
+  const getChk = (id) => document.getElementById(id)?.checked || false;
+
+  const okulBilgileri = {
+    adi: "ÖZEL BİR ÇİÇEK KOLEJİ ANAOKULU",
+    donem: AKTIF_DONEM
+  };
+
+  const ogrenci = {
+    tcKimlik: getVal("ogrAyarTC"),
+    adSoyad: getVal("ogrAyarAdSoyad"),
+    cinsiyet: getVal("ogrAyarCinsiyet"),
+    dogumTarihi: getVal("ogrAyarDogumTarihi"),
+    dogumYeri: getVal("ogrAyarDogumYeri"),
+    uyruk: getVal("ogrAyarUyruk") || "T.C.",
+    evAdresi: getVal("ogrAyarEvAdresi"),
+    kanGrubu: getVal("ogrAyarKanGrubu"),
+    sinif: getVal("kayitAyarSinif"),
+    program: getVal("kayitAyarProgram"),
+    okulaKayitTarihi: getVal("kayitAyarIlkKayitTarihi"),
+    gidaAlerji: getVal("ogrAyarGidaAlerji"),
+    ilacAlerji: getVal("ogrAyarIlacAlerji"),
+    kronikHastalik: getVal("ogrAyarKronikHastalik"),
+    ozelBeslenme: getVal("ogrAyarOzelBeslenme"),
+    saglikNot: getVal("ogrAyarSaglikNot"),
+    boy: getVal("ogrAyarBoy"),
+    kilo: getVal("ogrAyarKilo")
+  };
+
+  const anne = {
+    tcKimlik: getVal("anneAyarTC"),
+    adSoyad: getVal("anneAyarAdSoyad"),
+    cepTel: getVal("anneAyarCepTel"),
+    eposta: getVal("anneAyarEposta"),
+    meslek: getVal("anneAyarMeslek"),
+    isTel: getVal("anneAyarIsTel"),
+    evAdresi: getVal("anneAyarEvAdresi"),
+    isAdresi: getVal("anneAyarIsAdresi")
+  };
+
+  const baba = {
+    tcKimlik: getVal("babaAyarTC"),
+    adSoyad: getVal("babaAyarAdSoyad"),
+    cepTel: getVal("babaAyarCepTel"),
+    eposta: getVal("babaAyarEposta"),
+    meslek: getVal("babaAyarMeslek"),
+    isTel: getVal("babaAyarIsTel"),
+    evAdresi: getVal("babaAyarEvAdresi"),
+    isAdresi: getVal("babaAyarIsAdresi")
+  };
+
+  const vasi = {
+    tcKimlik: getVal("vasiAyarTC"),
+    adSoyad: getVal("vasiAyarAdSoyad"),
+    meslek: getVal("vasiAyarMeslek"),
+    cepTel: getVal("vasiAyarCepTel"),
+    evTel: getVal("vasiAyarEvTel"),
+    isTel: getVal("vasiAyarIsTel"),
+    evAdresi: getVal("vasiAyarEvAdresi"),
+    isAdresi: getVal("vasiAyarIsAdresi"),
+    eposta: getVal("vasiAyarEposta")
+  };
+
+  const acil = {
+    yakin1: {
+      adSoyad: getVal("ogrAyarYakin1Ad"),
+      yakinlik: getVal("ogrAyarYakin1Yakinlik"),
+      telefon: getVal("ogrAyarYakin1Tel")
+    },
+    yakin2: {
+      adSoyad: getVal("ogrAyarYakin2Ad"),
+      yakinlik: getVal("ogrAyarYakin2Yakinlik"),
+      telefon: getVal("ogrAyarYakin2Tel")
+    }
+  };
+
+  const aylikAidat = parseFloat(getVal("ayarAidat")) || 0;
+  const taksit = parseInt(getVal("ayarTaksit")) || 12;
+  const indirimOrani = parseFloat(getVal("ayarIndirim")) || 0;
+  const indirimNedeni = getVal("ayarIndirimNedeni");
+  const pesinOdeme = getChk("ayarPesin");
+
+  const digerUcretler = {
+    egitimMateryali: parseFloat(getVal("ayarDigerEgitimMateryali")) || 0,
+    okulKiyafeti: parseFloat(getVal("ayarDigerOkulKiyafeti")) || 0,
+    ormanKiyafeti: parseFloat(getVal("ayarDigerOrmanKiyafeti")) || 0,
+    servis1: parseFloat(getVal("ayarDigerServis1")) || 0,
+    servis2: parseFloat(getVal("ayarDigerServis2")) || 0
+  };
+
+  const toplamAidat = aylikAidat * taksit;
+  const toplamDiger = Object.values(digerUcretler).reduce((a, b) => a + b, 0);
+
+  const odeme = {
+    aylikAidat: aylikAidat,
+    taksit: taksit,
+    yillikAidat: toplamAidat,
+    indirimOrani: indirimOrani,
+    indirimNedeni: indirimNedeni,
+    pesinOdeme: pesinOdeme,
+    digerUcretler: digerUcretler,
+    digerToplam: toplamDiger,
+    genelToplam: toplamAidat + toplamDiger,
+    yariDonemUcret: parseFloat(getVal("sozlesmeYariDonemUcret")) || 0,
+    tamDonemUcret: parseFloat(getVal("sozlesmeTamDonemUcret")) || 0,
+    burs: false,
+    bursYuzde: 0
+  };
+
+  const imza = {
+    tarih: getVal("sozlesmeImzaTarihi") || new Date().toISOString().substring(0, 10),
+    imzalayan: getVal("sozlesmeImzalayan") || "Anne"
+  };
+
+  const ozelMaddeler = getOzelMaddelerFromUI();
+
+  const goster = {
+    ekkisisel: getChk("sozShow_ekkisisel"),
+    saglik: getChk("sozShow_saglik"),
+    acildurum: getChk("sozShow_acildurum"),
+    kardes: getChk("sozShow_kardes"),
+    ogrnot: getChk("sozShow_ogrnot"),
+    anne: getChk("sozShow_anne"),
+    baba: getChk("sozShow_baba"),
+    vasi: getChk("sozShow_vasi"),
+    servis: getChk("sozShow_servis"),
+    referans: getChk("sozShow_referans")
+  };
+
+  return {
+    okul: okulBilgileri,
+    ogrenci: ogrenci,
+    anne: anne,
+    baba: baba,
+    vasi: vasi,
+    acil: acil,
+    odeme: odeme,
+    imza: imza,
+    ozelMaddeler: ozelMaddeler,
+    goster: goster,
+    sablon: currentSozlesmeSablon
+  };
+}
+
+function formatTL(n) {
+  if (!n && n !== 0) return "—";
+  return new Intl.NumberFormat("tr-TR").format(Math.round(n)) + " TL";
+}
+
+function formatTarih(yyyymmdd) {
+  if (!yyyymmdd) return "";
+  const [y, m, d] = yyyymmdd.split("-");
+  if (!y || !m || !d) return yyyymmdd;
+  return `${d}.${m}.${y}`;
+}
+
+// ============ ÇIKTI — ÖZET RENDER ============
+function renderCiktiOzet() {
+  const veri = toplaSozlesmeVerisi();
+  const div = document.getElementById("ciktiOzet");
+  if (!div || !veri) return;
+
+  const eksikler = [];
+  if (!veri.ogrenci.adSoyad) eksikler.push("Öğrenci Ad Soyad");
+  if (!veri.ogrenci.tcKimlik) eksikler.push("Öğrenci TC Kimlik");
+  if (!veri.ogrenci.evAdresi) eksikler.push("Ev Adresi");
+  if (!veri.ogrenci.sinif) eksikler.push("Sınıf");
+  if (!veri.anne.adSoyad && !veri.baba.adSoyad) eksikler.push("En az bir veli (Anne veya Baba)");
+  if (veri.odeme.aylikAidat === 0) eksikler.push("Aylık Aidat");
+
+  const uyari = document.getElementById("ciktiEksikUyari");
+  const uyariList = document.getElementById("ciktiEksikList");
+  if (uyari && uyariList) {
+    if (eksikler.length > 0) {
+      uyariList.innerHTML = eksikler.map(e => `<li>${e}</li>`).join("");
+      uyari.style.display = "block";
+    } else {
+      uyari.style.display = "none";
+    }
+  }
+
+  const val = (v) => v || '<span class="eksik">(boş)</span>';
+  let html = "";
+
+  html += `<div class="cikti-ozet-baslik">Öğrenci</div>`;
+  html += `<div class="cikti-ozet-row"><strong>TC:</strong><span>${val(veri.ogrenci.tcKimlik)}</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>Ad Soyad:</strong><span>${val(veri.ogrenci.adSoyad)}</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>Doğum:</strong><span>${formatTarih(veri.ogrenci.dogumTarihi) || '<span class="eksik">(boş)</span>'}</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>Sınıf / Program:</strong><span>${val(veri.ogrenci.sinif)} / ${val(veri.ogrenci.program)}</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>Ev Adresi:</strong><span>${val(veri.ogrenci.evAdresi)}</span></div>`;
+
+  if (veri.goster.anne) {
+    html += `<div class="cikti-ozet-baslik">Anne ${veri.goster.anne ? "" : '<small style="opacity:0.5;">(kapalı)</small>'}</div>`;
+    html += `<div class="cikti-ozet-row"><strong>Ad Soyad:</strong><span>${val(veri.anne.adSoyad)}</span></div>`;
+    html += `<div class="cikti-ozet-row"><strong>Cep Tel:</strong><span>${val(veri.anne.cepTel)}</span></div>`;
+    html += `<div class="cikti-ozet-row"><strong>E-Posta:</strong><span>${val(veri.anne.eposta)}</span></div>`;
+  }
+
+  if (veri.goster.baba) {
+    html += `<div class="cikti-ozet-baslik">Baba</div>`;
+    html += `<div class="cikti-ozet-row"><strong>Ad Soyad:</strong><span>${val(veri.baba.adSoyad)}</span></div>`;
+    html += `<div class="cikti-ozet-row"><strong>Cep Tel:</strong><span>${val(veri.baba.cepTel)}</span></div>`;
+    html += `<div class="cikti-ozet-row"><strong>E-Posta:</strong><span>${val(veri.baba.eposta)}</span></div>`;
+  }
+
+  if (veri.goster.vasi && (veri.vasi.adSoyad || veri.vasi.tcKimlik)) {
+    html += `<div class="cikti-ozet-baslik">Vasi</div>`;
+    html += `<div class="cikti-ozet-row"><strong>Ad Soyad:</strong><span>${val(veri.vasi.adSoyad)}</span></div>`;
+    html += `<div class="cikti-ozet-row"><strong>Cep Tel:</strong><span>${val(veri.vasi.cepTel)}</span></div>`;
+  }
+
+  html += `<div class="cikti-ozet-baslik">Ödeme</div>`;
+  html += `<div class="cikti-ozet-row"><strong>Aylık Aidat:</strong><span>${formatTL(veri.odeme.aylikAidat)}</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>Yıllık (Aidat):</strong><span>${formatTL(veri.odeme.yillikAidat)} (${veri.odeme.taksit} ay)</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>Diğer Ücretler:</strong><span>${formatTL(veri.odeme.digerToplam)}</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>GENEL TOPLAM:</strong><span style="color:var(--green-deep);font-weight:700;">${formatTL(veri.odeme.genelToplam)}</span></div>`;
+  if (veri.odeme.pesinOdeme) html += `<div class="cikti-ozet-row"><strong>Ödeme Şekli:</strong><span>✓ Peşin (%10 indirim)</span></div>`;
+  else html += `<div class="cikti-ozet-row"><strong>Ödeme Şekli:</strong><span>${veri.odeme.taksit} Taksit</span></div>`;
+
+  if (veri.ozelMaddeler.length > 0) {
+    html += `<div class="cikti-ozet-baslik">Özel Maddeler (${veri.ozelMaddeler.length})</div>`;
+    veri.ozelMaddeler.forEach((m, i) => {
+      const tipIcon = m.tip === "istisna" ? "× İstisna" : "+ Ek";
+      html += `<div class="cikti-ozet-row"><strong>${tipIcon}:</strong><span>${escapeHtml(m.metin)}</span></div>`;
+    });
+  }
+
+  html += `<div class="cikti-ozet-baslik">Sözleşme</div>`;
+  html += `<div class="cikti-ozet-row"><strong>Tarih:</strong><span>${formatTarih(veri.imza.tarih)}</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>İmzalayan:</strong><span>${veri.imza.imzalayan}</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>Sözleşme v:</strong><span>${veri.sablon?.versiyon || "—"} / ${AKTIF_DONEM}</span></div>`;
+
+  div.innerHTML = html;
+}
+
+// ============ ÇIKTI — ORTAK SÖZLEŞME METNİ ÜRETİMİ ============
+function olusturSozlesmeMetni(veri) {
+  const bolumler = [];
+
+  bolumler.push({ tip: "baslik", metin: "T.C.\nMİLLÎ EĞİTİM BAKANLIĞI\nÖZEL ÖĞRETİM KURUMLARI GENEL MÜDÜRLÜĞÜ\nÖĞRENCİ KAYIT SÖZLEŞMESİ\n(ÖZEL OKULLAR)" });
+  bolumler.push({ tip: "okul", metin: `Özel Okul Adı: ${veri.okul.adi}` });
+
+  const ogrRows = [
+    ["T.C. Kimlik No", veri.ogrenci.tcKimlik],
+    ["Adı ve Soyadı", veri.ogrenci.adSoyad],
+    ["Doğum Tarihi", formatTarih(veri.ogrenci.dogumTarihi)],
+    ["Veli/Vasi Adı ve Soyadı", veri.anne.adSoyad || veri.baba.adSoyad || veri.vasi.adSoyad],
+    ["Sınıfı", veri.ogrenci.sinif],
+    ["Okula kayıt/nakil tarihi", formatTarih(veri.ogrenci.okulaKayitTarihi)],
+    ["Ev adresi", veri.ogrenci.evAdresi]
+  ];
+  bolumler.push({ tip: "tablo", baslik: "ÖĞRENCİNİN BİLGİLERİ", satirlar: ogrRows });
+
+  if (veri.goster.anne) {
+    const anneRows = [
+      ["T.C. Kimlik No", veri.anne.tcKimlik],
+      ["Adı ve Soyadı", veri.anne.adSoyad],
+      ["Mesleği", veri.anne.meslek],
+      ["Cep telefonu", veri.anne.cepTel],
+      ["İş telefonu", veri.anne.isTel],
+      ["Ev adresi", veri.anne.evAdresi || veri.ogrenci.evAdresi],
+      ["İş adresi", veri.anne.isAdresi],
+      ["e-Posta", veri.anne.eposta]
+    ];
+    bolumler.push({ tip: "tablo", baslik: "ÖĞRENCİNİN ANNE BİLGİLERİ", satirlar: anneRows });
+  }
+
+  if (veri.goster.baba) {
+    const babaRows = [
+      ["T.C. Kimlik No", veri.baba.tcKimlik],
+      ["Adı ve Soyadı", veri.baba.adSoyad],
+      ["Mesleği", veri.baba.meslek],
+      ["Cep telefonu", veri.baba.cepTel],
+      ["İş telefonu", veri.baba.isTel],
+      ["Ev adresi", veri.baba.evAdresi || veri.ogrenci.evAdresi],
+      ["İş adresi", veri.baba.isAdresi],
+      ["e-Posta", veri.baba.eposta]
+    ];
+    bolumler.push({ tip: "tablo", baslik: "ÖĞRENCİNİN BABA BİLGİLERİ", satirlar: babaRows });
+  }
+
+  if (veri.goster.vasi && (veri.vasi.adSoyad || veri.vasi.tcKimlik)) {
+    const vasiRows = [
+      ["T.C. Kimlik No", veri.vasi.tcKimlik],
+      ["Adı ve Soyadı", veri.vasi.adSoyad],
+      ["Mesleği", veri.vasi.meslek],
+      ["Cep telefonu", veri.vasi.cepTel],
+      ["Ev telefonu", veri.vasi.evTel],
+      ["İş telefonu", veri.vasi.isTel],
+      ["Ev adresi", veri.vasi.evAdresi],
+      ["İş adresi", veri.vasi.isAdresi],
+      ["e-Posta", veri.vasi.eposta]
+    ];
+    bolumler.push({ tip: "tablo", baslik: "ÖĞRENCİNİN VASİ BİLGİLERİ", satirlar: vasiRows });
+  }
+
+  if (veri.goster.saglik && (veri.ogrenci.kanGrubu || veri.ogrenci.gidaAlerji || veri.ogrenci.ilacAlerji || veri.ogrenci.kronikHastalik)) {
+    const saglikRows = [
+      ["Kan Grubu", veri.ogrenci.kanGrubu],
+      ["Gıda Alerjileri", veri.ogrenci.gidaAlerji],
+      ["İlaç/Diğer Alerjiler", veri.ogrenci.ilacAlerji],
+      ["Kronik Hastalık", veri.ogrenci.kronikHastalik],
+      ["Özel Beslenme", veri.ogrenci.ozelBeslenme],
+      ["Sağlık Notu", veri.ogrenci.saglikNot]
+    ].filter(r => r[1]);
+    if (saglikRows.length > 0) {
+      bolumler.push({ tip: "tablo", baslik: "ÖĞRENCİNİN SAĞLIK BİLGİLERİ", satirlar: saglikRows });
+    }
+  }
+
+  if (veri.goster.acildurum && (veri.acil.yakin1.adSoyad || veri.acil.yakin2.adSoyad)) {
+    const acilRows = [];
+    if (veri.acil.yakin1.adSoyad) {
+      acilRows.push(["1. Yakın Ad Soyad", veri.acil.yakin1.adSoyad]);
+      acilRows.push(["1. Yakın Yakınlık", veri.acil.yakin1.yakinlik]);
+      acilRows.push(["1. Yakın Telefon", veri.acil.yakin1.telefon]);
+    }
+    if (veri.acil.yakin2.adSoyad) {
+      acilRows.push(["2. Yakın Ad Soyad", veri.acil.yakin2.adSoyad]);
+      acilRows.push(["2. Yakın Yakınlık", veri.acil.yakin2.yakinlik]);
+      acilRows.push(["2. Yakın Telefon", veri.acil.yakin2.telefon]);
+    }
+    bolumler.push({ tip: "tablo", baslik: "ACİL DURUM YAKINLARI", satirlar: acilRows });
+  }
+
+  const o = veri.odeme;
+  const odemeRows = [
+    ["Öğrenim Ücreti (Yıllık)", formatTL(o.yillikAidat)],
+    ["Öğrenci Kıyafeti ve Kıyafet Ücreti", formatTL(o.digerUcretler.okulKiyafeti + o.digerUcretler.ormanKiyafeti)],
+    ["Kitap/Eğitim Materyali Ücreti", formatTL(o.digerUcretler.egitimMateryali)],
+    ["Servis Ücreti (Dönemlik)", formatTL(o.digerUcretler.servis1 + o.digerUcretler.servis2)],
+    ["ÜCRETLER TOPLAMI", formatTL(o.genelToplam)],
+    ["Ödeme Şekli", o.pesinOdeme ? "( x ) Peşin   ( ) Taksit" : "( ) Peşin   ( x ) Taksit"]
+  ];
+  if (!o.pesinOdeme) {
+    odemeRows.push(["Taksit Sayısı ve Tutarı", `${o.taksit} taksit × ${formatTL(o.aylikAidat)}`]);
+  }
+  odemeRows.push(["Eğitim Bursu Alıyor Mu?", o.burs ? `( x ) Evet   ( ) Hayır   %${o.bursYuzde}` : "( ) Evet   ( x ) Hayır"]);
+  if (o.indirimOrani > 0) {
+    odemeRows.push(["İndirim Yapıldı Mı?", "( x ) Evet   ( ) Hayır"]);
+    odemeRows.push(["İndirim Nedeni", `%${o.indirimOrani} — ${o.indirimNedeni || "Belirtilmemiş"}`]);
+  } else {
+    odemeRows.push(["İndirim Yapıldı Mı?", "( ) Evet   ( x ) Hayır"]);
+  }
+  bolumler.push({ tip: "tablo", baslik: `ÖDEME BİLGİLERİ (${veri.okul.donem} Öğretim Yılı İçin)`, satirlar: odemeRows });
+
+  if (veri.sablon?.genelHususlar?.length) {
+    bolumler.push({ tip: "madde-baslik", metin: "GENEL HUSUSLAR" });
+    veri.sablon.genelHususlar.forEach((m, i) => {
+      bolumler.push({ tip: "madde", no: i + 1, metin: m });
+    });
+  }
+
+  if (veri.sablon?.ozelHususlar?.length) {
+    bolumler.push({ tip: "madde-baslik", metin: "ÖZEL HUSUSLAR" });
+    let donemStr = veri.okul.donem.replace("-", " - ");
+    veri.sablon.ozelHususlar.forEach((m, i) => {
+      let metin = m.replace(/\[DÖNEM_BASLANGIC\]/g, donemStr.split(" - ")[0])
+                   .replace(/\[DÖNEM_BITIS\]/g, donemStr.split(" - ")[1]);
+      bolumler.push({ tip: "madde", no: i + 1, metin: metin });
+    });
+  }
+
+  if (veri.ozelMaddeler?.length) {
+    bolumler.push({ tip: "madde-baslik", metin: "BU ÖĞRENCİYE ÖZEL MADDELER" });
+    veri.ozelMaddeler.forEach((m, i) => {
+      const prefix = m.tip === "istisna" ? "[İstisna] " : "[Ek Madde] ";
+      bolumler.push({ tip: "madde", no: i + 1, metin: prefix + m.metin });
+    });
+  }
+
+  if (veri.sablon?.genelIhtiyacMetin) {
+    let metin = veri.sablon.genelIhtiyacMetin.replace(/\[YARI_DONEM_UCRET\]/g, formatTL(veri.odeme.yariDonemUcret).replace(" TL", ""));
+    bolumler.push({ tip: "madde-baslik", metin: "GENEL İHTİYAÇ LİSTESİ" });
+    bolumler.push({ tip: "paragraf", metin: metin });
+  }
+
+  bolumler.push({
+    tip: "imza",
+    tarih: formatTarih(veri.imza.tarih),
+    imzalayan: veri.imza.imzalayan
+  });
+
+  return bolumler;
+}
+
+// ============ PDF ÜRETİM ============
+window.sozlesmeCiktiPDF = async function() {
+  try {
+    showToast("PDF hazırlanıyor...");
+    const veri = toplaSozlesmeVerisi();
+    if (!veri) { showToast("Veri alınamadı", "error"); return; }
+    if (!veri.sablon) { showToast("Önce sözleşme şablonunu yükleyin", "error"); return; }
+
+    const bolumler = olusturSozlesmeMetni(veri);
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentW = pageW - (margin * 2);
+    let y = margin;
+
+    const newPageIfNeeded = (needed) => {
+      if (y + needed > pageH - margin) {
+        pdf.addPage();
+        y = margin;
+      }
+    };
+
+    for (const b of bolumler) {
+      if (b.tip === "baslik") {
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(12);
+        const lines = b.metin.split("\n");
+        for (const line of lines) {
+          newPageIfNeeded(6);
+          pdf.text(line, pageW / 2, y, { align: "center" });
+          y += 5;
+        }
+        y += 2;
+      } else if (b.tip === "okul") {
+        newPageIfNeeded(10);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.text(b.metin, margin, y);
+        y += 8;
+      } else if (b.tip === "tablo") {
+        newPageIfNeeded(15);
+        pdf.autoTable({
+          startY: y,
+          head: [[{ content: b.baslik, colSpan: 2, styles: { halign: "center", fillColor: [230, 230, 230], textColor: 20, fontStyle: "bold" } }]],
+          body: b.satirlar.map(r => [r[0], r[1] || ""]),
+          theme: "grid",
+          styles: { font: "helvetica", fontSize: 9, cellPadding: 2, overflow: "linebreak" },
+          columnStyles: { 0: { cellWidth: 55, fontStyle: "bold" }, 1: { cellWidth: contentW - 55 } },
+          margin: { left: margin, right: margin }
+        });
+        y = pdf.lastAutoTable.finalY + 5;
+      } else if (b.tip === "madde-baslik") {
+        newPageIfNeeded(10);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.text(b.metin, pageW / 2, y, { align: "center" });
+        y += 6;
+      } else if (b.tip === "madde") {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        const prefix = `${b.no}. `;
+        const wrapped = pdf.splitTextToSize(prefix + b.metin, contentW);
+        newPageIfNeeded(wrapped.length * 4 + 2);
+        pdf.text(wrapped, margin, y);
+        y += wrapped.length * 4 + 2;
+      } else if (b.tip === "paragraf") {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        const wrapped = pdf.splitTextToSize(b.metin, contentW);
+        newPageIfNeeded(wrapped.length * 4 + 4);
+        pdf.text(wrapped, margin, y);
+        y += wrapped.length * 4 + 4;
+      } else if (b.tip === "imza") {
+        newPageIfNeeded(40);
+        y += 10;
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10);
+        pdf.text(`İşbu sözleşme ${b.tarih || "..../..../........"} tarihinde iki nüsha olarak düzenlenmiş ve imza altına alınmıştır.`, margin, y, { maxWidth: contentW });
+        y += 15;
+        pdf.text(`Öğrenci velisi/vasisinin`, margin + 20, y);
+        pdf.text(`Kurumun`, pageW - margin - 50, y);
+        y += 5;
+        pdf.text(`(${b.imzalayan})`, margin + 20, y);
+        pdf.text(`(Kaşe, Mühür ve Yetkilinin İmzası)`, pageW - margin - 50, y);
+        y += 20;
+        pdf.text("Adı Soyadı ve İmzası: __________________", margin, y);
+      }
+    }
+
+    const totalPages = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(120);
+      pdf.text(`Sayfa ${i} / ${totalPages}`, pageW / 2, pageH - 8, { align: "center" });
+      pdf.text(`${veri.okul.adi} • ${veri.okul.donem} • Sözleşme v${veri.sablon?.versiyon || "1"}`, margin, pageH - 8);
+    }
+
+    const dosyaAdi = `Sozlesme_${(veri.ogrenci.adSoyad || "ogrenci").replace(/[^a-zA-Z0-9ğüşöçıİĞÜŞÖÇ]/g, "_")}_${veri.okul.donem}.pdf`;
+    pdf.save(dosyaAdi);
+
+    showToast("✓ PDF indirildi");
+  } catch (e) {
+    console.error(e);
+    showToast("PDF hatası: " + e.message, "error");
+  }
+};
+
+// ============ WORD ÜRETİM ============
+window.sozlesmeCiktiWord = async function() {
+  try {
+    showToast("Word dosyası hazırlanıyor...");
+    const veri = toplaSozlesmeVerisi();
+    if (!veri) { showToast("Veri alınamadı", "error"); return; }
+    if (!veri.sablon) { showToast("Önce sözleşme şablonunu yükleyin", "error"); return; }
+
+    const bolumler = olusturSozlesmeMetni(veri);
+    const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Packer } = docx;
+
+    const children = [];
+
+    for (const b of bolumler) {
+      if (b.tip === "baslik") {
+        b.metin.split("\n").forEach(line => {
+          children.push(new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text: line, bold: true, size: 24 })]
+          }));
+        });
+        children.push(new Paragraph({ text: "" }));
+      } else if (b.tip === "okul") {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: b.metin, bold: true, size: 22 })]
+        }));
+        children.push(new Paragraph({ text: "" }));
+      } else if (b.tip === "tablo") {
+        children.push(new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: b.baslik, bold: true, size: 20 })]
+        }));
+        const rows = b.satirlar.map(r => new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 35, type: WidthType.PERCENTAGE },
+              children: [new Paragraph({ children: [new TextRun({ text: r[0] || "", bold: true, size: 18 })] })]
+            }),
+            new TableCell({
+              width: { size: 65, type: WidthType.PERCENTAGE },
+              children: [new Paragraph({ children: [new TextRun({ text: r[1] || "", size: 18 })] })]
+            })
+          ]
+        }));
+        children.push(new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: rows
+        }));
+        children.push(new Paragraph({ text: "" }));
+      } else if (b.tip === "madde-baslik") {
+        children.push(new Paragraph({ text: "" }));
+        children.push(new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: b.metin, bold: true, size: 22 })]
+        }));
+      } else if (b.tip === "madde") {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `${b.no}. ${b.metin}`, size: 18 })]
+        }));
+      } else if (b.tip === "paragraf") {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: b.metin, size: 18 })]
+        }));
+      } else if (b.tip === "imza") {
+        children.push(new Paragraph({ text: "" }));
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `İşbu sözleşme ${b.tarih || "..../..../........"} tarihinde iki nüsha olarak düzenlenmiş ve imza altına alınmıştır.`, size: 20 })]
+        }));
+        children.push(new Paragraph({ text: "" }));
+        children.push(new Paragraph({ text: "" }));
+        children.push(new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: {
+            top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
+            left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
+            insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }
+          },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                  children: [
+                    new Paragraph({ children: [new TextRun({ text: "Öğrenci velisi/vasisinin", bold: true, size: 18 })] }),
+                    new Paragraph({ children: [new TextRun({ text: `(${b.imzalayan})`, size: 18 })] }),
+                    new Paragraph({ text: "" }), new Paragraph({ text: "" }),
+                    new Paragraph({ children: [new TextRun({ text: "Adı Soyadı ve İmzası:", size: 18 })] }),
+                    new Paragraph({ children: [new TextRun({ text: "_______________________", size: 18 })] })
+                  ]
+                }),
+                new TableCell({
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                  children: [
+                    new Paragraph({ children: [new TextRun({ text: "Kurumun", bold: true, size: 18 })] }),
+                    new Paragraph({ children: [new TextRun({ text: "(Kaşe, Mühür ve Yetkilinin İmzası)", size: 18 })] }),
+                    new Paragraph({ text: "" }), new Paragraph({ text: "" }),
+                    new Paragraph({ children: [new TextRun({ text: "_______________________", size: 18 })] })
+                  ]
+                })
+              ]
+            })
+          ]
+        }));
+      }
+    }
+
+    const doc = new Document({ sections: [{ children: children }] });
+    const blob = await Packer.toBlob(doc);
+    const dosyaAdi = `Sozlesme_${(veri.ogrenci.adSoyad || "ogrenci").replace(/[^a-zA-Z0-9ğüşöçıİĞÜŞÖÇ]/g, "_")}_${veri.okul.donem}.docx`;
+    saveAs(blob, dosyaAdi);
+
+    showToast("✓ Word dosyası indirildi");
+  } catch (e) {
+    console.error(e);
+    showToast("Word hatası: " + e.message, "error");
+  }
+};
+
+// ============ ÖNİZLEME ============
+window.sozlesmeCiktiOnizleme = function() {
+  try {
+    const veri = toplaSozlesmeVerisi();
+    if (!veri) { showToast("Veri alınamadı", "error"); return; }
+    if (!veri.sablon) { showToast("Önce sözleşme şablonunu yükleyin", "error"); return; }
+
+    const bolumler = olusturSozlesmeMetni(veri);
+
+    let html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
+<title>Sözleşme Önizleme - ${escapeHtml(veri.ogrenci.adSoyad || "")}</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:800px;margin:20px auto;padding:30px;background:white;color:#222;line-height:1.5;}
+.baslik{text-align:center;font-weight:bold;font-size:14px;margin:20px 0;white-space:pre-line;}
+.okul{font-weight:bold;margin:14px 0;font-size:14px;}
+.tablo-baslik{text-align:center;font-weight:bold;background:#e5e5e5;padding:6px;font-size:13px;border:1px solid #999;}
+table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px;}
+td{border:1px solid #999;padding:5px 8px;vertical-align:top;}
+td.label{width:35%;font-weight:bold;background:#f8f8f8;}
+.madde-baslik{text-align:center;font-weight:bold;font-size:13px;margin:18px 0 10px;}
+.madde{font-size:12px;margin-bottom:6px;text-align:justify;}
+.paragraf{font-size:12px;margin:6px 0;text-align:justify;}
+.imza{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:40px;font-size:12px;}
+.imza div{padding:10px;}
+.imza strong{display:block;margin-bottom:30px;}
+.yazdir-btn{position:fixed;top:20px;right:20px;padding:12px 24px;background:#2d6a4f;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;}
+@media print{.yazdir-btn{display:none;}}
+</style></head><body>
+<button class="yazdir-btn" onclick="window.print()">🖨️ Yazdır</button>`;
+
+    for (const b of bolumler) {
+      if (b.tip === "baslik") {
+        html += `<div class="baslik">${escapeHtml(b.metin)}</div>`;
+      } else if (b.tip === "okul") {
+        html += `<div class="okul">${escapeHtml(b.metin)}</div>`;
+      } else if (b.tip === "tablo") {
+        html += `<div class="tablo-baslik">${escapeHtml(b.baslik)}</div>`;
+        html += `<table>`;
+        b.satirlar.forEach(r => {
+          html += `<tr><td class="label">${escapeHtml(r[0] || "")}</td><td>${escapeHtml(r[1] || "")}</td></tr>`;
+        });
+        html += `</table>`;
+      } else if (b.tip === "madde-baslik") {
+        html += `<div class="madde-baslik">${escapeHtml(b.metin)}</div>`;
+      } else if (b.tip === "madde") {
+        html += `<div class="madde"><strong>${b.no}.</strong> ${escapeHtml(b.metin)}</div>`;
+      } else if (b.tip === "paragraf") {
+        html += `<div class="paragraf">${escapeHtml(b.metin)}</div>`;
+      } else if (b.tip === "imza") {
+        html += `<div class="madde" style="margin-top:20px;">İşbu sözleşme <strong>${escapeHtml(b.tarih || "..../..../........")}</strong> tarihinde iki nüsha olarak düzenlenmiş ve imza altına alınmıştır.</div>`;
+        html += `<div class="imza">
+          <div><strong>Öğrenci velisi/vasisinin</strong>(${escapeHtml(b.imzalayan)})<br><br>Adı Soyadı ve İmzası:<br>_______________________</div>
+          <div><strong>Kurumun</strong>(Kaşe, Mühür ve Yetkilinin İmzası)<br><br><br>_______________________</div>
+        </div>`;
+      }
+    }
+
+    html += `</body></html>`;
+
+    const yeniPencere = window.open("", "_blank");
+    if (yeniPencere) {
+      yeniPencere.document.write(html);
+      yeniPencere.document.close();
+    } else {
+      showToast("Tarayıcı pop-up'ı engelledi. Lütfen izin verin.", "error");
+    }
+  } catch (e) {
+    console.error(e);
+    showToast("Önizleme hatası: " + e.message, "error");
   }
 };
 
