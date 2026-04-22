@@ -1204,6 +1204,250 @@ html, body {
   font-weight: 500;
 }
 
+/* ============ AYLIK ÖDEME TAKİBİ ============ */
+.aylik-ozet-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+
+.aylik-ozet-karti {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  border: 1.5px solid var(--gray-100);
+}
+
+.aylik-ozet-odenen { background: var(--green-mist); border-color: var(--green-light); }
+.aylik-ozet-kalan { background: #fef9c3; border-color: #fde68a; }
+.aylik-ozet-yuzde { background: #dbeafe; border-color: #93c5fd; }
+.aylik-ozet-gecikmis { background: #fef2f2; border-color: #fca5a5; }
+
+.aylik-ozet-numara {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+  margin-bottom: 3px;
+}
+
+.aylik-ozet-odenen .aylik-ozet-numara { color: var(--green-deep); }
+.aylik-ozet-kalan .aylik-ozet-numara { color: #92400e; }
+.aylik-ozet-yuzde .aylik-ozet-numara { color: #1e40af; }
+.aylik-ozet-gecikmis .aylik-ozet-numara { color: #991b1b; }
+
+.aylik-ozet-label {
+  font-size: 10px;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.aylik-islem-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.aylik-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .aylik-grid { grid-template-columns: 1fr 1fr; }
+  .aylik-ozet-row { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .aylik-grid { grid-template-columns: 1fr; }
+}
+
+.aylik-karti {
+  background: white;
+  border: 1.5px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  transition: all 0.15s;
+}
+
+.aylik-karti.odendi {
+  background: var(--green-mist);
+  border-color: var(--green-light);
+}
+
+.aylik-karti.kismi {
+  background: #fef9c3;
+  border-color: #fde68a;
+}
+
+.aylik-karti.bekliyor {
+  background: var(--cream);
+  border-color: var(--gray-300);
+}
+
+.aylik-karti.gecikmis {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.aylik-karti.kapali {
+  background: var(--gray-100);
+  border-color: var(--gray-300);
+  opacity: 0.5;
+}
+
+.aylik-ay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.aylik-ay-isim {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.aylik-ay-rozet {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.aylik-ay-rozet.odendi { background: #d1fae5; color: #065f46; }
+.aylik-ay-rozet.kismi { background: #fef3c7; color: #92400e; }
+.aylik-ay-rozet.bekliyor { background: var(--gray-100); color: var(--gray-500); }
+.aylik-ay-rozet.gecikmis { background: #fee2e2; color: #991b1b; }
+.aylik-ay-rozet.kapali { background: #e5e7eb; color: #6b7280; }
+
+.aylik-tutar-row {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.aylik-tutar-row strong {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.aylik-input-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.aylik-input-row input {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-body);
+}
+
+.aylik-input-row input[type="number"] {
+  max-width: 100px;
+}
+
+.aylik-input-row input[type="date"] {
+  max-width: 130px;
+}
+
+.aylik-input-row select {
+  padding: 5px 8px;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-body);
+  flex: 1;
+  max-width: 120px;
+}
+
+.aylik-aksiyon-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.aylik-aksiyon-btn {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--gray-300);
+  background: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--gray-500);
+  transition: all 0.1s;
+}
+
+.aylik-aksiyon-btn:hover {
+  background: var(--green-mist);
+  border-color: var(--green-light);
+  color: var(--green-deep);
+}
+
+.aylik-aksiyon-btn.active {
+  background: var(--green-primary);
+  color: white;
+  border-color: var(--green-primary);
+}
+
+.aylik-aksiyon-btn.danger:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+/* Ana tabloda ödeme yüzdesi bar'ı */
+.odeme-yuzde-bar {
+  width: 100px;
+  height: 6px;
+  background: var(--gray-100);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.odeme-yuzde-dolu {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green-primary), var(--green-medium));
+  transition: width 0.3s;
+}
+
+.odeme-yuzde-dolu.kismi {
+  background: linear-gradient(90deg, #fcd34d, #f59e0b);
+}
+
+.odeme-yuzde-dolu.gecikmis {
+  background: linear-gradient(90deg, #f87171, #dc2626);
+}
+
+.odeme-yuzde-text {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-top: 2px;
+}
+
 .filter-chip {
   padding: 8px 14px;
   background: var(--warm-white);
@@ -2843,6 +3087,7 @@ html, body {
         <button class="filter-chip" data-filter="m3">Montessori 3</button>
         <button class="filter-chip" data-filter="tamgun">Tam Gün</button>
         <button class="filter-chip" data-filter="yarimgun">Yarım Gün</button>
+        <button class="filter-chip" data-filter="gecikmis" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;">💰 Gecikmiş</button>
       </div>
 
       <div class="ogrenci-table" id="ogrenciTableWrap">
@@ -3821,6 +4066,45 @@ html, body {
         </div>
       </div>
 
+      <!-- ============ AYLIK ÖDEME TAKİBİ ============ -->
+      <div class="section-divider">
+        <div>
+          <h3 class="section-title">💰 Aylık Ödeme Takibi</h3>
+          <div class="section-subtitle">Her ay için ödeme durumu, tarih ve tutar takibi</div>
+        </div>
+      </div>
+
+      <div id="aylikOdemeWrap">
+        <div class="aylik-ozet-row">
+          <div class="aylik-ozet-karti aylik-ozet-odenen">
+            <div class="aylik-ozet-numara" id="aylikOzetOdenen">0 TL</div>
+            <div class="aylik-ozet-label">TOPLAM ÖDENEN</div>
+          </div>
+          <div class="aylik-ozet-karti aylik-ozet-kalan">
+            <div class="aylik-ozet-numara" id="aylikOzetKalan">0 TL</div>
+            <div class="aylik-ozet-label">KALAN</div>
+          </div>
+          <div class="aylik-ozet-karti aylik-ozet-yuzde">
+            <div class="aylik-ozet-numara" id="aylikOzetYuzde">%0</div>
+            <div class="aylik-ozet-label">TAMAMLANMA</div>
+          </div>
+          <div class="aylik-ozet-karti aylik-ozet-gecikmis">
+            <div class="aylik-ozet-numara" id="aylikOzetGecikmis">0</div>
+            <div class="aylik-ozet-label">GECİKMİŞ AY</div>
+          </div>
+        </div>
+
+        <div class="aylik-islem-row">
+          <button class="btn-mini" onclick="aylikToplu('tumu')" type="button">✓ Tümünü Ödendi İşaretle</button>
+          <button class="btn-mini" onclick="aylikToplu('gecmis')" type="button">📅 Bugüne Kadar Ödendi</button>
+          <button class="btn-mini" onclick="aylikToplu('sifirla')" type="button">🔄 Tümünü Sıfırla</button>
+        </div>
+
+        <div class="aylik-grid" id="aylikGrid">
+          <!-- 12 ay kartı JS ile doldurulacak -->
+        </div>
+      </div>
+
       <!-- Notlar -->
       <div class="form-grid full">
         <div class="form-group">
@@ -4471,6 +4755,18 @@ function renderTable() {
     if (activeFilter === "m3") return (o.sinif || "").includes("3");
     if (activeFilter === "tamgun") return guncelProgram === "Tam Gün";
     if (activeFilter === "yarimgun") return guncelProgram === "Yarım Gün";
+    if (activeFilter === "gecikmis") {
+      // Gecikmiş ayı olan öğrencileri filtrele
+      if (!ayar || !ayar.aidatAyarlari || !ayar.aidatAyarlari.baslangicAyi || ayar.aidatAyarlari.pesinOdeme) return false;
+      const ayListesi = getAyListesi(ayar.aidatAyarlari.baslangicAyi, ayar.aidatAyarlari.gercekAySayisi || ayar.aidatAyarlari.taksitSayisi);
+      const aylikOdemeler = ayar.aylikOdemeler || {};
+      for (const ay of ayListesi) {
+        const od = aylikOdemeler[ay.ayKod];
+        const durum = getOdemeDurumu(ay, od, ayar.aidatAyarlari.aylikAidat);
+        if (durum === "gecikmis") return true;
+      }
+      return false;
+    }
     return true;
   });
   
@@ -4487,7 +4783,7 @@ function renderTable() {
           <th class="hide-mobile">Sınıf</th>
           <th class="hide-mobile">Program</th>
           <th>Aylık Aidat</th>
-          <th>Toplam Beklenen</th>
+          <th>Ödeme</th>
           <th>Durum</th>
           <th style="width:40px;"></th>
         </tr>
@@ -4507,7 +4803,49 @@ function renderTable() {
     const programClass = program === "Tam Gün" ? "badge-tam" : program === "Yarım Gün" ? "badge-yarim" : "badge-muted";
     
     const aidatTxt = hasAyar ? `${ayar.aidatAyarlari.aylikAidat.toLocaleString("tr-TR")} TL` : "—";
-    const toplamTxt = hasAyar ? `${(ayar.aidatAyarlari.toplamBeklenen || 0).toLocaleString("tr-TR")} TL` : "—";
+
+    // Ödeme yüzdesi hesapla
+    let odemeYuzde = 0;
+    let odemeHucre = '<span style="color:var(--gray-500);">—</span>';
+    if (hasAyar) {
+      const aidatBeklenen = ayar.aidatAyarlari.toplamAidatBeklenen || (ayar.aidatAyarlari.aylikAidat * (ayar.aidatAyarlari.gercekAySayisi || ayar.aidatAyarlari.taksitSayisi));
+      const aylikOdemeler = ayar.aylikOdemeler || {};
+      let toplamOdenen = 0;
+      for (const k in aylikOdemeler) {
+        toplamOdenen += parseFloat(aylikOdemeler[k].odenenTutar) || 0;
+      }
+      odemeYuzde = aidatBeklenen > 0 ? Math.round((toplamOdenen / aidatBeklenen) * 100) : 0;
+
+      // Gecikmiş ay sayısını hesapla
+      let gecikmisSayi = 0;
+      if (ayar.aidatAyarlari.baslangicAyi && !ayar.aidatAyarlari.pesinOdeme) {
+        const ayListesi = getAyListesi(ayar.aidatAyarlari.baslangicAyi, ayar.aidatAyarlari.gercekAySayisi || ayar.aidatAyarlari.taksitSayisi);
+        for (const ay of ayListesi) {
+          const od = aylikOdemeler[ay.ayKod];
+          const durum = getOdemeDurumu(ay, od, ayar.aidatAyarlari.aylikAidat);
+          if (durum === "gecikmis") gecikmisSayi++;
+        }
+      }
+
+      let barClass = "";
+      if (gecikmisSayi > 0) barClass = "gecikmis";
+      else if (odemeYuzde < 100 && odemeYuzde > 0) barClass = "kismi";
+
+      const gecikmisIcon = gecikmisSayi > 0 ? ` <span style="color:#dc2626;font-weight:700;" title="${gecikmisSayi} geciken ay">⚠ ${gecikmisSayi}</span>` : "";
+
+      odemeHucre = `
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:120px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <strong>${Math.round(toplamOdenen).toLocaleString("tr-TR")} TL</strong>
+            <span style="color:var(--gray-500);">/ ${Math.round(aidatBeklenen).toLocaleString("tr-TR")}</span>
+          </div>
+          <div class="odeme-yuzde-bar">
+            <div class="odeme-yuzde-dolu ${barClass}" style="width:${Math.min(100, odemeYuzde)}%;"></div>
+          </div>
+          <div class="odeme-yuzde-text">%${odemeYuzde}${gecikmisIcon}</div>
+        </div>
+      `;
+    }
 
     const durum = getOgrenciDurum(o, ayar);
     const kaynak = getOgrenciKaynak(o, ayar);
@@ -4555,7 +4893,7 @@ function renderTable() {
         <td class="hide-mobile"><span class="badge ${sinifClass}">${sinif}</span></td>
         <td class="hide-mobile"><span class="badge ${programClass}">${program}</span></td>
         <td><strong>${aidatTxt}</strong></td>
-        <td>${toplamTxt}</td>
+        <td>${odemeHucre}</td>
         <td>${durumHucre}</td>
         <td style="width:40px;">${durumMenu}</td>
       </tr>
@@ -6687,6 +7025,251 @@ td.label { width: 35%; font-weight: bold; background: #f8f8f8; }
   }
 };
 
+// ============ AYLIK ÖDEME TAKİBİ ============
+// Türkçe ay isimleri
+const AY_ISIMLERI = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+];
+
+// Dönem başlangıç ayından itibaren taksit sayısı kadar ay listesi
+function getAyListesi(baslangicAyi, taksitSayisi) {
+  // baslangicAyi = "2025-09" gibi
+  if (!baslangicAyi) return [];
+  const [yil, ay] = baslangicAyi.split("-").map(n => parseInt(n));
+  const list = [];
+  for (let i = 0; i < taksitSayisi; i++) {
+    const date = new Date(yil, ay - 1 + i, 1);
+    list.push({
+      yil: date.getFullYear(),
+      ay: date.getMonth() + 1,
+      ayKod: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
+      isim: AY_ISIMLERI[date.getMonth()],
+      tam: `${AY_ISIMLERI[date.getMonth()]} ${date.getFullYear()}`
+    });
+  }
+  return list;
+}
+
+// Ödeme durumunu hesapla
+function getOdemeDurumu(ay, odeme, aylikAidat) {
+  if (!odeme || !odeme.odendi) {
+    // Henüz ödenmemiş
+    const bugun = new Date();
+    const ayBitis = new Date(ay.yil, ay.ay, 0); // ayın son günü
+    ayBitis.setDate(ayBitis.getDate() + 15); // 15 gün toleranslı
+    if (bugun > ayBitis) return "gecikmis";
+    return "bekliyor";
+  }
+  const odenenTutar = parseFloat(odeme.odenenTutar) || 0;
+  const beklenenTutar = parseFloat(odeme.beklenenTutar) || aylikAidat || 0;
+  if (odenenTutar >= beklenenTutar) return "odendi";
+  if (odenenTutar > 0) return "kismi";
+  return "bekliyor";
+}
+
+function renderAylikOdeme() {
+  const grid = document.getElementById("aylikGrid");
+  if (!grid) return;
+
+  const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
+  const taksit = parseInt(document.getElementById("ayarTaksit").value) || 12;
+  const baslangic = document.getElementById("ayarBaslangic").value;
+  const pesin = document.getElementById("ayarPesin").checked;
+
+  if (!baslangic || taksit <= 0) {
+    grid.innerHTML = '<div class="ozel-madde-empty">Aidat ve dönem başlangıcı girildikten sonra aylık ödeme takibi burada görünecek.</div>';
+    updateAylikOzet(0, 0, 0);
+    return;
+  }
+
+  if (aidat <= 0) {
+    grid.innerHTML = '<div class="ozel-madde-empty">Aylık aidat girildikten sonra aylık ödeme takibi burada görünecek.</div>';
+    updateAylikOzet(0, 0, 0);
+    return;
+  }
+
+  const ayListesi = getAyListesi(baslangic, taksit);
+  const mevcutOdemeler = (currentOgrenci && ayarListesi[currentOgrenci.id] &&
+                         ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
+
+  let html = "";
+  let toplamOdenen = 0;
+  let toplamBeklenen = 0;
+  let gecikmiSayisi = 0;
+
+  for (const ay of ayListesi) {
+    const odeme = mevcutOdemeler[ay.ayKod] || {};
+    const durum = pesin ? "odendi" : getOdemeDurumu(ay, odeme, aidat);
+    const odenenTutar = parseFloat(odeme.odenenTutar) || (pesin ? aidat : 0);
+    const beklenenTutar = parseFloat(odeme.beklenenTutar) || aidat;
+    const odemeTarihi = odeme.odemeTarihi || "";
+    const odemeSekli = odeme.odemeSekli || "";
+
+    toplamOdenen += odenenTutar;
+    toplamBeklenen += beklenenTutar;
+    if (durum === "gecikmis") gecikmiSayisi++;
+
+    const rozetMetni = {
+      odendi: "✓ Ödendi",
+      kismi: "◐ Kısmi",
+      bekliyor: "⏱ Bekliyor",
+      gecikmis: "⚠ Gecikmiş"
+    }[durum];
+
+    html += `
+      <div class="aylik-karti ${durum}" data-ay-kod="${ay.ayKod}">
+        <div class="aylik-ay-header">
+          <div class="aylik-ay-isim">${ay.tam}</div>
+          <span class="aylik-ay-rozet ${durum}">${rozetMetni}</span>
+        </div>
+        <div class="aylik-tutar-row">
+          <span>Beklenen:</span>
+          <strong>${beklenenTutar.toLocaleString("tr-TR")} TL</strong>
+        </div>
+        <div class="aylik-input-row">
+          <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
+                 min="0" step="100" data-alan="odenenTutar" data-ay="${ay.ayKod}"
+                 onchange="aylikDegisti('${ay.ayKod}', 'odenenTutar', this.value)">
+          <input type="date" value="${odemeTarihi}" data-alan="odemeTarihi" data-ay="${ay.ayKod}"
+                 onchange="aylikDegisti('${ay.ayKod}', 'odemeTarihi', this.value)">
+        </div>
+        <div class="aylik-input-row">
+          <select data-alan="odemeSekli" data-ay="${ay.ayKod}"
+                  onchange="aylikDegisti('${ay.ayKod}', 'odemeSekli', this.value)">
+            <option value="">Ödeme Şekli</option>
+            <option value="Havale/EFT" ${odemeSekli === "Havale/EFT" ? "selected" : ""}>Havale/EFT</option>
+            <option value="Kredi Kartı" ${odemeSekli === "Kredi Kartı" ? "selected" : ""}>Kredi Kartı</option>
+            <option value="Nakit" ${odemeSekli === "Nakit" ? "selected" : ""}>Nakit</option>
+            <option value="Çek/Senet" ${odemeSekli === "Çek/Senet" ? "selected" : ""}>Çek/Senet</option>
+          </select>
+        </div>
+        <div class="aylik-aksiyon-row">
+          <button class="aylik-aksiyon-btn ${durum === "odendi" ? "active" : ""}" type="button"
+                  onclick="aylikOdendiIsaretle('${ay.ayKod}')">✓ Ödendi</button>
+          <button class="aylik-aksiyon-btn danger" type="button"
+                  onclick="aylikSifirla('${ay.ayKod}')">✕ Sıfırla</button>
+        </div>
+      </div>
+    `;
+  }
+
+  grid.innerHTML = html;
+  updateAylikOzet(toplamOdenen, toplamBeklenen, gecikmiSayisi);
+}
+
+function updateAylikOzet(odenen, beklenen, gecikmis) {
+  const kalan = Math.max(0, beklenen - odenen);
+  const yuzde = beklenen > 0 ? Math.round((odenen / beklenen) * 100) : 0;
+
+  const odenenEl = document.getElementById("aylikOzetOdenen");
+  const kalanEl = document.getElementById("aylikOzetKalan");
+  const yuzdeEl = document.getElementById("aylikOzetYuzde");
+  const gecEl = document.getElementById("aylikOzetGecikmis");
+
+  if (odenenEl) odenenEl.textContent = Math.round(odenen).toLocaleString("tr-TR") + " TL";
+  if (kalanEl) kalanEl.textContent = Math.round(kalan).toLocaleString("tr-TR") + " TL";
+  if (yuzdeEl) yuzdeEl.textContent = "%" + yuzde;
+  if (gecEl) gecEl.textContent = gecikmis;
+}
+
+window.aylikDegisti = function(ayKod, alan, deger) {
+  if (!currentOgrenci) return;
+  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
+  if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
+  if (!ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod]) ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] = {};
+
+  ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod][alan] = deger;
+
+  // Otomatik "odendi" işaretle eğer ödenen >= beklenen ise
+  if (alan === "odenenTutar") {
+    const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
+    const odenen = parseFloat(deger) || 0;
+    ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod].odendi = odenen >= aidat;
+    ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod].beklenenTutar = aidat;
+  }
+
+  // Yeniden render et (özet ve renkler için)
+  renderAylikOdeme();
+};
+
+window.aylikOdendiIsaretle = function(ayKod) {
+  if (!currentOgrenci) return;
+  const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
+  if (aidat <= 0) {
+    showToast("Önce aylık aidat girilmelidir", "error");
+    return;
+  }
+
+  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
+  if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
+
+  const mevcut = ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] || {};
+  ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] = {
+    ...mevcut,
+    odendi: true,
+    odenenTutar: aidat,
+    beklenenTutar: aidat,
+    odemeTarihi: mevcut.odemeTarihi || new Date().toISOString().substring(0, 10)
+  };
+
+  renderAylikOdeme();
+};
+
+window.aylikSifirla = function(ayKod) {
+  if (!currentOgrenci) return;
+  if (!ayarListesi[currentOgrenci.id] || !ayarListesi[currentOgrenci.id].aylikOdemeler) return;
+
+  delete ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod];
+  renderAylikOdeme();
+};
+
+window.aylikToplu = function(tip) {
+  if (!currentOgrenci) return;
+  const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
+  const taksit = parseInt(document.getElementById("ayarTaksit").value) || 12;
+  const baslangic = document.getElementById("ayarBaslangic").value;
+
+  if (!baslangic || aidat <= 0) {
+    showToast("Önce aidat ve dönem başlangıcı girilmelidir", "error");
+    return;
+  }
+
+  if (tip === "sifirla") {
+    if (!confirm("Bu öğrencinin TÜM aylık ödeme kayıtlarını silmek istediğinize emin misiniz?")) return;
+    if (ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
+    renderAylikOdeme();
+    showToast("✓ Tüm ödemeler sıfırlandı");
+    return;
+  }
+
+  const ayListesi = getAyListesi(baslangic, taksit);
+  const bugun = new Date();
+
+  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
+  if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
+
+  let islemSayisi = 0;
+  for (const ay of ayListesi) {
+    const ayIlk = new Date(ay.yil, ay.ay - 1, 1);
+    const isPast = ayIlk <= bugun;
+
+    if (tip === "tumu" || (tip === "gecmis" && isPast)) {
+      ayarListesi[currentOgrenci.id].aylikOdemeler[ay.ayKod] = {
+        odendi: true,
+        odenenTutar: aidat,
+        beklenenTutar: aidat,
+        odemeTarihi: new Date().toISOString().substring(0, 10),
+        odemeSekli: "Havale/EFT"
+      };
+      islemSayisi++;
+    }
+  }
+
+  renderAylikOdeme();
+  showToast(`✓ ${islemSayisi} ay ödendi olarak işaretlendi`);
+};
+
 window.togglePesin = function() {
   const cb = document.getElementById("ayarPesin");
   cb.checked = !cb.checked;
@@ -6886,6 +7469,9 @@ function recalcTotals() {
 
   // Yıllık Toplam (aidat + diğer ücretler)
   document.getElementById("totalBeklenen").textContent = Math.round(yillikToplam).toLocaleString("tr-TR") + " TL";
+
+  // Aylık ödeme takibini güncelle
+  if (typeof renderAylikOdeme === "function") renderAylikOdeme();
 }
 
 // ============ KAYDET ============
@@ -7088,6 +7674,9 @@ window.saveAyarlar = async function() {
     guncellendi: new Date().toISOString()
   };
   
+  // Aylık ödemeleri local state'ten al (çünkü canlı düzenlenebilir)
+  const mevcutAylikOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
+
   const donemDoc = {
     donemYili: AKTIF_DONEM,
     aktif: true,
@@ -7103,7 +7692,7 @@ window.saveAyarlar = async function() {
     ilanUcretleri: ilanUcretleriData,
     sozlesme: sozlesmeData,
     sozlesmedeGoster: sozlesmedeGoster,
-    aylikOdemeler: {},
+    aylikOdemeler: mevcutAylikOdemeler,
     ekUcretler: {},
     notlar: notlar,
     olusturuldu: new Date().toISOString(),
@@ -7128,6 +7717,7 @@ window.saveAyarlar = async function() {
         ilanUcretleri: ilanUcretleriData,
         sozlesme: sozlesmeData,
         sozlesmedeGoster: sozlesmedeGoster,
+        aylikOdemeler: mevcutAylikOdemeler,
         notlar: notlar,
         guncellendi: new Date().toISOString()
       });
@@ -7141,6 +7731,7 @@ window.saveAyarlar = async function() {
     closeAyarModal();
     renderTable();
     updateStats();
+    updateDurumSayaclari();
   } catch (e) {
     console.error(e);
     showToast("Kaydedilemedi: " + e.message, "error");
