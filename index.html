@@ -3393,6 +3393,330 @@ html, body {
   .hide-mobile { display: none; }
   .modal { padding: 24px; }
 }
+
+/* ============ VELİ PANELİ ============ */
+#veliPanel { display: none; min-height: 100vh; background: var(--cream); }
+#veliPanel.active { display: block; }
+
+.veli-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+
+.veli-sidebar {
+  background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+  border-right: 1px solid var(--gray-300);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.veli-sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 16px 10px;
+  border-bottom: 1px solid var(--gray-300);
+  margin-bottom: 12px;
+}
+
+.veli-sidebar-logo img { height: 38px; }
+
+.veli-sidebar-logo-text { font-size: 12px; color: var(--gray-600); font-weight: 500; }
+
+.veli-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+}
+
+.veli-menu-item:hover { background: rgba(45, 106, 79, 0.08); }
+
+.veli-menu-item.active {
+  background: #2d6a4f;
+  color: #fef9c3;
+  font-weight: 500;
+}
+
+.veli-menu-icon { font-size: 16px; display: inline-block; width: 20px; text-align: center; }
+
+.veli-menu-spacer { flex: 1; }
+
+.veli-sidebar-bottom {
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-300);
+  margin-top: 12px;
+}
+
+.veli-main {
+  padding: 24px 32px;
+  overflow-x: hidden;
+}
+
+.veli-main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.veli-welcome-label { font-size: 12px; color: var(--gray-500); }
+.veli-welcome-name { font-size: 22px; font-weight: 500; font-family: var(--font-display); color: var(--gray-800); margin-top: 2px; }
+
+.veli-user-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.veli-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #facc15;
+  color: #422006;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.veli-student-hero {
+  background: linear-gradient(135deg, #2d6a4f 0%, #1b4332 100%);
+  border-radius: 16px;
+  padding: 22px 26px;
+  color: #fef9c3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.veli-student-hero::before {
+  content: "";
+  position: absolute;
+  top: -60%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.veli-student-info { position: relative; z-index: 1; }
+.veli-student-label { font-size: 11px; opacity: 0.8; letter-spacing: 1px; }
+.veli-student-name { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin: 4px 0; color: white; }
+.veli-student-meta { font-size: 13px; opacity: 0.9; }
+
+.veli-student-avatar {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: #facc15;
+  color: #422006;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 22px;
+  position: relative;
+  z-index: 1;
+}
+
+.veli-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.veli-stat-card {
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.veli-stat-label { font-size: 11px; color: var(--gray-500); letter-spacing: 0.5px; }
+.veli-stat-value { font-size: 22px; font-weight: 600; margin-top: 4px; font-family: var(--font-display); }
+
+.veli-stat-card.green .veli-stat-value { color: #15803d; }
+.veli-stat-card.yellow .veli-stat-value { color: #b45309; }
+.veli-stat-card.blue .veli-stat-value { color: #1e40af; }
+.veli-stat-card.red .veli-stat-value { color: #b91c1c; }
+
+.veli-card {
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+}
+
+.veli-card-title { font-size: 14px; font-weight: 600; color: var(--gray-800); margin-bottom: 10px; font-family: var(--font-display); }
+
+.veli-card-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.veli-tab-panel { display: none; }
+.veli-tab-panel.active { display: block; }
+
+.veli-placeholder {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--gray-500);
+}
+.veli-placeholder .ph-icon { font-size: 48px; margin-bottom: 12px; }
+.veli-placeholder h3 { color: var(--gray-700); font-family: var(--font-display); margin: 0 0 8px 0; }
+
+.veli-btn-primary {
+  padding: 10px 18px;
+  background: #facc15;
+  border: none;
+  color: #422006;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.veli-btn-primary:hover {
+  background: #eab308;
+  transform: translateY(-1px);
+}
+
+.veli-btn-secondary {
+  padding: 10px 18px;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.veli-btn-secondary:hover { background: var(--gray-200); }
+
+.veli-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.veli-magic-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+
+.veli-magic-input:focus {
+  outline: none;
+  border-color: #2d6a4f;
+}
+
+.veli-auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 18px 0;
+  color: var(--gray-500);
+  font-size: 12px;
+}
+.veli-auth-divider::before,
+.veli-auth-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--gray-300);
+}
+.veli-auth-divider::before { margin-right: 10px; }
+.veli-auth-divider::after { margin-left: 10px; }
+
+.veli-magic-btn {
+  width: 100%;
+  padding: 12px;
+  background: #2d6a4f;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  margin-bottom: 10px;
+}
+.veli-magic-btn:hover { background: #1b4332; }
+.veli-magic-btn:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+.veli-ogrenci-secici {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.veli-ogrenci-chip {
+  padding: 8px 14px;
+  background: white;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.veli-ogrenci-chip.active {
+  background: #2d6a4f;
+  color: #fef9c3;
+  border-color: #2d6a4f;
+}
+
+@media (max-width: 768px) {
+  .veli-layout {
+    grid-template-columns: 1fr;
+  }
+  .veli-sidebar {
+    position: relative;
+    height: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 10px;
+  }
+  .veli-sidebar-logo { display: none; }
+  .veli-menu-item { flex-shrink: 0; padding: 8px 12px; font-size: 12px; }
+  .veli-sidebar-bottom { display: none; }
+  .veli-main { padding: 16px; }
+  .veli-student-hero { padding: 16px 18px; }
+  .veli-student-name { font-size: 18px; }
+  .veli-student-avatar { width: 50px; height: 50px; font-size: 18px; }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -3528,6 +3852,13 @@ html, body {
       </svg>
       Google ile Devam Et
     </button>
+
+    <div class="veli-auth-divider">veya</div>
+
+    <p style="font-size:13px; color:var(--gray-600); margin-bottom:10px;">Google hesabınız yoksa, e-posta adresinize giriş bağlantısı gönderebiliriz:</p>
+    <input type="email" id="magicLinkEmail" class="veli-magic-input" placeholder="E-posta adresiniz (örn. veli@gmail.com)" autocomplete="email">
+    <button class="veli-magic-btn" id="magicLinkBtn" onclick="sendMagicLink()">✉️ Giriş Bağlantısı Gönder</button>
+    <div id="magicLinkMsg" style="display:none; padding:10px 14px; background:#dcfce7; border:1px solid #86efac; border-radius:10px; color:#166534; font-size:13px; margin-bottom:10px;"></div>
 
     <p class="info-text">
       Giriş yaparak <a href="#">Kullanım Koşulları</a>'nı ve <a href="#">Gizlilik Politikası</a>'nı kabul etmiş olursunuz.
@@ -3822,7 +4153,214 @@ html, body {
   </div>
 </div>
 
-<!-- ============ ÖĞRENCI AYAR MODALI ============ -->
+<!-- ============ VELI PANELİ ============ -->
+<div id="veliPanel">
+  <div class="veli-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="veli-sidebar">
+      <div class="veli-sidebar-logo">
+        <img src="https://yenikayit.bircicekkoleji.com/okul_logo.png" alt="Bir Çiçek Koleji" onerror="this.style.display='none'">
+        <div class="veli-sidebar-logo-text">Bir Çiçek Koleji<br>Veli Portalı</div>
+      </div>
+
+      <button class="veli-menu-item active" data-veli-tab="dashboard" onclick="veliSwitchTab('dashboard')">
+        <span class="veli-menu-icon">🏠</span><span>Dashboard</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="odemeler" onclick="veliSwitchTab('odemeler')">
+        <span class="veli-menu-icon">💰</span><span>Ödemeler</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="sozlesme" onclick="veliSwitchTab('sozlesme')">
+        <span class="veli-menu-icon">📄</span><span>Sözleşme</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="ogrenci" onclick="veliSwitchTab('ogrenci')">
+        <span class="veli-menu-icon">👤</span><span>Öğrenci Bilgileri</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="okul" onclick="veliSwitchTab('okul')">
+        <span class="veli-menu-icon">📅</span><span>Okul Hayatı</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="iletisim" onclick="veliSwitchTab('iletisim')">
+        <span class="veli-menu-icon">💬</span><span>İletişim</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="galeri" onclick="veliSwitchTab('galeri')">
+        <span class="veli-menu-icon">📸</span><span>Galeri</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="raporlar" onclick="veliSwitchTab('raporlar')">
+        <span class="veli-menu-icon">📊</span><span>Raporlar</span>
+      </button>
+
+      <div class="veli-menu-spacer"></div>
+
+      <div class="veli-sidebar-bottom">
+        <button class="veli-menu-item" data-veli-tab="ayarlar" onclick="veliSwitchTab('ayarlar')">
+          <span class="veli-menu-icon">⚙️</span><span>Ayarlar</span>
+        </button>
+        <button class="veli-menu-item" onclick="signOut()">
+          <span class="veli-menu-icon">🚪</span><span>Çıkış Yap</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ANA İÇERİK -->
+    <main class="veli-main">
+
+      <!-- Üst Başlık -->
+      <div class="veli-main-header">
+        <div>
+          <div class="veli-welcome-label">Hoş geldiniz</div>
+          <div class="veli-welcome-name" id="veliWelcomeName">—</div>
+        </div>
+        <div class="veli-user-badge">
+          <div class="veli-avatar" id="veliAvatarInitial">V</div>
+        </div>
+      </div>
+
+      <!-- Çoklu öğrenci (kardeş) seçici -->
+      <div class="veli-ogrenci-secici" id="veliOgrenciSecici" style="display:none;">
+        <!-- JS ile doldurulur -->
+      </div>
+
+      <!-- Öğrenci Hero Kart (her sekmede gösterilir) -->
+      <div class="veli-student-hero" id="veliStudentHero" style="display:none;">
+        <div class="veli-student-info">
+          <div class="veli-student-label">ÖĞRENCİ</div>
+          <div class="veli-student-name" id="veliHeroName">—</div>
+          <div class="veli-student-meta" id="veliHeroMeta">—</div>
+        </div>
+        <div class="veli-student-avatar" id="veliHeroAvatar">?</div>
+      </div>
+
+      <!-- DASHBOARD SEKMESİ -->
+      <div class="veli-tab-panel active" id="veliPanel-dashboard">
+        <div class="veli-stats-row" id="veliDashStats">
+          <!-- JS ile doldurulur -->
+        </div>
+
+        <div class="veli-card-grid-2">
+          <div class="veli-card">
+            <div class="veli-card-title">📅 Sıradaki Ödeme</div>
+            <div id="veliDashSonraki">Bilgi yok</div>
+          </div>
+          <div class="veli-card">
+            <div class="veli-card-title">📢 Son Duyurular</div>
+            <div style="font-size:13px; color:var(--gray-500);">Henüz duyuru yok</div>
+          </div>
+        </div>
+
+        <div class="veli-card">
+          <div class="veli-card-title">⚡ Hızlı İşlemler</div>
+          <div class="veli-btn-row">
+            <button class="veli-btn-primary" onclick="veliSwitchTab('odemeler')">💳 Ödeme Bildir</button>
+            <button class="veli-btn-secondary" onclick="veliSwitchTab('sozlesme')">📄 Sözleşmeyi Aç</button>
+            <button class="veli-btn-secondary" onclick="veliSwitchTab('ogrenci')">👤 Bilgilerimi Güncelle</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ÖDEMELER SEKMESİ -->
+      <div class="veli-tab-panel" id="veliPanel-odemeler">
+        <div class="veli-card">
+          <div class="veli-card-title">💰 Ödeme Takibi</div>
+          <div id="veliOdemelerContent">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <!-- SÖZLEŞME SEKMESİ -->
+      <div class="veli-tab-panel" id="veliPanel-sozlesme">
+        <div class="veli-card">
+          <div class="veli-card-title">📄 MEB Kayıt Sözleşmeniz</div>
+          <div id="veliSozlesmeContent">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <!-- ÖĞRENCİ BİLGİLERİ SEKMESİ -->
+      <div class="veli-tab-panel" id="veliPanel-ogrenci">
+        <div class="veli-card">
+          <div class="veli-card-title">👤 Öğrenci ve Veli Bilgileri</div>
+          <div id="veliOgrenciContent">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <!-- OKUL HAYATI (Placeholder) -->
+      <div class="veli-tab-panel" id="veliPanel-okul">
+        <div class="veli-card">
+          <div class="veli-placeholder">
+            <div class="ph-icon">📅</div>
+            <h3>Okul Hayatı</h3>
+            <p>Devamsızlık takibi, haftalık yemek menüsü ve etkinlik takvimi burada görüntülenecek.</p>
+            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- İLETİŞİM (Placeholder) -->
+      <div class="veli-tab-panel" id="veliPanel-iletisim">
+        <div class="veli-card">
+          <div class="veli-placeholder">
+            <div class="ph-icon">💬</div>
+            <h3>İletişim</h3>
+            <p>Öğretmen ile mesajlaşma, yönetim ile iletişim ve randevu talebi burada yapılabilecek.</p>
+            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- GALERİ (Placeholder) -->
+      <div class="veli-tab-panel" id="veliPanel-galeri">
+        <div class="veli-card">
+          <div class="veli-placeholder">
+            <div class="ph-icon">📸</div>
+            <h3>Galeri</h3>
+            <p>Çocuğunuzun okuldaki fotoğrafları, sınıf etkinlikleri ve video paylaşımları burada görüntülenecek.</p>
+            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAPORLAR (Placeholder) -->
+      <div class="veli-tab-panel" id="veliPanel-raporlar">
+        <div class="veli-card">
+          <div class="veli-placeholder">
+            <div class="ph-icon">📊</div>
+            <h3>Raporlar</h3>
+            <p>Montessori gelişim raporu, katılım raporu, beslenme ve uyku düzeni burada görüntülenecek.</p>
+            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- AYARLAR SEKMESİ -->
+      <div class="veli-tab-panel" id="veliPanel-ayarlar">
+        <div class="veli-card">
+          <div class="veli-card-title">⚙️ Hesap Ayarları</div>
+          <div id="veliAyarlarContent">
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12px; color:var(--gray-500);">E-posta</div>
+              <div id="veliAyarEposta" style="font-size:14px; margin-top:2px;">—</div>
+            </div>
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12px; color:var(--gray-500);">Giriş Yöntemi</div>
+              <div id="veliAyarYontem" style="font-size:14px; margin-top:2px;">—</div>
+            </div>
+            <div style="padding-top:12px; border-top:1px solid var(--gray-200);">
+              <button class="veli-btn-secondary" onclick="signOut()">🚪 Çıkış Yap</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="veli-card">
+          <div class="veli-card-title">📞 Destek</div>
+          <div style="font-size:13px; line-height:1.8; color:var(--gray-700);">
+            Portal ile ilgili sorunlarınız veya sorularınız için:<br>
+            📧 <strong>eposta@bircicekkoleji.com</strong><br>
+            📱 <strong>Okul İletişim Hattı</strong>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
 <div id="ayarModal" class="modal-overlay">
   <div class="modal modal-large">
     <div class="modal-header">
@@ -4403,6 +4941,26 @@ html, body {
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- ============ VELİ PORTAL DAVET ============ -->
+        <div class="section-divider" style="margin-top:24px;">
+          <div>
+            <h3 class="section-title">🚀 Veli Portala Davet</h3>
+            <div class="section-subtitle">Velilere portal.bircicekkoleji.com/#veli linkini göndererek kendi hesaplarıyla giriş yapabilmelerini sağlayın</div>
+          </div>
+        </div>
+
+        <div style="background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%); border:1px solid #86efac; border-radius:12px; padding:16px 18px; margin:12px 0;">
+          <div style="font-size:13px; color:var(--gray-700); line-height:1.7; margin-bottom:12px;">
+            <strong>Nasıl çalışır:</strong> Veliye mail yoluyla gönderilen linke tıkladığında otomatik olarak veli paneline giriş yapar. E-postası yukarıdaki <strong>Anne E-Posta</strong> veya <strong>Baba E-Posta</strong> alanıyla eşleşen her veli, bu öğrencinin bilgilerine erişebilir.
+          </div>
+          <div class="veli-btn-row">
+            <button class="btn-mini" type="button" onclick="veliDavetLinkKopyala()">🔗 Portal Linkini Kopyala</button>
+            <button class="btn-mini" type="button" onclick="veliMagicLinkGonder('anne')">✉️ Anneye Giriş Linki Gönder</button>
+            <button class="btn-mini" type="button" onclick="veliMagicLinkGonder('baba')">✉️ Babaya Giriş Linki Gönder</button>
+          </div>
+          <div id="veliDavetDurum" style="margin-top:10px; font-size:12px; color:var(--gray-600);"></div>
         </div>
 
       </div>
@@ -5231,7 +5789,8 @@ html, body {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged,
+  sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc,
@@ -5270,13 +5829,6 @@ window.signInWithGoogle = async function() {
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-    
-    if (user.email !== ADMIN_EMAIL) {
-      showToast("Bu hesap admin yetkisine sahip değil. Veli paneli yakında aktif olacak.", "warn");
-      await fbSignOut(auth);
-      return;
-    }
-    
     showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
   } catch (e) {
     console.error(e);
@@ -5284,40 +5836,121 @@ window.signInWithGoogle = async function() {
   }
 };
 
+// ============ MAGIC LINK (Google hesabı olmayanlar için) ============
+window.sendMagicLink = async function() {
+  const emailInput = document.getElementById("magicLinkEmail");
+  const email = (emailInput?.value || "").trim().toLowerCase();
+  const btn = document.getElementById("magicLinkBtn");
+  const msgBox = document.getElementById("magicLinkMsg");
+
+  if (!email || !email.includes("@")) {
+    showToast("Geçerli bir e-posta adresi girin", "error");
+    return;
+  }
+
+  const actionCodeSettings = {
+    url: window.location.origin + window.location.pathname + "#veli",
+    handleCodeInApp: true
+  };
+
+  try {
+    btn.disabled = true;
+    btn.textContent = "Gönderiliyor...";
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    // E-postayı tarayıcıda sakla (bağlantıya tıklayınca yeniden sormak yerine)
+    window.localStorage.setItem("emailForSignIn", email);
+
+    msgBox.style.display = "block";
+    msgBox.innerHTML = `✓ <strong>${email}</strong> adresine giriş bağlantısı gönderildi. E-postanızı kontrol edin. <br><small style="color:var(--gray-600);">Spam klasörünüze de bakın.</small>`;
+    emailInput.value = "";
+    btn.textContent = "✉️ Giriş Bağlantısı Gönder";
+    btn.disabled = false;
+  } catch (e) {
+    console.error(e);
+    showToast("Bağlantı gönderilemedi: " + e.message, "error");
+    btn.textContent = "✉️ Giriş Bağlantısı Gönder";
+    btn.disabled = false;
+  }
+};
+
+// Magic link ile gelen kullanıcıyı yakala
+async function handleMagicLinkSignIn() {
+  if (isSignInWithEmailLink(auth, window.location.href)) {
+    let email = window.localStorage.getItem("emailForSignIn");
+    if (!email) {
+      email = window.prompt("Giriş yapacağınız e-posta adresini tekrar girin:");
+    }
+    if (!email) return;
+    try {
+      await signInWithEmailLink(auth, email, window.location.href);
+      window.localStorage.removeItem("emailForSignIn");
+      // URL'deki auth parametrelerini temizle
+      const cleanUrl = window.location.origin + window.location.pathname + "#veli";
+      window.history.replaceState({}, document.title, cleanUrl);
+      showToast("Hoş geldiniz!");
+    } catch (e) {
+      console.error(e);
+      showToast("Giriş bağlantısı geçersiz: " + e.message, "error");
+    }
+  }
+}
+
 window.signOut = async function() {
   await fbSignOut(auth);
   showToast("Çıkış yapıldı");
   setTimeout(() => location.reload(), 500);
 };
 
+// Sayfa yüklenince magic link kontrolü
+handleMagicLinkSignIn();
+
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     isAdmin = user.email === ADMIN_EMAIL;
-    
+
     if (isAdmin) {
-      // Admin Dashboard'u göster
+      // Admin Dashboard
       document.getElementById("landing").style.display = "none";
       document.getElementById("loginModal").classList.remove("active");
+      document.getElementById("veliPanel").classList.remove("active");
       document.getElementById("dashboard").classList.add("active");
-      
+
       // Kullanıcı bilgisi
       const initial = (user.displayName || user.email).charAt(0).toUpperCase();
       document.getElementById("userAvatar").textContent = initial;
       document.getElementById("userName").textContent = user.displayName || "Admin";
-      
+
+      // Admin ise hash'i temizle (URL'de #veli varsa)
+      if (window.location.hash === "#veli") {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
       // Verileri yükle
       await loadOgrenciler();
     } else {
-      // Veli paneli - henüz hazır değil
-      showToast("Veli paneli yakında aktif olacak", "warn");
-      await fbSignOut(auth);
+      // Veli Panel
+      document.getElementById("landing").style.display = "none";
+      document.getElementById("loginModal").classList.remove("active");
+      document.getElementById("dashboard").classList.remove("active");
+      document.getElementById("veliPanel").classList.add("active");
+
+      // Veli verilerini yükle
+      await loadVeliPanel(user);
     }
   } else {
     currentUser = null;
     isAdmin = false;
     document.getElementById("landing").style.display = "block";
     document.getElementById("dashboard").classList.remove("active");
+    document.getElementById("veliPanel").classList.remove("active");
+
+    // URL'de #veli varsa login modalı aç
+    if (window.location.hash === "#veli") {
+      setTimeout(() => {
+        document.getElementById("loginModal").classList.add("active");
+      }, 300);
+    }
   }
 });
 
@@ -5347,6 +5980,540 @@ window.showToast = function(msg, type = "success") {
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 3500);
 };
+
+// ============ VELİ PANELİ ============
+let veliOgrenciler = [];     // Bu velinin tüm öğrencileri (kardeşler dahil)
+let veliAktifOgrenci = null; // Şu an görüntülenen öğrenci
+let veliAktifDonemVeri = null; // Aktif öğrencinin dönem verisi
+
+async function loadVeliPanel(user) {
+  const welcomeEl = document.getElementById("veliWelcomeName");
+  const avatarEl = document.getElementById("veliAvatarInitial");
+  const heroEl = document.getElementById("veliStudentHero");
+
+  // Üst kısmı doldur
+  const displayName = user.displayName || user.email.split("@")[0];
+  if (welcomeEl) welcomeEl.textContent = displayName;
+  if (avatarEl) avatarEl.textContent = (displayName.charAt(0) || "V").toUpperCase();
+
+  // Ayarlar sekmesindeki bilgileri güncelle
+  const epostaEl = document.getElementById("veliAyarEposta");
+  const yontemEl = document.getElementById("veliAyarYontem");
+  if (epostaEl) epostaEl.textContent = user.email;
+  if (yontemEl) {
+    const provId = user.providerData[0]?.providerId || "";
+    yontemEl.textContent = provId === "google.com" ? "Google ile giriş" :
+                           provId === "password" ? "E-posta bağlantısı" :
+                           provId || "E-posta";
+  }
+
+  // Bu veliye ait öğrencileri bul
+  // İki yol: users/{uid} dokümanından ogrenciIds oku, ya da tüm öğrencileri tarayıp
+  // veli.email eşleşmesi ara
+  try {
+    const bulunan = await findOgrenciForVeli(user);
+    veliOgrenciler = bulunan;
+
+    if (bulunan.length === 0) {
+      heroEl.style.display = "none";
+      showVeliNotLinked(user.email);
+      return;
+    }
+
+    // Öğrenci seçici göster (kardeşler varsa)
+    renderVeliOgrenciSecici(bulunan);
+
+    // İlk öğrenciyi aktif yap
+    await setAktifVeliOgrenci(bulunan[0]);
+  } catch (e) {
+    console.error("Veli paneli yüklenemedi:", e);
+    showToast("Veriler yüklenemedi: " + e.message, "error");
+  }
+}
+
+// Veliye ait öğrenci(ler)i bul
+async function findOgrenciForVeli(user) {
+  const email = (user.email || "").toLowerCase();
+  const bulunan = [];
+
+  try {
+    // Önce users/{uid} koleksiyonuna bak (admin davet ettiyse burada eşleşme olur)
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      const ogrenciIds = data.ogrenciIds || [];
+
+      for (const ogrenciId of ogrenciIds) {
+        try {
+          const ogrRef = doc(db, "ogrenciler", ogrenciId);
+          const ogrSnap = await getDoc(ogrRef);
+          if (ogrSnap.exists()) {
+            bulunan.push({ id: ogrenciId, ...ogrSnap.data() });
+          }
+        } catch (e) {
+          console.warn(`Öğrenci yüklenemedi: ${ogrenciId}`, e);
+        }
+      }
+
+      if (bulunan.length > 0) return bulunan;
+    }
+
+    // Fallback: Tüm öğrencilerin dönem dokümanlarını tarayıp veli e-postasına göre eşleştir
+    // (İlk giriş veya admin daveti yapılmadıysa)
+    const ogrSnap = await getDocs(collection(db, "ogrenciler"));
+
+    for (const ogrDoc of ogrSnap.docs) {
+      const donemRef = doc(db, "ogrenciler", ogrDoc.id, "donemler", AKTIF_DONEM);
+      try {
+        const donemSnap = await getDoc(donemRef);
+        if (!donemSnap.exists()) continue;
+        const donemVeri = donemSnap.data();
+
+        const anneEmail = (donemVeri.anne?.eposta || "").toLowerCase();
+        const babaEmail = (donemVeri.baba?.eposta || "").toLowerCase();
+        const vasiEmail = (donemVeri.vasi?.eposta || "").toLowerCase();
+
+        if (email && (email === anneEmail || email === babaEmail || email === vasiEmail)) {
+          bulunan.push({ id: ogrDoc.id, ...ogrDoc.data(), _donemVeri: donemVeri });
+        }
+      } catch (e) {
+        // Firestore Security Rules bazı dokümanlara erişimi kısıtlayabilir, normal
+      }
+    }
+
+    // Eğer e-posta ile eşleşme bulundu, users/{uid} dokümanını otomatik oluştur
+    if (bulunan.length > 0) {
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          email: user.email,
+          ogrenciIds: bulunan.map(o => o.id),
+          rol: "veli",
+          ilkGiris: new Date().toISOString(),
+          guncellendi: new Date().toISOString()
+        }, { merge: true });
+      } catch (e) {
+        console.warn("users dokümanı oluşturulamadı:", e);
+      }
+    }
+  } catch (e) {
+    console.error("findOgrenciForVeli hatası:", e);
+  }
+
+  return bulunan;
+}
+
+// ============ ADMIN: VELİ DAVET ============
+window.veliDavetLinkKopyala = function() {
+  const link = window.location.origin + window.location.pathname + "#veli";
+  navigator.clipboard.writeText(link);
+  const durum = document.getElementById("veliDavetDurum");
+  if (durum) durum.innerHTML = `✓ Kopyalandı: <code>${link}</code>`;
+  showToast("✓ Portal linki kopyalandı");
+};
+
+window.veliMagicLinkGonder = async function(veliTipi) {
+  const epostaId = veliTipi === "anne" ? "anneAyarEposta" : "babaAyarEposta";
+  const email = (document.getElementById(epostaId)?.value || "").trim().toLowerCase();
+  const durum = document.getElementById("veliDavetDurum");
+
+  if (!email || !email.includes("@")) {
+    if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ ${veliTipi === "anne" ? "Anne" : "Baba"} e-posta adresi eksik veya geçersiz</span>`;
+    showToast(`${veliTipi === "anne" ? "Anne" : "Baba"} e-posta adresi girilmemiş`, "error");
+    return;
+  }
+
+  const actionCodeSettings = {
+    url: window.location.origin + window.location.pathname + "#veli",
+    handleCodeInApp: true
+  };
+
+  try {
+    if (durum) durum.innerHTML = `⏳ ${email} adresine gönderiliyor...`;
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    if (durum) durum.innerHTML = `✓ <strong>${email}</strong> adresine giriş bağlantısı gönderildi. Veliye e-postayı kontrol etmesi gerektiğini söyleyin.`;
+    showToast(`✓ ${email} adresine davet gönderildi`);
+  } catch (e) {
+    console.error(e);
+    if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ Gönderilemedi: ${e.message}</span>`;
+    showToast("Davet gönderilemedi: " + e.message, "error");
+  }
+};
+
+function showVeliNotLinked(email) {
+  const main = document.getElementById("veliPanel-dashboard");
+  if (!main) return;
+  main.innerHTML = `
+    <div class="veli-card" style="text-align:center; padding:40px 20px;">
+      <div style="font-size:48px; margin-bottom:14px;">🔒</div>
+      <h3 style="margin:0 0 12px 0; font-family:var(--font-display);">Hesabınız henüz eşleştirilmedi</h3>
+      <p style="color:var(--gray-600); margin-bottom:20px;">
+        <strong>${escapeHtml(email)}</strong> e-postası ile kayıtlı bir öğrenci bulunamadı.
+      </p>
+      <p style="font-size:13px; color:var(--gray-500); line-height:1.8;">
+        Eğer öğrencimizin velisiyseniz ve giriş yapamıyorsanız, lütfen okul yönetimiyle iletişime geçin.<br>
+        Sistemde veli e-postanız kayıtlı olmalıdır.
+      </p>
+      <div style="margin-top:24px;">
+        <a href="mailto:eposta@bircicekkoleji.com" style="color:#2d6a4f; text-decoration:none; font-weight:500;">📧 eposta@bircicekkoleji.com</a>
+      </div>
+      <div style="margin-top:18px;">
+        <button class="veli-btn-secondary" onclick="signOut()">🚪 Çıkış Yap</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderVeliOgrenciSecici(ogrenciler) {
+  const secici = document.getElementById("veliOgrenciSecici");
+  if (!secici) return;
+
+  if (ogrenciler.length <= 1) {
+    secici.style.display = "none";
+    return;
+  }
+
+  secici.style.display = "flex";
+  secici.innerHTML = ogrenciler.map((o, idx) =>
+    `<button class="veli-ogrenci-chip ${idx === 0 ? 'active' : ''}" data-idx="${idx}" onclick="veliOgrenciSec(${idx})">
+      ${escapeHtml(o.ogrenciAdSoyad || "Öğrenci")}
+    </button>`
+  ).join("");
+}
+
+window.veliOgrenciSec = async function(idx) {
+  const ogr = veliOgrenciler[idx];
+  if (!ogr) return;
+
+  document.querySelectorAll(".veli-ogrenci-chip").forEach((el, i) => {
+    el.classList.toggle("active", i === idx);
+  });
+
+  await setAktifVeliOgrenci(ogr);
+};
+
+async function setAktifVeliOgrenci(ogr) {
+  veliAktifOgrenci = ogr;
+
+  // Hero kartını doldur
+  const heroEl = document.getElementById("veliStudentHero");
+  const nameEl = document.getElementById("veliHeroName");
+  const metaEl = document.getElementById("veliHeroMeta");
+  const avatarEl = document.getElementById("veliHeroAvatar");
+
+  if (heroEl && ogr) {
+    heroEl.style.display = "flex";
+    if (nameEl) nameEl.textContent = ogr.ogrenciAdSoyad || "Öğrenci";
+    const sinif = ogr.sinif || "—";
+    const program = ogr.programTuru || "Tam Gün";
+    const yas = hesaplaYas(ogr.dogumTarihi);
+    if (metaEl) metaEl.textContent = `${sinif} · ${yas || "—"} · ${program}`;
+    if (avatarEl) {
+      const initials = (ogr.ogrenciAdSoyad || "?").split(" ")
+        .map(s => s.charAt(0)).slice(0, 2).join("").toUpperCase();
+      avatarEl.textContent = initials;
+    }
+  }
+
+  // Dönem verisini çek
+  try {
+    if (ogr._donemVeri) {
+      veliAktifDonemVeri = ogr._donemVeri;
+    } else {
+      const donemRef = doc(db, "ogrenciler", ogr.id, "donemler", AKTIF_DONEM);
+      const donemSnap = await getDoc(donemRef);
+      veliAktifDonemVeri = donemSnap.exists() ? donemSnap.data() : null;
+    }
+
+    // Şu anki sekmeyi yenile
+    const aktifTab = document.querySelector(".veli-menu-item.active")?.dataset.veliTab || "dashboard";
+    veliRenderTab(aktifTab);
+  } catch (e) {
+    console.error("Dönem verisi yüklenemedi:", e);
+    veliAktifDonemVeri = null;
+  }
+}
+
+function hesaplaYas(dogumTarihi) {
+  if (!dogumTarihi) return "";
+  try {
+    const dt = new Date(dogumTarihi);
+    const now = new Date();
+    let yil = now.getFullYear() - dt.getFullYear();
+    if (now.getMonth() < dt.getMonth() ||
+       (now.getMonth() === dt.getMonth() && now.getDate() < dt.getDate())) {
+      yil--;
+    }
+    return `${yil} yaş`;
+  } catch {
+    return "";
+  }
+}
+
+window.veliSwitchTab = function(tabName) {
+  // Menu item aktif
+  document.querySelectorAll(".veli-menu-item").forEach(el => {
+    el.classList.toggle("active", el.dataset.veliTab === tabName);
+  });
+  // Panel göster
+  document.querySelectorAll(".veli-tab-panel").forEach(p => {
+    p.classList.toggle("active", p.id === `veliPanel-${tabName}`);
+  });
+  // Sekmeyi render et
+  veliRenderTab(tabName);
+};
+
+function veliRenderTab(tabName) {
+  if (tabName === "dashboard") veliRenderDashboard();
+  else if (tabName === "odemeler") veliRenderOdemeler();
+  else if (tabName === "sozlesme") veliRenderSozlesme();
+  else if (tabName === "ogrenci") veliRenderOgrenci();
+  // Diğer sekmeler placeholder — henüz render gerekmez
+}
+
+function veliRenderDashboard() {
+  const statsEl = document.getElementById("veliDashStats");
+  const sonrakiEl = document.getElementById("veliDashSonraki");
+  if (!statsEl) return;
+
+  if (!veliAktifDonemVeri) {
+    statsEl.innerHTML = `<div class="veli-stat-card"><div class="veli-stat-label">Bilgi yükleniyor...</div></div>`;
+    return;
+  }
+
+  const v = veliAktifDonemVeri;
+  const aylikOdemeler = v.aylikOdemeler || {};
+  const aidatBeklenen = v.aidatAyarlari?.toplamAidatBeklenen || 0;
+
+  let toplamOdenen = 0;
+  for (const k in aylikOdemeler) {
+    toplamOdenen += parseFloat(aylikOdemeler[k].odenenTutar) || 0;
+  }
+  const kalan = Math.max(0, aidatBeklenen - toplamOdenen);
+  const yuzde = aidatBeklenen > 0 ? Math.round((toplamOdenen / aidatBeklenen) * 100) : 0;
+
+  statsEl.innerHTML = `
+    <div class="veli-stat-card green">
+      <div class="veli-stat-label">TOPLAM ÖDENEN</div>
+      <div class="veli-stat-value">${Math.round(toplamOdenen).toLocaleString("tr-TR")} TL</div>
+    </div>
+    <div class="veli-stat-card yellow">
+      <div class="veli-stat-label">KALAN</div>
+      <div class="veli-stat-value">${Math.round(kalan).toLocaleString("tr-TR")} TL</div>
+    </div>
+    <div class="veli-stat-card blue">
+      <div class="veli-stat-label">TAMAMLANMA</div>
+      <div class="veli-stat-value">%${yuzde}</div>
+    </div>
+  `;
+
+  // Sıradaki ödeme
+  if (sonrakiEl) {
+    const baslangic = v.aidatAyarlari?.baslangicAyi;
+    const taksit = v.aidatAyarlari?.gercekAySayisi || v.aidatAyarlari?.taksitSayisi || 12;
+    const aidat = v.aidatAyarlari?.aylikAidat || 0;
+
+    if (baslangic && aidat > 0 && !v.aidatAyarlari?.pesinOdeme) {
+      const ayListesi = getAyListesi(baslangic, taksit);
+      let sonraki = null;
+      for (const ay of ayListesi) {
+        const od = aylikOdemeler[ay.ayKod];
+        if (!od || !od.odendi) {
+          sonraki = ay;
+          break;
+        }
+      }
+
+      if (sonraki) {
+        const ayIlk = new Date(sonraki.yil, sonraki.ay - 1, 1);
+        const bugun = new Date();
+        const gecikti = ayIlk < bugun;
+        sonrakiEl.innerHTML = `
+          <div style="font-size:15px; font-weight:500;">${sonraki.tam}</div>
+          <div style="font-size:13px; ${gecikti ? 'color:#b91c1c;' : 'color:var(--gray-600);'} margin-top:4px;">
+            ${aidat.toLocaleString("tr-TR")} TL ${gecikti ? '· Gecikmiş' : ''}
+          </div>
+        `;
+      } else {
+        sonrakiEl.innerHTML = `<div style="color:#15803d; font-size:14px;">✓ Tüm taksitler ödendi</div>`;
+      }
+    } else if (v.aidatAyarlari?.pesinOdeme) {
+      sonrakiEl.innerHTML = `<div style="color:#15803d; font-size:14px;">💎 Peşin ödeme yapıldı</div>`;
+    } else {
+      sonrakiEl.innerHTML = `<div style="font-size:13px; color:var(--gray-500);">Henüz ödeme planı oluşturulmamış</div>`;
+    }
+  }
+}
+
+function veliRenderOdemeler() {
+  const el = document.getElementById("veliOdemelerContent");
+  if (!el) return;
+
+  if (!veliAktifDonemVeri) {
+    el.innerHTML = '<div style="padding:20px; color:var(--gray-500);">Veriler yükleniyor...</div>';
+    return;
+  }
+
+  const v = veliAktifDonemVeri;
+  const aylikOdemeler = v.aylikOdemeler || {};
+  const baslangic = v.aidatAyarlari?.baslangicAyi;
+  const taksit = v.aidatAyarlari?.gercekAySayisi || v.aidatAyarlari?.taksitSayisi || 12;
+  const aidat = v.aidatAyarlari?.aylikAidat || 0;
+
+  if (!baslangic || aidat <= 0) {
+    el.innerHTML = '<div style="padding:20px; color:var(--gray-500);">Ödeme planı henüz oluşturulmamış. Yönetimle iletişime geçin.</div>';
+    return;
+  }
+
+  const ayListesi = getAyListesi(baslangic, taksit);
+  let html = `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">`;
+
+  for (const ay of ayListesi) {
+    const od = aylikOdemeler[ay.ayKod] || {};
+    const durum = v.aidatAyarlari?.pesinOdeme ? "odendi" : getOdemeDurumu(ay, od, aidat);
+    const odenenTutar = parseFloat(od.odenenTutar) || (v.aidatAyarlari?.pesinOdeme ? aidat : 0);
+    const odemeTarihi = od.odemeTarihi || "";
+
+    const rozetMetni = {
+      odendi: "✓ Ödendi",
+      kismi: "◐ Kısmi",
+      bekliyor: "⏱ Bekliyor",
+      gecikmis: "⚠ Gecikmiş"
+    }[durum];
+
+    html += `
+      <div class="aylik-karti ${durum}" style="padding:12px;">
+        <div class="aylik-ay-header">
+          <div class="aylik-ay-isim">${ay.tam}</div>
+          <span class="aylik-ay-rozet ${durum}">${rozetMetni}</span>
+        </div>
+        <div style="margin-top:8px; font-size:13px;">
+          <div><strong>Beklenen:</strong> ${aidat.toLocaleString("tr-TR")} TL</div>
+          ${odenenTutar > 0 ? `<div><strong>Ödenen:</strong> ${Math.round(odenenTutar).toLocaleString("tr-TR")} TL</div>` : ''}
+          ${odemeTarihi ? `<div style="font-size:11px; color:var(--gray-500); margin-top:4px;">Tarih: ${formatTarih(odemeTarihi)}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+  html += `</div>`;
+
+  // Bildirim butonu
+  html += `
+    <div style="margin-top:20px; padding:16px; background:#fef9c3; border:1px solid #fde68a; border-radius:12px;">
+      <div style="font-weight:500; font-size:14px; color:#422006; margin-bottom:8px;">💳 Ödeme Bildirimi</div>
+      <div style="font-size:13px; color:var(--gray-700); margin-bottom:10px;">
+        Ödeme yaptıysanız okul yönetimine bildirim gönderebilirsiniz.
+      </div>
+      <button class="veli-btn-primary" onclick="veliOdemeBildir()">✉️ Ödeme Bildir</button>
+    </div>
+
+    <div style="margin-top:14px; padding:16px; background:white; border:1px solid var(--gray-300); border-radius:12px;">
+      <div style="font-weight:500; font-size:14px; margin-bottom:10px;">🏦 Banka Hesap Bilgileri</div>
+      <div style="font-size:13px; line-height:1.8;">
+        <strong>Kuveyt Türk</strong><br>
+        Hesap Sahibi: EMRAH BAY<br>
+        IBAN: <code style="background:var(--gray-100); padding:2px 6px; border-radius:4px;">TR26 0020 5000 0969 5703 5000 02</code>
+        <button class="veli-btn-secondary" style="padding:4px 10px; font-size:11px; margin-left:6px;" onclick="veliKopyaIBAN('TR26 0020 5000 0969 5703 5000 02')">Kopyala</button>
+      </div>
+    </div>
+  `;
+
+  el.innerHTML = html;
+}
+
+window.veliKopyaIBAN = function(iban) {
+  navigator.clipboard.writeText(iban.replace(/\s/g, ""));
+  showToast("✓ IBAN kopyalandı");
+};
+
+window.veliOdemeBildir = function() {
+  showToast("Ödeme bildirim özelliği yakında aktif olacak", "warn");
+  // TODO: Bu, Aşama 2'de tamamlanacak - Firestore'a bildirim yaz + e-posta gönder
+};
+
+function veliRenderSozlesme() {
+  const el = document.getElementById("veliSozlesmeContent");
+  if (!el) return;
+
+  if (!veliAktifDonemVeri) {
+    el.innerHTML = '<div style="padding:20px; color:var(--gray-500);">Sözleşme bilgisi yükleniyor...</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="padding:16px; background:var(--gray-100); border-radius:10px; margin-bottom:14px;">
+      <div style="font-size:13px; color:var(--gray-700); line-height:1.8;">
+        <strong>${escapeHtml(veliAktifOgrenci?.ogrenciAdSoyad || 'Öğrenci')}</strong> adına düzenlenmiş
+        <strong>${AKTIF_DONEM}</strong> Eğitim Öğretim Yılı MEB Kayıt Sözleşmesi.
+      </div>
+    </div>
+    <div class="veli-btn-row">
+      <button class="veli-btn-primary" onclick="veliSozlesmeIndirPDF()">📄 PDF İndir</button>
+      <button class="veli-btn-secondary" onclick="veliSozlesmeIndirDOCX()">📝 Word (DOCX) İndir</button>
+    </div>
+    <div style="margin-top:14px; padding:12px; background:#fef3c7; border:1px solid #fde68a; border-radius:10px; font-size:12px; color:#78350f;">
+      💡 Sözleşmeyi PDF olarak indirin, imzalayın ve okul yönetimine iletiniz. Ayrıca dijital imza süreci için yönetim sizinle iletişime geçecektir.
+    </div>
+  `;
+}
+
+window.veliSozlesmeIndirPDF = function() {
+  showToast("PDF oluşturma özelliği Aşama 2'de eklenecek", "warn");
+  // TODO: Admin panelindeki PDF render mantığını kullan
+};
+
+window.veliSozlesmeIndirDOCX = function() {
+  showToast("DOCX oluşturma özelliği Aşama 2'de eklenecek", "warn");
+  // TODO: Admin panelindeki DOCX render mantığını kullan
+};
+
+function veliRenderOgrenci() {
+  const el = document.getElementById("veliOgrenciContent");
+  if (!el) return;
+
+  if (!veliAktifDonemVeri || !veliAktifOgrenci) {
+    el.innerHTML = '<div style="padding:20px; color:var(--gray-500);">Bilgiler yükleniyor...</div>';
+    return;
+  }
+
+  const v = veliAktifDonemVeri;
+  const o = v.ogrenci || veliAktifOgrenci;
+  const anne = v.anne || {};
+  const baba = v.baba || {};
+
+  el.innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div>
+        <div style="font-weight:500; color:#2d6a4f; margin-bottom:10px;">Öğrenci Bilgileri</div>
+        <div style="font-size:13px; line-height:2;">
+          <div><span style="color:var(--gray-500);">Ad Soyad:</span> <strong>${escapeHtml(o.adSoyad || veliAktifOgrenci.ogrenciAdSoyad || '—')}</strong></div>
+          <div><span style="color:var(--gray-500);">T.C. Kimlik:</span> ${escapeHtml(o.tcKimlik || '—')}</div>
+          <div><span style="color:var(--gray-500);">Doğum Tarihi:</span> ${formatTarih(o.dogumTarihi || '') || '—'}</div>
+          <div><span style="color:var(--gray-500);">Sınıf:</span> ${escapeHtml(veliAktifOgrenci.sinif || v.kayit?.sinif || '—')}</div>
+          <div><span style="color:var(--gray-500);">Program:</span> ${escapeHtml(veliAktifOgrenci.programTuru || 'Tam Gün')}</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:500; color:#2d6a4f; margin-bottom:10px;">Anne Bilgileri</div>
+        <div style="font-size:13px; line-height:2;">
+          <div><span style="color:var(--gray-500);">Ad Soyad:</span> ${escapeHtml(anne.adSoyad || '—')}</div>
+          <div><span style="color:var(--gray-500);">Telefon:</span> ${escapeHtml(anne.cepTel || '—')}</div>
+          <div><span style="color:var(--gray-500);">E-posta:</span> ${escapeHtml(anne.eposta || '—')}</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:500; color:#2d6a4f; margin-bottom:10px;">Baba Bilgileri</div>
+        <div style="font-size:13px; line-height:2;">
+          <div><span style="color:var(--gray-500);">Ad Soyad:</span> ${escapeHtml(baba.adSoyad || '—')}</div>
+          <div><span style="color:var(--gray-500);">Telefon:</span> ${escapeHtml(baba.cepTel || '—')}</div>
+          <div><span style="color:var(--gray-500);">E-posta:</span> ${escapeHtml(baba.eposta || '—')}</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:20px; padding:14px; background:#fef3c7; border:1px solid #fde68a; border-radius:10px; font-size:12px; color:#78350f;">
+      💡 Bilgilerinizde hata veya güncelleme varsa okul yönetimiyle iletişime geçin. Güncelleme özelliği Aşama 2'de eklenecek.
+    </div>
+  `;
+}
 
 // ============ LOAD ÖĞRENCILER ============
 async function loadOgrenciler() {
