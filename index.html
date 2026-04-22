@@ -4876,6 +4876,44 @@ html, body {
         </div>
       </div>
 
+      <!-- ============ DİĞER ÖDEMELERİN TAKİBİ ============ -->
+      <div class="section-divider" style="margin-top:24px;">
+        <div>
+          <h3 class="section-title">📦 Diğer Ödemelerin Takibi</h3>
+          <div class="section-subtitle">Eğitim materyali, kıyafet ve servis ücretlerinin takibi</div>
+        </div>
+      </div>
+
+      <div id="digerOdemeWrap">
+        <div class="aylik-ozet-row">
+          <div class="aylik-ozet-karti aylik-ozet-odenen">
+            <div class="aylik-ozet-numara" id="digerOzetOdenen">0 TL</div>
+            <div class="aylik-ozet-label">TOPLAM ÖDENEN</div>
+          </div>
+          <div class="aylik-ozet-karti aylik-ozet-kalan">
+            <div class="aylik-ozet-numara" id="digerOzetKalan">0 TL</div>
+            <div class="aylik-ozet-label">KALAN</div>
+          </div>
+          <div class="aylik-ozet-karti aylik-ozet-yuzde">
+            <div class="aylik-ozet-numara" id="digerOzetYuzde">%0</div>
+            <div class="aylik-ozet-label">TAMAMLANMA</div>
+          </div>
+          <div class="aylik-ozet-karti aylik-ozet-gecikmis">
+            <div class="aylik-ozet-numara" id="digerOzetKalem">0</div>
+            <div class="aylik-ozet-label">BEKLEYEN KALEM</div>
+          </div>
+        </div>
+
+        <div class="aylik-islem-row">
+          <button class="btn-mini" onclick="digerToplu('tumu')" type="button">✓ Tümünü Ödendi İşaretle</button>
+          <button class="btn-mini" onclick="digerToplu('sifirla')" type="button">🔄 Tümünü Sıfırla</button>
+        </div>
+
+        <div class="aylik-grid" id="digerGrid">
+          <!-- Diğer ödeme kalemleri JS ile doldurulacak -->
+        </div>
+      </div>
+
       <!-- Notlar -->
       <div class="form-grid full">
         <div class="form-group">
@@ -8588,6 +8626,207 @@ function updateAylikOzet(odenen, beklenen, gecikmis) {
   if (gecEl) gecEl.textContent = gecikmis;
 }
 
+// ============ DİĞER ÖDEMELERİN TAKİBİ ============
+const DIGER_ODEME_KALEMLERI = [
+  { kod: "egitimMateryali", isim: "Eğitim Materyali / Kırtasiye", ikon: "📚", inputId: "ayarDigerEgitimMateryali" },
+  { kod: "okulKiyafeti",    isim: "Okul Kıyafeti",                ikon: "👕", inputId: "ayarDigerOkulKiyafeti" },
+  { kod: "ormanKiyafeti",   isim: "Orman Kıyafeti",               ikon: "🌲", inputId: "ayarDigerOrmanKiyafeti" },
+  { kod: "servis1",         isim: "Servis Ücreti (I. Dönem)",     ikon: "🚌", inputId: "ayarDigerServis1" },
+  { kod: "servis2",         isim: "Servis Ücreti (II. Dönem)",    ikon: "🚌", inputId: "ayarDigerServis2" }
+];
+
+function renderDigerOdeme() {
+  const grid = document.getElementById("digerGrid");
+  if (!grid) return;
+
+  const mevcutOdemeler = (currentOgrenci && ayarListesi[currentOgrenci.id] &&
+                         ayarListesi[currentOgrenci.id].digerOdemeler) || {};
+
+  let html = "";
+  let toplamOdenen = 0;
+  let toplamBeklenen = 0;
+  let bekleyenKalem = 0;
+  let gosterilecekKalemSayisi = 0;
+
+  for (const kalem of DIGER_ODEME_KALEMLERI) {
+    const beklenenTutar = parseFloat(document.getElementById(kalem.inputId)?.value) || 0;
+
+    // Beklenen tutar 0 ise kart gösterme (kullanmıyor demek)
+    if (beklenenTutar <= 0) continue;
+    gosterilecekKalemSayisi++;
+
+    const odeme = mevcutOdemeler[kalem.kod] || {};
+    const odenenTutar = parseFloat(odeme.odenenTutar) || 0;
+    const odemeTarihi = odeme.odemeTarihi || "";
+    const odemeSekli = odeme.odemeSekli || "";
+
+    let durum = "bekliyor";
+    if (odenenTutar >= beklenenTutar && beklenenTutar > 0) durum = "odendi";
+    else if (odenenTutar > 0 && odenenTutar < beklenenTutar) durum = "kismi";
+
+    toplamOdenen += odenenTutar;
+    toplamBeklenen += beklenenTutar;
+    if (durum !== "odendi") bekleyenKalem++;
+
+    const rozetMetni = {
+      odendi: "✓ Ödendi",
+      kismi: "◐ Kısmi",
+      bekliyor: "⏱ Bekliyor"
+    }[durum];
+
+    html += `
+      <div class="aylik-karti ${durum}" data-kalem-kod="${kalem.kod}">
+        <div class="aylik-ay-header">
+          <div class="aylik-ay-isim">${kalem.ikon} ${kalem.isim}</div>
+          <span class="aylik-ay-rozet ${durum}">${rozetMetni}</span>
+        </div>
+        <div class="aylik-tutar-row">
+          <span>Beklenen:</span>
+          <strong>${beklenenTutar.toLocaleString("tr-TR")} TL</strong>
+        </div>
+        <div class="aylik-input-row">
+          <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
+                 min="0" step="100"
+                 onchange="digerDegisti('${kalem.kod}', 'odenenTutar', this.value)">
+          <input type="date" value="${odemeTarihi}"
+                 onchange="digerDegisti('${kalem.kod}', 'odemeTarihi', this.value)">
+        </div>
+        <div class="aylik-input-row">
+          <select onchange="digerDegisti('${kalem.kod}', 'odemeSekli', this.value)">
+            <option value="">Ödeme Şekli</option>
+            <option value="Havale/EFT" ${odemeSekli === "Havale/EFT" ? "selected" : ""}>Havale/EFT</option>
+            <option value="Kredi Kartı" ${odemeSekli === "Kredi Kartı" ? "selected" : ""}>Kredi Kartı</option>
+            <option value="Nakit" ${odemeSekli === "Nakit" ? "selected" : ""}>Nakit</option>
+            <option value="Çek/Senet" ${odemeSekli === "Çek/Senet" ? "selected" : ""}>Çek/Senet</option>
+          </select>
+        </div>
+        <div class="aylik-aksiyon-row">
+          <button class="aylik-aksiyon-btn ${durum === "odendi" ? "active" : ""}" type="button"
+                  onclick="digerOdendiIsaretle('${kalem.kod}')">✓ Ödendi</button>
+          <button class="aylik-aksiyon-btn danger" type="button"
+                  onclick="digerSifirla('${kalem.kod}')">✕ Sıfırla</button>
+        </div>
+      </div>
+    `;
+  }
+
+  if (gosterilecekKalemSayisi === 0) {
+    grid.innerHTML = '<div class="ozel-madde-empty">Diğer Ücretler alanında tutar girildikten sonra bu kalemlerin ödeme takibi burada görünecek.</div>';
+  } else {
+    grid.innerHTML = html;
+  }
+
+  updateDigerOzet(toplamOdenen, toplamBeklenen, bekleyenKalem);
+}
+
+function updateDigerOzet(odenen, beklenen, bekleyen) {
+  const kalan = Math.max(0, beklenen - odenen);
+  const yuzde = beklenen > 0 ? Math.round((odenen / beklenen) * 100) : 0;
+
+  const odenenEl = document.getElementById("digerOzetOdenen");
+  const kalanEl = document.getElementById("digerOzetKalan");
+  const yuzdeEl = document.getElementById("digerOzetYuzde");
+  const kalemEl = document.getElementById("digerOzetKalem");
+
+  if (odenenEl) odenenEl.textContent = Math.round(odenen).toLocaleString("tr-TR") + " TL";
+  if (kalanEl) kalanEl.textContent = Math.round(kalan).toLocaleString("tr-TR") + " TL";
+  if (yuzdeEl) yuzdeEl.textContent = "%" + yuzde;
+  if (kalemEl) kalemEl.textContent = bekleyen;
+}
+
+window.digerDegisti = function(kalemKod, alan, deger) {
+  if (!currentOgrenci) return;
+  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
+  if (!ayarListesi[currentOgrenci.id].digerOdemeler) ayarListesi[currentOgrenci.id].digerOdemeler = {};
+  if (!ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod]) ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] = {};
+
+  ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod][alan] = deger;
+
+  // Otomatik "odendi" işaretle eğer ödenen >= beklenen ise
+  if (alan === "odenenTutar") {
+    const kalem = DIGER_ODEME_KALEMLERI.find(k => k.kod === kalemKod);
+    if (kalem) {
+      const beklenenTutar = parseFloat(document.getElementById(kalem.inputId)?.value) || 0;
+      const odenen = parseFloat(deger) || 0;
+      ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod].odendi = (odenen >= beklenenTutar && beklenenTutar > 0);
+      ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod].beklenenTutar = beklenenTutar;
+    }
+  }
+
+  renderDigerOdeme();
+};
+
+window.digerOdendiIsaretle = function(kalemKod) {
+  if (!currentOgrenci) return;
+  const kalem = DIGER_ODEME_KALEMLERI.find(k => k.kod === kalemKod);
+  if (!kalem) return;
+
+  const beklenenTutar = parseFloat(document.getElementById(kalem.inputId)?.value) || 0;
+  if (beklenenTutar <= 0) {
+    showToast("Önce Diğer Ücretler alanında tutar girilmelidir", "error");
+    return;
+  }
+
+  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
+  if (!ayarListesi[currentOgrenci.id].digerOdemeler) ayarListesi[currentOgrenci.id].digerOdemeler = {};
+
+  const mevcut = ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] || {};
+  ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] = {
+    ...mevcut,
+    odendi: true,
+    odenenTutar: beklenenTutar,
+    beklenenTutar: beklenenTutar,
+    odemeTarihi: mevcut.odemeTarihi || new Date().toISOString().substring(0, 10)
+  };
+
+  renderDigerOdeme();
+};
+
+window.digerSifirla = function(kalemKod) {
+  if (!currentOgrenci) return;
+  if (!ayarListesi[currentOgrenci.id] || !ayarListesi[currentOgrenci.id].digerOdemeler) return;
+
+  delete ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod];
+  renderDigerOdeme();
+};
+
+window.digerToplu = function(tip) {
+  if (!currentOgrenci) return;
+
+  if (tip === "sifirla") {
+    if (!confirm("Diğer ödemelere ait TÜM kayıtları silmek istediğinize emin misiniz?")) return;
+    if (ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id].digerOdemeler = {};
+    renderDigerOdeme();
+    showToast("✓ Diğer ödemeler sıfırlandı");
+    return;
+  }
+
+  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
+  if (!ayarListesi[currentOgrenci.id].digerOdemeler) ayarListesi[currentOgrenci.id].digerOdemeler = {};
+
+  let islemSayisi = 0;
+  for (const kalem of DIGER_ODEME_KALEMLERI) {
+    const beklenenTutar = parseFloat(document.getElementById(kalem.inputId)?.value) || 0;
+    if (beklenenTutar <= 0) continue;
+
+    ayarListesi[currentOgrenci.id].digerOdemeler[kalem.kod] = {
+      odendi: true,
+      odenenTutar: beklenenTutar,
+      beklenenTutar: beklenenTutar,
+      odemeTarihi: new Date().toISOString().substring(0, 10),
+      odemeSekli: "Havale/EFT"
+    };
+    islemSayisi++;
+  }
+
+  renderDigerOdeme();
+  if (islemSayisi > 0) {
+    showToast(`✓ ${islemSayisi} kalem ödendi olarak işaretlendi`);
+  } else {
+    showToast("İşaretlenebilecek kalem yok (Diğer Ücretler alanında tutar gir)", "error");
+  }
+};
+
 window.aylikDegisti = function(ayKod, alan, deger) {
   if (!currentOgrenci) return;
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
@@ -8991,6 +9230,8 @@ function recalcTotals() {
 
   // Aylık ödeme takibini güncelle
   if (typeof renderAylikOdeme === "function") renderAylikOdeme();
+  // Diğer ödemeler takibini güncelle
+  if (typeof renderDigerOdeme === "function") renderDigerOdeme();
 }
 
 // ============ KAYDET ============
@@ -9198,6 +9439,8 @@ window.saveAyarlar = async function() {
   
   // Aylık ödemeleri local state'ten al (çünkü canlı düzenlenebilir)
   const mevcutAylikOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
+  // Diğer ödemeleri local state'ten al
+  const mevcutDigerOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].digerOdemeler) || {};
 
   const donemDoc = {
     donemYili: AKTIF_DONEM,
@@ -9215,6 +9458,7 @@ window.saveAyarlar = async function() {
     sozlesme: sozlesmeData,
     sozlesmedeGoster: sozlesmedeGoster,
     aylikOdemeler: mevcutAylikOdemeler,
+    digerOdemeler: mevcutDigerOdemeler,
     ekUcretler: {},
     notlar: notlar,
     olusturuldu: new Date().toISOString(),
@@ -9240,6 +9484,7 @@ window.saveAyarlar = async function() {
         sozlesme: sozlesmeData,
         sozlesmedeGoster: sozlesmedeGoster,
         aylikOdemeler: mevcutAylikOdemeler,
+        digerOdemeler: mevcutDigerOdemeler,
         notlar: notlar,
         guncellendi: new Date().toISOString()
       });
