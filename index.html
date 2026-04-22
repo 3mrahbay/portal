@@ -4673,6 +4673,34 @@ html, body {
         </div>
       </div>
 
+      <!-- Taksit Başlangıç Tarihi (MEB Sözleşmesi için) -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label>📅 Taksit Başlangıç Tarihi (MEB Sözleşmesi)</label>
+          <input type="date" id="ayarTaksitBaslangicTarihi">
+          <small style="color:#78716c; font-size:11px;">Peşin ödemede görünmez. Boş bırakılırsa sözleşmede boş kalır.</small>
+        </div>
+      </div>
+
+      <!-- Eğitim Bursu -->
+      <div class="checkbox-card" id="bursCard" onclick="toggleBurs()" style="margin-top:8px;">
+        <div class="checkbox-row">
+          <input type="checkbox" id="ayarBurs" onclick="event.stopPropagation(); toggleBurs();">
+          <label for="ayarBurs">
+            🎓 Eğitim Bursu Alıyor
+            <small>MEB sözleşmesinde "Eğitim Bursu Alıyor Mu?" alanı Evet olarak işaretlenir. Burs yüzdesi aşağıda girilmelidir.</small>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-grid" id="bursYuzdeRow" style="display:none;">
+        <div class="form-group">
+          <label>Eğitim Bursu Yüzdesi (%)</label>
+          <input type="number" id="ayarBursYuzde" placeholder="0" min="0" max="100" value="0">
+          <small style="color:#78716c; font-size:11px;">MEB'e bildirilen burs oranı (sözleşmede gösterilir).</small>
+        </div>
+      </div>
+
       <!-- Yaz Okulu -->
       <div class="yaz-okulu-card" id="yazOkuluCard" onclick="toggleYazOkulu()">
         <div class="checkbox-row">
@@ -6314,6 +6342,13 @@ window.openAyarModal = async function(ogrenciId) {
     document.getElementById("ayarPesin").checked = !!a.pesinOdeme;
     document.getElementById("ayarYazOkulu").checked = !!a.yazOkulu;
     document.getElementById("ayarNotlar").value = a.notlar || "";
+    // Yeni MEB sözleşme alanları
+    const taksitBasEl = document.getElementById("ayarTaksitBaslangicTarihi");
+    if (taksitBasEl) taksitBasEl.value = a.taksitBaslangicTarihi || "";
+    const bursEl = document.getElementById("ayarBurs");
+    if (bursEl) bursEl.checked = !!a.burs;
+    const bursYuzdeEl = document.getElementById("ayarBursYuzde");
+    if (bursYuzdeEl) bursYuzdeEl.value = a.bursYuzde || 0;
 
     // Diğer Ücretler (yoksa 0)
     const d = a.digerUcretler || {};
@@ -6333,6 +6368,13 @@ window.openAyarModal = async function(ogrenciId) {
     document.getElementById("ayarPesin").checked = false;
     document.getElementById("ayarYazOkulu").checked = false;
     document.getElementById("ayarNotlar").value = "";
+    // Yeni MEB sözleşme alanları sıfırla
+    const taksitBasEl = document.getElementById("ayarTaksitBaslangicTarihi");
+    if (taksitBasEl) taksitBasEl.value = "";
+    const bursEl = document.getElementById("ayarBurs");
+    if (bursEl) bursEl.checked = false;
+    const bursYuzdeEl = document.getElementById("ayarBursYuzde");
+    if (bursYuzdeEl) bursYuzdeEl.value = 0;
 
     // Diğer Ücretler sıfırla
     document.getElementById("ayarDigerEgitimMateryali").value = 0;
@@ -6344,6 +6386,7 @@ window.openAyarModal = async function(ogrenciId) {
   
   updatePesinCard();
   updateYazOkuluCard();
+  if (typeof updateBursCard === "function") updateBursCard();
   if (typeof syncIndirimNedenCheckboxes === "function") syncIndirimNedenCheckboxes();
   recalcTotals();
   
@@ -7165,8 +7208,9 @@ function toplaSozlesmeVerisi() {
     genelToplam: toplamAidat + toplamDiger,
     yariDonemUcret: parseFloat(getVal("sozlesmeYariDonemUcret")) || 0,
     tamDonemUcret: parseFloat(getVal("sozlesmeTamDonemUcret")) || 0,
-    burs: false,
-    bursYuzde: 0,
+    burs: getChk("ayarBurs"),
+    bursYuzde: parseFloat(getVal("ayarBursYuzde")) || 0,
+    taksitBaslangicTarihi: getVal("ayarTaksitBaslangicTarihi") || "",
     ilanUcretleri: getIlanUcretleri(),
     ilanToplam: getIlanToplam()
   };
@@ -7660,7 +7704,7 @@ window.sozlesmeCiktiPDF = async function() {
 
         const odemeSekilRows = [
           ["Odeme Sekli", pesinCheck],
-          ["Taksit Baslangic Tarihi", o.pesinOdeme ? "—" : ""],
+          ["Taksit Baslangic Tarihi", o.pesinOdeme ? "—" : (formatTarih(o.taksitBaslangicTarihi) || "")],
           ["Pesinat", o.pesinOdeme ? formatTL(mebGenelToplam) : ""],
           ["Taksit Sayisi ve Tutari", o.pesinOdeme ? "—" : `${o.taksit} taksit x ${formatTL(o.aylikAidat)}`],
           ["Egitim Bursu Aliyor Mu?", bursCheck],
@@ -8048,7 +8092,7 @@ window.sozlesmeCiktiWord = async function() {
 
         const odemeDetay = [
           ["Ödeme Şekli", pesinCheck],
-          ["Taksit Başlangıç Tarihi", o.pesinOdeme ? "—" : ""],
+          ["Taksit Başlangıç Tarihi", o.pesinOdeme ? "—" : (formatTarih(o.taksitBaslangicTarihi) || "")],
           ["Peşinat", o.pesinOdeme ? formatTL(mebGenelToplam) : ""],
           ["Taksit Sayısı ve Tutarı", o.pesinOdeme ? "—" : `${o.taksit} taksit × ${formatTL(o.aylikAidat)}`],
           ["Eğitim Bursu Alıyor Mu?", bursCheck],
@@ -8327,7 +8371,7 @@ td.label { width: 35%; font-weight: bold; background: #f8f8f8; }
 
         html += `<table style="margin-top:4px;">`;
         html += `<tr><td class="label" style="width:46%;">Ödeme Şekli</td><td>${pesinCheck}</td></tr>`;
-        html += `<tr><td class="label">Taksit Başlangıç Tarihi</td><td>${o.pesinOdeme ? "—" : ""}</td></tr>`;
+        html += `<tr><td class="label">Taksit Başlangıç Tarihi</td><td>${o.pesinOdeme ? "—" : escapeHtml(formatTarih(o.taksitBaslangicTarihi) || "")}</td></tr>`;
         html += `<tr><td class="label">Peşinat</td><td>${o.pesinOdeme ? escapeHtml(formatTL(mebGenelToplam)) : ""}</td></tr>`;
         html += `<tr><td class="label">Taksit Sayısı ve Tutarı</td><td>${o.pesinOdeme ? "—" : `${o.taksit} taksit × ${escapeHtml(formatTL(o.aylikAidat))}`}</td></tr>`;
         html += `<tr><td class="label">Eğitim Bursu Alıyor Mu?</td><td>${bursCheck}</td></tr>`;
@@ -8757,6 +8801,21 @@ function updateYazOkuluCard() {
   card.classList.toggle("active", checked);
 }
 
+// ============ EĞİTİM BURSU ============
+window.toggleBurs = function() {
+  const cb = document.getElementById("ayarBurs");
+  cb.checked = !cb.checked;
+  updateBursCard();
+};
+
+function updateBursCard() {
+  const card = document.getElementById("bursCard");
+  const row = document.getElementById("bursYuzdeRow");
+  const checked = document.getElementById("ayarBurs").checked;
+  if (card) card.classList.toggle("active", checked);
+  if (row) row.style.display = checked ? "" : "none";
+}
+
 // ============ DİĞER ÜCRETLER — TOPLAM HESAP ============
 function getDigerUcretlerToplam() {
   const ids = [
@@ -9123,6 +9182,9 @@ window.saveAyarlar = async function() {
     pesinOdeme: pesin,
     pesinOdemeIndirim: pesin ? 10 : 0,
     yazOkulu: yazOkulu,
+    taksitBaslangicTarihi: document.getElementById("ayarTaksitBaslangicTarihi") ? document.getElementById("ayarTaksitBaslangicTarihi").value || "" : "",
+    burs: document.getElementById("ayarBurs") ? document.getElementById("ayarBurs").checked : false,
+    bursYuzde: document.getElementById("ayarBursYuzde") ? (parseFloat(document.getElementById("ayarBursYuzde").value) || 0) : 0,
     digerUcretler: digerUcretler,
     digerUcretlerToplam: Math.round(digerToplam),
     toplamBrut: Math.round(brut),
