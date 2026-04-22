@@ -8969,8 +8969,13 @@ window.saveAyarlar = async function() {
     const anaRef = doc(db, "ogrenciler", currentOgrenci.id);
     const anaSnap = await getDoc(anaRef);
     const anaGuncelleme = {
+      ogrenciAdSoyad: ogrenciData.adSoyad || currentOgrenci.ogrenciAdSoyad,
+      tcKimlik: ogrenciData.tcKimlik || currentOgrenci.tcKimlik || "",
+      cinsiyet: ogrenciData.cinsiyet || currentOgrenci.cinsiyet || "",
+      dogumTarihi: ogrenciData.dogumTarihi || currentOgrenci.dogumTarihi || "",
       sinif: kayitData.sinif || currentOgrenci.sinif,
       programTuru: aidatAyarlari.programTuru || kayitData.program || currentOgrenci.programTuru,
+      aylikAidat: aidatAyarlari.aylikAidat || 0,
       veli1AdSoyad: anneData.adSoyad || "",
       veli1Telefon: anneData.cepTel || "",
       veli1Eposta: anneData.eposta || "",
