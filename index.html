@@ -4641,6 +4641,27 @@ html, body {
         </div>
       </div>
 
+      <!-- İndirim Nedenleri Accordion -->
+      <div class="indirim-neden-accordion" style="margin:12px 0; border:1px solid #d4d4d8; border-radius:10px; overflow:hidden; background:#fafaf9;">
+        <div id="indirimNedenToggle" style="padding:12px 16px; cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center; background:#f5f5f4;" onclick="toggleIndirimNedenBar()">
+          <strong style="color:#44403c;">💡 Hazır İndirim Nedenleri (Tıklayarak seçin)</strong>
+          <span id="indirimNedenChevron" style="font-size:14px; color:#78716c;">▼</span>
+        </div>
+        <div id="indirimNedenContent" style="display:none; padding:12px 16px; background:#fff;">
+          <small style="display:block; margin-bottom:8px; color:#78716c;">Birden fazla seçebilirsiniz. Seçtikleriniz "İndirim Nedeni" alanına otomatik yazılır.</small>
+          <div id="indirimNedenList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px;">
+            <!-- JavaScript ile doldurulur -->
+          </div>
+          <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #d4d4d8;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#44403c;">
+              <input type="checkbox" id="indirimNedenDiger" onchange="buildIndirimNedenMetin()">
+              <span>📝 Diğer İndirim</span>
+            </label>
+            <input type="text" id="indirimNedenDigerMetin" placeholder="Özel neden yazın..." style="margin-top:6px; width:100%; padding:6px 10px; border:1px solid #d4d4d8; border-radius:6px; font-size:13px;" oninput="buildIndirimNedenMetin()">
+          </div>
+        </div>
+      </div>
+
       <!-- Peşin Ödeme -->
       <div class="checkbox-card" id="pesinCard" onclick="togglePesin()">
         <div class="checkbox-row">
@@ -6323,6 +6344,7 @@ window.openAyarModal = async function(ogrenciId) {
   
   updatePesinCard();
   updateYazOkuluCard();
+  if (typeof syncIndirimNedenCheckboxes === "function") syncIndirimNedenCheckboxes();
   recalcTotals();
   
   document.getElementById("ayarModal").classList.add("active");
@@ -7583,18 +7605,22 @@ window.sozlesmeCiktiPDF = async function() {
 
         newPageIfNeeded(100);
 
+        // Öğrenim ücretinin %60'ı eğitim, %40'ı yemek olarak ayrılır
+        const egitimKismi = Math.round(o.yillikAidat * 0.60);
+        const yemekKismi = Math.round(o.yillikAidat * 0.40);
+
         const odemeRows = [
-          ["Ogrenim Ucreti", formatTL(ilan.ogrenim), formatTL(o.yillikAidat)],
+          ["Ogrenim Ucreti", formatTL(ilan.ogrenim), formatTL(egitimKismi)],
           ["Okul-Aile Birliginin Almis Oldugu Karar Dogrultusunda\nOgrenci Kiyafeti ve Kiyafet Ucreti", formatTL(ilan.kiyafet), formatTL(o.digerUcretler.okulKiyafeti||0)]
         ];
 
         const veliIstekRows = [
-          ["Yemek Ucreti", formatTL(ilan.yemek), ""],
+          ["Yemek Ucreti", formatTL(ilan.yemek), formatTL(yemekKismi)],
           ["Kahvalti Ucreti", formatTL(ilan.kahvalti), ""],
           ["Takviye Kursu Ucreti", formatTL(ilan.takviye), ""],
           ["Yatakhane Ucreti", formatTL(ilan.yatakhane), ""],
-          ["Kitap Ucreti", formatTL(ilan.kitapKirtasiye), ""],
-          ["Kirtasiye Ucreti", "", formatTL(o.digerUcretler.egitimMateryali||0)],
+          ["Kitap Ucreti", "", ""],
+          ["Kirtasiye Ucreti", formatTL(ilan.kitapKirtasiye), formatTL(o.digerUcretler.egitimMateryali||0)],
           ["Etut Ucreti", formatTL(ilan.etut), ""]
         ];
 
@@ -7686,12 +7712,12 @@ window.sozlesmeCiktiPDF = async function() {
         pdf.text(tr("IZINLER VE TAAHHUTLER"), pageW / 2, y + 4, { align: "center" });
         y += 8;
 
-        const onay = (v) => v ? "( x ) Evet    (   ) Hayir" : "(   ) Evet    ( x ) Hayir";
+        const onay = () => "(   ) Evet    (   ) Hayir";
         const izinRows = [
-          ["Medya Kullanim Izni\n(Fotograf/video okul iletisiminde kullanilabilir)", onay(iz.medya)],
-          ["Gezi ve Etkinlik Izni\n(Okul gezileri, ziyaretler, etkinliklere katilim)", onay(iz.gezi)],
-          ["Acil Mudahale Izni\n(Acil durumda hastaneye goturme ve mudahale)", onay(iz.acilMudahale)],
-          ["Saglik Taramasi Izni\n(Okulca organize saglik taramalarina katilim)", onay(iz.saglikTarama)]
+          ["Medya Kullanim Izni\n(Fotograf/video okul iletisiminde kullanilabilir)", onay()],
+          ["Gezi ve Etkinlik Izni\n(Okul gezileri, ziyaretler, etkinliklere katilim)", onay()],
+          ["Acil Mudahale Izni\n(Acil durumda hastaneye goturme ve mudahale)", onay()],
+          ["Saglik Taramasi Izni\n(Okulca organize saglik taramalarina katilim)", onay()]
         ];
 
         pdf.autoTable({
@@ -7707,7 +7733,7 @@ window.sozlesmeCiktiPDF = async function() {
         // Veli imzası açıklama
         pdf.setFont("helvetica", "italic");
         pdf.setFontSize(8);
-        const note = tr("Yukaridaki izinler veli/vasi tarafindan onaylanmistir.");
+        const note = tr("Lutfen her bir izin icin Evet veya Hayir kutusunu elle isaretleyiniz.");
         pdf.text(note, margin, y);
         y += 6;
       } else if (b.tip === "madde-baslik") {
@@ -7964,6 +7990,10 @@ window.sozlesmeCiktiWord = async function() {
         const o = b.odeme;
         const ilan = o.ilanUcretleri;
 
+        // Öğrenim ücretinin %60'ı eğitim, %40'ı yemek olarak ayrılır
+        const egitimKismi = Math.round(o.yillikAidat * 0.60);
+        const yemekKismi = Math.round(o.yillikAidat * 0.40);
+
         // MEB'de gösterilen kalemler için toplam (orman kıyafeti ve servisler MEB'e gösterilmiyor)
         const mebGenelToplam = o.yillikAidat + (o.digerUcretler.okulKiyafeti||0) + (o.digerUcretler.egitimMateryali||0);
 
@@ -7991,14 +8021,14 @@ window.sozlesmeCiktiWord = async function() {
                 new TableCell({ shading: { fill: "FDE68A" }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Öğrenci İçin Belirlenen Ücretler (KDV Dahil)", bold: true, size: 16 })] })] })
               ]
             }),
-            uc("Öğrenim Ücreti", formatTL(ilan.ogrenim), formatTL(o.yillikAidat)),
+            uc("Öğrenim Ücreti", formatTL(ilan.ogrenim), formatTL(egitimKismi)),
             uc("Okul-Aile Birliğinin Almış Olduğu Karar Doğrultusunda Öğrenci Kıyafeti ve Kıyafet Ücreti", formatTL(ilan.kiyafet), formatTL(o.digerUcretler.okulKiyafeti||0)),
-            uc("   ↳ Yemek Ücreti", formatTL(ilan.yemek), ""),
+            uc("   ↳ Yemek Ücreti", formatTL(ilan.yemek), formatTL(yemekKismi)),
             uc("   ↳ Kahvaltı Ücreti", formatTL(ilan.kahvalti), ""),
             uc("   ↳ Takviye Kursu Ücreti", formatTL(ilan.takviye), ""),
             uc("   ↳ Yatakhane Ücreti", formatTL(ilan.yatakhane), ""),
-            uc("   ↳ Kitap Ücreti", formatTL(ilan.kitapKirtasiye), ""),
-            uc("   ↳ Kırtasiye Ücreti", "", formatTL(o.digerUcretler.egitimMateryali||0)),
+            uc("   ↳ Kitap Ücreti", "", ""),
+            uc("   ↳ Kırtasiye Ücreti", formatTL(ilan.kitapKirtasiye), formatTL(o.digerUcretler.egitimMateryali||0)),
             uc("   ↳ Etüt Ücreti", formatTL(ilan.etut), ""),
             new TableRow({
               children: [
@@ -8071,7 +8101,7 @@ window.sozlesmeCiktiWord = async function() {
         children.push(new Paragraph({ text: "" }));
       } else if (b.tip === "izinler") {
         const iz = b.izinler;
-        const onay = (v) => v ? "( x ) Evet   (   ) Hayır" : "(   ) Evet   ( x ) Hayır";
+        const onay = () => "(   ) Evet   (   ) Hayır";
 
         children.push(new Paragraph({ text: "" }));
         children.push(new Paragraph({
@@ -8081,10 +8111,10 @@ window.sozlesmeCiktiWord = async function() {
         children.push(new Paragraph({ text: "" }));
 
         const izinList = [
-          ["Medya Kullanım İzni (Fotoğraf/video okul iletişiminde kullanılabilir)", onay(iz.medya)],
-          ["Gezi ve Etkinlik İzni (Okul gezileri, ziyaretler, etkinliklere katılım)", onay(iz.gezi)],
-          ["Acil Müdahale İzni (Acil durumda hastaneye götürme ve müdahale)", onay(iz.acilMudahale)],
-          ["Sağlık Taraması İzni (Okulca organize sağlık taramalarına katılım)", onay(iz.saglikTarama)]
+          ["Medya Kullanım İzni (Fotoğraf/video okul iletişiminde kullanılabilir)", onay()],
+          ["Gezi ve Etkinlik İzni (Okul gezileri, ziyaretler, etkinliklere katılım)", onay()],
+          ["Acil Müdahale İzni (Acil durumda hastaneye götürme ve müdahale)", onay()],
+          ["Sağlık Taraması İzni (Okulca organize sağlık taramalarına katılım)", onay()]
         ];
 
         const izinTableRows = izinList.map(pair => new TableRow({
@@ -8099,7 +8129,7 @@ window.sozlesmeCiktiWord = async function() {
           rows: izinTableRows
         }));
         children.push(new Paragraph({
-          children: [new TextRun({ text: "Yukarıdaki izinler veli/vasi tarafından onaylanmıştır.", italics: true, size: 16 })]
+          children: [new TextRun({ text: "Lütfen her bir izin için Evet veya Hayır kutusunu elle işaretleyiniz.", italics: true, size: 16 })]
         }));
         children.push(new Paragraph({ text: "" }));
       } else if (b.tip === "madde-baslik") {
@@ -8268,6 +8298,10 @@ td.label { width: 35%; font-weight: bold; background: #f8f8f8; }
         const o = b.odeme;
         const ilan = o.ilanUcretleri;
 
+        // Öğrenim ücretinin %60'ı eğitim, %40'ı yemek olarak ayrılır
+        const egitimKismi = Math.round(o.yillikAidat * 0.60);
+        const yemekKismi = Math.round(o.yillikAidat * 0.40);
+
         // MEB'de gösterilen kalemler için toplam (orman kıyafeti ve servisler MEB'e gösterilmiyor)
         const mebGenelToplam = o.yillikAidat + (o.digerUcretler.okulKiyafeti||0) + (o.digerUcretler.egitimMateryali||0);
 
@@ -8275,14 +8309,14 @@ td.label { width: 35%; font-weight: bold; background: #f8f8f8; }
         html += `<tr class="header-row"><td colspan="3">ÖDEME BİLGİLERİ (${veri.okul.donem} Öğretim Yılı İçin)</td></tr>`;
         html += `<tr class="col-header"><td></td><td>Kurumun İlan Ettiği<br>Ücretler (KDV Dahil)</td><td>Öğrenci İçin<br>Belirlenen Ücretler (KDV Dahil)</td></tr>`;
 
-        html += `<tr><td class="odeme-label">Öğrenim Ücreti</td><td class="ilan">${formatTL(ilan.ogrenim)}</td><td class="ogr">${formatTL(o.yillikAidat)}</td></tr>`;
+        html += `<tr><td class="odeme-label">Öğrenim Ücreti</td><td class="ilan">${formatTL(ilan.ogrenim)}</td><td class="ogr">${formatTL(egitimKismi)}</td></tr>`;
         html += `<tr><td class="odeme-label">Okul-Aile Birliğinin Almış Olduğu Karar Doğrultusunda<br>Öğrenci Kıyafeti ve Kıyafet Ücreti</td><td class="ilan">${formatTL(ilan.kiyafet)}</td><td class="ogr">${formatTL(o.digerUcretler.okulKiyafeti||0)}</td></tr>`;
-        html += `<tr class="veli-istek-tr"><td class="odeme-label">Yemek Ücreti</td><td class="ilan">${formatTL(ilan.yemek)}</td><td class="ogr"></td></tr>`;
+        html += `<tr class="veli-istek-tr"><td class="odeme-label">Yemek Ücreti</td><td class="ilan">${formatTL(ilan.yemek)}</td><td class="ogr">${formatTL(yemekKismi)}</td></tr>`;
         html += `<tr class="veli-istek-tr"><td class="odeme-label">Kahvaltı Ücreti</td><td class="ilan">${formatTL(ilan.kahvalti)}</td><td class="ogr"></td></tr>`;
         html += `<tr class="veli-istek-tr"><td class="odeme-label">Takviye Kursu Ücreti</td><td class="ilan">${formatTL(ilan.takviye)}</td><td class="ogr"></td></tr>`;
         html += `<tr class="veli-istek-tr"><td class="odeme-label">Yatakhane Ücreti</td><td class="ilan">${formatTL(ilan.yatakhane)}</td><td class="ogr"></td></tr>`;
-        html += `<tr class="veli-istek-tr"><td class="odeme-label">Kitap Ücreti</td><td class="ilan">${formatTL(ilan.kitapKirtasiye)}</td><td class="ogr"></td></tr>`;
-        html += `<tr class="veli-istek-tr"><td class="odeme-label">Kırtasiye Ücreti</td><td class="ilan"></td><td class="ogr">${formatTL(o.digerUcretler.egitimMateryali||0)}</td></tr>`;
+        html += `<tr class="veli-istek-tr"><td class="odeme-label">Kitap Ücreti</td><td class="ilan"></td><td class="ogr"></td></tr>`;
+        html += `<tr class="veli-istek-tr"><td class="odeme-label">Kırtasiye Ücreti</td><td class="ilan">${formatTL(ilan.kitapKirtasiye)}</td><td class="ogr">${formatTL(o.digerUcretler.egitimMateryali||0)}</td></tr>`;
         html += `<tr class="veli-istek-tr"><td class="odeme-label">Etüt Ücreti</td><td class="ilan">${formatTL(ilan.etut)}</td><td class="ogr"></td></tr>`;
         html += `<tr class="toplam-row"><td>ÜCRETLER TOPLAMI</td><td style="text-align:right;">${formatTL(o.ilanToplam)}</td><td style="text-align:right;">${formatTL(mebGenelToplam)}</td></tr>`;
         html += `</table>`;
@@ -8322,16 +8356,16 @@ td.label { width: 35%; font-weight: bold; background: #f8f8f8; }
         html += `</table>`;
       } else if (b.tip === "izinler") {
         const iz = b.izinler;
-        const onay = (v) => v ? "( x ) Evet &nbsp;&nbsp; (&nbsp;&nbsp;) Hayır" : "(&nbsp;&nbsp;) Evet &nbsp;&nbsp; ( x ) Hayır";
+        const onay = () => "(&nbsp;&nbsp;) Evet &nbsp;&nbsp; (&nbsp;&nbsp;) Hayır";
 
         html += `<div class="madde-baslik" style="margin-top:12px;">İZİNLER VE TAAHHÜTLER</div>`;
         html += `<table style="margin-top:4px;">`;
-        html += `<tr><td class="label" style="width:65%;">Medya Kullanım İzni<br><small style="color:#666;">(Fotoğraf/video okul iletişiminde kullanılabilir)</small></td><td style="text-align:center;">${onay(iz.medya)}</td></tr>`;
-        html += `<tr><td class="label">Gezi ve Etkinlik İzni<br><small style="color:#666;">(Okul gezileri, ziyaretler, etkinliklere katılım)</small></td><td style="text-align:center;">${onay(iz.gezi)}</td></tr>`;
-        html += `<tr><td class="label">Acil Müdahale İzni<br><small style="color:#666;">(Acil durumda hastaneye götürme ve müdahale)</small></td><td style="text-align:center;">${onay(iz.acilMudahale)}</td></tr>`;
-        html += `<tr><td class="label">Sağlık Taraması İzni<br><small style="color:#666;">(Okulca organize sağlık taramalarına katılım)</small></td><td style="text-align:center;">${onay(iz.saglikTarama)}</td></tr>`;
+        html += `<tr><td class="label" style="width:65%;">Medya Kullanım İzni<br><small style="color:#666;">(Fotoğraf/video okul iletişiminde kullanılabilir)</small></td><td style="text-align:center;">${onay()}</td></tr>`;
+        html += `<tr><td class="label">Gezi ve Etkinlik İzni<br><small style="color:#666;">(Okul gezileri, ziyaretler, etkinliklere katılım)</small></td><td style="text-align:center;">${onay()}</td></tr>`;
+        html += `<tr><td class="label">Acil Müdahale İzni<br><small style="color:#666;">(Acil durumda hastaneye götürme ve müdahale)</small></td><td style="text-align:center;">${onay()}</td></tr>`;
+        html += `<tr><td class="label">Sağlık Taraması İzni<br><small style="color:#666;">(Okulca organize sağlık taramalarına katılım)</small></td><td style="text-align:center;">${onay()}</td></tr>`;
         html += `</table>`;
-        html += `<div style="font-style:italic;font-size:11px;color:#666;margin-top:4px;">Yukarıdaki izinler veli/vasi tarafından onaylanmıştır.</div>`;
+        html += `<div style="font-style:italic;font-size:11px;color:#666;margin-top:4px;">Lütfen her bir izin için Evet veya Hayır kutusunu elle işaretleyiniz.</div>`;
       } else if (b.tip === "madde-baslik") {
         html += `<div class="madde-baslik">${escapeHtml(b.metin)}</div>`;
       } else if (b.tip === "madde") {
@@ -8618,6 +8652,95 @@ function updatePesinCard() {
   const card = document.getElementById("pesinCard");
   const checked = document.getElementById("ayarPesin").checked;
   card.classList.toggle("active", checked);
+}
+
+// ============ İNDİRİM NEDENLERİ ACCORDION ============
+const INDIRIM_NEDENLERI = [
+  "Kardeş İndirimi",
+  "Öğretmen Çocuğu İndirimi",
+  "Personel Çocuğu İndirimi",
+  "Başarı İndirimi",
+  "Kurumsal İndirim",
+  "Kayıtlı Öğrenci İndirimi",
+  "Şehit/Gazi Çocuğu İndirimi",
+  "Korucu Çocuğu İndirimi"
+];
+
+window.toggleIndirimNedenBar = function() {
+  const content = document.getElementById("indirimNedenContent");
+  const chev = document.getElementById("indirimNedenChevron");
+  if (!content) return;
+  const isOpen = content.style.display === "block";
+  content.style.display = isOpen ? "none" : "block";
+  chev.textContent = isOpen ? "▼" : "▲";
+};
+
+function initIndirimNedenList() {
+  const container = document.getElementById("indirimNedenList");
+  if (!container) return;
+  container.innerHTML = "";
+  INDIRIM_NEDENLERI.forEach((neden, idx) => {
+    const id = `indirimNedenCb_${idx}`;
+    const label = document.createElement("label");
+    label.style.cssText = "display:flex; align-items:center; gap:8px; padding:8px 10px; background:#fafaf9; border:1px solid #e7e5e4; border-radius:6px; cursor:pointer; font-size:13px; color:#44403c;";
+    label.innerHTML = `<input type="checkbox" id="${id}" data-neden="${neden}" onchange="buildIndirimNedenMetin()"><span>${neden}</span>`;
+    container.appendChild(label);
+  });
+}
+
+window.buildIndirimNedenMetin = function() {
+  const secili = [];
+  INDIRIM_NEDENLERI.forEach((neden, idx) => {
+    const cb = document.getElementById(`indirimNedenCb_${idx}`);
+    if (cb && cb.checked) secili.push(neden);
+  });
+  const digerCb = document.getElementById("indirimNedenDiger");
+  const digerMetin = document.getElementById("indirimNedenDigerMetin");
+  if (digerCb && digerCb.checked && digerMetin && digerMetin.value.trim()) {
+    secili.push(digerMetin.value.trim());
+  }
+  const nedenInput = document.getElementById("ayarIndirimNedeni");
+  if (nedenInput) {
+    nedenInput.value = secili.join(", ");
+    // Input event tetikle ki otomatik kayıt sistemi yakalasın
+    nedenInput.dispatchEvent(new Event("input", { bubbles: true }));
+    nedenInput.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+};
+
+// Mevcut nedeni yüklerken checkbox'ları işaretle
+function syncIndirimNedenCheckboxes() {
+  const nedenInput = document.getElementById("ayarIndirimNedeni");
+  if (!nedenInput) return;
+  const mevcutMetin = (nedenInput.value || "").toLowerCase();
+  INDIRIM_NEDENLERI.forEach((neden, idx) => {
+    const cb = document.getElementById(`indirimNedenCb_${idx}`);
+    if (cb) {
+      // Nedeni metin içinde ararken ilk 6 karakterle kaba eşleştir (sözleşme render mantığına uyumlu)
+      const anahtar = neden.toLowerCase().substring(0, 6);
+      cb.checked = mevcutMetin.includes(anahtar);
+    }
+  });
+  // Standart listede olmayan bir metin varsa "Diğer" olarak işaretle
+  const standartKapsar = INDIRIM_NEDENLERI.some(n => mevcutMetin.includes(n.toLowerCase().substring(0, 6)));
+  const digerCb = document.getElementById("indirimNedenDiger");
+  const digerMetin = document.getElementById("indirimNedenDigerMetin");
+  if (digerCb && digerMetin) {
+    if (!standartKapsar && nedenInput.value.trim()) {
+      digerCb.checked = true;
+      digerMetin.value = nedenInput.value.trim();
+    } else {
+      digerCb.checked = false;
+      digerMetin.value = "";
+    }
+  }
+}
+
+// Sayfa yüklenince listeyi oluştur
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initIndirimNedenList);
+} else {
+  initIndirimNedenList();
 }
 
 // ============ YAZ OKULU ============
