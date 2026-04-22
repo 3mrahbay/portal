@@ -1242,6 +1242,265 @@ html, body {
   .diger-ucret-grid { grid-template-columns: 1fr; }
 }
 
+/* ============ MODAL-İÇİ SEKME SİSTEMİ ============ */
+.modal-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1.5px solid var(--gray-100);
+  margin: 0 0 20px;
+  overflow-x: auto;
+  padding-bottom: 0;
+}
+
+.modal-tab {
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  color: var(--gray-500);
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1.5px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.modal-tab:hover {
+  color: var(--green-primary);
+}
+
+.modal-tab.active {
+  color: var(--green-deep);
+  border-bottom-color: var(--green-primary);
+  font-weight: 600;
+}
+
+.modal-tab-icon {
+  margin-right: 5px;
+}
+
+.modal-tab-panel {
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-tab-panel.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Placeholder sekmeleri (Tur C'de doldurulacak) */
+.tab-placeholder {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--gray-500);
+  background: var(--cream);
+  border-radius: var(--radius-md);
+  border: 1.5px dashed var(--gray-300);
+}
+
+.tab-placeholder .big-icon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.tab-placeholder h4 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+.tab-placeholder p {
+  font-size: 13px;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+/* ============ AÇILIR KAPALIR BÖLÜM (SECTION TOGGLE) ============ */
+.section-collapsible {
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  overflow: hidden;
+  background: white;
+  transition: border-color 0.15s;
+}
+
+.section-collapsible:hover {
+  border-color: var(--green-light);
+}
+
+.section-collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--cream);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.section-collapsible-header:hover {
+  background: var(--green-mist);
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.section-header-arrow {
+  font-size: 11px;
+  color: var(--gray-500);
+  transition: transform 0.2s;
+  width: 14px;
+  display: inline-block;
+  text-align: center;
+}
+
+.section-collapsible.open .section-header-arrow {
+  transform: rotate(90deg);
+}
+
+.section-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.section-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.section-badge.optional {
+  background: var(--green-mist);
+  color: var(--green-deep);
+}
+
+.section-badge.critical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.section-badge.admin {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.section-sozlesme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--gray-500);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.section-sozlesme-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.section-sozlesme-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--green-primary);
+  cursor: pointer;
+}
+
+.section-collapsible-body {
+  display: none;
+  padding: 16px;
+  border-top: 1px solid var(--gray-100);
+  animation: slideDown 0.2s ease;
+}
+
+.section-collapsible.open .section-collapsible-body {
+  display: block;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 1000px; }
+}
+
+/* Form satırı - mobilde tek sütun */
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.form-row-1 {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .form-row-3, .form-row-2 { grid-template-columns: 1fr; }
+}
+
+/* Yardım metni */
+.field-hint {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Kardeş tespit kartı */
+.kardes-tespit {
+  background: var(--green-mist);
+  border: 1px solid var(--green-light);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--green-deep);
+}
+
+.kardes-tespit strong {
+  font-weight: 600;
+}
+
+.kardes-tespit-empty {
+  background: var(--cream);
+  border-color: var(--gray-300);
+  color: var(--gray-500);
+  font-style: italic;
+}
+
+/* Modal genişletme - daha fazla içerik için */
+.modal-large {
+  max-width: 820px;
+}
+
 .btn-save {
   background: var(--green-deep);
   color: white;
@@ -1605,6 +1864,324 @@ html, body {
     </div>
 
     <div id="modalContent">
+
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-modal-tab="ogrenci"><span class="modal-tab-icon">📋</span>Öğrenci</button>
+        <button class="modal-tab" data-modal-tab="veli"><span class="modal-tab-icon">👨‍👩‍👧</span>Veli</button>
+        <button class="modal-tab" data-modal-tab="kayit"><span class="modal-tab-icon">🏫</span>Kayıt</button>
+        <button class="modal-tab" data-modal-tab="aidat"><span class="modal-tab-icon">💰</span>Aidat</button>
+        <button class="modal-tab" data-modal-tab="sozlesme"><span class="modal-tab-icon">📄</span>Sözleşme</button>
+        <button class="modal-tab" data-modal-tab="cikti"><span class="modal-tab-icon">🖨️</span>Çıktı</button>
+      </div>
+
+      <!-- ============ ÖĞRENCİ SEKMESİ ============ -->
+      <div class="modal-tab-panel active" id="panel-ogrenci">
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>T.C. Kimlik No *</label>
+            <input type="text" id="ogrAyarTC" placeholder="12345678901" maxlength="11" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label>Ad Soyad *</label>
+            <input type="text" id="ogrAyarAdSoyad" placeholder="Öğrencinin adı ve soyadı">
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Cinsiyet *</label>
+            <select id="ogrAyarCinsiyet">
+              <option value="">Seçiniz</option>
+              <option value="Kız">Kız</option>
+              <option value="Erkek">Erkek</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Doğum Tarihi *</label>
+            <input type="date" id="ogrAyarDogumTarihi">
+          </div>
+          <div class="form-group">
+            <label>Kan Grubu</label>
+            <select id="ogrAyarKanGrubu">
+              <option value="">Seçiniz</option>
+              <option value="A Rh+">A Rh+</option>
+              <option value="A Rh-">A Rh-</option>
+              <option value="B Rh+">B Rh+</option>
+              <option value="B Rh-">B Rh-</option>
+              <option value="AB Rh+">AB Rh+</option>
+              <option value="AB Rh-">AB Rh-</option>
+              <option value="0 Rh+">0 Rh+</option>
+              <option value="0 Rh-">0 Rh-</option>
+              <option value="Bilinmiyor">Bilinmiyor</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-1">
+          <div class="form-group">
+            <label>Ev Adresi *</label>
+            <textarea id="ogrAyarEvAdresi" rows="2" placeholder="Mahalle, Sokak, No, Daire, İlçe/İl"></textarea>
+          </div>
+        </div>
+
+        <div class="section-collapsible" id="sec-ekkisisel">
+          <div class="section-collapsible-header" onclick="toggleSection('sec-ekkisisel')">
+            <div class="section-header-left">
+              <span class="section-header-arrow">▶</span>
+              <span class="section-header-title">Ek kişisel bilgiler</span>
+              <span class="section-badge optional">Opsiyonel</span>
+            </div>
+            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
+              <input type="checkbox" id="sozShow_ekkisisel" checked>
+              <span>Sözleşmede göster</span>
+            </label>
+          </div>
+          <div class="section-collapsible-body">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Doğum Yeri</label>
+                <input type="text" id="ogrAyarDogumYeri" placeholder="İstanbul">
+              </div>
+              <div class="form-group">
+                <label>Uyruğu</label>
+                <input type="text" id="ogrAyarUyruk" placeholder="T.C." value="T.C.">
+              </div>
+            </div>
+            <div class="form-row-1">
+              <div class="form-group">
+                <label>Aile Durumu <span class="section-badge admin" style="margin-left:6px;">Admin</span></label>
+                <select id="ogrAyarAileDurumu">
+                  <option value="">Seçiniz</option>
+                  <option value="birlikte">Ebeveynler birlikte yaşıyor</option>
+                  <option value="bosanmis-anne">Boşanmış - Velayet annede</option>
+                  <option value="bosanmis-baba">Boşanmış - Velayet babada</option>
+                  <option value="bosanmis-paylasimli">Boşanmış - Paylaşımlı velayet</option>
+                  <option value="tek-veli-vefat">Tek veli (ebeveyn vefat)</option>
+                  <option value="tek-veli-evlenmemis">Tek veli (hiç evlenmemiş)</option>
+                  <option value="vasi">Vasi altında</option>
+                  <option value="diger">Diğer</option>
+                </select>
+                <div class="field-hint">Bu bilgi sadece admin panelinde görünür, sözleşmede yer almaz.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-collapsible" id="sec-saglik">
+          <div class="section-collapsible-header" onclick="toggleSection('sec-saglik')">
+            <div class="section-header-left">
+              <span class="section-header-arrow">▶</span>
+              <span class="section-header-title">Sağlık bilgileri</span>
+              <span class="section-badge critical">Kritik</span>
+            </div>
+            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
+              <input type="checkbox" id="sozShow_saglik" checked>
+              <span>Sözleşmede göster</span>
+            </label>
+          </div>
+          <div class="section-collapsible-body">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Boy (cm)</label>
+                <input type="number" id="ogrAyarBoy" placeholder="0" min="0" max="200">
+              </div>
+              <div class="form-group">
+                <label>Kilo (kg)</label>
+                <input type="number" id="ogrAyarKilo" placeholder="0" min="0" max="100" step="0.1">
+              </div>
+            </div>
+            <div class="form-row-1">
+              <div class="form-group">
+                <label>Gıda Alerjileri</label>
+                <input type="text" id="ogrAyarGidaAlerji" placeholder="Örn: fıstık, süt, yumurta, gluten">
+              </div>
+            </div>
+            <div class="form-row-1">
+              <div class="form-group">
+                <label>İlaç / Diğer Alerjiler</label>
+                <input type="text" id="ogrAyarIlacAlerji" placeholder="Örn: penisilin, polen, arı sokması">
+              </div>
+            </div>
+            <div class="form-row-1">
+              <div class="form-group">
+                <label>Kronik Hastalık</label>
+                <input type="text" id="ogrAyarKronikHastalik" placeholder="Örn: astım, diyabet, epilepsi">
+              </div>
+            </div>
+            <div class="form-row-1">
+              <div class="form-group">
+                <label>Özel Beslenme / Diyet</label>
+                <input type="text" id="ogrAyarOzelBeslenme" placeholder="Örn: vejetaryen, glutensiz, helal">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Aile Doktoru</label>
+                <input type="text" id="ogrAyarDoktor" placeholder="Dr. Ad Soyad">
+              </div>
+              <div class="form-group">
+                <label>Doktor Telefonu</label>
+                <input type="tel" id="ogrAyarDoktorTel" placeholder="0212 xxx xx xx">
+              </div>
+            </div>
+            <div class="form-row-1">
+              <div class="form-group">
+                <label>Sağlık Notları</label>
+                <textarea id="ogrAyarSaglikNot" rows="2" placeholder="Diğer önemli sağlık bilgileri..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-collapsible" id="sec-acildurum">
+          <div class="section-collapsible-header" onclick="toggleSection('sec-acildurum')">
+            <div class="section-header-left">
+              <span class="section-header-arrow">▶</span>
+              <span class="section-header-title">Acil durum yakınları</span>
+              <span class="section-badge critical">Kritik</span>
+            </div>
+            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
+              <input type="checkbox" id="sozShow_acildurum" checked>
+              <span>Sözleşmede göster</span>
+            </label>
+          </div>
+          <div class="section-collapsible-body">
+            <div class="field-hint" style="margin-bottom: 12px;">
+              Okuldan çocuğu alabilecek veya acil durumda aranacak kişiler. (Sözleşme madde 8)
+            </div>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>1. Yakın - Ad Soyad</label>
+                <input type="text" id="ogrAyarYakin1Ad" placeholder="Ad Soyad">
+              </div>
+              <div class="form-group">
+                <label>Yakınlık</label>
+                <select id="ogrAyarYakin1Yakinlik">
+                  <option value="">Seçiniz</option>
+                  <option value="Anneanne">Anneanne</option>
+                  <option value="Babaanne">Babaanne</option>
+                  <option value="Dede">Dede</option>
+                  <option value="Teyze">Teyze</option>
+                  <option value="Hala">Hala</option>
+                  <option value="Amca">Amca</option>
+                  <option value="Dayı">Dayı</option>
+                  <option value="Komşu">Komşu</option>
+                  <option value="Aile Dostu">Aile Dostu</option>
+                  <option value="Diğer">Diğer</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Telefon</label>
+                <input type="tel" id="ogrAyarYakin1Tel" placeholder="0555 xxx xx xx">
+              </div>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>2. Yakın - Ad Soyad</label>
+                <input type="text" id="ogrAyarYakin2Ad" placeholder="Ad Soyad">
+              </div>
+              <div class="form-group">
+                <label>Yakınlık</label>
+                <select id="ogrAyarYakin2Yakinlik">
+                  <option value="">Seçiniz</option>
+                  <option value="Anneanne">Anneanne</option>
+                  <option value="Babaanne">Babaanne</option>
+                  <option value="Dede">Dede</option>
+                  <option value="Teyze">Teyze</option>
+                  <option value="Hala">Hala</option>
+                  <option value="Amca">Amca</option>
+                  <option value="Dayı">Dayı</option>
+                  <option value="Komşu">Komşu</option>
+                  <option value="Aile Dostu">Aile Dostu</option>
+                  <option value="Diğer">Diğer</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Telefon</label>
+                <input type="tel" id="ogrAyarYakin2Tel" placeholder="0555 xxx xx xx">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-collapsible" id="sec-kardes">
+          <div class="section-collapsible-header" onclick="toggleSection('sec-kardes')">
+            <div class="section-header-left">
+              <span class="section-header-arrow">▶</span>
+              <span class="section-header-title">Kardeş bilgileri</span>
+              <span class="section-badge admin">Admin</span>
+            </div>
+            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
+              <input type="checkbox" id="sozShow_kardes">
+              <span>Sözleşmede göster</span>
+            </label>
+          </div>
+          <div class="section-collapsible-body">
+            <div class="kardes-tespit kardes-tespit-empty" id="kardesTespitKart">
+              Veli telefonu girildikten sonra okulda kayıtlı kardeşler burada otomatik görünecek.
+            </div>
+            <div class="form-row-1">
+              <div class="form-group">
+                <label>Diğer Kardeşler (okul dışı)</label>
+                <textarea id="ogrAyarKardesNot" rows="2" placeholder="Örn: Ablası 7 yaşında özel okulda. Küçük kardeşi 1.5 yaşında."></textarea>
+                <div class="field-hint">Okulda kayıtlı olmayan kardeşleri serbest metin olarak yaz.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-collapsible" id="sec-ogrnot">
+          <div class="section-collapsible-header" onclick="toggleSection('sec-ogrnot')">
+            <div class="section-header-left">
+              <span class="section-header-arrow">▶</span>
+              <span class="section-header-title">Öğrenci notları</span>
+              <span class="section-badge admin">Admin</span>
+            </div>
+            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
+              <input type="checkbox" id="sozShow_ogrnot">
+              <span>Sözleşmede göster</span>
+            </label>
+          </div>
+          <div class="section-collapsible-body">
+            <div class="form-row-1">
+              <div class="form-group">
+                <label>Admin Notu (Gizli)</label>
+                <textarea id="ogrAyarAdminNot" rows="2" placeholder="Sadece yöneticiler görür..."></textarea>
+              </div>
+            </div>
+            <div class="form-row-1">
+              <div class="form-group">
+                <label>Genel Notlar</label>
+                <textarea id="ogrAyarGenelNot" rows="2" placeholder="Öğretmenlerin de görebileceği notlar..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============ VELİ SEKMESİ - PLACEHOLDER ============ -->
+      <div class="modal-tab-panel" id="panel-veli">
+        <div class="tab-placeholder">
+          <span class="big-icon">👨‍👩‍👧</span>
+          <h4>Veli Bilgileri</h4>
+          <p>Anne, baba ve vasi bilgileri burada yer alacak. Bu sekme sonraki güncellemede aktifleşecek — şimdilik mevcut Excel verisi yeterli.</p>
+        </div>
+      </div>
+
+      <!-- ============ KAYIT SEKMESİ - PLACEHOLDER ============ -->
+      <div class="modal-tab-panel" id="panel-kayit">
+        <div class="tab-placeholder">
+          <span class="big-icon">🏫</span>
+          <h4>Kayıt / Okul Bilgileri</h4>
+          <p>Sınıf, program, kayıt tarihi, servis bilgileri, izinler ve referans kaynağı burada yer alacak. Şimdilik bu bilgiler Aidat sekmesinde.</p>
+        </div>
+      </div>
+
+      <!-- ============ AİDAT SEKMESİ (MEVCUT İÇERİK) ============ -->
+      <div class="modal-tab-panel" id="panel-aidat">
+
       <!-- Dönem Bilgileri -->
       <div class="form-grid">
         <div class="form-group">
@@ -1749,11 +2326,31 @@ html, body {
           <textarea id="ayarNotlar" rows="2" placeholder="Bu öğrenci veya ödeme planı hakkında notlar..."></textarea>
         </div>
       </div>
+      </div>
+
+      <!-- ============ SÖZLEŞME SEKMESİ - PLACEHOLDER ============ -->
+      <div class="modal-tab-panel" id="panel-sozlesme">
+        <div class="tab-placeholder">
+          <span class="big-icon">📄</span>
+          <h4>Sözleşme Maddeleri</h4>
+          <p>MEB Özel Okul Kayıt Sözleşmesi'nin Genel Hususlar (15 madde) ve Özel Hususlar (28 madde) bölümleri burada akordeon olarak yer alacak. Dönem bazlı şablon yönetimi ve öğrenciye özel istisnalar da bu sekmede olacak.</p>
+        </div>
+      </div>
+
+      <!-- ============ ÇIKTI SEKMESİ - PLACEHOLDER ============ -->
+      <div class="modal-tab-panel" id="panel-cikti">
+        <div class="tab-placeholder">
+          <span class="big-icon">🖨️</span>
+          <h4>Sözleşme Çıktısı</h4>
+          <p>Tüm bilgiler doldurulduktan sonra MEB formatında PDF (imza için) ve Word (düzenlenebilir yedek) olarak iki ayrı çıktı alabileceksin. Bu sekme sonraki güncellemede aktifleşecek.</p>
+        </div>
+      </div>
+
     </div>
 
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeAyarModal()">İptal</button>
-      <button class="btn-save" onclick="saveAyarlar()">💾 Ayarları Kaydet</button>
+      <button class="btn-save" onclick="saveAyarlar()">💾 Kaydet</button>
     </div>
   </div>
 </div>
@@ -2089,6 +2686,14 @@ document.querySelectorAll(".tab").forEach(tab => {
 });
 
 // ============ DÖNEM SEÇİCİ ============
+// Modal sekmelerinin click handler'ı
+document.querySelectorAll(".modal-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const tabName = btn.dataset.modalTab;
+    if (tabName) switchModalTab(tabName);
+  });
+});
+
 // Dropdown'dan dönem seçildiğinde AKTIF_DONEM güncellensin ve ayarlar yeniden yüklensin
 const donemSelectorEl = document.getElementById("donemSelector");
 if (donemSelectorEl) {
@@ -2127,6 +2732,15 @@ window.openAyarModal = function(ogrenciId) {
 
   // Dönem seçimine göre başlangıç ayı dropdown'ını doldur
   populateBaslangicDropdown();
+
+  // Modal sekmeyi her açılışta "Öğrenci" sekmesine resetle
+  resetModalTab();
+
+  // Tüm açılır bölümleri kapat (temiz başlangıç)
+  document.querySelectorAll(".section-collapsible").forEach(s => s.classList.remove("open"));
+
+  // ============ ÖĞRENCİ SEKMESİ VERİ YÜKLEME ============
+  loadOgrenciSekmesi(o);
 
   // Mevcut ayarları oku (başlıkta güncel program türünü göstermek için)
   const mevcutAyar = ayarListesi[ogrenciId];
@@ -2190,6 +2804,147 @@ window.closeAyarModal = function() {
   document.getElementById("ayarModal").classList.remove("active");
   currentOgrenci = null;
 };
+
+// ============ MODAL SEKME SİSTEMİ ============
+window.switchModalTab = function(tabName) {
+  document.querySelectorAll(".modal-tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.modalTab === tabName);
+  });
+  document.querySelectorAll(".modal-tab-panel").forEach(p => {
+    p.classList.toggle("active", p.id === `panel-${tabName}`);
+  });
+};
+
+function resetModalTab() {
+  switchModalTab("ogrenci");
+}
+
+// ============ AÇILIR BÖLÜM SİSTEMİ ============
+window.toggleSection = function(sectionId) {
+  const sec = document.getElementById(sectionId);
+  if (sec) sec.classList.toggle("open");
+};
+
+// ============ ÖĞRENCİ SEKMESİ YÜKLE ============
+function loadOgrenciSekmesi(o) {
+  const ayar = ayarListesi[o.id];
+  const ogr = (ayar && ayar.ogrenci) || {};
+  const saglik = (ayar && ayar.saglik) || {};
+  const acil = (ayar && ayar.acilDurum) || {};
+  const yakin1 = (acil.yakin1) || {};
+  const yakin2 = (acil.yakin2) || {};
+  const sozShow = (ayar && ayar.sozlesmedeGoster) || {};
+
+  document.getElementById("ogrAyarTC").value = ogr.tcKimlik || o.tcKimlik || "";
+  document.getElementById("ogrAyarAdSoyad").value = ogr.adSoyad || o.ogrenciAdSoyad || "";
+  document.getElementById("ogrAyarCinsiyet").value = ogr.cinsiyet || o.cinsiyet || "";
+  document.getElementById("ogrAyarDogumTarihi").value = formatDateForInput(ogr.dogumTarihi || o.dogumTarihi);
+  document.getElementById("ogrAyarEvAdresi").value = ogr.evAdresi || o.evAdresi || "";
+
+  document.getElementById("ogrAyarDogumYeri").value = ogr.dogumYeri || "";
+  document.getElementById("ogrAyarUyruk").value = ogr.uyruk || "T.C.";
+  document.getElementById("ogrAyarAileDurumu").value = ogr.aileDurumu || "";
+
+  document.getElementById("ogrAyarBoy").value = saglik.boy || "";
+  document.getElementById("ogrAyarKilo").value = saglik.kilo || "";
+  document.getElementById("ogrAyarKanGrubu").value = saglik.kanGrubu || "";
+  document.getElementById("ogrAyarGidaAlerji").value = saglik.gidaAlerji || "";
+  document.getElementById("ogrAyarIlacAlerji").value = saglik.ilacAlerji || "";
+  document.getElementById("ogrAyarKronikHastalik").value = saglik.kronikHastalik || "";
+  document.getElementById("ogrAyarOzelBeslenme").value = saglik.ozelBeslenme || "";
+  document.getElementById("ogrAyarDoktor").value = saglik.doktor || "";
+  document.getElementById("ogrAyarDoktorTel").value = saglik.doktorTel || "";
+  document.getElementById("ogrAyarSaglikNot").value = saglik.saglikNot || "";
+
+  document.getElementById("ogrAyarYakin1Ad").value = yakin1.adSoyad || "";
+  document.getElementById("ogrAyarYakin1Yakinlik").value = yakin1.yakinlik || "";
+  document.getElementById("ogrAyarYakin1Tel").value = yakin1.telefon || "";
+  document.getElementById("ogrAyarYakin2Ad").value = yakin2.adSoyad || "";
+  document.getElementById("ogrAyarYakin2Yakinlik").value = yakin2.yakinlik || "";
+  document.getElementById("ogrAyarYakin2Tel").value = yakin2.telefon || "";
+
+  document.getElementById("ogrAyarKardesNot").value = (ogr.kardesler && ogr.kardesler.not) || "";
+
+  document.getElementById("ogrAyarAdminNot").value = ogr.adminNot || "";
+  document.getElementById("ogrAyarGenelNot").value = ogr.genelNot || "";
+
+  const defSoz = { ekkisisel: true, saglik: true, acildurum: true, kardes: false, ogrnot: false };
+  ["ekkisisel", "saglik", "acildurum", "kardes", "ogrnot"].forEach(key => {
+    const cb = document.getElementById(`sozShow_${key}`);
+    if (cb) {
+      const stored = sozShow[key];
+      cb.checked = (stored === undefined) ? defSoz[key] : !!stored;
+    }
+  });
+
+  detectKardesler(o);
+}
+
+// Firestore'dan çekilen tarihi input[type=date] için YYYY-MM-DD'ye çevir
+function formatDateForInput(val) {
+  if (!val) return "";
+  if (typeof val === "string") {
+    // DD.MM.YYYY → YYYY-MM-DD
+    if (val.includes(".")) {
+      const [d, m, y] = val.split(".");
+      if (d && m && y) return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    }
+    // Zaten YYYY-MM-DD ise dokunma
+    if (/^\d{4}-\d{2}-\d{2}/.test(val)) return val.substring(0, 10);
+  }
+  return "";
+}
+
+// ============ KARDEŞ TESPİT ============
+function detectKardesler(o) {
+  const kart = document.getElementById("kardesTespitKart");
+  if (!kart) return;
+
+  // Bu öğrencinin velilerinin telefon numaraları (veya isimleri) aynı olan başka öğrencileri bul
+  const v1Tel = (o.veli1Telefon || "").replace(/\D/g, "");
+  const v2Tel = (o.veli2Telefon || "").replace(/\D/g, "");
+  const v1Ad = (o.veli1AdSoyad || "").trim().toLowerCase();
+  const v2Ad = (o.veli2AdSoyad || "").trim().toLowerCase();
+
+  const kardesler = [];
+  for (const diger of ogrenciList) {
+    if (diger.id === o.id) continue;
+
+    const d1Tel = (diger.veli1Telefon || "").replace(/\D/g, "");
+    const d2Tel = (diger.veli2Telefon || "").replace(/\D/g, "");
+    const d1Ad = (diger.veli1AdSoyad || "").trim().toLowerCase();
+    const d2Ad = (diger.veli2AdSoyad || "").trim().toLowerCase();
+
+    const telEsitler = [];
+    if (v1Tel && v1Tel.length >= 10 && (v1Tel === d1Tel || v1Tel === d2Tel)) telEsitler.push("telefon");
+    if (v2Tel && v2Tel.length >= 10 && (v2Tel === d1Tel || v2Tel === d2Tel)) telEsitler.push("telefon");
+
+    const adEsitler = [];
+    if (v1Ad && v1Ad.length >= 5 && (v1Ad === d1Ad || v1Ad === d2Ad)) adEsitler.push("ad");
+    if (v2Ad && v2Ad.length >= 5 && (v2Ad === d1Ad || v2Ad === d2Ad)) adEsitler.push("ad");
+
+    if (telEsitler.length > 0 || adEsitler.length > 0) {
+      kardesler.push({
+        ad: diger.ogrenciAdSoyad,
+        sinif: diger.sinif || "",
+        gerekce: telEsitler.length > 0 ? "aynı telefon" : "aynı veli adı"
+      });
+    }
+  }
+
+  if (kardesler.length === 0) {
+    kart.className = "kardes-tespit kardes-tespit-empty";
+    kart.innerHTML = "Okulda kayıtlı başka bir kardeş tespit edilmedi.";
+  } else {
+    kart.className = "kardes-tespit";
+    let html = `<strong>✨ Otomatik tespit:</strong> Okulda kayıtlı ${kardesler.length} kardeş bulundu:<br>`;
+    kardesler.forEach(k => {
+      html += `&nbsp;&nbsp;• <strong>${k.ad}</strong> ${k.sinif ? `(${k.sinif})` : ""} <small style="opacity:0.7">— ${k.gerekce}</small><br>`;
+    });
+    html += `<small style="opacity:0.7; margin-top:6px; display:block;">Kardeş indirimi düşünülebilir.</small>`;
+    kart.innerHTML = html;
+  }
+}
 
 window.togglePesin = function() {
   const cb = document.getElementById("ayarPesin");
@@ -2395,12 +3150,8 @@ function recalcTotals() {
 // ============ KAYDET ============
 window.saveAyarlar = async function() {
   if (!currentOgrenci) return;
-  
+
   const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
-  if (aidat <= 0) {
-    showToast("Lütfen geçerli bir aidat tutarı girin", "error");
-    return;
-  }
   
   const program = document.getElementById("ayarProgram").value;
   const taksit = parseInt(document.getElementById("ayarTaksit").value);
@@ -2410,6 +3161,56 @@ window.saveAyarlar = async function() {
   const pesin = document.getElementById("ayarPesin").checked;
   const yazOkulu = document.getElementById("ayarYazOkulu").checked;
   const notlar = document.getElementById("ayarNotlar").value.trim();
+
+  const ogrenciData = {
+    tcKimlik: document.getElementById("ogrAyarTC").value.trim(),
+    adSoyad: document.getElementById("ogrAyarAdSoyad").value.trim(),
+    cinsiyet: document.getElementById("ogrAyarCinsiyet").value,
+    dogumTarihi: document.getElementById("ogrAyarDogumTarihi").value,
+    evAdresi: document.getElementById("ogrAyarEvAdresi").value.trim(),
+    dogumYeri: document.getElementById("ogrAyarDogumYeri").value.trim(),
+    uyruk: document.getElementById("ogrAyarUyruk").value.trim() || "T.C.",
+    aileDurumu: document.getElementById("ogrAyarAileDurumu").value,
+    kardesler: {
+      not: document.getElementById("ogrAyarKardesNot").value.trim()
+    },
+    adminNot: document.getElementById("ogrAyarAdminNot").value.trim(),
+    genelNot: document.getElementById("ogrAyarGenelNot").value.trim()
+  };
+
+  const saglikData = {
+    boy: parseFloat(document.getElementById("ogrAyarBoy").value) || null,
+    kilo: parseFloat(document.getElementById("ogrAyarKilo").value) || null,
+    kanGrubu: document.getElementById("ogrAyarKanGrubu").value,
+    gidaAlerji: document.getElementById("ogrAyarGidaAlerji").value.trim(),
+    ilacAlerji: document.getElementById("ogrAyarIlacAlerji").value.trim(),
+    kronikHastalik: document.getElementById("ogrAyarKronikHastalik").value.trim(),
+    ozelBeslenme: document.getElementById("ogrAyarOzelBeslenme").value.trim(),
+    doktor: document.getElementById("ogrAyarDoktor").value.trim(),
+    doktorTel: document.getElementById("ogrAyarDoktorTel").value.trim(),
+    saglikNot: document.getElementById("ogrAyarSaglikNot").value.trim()
+  };
+
+  const acilDurumData = {
+    yakin1: {
+      adSoyad: document.getElementById("ogrAyarYakin1Ad").value.trim(),
+      yakinlik: document.getElementById("ogrAyarYakin1Yakinlik").value,
+      telefon: document.getElementById("ogrAyarYakin1Tel").value.trim()
+    },
+    yakin2: {
+      adSoyad: document.getElementById("ogrAyarYakin2Ad").value.trim(),
+      yakinlik: document.getElementById("ogrAyarYakin2Yakinlik").value,
+      telefon: document.getElementById("ogrAyarYakin2Tel").value.trim()
+    }
+  };
+
+  const sozlesmedeGoster = {
+    ekkisisel: document.getElementById("sozShow_ekkisisel").checked,
+    saglik: document.getElementById("sozShow_saglik").checked,
+    acildurum: document.getElementById("sozShow_acildurum").checked,
+    kardes: document.getElementById("sozShow_kardes").checked,
+    ogrnot: document.getElementById("sozShow_ogrnot").checked
+  };
 
   // Diğer Ücretler
   const digerUcretler = {
@@ -2442,21 +3243,21 @@ window.saveAyarlar = async function() {
   const aidatAyarlari = {
     programTuru: program,
     aylikAidat: aidat,
-    taksitSayisi: taksit,          // dönemin tam uzunluğu (10/11/12)
-    gercekAySayisi: gercekAy,      // gerçek ödeme ay sayısı
+    taksitSayisi: taksit,
+    gercekAySayisi: gercekAy,
     baslangicAyi: baslangic,
-    donemSonuAyi: donemSonuAyi,    // dönem bitiş ayı
+    donemSonuAyi: donemSonuAyi,
     indirimOrani: indirim,
     indirimNedeni: indirimNedeni,
     pesinOdeme: pesin,
     pesinOdemeIndirim: pesin ? 10 : 0,
-    yazOkulu: yazOkulu,            // YENİ: Yaz Okulu işareti
-    digerUcretler: digerUcretler,  // YENİ: 5 kalem diğer ücret
-    digerUcretlerToplam: Math.round(digerToplam), // YENİ: diğer ücretler toplamı
+    yazOkulu: yazOkulu,
+    digerUcretler: digerUcretler,
+    digerUcretlerToplam: Math.round(digerToplam),
     toplamBrut: Math.round(brut),
     toplamIndirim: Math.round(indirimTutar),
-    toplamAidatBeklenen: Math.round(aidatNet), // sadece aidat neti
-    toplamBeklenen: Math.round(yillikToplam),  // aidat + diğer ücretler (yıllık toplam)
+    toplamAidatBeklenen: Math.round(aidatNet),
+    toplamBeklenen: Math.round(yillikToplam),
     toplamOdenen: 0,
     kalan: Math.round(yillikToplam),
     guncellendi: new Date().toISOString()
@@ -2466,8 +3267,12 @@ window.saveAyarlar = async function() {
     donemYili: AKTIF_DONEM,
     aktif: true,
     aidatAyarlari: aidatAyarlari,
-    aylikOdemeler: {},  // Parça 2'de doldurulacak
-    ekUcretler: {},     // (kullanılmayacak, yerine digerUcretler alanı var)
+    ogrenci: ogrenciData,
+    saglik: saglikData,
+    acilDurum: acilDurumData,
+    sozlesmedeGoster: sozlesmedeGoster,
+    aylikOdemeler: {},
+    ekUcretler: {},
     notlar: notlar,
     olusturuldu: new Date().toISOString(),
     olusturan: currentUser.email
@@ -2476,11 +3281,14 @@ window.saveAyarlar = async function() {
   try {
     const ref = doc(db, "ogrenciler", currentOgrenci.id, "donemler", AKTIF_DONEM);
     
-    // Varsa mevcut kayıt ayarlarını güncelle, yoksa yarat
     const snap = await getDoc(ref);
     if (snap.exists()) {
       await updateDoc(ref, {
         aidatAyarlari: aidatAyarlari,
+        ogrenci: ogrenciData,
+        saglik: saglikData,
+        acilDurum: acilDurumData,
+        sozlesmedeGoster: sozlesmedeGoster,
         notlar: notlar,
         guncellendi: new Date().toISOString()
       });
@@ -2488,10 +3296,9 @@ window.saveAyarlar = async function() {
       await setDoc(ref, donemDoc);
     }
     
-    // Lokal state güncelle
     ayarListesi[currentOgrenci.id] = donemDoc;
     
-    showToast("✓ Ayarlar kaydedildi");
+    showToast("✓ Bilgiler kaydedildi");
     closeAyarModal();
     renderTable();
     updateStats();
