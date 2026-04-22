@@ -971,6 +971,239 @@ html, body {
   color: #991b1b;
 }
 
+/* ============ CSV YÜKLE BUTONU ============ */
+.btn-csv-yukle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: white;
+  color: var(--green-deep);
+  border: 1.5px solid var(--green-light);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-csv-yukle:hover {
+  background: var(--green-mist);
+  border-color: var(--green-medium);
+  transform: translateY(-1px);
+}
+
+.btn-csv-yukle span {
+  font-size: 16px;
+}
+
+/* ============ CSV YÜKLEME MODALI ============ */
+.csv-upload-area {
+  border: 2.5px dashed var(--gray-300);
+  border-radius: var(--radius-md);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--cream);
+}
+
+.csv-upload-area:hover {
+  border-color: var(--green-primary);
+  background: var(--green-mist);
+}
+
+.csv-upload-icon {
+  font-size: 56px;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.csv-upload-area h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+.csv-upload-area p {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.csv-upload-area .btn-primary {
+  pointer-events: none;
+}
+
+.csv-encoding-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: var(--warm-white);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gray-100);
+}
+
+.csv-encoding-row label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.csv-encoding-row select {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  background: white;
+}
+
+.csv-bilgi-karti {
+  margin-top: 16px;
+  padding: 14px 18px;
+  background: #fef9c3;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: #78350f;
+  line-height: 1.7;
+}
+
+.csv-bilgi-karti strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.csv-bilgi-karti code {
+  background: #fde68a;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.csv-ozet-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.csv-ozet-karti {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  border: 1.5px solid var(--gray-100);
+}
+
+.csv-ozet-yeni { background: var(--green-mist); border-color: var(--green-light); }
+.csv-ozet-mevcut { background: #dbeafe; border-color: #93c5fd; }
+.csv-ozet-hata { background: #fef2f2; border-color: #fca5a5; }
+
+.csv-ozet-numara {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.csv-ozet-yeni .csv-ozet-numara { color: var(--green-deep); }
+.csv-ozet-mevcut .csv-ozet-numara { color: #1e40af; }
+.csv-ozet-hata .csv-ozet-numara { color: #991b1b; }
+
+.csv-ozet-label {
+  font-size: 11px;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.csv-onizleme-wrap {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-sm);
+}
+
+.csv-onizleme-tablo {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.csv-onizleme-tablo th {
+  position: sticky;
+  top: 0;
+  background: var(--cream);
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--gray-500);
+  border-bottom: 1px solid var(--gray-300);
+  z-index: 1;
+}
+
+.csv-onizleme-tablo td {
+  padding: 8px;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--ink-soft);
+}
+
+.csv-onizleme-tablo tr.csv-row-yeni { background: rgba(45, 106, 79, 0.04); }
+.csv-onizleme-tablo tr.csv-row-mevcut { background: rgba(30, 64, 175, 0.04); color: var(--gray-500); }
+.csv-onizleme-tablo tr.csv-row-hata { background: rgba(153, 27, 27, 0.04); }
+
+.csv-durum-rozet {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.csv-durum-rozet.yeni { background: var(--green-mist); color: var(--green-deep); }
+.csv-durum-rozet.mevcut { background: #dbeafe; color: #1e40af; }
+.csv-durum-rozet.hata { background: #fee2e2; color: #991b1b; }
+
+.csv-ilerleme-bar {
+  height: 8px;
+  background: var(--gray-100);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.csv-ilerleme-dolu {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green-primary), var(--green-medium));
+  width: 0%;
+  transition: width 0.3s;
+}
+
+.csv-ilerleme-text {
+  text-align: center;
+  font-size: 12px;
+  color: var(--gray-500);
+  font-weight: 500;
+}
+
 .filter-chip {
   padding: 8px 14px;
   background: var(--warm-white);
@@ -2524,10 +2757,15 @@ html, body {
         <h1>Ödeme Takibi</h1>
         <p>2025-2026 eğitim yılı öğrenci aidatları ve ek ücretler</p>
       </div>
-      <select class="donem-selector" id="donemSelector">
-        <option value="2025-2026">2025-2026 Dönemi</option>
-        <option value="2026-2027">2026-2027 Dönemi</option>
-      </select>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-csv-yukle" onclick="openCsvYukleModal()" title="CSV dosyasından öğrenci listesi yükle">
+          <span>📥</span> CSV'den Yükle
+        </button>
+        <select class="donem-selector" id="donemSelector">
+          <option value="2025-2026">2025-2026 Dönemi</option>
+          <option value="2026-2027">2026-2027 Dönemi</option>
+        </select>
+      </div>
     </div>
 
     <!-- Stats -->
@@ -3798,6 +4036,97 @@ html, body {
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeSozlesmeSablonEditor()">İptal</button>
       <button class="btn-save" onclick="saveSozlesmeSablon()">💾 Şablonu Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CSV TOPLU YÜKLEME MODALI ============ -->
+<div id="csvYukleModal" class="modal-overlay">
+  <div class="modal modal-large">
+    <div class="modal-header">
+      <div class="modal-header-row">
+        <div>
+          <h2>📥 CSV'den Öğrenci Yükleme</h2>
+          <p>Excel/CSV dosyanızdan öğrenci listesini toplu olarak sisteme aktarın</p>
+        </div>
+        <button class="btn-close" onclick="closeCsvYukleModal()">×</button>
+      </div>
+    </div>
+
+    <!-- ADIM 1: Dosya Seç -->
+    <div id="csvAdim1" style="padding:20px 0;">
+      <div class="csv-upload-area" id="csvUploadArea" onclick="document.getElementById('csvFileInput').click()">
+        <div class="csv-upload-icon">📄</div>
+        <h3>CSV dosyasını seçin</h3>
+        <p>Noktalı virgül (;) ile ayrılmış Türkçe CSV dosyası. Beklenen kolonlar:<br>
+        <small style="color:var(--gray-500);">Sınıf Adı, Öğrenci Ad - Soyad, Veli Ad - Soyad, Yakınlık, Cep Telefonu, E-Posta, T.C. Kimlik, Cinsiyet, Doğum Tarihi, Meslek, Ev Adresi, vb.</small></p>
+        <button class="btn-primary" type="button">📂 Dosya Seç</button>
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleCsvFile(event)">
+      </div>
+
+      <div class="csv-encoding-row">
+        <label>Dosya kodlaması:</label>
+        <select id="csvEncoding">
+          <option value="iso-8859-9" selected>Türkçe (ISO-8859-9) - Önerilen</option>
+          <option value="utf-8">UTF-8</option>
+          <option value="windows-1254">Windows-1254</option>
+        </select>
+      </div>
+
+      <div class="csv-bilgi-karti">
+        <strong>💡 Bilgi</strong>
+        <p>• Aynı öğrencinin Anne ve Baba satırları <strong>otomatik birleştirilir</strong>.<br>
+        • Zaten sistemde bulunan öğrenciler <strong>atlanır</strong>, güncellenmez.<br>
+        • Yüklenen öğrencilere otomatik olarak <code>durum: "aktif"</code> ve <code>kaynak: "mevcut_2025"</code> atanır.<br>
+        • Öğrencinin doğum tarihi CSV'de olmadığı için sonradan elle girmeniz gerekir.</p>
+      </div>
+    </div>
+
+    <!-- ADIM 2: Önizleme -->
+    <div id="csvAdim2" style="padding:20px 0; display:none;">
+      <div class="csv-ozet-row">
+        <div class="csv-ozet-karti csv-ozet-yeni">
+          <div class="csv-ozet-numara" id="csvSayiYeni">0</div>
+          <div class="csv-ozet-label">Yeni Eklenecek</div>
+        </div>
+        <div class="csv-ozet-karti csv-ozet-mevcut">
+          <div class="csv-ozet-numara" id="csvSayiMevcut">0</div>
+          <div class="csv-ozet-label">Zaten Kayıtlı (atlanır)</div>
+        </div>
+        <div class="csv-ozet-karti csv-ozet-hata">
+          <div class="csv-ozet-numara" id="csvSayiHata">0</div>
+          <div class="csv-ozet-label">Hatalı Satır</div>
+        </div>
+      </div>
+
+      <div class="csv-onizleme-wrap">
+        <table class="csv-onizleme-tablo" id="csvOnizlemeTablo">
+          <thead>
+            <tr>
+              <th style="width:30px;">#</th>
+              <th>Öğrenci</th>
+              <th>Sınıf</th>
+              <th>Anne</th>
+              <th>Baba</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody id="csvOnizlemeBody"></tbody>
+        </table>
+      </div>
+
+      <div id="csvIlerlemeWrap" style="display:none;padding:16px 0;">
+        <div class="csv-ilerleme-bar">
+          <div class="csv-ilerleme-dolu" id="csvIlerlemeDolu"></div>
+        </div>
+        <div class="csv-ilerleme-text" id="csvIlerlemeText">Hazırlanıyor...</div>
+      </div>
+    </div>
+
+    <div class="modal-footer" id="csvFooter">
+      <button class="btn-cancel" onclick="closeCsvYukleModal()">İptal</button>
+      <button class="btn-cancel" id="csvGeriBtn" onclick="csvGeri()" style="display:none;">← Geri</button>
+      <button class="btn-save" id="csvAktarBtn" onclick="csvAktar()" style="display:none;">✓ Firestore'a Aktar</button>
     </div>
   </div>
 </div>
@@ -6819,6 +7148,362 @@ window.saveAyarlar = async function() {
 };
 
 // ============ BULK UPLOAD ============
+// ============ CSV TOPLU YÜKLEME ============
+let csvParsedOgrenciler = []; // [{id, adSoyad, sinif, anne: {...}, baba: {...}, mevcutmu: bool}]
+
+window.openCsvYukleModal = function() {
+  document.getElementById("csvYukleModal").classList.add("active");
+  document.getElementById("csvAdim1").style.display = "block";
+  document.getElementById("csvAdim2").style.display = "none";
+  document.getElementById("csvGeriBtn").style.display = "none";
+  document.getElementById("csvAktarBtn").style.display = "none";
+  document.getElementById("csvFileInput").value = "";
+  csvParsedOgrenciler = [];
+};
+
+window.closeCsvYukleModal = function() {
+  document.getElementById("csvYukleModal").classList.remove("active");
+};
+
+window.csvGeri = function() {
+  document.getElementById("csvAdim1").style.display = "block";
+  document.getElementById("csvAdim2").style.display = "none";
+  document.getElementById("csvGeriBtn").style.display = "none";
+  document.getElementById("csvAktarBtn").style.display = "none";
+  document.getElementById("csvFileInput").value = "";
+  csvParsedOgrenciler = [];
+};
+
+// CSV satır parser (noktalı virgülle ayrılmış, tırnak destekli)
+function parseCsvLine(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ";" && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current);
+  return result.map(s => s.trim());
+}
+
+// Tarih dönüştürme: "20.09.1991" → "1991-09-20"
+function csvTarihiDonustur(tr) {
+  if (!tr) return "";
+  const parts = tr.split(".");
+  if (parts.length !== 3) return "";
+  const [d, m, y] = parts;
+  if (!d || !m || !y) return "";
+  return `${y.padStart(4, "0")}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+// Telefon temizleme: "905330580262" → "0533 058 02 62"
+function csvTelefonTemizle(tel) {
+  if (!tel) return "";
+  const rakamlar = tel.replace(/\D/g, "");
+  if (rakamlar.length === 12 && rakamlar.startsWith("90")) {
+    const t = "0" + rakamlar.substring(2);
+    return t.substring(0, 4) + " " + t.substring(4, 7) + " " + t.substring(7, 9) + " " + t.substring(9);
+  }
+  if (rakamlar.length === 11 && rakamlar.startsWith("0")) {
+    return rakamlar.substring(0, 4) + " " + rakamlar.substring(4, 7) + " " + rakamlar.substring(7, 9) + " " + rakamlar.substring(9);
+  }
+  if (rakamlar.length === 10) {
+    return "0" + rakamlar.substring(0, 3) + " " + rakamlar.substring(3, 6) + " " + rakamlar.substring(6, 8) + " " + rakamlar.substring(8);
+  }
+  return tel;
+}
+
+// Sınıf normalleştir: "MONTESSORİ 3" → "Montessori 3"
+function csvSinifNormalize(s) {
+  if (!s) return "";
+  return s.trim()
+    .replace(/MONTESSORİ/gi, "Montessori")
+    .replace(/MONTESSORI/gi, "Montessori")
+    .replace(/\s+/g, " ");
+}
+
+window.handleCsvFile = async function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const encoding = document.getElementById("csvEncoding").value;
+
+  try {
+    showToast(`Dosya okunuyor (${encoding})...`);
+
+    // Dosyayı seçilen encoding ile oku
+    const buffer = await file.arrayBuffer();
+    const decoder = new TextDecoder(encoding);
+    const text = decoder.decode(buffer);
+
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) {
+      showToast("Dosya boş veya geçersiz", "error");
+      return;
+    }
+
+    const headers = parseCsvLine(lines[0]);
+    console.log("CSV headers:", headers);
+
+    // Her satırı obje olarak parse et
+    const records = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCsvLine(lines[i]);
+      const rec = {};
+      headers.forEach((h, idx) => { rec[h] = values[idx] || ""; });
+      records.push(rec);
+    }
+
+    // Aynı öğrencinin farklı veli satırlarını birleştir
+    const ogrenciMap = new Map();
+
+    for (const rec of records) {
+      const ogrAd = (rec["Öğrenci Ad - Soyad"] || "").trim();
+      if (!ogrAd) continue;
+
+      const ogrKey = ogrAd.toLowerCase();
+
+      if (!ogrenciMap.has(ogrKey)) {
+        ogrenciMap.set(ogrKey, {
+          ogrenciAdSoyad: ogrAd,
+          sinif: csvSinifNormalize(rec["Sınıf Adı"] || ""),
+          anne: null,
+          baba: null,
+          vasi: null,
+          mevcutmu: false,
+          hata: null
+        });
+      }
+
+      const ogr = ogrenciMap.get(ogrKey);
+      const yakinlik = (rec["Yakınlık"] || "").trim().toLowerCase();
+
+      const veliData = {
+        tcKimlik: (rec["T.C. Kimlik"] || "").trim(),
+        adSoyad: (rec["Veli Ad - Soyad"] || "").trim(),
+        cepTel: csvTelefonTemizle(rec["Cep Telefonu"] || ""),
+        eposta: (rec["E-Posta"] || "").trim(),
+        meslek: (rec["Meslek"] || "").trim(),
+        isTel: (rec["İş Telefonu"] || "").trim(),
+        evTel: (rec["Ev Telefonu"] || "").trim(),
+        ogrenim: (rec["Öğrenim Durumu"] || "").trim(),
+        evAdresi: (rec["Ev Adresi"] || "").trim(),
+        isAdresi: (rec["İş Adresi"] || "").trim(),
+        dogumTarihi: csvTarihiDonustur(rec["Doğum Tarihi"] || ""),
+        dogumYeri: (rec["Doğum Yeri"] || "").trim(),
+        cinsiyet: (rec["Cinsiyet"] || "").trim(),
+        aciklama: (rec["Açıklama"] || "").trim(),
+        smsIzin: true,
+        aramaIzin: true
+      };
+
+      if (yakinlik === "anne") ogr.anne = veliData;
+      else if (yakinlik === "baba") ogr.baba = veliData;
+      else if (yakinlik === "vasi") ogr.vasi = veliData;
+      else {
+        // Yakınlık belirsizse cinsiyete bak
+        const cins = veliData.cinsiyet.toLowerCase();
+        if (cins === "kadın" && !ogr.anne) ogr.anne = veliData;
+        else if (cins === "erkek" && !ogr.baba) ogr.baba = veliData;
+        else if (!ogr.anne) ogr.anne = veliData;
+        else if (!ogr.baba) ogr.baba = veliData;
+      }
+    }
+
+    // Mevcut öğrencileri kontrol et
+    const mevcutIsimler = new Set(ogrenciList.map(o => (o.ogrenciAdSoyad || "").toLowerCase().trim()));
+
+    csvParsedOgrenciler = Array.from(ogrenciMap.values());
+    for (const ogr of csvParsedOgrenciler) {
+      if (mevcutIsimler.has(ogr.ogrenciAdSoyad.toLowerCase().trim())) {
+        ogr.mevcutmu = true;
+      }
+      if (!ogr.sinif) {
+        ogr.hata = "Sınıf bilgisi yok";
+      }
+    }
+
+    renderCsvOnizleme();
+
+    document.getElementById("csvAdim1").style.display = "none";
+    document.getElementById("csvAdim2").style.display = "block";
+    document.getElementById("csvGeriBtn").style.display = "inline-block";
+    document.getElementById("csvAktarBtn").style.display = "inline-block";
+  } catch (e) {
+    console.error(e);
+    showToast("CSV okunamadı: " + e.message, "error");
+  }
+};
+
+function renderCsvOnizleme() {
+  const yeni = csvParsedOgrenciler.filter(o => !o.mevcutmu && !o.hata);
+  const mevcut = csvParsedOgrenciler.filter(o => o.mevcutmu);
+  const hatali = csvParsedOgrenciler.filter(o => o.hata);
+
+  document.getElementById("csvSayiYeni").textContent = yeni.length;
+  document.getElementById("csvSayiMevcut").textContent = mevcut.length;
+  document.getElementById("csvSayiHata").textContent = hatali.length;
+
+  const body = document.getElementById("csvOnizlemeBody");
+  let html = "";
+  csvParsedOgrenciler.forEach((o, i) => {
+    let rowClass = "csv-row-yeni";
+    let durumHTML = '<span class="csv-durum-rozet yeni">✓ Yeni</span>';
+    if (o.hata) {
+      rowClass = "csv-row-hata";
+      durumHTML = `<span class="csv-durum-rozet hata">⚠ ${escapeHtml(o.hata)}</span>`;
+    } else if (o.mevcutmu) {
+      rowClass = "csv-row-mevcut";
+      durumHTML = '<span class="csv-durum-rozet mevcut">⊗ Mevcut</span>';
+    }
+    html += `<tr class="${rowClass}">
+      <td>${i + 1}</td>
+      <td><strong>${escapeHtml(o.ogrenciAdSoyad)}</strong></td>
+      <td>${escapeHtml(o.sinif || "—")}</td>
+      <td>${escapeHtml(o.anne?.adSoyad || "—")}</td>
+      <td>${escapeHtml(o.baba?.adSoyad || "—")}</td>
+      <td>${durumHTML}</td>
+    </tr>`;
+  });
+  body.innerHTML = html;
+
+  const aktarBtn = document.getElementById("csvAktarBtn");
+  if (yeni.length === 0) {
+    aktarBtn.disabled = true;
+    aktarBtn.textContent = "Aktarılacak öğrenci yok";
+  } else {
+    aktarBtn.disabled = false;
+    aktarBtn.textContent = `✓ ${yeni.length} Öğrenciyi Aktar`;
+  }
+}
+
+window.csvAktar = async function() {
+  const yeniler = csvParsedOgrenciler.filter(o => !o.mevcutmu && !o.hata);
+  if (yeniler.length === 0) {
+    showToast("Aktarılacak öğrenci yok", "error");
+    return;
+  }
+
+  if (!confirm(`${yeniler.length} öğrenciyi Firestore'a aktarmak istediğinize emin misiniz?\n\nBu işlem geri alınamaz. Aktarılan öğrencilerin "Aktif" olarak işaretleneceğini unutmayın.`)) return;
+
+  document.getElementById("csvIlerlemeWrap").style.display = "block";
+  document.getElementById("csvAktarBtn").disabled = true;
+  document.getElementById("csvGeriBtn").disabled = true;
+
+  const ilerlemeDolu = document.getElementById("csvIlerlemeDolu");
+  const ilerlemeText = document.getElementById("csvIlerlemeText");
+
+  let basarili = 0;
+  let hatali = 0;
+
+  for (let i = 0; i < yeniler.length; i++) {
+    const o = yeniler[i];
+    const yuzde = Math.round(((i + 1) / yeniler.length) * 100);
+    ilerlemeDolu.style.width = yuzde + "%";
+    ilerlemeText.textContent = `Aktarılıyor: ${o.ogrenciAdSoyad} (${i + 1}/${yeniler.length})`;
+
+    try {
+      // Öğrenci ID'si - slug haline getir
+      const ogrId = o.ogrenciAdSoyad
+        .toLowerCase()
+        .replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s")
+        .replace(/i̇/g, "i").replace(/ı/g, "i").replace(/ö/g, "o").replace(/ç/g, "c")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      const ogrenciDoc = {
+        ogrenciAdSoyad: o.ogrenciAdSoyad,
+        sinif: o.sinif,
+        programTuru: "Tam Gün",
+        durum: "aktif",
+        kaynak: "mevcut_2025",
+        veli1AdSoyad: o.anne?.adSoyad || "",
+        veli1Telefon: o.anne?.cepTel || "",
+        veli1Eposta: o.anne?.eposta || "",
+        veli2AdSoyad: o.baba?.adSoyad || "",
+        veli2Telefon: o.baba?.cepTel || "",
+        veli2Eposta: o.baba?.eposta || "",
+        olusturuldu: new Date().toISOString(),
+        olusturan: currentUser.email,
+        kaynakDosya: "csv-toplu-yukleme"
+      };
+
+      await setDoc(doc(db, "ogrenciler", ogrId), ogrenciDoc);
+
+      // Dönem doc - anne, baba, kayıt bilgileri
+      const donemDoc = {
+        donemYili: AKTIF_DONEM,
+        aktif: true,
+        durum: "aktif",
+        kaynak: "mevcut_2025",
+        ogrenci: {
+          tcKimlik: "",
+          adSoyad: o.ogrenciAdSoyad,
+          cinsiyet: "",
+          dogumTarihi: "",
+          evAdresi: o.anne?.evAdresi || o.baba?.evAdresi || "",
+          dogumYeri: "",
+          uyruk: "T.C.",
+          aileDurumu: "",
+          kardesler: { not: "" },
+          adminNot: "",
+          genelNot: ""
+        },
+        anne: o.anne || { adSoyad: "", cepTel: "", eposta: "", meslek: "", tcKimlik: "" },
+        baba: o.baba || { adSoyad: "", cepTel: "", eposta: "", meslek: "", tcKimlik: "" },
+        vasi: o.vasi || {},
+        kayit: {
+          sinif: o.sinif,
+          program: "Tam Gün",
+          ilkKayitTarihi: "",
+          donemBaslangic: "",
+          oncekiOkul: "",
+          servisKullanim: "Kullanmıyor",
+          servisGuzergah: "",
+          servisDurakAdres: "",
+          servisNot: "",
+          kaynak: "",
+          referansKod: "",
+          kaynakNot: ""
+        },
+        izinler: {
+          medya: true,
+          gezi: true,
+          acilMudahale: true,
+          saglikTarama: true
+        },
+        olusturuldu: new Date().toISOString(),
+        olusturan: currentUser.email
+      };
+
+      await setDoc(doc(db, "ogrenciler", ogrId, "donemler", AKTIF_DONEM), donemDoc);
+
+      basarili++;
+    } catch (e) {
+      console.error(`${o.ogrenciAdSoyad} aktarılamadı:`, e);
+      hatali++;
+    }
+  }
+
+  ilerlemeText.textContent = `✓ Tamamlandı: ${basarili} başarılı, ${hatali} hata`;
+  showToast(`✓ ${basarili} öğrenci aktarıldı${hatali > 0 ? ` (${hatali} hata)` : ""}`);
+
+  // Dashboard'u yenile
+  setTimeout(async () => {
+    closeCsvYukleModal();
+    await loadOgrenciler();
+  }, 2000);
+};
+
 window.showBulkUpload = async function() {
   if (!confirm("49 öğrencinin master verisini Firestore'a yüklemek istediğinize emin misiniz?\n\nBu işlem sadece ilk kurulumda yapılır ve mevcut kayıtları ETKİLEMEZ.")) return;
   
