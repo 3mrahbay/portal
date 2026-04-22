@@ -5473,8 +5473,10 @@ function renderTable() {
                           || o.programTuru || "";
     if (activeFilter === "ayarli") return ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.aylikAidat > 0;
     if (activeFilter === "eksik") return !ayar || !ayar.aidatAyarlari || !ayar.aidatAyarlari.aylikAidat;
-    if (activeFilter === "m2") return (o.sinif || "").includes("2");
-    if (activeFilter === "m3") return (o.sinif || "").includes("3");
+    // M2/M3 filtreleri - önce dönem kayıt bilgisini oku
+    const filtreSinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "";
+    if (activeFilter === "m2") return filtreSinif.includes("2");
+    if (activeFilter === "m3") return filtreSinif.includes("3");
     if (activeFilter === "tamgun") return guncelProgram === "Tam Gün";
     if (activeFilter === "yarimgun") return guncelProgram === "Yarım Gün";
     if (activeFilter === "gecikmis") {
@@ -5517,7 +5519,8 @@ function renderTable() {
     const initial = (o.ogrenciAdSoyad || "?").charAt(0).toUpperCase();
     const ayar = ayarListesi[o.id];
     const hasAyar = ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.aylikAidat > 0;
-    const sinif = o.sinif || "-";
+    // Önce dönem kayıt bilgisindeki sınıfı oku (güncel), yoksa ana dokümandaki
+    const sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "-";
     const sinifClass = sinif.includes("2") ? "badge-m2" : sinif.includes("3") ? "badge-m3" : "badge-muted";
     // Önce ayarlardaki program'ı göster (güncel), yoksa master data
     const program = (ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.programTuru) 
@@ -5688,7 +5691,8 @@ function hesaplaRaporVerileri() {
     if (durum !== "aktif") continue;
     aktifSayi++;
 
-    const sinif = (o.sinif || "").toLowerCase();
+    // Önce dönem kayıt sınıfını oku (güncel), yoksa ana dokümandan
+    const sinif = ((ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "").toLowerCase();
     if (sinif.includes("2")) m2Sayi++;
     else if (sinif.includes("3")) m3Sayi++;
 
@@ -8958,6 +8962,31 @@ window.saveAyarlar = async function() {
       });
     } else {
       await setDoc(ref, donemDoc);
+    }
+
+    // ÖĞRENCİNİN ANA DOKÜMANINI DA GÜNCELLE (sınıf, program, veli bilgileri)
+    // Böylece ana tabloda değişiklik hemen yansır
+    const anaRef = doc(db, "ogrenciler", currentOgrenci.id);
+    const anaSnap = await getDoc(anaRef);
+    const anaGuncelleme = {
+      sinif: kayitData.sinif || currentOgrenci.sinif,
+      programTuru: aidatAyarlari.programTuru || kayitData.program || currentOgrenci.programTuru,
+      veli1AdSoyad: anneData.adSoyad || "",
+      veli1Telefon: anneData.cepTel || "",
+      veli1Eposta: anneData.eposta || "",
+      veli2AdSoyad: babaData.adSoyad || "",
+      veli2Telefon: babaData.cepTel || "",
+      veli2Eposta: babaData.eposta || "",
+      guncellendi: new Date().toISOString()
+    };
+    if (anaSnap.exists()) {
+      await updateDoc(anaRef, anaGuncelleme);
+    }
+
+    // Lokal state'i güncelle
+    const idx = ogrenciList.findIndex(x => x.id === currentOgrenci.id);
+    if (idx >= 0) {
+      ogrenciList[idx] = { ...ogrenciList[idx], ...anaGuncelleme };
     }
     
     ayarListesi[currentOgrenci.id] = donemDoc;
