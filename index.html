@@ -7174,25 +7174,20 @@ window.csvGeri = function() {
   csvParsedOgrenciler = [];
 };
 
-// CSV satır parser (noktalı virgülle ayrılmış, tırnak destekli)
+// CSV satır parser (noktalı virgülle ayrılmış, tırnak destekli, adres içi tırnaklara toleranslı)
 function parseCsvLine(line) {
-  const result = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-      else inQuotes = !inQuotes;
-    } else if (ch === ";" && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += ch;
+  // Basit split yeterli çünkü bu CSV'de tırnaklar "field container" olarak değil,
+  // adres içinde stray olarak kullanılmış. Her yerde aynı sayıda sütun olmalı.
+  const parts = line.split(";");
+  // Sadece başta/sonda olan tırnakları temizle, içte olanları koru
+  return parts.map(s => {
+    s = s.trim();
+    // Eğer başında ve sonunda tırnak varsa kaldır
+    if (s.startsWith('"') && s.endsWith('"') && s.length > 1) {
+      s = s.substring(1, s.length - 1);
     }
-  }
-  result.push(current);
-  return result.map(s => s.trim());
+    return s.trim();
+  });
 }
 
 // Tarih dönüştürme: "20.09.1991" → "1991-09-20"
@@ -7319,16 +7314,33 @@ window.handleCsvFile = async function(event) {
       }
     }
 
-    // Mevcut öğrencileri kontrol et
-    const mevcutIsimler = new Set(ogrenciList.map(o => (o.ogrenciAdSoyad || "").toLowerCase().trim()));
+    // Mevcut öğrencileri kontrol et — isim bazlı
+    const mevcutMap = new Map();
+    ogrenciList.forEach(o => {
+      const key = (o.ogrenciAdSoyad || "").toLowerCase().trim();
+      if (key) mevcutMap.set(key, o);
+    });
 
     csvParsedOgrenciler = Array.from(ogrenciMap.values());
     for (const ogr of csvParsedOgrenciler) {
-      if (mevcutIsimler.has(ogr.ogrenciAdSoyad.toLowerCase().trim())) {
-        ogr.mevcutmu = true;
-      }
+      // Önce sınıf bilgisi kontrolü
       if (!ogr.sinif) {
-        ogr.hata = "Sınıf bilgisi yok";
+        ogr.hata = "CSV'de sınıf bilgisi yok";
+        continue;
+      }
+
+      const key = ogr.ogrenciAdSoyad.toLowerCase().trim();
+      if (mevcutMap.has(key)) {
+        ogr.mevcutmu = true;
+        const mevcut = mevcutMap.get(key);
+        ogr.mevcutId = mevcut.id;
+
+        // Mevcut öğrencinin sınıfı eksikse veya farklıysa güncelleme öner
+        const mevcutSinif = (mevcut.sinif || "").trim();
+        if (!mevcutSinif || mevcutSinif !== ogr.sinif) {
+          ogr.guncellenecek = true;
+          ogr.eskiSinif = mevcutSinif || "(yok)";
+        }
       }
     }
 
@@ -7346,12 +7358,26 @@ window.handleCsvFile = async function(event) {
 
 function renderCsvOnizleme() {
   const yeni = csvParsedOgrenciler.filter(o => !o.mevcutmu && !o.hata);
-  const mevcut = csvParsedOgrenciler.filter(o => o.mevcutmu);
+  const mevcut = csvParsedOgrenciler.filter(o => o.mevcutmu && !o.guncellenecek);
+  const guncellenecek = csvParsedOgrenciler.filter(o => o.mevcutmu && o.guncellenecek);
   const hatali = csvParsedOgrenciler.filter(o => o.hata);
 
-  document.getElementById("csvSayiYeni").textContent = yeni.length;
+  // Özet kartlarını güncelle
+  document.getElementById("csvSayiYeni").textContent = yeni.length + guncellenecek.length;
   document.getElementById("csvSayiMevcut").textContent = mevcut.length;
   document.getElementById("csvSayiHata").textContent = hatali.length;
+
+  // Yeni başlığı güncelle
+  const yeniLabel = document.querySelector(".csv-ozet-yeni .csv-ozet-label");
+  if (yeniLabel) {
+    if (guncellenecek.length > 0 && yeni.length > 0) {
+      yeniLabel.textContent = `YENİ + GÜNCELLENECEK`;
+    } else if (guncellenecek.length > 0) {
+      yeniLabel.textContent = `GÜNCELLENECEK`;
+    } else {
+      yeniLabel.textContent = `YENİ EKLENECEK`;
+    }
+  }
 
   const body = document.getElementById("csvOnizlemeBody");
   let html = "";
@@ -7361,9 +7387,12 @@ function renderCsvOnizleme() {
     if (o.hata) {
       rowClass = "csv-row-hata";
       durumHTML = `<span class="csv-durum-rozet hata">⚠ ${escapeHtml(o.hata)}</span>`;
+    } else if (o.guncellenecek) {
+      rowClass = "csv-row-yeni";
+      durumHTML = `<span class="csv-durum-rozet yeni" style="background:#fef3c7;color:#92400e;">↻ Güncellenecek (${escapeHtml(o.eskiSinif)} → ${escapeHtml(o.sinif)})</span>`;
     } else if (o.mevcutmu) {
       rowClass = "csv-row-mevcut";
-      durumHTML = '<span class="csv-durum-rozet mevcut">⊗ Mevcut</span>';
+      durumHTML = '<span class="csv-durum-rozet mevcut">⊗ Mevcut (atlanır)</span>';
     }
     html += `<tr class="${rowClass}">
       <td>${i + 1}</td>
@@ -7377,23 +7406,38 @@ function renderCsvOnizleme() {
   body.innerHTML = html;
 
   const aktarBtn = document.getElementById("csvAktarBtn");
-  if (yeni.length === 0) {
+  const islemSayisi = yeni.length + guncellenecek.length;
+  if (islemSayisi === 0) {
     aktarBtn.disabled = true;
-    aktarBtn.textContent = "Aktarılacak öğrenci yok";
+    aktarBtn.textContent = "İşlem yapılacak öğrenci yok";
   } else {
     aktarBtn.disabled = false;
-    aktarBtn.textContent = `✓ ${yeni.length} Öğrenciyi Aktar`;
+    if (yeni.length > 0 && guncellenecek.length > 0) {
+      aktarBtn.textContent = `✓ ${yeni.length} yeni + ${guncellenecek.length} güncelleme`;
+    } else if (guncellenecek.length > 0) {
+      aktarBtn.textContent = `↻ ${guncellenecek.length} Öğrenciyi Güncelle`;
+    } else {
+      aktarBtn.textContent = `✓ ${yeni.length} Öğrenciyi Aktar`;
+    }
   }
 }
 
 window.csvAktar = async function() {
   const yeniler = csvParsedOgrenciler.filter(o => !o.mevcutmu && !o.hata);
-  if (yeniler.length === 0) {
-    showToast("Aktarılacak öğrenci yok", "error");
+  const guncellenecekler = csvParsedOgrenciler.filter(o => o.mevcutmu && o.guncellenecek);
+  const toplam = yeniler.length + guncellenecekler.length;
+
+  if (toplam === 0) {
+    showToast("İşlem yapılacak öğrenci yok", "error");
     return;
   }
 
-  if (!confirm(`${yeniler.length} öğrenciyi Firestore'a aktarmak istediğinize emin misiniz?\n\nBu işlem geri alınamaz. Aktarılan öğrencilerin "Aktif" olarak işaretleneceğini unutmayın.`)) return;
+  let mesaj = "";
+  if (yeniler.length > 0) mesaj += `${yeniler.length} yeni öğrenci aktarılacak.\n`;
+  if (guncellenecekler.length > 0) mesaj += `${guncellenecekler.length} mevcut öğrencinin sınıf bilgisi güncellenecek.\n`;
+  mesaj += "\nDevam edilsin mi?";
+
+  if (!confirm(mesaj)) return;
 
   document.getElementById("csvIlerlemeWrap").style.display = "block";
   document.getElementById("csvAktarBtn").disabled = true;
@@ -7403,101 +7447,134 @@ window.csvAktar = async function() {
   const ilerlemeText = document.getElementById("csvIlerlemeText");
 
   let basarili = 0;
+  let guncellendi = 0;
   let hatali = 0;
 
-  for (let i = 0; i < yeniler.length; i++) {
-    const o = yeniler[i];
-    const yuzde = Math.round(((i + 1) / yeniler.length) * 100);
+  const tumIslemler = [...yeniler.map(o => ({ tip: "yeni", o })), ...guncellenecekler.map(o => ({ tip: "guncelle", o }))];
+
+  for (let i = 0; i < tumIslemler.length; i++) {
+    const { tip, o } = tumIslemler[i];
+    const yuzde = Math.round(((i + 1) / tumIslemler.length) * 100);
     ilerlemeDolu.style.width = yuzde + "%";
-    ilerlemeText.textContent = `Aktarılıyor: ${o.ogrenciAdSoyad} (${i + 1}/${yeniler.length})`;
+    const islemLabel = tip === "guncelle" ? "Güncelleniyor" : "Aktarılıyor";
+    ilerlemeText.textContent = `${islemLabel}: ${o.ogrenciAdSoyad} (${i + 1}/${tumIslemler.length})`;
 
     try {
-      // Öğrenci ID'si - slug haline getir
-      const ogrId = o.ogrenciAdSoyad
-        .toLowerCase()
-        .replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s")
-        .replace(/i̇/g, "i").replace(/ı/g, "i").replace(/ö/g, "o").replace(/ç/g, "c")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-
-      const ogrenciDoc = {
-        ogrenciAdSoyad: o.ogrenciAdSoyad,
-        sinif: o.sinif,
-        programTuru: "Tam Gün",
-        durum: "aktif",
-        kaynak: "mevcut_2025",
-        veli1AdSoyad: o.anne?.adSoyad || "",
-        veli1Telefon: o.anne?.cepTel || "",
-        veli1Eposta: o.anne?.eposta || "",
-        veli2AdSoyad: o.baba?.adSoyad || "",
-        veli2Telefon: o.baba?.cepTel || "",
-        veli2Eposta: o.baba?.eposta || "",
-        olusturuldu: new Date().toISOString(),
-        olusturan: currentUser.email,
-        kaynakDosya: "csv-toplu-yukleme"
-      };
-
-      await setDoc(doc(db, "ogrenciler", ogrId), ogrenciDoc);
-
-      // Dönem doc - anne, baba, kayıt bilgileri
-      const donemDoc = {
-        donemYili: AKTIF_DONEM,
-        aktif: true,
-        durum: "aktif",
-        kaynak: "mevcut_2025",
-        ogrenci: {
-          tcKimlik: "",
-          adSoyad: o.ogrenciAdSoyad,
-          cinsiyet: "",
-          dogumTarihi: "",
-          evAdresi: o.anne?.evAdresi || o.baba?.evAdresi || "",
-          dogumYeri: "",
-          uyruk: "T.C.",
-          aileDurumu: "",
-          kardesler: { not: "" },
-          adminNot: "",
-          genelNot: ""
-        },
-        anne: o.anne || { adSoyad: "", cepTel: "", eposta: "", meslek: "", tcKimlik: "" },
-        baba: o.baba || { adSoyad: "", cepTel: "", eposta: "", meslek: "", tcKimlik: "" },
-        vasi: o.vasi || {},
-        kayit: {
+      if (tip === "guncelle") {
+        // Sadece sınıf bilgisini güncelle
+        await updateDoc(doc(db, "ogrenciler", o.mevcutId), {
           sinif: o.sinif,
-          program: "Tam Gün",
-          ilkKayitTarihi: "",
-          donemBaslangic: "",
-          oncekiOkul: "",
-          servisKullanim: "Kullanmıyor",
-          servisGuzergah: "",
-          servisDurakAdres: "",
-          servisNot: "",
-          kaynak: "",
-          referansKod: "",
-          kaynakNot: ""
-        },
-        izinler: {
-          medya: true,
-          gezi: true,
-          acilMudahale: true,
-          saglikTarama: true
-        },
-        olusturuldu: new Date().toISOString(),
-        olusturan: currentUser.email
-      };
+          guncellendi: new Date().toISOString(),
+          guncelleyen: currentUser.email
+        });
 
-      await setDoc(doc(db, "ogrenciler", ogrId, "donemler", AKTIF_DONEM), donemDoc);
+        // Dönem dokümanındaki kayıt sınıfını da güncelle
+        try {
+          const donemRef = doc(db, "ogrenciler", o.mevcutId, "donemler", AKTIF_DONEM);
+          const snap = await getDoc(donemRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            const mevcutKayit = data.kayit || {};
+            await updateDoc(donemRef, {
+              "kayit.sinif": o.sinif,
+              guncellendi: new Date().toISOString()
+            });
+          }
+        } catch (e) {
+          console.warn("Dönem dokümanı güncellenemedi:", e);
+        }
 
-      basarili++;
+        guncellendi++;
+      } else {
+        // Yeni öğrenci ekle
+        const ogrId = o.ogrenciAdSoyad
+          .toLowerCase()
+          .replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s")
+          .replace(/i̇/g, "i").replace(/ı/g, "i").replace(/ö/g, "o").replace(/ç/g, "c")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+
+        const ogrenciDoc = {
+          ogrenciAdSoyad: o.ogrenciAdSoyad,
+          sinif: o.sinif,
+          programTuru: "Tam Gün",
+          durum: "aktif",
+          kaynak: "mevcut_2025",
+          veli1AdSoyad: o.anne?.adSoyad || "",
+          veli1Telefon: o.anne?.cepTel || "",
+          veli1Eposta: o.anne?.eposta || "",
+          veli2AdSoyad: o.baba?.adSoyad || "",
+          veli2Telefon: o.baba?.cepTel || "",
+          veli2Eposta: o.baba?.eposta || "",
+          olusturuldu: new Date().toISOString(),
+          olusturan: currentUser.email,
+          kaynakDosya: "csv-toplu-yukleme"
+        };
+
+        await setDoc(doc(db, "ogrenciler", ogrId), ogrenciDoc);
+
+        const donemDoc = {
+          donemYili: AKTIF_DONEM,
+          aktif: true,
+          durum: "aktif",
+          kaynak: "mevcut_2025",
+          ogrenci: {
+            tcKimlik: "",
+            adSoyad: o.ogrenciAdSoyad,
+            cinsiyet: "",
+            dogumTarihi: "",
+            evAdresi: o.anne?.evAdresi || o.baba?.evAdresi || "",
+            dogumYeri: "",
+            uyruk: "T.C.",
+            aileDurumu: "",
+            kardesler: { not: "" },
+            adminNot: "",
+            genelNot: ""
+          },
+          anne: o.anne || { adSoyad: "", cepTel: "", eposta: "", meslek: "", tcKimlik: "" },
+          baba: o.baba || { adSoyad: "", cepTel: "", eposta: "", meslek: "", tcKimlik: "" },
+          vasi: o.vasi || {},
+          kayit: {
+            sinif: o.sinif,
+            program: "Tam Gün",
+            ilkKayitTarihi: "",
+            donemBaslangic: "",
+            oncekiOkul: "",
+            servisKullanim: "Kullanmıyor",
+            servisGuzergah: "",
+            servisDurakAdres: "",
+            servisNot: "",
+            kaynak: "",
+            referansKod: "",
+            kaynakNot: ""
+          },
+          izinler: {
+            medya: true,
+            gezi: true,
+            acilMudahale: true,
+            saglikTarama: true
+          },
+          olusturuldu: new Date().toISOString(),
+          olusturan: currentUser.email
+        };
+
+        await setDoc(doc(db, "ogrenciler", ogrId, "donemler", AKTIF_DONEM), donemDoc);
+        basarili++;
+      }
     } catch (e) {
-      console.error(`${o.ogrenciAdSoyad} aktarılamadı:`, e);
+      console.error(`${o.ogrenciAdSoyad} işlenemedi:`, e);
       hatali++;
     }
   }
 
-  ilerlemeText.textContent = `✓ Tamamlandı: ${basarili} başarılı, ${hatali} hata`;
-  showToast(`✓ ${basarili} öğrenci aktarıldı${hatali > 0 ? ` (${hatali} hata)` : ""}`);
+  let sonucMesaj = `✓ Tamamlandı: `;
+  if (basarili > 0) sonucMesaj += `${basarili} yeni`;
+  if (guncellendi > 0) sonucMesaj += `${basarili > 0 ? ", " : ""}${guncellendi} güncellendi`;
+  if (hatali > 0) sonucMesaj += ` (${hatali} hata)`;
 
-  // Dashboard'u yenile
+  ilerlemeText.textContent = sonucMesaj;
+  showToast(sonucMesaj);
+
   setTimeout(async () => {
     closeCsvYukleModal();
     await loadOgrenciler();
