@@ -1582,6 +1582,250 @@ html, body {
   margin: 0;
 }
 
+/* ============ SÖZLEŞME SEKMESİ ============ */
+.sozlesme-intro {
+  background: linear-gradient(135deg, var(--green-mist), var(--cream));
+  border: 1px solid var(--green-light);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sozlesme-intro-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sozlesme-intro-left strong {
+  font-size: 15px;
+  color: var(--green-deep);
+}
+
+.sozlesme-intro-left small {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.btn-mini {
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  background: white;
+  color: var(--green-deep);
+  border: 1px solid var(--green-light);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-mini:hover {
+  background: var(--green-mist);
+  border-color: var(--green-medium);
+}
+
+.sozlesme-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--cream);
+  border-radius: var(--radius-md);
+  border: 1.5px dashed var(--gray-300);
+}
+
+.sozlesme-empty-icon {
+  font-size: 48px;
+  opacity: 0.4;
+  margin-bottom: 12px;
+}
+
+.sozlesme-empty h4 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+.sozlesme-empty p {
+  font-size: 14px;
+  color: var(--gray-500);
+  max-width: 480px;
+  margin: 0 auto 20px;
+  line-height: 1.6;
+}
+
+.sozlesme-section {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.sozlesme-section:last-child {
+  border-bottom: none;
+}
+
+.sozlesme-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.sozlesme-section-header h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--green-deep);
+  margin: 0;
+}
+
+.sozlesme-section-desc {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-bottom: 14px;
+  font-style: italic;
+}
+
+.madde-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--warm-white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  transition: all 0.15s;
+}
+
+.madde-item:hover {
+  background: white;
+  border-color: var(--green-light);
+}
+
+.madde-numara {
+  font-weight: 600;
+  color: var(--green-primary);
+  min-width: 24px;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.madde-icerik {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.madde-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.madde-action-btn {
+  background: none;
+  border: 1px solid var(--gray-300);
+  border-radius: 5px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--gray-500);
+  transition: all 0.15s;
+}
+
+.madde-action-btn:hover {
+  background: var(--green-mist);
+  color: var(--green-deep);
+  border-color: var(--green-medium);
+}
+
+.madde-action-btn.danger:hover {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.madde-edit-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.madde-edit-area textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.madde-edit-area textarea:focus {
+  outline: none;
+  border-color: var(--green-primary);
+  box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15);
+}
+
+.ozel-madde-tip-radio {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0;
+  font-size: 12px;
+}
+
+.ozel-madde-tip-radio label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  color: var(--gray-500);
+}
+
+.ozel-madde-tip-radio input[type="radio"] {
+  accent-color: var(--green-primary);
+  margin: 0;
+}
+
+.sozlesme-sablon-warning {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+.madde-draggable {
+  cursor: grab;
+}
+
+.madde-draggable:active {
+  cursor: grabbing;
+}
+
+.ozel-madde-empty {
+  padding: 20px;
+  text-align: center;
+  background: var(--cream);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--gray-300);
+  font-size: 13px;
+  color: var(--gray-500);
+  font-style: italic;
+}
+
 .btn-save {
   background: var(--green-deep);
   color: white;
@@ -1727,7 +1971,7 @@ html, body {
   <section class="hero">
     <div>
       <div class="hero-tag">MACTE Montessori • Level 3 Forest School</div>
-      <h1>Çocuklarınızın gelişim takibi ve <em>okul süreçlenin</em> tam takibi</h1>
+      <h1>Çocuklarınızın gelişimi için <em>güvenli</em> ve modern bir portal</h1>
       <p>
         Bir Çiçek Koleji Anaokulu Veli Portalı'nda çocuğunuzun okul süreçlerini, ödeme bilgilerinizi ve 
         eğitim takvimini tek bir yerden takip edin. Şeffaf, hızlı ve kolay erişim.
@@ -2841,12 +3085,108 @@ html, body {
       </div>
       </div>
 
-      <!-- ============ SÖZLEŞME SEKMESİ - PLACEHOLDER ============ -->
+      <!-- ============ SÖZLEŞME SEKMESİ ============ -->
       <div class="modal-tab-panel" id="panel-sozlesme">
-        <div class="tab-placeholder">
-          <span class="big-icon">📄</span>
-          <h4>Sözleşme Maddeleri</h4>
-          <p>MEB Özel Okul Kayıt Sözleşmesi'nin Genel Hususlar (15 madde) ve Özel Hususlar (28 madde) bölümleri burada akordeon olarak yer alacak. Dönem bazlı şablon yönetimi ve öğrenciye özel istisnalar da bu sekmede olacak.</p>
+
+        <div class="sozlesme-intro">
+          <div class="sozlesme-intro-left">
+            <strong>📄 MEB Özel Okul Kayıt Sözleşmesi</strong>
+            <small id="sozlesmeVersiyonBilgi">Sözleşme versiyonu: <strong id="sozlesmeVer">—</strong></small>
+          </div>
+          <div class="sozlesme-intro-right">
+            <button class="btn-mini" onclick="openSozlesmeSablonEditor()">⚙️ Şablonu Düzenle</button>
+          </div>
+        </div>
+
+        <div class="sozlesme-empty" id="sozlesmeEmpty">
+          <div class="sozlesme-empty-icon">📋</div>
+          <h4>Sözleşme şablonu henüz yüklenmedi</h4>
+          <p>Bu dönem için sözleşme şablonunu yüklemek üzere aşağıdaki butona tıklayın. Tek seferlik bir işlemdir; MEB'in 15 Genel Hususu ve okulumuzun 28 Özel Hususu Firestore'a kaydedilir.</p>
+          <button class="btn-primary" onclick="yukleVarsayilanSozlesme()">📥 Varsayılan Sözleşmeyi Yükle</button>
+        </div>
+
+        <div id="sozlesmeContent" style="display:none;">
+
+          <div class="sozlesme-section">
+            <div class="sozlesme-section-header">
+              <h3>📘 Genel Hususlar</h3>
+              <span class="section-badge admin">MEB Zorunlu</span>
+            </div>
+            <p class="sozlesme-section-desc">Millî Eğitim Bakanlığı tarafından şart koşulan 15 maddedir; genelde değiştirilmez.</p>
+            <div id="genelHususlarList"></div>
+          </div>
+
+          <div class="sozlesme-section">
+            <div class="sozlesme-section-header">
+              <h3>📙 Özel Hususlar</h3>
+              <span class="section-badge optional">Okul Yazdı</span>
+            </div>
+            <p class="sozlesme-section-desc">Okulumuz tarafından belirlenen 28 maddedir; dönem başında güncellenebilir.</p>
+            <div id="ozelHususlarList"></div>
+          </div>
+
+          <div class="sozlesme-section">
+            <div class="sozlesme-section-header">
+              <h3>📦 Genel İhtiyaç Listesi</h3>
+            </div>
+            <div class="form-row-1">
+              <textarea id="sozlesmeGenelIhtiyacMetin" rows="4" placeholder="Genel ihtiyaç listesi metni..."></textarea>
+              <div class="field-hint">Sözleşmenin sonunda yer alan Genel İhtiyaç Listesi paragrafı.</div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Yarı Dönem Ücreti (TL)</label>
+                <input type="number" id="sozlesmeYariDonemUcret" placeholder="0" min="0" value="0">
+                <div class="field-hint">Yıl ortası kayıt olanlar için</div>
+              </div>
+              <div class="form-group">
+                <label>Tam Dönem Ücreti (TL)</label>
+                <input type="number" id="sozlesmeTamDonemUcret" placeholder="0" min="0" value="0">
+                <div class="field-hint">Dönem başı kayıt olanlar için</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sozlesme-section">
+            <div class="sozlesme-section-header">
+              <h3>⚡ Bu Öğrenciye Özel Maddeler</h3>
+              <span class="section-badge optional">İstisna</span>
+            </div>
+            <p class="sozlesme-section-desc">Bu öğrencinin sözleşmesine eklenecek veya standart sözleşmeden çıkarılacak maddeler.</p>
+
+            <div id="ozelMaddelerList"></div>
+            <button class="btn-mini" onclick="ozelMaddeEkle()" style="margin-top: 10px;">+ Özel Madde Ekle</button>
+          </div>
+
+          <div class="sozlesme-section">
+            <div class="sozlesme-section-header">
+              <h3>✍️ İmza Bilgileri</h3>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Sözleşme Tarihi</label>
+                <input type="date" id="sozlesmeImzaTarihi">
+              </div>
+              <div class="form-group">
+                <label>İmzalayan Veli</label>
+                <select id="sozlesmeImzalayan">
+                  <option value="Anne">Anne</option>
+                  <option value="Baba">Baba</option>
+                  <option value="Vasi">Vasi</option>
+                  <option value="Anne ve Baba">Anne ve Baba</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-1">
+              <div class="form-group">
+                <label class="checkbox-inline">
+                  <input type="checkbox" id="sozlesmeImzalandiFlag">
+                  <span>Sözleşme imzalandı ve dosyalandı</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -2864,6 +3204,50 @@ html, body {
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeAyarModal()">İptal</button>
       <button class="btn-save" onclick="saveAyarlar()">💾 Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SÖZLEŞME ŞABLON EDİTÖR MODALI ============ -->
+<div id="sozlesmeSablonModal" class="modal-overlay">
+  <div class="modal modal-large">
+    <div class="modal-header">
+      <div class="modal-header-row">
+        <div>
+          <h2>⚙️ Sözleşme Şablonu Düzenleme</h2>
+          <p id="sozlesmeSablonDonem">2025-2026 Dönemi</p>
+        </div>
+        <button class="btn-close" onclick="closeSozlesmeSablonEditor()">×</button>
+      </div>
+    </div>
+
+    <div style="padding: 8px 0;">
+      <div class="sozlesme-sablon-warning">
+        ⚠️ Dikkat: Burada yapılan değişiklikler <strong>tüm öğrencilerin</strong> sözleşmesini etkiler. Öğrenciye özel istisnaları "Bu Öğrenciye Özel Maddeler" bölümüne yazın.
+      </div>
+
+      <div class="sozlesme-section">
+        <div class="sozlesme-section-header">
+          <h3>📘 Genel Hususlar (MEB)</h3>
+        </div>
+        <p class="sozlesme-section-desc">Bu maddeler MEB şablonundan gelir; dokunmamanız önerilir.</p>
+        <div id="editGenelHususlarList"></div>
+        <button class="btn-mini" onclick="sablonMaddeEkle('genel')">+ Genel Madde Ekle</button>
+      </div>
+
+      <div class="sozlesme-section">
+        <div class="sozlesme-section-header">
+          <h3>📙 Özel Hususlar (Okul)</h3>
+        </div>
+        <p class="sozlesme-section-desc">Okulumuza özel kurallar; dönem başında güncellenebilir.</p>
+        <div id="editOzelHususlarList"></div>
+        <button class="btn-mini" onclick="sablonMaddeEkle('ozel')">+ Özel Madde Ekle</button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeSozlesmeSablonEditor()">İptal</button>
+      <button class="btn-save" onclick="saveSozlesmeSablon()">💾 Şablonu Kaydet</button>
     </div>
   </div>
 </div>
@@ -3237,7 +3621,7 @@ if (donemSelectorEl) {
 }
 
 // ============ AYAR MODAL ============
-window.openAyarModal = function(ogrenciId) {
+window.openAyarModal = async function(ogrenciId) {
   const o = ogrenciList.find(x => x.id === ogrenciId);
   if (!o) return;
   
@@ -3256,6 +3640,8 @@ window.openAyarModal = function(ogrenciId) {
   loadOgrenciSekmesi(o);
   loadVeliSekmesi(o);
   loadKayitSekmesi(o);
+  await loadSozlesmeSablonu(AKTIF_DONEM);
+  loadSozlesmeSekmesi(o);
 
   // Mevcut ayarları oku (başlıkta güncel program türünü göstermek için)
   const mevcutAyar = ayarListesi[ogrenciId];
@@ -3574,6 +3960,361 @@ function loadKayitSekmesi(o) {
     aidatProgSel._syncBound = true;
   }
 }
+
+// ============ SÖZLEŞME ŞABLONU ============
+let currentSozlesmeSablon = null;
+
+const VARSAYILAN_GENEL_HUSUSLAR = [
+  "Öğrencinin bir sonraki eğitim öğretim yılında okula devam etmek istemesi durumunda, yukarıda \"Ödeme Bilgileri Bölümünde Öğrenci İçin Belirlenen Öğrenim Ücreti\" üzerinden artış yapılacaktır.",
+  "Okulun ara sınıflarının eğitim ücreti, bir önceki eğitim öğretim yılında ilan edilen ücrete (Y.İ-ÜFE+TÜFE)/2 oranına en fazla %5 artış; okulda devam eden öğrencilerin ücreti ise, öğrenci kayıt sözleşmesinde belirlenen eğitim ücretine, (Y.İ-ÜFE+TÜFE)/2 oranına en fazla %5 artış yapılarak hesaplanır.",
+  "Kurumumuz, bir sonraki yılın 10 aylık (Eylül-Haziran) eğitim ve öğretim ücreti ve diğer (takviye kursları, yemek, servis, kıyafet, kırtasiye, yatakhane vb.) ücretleri, ocak ayından itibaren mayıs ayının sonuna kadar ilan eder. Bu ilanlarda ders yılı veya ders saati ücretiyle birlikte, peşin veya taksitli ödemeler ve diğer indirimler de belirtilir.",
+  "Sosyal ve kültürel faaliyetler, gezi ve gözlem gibi diğer etkinlikler için ücretler, faaliyet öncesi belirlenir. Kurs ve faaliyetlere katılım ise veli/vasi izni doğrultusunda gerçekleşir.",
+  "Kurumumuz, öğrenci veya velilerinden beceri eğitimi / staj çalışması adı altında ayrı bir ücret talep etmeyecektir.",
+  "Kurumumuzun süresi içinde eğitim ve öğretim ücretini ilan etmemesi halinde, kurumumuzda bir önceki yılın sözleşmesindeki eğitim ve öğretim ücreti geçerli olacaktır.",
+  "Kurumumuzun eğitim ve öğretim ücreti kurum adına açılan ve valiliğe bildirilen banka hesap numarasına yatırılarak tahsil edilir. Öğrencilerden alınan ücretler e-Okul sistemine işlenir ve velilerin bilgisine sunulur.",
+  "Kurumumuz, çalışma takviminde belirtilen ders yılı sonunda ücretini ödemeyen öğrencilerin kayıtlarını yenilemeyebilir. Ücretini ödememekte ısrarcı olan velinin/vasinin çocuğunun kaydı, maarif müfettişleri tarafından yapılacak inceleme sonucunda nakil ve yerleştirme komisyonu aracılığıyla uygun olan resmi okula veya açık liseye alınır.",
+  "MEB Özel Öğretim Kurumları Yönetmeliğinin 56. maddesi hükümlerince; eğitim ve öğretim yılı başlamadan kurumumuzdan ayrılanlara, öğrencinin ödeyeceği yıllık ücretin %10 dışındaki kısmı, eğitim ve öğretim yılı başladıktan sonra kurumumuzdan ayrılanlara ise öğrencinin ödeyeceği yıllık ücretin %10'u ile öğrenim gördüğü günlere göre hesaplanan miktarın dışındaki kısmı öğrenci veli/vasisine iade edilir.",
+  "Kurumumuz tarafından öğrencinin ücretsiz okumasının uygun bulunması veya indirim hakkı elde etmesi halinde kurumumuza ödenen ücret, eğitim ve öğretimin başladıktan sonra iki ay içinde öğrenci veli/vasisine geri ödenir.",
+  "Herhangi bir şekilde kurumumuzdan ayrılan burslu öğrencilerden öğrenim gördüğü süre için kurumumuz tarafından herhangi bir ücret talep edilmeyecektir.",
+  "Eğitim ve Öğretim Desteğinden faydalanan öğrenci ücretinin ödenmesi; a) Öğrencinin velisi/vasisi bu sözleşmede belirlenen eğitim ve öğretim ücretinin Bakanlıkça karşılanacak eğitim ve öğretim desteğinin dışında kalan bedelini okula ödemekle yükümlüdür. b) Öğrencinin eğitim ve öğretim desteğinin çeşitli sebeplerden dolayı iptal edilmesi durumunda, kalan tutar öğrencinin velisi/vasisinden tahsil edilir.",
+  "MEB Özel Öğretim Kurumları Yönetmeliğinin Ek 2. maddesine göre; kurumumuzun ilan ettiği yıllık ücretin %51'i ve fazlası oranında burslu okutulan öğrencinin eğitim ve öğretim desteği Bakanlığa bildirilerek iptali istenir.",
+  "Öğrencinin okula devam etmesi esastır. Devamsızlık yapan öğrencilerin velileri/vasileri, öğrencilerin mazeretlerini okula bildirir. Veli/vasi tarafından söz konusu bildirimin okula yapılmaması halinde, okul idaresi gelmeyen öğrencilerin velisiyle/vasisiyle iletişim kurarak devamsız öğrenci hakkında veli/vasiye bilgi verir.",
+  "İş bu sözleşmede yer alan hususların yerine getirilmesi ve gerekli tebligatların yapılabilmesi için veli/vasi tarafından yukarıda belirtilen adresin yasal ikametgâh adresi olduğu ve adres değişikliği durumunda 15 gün içerisinde yazılı olarak okula bildirilmediği takdirde bu adrese yapılacak tebligat geçerli olacaktır. Öğrenci kayıt sözleşmesinin tüm hükümleri veli/vasi tarafından eksiksiz olarak okunmuş, anlaşılmış ve herhangi bir tereddüt olmaksızın tamamen hür irade ve arzu ile kesin olarak kabul edilmiştir."
+];
+
+const VARSAYILAN_OZEL_HUSUSLAR = [
+  "Bu sözleşme, [DÖNEM_BASLANGIC] ile [DÖNEM_BITIS] arası eğitim ve öğretim yılı dönemini kapsar.",
+  "Okulda tam gün ve yarım gün eğitim programı uygulanır. Yarım gün kayıt yaptırılan öğrencilerimiz için saat uygulamamız 09:00 – 13:00 arasındadır. Bu saat haricinde okula devam durumunda saatlik ücret uygulaması yapılmaktadır. Saat ücreti tam gün programının %5'i olarak tahsil edilecektir. Yarım gün programı kurum tarafından gerekli görüldüğü takdirde açılmayabilir.",
+  "Veli, bu sözleşme ile okul yönetimince belirlenen idari kural ve uygulamalara, eğitim program ve uygulamalarına tamamen uymayı kabul eder.",
+  "Okulda; sabah kahvaltısı, öğle yemeği, ikindi kahvaltısı olarak günde 3 öğün yemek verilir.",
+  "Okulda uygulanan tatiller resmi tatil günleridir ve/veya Milli Eğitim Bakanlığının, İstanbul Valiliğinin ve Tuzla Kaymakamlığının yayınlamış ve açıklamış olduğu günlerde tatil uygulanır. Eğitim ve Öğretim yılı boyunca okul ücreti tam olarak alınır. Devamsızlık, hafta sonu tatiller, resmi tatiller ve idari tatiller ücretten indirim sebebi sayılamaz.",
+  "Veli/Vasi Öğrenci'nin geçirdiği herhangi bir kaza veya hastalık söz konusu olduğunda özellikle bulaşıcı hastalıklar hakkında ayrıca öğrencinin sağlık ve kişisel problem ve gelişimi hakkında Okul yönetimine bilgi vereceğini; bunlarla ilgili gerekli resmi kurumlardan alınmış sağlık raporları ile \"okula devam edebilir\" raporlarını idareye teslim edeceğini beyan, kabul ve taahhüt eder.",
+  "Okul yönetimince kararlaştırılan sağlık taramaları ile eğitim, araştırma, inceleme, gezi, ziyaret, tiyatro, yıl sonu gösterisi gibi okul yönetimince organize edilen tüm etkinliklerin masraf ve gidiş dönüş servis ücretleri veli tarafından karşılanır.",
+  "Veli, okuldan çocuğunu almasını istediği kişileri, okul yönetimine okul tarafından temin edilecek Acil Durumlarda Başvuru Formunda belirtmek durumundadır, yakınlığı ne olursa olsun velinin yazılı izni olmadan hiç kimseye çocuk teslim edilmez.",
+  "Çocuğun okul kaydı, ancak çocuğu okula kaydettiren veli tarafından yazılı dilekçe ile sildirilebilir. Telefonla veya başka herhangi bir iletişim aracı ile okul kaydı silinmez.",
+  "Okul kaydı sildirilmeyen öğrenci (Okula gönderilmese dahi) okula devam ediyor sayılır ve okul ücreti ve servis ücreti tam olarak tahsil edilir.",
+  "Okul, edindiği bu kişisel verileri kendi iş ve işlemlerini yürütmekte kullanmaktadır. Okul, Öğrenci ve Veli'lerine/Vasi'lerine ait verilerin talep edilmesi halinde Aile ve Sosyal Politikalar Bakanlığı, Milli Eğitim Bakanlığı, İl Milli Eğitim Müdürlüğü, İlçe Milli Eğitim Müdürlüğü ve resmi kurumlar ile mahkemeler ve diğer devlet kurumları ile paylaşabilecektir. Bu bilgilerin güncel tutulması Veli/Vasi sorumluluğundadır değişiklik olması halinde 1 hafta içinde Okul'a bildirmekle mükellef olduğunu bilmekte ve kabul etmektedir.",
+  "Veli/Vasi, eğitim yılı devam ederken Öğrenci'den beklenmeyen bir fiziksel, zihinsel veya psikolojik problem yaşanması ve bu problemin sınıf ve Okul'un genel düzen ve işleyişini olumsuz etkilemesinin söz konusu olduğu durumda, Okul yönetiminin Öğrenci hakkında Okul'a devam edip etmeme noktasındaki karara itirazda bulunmaksızın uyacağını, böyle bir durumda Öğrenci'nin Okul'a devam edemeyebileceğini beyan, kabul ve taahhüt eder.",
+  "Veli, Okul yönetimi ve grup öğretmenlerinin düzenlediği toplantılara katılmak zorundadır.",
+  "Veli – okul, veli - öğretmen iletişimi okul tarafından velilerimizin kullanımına sunulan mobil uygulama üzerinden yapılmaktadır. Uygulama üzerinden size özel sunulan mesajlaşma bölümünden öğretmeniniz ile iletişime geçebilirsiniz. Gün içerisinde özel durumlarda iletişim için okul sabit ya da mobil hattı üzerinden iletişime geçebilirsiniz.",
+  "Çocuklarımızda bulunan ya da daha sonra ortaya çıkabilen alerjik vb. durumlar ile özel durumları hakkında mutlaka mobil uygulama üzerinden ilgili bölüme bildirimde bulunulması gerekmektedir. Sözel olarak iletilen durumlarda okul ve öğretmenimiz mesul değildir.",
+  "Çocuğun okula gelişinde maddi değeri yüksek olan bileklik, kolye, küpe veya herhangi bir şey takılamaz. Maddi veya manevi değeri yüksek olan oyuncaklarda okula gönderilmemelidir; kaybolması ya da zarar görmesi durumunda okul yönetimi ya da öğretmeni sorumlu değildir. Ayriyeten üzerinde çocuğun ismi yazılmayan özel eşyanın kaybolması durumunda okul yönetimi ve öğretmeni sorumlu değildir.",
+  "Okul öncesi eğitim kurumları yönetmeliği 53. maddesi gereğince, kurumumuzda öğrencilerimize ilaç kullanımı (bulundurulması ve verilmesi) yapılamamaktadır. Antibiyotik gibi ilaçların saatlerini okula gitmeden ve okuldan geldikten sonraki saatler diliminde yapılması tavsiye edilir.",
+  "Veli/Vasi, Öğrenci'nin resminin ve isminin münhasıran Okul tarafından yazılı ve/veya görsel medya araçlarında ve/veya Okul tarafından yayınlanan dergi, gazete, ilan, broşür, katalog vb. de ve/veya başkaca tanıtım araçlarında kullanılmasına peşinen muvafakat ettiğini kabul ve beyan eder. Veli/Vasi bu muvafakatından feragat etmek isterse bu durumu Kurum'a yazılı olarak bildirmelidir. Feragat talebi üzerine, söz konusu fotoğraflar, resimler vs. Kurum tarafından kullanılamaz.",
+  "Eğitim ve öğretim faaliyet için belirlenen ücret peşin ödenmemiş ise ödeme günü serbest meslek mensubu olan Veli/Vasi için her ayın 1 ila 5'inci günü, memur olan Veli/Vasi için 15 ila 20'inci günüdür. Gecikme halinde aylık %5 ceza-i yaptırım uygulanır. Veli/Vasi, işbu ceza-i yaptırımı kabul, beyan ve taahhüt eder. Ödemesi yapılan eğitim ücretlerinin iadesi durumunda Genel Hususlar başlığı altında bulunan 9. maddenin hükmü ile 2 ay içerisinde başlatılarak 3 eşit taksitte ödenir.",
+  "Yüz yüze eğitime mani olacak mücbir sebep durumunda kurumumuzun tarafından öğrencilerimiz için online eğitim ile devam edilerek eğitimin bütünlüğü sağlanacaktır. 30 gün ve üzeri yüz yüze eğitime mani kapanmalarda okul ücretleri online eğitim sürecinde %30 oranında düşülecektir. Eğitim öğretim yılı sonunda bu düşüş sonrasında daha önceden yapılmış ödemeler arasında çıkabilecek olan fazla ödemeler okulların açıldığı tarihten 2 ay sonra 3 eşit taksitte yapılmaya başlanır ya da velinin talebi doğrultusunda bir sonraki eğitim döneminden mahsuplaşılır.",
+  "Yıl içerisinde beklenmeyen enflasyon artışlarından kaynaklı oluşabilecek yüksek farklar için yeni yıl geçişi itibaren bir kısım ücret farkı yansıtılabilir.",
+  "Veli tarafından uzun süreli ara vermek istendiğinde mevcut kayıt dilekçe ile sonlandırılır, yeniden başlandığında yeni sözleşme ile o tarihteki ödeme planı uygulanır.",
+  "Veli, yaz okulunda veya bir sonraki eğitim – öğretim yılında çocuğunun okula devam etmesini istemesi durumunda öğrenci kaydının ve kayıt sözleşmesinin yenilenmesi gerekmektedir.",
+  "Kayıt esnasında peşin ödeme yapan Veli/Vasi'den genel ihtiyaçlar ücreti ile yıllık eğitim bedelini bedeli peşin alınır. Taksit ile ödeme yapan Veli/Vasi'den genel ihtiyaçlar ücreti ile ilk taksitleri kayıt esnasında alınır.",
+  "İşbu Sözleşme'de yer alan hususların yerine getirilmesi ve gerekli tebligatların yapılabilmesi için Veli/Vasi tarafından yukarıda belirtilen adresin yasal ikametgah adresi olduğu ve adres değişikliği durumunda 15 gün içerisinde yazılı olarak okula bildirilmediği takdirde bu adrese yapılacak tebligatın geçerli olacağını kabul eder.",
+  "Veli/Vasi, ödeyeceğini taahhüt ettiği bedelin ödenmesi için gerek şahsi, gerek müşteri çeki/çekleri veya senedi/senetleri verdiğinde; bunların herhangi biri gününde ödenmez ise veya kredi kartına bağlanılıp da kredi kartı ödemelerinde herhangi bir aksama olursa veya herhangi bir sebeple belirtilen eğitim öğretim ücreti bedelinin ödenmemesi söz konusu olursa; ödenmeme durumunun şahsına yapılacak ilk bildirimden itibaren 7 (yedi) gün içerisinde, eğitim - öğretim ücreti bedelini nakit olarak ödeyeceğini kabul, beyan ve taahhüt eder. Aksi durumda aleyhinde uygulanacak tüm yasal işlemlerin başkaca bir ihtar şartına gerek olmaksızın başlatılabileceğini bilmekte ve kabul etmektedir.",
+  "İşbu Sözleşme'ye Türkiye Cumhuriyeti Kanunları uygulanacak ve Sözleşme bu kanunlara göre yorumlanacaktır. İşbu Sözleşme'den ya da Sözleşme'nin maddelerinin yorumundan doğan anlaşmazlıkların çözümünde İstanbul Anadolu Mahkemeleri ve İstanbul Anadolu İcra Daireleri yetkilidir.",
+  "Taraflar arasında ve tarafların yetkililerince yapılan e-posta, anlık mesaj ve faks gibi elektronik yazışma kayıtları, kanunen geçerli delil sayılarak, usul hukuku bağlamında kesin ve bağlayıcı delil olarak kabul edilmiştir."
+];
+
+const VARSAYILAN_GENEL_IHTIYAC_METIN = "Öğrencinin ders yılı döneminde ihtiyacı olan eğitim seti ve materyalleri, kırtasiye seti, tüm etkinlik ve kırtasiye malzemeleri ile havlu kağıt, WC kağıdı, temizlik ürünleri masraflarının tamamı veliye aittir ve bunların tamamını okul yönetimi temin eder. Yarı dönemde başlayan öğrenciler için bu ücret [YARI_DONEM_UCRET] TL olarak alınır. Bu ödeme kayıt anında peşin olarak alınır ve bu ücrette herhangi bir indirim uygulanamaz. Alınan bu ücret yıl içerisinde öğrencinin okuldan ayrılması durumunda iade edilmez.";
+
+async function loadSozlesmeSablonu(donem) {
+  try {
+    const ref = doc(db, "sozlesme_sablonu", donem);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      currentSozlesmeSablon = snap.data();
+      return currentSozlesmeSablon;
+    }
+    currentSozlesmeSablon = null;
+    return null;
+  } catch (e) {
+    console.warn("Sözleşme şablonu yüklenemedi:", e);
+    currentSozlesmeSablon = null;
+    return null;
+  }
+}
+
+function loadSozlesmeSekmesi(o) {
+  const ayar = ayarListesi[o.id];
+  const sozlesme = (ayar && ayar.sozlesme) || {};
+
+  document.getElementById("sozlesmeVer").textContent = currentSozlesmeSablon
+    ? `${AKTIF_DONEM} (v${currentSozlesmeSablon.versiyon || "1"})`
+    : `${AKTIF_DONEM} (yüklenmedi)`;
+
+  const empty = document.getElementById("sozlesmeEmpty");
+  const content = document.getElementById("sozlesmeContent");
+
+  if (!currentSozlesmeSablon) {
+    empty.style.display = "block";
+    content.style.display = "none";
+    return;
+  }
+
+  empty.style.display = "none";
+  content.style.display = "block";
+
+  renderMaddeler("genelHususlarList", currentSozlesmeSablon.genelHususlar || [], "G");
+  renderMaddeler("ozelHususlarList", currentSozlesmeSablon.ozelHususlar || [], "Ö");
+
+  document.getElementById("sozlesmeGenelIhtiyacMetin").value = currentSozlesmeSablon.genelIhtiyacMetin || VARSAYILAN_GENEL_IHTIYAC_METIN;
+  document.getElementById("sozlesmeYariDonemUcret").value = sozlesme.yariDonemUcret || currentSozlesmeSablon.yariDonemUcret || 0;
+  document.getElementById("sozlesmeTamDonemUcret").value = sozlesme.tamDonemUcret || currentSozlesmeSablon.tamDonemUcret || 0;
+
+  renderOzelMaddeler(sozlesme.ozelMaddeler || []);
+
+  document.getElementById("sozlesmeImzaTarihi").value = formatDateForInput(sozlesme.imzaTarihi);
+  document.getElementById("sozlesmeImzalayan").value = sozlesme.imzalayan || "Anne";
+  document.getElementById("sozlesmeImzalandiFlag").checked = !!sozlesme.imzalandi;
+}
+
+function renderMaddeler(containerId, maddeler, prefix) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (maddeler.length === 0) {
+    container.innerHTML = '<div class="ozel-madde-empty">Henüz madde yok.</div>';
+    return;
+  }
+
+  let html = "";
+  maddeler.forEach((m, i) => {
+    html += `
+      <div class="madde-item">
+        <div class="madde-numara">${prefix}-${i + 1}</div>
+        <div class="madde-icerik">${escapeHtml(m)}</div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function renderOzelMaddeler(maddeler) {
+  const container = document.getElementById("ozelMaddelerList");
+  if (!container) return;
+
+  if (!maddeler || maddeler.length === 0) {
+    container.innerHTML = '<div class="ozel-madde-empty">Bu öğrenciye özel madde yok. Standart sözleşme uygulanır.</div>';
+    return;
+  }
+
+  let html = "";
+  maddeler.forEach((m, i) => {
+    const tip = m.tip || "ek";
+    html += `
+      <div class="madde-item" data-ozel-index="${i}">
+        <div class="madde-numara">Ö${i + 1}</div>
+        <div class="madde-icerik madde-edit-area">
+          <div class="ozel-madde-tip-radio">
+            <label><input type="radio" name="ozelMaddeTip_${i}" value="ek" ${tip === "ek" ? "checked" : ""}> + Ek madde</label>
+            <label><input type="radio" name="ozelMaddeTip_${i}" value="istisna" ${tip === "istisna" ? "checked" : ""}> × İstisna</label>
+          </div>
+          <textarea rows="2" placeholder="Özel madde metni...">${escapeHtml(m.metin || "")}</textarea>
+        </div>
+        <div class="madde-actions">
+          <button class="madde-action-btn danger" onclick="ozelMaddeSil(${i})" title="Sil">✕</button>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+window.ozelMaddeEkle = function() {
+  const container = document.getElementById("ozelMaddelerList");
+  if (!container) return;
+
+  const mevcut = Array.from(container.querySelectorAll(".madde-item")).map((el, i) => ({
+    tip: document.querySelector(`input[name="ozelMaddeTip_${i}"]:checked`)?.value || "ek",
+    metin: el.querySelector("textarea")?.value.trim() || ""
+  }));
+  mevcut.push({ tip: "ek", metin: "" });
+  renderOzelMaddeler(mevcut);
+};
+
+window.ozelMaddeSil = function(idx) {
+  if (!confirm("Bu özel maddeyi silmek istediğinize emin misiniz?")) return;
+  const container = document.getElementById("ozelMaddelerList");
+  const mevcut = Array.from(container.querySelectorAll(".madde-item")).map((el, i) => ({
+    tip: document.querySelector(`input[name="ozelMaddeTip_${i}"]:checked`)?.value || "ek",
+    metin: el.querySelector("textarea")?.value.trim() || ""
+  }));
+  mevcut.splice(idx, 1);
+  renderOzelMaddeler(mevcut);
+};
+
+function getOzelMaddelerFromUI() {
+  const container = document.getElementById("ozelMaddelerList");
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(".madde-item"))
+    .map((el, i) => ({
+      tip: document.querySelector(`input[name="ozelMaddeTip_${i}"]:checked`)?.value || "ek",
+      metin: el.querySelector("textarea")?.value.trim() || ""
+    }))
+    .filter(m => m.metin);
+}
+
+function escapeHtml(s) {
+  if (!s) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+window.yukleVarsayilanSozlesme = async function() {
+  if (!confirm(`${AKTIF_DONEM} dönemi için varsayılan MEB sözleşme şablonunu yüklemek istediğinize emin misiniz?\n\nBu işlem mevcut bir şablon varsa ÜZERİNE YAZAR.`)) return;
+
+  try {
+    showToast("Sözleşme şablonu yükleniyor...");
+    const ref = doc(db, "sozlesme_sablonu", AKTIF_DONEM);
+    const data = {
+      donem: AKTIF_DONEM,
+      versiyon: "1",
+      genelHususlar: VARSAYILAN_GENEL_HUSUSLAR,
+      ozelHususlar: VARSAYILAN_OZEL_HUSUSLAR,
+      genelIhtiyacMetin: VARSAYILAN_GENEL_IHTIYAC_METIN,
+      yariDonemUcret: 0,
+      tamDonemUcret: 0,
+      olusturuldu: new Date().toISOString(),
+      guncellendi: new Date().toISOString(),
+      olusturan: currentUser.email
+    };
+    await setDoc(ref, data);
+    currentSozlesmeSablon = data;
+    showToast("✓ Sözleşme şablonu yüklendi!");
+
+    if (currentOgrenci) loadSozlesmeSekmesi(currentOgrenci);
+  } catch (e) {
+    console.error(e);
+    showToast("Yüklenemedi: " + e.message, "error");
+  }
+};
+
+window.openSozlesmeSablonEditor = async function() {
+  if (!currentSozlesmeSablon) {
+    if (!confirm("Bu dönem için henüz şablon yok. Önce varsayılan şablonu yüklemek ister misiniz?")) return;
+    await yukleVarsayilanSozlesme();
+    if (!currentSozlesmeSablon) return;
+  }
+
+  document.getElementById("sozlesmeSablonDonem").textContent = `${AKTIF_DONEM} Dönemi`;
+
+  renderEditMaddeler("editGenelHususlarList", currentSozlesmeSablon.genelHususlar || [], "G", "genel");
+  renderEditMaddeler("editOzelHususlarList", currentSozlesmeSablon.ozelHususlar || [], "Ö", "ozel");
+
+  document.getElementById("sozlesmeSablonModal").classList.add("active");
+};
+
+window.closeSozlesmeSablonEditor = function() {
+  document.getElementById("sozlesmeSablonModal").classList.remove("active");
+};
+
+function renderEditMaddeler(containerId, maddeler, prefix, kind) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  let html = "";
+  maddeler.forEach((m, i) => {
+    html += `
+      <div class="madde-item" data-kind="${kind}" data-idx="${i}">
+        <div class="madde-numara">${prefix}-${i + 1}</div>
+        <div class="madde-icerik madde-edit-area">
+          <textarea rows="3">${escapeHtml(m)}</textarea>
+        </div>
+        <div class="madde-actions">
+          <button class="madde-action-btn" onclick="sablonMaddeYukari('${kind}', ${i})" title="Yukarı">▲</button>
+          <button class="madde-action-btn" onclick="sablonMaddeAsagi('${kind}', ${i})" title="Aşağı">▼</button>
+          <button class="madde-action-btn danger" onclick="sablonMaddeSil('${kind}', ${i})" title="Sil">✕</button>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function getSablonMaddelerFromUI(kind) {
+  const containerId = kind === "genel" ? "editGenelHususlarList" : "editOzelHususlarList";
+  const container = document.getElementById(containerId);
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(".madde-item"))
+    .map(el => el.querySelector("textarea")?.value.trim() || "")
+    .filter(m => m);
+}
+
+window.sablonMaddeEkle = function(kind) {
+  const mevcut = getSablonMaddelerFromUI(kind);
+  mevcut.push("");
+  const containerId = kind === "genel" ? "editGenelHususlarList" : "editOzelHususlarList";
+  const prefix = kind === "genel" ? "G" : "Ö";
+  renderEditMaddeler(containerId, mevcut, prefix, kind);
+};
+
+window.sablonMaddeSil = function(kind, idx) {
+  if (!confirm(`Bu ${kind === "genel" ? "genel" : "özel"} maddeyi silmek istediğinize emin misiniz?\n\nBu değişiklik henüz kaydedilmemiştir; Kaydet butonuna basana kadar geri alabilirsiniz.`)) return;
+  const mevcut = getSablonMaddelerFromUI(kind);
+  mevcut.splice(idx, 1);
+  const containerId = kind === "genel" ? "editGenelHususlarList" : "editOzelHususlarList";
+  const prefix = kind === "genel" ? "G" : "Ö";
+  renderEditMaddeler(containerId, mevcut, prefix, kind);
+};
+
+window.sablonMaddeYukari = function(kind, idx) {
+  if (idx === 0) return;
+  const mevcut = getSablonMaddelerFromUI(kind);
+  [mevcut[idx - 1], mevcut[idx]] = [mevcut[idx], mevcut[idx - 1]];
+  const containerId = kind === "genel" ? "editGenelHususlarList" : "editOzelHususlarList";
+  const prefix = kind === "genel" ? "G" : "Ö";
+  renderEditMaddeler(containerId, mevcut, prefix, kind);
+};
+
+window.sablonMaddeAsagi = function(kind, idx) {
+  const mevcut = getSablonMaddelerFromUI(kind);
+  if (idx >= mevcut.length - 1) return;
+  [mevcut[idx], mevcut[idx + 1]] = [mevcut[idx + 1], mevcut[idx]];
+  const containerId = kind === "genel" ? "editGenelHususlarList" : "editOzelHususlarList";
+  const prefix = kind === "genel" ? "G" : "Ö";
+  renderEditMaddeler(containerId, mevcut, prefix, kind);
+};
+
+window.saveSozlesmeSablon = async function() {
+  try {
+    const genelHususlar = getSablonMaddelerFromUI("genel");
+    const ozelHususlar = getSablonMaddelerFromUI("ozel");
+
+    if (genelHususlar.length === 0 && ozelHususlar.length === 0) {
+      showToast("En az bir madde olmalı", "error");
+      return;
+    }
+
+    const yeniVersiyon = String(parseInt(currentSozlesmeSablon?.versiyon || "1") + 1);
+
+    const data = {
+      donem: AKTIF_DONEM,
+      versiyon: yeniVersiyon,
+      genelHususlar: genelHususlar,
+      ozelHususlar: ozelHususlar,
+      genelIhtiyacMetin: currentSozlesmeSablon?.genelIhtiyacMetin || VARSAYILAN_GENEL_IHTIYAC_METIN,
+      yariDonemUcret: currentSozlesmeSablon?.yariDonemUcret || 0,
+      tamDonemUcret: currentSozlesmeSablon?.tamDonemUcret || 0,
+      olusturuldu: currentSozlesmeSablon?.olusturuldu || new Date().toISOString(),
+      guncellendi: new Date().toISOString(),
+      guncelleyen: currentUser.email
+    };
+
+    const ref = doc(db, "sozlesme_sablonu", AKTIF_DONEM);
+    await setDoc(ref, data);
+    currentSozlesmeSablon = data;
+
+    showToast(`✓ Şablon kaydedildi (v${yeniVersiyon})`);
+    closeSozlesmeSablonEditor();
+
+    if (currentOgrenci) loadSozlesmeSekmesi(currentOgrenci);
+  } catch (e) {
+    console.error(e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
 
 window.togglePesin = function() {
   const cb = document.getElementById("ayarPesin");
@@ -3912,6 +4653,17 @@ window.saveAyarlar = async function() {
     saglikTarama: document.getElementById("kayitAyarSaglikTaramaIzni").checked
   };
 
+  const sozlesmeData = {
+    sozlesmeVersiyonu: currentSozlesmeSablon?.versiyon || "1",
+    donem: AKTIF_DONEM,
+    ozelMaddeler: getOzelMaddelerFromUI(),
+    yariDonemUcret: parseFloat(document.getElementById("sozlesmeYariDonemUcret")?.value) || 0,
+    tamDonemUcret: parseFloat(document.getElementById("sozlesmeTamDonemUcret")?.value) || 0,
+    imzaTarihi: document.getElementById("sozlesmeImzaTarihi")?.value || "",
+    imzalayan: document.getElementById("sozlesmeImzalayan")?.value || "Anne",
+    imzalandi: document.getElementById("sozlesmeImzalandiFlag")?.checked || false
+  };
+
   // Diğer Ücretler
   const digerUcretler = {
     egitimMateryali: parseFloat(document.getElementById("ayarDigerEgitimMateryali").value) || 0,
@@ -3975,6 +4727,7 @@ window.saveAyarlar = async function() {
     vasi: vasiData,
     kayit: kayitData,
     izinler: izinlerData,
+    sozlesme: sozlesmeData,
     sozlesmedeGoster: sozlesmedeGoster,
     aylikOdemeler: {},
     ekUcretler: {},
@@ -3998,6 +4751,7 @@ window.saveAyarlar = async function() {
         vasi: vasiData,
         kayit: kayitData,
         izinler: izinlerData,
+        sozlesme: sozlesmeData,
         sozlesmedeGoster: sozlesmedeGoster,
         notlar: notlar,
         guncellendi: new Date().toISOString()
