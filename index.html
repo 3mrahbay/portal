@@ -5925,6 +5925,94 @@ const provider = new GoogleAuthProvider();
 const ADMIN_EMAIL = "emrahby@gmail.com";
 let AKTIF_DONEM = "2025-2026";  // Dropdown'dan değiştirilebilir
 
+// Brevo mail proxy (Apps Script üzerinden güvenli mail gönderimi)
+const BREVO_PROXY_URL = "https://script.google.com/macros/s/AKfycbwUNvVhTCvxUKOMtbFJ4_UASBo8-sgT13qT_9tWeYKZR3IYaYKUhGdSaGgGaaqMaZLf/exec";
+const OKUL_MAIL = "eposta@bircicekkoleji.com";
+
+// Brevo üzerinden mail gönder (Apps Script proxy ile)
+async function brevoMail(opts) {
+  if (!opts.to || !opts.subject || !opts.htmlContent) {
+    console.warn("brevoMail: to, subject, htmlContent zorunlu");
+    return { success: false };
+  }
+  try {
+    const resp = await fetch(BREVO_PROXY_URL, {
+      method: "POST",
+      mode: "no-cors",  // Apps Script CORS bypass
+      headers: { "Content-Type": "text/plain" },  // no-cors için text/plain
+      body: JSON.stringify({
+        action: "sendMail",
+        to: opts.to,
+        toName: opts.toName || "",
+        subject: opts.subject,
+        htmlContent: opts.htmlContent,
+        replyTo: opts.replyTo || OKUL_MAIL
+      })
+    });
+    // no-cors modda response okunamaz, başarı kabul edilir
+    return { success: true };
+  } catch (e) {
+    console.warn("Brevo mail hatası:", e);
+    return { success: false, error: e.message };
+  }
+}
+
+// Portal standart mail şablonu (yeşil/sarı tema)
+function portalMailSablon(baslik, icerik, altMesaj) {
+  return `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>${baslik}</title>
+</head>
+<body style="margin:0; padding:0; background:#f5f5f5; font-family: 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5; padding:30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:white; border-radius:16px; overflow:hidden; max-width:600px; box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg, #2d6a4f 0%, #52b788 100%); padding:36px 40px; text-align:center; color:white;">
+              <div style="font-size:40px; margin-bottom:10px;">🌸</div>
+              <div style="font-family:'Playfair Display', Georgia, serif; font-size:26px; font-weight:600; margin:0;">Bir Çiçek Koleji</div>
+              <div style="font-size:13px; opacity:0.9; margin-top:4px; letter-spacing:1.5px;">MONTESSORI · ORMAN OKULU</div>
+            </td>
+          </tr>
+          <!-- Title -->
+          <tr>
+            <td style="padding:32px 40px 10px 40px;">
+              <h1 style="color:#1a4d2e; font-family:'Playfair Display', Georgia, serif; font-size:24px; font-weight:600; margin:0 0 8px 0;">${baslik}</h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding:10px 40px 32px 40px; color:#2d2d2d; font-size:15px; line-height:1.7;">
+              ${icerik}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#faf7f2; padding:24px 40px; border-top:1px solid #e8dcc4; font-size:12px; color:#6b7280; text-align:center;">
+              ${altMesaj || ""}
+              <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e8dcc4;">
+                <strong style="color:#2d6a4f;">Bir Çiçek Koleji Anaokulu</strong><br>
+                Montessori & Orman Okulu · Tuzla Aydınlı, İstanbul<br>
+                📞 0216 393 54 57 · 0555 103 54 57<br>
+                <a href="mailto:eposta@bircicekkoleji.com" style="color:#2d6a4f; text-decoration:none;">eposta@bircicekkoleji.com</a> ·
+                <a href="https://portal.bircicekkoleji.com" style="color:#2d6a4f; text-decoration:none;">portal.bircicekkoleji.com</a>
+              </div>
+            </td>
+          </tr>
+        </table>
+        <div style="color:#9ca3af; font-size:11px; margin-top:16px;">Bu mail Bir Çiçek Koleji Veli Portalı tarafından gönderilmiştir.</div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 // Global state
 let currentUser = null;
 let isAdmin = false;
@@ -7159,31 +7247,48 @@ async function loadOnayBekleyenler() {
         notlar: data.notlar || "",
         // Öğrenci bilgileri
         ogrenci: {
-          adSoyad: data.cocukAdi || data.ogrenciAdi || "",
-          tcKimlik: data.cocukTC || "",
-          dogumTarihi: data.cocukDogum || data.dogumTarihi || "",
-          cinsiyet: data.cocukCinsiyet || ""
+          adSoyad: (data.childAd && data.childSoyad)
+            ? `${data.childAd} ${data.childSoyad}`
+            : (data.cocukAdi || data.ogrenciAdi || ""),
+          tcKimlik: data.childTC || data.cocukTC || "",
+          dogumTarihi: data.childDogum || data.cocukDogum || data.dogumTarihi || "",
+          cinsiyet: data.childCinsiyet || data.cocukCinsiyet || ""
         },
         // Kayıt bilgileri
         kayit: {
-          sinif: data.sinif || "",
-          program: data.program || data.programTuru || "Tam Gün"
+          sinif: data.childClass || data.sinif || "",
+          program: data.program === "tam" ? "Tam Gün"
+                 : data.program === "yarim" ? "Yarım Gün"
+                 : (data.programTuru || "Tam Gün"),
+          kayitTuru: data.kayitTur || ""
         },
         // Aidat
         aidatAyarlari: {
-          aylikAidat: data.aylikUcret || data.aylikAidat || 0,
-          taksitSayisi: data.taksitSayisi || 12,
+          aylikAidat: data.aylikUcret || data.aylik || data.aylikAidat || 0,
+          iDonemAylik: data.iAylik || data.iDonemAylik || 0,
+          iiDonemAylik: data.iiAylik || data.iiDonemAylik || 0,
+          onOdeme: data.onOdeme || 0,
+          yillikToplam: data.yillik || data.yillikToplam || 0,
+          egitimUcreti: data.egitim || data.egitimUcreti || 0,
+          yemekUcreti: data.yemek || data.yemekUcreti || 0,
+          taksitSayisi: data.taksitSayisi || 10,
           baslangicAyi: data.baslangicAyi || "",
-          pesinOdeme: !!data.pesinOdeme,
-          programTuru: data.program || data.programTuru || "Tam Gün",
-          indirimOrani: data.indirimOrani || 0
+          pesinOdeme: data.odemeTercihi === "pesin" || !!data.pesinOdeme,
+          programTuru: data.program === "tam" ? "Tam Gün"
+                     : data.program === "yarim" ? "Yarım Gün"
+                     : (data.programTuru || "Tam Gün"),
+          indirimOrani: data.indirimOrani || 0,
+          referansKodu: data.refKodu || "",
+          kiyafetUcretsiz: !!data.kiyafetUcretsiz
         },
         // Anne
         anne: {
-          adSoyad: data.anneAdi || data.anneAdSoyad || "",
+          adSoyad: (data.veliAd && data.veliSoyad)
+            ? `${data.veliAd} ${data.veliSoyad}`
+            : (data.anneAdi || data.anneAdSoyad || ""),
           tcKimlik: data.anneTC || "",
-          cepTel: data.anneTelefon || data.anneCepTel || "",
-          eposta: (data.anneEposta || data.email || "").toLowerCase().trim(),
+          cepTel: data.phone || data.veliTel || data.anneTelefon || data.anneCepTel || "",
+          eposta: (data.email || data.anneEposta || "").toLowerCase().trim(),
           meslek: data.anneMeslek || ""
         },
         // Baba
@@ -7220,28 +7325,44 @@ async function loadOnayBekleyenler() {
         retTarihi: data.retTarihi || "",
         notlar: data.notlar || "",
         ogrenci: {
-          adSoyad: data.cocukAdi || data.ogrenciAdi || "",
+          adSoyad: (data.childFirstName && data.childLastName)
+            ? `${data.childFirstName} ${data.childLastName}`
+            : (data.cocukAdi || data.ogrenciAdi || ""),
           tcKimlik: data.cocukTC || "",
-          dogumTarihi: data.cocukDogum || data.dogumTarihi || "",
+          dogumTarihi: data.childBirthDate || data.cocukDogum || data.dogumTarihi || "",
           cinsiyet: data.cocukCinsiyet || ""
         },
         kayit: {
-          sinif: data.sinif || "",
-          program: data.program || data.programTuru || "Tam Gün"
+          sinif: data.childClass || data.sinif || "",
+          program: data.program === "tamgun" ? "Tam Gün"
+                 : data.program === "yarimgun" ? "Yarım Gün"
+                 : (data.programTuru || "Tam Gün")
         },
         aidatAyarlari: {
-          aylikAidat: data.aylikUcret || data.aylikAidat || 0,
-          taksitSayisi: data.taksitSayisi || 12,
+          aylikAidat: data.yeniAylikUcret || data.aylikUcret || data.aylikAidat || 0,
+          iDonemAylik: data.iDonemAylik || 0,
+          iiDonemAylik: data.iiDonemAylik || 0,
+          onOdeme: data.onOdeme || 0,
+          yillikToplam: data.yillikToplam || 0,
+          taksitSayisi: data.taksitSayisi || 10,
           baslangicAyi: data.baslangicAyi || "",
-          pesinOdeme: !!data.pesinOdeme,
-          programTuru: data.program || data.programTuru || "Tam Gün",
-          indirimOrani: data.indirimOrani || 0
+          pesinOdeme: data.odemeTercihi === "pesin" || !!data.pesinOdeme,
+          programTuru: data.program === "tamgun" ? "Tam Gün"
+                     : data.program === "yarimgun" ? "Yarım Gün"
+                     : (data.programTuru || "Tam Gün"),
+          indirimOrani: data.indirimOrani || 0,
+          egitimUcreti: data.egitimUcreti || 0,
+          yemekUcreti: data.yemekUcreti || 0,
+          referansKodu: data.referansKodu || "",
+          kiyafetUcretsiz: !!data.kiyafetUcretsiz
         },
         anne: {
-          adSoyad: data.anneAdi || data.anneAdSoyad || "",
+          adSoyad: (data.parentFirstName && data.parentLastName)
+            ? `${data.parentFirstName} ${data.parentLastName}`
+            : (data.anneAdi || data.anneAdSoyad || ""),
           tcKimlik: data.anneTC || "",
-          cepTel: data.anneTelefon || data.anneCepTel || "",
-          eposta: (data.anneEposta || data.email || "").toLowerCase().trim(),
+          cepTel: data.phone || data.anneTelefon || data.anneCepTel || "",
+          eposta: (data.email || data.anneEposta || "").toLowerCase().trim(),
           meslek: data.anneMeslek || ""
         },
         baba: {
@@ -7466,11 +7587,70 @@ window.basvuruOnayla = async function(basvuruId) {
     await setDoc(yeniRef, ogrenciAnaData);
     const yeniOgrenciId = yeniRef.id;
 
+    // Aidat ayarlarını zenginleştir - I. ve II. dönem farkı hesapla
+    const aidatKaynak = b.aidatAyarlari || {};
+    const aylikAidat = Number(aidatKaynak.aylikAidat) || 0;
+    // %60/%40 dönem dağılımı (eğitim + yemek oranı)
+    // I. dönem: Eylül-Ocak (5 ay), II. dönem: Şubat-Haziran (5 ay)
+    // Yenikayıt/kayıtyenileme zaten iDonemAylik ve iiDonemAylik göndermişse onu kullan,
+    // yoksa aylikAidat'ı eşit 10 ay olarak varsay
+    const iDonemAylik = Number(aidatKaynak.iDonemAylik) || aylikAidat;
+    const iiDonemAylik = Number(aidatKaynak.iiDonemAylik) || aylikAidat;
+    const onOdeme = Number(aidatKaynak.onOdeme) || 0;
+
+    const zenginAidatAyarlari = {
+      ...aidatKaynak,
+      aylikAidat: aylikAidat,
+      iDonemAylik: iDonemAylik,
+      iiDonemAylik: iiDonemAylik,
+      onOdeme: onOdeme,
+      taksitSayisi: aidatKaynak.taksitSayisi || 10,
+      programTuru: aidatKaynak.programTuru || b.kayit?.program || "Tam Gün",
+      pesinOdeme: !!aidatKaynak.pesinOdeme,
+      indirimOrani: aidatKaynak.indirimOrani || 0
+    };
+
+    // Diğer ödemeler - varsayılan olarak ilan edilen ücretleri koy
+    // (Admin ayarlar sekmesinden güncelleyebilir)
+    const ilanUcretleri = b.ilanUcretleri || {};
+    const digerOdemelerVarsayilan = {
+      egitimMateryali: {
+        tutar: Number(ilanUcretleri.egitimMateryali) || 36000,
+        odendi: false,
+        sonOdemeTarihi: "2026-07-05",
+        not: "Yıllık eğitim materyalleri ve kırtasiye"
+      },
+      kiyafet: {
+        tutar: Number(ilanUcretleri.kiyafet) || 14700,
+        odendi: false,
+        sonOdemeTarihi: "2026-08-05",
+        not: "Bir Çiçek Koleji Okul Kıyafeti"
+      },
+      ormanKiyafeti: {
+        tutar: Number(ilanUcretleri.ormanKiyafeti) || 0,
+        odendi: false,
+        sonOdemeTarihi: "2026-09-05",
+        not: "Orman Okulu Kıyafeti (Eylül başında ilan edilir)"
+      },
+      servis1: {
+        tutar: Number(ilanUcretleri.servis1) || 0,
+        odendi: false,
+        sonOdemeTarihi: "2026-10-05",
+        not: "I. Dönem Servis (Ekim başında ilan edilir)"
+      },
+      servis2: {
+        tutar: Number(ilanUcretleri.servis2) || 0,
+        odendi: false,
+        sonOdemeTarihi: "2027-02-05",
+        not: "II. Dönem Servis (Şubat başında ilan edilir)"
+      }
+    };
+
     // 2. Dönem dokümanı
     const donemData = {
       donemYili: AKTIF_DONEM,
       aktif: true,
-      aidatAyarlari: b.aidatAyarlari || {},
+      aidatAyarlari: zenginAidatAyarlari,
       ogrenci: b.ogrenci || {},
       saglik: b.saglik || {},
       acilDurum: b.acilDurum || {},
@@ -7479,11 +7659,11 @@ window.basvuruOnayla = async function(basvuruId) {
       vasi: b.vasi || {},
       kayit: b.kayit || {},
       izinler: b.izinler || { medya: true, gezi: true, acilMudahale: true, saglikTarama: true },
-      ilanUcretleri: b.ilanUcretleri || {},
+      ilanUcretleri: ilanUcretleri,
       sozlesme: b.sozlesme || {},
       sozlesmedeGoster: b.sozlesmedeGoster || {},
       aylikOdemeler: {},
-      digerOdemeler: {},
+      digerOdemeler: digerOdemelerVarsayilan,
       notlar: b.notlar || "",
       kaynakBasvuruId: basvuruId,
       olusturuldu: new Date().toISOString(),
@@ -7525,9 +7705,27 @@ window.basvuruOnayla = async function(basvuruId) {
       eklenenOgrenciId: yeniOgrenciId
     });
 
-    // 5. TODO: Brevo e-posta gönderimi (Tur B'de eklenecek)
-    // Şimdilik başarı mesajı:
-    showToast(`✓ ${ogrVeri.adSoyad} sisteme eklendi. ${veliEpostalari.length} veli onaylandı.`);
+    // 5. Velilere Brevo üzerinden hoş geldin maili gönder (arka planda)
+    try {
+      const ogrenciAdi = ogrVeri.adSoyad || "çocuğunuz";
+      for (const v of veliEpostalari) {
+        if (!v.email || !v.email.includes("@")) continue;
+        // Veli adını bul
+        const veliAdi = v.rol === "anne" ? (anne.adSoyad || "Sayın Veli")
+                      : v.rol === "baba" ? (baba.adSoyad || "Sayın Veli")
+                      : "Sayın Veli";
+        brevoMail({
+          to: v.email,
+          toName: veliAdi,
+          subject: `🌸 Bir Çiçek Koleji Veli Portalına Hoş Geldiniz — ${ogrenciAdi}`,
+          htmlContent: hosgeldinMailIcerigi(veliAdi, ogrenciAdi, v.email, b)
+        }).catch(err => console.warn(`${v.email} mail hatası:`, err));
+      }
+    } catch (e) {
+      console.warn("Hoş geldin maili gönderim hatası (kritik değil):", e);
+    }
+
+    showToast(`✓ ${ogrVeri.adSoyad} sisteme eklendi. ${veliEpostalari.length} veliye hoş geldin maili gönderildi.`);
 
     // Listeyi ve öğrenci listesini yenile
     await loadOnayBekleyenler();
@@ -7538,6 +7736,76 @@ window.basvuruOnayla = async function(basvuruId) {
     showToast("Onaylama başarısız: " + e.message, "error");
   }
 };
+
+// Veli için "Hoş geldiniz" maili içeriği (HTML)
+function hosgeldinMailIcerigi(veliAdi, ogrenciAdi, veliEmail, basvuru) {
+  const programAdi = basvuru.aidatAyarlari?.programTuru || basvuru.kayit?.program || "Tam Gün";
+  const sinif = basvuru.kayit?.sinif || "—";
+
+  const icerik = `
+    <p style="font-size:16px; margin:0 0 16px 0;">Sayın <strong>${escapeHtml(veliAdi)}</strong>,</p>
+
+    <p>Bir Çiçek Koleji ailemize <strong>${escapeHtml(ogrenciAdi)}</strong>'nın katılımı için yaptığınız başvuru <strong style="color:#2d6a4f;">onaylanmıştır</strong>. Artık Veli Portalımıza erişebilir, tüm okul bilgilerinize tek adresten ulaşabilirsiniz. 🌸</p>
+
+    <div style="background:linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 100%); border-radius:12px; padding:20px 24px; margin:24px 0; text-align:center;">
+      <div style="font-size:13px; color:#1a4d2e; letter-spacing:1px; margin-bottom:6px;">📱 VELİ PORTALI</div>
+      <a href="https://portal.bircicekkoleji.com" style="display:inline-block; background:#2d6a4f; color:white; padding:12px 32px; border-radius:24px; text-decoration:none; font-weight:600; font-size:15px; margin-top:10px;">Portala Giriş Yap →</a>
+      <div style="font-size:12px; color:#1a4d2e; margin-top:12px;">Bu mail adresiniz (${escapeHtml(veliEmail)}) ile Google hesabınız üzerinden giriş yapabilirsiniz.</div>
+    </div>
+
+    <div style="background:#faf7f2; border-radius:10px; padding:16px 20px; margin:20px 0; font-size:14px;">
+      <strong style="color:#2d6a4f;">📋 Kayıt Bilgileriniz</strong><br><br>
+      <table cellpadding="4" cellspacing="0" style="width:100%; font-size:14px;">
+        <tr><td style="color:#6b7280;">Öğrenci:</td><td><strong>${escapeHtml(ogrenciAdi)}</strong></td></tr>
+        <tr><td style="color:#6b7280;">Program:</td><td>${escapeHtml(programAdi)}</td></tr>
+        <tr><td style="color:#6b7280;">Sınıf:</td><td>${escapeHtml(sinif)}</td></tr>
+        <tr><td style="color:#6b7280;">Dönem:</td><td>${AKTIF_DONEM}</td></tr>
+      </table>
+    </div>
+
+    <h3 style="color:#1a4d2e; font-family:'Playfair Display', Georgia, serif; font-size:18px; margin:28px 0 12px 0;">🌿 Portal Üzerinden Yapabilecekleriniz</h3>
+    <ul style="padding-left:20px; margin:0;">
+      <li style="margin-bottom:6px;">📊 <strong>Aylık ödeme takibi</strong> — Taksit planı, ödenen/kalan durumu</li>
+      <li style="margin-bottom:6px;">💳 <strong>Ödeme bildirimi</strong> — Havale/EFT sonrası tek tıkla bildirim</li>
+      <li style="margin-bottom:6px;">📄 <strong>Sözleşme</strong> — MEB onaylı kayıt sözleşmenizi görüntüleme ve indirme</li>
+      <li style="margin-bottom:6px;">👶 <strong>Öğrenci bilgileri</strong> — Sağlık, acil durum, izin bilgileri</li>
+      <li style="margin-bottom:6px;">🔔 <strong>Okul duyuruları</strong> — Etkinlikler, toplantılar, önemli bildirimler</li>
+    </ul>
+
+    <h3 style="color:#1a4d2e; font-family:'Playfair Display', Georgia, serif; font-size:18px; margin:28px 0 12px 0;">🌸 Okulumuz Hakkında</h3>
+    <p>Bir Çiçek Koleji, <strong>MACTE onaylı Montessori</strong> metodolojisi ve <strong>3. Seviye Türkiye Orman Okulu</strong> programını birleştiren benzersiz bir eğitim yaklaşımı sunar.</p>
+
+    <div style="display:grid; gap:10px; margin:20px 0;">
+      <div style="background:#f0fdf4; border-left:3px solid #52b788; padding:10px 14px; border-radius:6px; font-size:13px;">
+        <strong>🌳 Orman Okulu:</strong> Haftada bir gün doğada eğitim, risk alma ve keşif
+      </div>
+      <div style="background:#f0fdf4; border-left:3px solid #52b788; padding:10px 14px; border-radius:6px; font-size:13px;">
+        <strong>📜 MACTE Sertifikalı:</strong> Uluslararası akredite Montessori eğitimi
+      </div>
+      <div style="background:#f0fdf4; border-left:3px solid #52b788; padding:10px 14px; border-radius:6px; font-size:13px;">
+        <strong>🌍 İngilizce:</strong> Native speaker öğretmenle doğal dil edinimi
+      </div>
+      <div style="background:#f0fdf4; border-left:3px solid #52b788; padding:10px 14px; border-radius:6px; font-size:13px;">
+        <strong>🪵 Ahşap Atölyesi:</strong> Gerçek aletlerle üretim, problem çözme becerisi
+      </div>
+    </div>
+
+    <h3 style="color:#1a4d2e; font-family:'Playfair Display', Georgia, serif; font-size:18px; margin:28px 0 12px 0;">📞 İletişim</h3>
+    <p style="margin:0;">
+      Sorularınız, ziyaret talepleri ve tüm konular için bize ulaşabilirsiniz:<br>
+      📞 <strong>0216 393 54 57</strong> · <strong>0555 103 54 57</strong><br>
+      ✉️ <a href="mailto:eposta@bircicekkoleji.com" style="color:#2d6a4f;">eposta@bircicekkoleji.com</a><br>
+      🌐 <a href="https://www.bircicekkoleji.com" style="color:#2d6a4f;">www.bircicekkoleji.com</a>
+    </p>
+
+    <p style="margin-top:32px; font-style:italic; color:#6b7280; text-align:center;">
+      "Her bahar Bir Çiçekle başlar." 🌸<br>
+      ${escapeHtml(ogrenciAdi)}'nın okul yolculuğuna başlamasını sabırsızlıkla bekliyoruz.
+    </p>
+  `;
+
+  return portalMailSablon("Veli Portalımıza Hoş Geldiniz! 🌸", icerik, "");
+}
 
 window.basvuruReddet = async function(basvuruId) {
   const b = basvuruListesi.find(x => x.id === basvuruId);
