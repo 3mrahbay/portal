@@ -5373,6 +5373,215 @@ html, body {
   </div>
 </div>
 
+<!-- ============ VELI PANELİ ============ -->
+<div id="veliPanel">
+  <div class="veli-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="veli-sidebar">
+      <div class="veli-sidebar-logo">
+        <img src="https://yenikayit.bircicekkoleji.com/okul_logo.png" alt="Bir Çiçek Koleji" onerror="this.style.display='none'">
+        <div class="veli-sidebar-logo-text">Bir Çiçek Koleji<br>Veli Portalı</div>
+      </div>
+
+      <button class="veli-menu-item active" data-veli-tab="dashboard" onclick="veliSwitchTab('dashboard')">
+        <span class="veli-menu-icon">🏠</span><span>Dashboard</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="odemeler" onclick="veliSwitchTab('odemeler')">
+        <span class="veli-menu-icon">💰</span><span>Ödemeler</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="sozlesme" onclick="veliSwitchTab('sozlesme')">
+        <span class="veli-menu-icon">📄</span><span>Sözleşme</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="ogrenci" onclick="veliSwitchTab('ogrenci')">
+        <span class="veli-menu-icon">👤</span><span>Öğrenci Bilgileri</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="okul" onclick="veliSwitchTab('okul')">
+        <span class="veli-menu-icon">📅</span><span>Okul Hayatı</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="iletisim" onclick="veliSwitchTab('iletisim')">
+        <span class="veli-menu-icon">💬</span><span>İletişim</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="galeri" onclick="veliSwitchTab('galeri')">
+        <span class="veli-menu-icon">📸</span><span>Galeri</span>
+      </button>
+      <button class="veli-menu-item" data-veli-tab="raporlar" onclick="veliSwitchTab('raporlar')">
+        <span class="veli-menu-icon">📊</span><span>Raporlar</span>
+      </button>
+
+      <div class="veli-menu-spacer"></div>
+
+      <div class="veli-sidebar-bottom">
+        <button class="veli-menu-item" data-veli-tab="ayarlar" onclick="veliSwitchTab('ayarlar')">
+          <span class="veli-menu-icon">⚙️</span><span>Ayarlar</span>
+        </button>
+        <button class="veli-menu-item" onclick="signOut()">
+          <span class="veli-menu-icon">🚪</span><span>Çıkış Yap</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ANA İÇERİK -->
+    <main class="veli-main">
+
+      <!-- Üst Başlık -->
+      <div class="veli-main-header">
+        <div>
+          <div class="veli-welcome-label">Hoş geldiniz</div>
+          <div class="veli-welcome-name" id="veliWelcomeName">—</div>
+        </div>
+        <div class="veli-user-badge">
+          <div class="veli-avatar" id="veliAvatarInitial">V</div>
+        </div>
+      </div>
+
+      <!-- Çoklu öğrenci (kardeş) seçici -->
+      <div class="veli-ogrenci-secici" id="veliOgrenciSecici" style="display:none;">
+        <!-- JS ile doldurulur -->
+      </div>
+
+      <!-- Öğrenci Hero Kart (her sekmede gösterilir) -->
+      <div class="veli-student-hero" id="veliStudentHero" style="display:none;">
+        <div class="veli-student-info">
+          <div class="veli-student-label">ÖĞRENCİ</div>
+          <div class="veli-student-name" id="veliHeroName">—</div>
+          <div class="veli-student-meta" id="veliHeroMeta">—</div>
+        </div>
+        <div class="veli-student-avatar" id="veliHeroAvatar">?</div>
+      </div>
+
+      <!-- DASHBOARD SEKMESİ -->
+      <div class="veli-tab-panel active" id="veliPanel-dashboard">
+        <div class="veli-stats-row" id="veliDashStats">
+          <!-- JS ile doldurulur -->
+        </div>
+
+        <div class="veli-card-grid-2">
+          <div class="veli-card">
+            <div class="veli-card-title">📅 Sıradaki Ödeme</div>
+            <div id="veliDashSonraki">Bilgi yok</div>
+          </div>
+          <div class="veli-card">
+            <div class="veli-card-title">📢 Son Duyurular</div>
+            <div style="font-size:13px; color:var(--gray-500);">Henüz duyuru yok</div>
+          </div>
+        </div>
+
+        <div class="veli-card">
+          <div class="veli-card-title">⚡ Hızlı İşlemler</div>
+          <div class="veli-btn-row">
+            <button class="veli-btn-primary" onclick="veliSwitchTab('odemeler')">💳 Ödeme Bildir</button>
+            <button class="veli-btn-secondary" onclick="veliSwitchTab('sozlesme')">📄 Sözleşmeyi Aç</button>
+            <button class="veli-btn-secondary" onclick="veliSwitchTab('ogrenci')">👤 Bilgilerimi Güncelle</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ÖDEMELER SEKMESİ -->
+      <div class="veli-tab-panel" id="veliPanel-odemeler">
+        <div class="veli-card">
+          <div class="veli-card-title">💰 Ödeme Takibi</div>
+          <div id="veliOdemelerContent">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <!-- SÖZLEŞME SEKMESİ -->
+      <div class="veli-tab-panel" id="veliPanel-sozlesme">
+        <div class="veli-card">
+          <div class="veli-card-title">📄 MEB Kayıt Sözleşmeniz</div>
+          <div id="veliSozlesmeContent">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <!-- ÖĞRENCİ BİLGİLERİ SEKMESİ -->
+      <div class="veli-tab-panel" id="veliPanel-ogrenci">
+        <div class="veli-card">
+          <div class="veli-card-title">👤 Öğrenci ve Veli Bilgileri</div>
+          <div id="veliOgrenciContent">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <!-- OKUL HAYATI (Placeholder) -->
+      <div class="veli-tab-panel" id="veliPanel-okul">
+        <div class="veli-card">
+          <div class="veli-placeholder">
+            <div class="ph-icon">📅</div>
+            <h3>Okul Hayatı</h3>
+            <p>Devamsızlık takibi, haftalık yemek menüsü ve etkinlik takvimi burada görüntülenecek.</p>
+            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- İLETİŞİM (Placeholder) -->
+      <div class="veli-tab-panel" id="veliPanel-iletisim">
+        <div class="veli-card">
+          <div class="veli-placeholder">
+            <div class="ph-icon">💬</div>
+            <h3>İletişim</h3>
+            <p>Öğretmen ile mesajlaşma, yönetim ile iletişim ve randevu talebi burada yapılabilecek.</p>
+            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- GALERİ (Placeholder) -->
+      <div class="veli-tab-panel" id="veliPanel-galeri">
+        <div class="veli-card">
+          <div class="veli-placeholder">
+            <div class="ph-icon">📸</div>
+            <h3>Galeri</h3>
+            <p>Çocuğunuzun okuldaki fotoğrafları, sınıf etkinlikleri ve video paylaşımları burada görüntülenecek.</p>
+            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAPORLAR (Placeholder) -->
+      <div class="veli-tab-panel" id="veliPanel-raporlar">
+        <div class="veli-card">
+          <div class="veli-placeholder">
+            <div class="ph-icon">📊</div>
+            <h3>Raporlar</h3>
+            <p>Montessori gelişim raporu, katılım raporu, beslenme ve uyku düzeni burada görüntülenecek.</p>
+            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- AYARLAR SEKMESİ -->
+      <div class="veli-tab-panel" id="veliPanel-ayarlar">
+        <div class="veli-card">
+          <div class="veli-card-title">⚙️ Hesap Ayarları</div>
+          <div id="veliAyarlarContent">
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12px; color:var(--gray-500);">E-posta</div>
+              <div id="veliAyarEposta" style="font-size:14px; margin-top:2px;">—</div>
+            </div>
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12px; color:var(--gray-500);">Giriş Yöntemi</div>
+              <div id="veliAyarYontem" style="font-size:14px; margin-top:2px;">—</div>
+            </div>
+            <div style="padding-top:12px; border-top:1px solid var(--gray-200);">
+              <button class="veli-btn-secondary" onclick="signOut()">🚪 Çıkış Yap</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="veli-card">
+          <div class="veli-card-title">📞 Destek</div>
+          <div style="font-size:13px; line-height:1.8; color:var(--gray-700);">
+            Portal ile ilgili sorunlarınız veya sorularınız için:<br>
+            📧 <strong>eposta@bircicekkoleji.com</strong><br>
+            📱 <strong>Okul İletişim Hattı</strong>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
