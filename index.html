@@ -5275,6 +5275,13 @@ html, body {
         </div>
       </div>
 
+      <!-- Yardımcı Araçlar -->
+      <div style="background:linear-gradient(135deg, #fef9c3 0%, #fef3c7 100%); border-radius:12px; padding:12px 14px; margin-bottom:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <div style="font-size:12px; color:#78350f; font-weight:600; margin-right:6px;">⚡ Hızlı Araçlar:</div>
+        <button type="button" class="btn-mini" onclick="donemFarkiHesaplaOtomatik()" style="background:white; color:#78350f; border:1px solid #fde68a;" title="Yıllık toplam ve aylık aidattan I. ve II. dönem farkını otomatik hesaplar (kayıtyenileme formülü)">🔧 Dönem Farkını Hesapla</button>
+        <button type="button" class="btn-mini" onclick="digerOdemeleriOlusturVarsayilan()" style="background:white; color:#78350f; border:1px solid #fde68a;" title="Standart ek ödemeleri (eğitim materyali, kıyafet vb.) tek tıkla ekler">💎 Diğer Ödemeleri Oluştur</button>
+      </div>
+
       <!-- Aidat Ayarları -->
       <div class="form-grid">
         <div class="form-group">
@@ -7612,6 +7619,7 @@ window.basvuruOnayla = async function(basvuruId) {
 
     // Diğer ödemeler - varsayılan olarak ilan edilen ücretleri koy
     // (Admin ayarlar sekmesinden güncelleyebilir)
+    // DIGER_ODEME_KALEMLERI sabitindeki kodlara birebir eşlesmeli
     const ilanUcretleri = b.ilanUcretleri || {};
     const digerOdemelerVarsayilan = {
       egitimMateryali: {
@@ -7620,8 +7628,8 @@ window.basvuruOnayla = async function(basvuruId) {
         sonOdemeTarihi: "2026-07-05",
         not: "Yıllık eğitim materyalleri ve kırtasiye"
       },
-      kiyafet: {
-        tutar: Number(ilanUcretleri.kiyafet) || 14700,
+      okulKiyafeti: {
+        tutar: Number(ilanUcretleri.okulKiyafeti || ilanUcretleri.kiyafet) || 14700,
         odendi: false,
         sonOdemeTarihi: "2026-08-05",
         not: "Bir Çiçek Koleji Okul Kıyafeti"
@@ -7934,8 +7942,21 @@ function hesaplaRaporVerileri() {
 
     const a = ayar.aidatAyarlari;
     const aylikAidat = a.aylikAidat || 0;
+    const iDonemAylik = a.iDonemAylik || aylikAidat;
+    const iiDonemAylik = a.iiDonemAylik || aylikAidat;
+    const onOdeme = a.onOdeme || 0;
     const gercekAy = a.gercekAySayisi || a.taksitSayisi || 10;
-    const ogrenciBeklenen = aylikAidat * gercekAy;
+
+    // Beklenen toplam: Ön ödeme + I. dönem 5 ay + II. dönem 5 ay
+    // Eğer eski şemadan geliyorsa (sadece aylikAidat), gercekAy × aylikAidat kullan
+    let ogrenciBeklenen;
+    if (iDonemAylik !== aylikAidat || iiDonemAylik !== aylikAidat) {
+      // Dönem farklı - gerçek toplam
+      ogrenciBeklenen = onOdeme + (iDonemAylik * 5) + (iiDonemAylik * 5);
+    } else {
+      // Eski düz şema
+      ogrenciBeklenen = aylikAidat * gercekAy;
+    }
     toplamBeklenen += ogrenciBeklenen;
 
     const odemeler = ayar.aylikOdemeler || {};
@@ -7944,19 +7965,23 @@ function hesaplaRaporVerileri() {
 
     if (a.baslangicAyi && !a.pesinOdeme) {
       const ayListesi = getAyListesi(a.baslangicAyi, gercekAy);
-      for (const ay of ayListesi) {
+      ayListesi.forEach((ay, idx) => {
         const od = odemeler[ay.ayKod] || {};
         const odenTutar = parseFloat(od.odenenTutar) || 0;
         ogrenciOdenen += odenTutar;
 
+        // Bu ayın beklenen aidatı (I. dönem / II. dönem ayrımı)
+        // İlk 5 ay I. dönem, sonraki 5 ay II. dönem
+        const beklenenAidat = idx < 5 ? iDonemAylik : iiDonemAylik;
+
         // Aylık tahsilat trendi
         if (!aylikTahsilat[ay.ayKod]) aylikTahsilat[ay.ayKod] = { odenen: 0, beklenen: 0, ay: ay };
         aylikTahsilat[ay.ayKod].odenen += odenTutar;
-        aylikTahsilat[ay.ayKod].beklenen += aylikAidat;
+        aylikTahsilat[ay.ayKod].beklenen += beklenenAidat;
 
         // Bu ay
         if (ay.ayKod === buAyKod) {
-          buAyBeklenen += aylikAidat;
+          buAyBeklenen += beklenenAidat;
           buAyOdenen += odenTutar;
         }
 
@@ -7966,12 +7991,34 @@ function hesaplaRaporVerileri() {
         }
 
         // Gecikme kontrolü
-        const durumA = getOdemeDurumu(ay, od, aylikAidat);
+        const durumA = getOdemeDurumu(ay, od, beklenenAidat);
         if (durumA === "gecikmis") ogrenciGecikti = true;
-      }
+      });
     } else if (a.pesinOdeme) {
       // Peşin ödeyenler için tümü ödenmiş say
       ogrenciOdenen = ogrenciBeklenen;
+    }
+
+    // Ön ödeme (varsa) ayrı saklanır
+    if (onOdeme > 0 && a.onOdemeOdendi) {
+      ogrenciOdenen += onOdeme;
+    }
+
+    // Diğer ödemeler (eğitim materyali, kıyafet, servis vs.)
+    const digerOdemeler = ayar.digerOdemeler || {};
+    for (const k in digerOdemeler) {
+      const d = digerOdemeler[k];
+      const tutar = parseFloat(d.tutar) || 0;
+      // Beklenene ekle
+      toplamBeklenen += tutar;
+      // Ödenmişse tahsilata da ekle
+      if (d.odendi && tutar > 0) {
+        ogrenciOdenen += tutar;
+        // Bu ay ödenmişse bu ay tahsilatına da ekle
+        if (d.odemeTarihi && d.odemeTarihi.startsWith(buAyKod)) {
+          buAyOdenen += tutar;
+        }
+      }
     }
 
     toplamOdenen += ogrenciOdenen;
@@ -10779,6 +10826,96 @@ function updateAylikOzet(odenen, beklenen, gecikmis) {
 }
 
 // ============ DİĞER ÖDEMELERİN TAKİBİ ============
+// ============ HIZLI ARAÇLAR (Aidat Modalı) ============
+// Admin, bir öğrencinin aylık aidatını girdikten sonra bu butona basarak
+// I. ve II. dönem farkını kayıtyenileme formülüyle otomatik hesaplayabilir.
+window.donemFarkiHesaplaOtomatik = function() {
+  const aylikInput = document.getElementById("ayarAidat");
+  if (!aylikInput) return;
+
+  const aylik = parseFloat(aylikInput.value) || 0;
+  if (aylik <= 0) {
+    showToast("Önce aylık aidat tutarını girin", "error");
+    return;
+  }
+
+  // Kayıtyenileme formülü:
+  // Yıllık toplam = 10 x aylik (baseline)
+  // On ödeme = aylik (yeni aylık değeri, ilk taksit gibi davranıyor)
+  // Kalan = yıllık - onOdeme
+  // I. dönem: %48.8, II. dönem: %51.2 (5'er ay)
+  const yillikToplam = aylik * 11;  // 1 ön + 10 ay
+  const onOdeme = aylik;
+  const kalan = yillikToplam - onOdeme;
+  const iDonemAylik = Math.round((kalan * 0.488) / 5 / 100) * 100;
+  const iiDonemAylik = Math.round((kalan - iDonemAylik * 5) / 5);
+
+  // Değerleri hedef alanlarda göster (ayrı input'lar olmadığı için currentOgrenci'ye yaz)
+  if (currentOgrenci && ayarListesi[currentOgrenci.id]) {
+    if (!ayarListesi[currentOgrenci.id].aidatAyarlari) {
+      ayarListesi[currentOgrenci.id].aidatAyarlari = {};
+    }
+    ayarListesi[currentOgrenci.id].aidatAyarlari.iDonemAylik = iDonemAylik;
+    ayarListesi[currentOgrenci.id].aidatAyarlari.iiDonemAylik = iiDonemAylik;
+    ayarListesi[currentOgrenci.id].aidatAyarlari.onOdeme = onOdeme;
+    ayarListesi[currentOgrenci.id].aidatAyarlari.yillikToplam = yillikToplam;
+  }
+
+  // Kullanıcıya göster
+  const mesaj = `Hesaplandı ve belleğe alındı:
+
+• Ön Ödeme: ${onOdeme.toLocaleString("tr-TR")} TL
+• I. Dönem (Eylül-Ocak) aylık: ${iDonemAylik.toLocaleString("tr-TR")} TL × 5 ay = ${(iDonemAylik*5).toLocaleString("tr-TR")} TL
+• II. Dönem (Şubat-Haziran) aylık: ${iiDonemAylik.toLocaleString("tr-TR")} TL × 5 ay = ${(iiDonemAylik*5).toLocaleString("tr-TR")} TL
+• Yıllık Toplam: ${yillikToplam.toLocaleString("tr-TR")} TL
+
+⚠️ Kayıt için "Ayarları Kaydet" butonuna basmayı unutmayın.`;
+  alert(mesaj);
+  showToast("✓ Dönem farkı hesaplandı. Kaydet'e basmayı unutmayın.");
+};
+
+// Öğrenci için 5 standart diğer ödeme kalemini varsayılan değerlerle oluşturur
+window.digerOdemeleriOlusturVarsayilan = function() {
+  if (!currentOgrenci) return showToast("Önce bir öğrenci seçin", "error");
+
+  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
+  if (!ayarListesi[currentOgrenci.id].digerOdemeler) ayarListesi[currentOgrenci.id].digerOdemeler = {};
+
+  const mevcut = ayarListesi[currentOgrenci.id].digerOdemeler;
+  const varsayilanlar = {
+    egitimMateryali: { tutar: 36000, odendi: false, not: "Yıllık eğitim materyalleri ve kırtasiye" },
+    okulKiyafeti:    { tutar: 14700, odendi: false, not: "Bir Çiçek Koleji Okul Kıyafeti" },
+    ormanKiyafeti:   { tutar: 0,     odendi: false, not: "Orman Okulu Kıyafeti (Eylül başında ilan edilir)" },
+    servis1:         { tutar: 0,     odendi: false, not: "I. Dönem Servis (Ekim başında ilan edilir)" },
+    servis2:         { tutar: 0,     odendi: false, not: "II. Dönem Servis (Şubat başında ilan edilir)" }
+  };
+
+  let eklendi = 0;
+  let atlandi = 0;
+  for (const kod in varsayilanlar) {
+    if (mevcut[kod] && mevcut[kod].tutar > 0) {
+      atlandi++;  // Zaten var, üzerine yazma
+      continue;
+    }
+    mevcut[kod] = varsayilanlar[kod];
+    eklendi++;
+  }
+
+  // Form alanlarını da güncelle
+  for (const kalem of DIGER_ODEME_KALEMLERI) {
+    const input = document.getElementById(kalem.inputId);
+    if (input) {
+      const veri = mevcut[kalem.kod];
+      if (veri) input.value = veri.tutar || "";
+    }
+  }
+
+  // Render güncelle
+  if (typeof renderDigerOdeme === "function") renderDigerOdeme();
+  showToast(`✓ ${eklendi} kalem eklendi${atlandi > 0 ? `, ${atlandi} kalem atlandı (zaten doluydu)` : ""}. Ayarları Kaydet'e basmayı unutmayın.`);
+};
+
+// ============ DIGER ÖDEMELER ============
 const DIGER_ODEME_KALEMLERI = [
   { kod: "egitimMateryali", isim: "Eğitim Materyali / Kırtasiye", ikon: "📚", inputId: "ayarDigerEgitimMateryali" },
   { kod: "okulKiyafeti",    isim: "Okul Kıyafeti",                ikon: "👕", inputId: "ayarDigerOkulKiyafeti" },
@@ -11688,6 +11825,10 @@ window.saveAyarlar = async function() {
     renderTable();
     updateStats();
     updateDurumSayaclari();
+    // Raporlar sekmesi açıksa onu da yenile
+    try {
+      if (typeof renderRaporlar === "function") renderRaporlar();
+    } catch(e) { /* sessiz geç */ }
   } catch (e) {
     console.error(e);
     showToast("Kaydedilemedi: " + e.message, "error");
