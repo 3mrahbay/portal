@@ -1140,6 +1140,19 @@ html, body {
   border-color: #4f46e5;
 }
 
+/* Okul-Aile İçerik - Rose/Pembe (sıcak, aile) */
+.tab[data-tab="icerik"]:hover {
+  background: #ffe4e6;
+  color: #9f1239;
+  border-color: #fecdd3;
+}
+
+.tab[data-tab="icerik"].active {
+  background: #e11d48;
+  color: white;
+  border-color: #e11d48;
+}
+
 .tab-panel { display: none; }
 .tab-panel.active { display: block; animation: fadeIn 0.3s; }
 
@@ -1224,6 +1237,205 @@ html, body {
 #finansAltPanelWrap[data-aktif-renk="kirmizi"] { background: #fef2f2; }
 #finansAltPanelWrap[data-aktif-renk="mor"]     { background: #faf5ff; }
 #finansAltPanelWrap[data-aktif-renk="turuncu"] { background: #fff7ed; }
+
+/* ============ OKUL-AİLE İÇERİK YÖNETİMİ ALT SEKMELERİ ============ */
+.icerik-altsekme-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.icerik-altsekme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: white;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.icerik-altsekme-btn span {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.icerik-altsekme-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+/* Sarı - Duyurular */
+.icerik-altsekme-btn[data-renk="sari"] { color: #854d0e; border-color: #fef9c3; }
+.icerik-altsekme-btn[data-renk="sari"]:hover { background: #fefce8; border-color: #fde68a; }
+.icerik-altsekme-btn[data-renk="sari"].active {
+  background: #eab308; color: white; border-color: #eab308;
+  box-shadow: 0 4px 12px rgba(234,179,8,0.3);
+}
+
+/* Turuncu - Yemek */
+.icerik-altsekme-btn[data-renk="turuncu"] { color: #9a3412; border-color: #ffedd5; }
+.icerik-altsekme-btn[data-renk="turuncu"]:hover { background: #fff7ed; border-color: #fed7aa; }
+.icerik-altsekme-btn[data-renk="turuncu"].active {
+  background: #f97316; color: white; border-color: #f97316;
+  box-shadow: 0 4px 12px rgba(249,115,22,0.3);
+}
+
+/* Mavi - Etkinlik */
+.icerik-altsekme-btn[data-renk="mavi"] { color: #1e40af; border-color: #dbeafe; }
+.icerik-altsekme-btn[data-renk="mavi"]:hover { background: #eff6ff; border-color: #bfdbfe; }
+.icerik-altsekme-btn[data-renk="mavi"].active {
+  background: #3b82f6; color: white; border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+}
+
+/* Kırmızı - Devamsızlık */
+.icerik-altsekme-btn[data-renk="kirmizi"] { color: #991b1b; border-color: #fee2e2; }
+.icerik-altsekme-btn[data-renk="kirmizi"]:hover { background: #fef2f2; border-color: #fecaca; }
+.icerik-altsekme-btn[data-renk="kirmizi"].active {
+  background: #dc2626; color: white; border-color: #dc2626;
+  box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+}
+
+/* Mor - Galeri */
+.icerik-altsekme-btn[data-renk="mor"] { color: #6b21a8; border-color: #f3e8ff; }
+.icerik-altsekme-btn[data-renk="mor"]:hover { background: #faf5ff; border-color: #e9d5ff; }
+.icerik-altsekme-btn[data-renk="mor"].active {
+  background: #9333ea; color: white; border-color: #9333ea;
+  box-shadow: 0 4px 12px rgba(147,51,234,0.3);
+}
+
+/* Yeşil - Montessori */
+.icerik-altsekme-btn[data-renk="yesil"] { color: #166534; border-color: #dcfce7; }
+.icerik-altsekme-btn[data-renk="yesil"]:hover { background: #f0fdf4; border-color: #bbf7d0; }
+.icerik-altsekme-btn[data-renk="yesil"].active {
+  background: #16a34a; color: white; border-color: #16a34a;
+  box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+}
+
+/* ÇamYeşil - Orman Okulu */
+.icerik-altsekme-btn[data-renk="camYesil"] { color: #14532d; border-color: #d1fae5; }
+.icerik-altsekme-btn[data-renk="camYesil"]:hover { background: #ecfdf5; border-color: #a7f3d0; }
+.icerik-altsekme-btn[data-renk="camYesil"].active {
+  background: #059669; color: white; border-color: #059669;
+  box-shadow: 0 4px 12px rgba(5,150,105,0.3);
+}
+
+/* Altın - Değerler */
+.icerik-altsekme-btn[data-renk="altin"] { color: #78350f; border-color: #fef3c7; }
+.icerik-altsekme-btn[data-renk="altin"]:hover { background: #fffbeb; border-color: #fde68a; }
+.icerik-altsekme-btn[data-renk="altin"].active {
+  background: #d97706; color: white; border-color: #d97706;
+  box-shadow: 0 4px 12px rgba(217,119,6,0.3);
+}
+
+/* KoyuMavi - İngilizce */
+.icerik-altsekme-btn[data-renk="koyuMavi"] { color: #1e3a8a; border-color: #dbeafe; }
+.icerik-altsekme-btn[data-renk="koyuMavi"]:hover { background: #eff6ff; border-color: #bfdbfe; }
+.icerik-altsekme-btn[data-renk="koyuMavi"].active {
+  background: #1d4ed8; color: white; border-color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(29,78,216,0.3);
+}
+
+/* Pembe - Mesajlaşma */
+.icerik-altsekme-btn[data-renk="pembe"] { color: #9f1239; border-color: #ffe4e6; }
+.icerik-altsekme-btn[data-renk="pembe"]:hover { background: #fff1f2; border-color: #fecdd3; }
+.icerik-altsekme-btn[data-renk="pembe"].active {
+  background: #e11d48; color: white; border-color: #e11d48;
+  box-shadow: 0 4px 12px rgba(225,29,72,0.3);
+}
+
+/* İçerik alt panel wrap - aktif renge göre pastel arka plan */
+#icerikAltPanelWrap[data-aktif-renk="sari"]     { background: #fefce8; }
+#icerikAltPanelWrap[data-aktif-renk="turuncu"]  { background: #fff7ed; }
+#icerikAltPanelWrap[data-aktif-renk="mavi"]     { background: #eff6ff; }
+#icerikAltPanelWrap[data-aktif-renk="kirmizi"]  { background: #fef2f2; }
+#icerikAltPanelWrap[data-aktif-renk="mor"]      { background: #faf5ff; }
+#icerikAltPanelWrap[data-aktif-renk="yesil"]    { background: #f0fdf4; }
+#icerikAltPanelWrap[data-aktif-renk="camYesil"] { background: #ecfdf5; }
+#icerikAltPanelWrap[data-aktif-renk="altin"]    { background: #fffbeb; }
+#icerikAltPanelWrap[data-aktif-renk="koyuMavi"] { background: #eff6ff; }
+#icerikAltPanelWrap[data-aktif-renk="pembe"]    { background: #fff1f2; }
+
+/* Placeholder (coming soon) kartları */
+.icerik-placeholder {
+  background: white;
+  border: 2px dashed var(--gray-300);
+  border-radius: 16px;
+  padding: 40px 28px;
+  text-align: center;
+  max-width: 560px;
+  margin: 20px auto;
+}
+
+.icerik-placeholder-icon {
+  font-size: 56px;
+  margin-bottom: 14px;
+}
+
+.icerik-placeholder h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 8px;
+}
+
+.icerik-placeholder > p {
+  font-size: 14px;
+  color: var(--gray-600);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.icerik-placeholder-ozellikler {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 16px 20px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--gray-700);
+  line-height: 2;
+  margin-bottom: 16px;
+}
+
+.icerik-placeholder-ozellikler div {
+  padding: 2px 0;
+}
+
+.icerik-placeholder-rozet {
+  display: inline-block;
+  background: linear-gradient(135deg, #fef9c3 0%, #fde68a 100%);
+  border: 1px solid #facc15;
+  color: #78350f;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.icerik-placeholder-not {
+  background: #fef2f2;
+  border-left: 3px solid #dc2626;
+  color: #991b1b;
+  font-size: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-align: left;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+
+.icerik-alt-panel { min-height: 300px; }
 
 /* Search & Filter */
 .toolbar {
@@ -4606,6 +4818,7 @@ html, body {
       <button class="tab active" data-tab="ogrenciler">👥 Öğrenci Ayarları</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Onay Bekleyenler <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans">💼 Finansal Yönetim</button>
+      <button class="tab" data-tab="icerik">🌸 Okul-Aile İçerik Yönetimi</button>
     </div>
 
     <!-- ÖĞRENCILER TAB -->
@@ -4888,6 +5101,229 @@ html, body {
           <button class="btn-secondary" id="giderSilBtn" onclick="silGider()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
         </div>
       </div>
+    </div>
+
+    <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
+    <div class="tab-panel" id="tab-icerik">
+
+      <!-- HERO -->
+      <div style="background:linear-gradient(135deg, #e11d48 0%, #f43f5e 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-10%; width:300px; height:300px; background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;">🌸 OKUL-AİLE KÖPRÜSÜ</div>
+          <h2 style="font-family:var(--font-display); font-size:28px; font-weight:700; margin:8px 0 4px;">İçerik Yönetimi</h2>
+          <div style="font-size:14px; opacity:0.92;">Duyurular, yemek menüsü, galeri, gelişim raporları ve daha fazlası — velilerinizle paylaşın.</div>
+        </div>
+      </div>
+
+      <!-- ALT SEKMELER (Renkli Butonlar) -->
+      <div class="icerik-altsekme-bar">
+        <button class="icerik-altsekme-btn active" data-icerik-alt="duyurular" data-renk="sari" onclick="icerikSwitchAlt('duyurular')">
+          <span>📝</span> Duyurular
+        </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="yemek" data-renk="turuncu" onclick="icerikSwitchAlt('yemek')">
+          <span>🍽</span> Yemek Menüsü
+        </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="etkinlik" data-renk="mavi" onclick="icerikSwitchAlt('etkinlik')">
+          <span>📅</span> Etkinlikler
+        </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="devamsizlik" data-renk="kirmizi" onclick="icerikSwitchAlt('devamsizlik')">
+          <span>📋</span> Devamsızlık
+        </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="galeri" data-renk="mor" onclick="icerikSwitchAlt('galeri')">
+          <span>📸</span> Galeri
+        </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="montessori" data-renk="yesil" onclick="icerikSwitchAlt('montessori')">
+          <span>📚</span> Montessori Raporu
+        </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="orman" data-renk="camYesil" onclick="icerikSwitchAlt('orman')">
+          <span>🌳</span> Orman Okulu Raporu
+        </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="degerler" data-renk="altin" onclick="icerikSwitchAlt('degerler')">
+          <span>💛</span> Değerler Raporu
+        </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="ingilizce" data-renk="koyuMavi" onclick="icerikSwitchAlt('ingilizce')">
+          <span>🇬🇧</span> İngilizce Raporu
+        </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="mesajlasma" data-renk="pembe" onclick="icerikSwitchAlt('mesajlasma')">
+          <span>💬</span> Mesajlaşma
+        </button>
+      </div>
+
+      <!-- ALT PANELLER (Pastel arka plan) -->
+      <div id="icerikAltPanelWrap" data-aktif-renk="sari" style="border-radius:16px; padding:20px; transition:background 0.3s; min-height:400px;">
+
+        <!-- DUYURULAR -->
+        <div id="icerikAlt-duyurular" class="icerik-alt-panel">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">📝</div>
+            <h3>Duyurular</h3>
+            <p>Genel veya hedefli duyurular yazın. Velilerinize ulaşsın.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Genel duyuru (tüm veliler)</div>
+              <div>✓ Sınıf duyurusu (Montessori 2 / 3)</div>
+              <div>✓ Kişisel mesaj (belirli öğrenci velisi)</div>
+              <div>✓ Otomatik e-posta bildirimi (opsiyonel)</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 2'de aktif olacak</div>
+          </div>
+        </div>
+
+        <!-- YEMEK MENÜSÜ -->
+        <div id="icerikAlt-yemek" class="icerik-alt-panel" style="display:none;">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">🍽</div>
+            <h3>Yemek Menüsü</h3>
+            <p>Haftalık yemek menüsünü girin, velilerinize anlık gösterilsin.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Haftalık menü (Pzt-Cuma)</div>
+              <div>✓ Sabah kahvaltısı + öğle yemeği + ikindi</div>
+              <div>✓ Kalori bilgisi + alerjen uyarısı</div>
+              <div>✓ Mevsimsel öneriler (otomatik)</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 3'de aktif olacak</div>
+          </div>
+        </div>
+
+        <!-- ETKİNLİKLER -->
+        <div id="icerikAlt-etkinlik" class="icerik-alt-panel" style="display:none;">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">📅</div>
+            <h3>Etkinlik Takvimi</h3>
+            <p>Gezi, kutlama, veli toplantısı gibi etkinliklerinizi planlayın.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Tarihli etkinlik ekleme</div>
+              <div>✓ Kategori: Gezi / Kutlama / Toplantı / Atölye</div>
+              <div>✓ Hedef: Tüm okul / Sınıf bazlı</div>
+              <div>✓ Veli panelinde takvim görünümü</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 3'de aktif olacak</div>
+          </div>
+        </div>
+
+        <!-- DEVAMSIZLIK -->
+        <div id="icerikAlt-devamsizlik" class="icerik-alt-panel" style="display:none;">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">📋</div>
+            <h3>Devamsızlık Takibi</h3>
+            <p>Günlük yoklama alın, veliye otomatik bildirim gitsin.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Günlük yoklama (hızlı tıkla-işaretle)</div>
+              <div>✓ Geldi / Gelmedi / İzinli / Hasta</div>
+              <div>✓ Aylık devam yüzdesi raporu</div>
+              <div>✓ Gelmediğinde veliye e-posta (opsiyonel)</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 4'de aktif olacak</div>
+          </div>
+        </div>
+
+        <!-- GALERİ -->
+        <div id="icerikAlt-galeri" class="icerik-alt-panel" style="display:none;">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">📸</div>
+            <h3>Galeri</h3>
+            <p>Sınıf fotoğrafları yükleyin, velilerinize güvenli şekilde paylaşın.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Toplu fotoğraf yükleme (Firebase Storage)</div>
+              <div>✓ Sınıf bazlı erişim (velin çocuğunun sınıfı)</div>
+              <div>✓ Etkinlik/gün etiketleri</div>
+              <div>✓ Yorum ve beğeni (opsiyonel)</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 5-6'da aktif olacak</div>
+            <div class="icerik-placeholder-not">
+              ⚠️ Firebase Storage'ın aktifleştirilmesi gerekiyor (ücretsiz, 5GB)
+            </div>
+          </div>
+        </div>
+
+        <!-- MONTESSORİ RAPORU -->
+        <div id="icerikAlt-montessori" class="icerik-alt-panel" style="display:none;">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">📚</div>
+            <h3>Montessori Gelişim Raporu</h3>
+            <p>Her öğrenci için 5 alanda S/T/U değerlendirme yapın.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Günlük Yaşam Becerileri</div>
+              <div>✓ Duyu Eğitimi</div>
+              <div>✓ Dil / Okuma-Yazma</div>
+              <div>✓ Matematik</div>
+              <div>✓ Doğa / Kültür</div>
+              <div>✓ Sunuldu (S) / Tekrar (T) / Uygulandı (U)</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 7'de aktif olacak</div>
+          </div>
+        </div>
+
+        <!-- ORMAN OKULU RAPORU -->
+        <div id="icerikAlt-orman" class="icerik-alt-panel" style="display:none;">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">🌳</div>
+            <h3>Orman Okulu Gelişim Raporu</h3>
+            <p>Level 3 Forest School — doğada gözlem ve beceri değerlendirmesi.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Doğa keşfi becerileri</div>
+              <div>✓ Risk değerlendirme</div>
+              <div>✓ Sosyal beceriler (doğa ortamında)</div>
+              <div>✓ Serbest gözlem notları</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 8'de aktif olacak</div>
+          </div>
+        </div>
+
+        <!-- DEĞERLER EĞİTİMİ RAPORU -->
+        <div id="icerikAlt-degerler" class="icerik-alt-panel" style="display:none;">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">💛</div>
+            <h3>Değerler Eğitimi Raporu</h3>
+            <p>Aylık tema değerler ve öğrenci gözlemleri.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Aylık tema (sevgi, saygı, paylaşım...)</div>
+              <div>✓ Öğrenci gözlem notu</div>
+              <div>✓ Etkinlik fotoğrafları</div>
+              <div>✓ Veli işbirliği önerileri</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 8'de aktif olacak</div>
+          </div>
+        </div>
+
+        <!-- İNGİLİZCE RAPORU -->
+        <div id="icerikAlt-ingilizce" class="icerik-alt-panel" style="display:none;">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">🇬🇧</div>
+            <h3>İngilizce Gelişim Raporu</h3>
+            <p>Yaş grubuna uygun seviye ve beceri takibi.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Kelime dağarcığı seviyesi</div>
+              <div>✓ Anlama becerileri (listening)</div>
+              <div>✓ Konuşma cesareti (speaking)</div>
+              <div>✓ Şarkı ve oyun katılımı</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 9'da aktif olacak</div>
+          </div>
+        </div>
+
+        <!-- MESAJLAŞMA -->
+        <div id="icerikAlt-mesajlasma" class="icerik-alt-panel" style="display:none;">
+          <div class="icerik-placeholder">
+            <div class="icerik-placeholder-icon">💬</div>
+            <h3>Mesajlaşma Sistemi</h3>
+            <p>Rol bazlı çift yönlü mesajlaşma.</p>
+            <div class="icerik-placeholder-ozellikler">
+              <div>✓ Veli ↔ Okul Yönetimi</div>
+              <div>✓ Veli ↔ Sınıf Öğretmeni</div>
+              <div>✓ Veli ↔ Eğitim Koordinatörü</div>
+              <div>✓ Veli ↔ Muhasebe</div>
+              <div>✓ Gerçek zamanlı + okundu bilgisi</div>
+            </div>
+            <div class="icerik-placeholder-rozet">TUR 11-13'te aktif olacak</div>
+            <div class="icerik-placeholder-not">
+              ⚠️ Kullanıcı rolleri sistemi kurulacak (öğretmen, koordinatör, muhasebe hesapları)
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /icerikAltPanelWrap -->
+
     </div>
 
     <!-- RAPORLAR TAB -->
@@ -9031,6 +9467,36 @@ function renderFinansalAltSekme() {
   else if (aktifFinansAlt === "talepler") renderKartTalepleri();
 }
 
+// ============ OKUL-AİLE İÇERİK YÖNETİMİ ============
+let aktifIcerikAlt = "duyurular";
+
+window.icerikSwitchAlt = function(alt) {
+  aktifIcerikAlt = alt;
+  let aktifRenk = "sari";
+  document.querySelectorAll(".icerik-altsekme-btn").forEach(btn => {
+    if (btn.dataset.icerikAlt === alt) {
+      btn.classList.add("active");
+      aktifRenk = btn.dataset.renk || "sari";
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+  const wrap = document.getElementById("icerikAltPanelWrap");
+  if (wrap) wrap.setAttribute("data-aktif-renk", aktifRenk);
+
+  document.querySelectorAll(".icerik-alt-panel").forEach(p => p.style.display = "none");
+  const panel = document.getElementById(`icerikAlt-${alt}`);
+  if (panel) panel.style.display = "block";
+
+  // Sonraki turlarda her alt sekme için render fonksiyonu eklenecek
+  renderIcerikAltSekme();
+};
+
+function renderIcerikAltSekme() {
+  // Tur 2+: Her alt sekme için özel render fonksiyonu burada çağrılacak
+  // Örn: if (aktifIcerikAlt === "duyurular") renderDuyurular();
+}
+
 function hesaplaFinansGecikenler() {
   const bugun = new Date();
   const gecikenler = [];
@@ -12166,6 +12632,15 @@ document.querySelectorAll(".tab").forEach(tab => {
     if (tab.dataset.tab === "finans") {
       setTimeout(() => {
         if (typeof loadFinansalData === "function") loadFinansalData();
+      }, 50);
+    }
+
+    // İçerik Yönetimi sekmesine geçildiyse aktif alt sekmeyi göster
+    if (tab.dataset.tab === "icerik") {
+      setTimeout(() => {
+        if (typeof icerikSwitchAlt === "function") {
+          icerikSwitchAlt(aktifIcerikAlt || "duyurular");
+        }
       }, 50);
     }
   });
