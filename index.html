@@ -8544,8 +8544,332 @@ function renderFinansalOzet() {
         </div>
       </div>
     </div>
+    <!-- GRAFİKLER: YILLIK TREND + HALKA GRAFİKLERİ -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-top:20px;">
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
+        <div style="font-weight:600; font-size:15px; margin-bottom:4px;">📈 Yıllık Kar/Zarar Trendi</div>
+        <div style="font-size:12px; color:var(--gray-500); margin-bottom:14px;">Aylık gelir vs gider karşılaştırması</div>
+        <div style="position:relative; height:220px;">
+          <canvas id="finansKarZararChart"></canvas>
+        </div>
+      </div>
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
+        <div style="font-weight:600; font-size:15px; margin-bottom:4px;">📊 Aylık Tahsilat vs Hedef</div>
+        <div style="font-size:12px; color:var(--gray-500); margin-bottom:14px;">Her ay beklenen ve gerçekleşen</div>
+        <div style="position:relative; height:220px;">
+          <canvas id="finansTahsilatChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- HALKA GRAFİKLERİ -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin-top:16px;">
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
+        <div style="font-weight:600; font-size:15px; margin-bottom:14px;">💰 Gelir Kaynakları</div>
+        <div style="position:relative; height:200px;">
+          <canvas id="finansGelirDonutChart"></canvas>
+        </div>
+      </div>
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
+        <div style="font-weight:600; font-size:15px; margin-bottom:14px;">💸 Gider Dağılımı</div>
+        <div style="position:relative; height:200px;">
+          <canvas id="finansGiderDonutChart"></canvas>
+        </div>
+      </div>
+      <div id="finansProjeksiyon" style="background:linear-gradient(135deg, #fef9c3 0%, #fde68a 100%); border:1px solid #facc15; border-radius:16px; padding:20px;">
+        <!-- JS ile doldurulur -->
+      </div>
+    </div>
   `;
   el.innerHTML = html;
+
+  // Grafikleri oluştur (DOM'a eklendikten sonra)
+  setTimeout(() => {
+    try {
+      cizKarZararTrendi();
+      cizAylikTahsilatVsHedef();
+      cizGelirDonut(gelirKategorileri, toplamGelir);
+      cizGiderDonut(giderGruplari, toplamGider);
+      renderYilSonuProjeksiyon(toplamGelir, toplamGider, tahsilatOrani);
+    } catch (e) {
+      console.error("Grafik çizim hatası:", e);
+    }
+  }, 50);
+}
+
+// ============ FİNANSAL GRAFİKLER (Chart.js) ============
+let finansKarZararChartInst = null;
+let finansTahsilatChartInst = null;
+let finansGelirDonutInst = null;
+let finansGiderDonutInst = null;
+
+// 1. YILLIK KAR/ZARAR TRENDİ
+function cizKarZararTrendi() {
+  const canvas = document.getElementById("finansKarZararChart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const bugun = new Date();
+  const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+  const aylar = [];
+  for (let i = 0; i < 12; i++) {
+    const ay = 9 + i;
+    const hedefYil = ay > 12 ? donemBasYil + 1 : donemBasYil;
+    const hedefAy = ay > 12 ? ay - 12 : ay;
+    aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
+  }
+
+  const aylikGelir = aylar.map(ayKod => {
+    return finansalGelirler
+      .filter(g => (g.odemeTarihi || "").startsWith(ayKod))
+      .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
+  });
+  const aylikGider = aylar.map(ayKod => {
+    return finansalGiderler
+      .filter(g => (g.tarih || "").startsWith(ayKod))
+      .reduce((s, g) => s + (parseFloat(g.tutar) || 0), 0);
+  });
+  const netKar = aylar.map((_, i) => aylikGelir[i] - aylikGider[i]);
+  const etiketler = aylar.map(ayKod => {
+    const [y, a] = ayKod.split("-");
+    return `${AY_ISIMLERI[parseInt(a) - 1].substring(0, 3)} ${y.substring(2)}`;
+  });
+
+  if (finansKarZararChartInst) { finansKarZararChartInst.destroy(); }
+
+  finansKarZararChartInst = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: etiketler,
+      datasets: [
+        { label: "Gelir", data: aylikGelir, borderColor: "#2d6a4f", backgroundColor: "rgba(45,106,79,0.1)", borderWidth: 2, tension: 0.3, fill: true, pointRadius: 3 },
+        { label: "Gider", data: aylikGider, borderColor: "#dc2626", backgroundColor: "rgba(220,38,38,0.1)", borderWidth: 2, tension: 0.3, fill: true, pointRadius: 3 },
+        { label: "Net Kar/Zarar", data: netKar, borderColor: "#facc15", backgroundColor: "transparent", borderWidth: 2.5, borderDash: [5, 3], tension: 0.3, pointRadius: 4, pointBackgroundColor: netKar.map(v => v >= 0 ? "#16a34a" : "#dc2626") }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top", labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ₺${ctx.parsed.y.toLocaleString("tr-TR")}` } }
+      },
+      scales: {
+        y: { ticks: { font: { size: 10 }, callback: (v) => "₺" + (Math.abs(v) >= 1000 ? (v / 1000).toFixed(0) + "K" : v) } },
+        x: { ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// 2. AYLIK TAHSİLAT vs HEDEF
+function cizAylikTahsilatVsHedef() {
+  const canvas = document.getElementById("finansTahsilatChart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const bugun = new Date();
+  const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+  const aylar = [];
+  for (let i = 0; i < 12; i++) {
+    const ay = 9 + i;
+    const hedefYil = ay > 12 ? donemBasYil + 1 : donemBasYil;
+    const hedefAy = ay > 12 ? ay - 12 : ay;
+    aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
+  }
+
+  const hedefAylik = aylar.map(ayKod => {
+    let toplam = 0;
+    const ayNum = parseInt(ayKod.split("-")[1], 10);
+    for (const o of ogrenciList) {
+      const ayar = ayarListesi[o.id];
+      if (!ayar) continue;
+      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
+      const a = ayar.aidatAyarlari || {};
+      const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
+      const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
+      toplam += (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
+    }
+    return toplam;
+  });
+
+  const gercekAylik = aylar.map(ayKod => {
+    return finansalGelirler
+      .filter(g => g.tur === "aylik" && g.ayKod === ayKod)
+      .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
+  });
+
+  const etiketler = aylar.map(ayKod => AY_ISIMLERI[parseInt(ayKod.split("-")[1]) - 1].substring(0, 3));
+
+  if (finansTahsilatChartInst) { finansTahsilatChartInst.destroy(); }
+
+  finansTahsilatChartInst = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: etiketler,
+      datasets: [
+        { label: "Hedef", data: hedefAylik, backgroundColor: "rgba(250,204,21,0.6)", borderColor: "#facc15", borderWidth: 1, borderRadius: 4 },
+        { label: "Gerçekleşen", data: gercekAylik, backgroundColor: "rgba(45,106,79,0.85)", borderColor: "#2d6a4f", borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top", labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ₺${ctx.parsed.y.toLocaleString("tr-TR")}` } }
+      },
+      scales: {
+        y: { ticks: { font: { size: 10 }, callback: (v) => "₺" + (v >= 1000 ? (v / 1000).toFixed(0) + "K" : v) } },
+        x: { ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// 3. GELİR HALKA (DOUGHNUT)
+function cizGelirDonut(kategoriler, toplam) {
+  const canvas = document.getElementById("finansGelirDonutChart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const data = [
+    { label: "🎫 Ön Ödeme", value: kategoriler.onOdeme || 0, color: "#f59e0b" },
+    { label: "🏦 Aylık Aidat", value: kategoriler.aylik || 0, color: "#2d6a4f" },
+    { label: "📦 Diğer", value: kategoriler.diger || 0, color: "#8b5cf6" }
+  ].filter(d => d.value > 0);
+
+  if (finansGelirDonutInst) { finansGelirDonutInst.destroy(); }
+
+  if (data.length === 0) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "13px sans-serif";
+    ctx.fillStyle = "#9ca3af";
+    ctx.textAlign = "center";
+    ctx.fillText("Veri yok", canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
+  finansGelirDonutInst = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: data.map(d => d.label),
+      datasets: [{ data: data.map(d => d.value), backgroundColor: data.map(d => d.color), borderWidth: 2, borderColor: "#ffffff" }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "65%",
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 }, padding: 8 } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const pct = toplam > 0 ? Math.round((ctx.parsed / toplam) * 100) : 0;
+              return `${ctx.label}: ₺${ctx.parsed.toLocaleString("tr-TR")} (%${pct})`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// 4. GİDER HALKA (DOUGHNUT)
+function cizGiderDonut(gruplar, toplam) {
+  const canvas = document.getElementById("finansGiderDonutChart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const data = [
+    { label: "👥 Personel", value: gruplar.personel || 0, color: "#2d6a4f" },
+    { label: "🏠 Sabit", value: gruplar.sabit || 0, color: "#f59e0b" },
+    { label: "🍽️ İşletme", value: gruplar.isletme || 0, color: "#3b82f6" },
+    { label: "📝 Diğer", value: gruplar.diger || 0, color: "#8b5cf6" }
+  ].filter(d => d.value > 0);
+
+  if (finansGiderDonutInst) { finansGiderDonutInst.destroy(); }
+
+  if (data.length === 0) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "13px sans-serif";
+    ctx.fillStyle = "#9ca3af";
+    ctx.textAlign = "center";
+    ctx.fillText("Gider ekleyin", canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
+  finansGiderDonutInst = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: data.map(d => d.label),
+      datasets: [{ data: data.map(d => d.value), backgroundColor: data.map(d => d.color), borderWidth: 2, borderColor: "#ffffff" }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "65%",
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 }, padding: 8 } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const pct = toplam > 0 ? Math.round((ctx.parsed / toplam) * 100) : 0;
+              return `${ctx.label}: ₺${ctx.parsed.toLocaleString("tr-TR")} (%${pct})`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// 5. YIL SONU PROJEKSİYON
+function renderYilSonuProjeksiyon(toplamGelir, toplamGider, tahsilatOrani) {
+  const el = document.getElementById("finansProjeksiyon");
+  if (!el) return;
+
+  let yillikBeklenenGelir = 0;
+  for (const o of ogrenciList) {
+    const ayar = ayarListesi[o.id];
+    if (!ayar) continue;
+    if (getOgrenciDurum(o, ayar) !== "aktif") continue;
+    const a = ayar.aidatAyarlari || {};
+    const yillik = a.yillikToplam || ((a.aylikAidat || 0) * 10);
+    yillikBeklenenGelir += yillik;
+  }
+
+  const tahminiYillikGelir = Math.round(yillikBeklenenGelir * ((tahsilatOrani || 100) / 100));
+
+  const tekrarlayanAylikGider = finansalGiderler.filter(g => g.tekrarlayan).reduce((s, g) => s + (parseFloat(g.tutar) || 0), 0);
+  const tekSeferlikGider = finansalGiderler.filter(g => !g.tekrarlayan).reduce((s, g) => s + (parseFloat(g.tutar) || 0), 0);
+  const tahminiYillikGider = (tekrarlayanAylikGider * 12) + tekSeferlikGider;
+
+  const tahminiKar = tahminiYillikGelir - tahminiYillikGider;
+  const tahminiKarOrani = tahminiYillikGelir > 0 ? Math.round((tahminiKar / tahminiYillikGelir) * 100) : 0;
+
+  el.innerHTML = `
+    <div style="display:flex; align-items:start; gap:10px; margin-bottom:12px;">
+      <div style="font-size:24px;">🔮</div>
+      <div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#78350f;">Yıl Sonu Projeksiyon</div>
+        <div style="font-size:11px; color:#92400e; margin-top:2px;">Mevcut trendle tahmin</div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
+      <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(146,64,14,0.15);">
+        <span style="color:#78350f;">Yıllık Beklenen Gelir</span>
+        <strong style="color:#422006;">₺${yillikBeklenenGelir.toLocaleString("tr-TR")}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(146,64,14,0.15);">
+        <span style="color:#78350f;">Tahmini Tahsilat (%${tahsilatOrani})</span>
+        <strong style="color:#14532d;">₺${tahminiYillikGelir.toLocaleString("tr-TR")}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(146,64,14,0.15);">
+        <span style="color:#78350f;">Tahmini Yıllık Gider</span>
+        <strong style="color:#7f1d1d;">₺${tahminiYillikGider.toLocaleString("tr-TR")}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:10px 0 4px; margin-top:4px; border-top:2px solid rgba(146,64,14,0.2);">
+        <span style="color:#78350f; font-weight:600;">Tahmini Yıl Sonu ${tahminiKar >= 0 ? 'Kar' : 'Zarar'}</span>
+        <strong style="color:${tahminiKar >= 0 ? '#14532d' : '#7f1d1d'}; font-size:15px;">${tahminiKar >= 0 ? '+' : ''}₺${tahminiKar.toLocaleString("tr-TR")}</strong>
+      </div>
+      <div style="text-align:center; font-size:11px; color:#92400e; margin-top:6px;">
+        %${Math.abs(tahminiKarOrani)} ${tahminiKar >= 0 ? 'kar marjı' : 'zarar'}
+      </div>
+    </div>
+  `;
 }
 
 function renderFinansBarListesi(liste) {
