@@ -5213,17 +5213,26 @@ html, body {
 
         <!-- DEVAMSIZLIK -->
         <div id="icerikAlt-devamsizlik" class="icerik-alt-panel" style="display:none;">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">📋</div>
-            <h3>Devamsızlık Takibi</h3>
-            <p>Günlük yoklama alın, veliye otomatik bildirim gitsin.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Günlük yoklama (hızlı tıkla-işaretle)</div>
-              <div>✓ Geldi / Gelmedi / İzinli / Hasta</div>
-              <div>✓ Aylık devam yüzdesi raporu</div>
-              <div>✓ Gelmediğinde veliye e-posta (opsiyonel)</div>
+          <!-- Üst bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; background:white; border:1px solid var(--gray-300); border-radius:12px; padding:14px 18px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button class="btn-mini" onclick="devamsizlikGunDegistir(-1)">← Dün</button>
+              <input type="date" id="devamsizlikTarih" onchange="devamsizlikTarihDegisti()" style="padding:8px 10px; border:1px solid #fecaca; border-radius:8px; font-size:13px; color:#991b1b; font-weight:600;">
+              <button class="btn-mini" onclick="devamsizlikGunDegistir(1)">Yarın →</button>
+              <button class="btn-mini" onclick="devamsizlikBugun()" title="Bugüne git">📅 Bugün</button>
             </div>
-            <div class="icerik-placeholder-rozet">TUR 4'de aktif olacak</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-mini" onclick="devamsizlikHepsiGeldi()" style="background:#dcfce7; border-color:#bbf7d0; color:#166534;">✅ Hepsi Geldi</button>
+              <button class="btn-mini" onclick="acAylikOzet()" style="background:#eff6ff; border-color:#bfdbfe; color:#1e40af;">📊 Aylık Özet</button>
+            </div>
+          </div>
+
+          <!-- Özet şerit -->
+          <div id="devamsizlikOzet" style="margin-bottom:14px;"><!-- JS --></div>
+
+          <!-- Öğrenci listesi -->
+          <div id="devamsizlikListesi">
+            <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
           </div>
         </div>
 
@@ -5529,6 +5538,50 @@ html, body {
           <button class="btn-secondary" onclick="closeEtkinlikModal()">İptal</button>
           <button class="btn-primary" onclick="kaydetEtkinlik()" style="background:#3b82f6; border:none;">💾 Kaydet</button>
           <button class="btn-secondary" id="etkinlikSilBtn" onclick="silEtkinlik()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEVAMSIZLIK AYLIK ÖZET MODAL -->
+    <div class="modal-overlay" id="aylikOzetModal">
+      <div class="modal" style="max-width:920px; max-height:90vh; display:flex; flex-direction:column;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom:1px solid #bfdbfe;">
+          <h3 id="aylikOzetBaslik" style="color:#1e40af;">📊 Aylık Devamsızlık Özeti</h3>
+          <button class="close-btn" onclick="closeAylikOzet()">×</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto; flex:1;">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+            <button class="btn-mini" onclick="aylikOzetAyDegistir(-1)">← Önceki Ay</button>
+            <div id="aylikOzetAyEtiketi" style="padding:8px 14px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; font-weight:600; color:#1e40af; font-size:13px; min-width:180px; text-align:center;">...</div>
+            <button class="btn-mini" onclick="aylikOzetAyDegistir(1)">Sonraki Ay →</button>
+          </div>
+          <div id="aylikOzetIcerik">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeAylikOzet()">Kapat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEVAMSIZLIK NOT MODAL -->
+    <div class="modal-overlay" id="devamsizlikNotModal">
+      <div class="modal" style="max-width:480px;">
+        <div class="modal-header">
+          <h3 id="devamsizlikNotBaslik">📝 Not Ekle</h3>
+          <button class="close-btn" onclick="closeDevamsizlikNot()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="devamsizlikNotOgrenciId" value="">
+          <div class="form-group">
+            <label>Not</label>
+            <textarea id="devamsizlikNotMetin" rows="3" placeholder="Örn: Doktor raporlu, Geç geldi..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeDevamsizlikNot()">İptal</button>
+          <button class="btn-primary" onclick="kaydetDevamsizlikNot()">💾 Kaydet</button>
         </div>
       </div>
     </div>
@@ -5847,9 +5900,24 @@ html, body {
         </div>
 
         <!-- YAKLAŞAN ETKİNLİKLER -->
-        <div class="veli-card">
+        <div class="veli-card" style="margin-bottom:16px;">
           <div class="veli-card-title" style="margin-bottom:14px;">📅 Yaklaşan Etkinlikler</div>
           <div id="veliEtkinlikListesi">
+            <div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>
+          </div>
+        </div>
+
+        <!-- DEVAMSIZLIK -->
+        <div class="veli-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+            <div class="veli-card-title" style="margin:0;">📋 Devam Durumu</div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button class="btn-mini" onclick="veliDevamsizlikAyDegistir(-1)">←</button>
+              <div id="veliDevamsizlikAyEtiketi" style="padding:6px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; font-weight:600; color:#991b1b; font-size:12px; min-width:140px; text-align:center;">...</div>
+              <button class="btn-mini" onclick="veliDevamsizlikAyDegistir(1)">→</button>
+            </div>
+          </div>
+          <div id="veliDevamsizlikGorunum">
             <div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>
           </div>
         </div>
@@ -9719,6 +9787,7 @@ function renderIcerikAltSekme() {
   if (aktifIcerikAlt === "duyurular") renderDuyurular();
   else if (aktifIcerikAlt === "yemek") renderYemekMenusu();
   else if (aktifIcerikAlt === "etkinlik") renderEtkinlikler();
+  else if (aktifIcerikAlt === "devamsizlik") renderDevamsizlik();
   // Sonraki turlarda diğer alt sekmeler
 }
 
@@ -10530,6 +10599,434 @@ window.silEtkinlikHizli = async function(id) {
     renderEtkinlikler();
   } catch (e) { showToast("Silinemedi: " + e.message, "error"); }
 };
+
+// ============ DEVAMSIZLIK SİSTEMİ (Tur 4) ============
+let aktifDevamsizlikTarih = null;
+let aktifDevamsizlikVerisi = null;
+let aylikOzetAy = null; // {yil, ay}
+
+const DEVAMSIZLIK_DURUMLAR = {
+  geldi:    { ikon: "✅", label: "Geldi",    renk: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+  gelmedi:  { ikon: "❌", label: "Gelmedi",  renk: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  izinli:   { ikon: "🏖", label: "İzinli",   renk: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+  hasta:    { ikon: "🤒", label: "Hasta",    renk: "#9333ea", bg: "#faf5ff", border: "#e9d5ff" }
+};
+
+window.devamsizlikBugun = function() {
+  aktifDevamsizlikTarih = isoTarih(new Date());
+  document.getElementById("devamsizlikTarih").value = aktifDevamsizlikTarih;
+  renderDevamsizlik();
+};
+
+window.devamsizlikGunDegistir = function(gun) {
+  const d = new Date(aktifDevamsizlikTarih || new Date());
+  d.setDate(d.getDate() + gun);
+  aktifDevamsizlikTarih = isoTarih(d);
+  document.getElementById("devamsizlikTarih").value = aktifDevamsizlikTarih;
+  renderDevamsizlik();
+};
+
+window.devamsizlikTarihDegisti = function() {
+  aktifDevamsizlikTarih = document.getElementById("devamsizlikTarih").value;
+  renderDevamsizlik();
+};
+
+async function renderDevamsizlik() {
+  const el = document.getElementById("devamsizlikListesi");
+  if (!el) return;
+
+  if (!aktifDevamsizlikTarih) aktifDevamsizlikTarih = isoTarih(new Date());
+  const tarihInp = document.getElementById("devamsizlikTarih");
+  if (tarihInp && !tarihInp.value) tarihInp.value = aktifDevamsizlikTarih;
+
+  // Bugünün verisini yükle
+  try {
+    const snap = await getDoc(doc(db, "devamsizlik", aktifDevamsizlikTarih));
+    aktifDevamsizlikVerisi = snap.exists() ? snap.data() : { tarih: aktifDevamsizlikTarih, kayitlar: {} };
+  } catch (e) {
+    console.warn("Devamsızlık yüklenemedi:", e);
+    aktifDevamsizlikVerisi = { tarih: aktifDevamsizlikTarih, kayitlar: {} };
+  }
+
+  // Aktif öğrenciler
+  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  aktif.sort((a, b) => {
+    const sA = (ayarListesi[a.id]?.kayit?.sinif) || a.sinif || "";
+    const sB = (ayarListesi[b.id]?.kayit?.sinif) || b.sinif || "";
+    if (sA !== sB) return sA.localeCompare(sB);
+    return (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "");
+  });
+
+  // Özet hesapla
+  const sayaclar = { geldi: 0, gelmedi: 0, izinli: 0, hasta: 0, bilinmeyen: 0 };
+  const kayitlar = aktifDevamsizlikVerisi.kayitlar || {};
+  for (const o of aktif) {
+    const k = kayitlar[o.id];
+    if (k && k.durum) sayaclar[k.durum] = (sayaclar[k.durum] || 0) + 1;
+    else sayaclar.bilinmeyen++;
+  }
+
+  // Özet şerit
+  const ozetEl = document.getElementById("devamsizlikOzet");
+  const tarihObj = new Date(aktifDevamsizlikTarih);
+  const tarihStr = tarihObj.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const buGunMu = aktifDevamsizlikTarih === isoTarih(new Date());
+
+  ozetEl.innerHTML = `
+    <div style="background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border:1px solid #fecaca; border-radius:14px; padding:16px 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <div style="font-family:var(--font-display); font-size:15px; font-weight:700; color:#7f1d1d;">${tarihStr}${buGunMu ? ' <span style="background:#dc2626; color:white; padding:2px 10px; border-radius:8px; font-size:11px; margin-left:6px;">BUGÜN</span>' : ''}</div>
+          <div style="font-size:12px; color:#991b1b; margin-top:2px;">Toplam ${aktif.length} aktif öğrenci</div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div style="background:white; border:1px solid #bbf7d0; border-radius:10px; padding:8px 12px; min-width:75px; text-align:center;">
+            <div style="font-size:11px; color:#166534; font-weight:600;">✅ Geldi</div>
+            <div style="font-family:var(--font-display); font-size:22px; font-weight:700; color:#14532d;">${sayaclar.geldi}</div>
+          </div>
+          <div style="background:white; border:1px solid #fecaca; border-radius:10px; padding:8px 12px; min-width:75px; text-align:center;">
+            <div style="font-size:11px; color:#991b1b; font-weight:600;">❌ Gelmedi</div>
+            <div style="font-family:var(--font-display); font-size:22px; font-weight:700; color:#7f1d1d;">${sayaclar.gelmedi}</div>
+          </div>
+          <div style="background:white; border:1px solid #fde68a; border-radius:10px; padding:8px 12px; min-width:75px; text-align:center;">
+            <div style="font-size:11px; color:#92400e; font-weight:600;">🏖 İzinli</div>
+            <div style="font-family:var(--font-display); font-size:22px; font-weight:700; color:#78350f;">${sayaclar.izinli}</div>
+          </div>
+          <div style="background:white; border:1px solid #e9d5ff; border-radius:10px; padding:8px 12px; min-width:75px; text-align:center;">
+            <div style="font-size:11px; color:#6b21a8; font-weight:600;">🤒 Hasta</div>
+            <div style="font-family:var(--font-display); font-size:22px; font-weight:700; color:#581c87;">${sayaclar.hasta}</div>
+          </div>
+          ${sayaclar.bilinmeyen > 0 ? `
+            <div style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:10px; padding:8px 12px; min-width:75px; text-align:center;">
+              <div style="font-size:11px; color:#6b7280; font-weight:600;">❓ İşaretsiz</div>
+              <div style="font-family:var(--font-display); font-size:22px; font-weight:700; color:#374151;">${sayaclar.bilinmeyen}</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Öğrenci listesi (sınıf gruplu)
+  if (aktif.length === 0) {
+    el.innerHTML = `<div style="padding:30px; text-align:center; color:var(--gray-500);">Aktif öğrenci yok</div>`;
+    return;
+  }
+
+  // Sınıfa göre grupla
+  const sinifGruplari = {};
+  for (const o of aktif) {
+    const sinif = (ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "Diğer";
+    if (!sinifGruplari[sinif]) sinifGruplari[sinif] = [];
+    sinifGruplari[sinif].push(o);
+  }
+
+  let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
+  for (const sinif of Object.keys(sinifGruplari).sort()) {
+    html += `
+      <div style="background:white; border:1px solid var(--gray-200); border-radius:12px; overflow:hidden;">
+        <div style="background:linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); padding:10px 16px; font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--gray-800); border-bottom:1px solid var(--gray-200);">
+          👥 ${escapeHtml(sinif)} <span style="font-size:12px; color:var(--gray-500); font-weight:400;">(${sinifGruplari[sinif].length} öğrenci)</span>
+        </div>
+        <div style="padding:8px;">
+    `;
+    for (const o of sinifGruplari[sinif]) {
+      const k = kayitlar[o.id] || {};
+      const durum = k.durum || "";
+      const stil = DEVAMSIZLIK_DURUMLAR[durum];
+      const notu = k.not || "";
+
+      html += `
+        <div style="padding:10px 12px; background:${stil ? stil.bg : 'white'}; border:1px solid ${stil ? stil.border : 'var(--gray-200)'}; border-radius:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div style="flex:1; min-width:200px;">
+            <div style="font-weight:600; font-size:13px; color:${stil ? stil.renk : 'var(--gray-800)'};">
+              ${escapeHtml(o.ogrenciAdSoyad || "")}
+              ${stil ? `<span style="margin-left:8px; font-size:11px; background:white; color:${stil.renk}; padding:2px 8px; border-radius:6px; font-weight:700;">${stil.ikon} ${stil.label}</span>` : ''}
+            </div>
+            ${notu ? `<div style="font-size:11px; color:#6b7280; margin-top:3px; font-style:italic;">📝 ${escapeHtml(notu)}</div>` : ''}
+          </div>
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">
+            <button onclick="devamsizlikIsaretle('${o.id}', 'geldi')" title="Geldi" style="padding:6px 10px; background:${durum === 'geldi' ? '#16a34a' : 'white'}; color:${durum === 'geldi' ? 'white' : '#16a34a'}; border:1px solid #bbf7d0; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; min-width:40px;">✅</button>
+            <button onclick="devamsizlikIsaretle('${o.id}', 'gelmedi')" title="Gelmedi" style="padding:6px 10px; background:${durum === 'gelmedi' ? '#dc2626' : 'white'}; color:${durum === 'gelmedi' ? 'white' : '#dc2626'}; border:1px solid #fecaca; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; min-width:40px;">❌</button>
+            <button onclick="devamsizlikIsaretle('${o.id}', 'izinli')" title="İzinli" style="padding:6px 10px; background:${durum === 'izinli' ? '#d97706' : 'white'}; color:${durum === 'izinli' ? 'white' : '#d97706'}; border:1px solid #fde68a; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; min-width:40px;">🏖</button>
+            <button onclick="devamsizlikIsaretle('${o.id}', 'hasta')" title="Hasta" style="padding:6px 10px; background:${durum === 'hasta' ? '#9333ea' : 'white'}; color:${durum === 'hasta' ? 'white' : '#9333ea'}; border:1px solid #e9d5ff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; min-width:40px;">🤒</button>
+            <button onclick="acDevamsizlikNot('${o.id}')" title="Not ekle" style="padding:6px 10px; background:white; color:var(--gray-600); border:1px solid var(--gray-300); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; min-width:40px;">📝</button>
+          </div>
+        </div>
+      `;
+    }
+    html += `</div></div>`;
+  }
+  html += `</div>`;
+
+  el.innerHTML = html;
+}
+
+window.devamsizlikIsaretle = async function(ogrenciId, durum) {
+  if (!aktifDevamsizlikVerisi) return;
+
+  const eski = (aktifDevamsizlikVerisi.kayitlar || {})[ogrenciId] || {};
+  const yeni = { durum, not: eski.not || "", kaydeden: currentUser.email, kayitZamani: new Date().toISOString() };
+
+  // Aynı duruma tekrar tıklanırsa temizle
+  const eskiDurum = eski.durum;
+  if (eskiDurum === durum) {
+    // Temizle
+    delete aktifDevamsizlikVerisi.kayitlar[ogrenciId];
+  } else {
+    aktifDevamsizlikVerisi.kayitlar = aktifDevamsizlikVerisi.kayitlar || {};
+    aktifDevamsizlikVerisi.kayitlar[ogrenciId] = yeni;
+  }
+
+  aktifDevamsizlikVerisi.tarih = aktifDevamsizlikTarih;
+  aktifDevamsizlikVerisi.guncellendi = new Date().toISOString();
+
+  try {
+    await setDoc(doc(db, "devamsizlik", aktifDevamsizlikTarih), aktifDevamsizlikVerisi);
+    // Bugün için "Gelmedi" işaretlendiyse ve önceden farklıysa, veli mail'i (opsiyonel, sessiz)
+    if (durum === "gelmedi" && eskiDurum !== "gelmedi" && aktifDevamsizlikTarih === isoTarih(new Date())) {
+      devamsizlikVeliMail(ogrenciId);
+    }
+    renderDevamsizlik();
+  } catch (e) {
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+async function devamsizlikVeliMail(ogrenciId) {
+  try {
+    const ogr = ogrenciList.find(o => o.id === ogrenciId);
+    const ayar = ayarListesi[ogrenciId];
+    if (!ogr || !ayar) return;
+    const anne = ayar.anne || {};
+    const baba = ayar.baba || {};
+    const mailler = [];
+    if (anne.eposta) mailler.push({ mail: anne.eposta, ad: anne.adSoyad || "Anne" });
+    if (baba.eposta) mailler.push({ mail: baba.eposta, ad: baba.adSoyad || "Baba" });
+    if (mailler.length === 0) return;
+
+    const bugunStr = new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+    for (const v of mailler) {
+      const icerik = `
+        <p style="margin:0 0 14px; font-size:15px;">Sayın <strong>${escapeHtml(v.ad)}</strong>,</p>
+        <div style="background:#fef2f2; border-left:4px solid #dc2626; border-radius:8px; padding:18px 22px; margin:16px 0;">
+          <div style="font-size:12px; font-weight:700; color:#991b1b; letter-spacing:0.5px; margin-bottom:8px;">📋 DEVAMSIZLIK BİLDİRİMİ</div>
+          <div style="font-size:14px; color:#374151; line-height:1.7;">
+            <strong>${escapeHtml(ogr.ogrenciAdSoyad || "")}</strong> bugün (<strong>${bugunStr}</strong>) okula gelmedi.
+          </div>
+        </div>
+        <p style="margin:16px 0; font-size:13px; color:#374151; line-height:1.7;">
+          Eğer haberimiz olmaksızın bir durum varsa lütfen okul yönetimiyle iletişime geçin. Küçük bir arama bizi de rahatlatır. ☎️
+        </p>
+        <p style="margin:20px 0 0; font-size:13px; color:#374151;">Saygılarımızla,<br><strong>Bir Çiçek Koleji Anaokulu</strong></p>
+      `;
+      await brevoMail({
+        to: v.mail, toName: v.ad,
+        subject: `📋 Devamsızlık Bildirimi - ${ogr.ogrenciAdSoyad}`,
+        htmlContent: portalMailSablon("Devamsızlık Bildirimi", icerik, "Okul yönetimi tarafından otomatik olarak gönderilmiştir.")
+      });
+      await new Promise(r => setTimeout(r, 300));
+    }
+  } catch (e) { console.warn("Devamsızlık mail hatası:", e); }
+}
+
+window.acDevamsizlikNot = function(ogrenciId) {
+  const ogr = ogrenciList.find(o => o.id === ogrenciId);
+  const mevcut = ((aktifDevamsizlikVerisi?.kayitlar || {})[ogrenciId] || {}).not || "";
+  document.getElementById("devamsizlikNotBaslik").textContent = `📝 Not: ${ogr?.ogrenciAdSoyad || ""}`;
+  document.getElementById("devamsizlikNotOgrenciId").value = ogrenciId;
+  document.getElementById("devamsizlikNotMetin").value = mevcut;
+  document.getElementById("devamsizlikNotModal").classList.add("active");
+};
+
+window.closeDevamsizlikNot = function() {
+  document.getElementById("devamsizlikNotModal").classList.remove("active");
+};
+
+window.kaydetDevamsizlikNot = async function() {
+  const ogrenciId = document.getElementById("devamsizlikNotOgrenciId").value;
+  const not = document.getElementById("devamsizlikNotMetin").value.trim();
+  if (!ogrenciId) return;
+
+  aktifDevamsizlikVerisi.kayitlar = aktifDevamsizlikVerisi.kayitlar || {};
+  const eski = aktifDevamsizlikVerisi.kayitlar[ogrenciId] || {};
+  aktifDevamsizlikVerisi.kayitlar[ogrenciId] = { ...eski, not, kaydeden: currentUser.email };
+  aktifDevamsizlikVerisi.tarih = aktifDevamsizlikTarih;
+  aktifDevamsizlikVerisi.guncellendi = new Date().toISOString();
+
+  try {
+    await setDoc(doc(db, "devamsizlik", aktifDevamsizlikTarih), aktifDevamsizlikVerisi);
+    showToast("✓ Not kaydedildi");
+    closeDevamsizlikNot();
+    renderDevamsizlik();
+  } catch (e) {
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+window.devamsizlikHepsiGeldi = async function() {
+  if (!confirm("Tüm aktif öğrencileri 'Geldi' olarak işaretlemek istiyor musunuz?\n(Önceki işaretlemeler korunur, sadece boş olanlar 'Geldi' olur)")) return;
+
+  aktifDevamsizlikVerisi.kayitlar = aktifDevamsizlikVerisi.kayitlar || {};
+  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  let degisen = 0;
+  for (const o of aktif) {
+    if (!aktifDevamsizlikVerisi.kayitlar[o.id] || !aktifDevamsizlikVerisi.kayitlar[o.id].durum) {
+      aktifDevamsizlikVerisi.kayitlar[o.id] = { durum: "geldi", not: "", kaydeden: currentUser.email, kayitZamani: new Date().toISOString() };
+      degisen++;
+    }
+  }
+  aktifDevamsizlikVerisi.tarih = aktifDevamsizlikTarih;
+  aktifDevamsizlikVerisi.guncellendi = new Date().toISOString();
+
+  try {
+    await setDoc(doc(db, "devamsizlik", aktifDevamsizlikTarih), aktifDevamsizlikVerisi);
+    showToast(`✓ ${degisen} öğrenci "Geldi" olarak işaretlendi`);
+    renderDevamsizlik();
+  } catch (e) {
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+// ============ AYLIK ÖZET ============
+window.acAylikOzet = function() {
+  const d = new Date(aktifDevamsizlikTarih || new Date());
+  aylikOzetAy = { yil: d.getFullYear(), ay: d.getMonth() };
+  document.getElementById("aylikOzetModal").classList.add("active");
+  renderAylikOzet();
+};
+
+window.closeAylikOzet = function() {
+  document.getElementById("aylikOzetModal").classList.remove("active");
+};
+
+window.aylikOzetAyDegistir = function(delta) {
+  if (!aylikOzetAy) return;
+  let { yil, ay } = aylikOzetAy;
+  ay += delta;
+  if (ay < 0) { ay = 11; yil--; }
+  if (ay > 11) { ay = 0; yil++; }
+  aylikOzetAy = { yil, ay };
+  renderAylikOzet();
+};
+
+async function renderAylikOzet() {
+  if (!aylikOzetAy) return;
+  const { yil, ay } = aylikOzetAy;
+  const etiket = new Date(yil, ay, 1).toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  document.getElementById("aylikOzetAyEtiketi").textContent = etiket;
+
+  const el = document.getElementById("aylikOzetIcerik");
+  el.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+
+  // O ayın tüm devamsızlık kayıtlarını çek
+  const ayStr = `${yil}-${String(ay + 1).padStart(2, "0")}`;
+  const gunSayisi = new Date(yil, ay + 1, 0).getDate();
+
+  const kayitlar = {}; // tarih -> veri
+  try {
+    for (let g = 1; g <= gunSayisi; g++) {
+      const t = `${ayStr}-${String(g).padStart(2, "0")}`;
+      const snap = await getDoc(doc(db, "devamsizlik", t));
+      if (snap.exists()) kayitlar[t] = snap.data();
+    }
+  } catch (e) {
+    el.innerHTML = `<div style="padding:30px; text-align:center; color:#991b1b;">Yüklenemedi: ${escapeHtml(e.message)}</div>`;
+    return;
+  }
+
+  // Aktif öğrenciler
+  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  aktif.sort((a, b) => {
+    const sA = (ayarListesi[a.id]?.kayit?.sinif) || a.sinif || "";
+    const sB = (ayarListesi[b.id]?.kayit?.sinif) || b.sinif || "";
+    if (sA !== sB) return sA.localeCompare(sB);
+    return (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "");
+  });
+
+  // Her öğrenci için say
+  const bugun = new Date();
+  const ogrSayac = {};
+  let toplamIsGun = 0;
+  for (const t in kayitlar) {
+    if (new Date(t) > bugun) continue;
+    const d = new Date(t);
+    const gun = d.getDay();
+    if (gun === 0 || gun === 6) continue; // Hafta sonu sayma
+    toplamIsGun++;
+    for (const o of aktif) {
+      const k = kayitlar[t].kayitlar?.[o.id];
+      if (!k) continue;
+      if (!ogrSayac[o.id]) ogrSayac[o.id] = { geldi: 0, gelmedi: 0, izinli: 0, hasta: 0 };
+      if (ogrSayac[o.id][k.durum] !== undefined) ogrSayac[o.id][k.durum]++;
+    }
+  }
+
+  if (Object.keys(kayitlar).length === 0) {
+    el.innerHTML = `
+      <div style="background:#f9fafb; border:2px dashed var(--gray-300); border-radius:12px; padding:40px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:12px;">📭</div>
+        <div style="font-family:var(--font-display); font-size:16px; color:var(--gray-700);">${etiket} için kayıt yok</div>
+        <div style="font-size:13px; color:var(--gray-500); margin-top:6px;">Bu ay için yoklama girilmemiş</div>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 18px; margin-bottom:16px; font-size:13px; color:#1e40af;">
+      <strong>${toplamIsGun}</strong> iş günü kaydedildi · Toplam <strong>${aktif.length}</strong> aktif öğrenci
+    </div>
+  `;
+
+  html += `<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;">
+    <thead>
+      <tr style="background:#f3f4f6;">
+        <th style="padding:10px; text-align:left; border-bottom:2px solid var(--gray-300); font-family:var(--font-display);">Öğrenci</th>
+        <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-300); color:#16a34a;">✅</th>
+        <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-300); color:#dc2626;">❌</th>
+        <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-300); color:#d97706;">🏖</th>
+        <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-300); color:#9333ea;">🤒</th>
+        <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-300); font-family:var(--font-display);">Devam %</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  for (const o of aktif) {
+    const s = ogrSayac[o.id] || { geldi: 0, gelmedi: 0, izinli: 0, hasta: 0 };
+    const toplamIsaretli = s.geldi + s.gelmedi + s.izinli + s.hasta;
+    // Devam yüzdesi: geldi / toplam isaretli (izinli/hasta devamsızlık sayılmaz)
+    const yuzde = toplamIsaretli > 0 ? Math.round((s.geldi / toplamIsaretli) * 100) : 0;
+    const renk = yuzde >= 90 ? "#16a34a" : yuzde >= 75 ? "#d97706" : "#dc2626";
+    const sinif = (ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "";
+
+    html += `
+      <tr style="border-bottom:1px solid var(--gray-200);">
+        <td style="padding:10px;">
+          <div style="font-weight:600; color:var(--gray-800);">${escapeHtml(o.ogrenciAdSoyad || "")}</div>
+          <div style="font-size:11px; color:var(--gray-500);">${escapeHtml(sinif)}</div>
+        </td>
+        <td style="padding:10px; text-align:center; font-weight:600; color:#14532d;">${s.geldi}</td>
+        <td style="padding:10px; text-align:center; font-weight:600; color:#7f1d1d;">${s.gelmedi}</td>
+        <td style="padding:10px; text-align:center; font-weight:600; color:#78350f;">${s.izinli}</td>
+        <td style="padding:10px; text-align:center; font-weight:600; color:#581c87;">${s.hasta}</td>
+        <td style="padding:10px; text-align:center;">
+          <div style="display:inline-flex; align-items:center; gap:8px;">
+            <div style="width:60px; height:8px; background:var(--gray-200); border-radius:4px; overflow:hidden;">
+              <div style="background:${renk}; height:100%; width:${yuzde}%;"></div>
+            </div>
+            <span style="font-family:var(--font-display); font-weight:700; color:${renk}; min-width:35px;">%${yuzde}</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+  html += `</tbody></table></div>`;
+
+  el.innerHTML = html;
+}
 
 
 function hesaplaFinansGecikenler() {
@@ -12370,6 +12867,7 @@ let veliYemekHaftaBaslangic = null;
 async function veliRenderOkulHayati() {
   veliRenderYemekMenusu();
   veliRenderEtkinlikListesi();
+  veliRenderDevamsizlik();
 }
 
 window.veliYemekHaftaDegistir = function(hafta) {
@@ -12559,6 +13057,156 @@ async function veliRenderEtkinlikListesi() {
   } catch (e) {
     el.innerHTML = `<div style="padding:30px; text-align:center; color:#991b1b; font-size:13px;">Etkinlikler yüklenemedi: ${escapeHtml(e.message)}</div>`;
   }
+}
+
+// Veli Devamsızlık (Tur 4)
+let veliDevamsizlikAy = null; // {yil, ay}
+
+window.veliDevamsizlikAyDegistir = function(delta) {
+  if (!veliDevamsizlikAy) {
+    const d = new Date();
+    veliDevamsizlikAy = { yil: d.getFullYear(), ay: d.getMonth() };
+  }
+  let { yil, ay } = veliDevamsizlikAy;
+  ay += delta;
+  if (ay < 0) { ay = 11; yil--; }
+  if (ay > 11) { ay = 0; yil++; }
+  veliDevamsizlikAy = { yil, ay };
+  veliRenderDevamsizlik();
+};
+
+async function veliRenderDevamsizlik() {
+  const el = document.getElementById("veliDevamsizlikGorunum");
+  if (!el) return;
+
+  if (!veliDevamsizlikAy) {
+    const d = new Date();
+    veliDevamsizlikAy = { yil: d.getFullYear(), ay: d.getMonth() };
+  }
+
+  const { yil, ay } = veliDevamsizlikAy;
+  const etiket = new Date(yil, ay, 1).toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  const etiketEl = document.getElementById("veliDevamsizlikAyEtiketi");
+  if (etiketEl) etiketEl.textContent = etiket;
+
+  if (!veliOgrenciler || veliOgrenciler.length === 0) {
+    el.innerHTML = `<div style="padding:30px; text-align:center; color:var(--gray-500);">Öğrenci bilgisi yok</div>`;
+    return;
+  }
+
+  // O ayın günlerini çek
+  const ayStr = `${yil}-${String(ay + 1).padStart(2, "0")}`;
+  const gunSayisi = new Date(yil, ay + 1, 0).getDate();
+  const bugun = new Date();
+  const bugunIso = isoTarih(bugun);
+
+  const kayitlar = {};
+  try {
+    for (let g = 1; g <= gunSayisi; g++) {
+      const t = `${ayStr}-${String(g).padStart(2, "0")}`;
+      if (t > bugunIso) continue; // Gelecek tarihleri çekme
+      const snap = await getDoc(doc(db, "devamsizlik", t));
+      if (snap.exists()) kayitlar[t] = snap.data();
+    }
+  } catch (e) {
+    el.innerHTML = `<div style="padding:30px; text-align:center; color:#991b1b;">Yüklenemedi</div>`;
+    return;
+  }
+
+  // Her çocuk için kayıtları topla
+  let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
+  for (const o of veliOgrenciler) {
+    const kayitDizisi = []; // [{tarih, durum, not}]
+    let sayac = { geldi: 0, gelmedi: 0, izinli: 0, hasta: 0 };
+
+    for (let g = 1; g <= gunSayisi; g++) {
+      const t = `${ayStr}-${String(g).padStart(2, "0")}`;
+      const d = new Date(yil, ay, g);
+      const gun = d.getDay();
+      if (gun === 0 || gun === 6) continue; // hafta sonu atla
+      if (t > bugunIso) continue;
+
+      const kayit = kayitlar[t]?.kayitlar?.[o.id];
+      if (kayit && kayit.durum) {
+        kayitDizisi.push({ tarih: t, gun: g, durum: kayit.durum, not: kayit.not || "" });
+        if (sayac[kayit.durum] !== undefined) sayac[kayit.durum]++;
+      }
+    }
+
+    const toplam = sayac.geldi + sayac.gelmedi + sayac.izinli + sayac.hasta;
+    const yuzde = toplam > 0 ? Math.round((sayac.geldi / toplam) * 100) : 0;
+    const renk = yuzde >= 90 ? "#16a34a" : yuzde >= 75 ? "#d97706" : "#dc2626";
+
+    html += `
+      <div style="background:white; border:1px solid var(--gray-200); border-radius:12px; overflow:hidden;">
+        <div style="padding:12px 16px; background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1px solid #fecaca;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="font-family:var(--font-display); font-size:15px; font-weight:700; color:#7f1d1d;">
+              👧 ${escapeHtml(o.ogrenciAdSoyad || "")}
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="font-size:12px; color:#991b1b;">Devam:</div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <div style="width:60px; height:8px; background:rgba(255,255,255,0.6); border-radius:4px; overflow:hidden;">
+                  <div style="background:${renk}; height:100%; width:${yuzde}%;"></div>
+                </div>
+                <span style="font-family:var(--font-display); font-weight:700; color:${renk};">%${yuzde}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:14px 16px;">
+    `;
+
+    if (toplam === 0) {
+      html += `<div style="text-align:center; padding:14px; color:var(--gray-500); font-size:13px; font-style:italic;">Bu ay için henüz devam kaydı yok</div>`;
+    } else {
+      // Mini istatistik
+      html += `
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:70px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:6px 10px; text-align:center;">
+            <div style="font-size:10px; color:#166534; font-weight:600;">✅ Geldi</div>
+            <div style="font-family:var(--font-display); font-size:18px; font-weight:700; color:#14532d;">${sayac.geldi}</div>
+          </div>
+          <div style="flex:1; min-width:70px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:6px 10px; text-align:center;">
+            <div style="font-size:10px; color:#991b1b; font-weight:600;">❌ Gelmedi</div>
+            <div style="font-family:var(--font-display); font-size:18px; font-weight:700; color:#7f1d1d;">${sayac.gelmedi}</div>
+          </div>
+          <div style="flex:1; min-width:70px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:6px 10px; text-align:center;">
+            <div style="font-size:10px; color:#92400e; font-weight:600;">🏖 İzinli</div>
+            <div style="font-family:var(--font-display); font-size:18px; font-weight:700; color:#78350f;">${sayac.izinli}</div>
+          </div>
+          <div style="flex:1; min-width:70px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:8px; padding:6px 10px; text-align:center;">
+            <div style="font-size:10px; color:#6b21a8; font-weight:600;">🤒 Hasta</div>
+            <div style="font-family:var(--font-display); font-size:18px; font-weight:700; color:#581c87;">${sayac.hasta}</div>
+          </div>
+        </div>
+      `;
+
+      // Devamsız günlerin detayı (sadece devamsız/izinli/hasta)
+      const devamsizGunler = kayitDizisi.filter(k => k.durum !== "geldi");
+      if (devamsizGunler.length > 0) {
+        html += `<div style="font-size:12px; color:var(--gray-600); font-weight:600; margin-bottom:8px;">Gelmeme Nedenleri:</div>`;
+        for (const k of devamsizGunler) {
+          const stil = DEVAMSIZLIK_DURUMLAR[k.durum];
+          const d = new Date(k.tarih);
+          const tarihStr = d.toLocaleDateString("tr-TR", { weekday: "short", day: "numeric", month: "short" });
+          html += `
+            <div style="padding:8px 10px; background:${stil.bg}; border:1px solid ${stil.border}; border-radius:8px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+              <div style="font-size:12px; color:${stil.renk}; font-weight:600;">${stil.ikon} ${stil.label}</div>
+              <div style="flex:1; font-size:11px; color:var(--gray-500); text-align:right;">${tarihStr}${k.not ? ' · ' + escapeHtml(k.not) : ''}</div>
+            </div>
+          `;
+        }
+      } else {
+        html += `<div style="padding:10px; background:#f0fdf4; border-radius:8px; font-size:13px; color:#166534; text-align:center;">🎉 Bu ay devamsızlık yok, harika!</div>`;
+      }
+    }
+
+    html += `</div></div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
 }
 
 function renderFinansBarListesi(liste) {
