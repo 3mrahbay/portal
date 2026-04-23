@@ -3999,7 +3999,6 @@ html, body {
       <button class="tab active" data-tab="ogrenciler">👥 Öğrenci Ayarları</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Onay Bekleyenler <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans">💼 Finansal Yönetim</button>
-      <button class="tab" data-tab="raporlar">📊 Raporlar</button>
     </div>
 
     <!-- ÖĞRENCILER TAB -->
@@ -4103,11 +4102,6 @@ html, body {
     <!-- FİNANSAL YÖNETİM TAB -->
     <div class="tab-panel" id="tab-finans">
 
-      <!-- ÜST ÖZET KARTLARI -->
-      <div id="finansOzetKartlari" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:20px;">
-        <!-- JS ile doldurulur -->
-      </div>
-
       <!-- DÖNEM SEÇİCİ -->
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; padding:14px 18px; background:white; border:1px solid var(--gray-300); border-radius:12px;">
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -4117,7 +4111,6 @@ html, body {
           <button class="btn-mini" id="finansView-tumu" onclick="finansSetView('tumu')">Dönem Toplamı</button>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn-mini" onclick="loadFinansalData()">🔄 Yenile</button>
           <button class="btn-mini btn-primary" onclick="openGiderEkleModal()">+ Gider Ekle</button>
         </div>
       </div>
@@ -4127,7 +4120,7 @@ html, body {
         <button class="finans-altsekme active" data-finans-alt="ozet" onclick="finansSwitchAlt('ozet')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid #2d6a4f; color:#2d6a4f; font-weight:600; cursor:pointer; font-size:14px;">📊 Özet</button>
         <button class="finans-altsekme" data-finans-alt="gelirler" onclick="finansSwitchAlt('gelirler')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">💰 Gelirler</button>
         <button class="finans-altsekme" data-finans-alt="giderler" onclick="finansSwitchAlt('giderler')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">💸 Giderler</button>
-        <button class="finans-altsekme" data-finans-alt="geciken" onclick="finansSwitchAlt('geciken')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">⚠ Geciken</button>
+        <button class="finans-altsekme" data-finans-alt="raporlar" onclick="finansSwitchAlt('raporlar')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">📥 Raporlar</button>
       </div>
 
       <!-- ALT PANELLER -->
@@ -4170,9 +4163,9 @@ html, body {
         </div>
       </div>
 
-      <div id="finansAlt-geciken" class="finans-alt-panel" style="display:none;">
-        <div id="gecikenListesi">
-          <div class="ozel-madde-empty">Yükleniyor...</div>
+      <div id="finansAlt-raporlar" class="finans-alt-panel" style="display:none;">
+        <div id="raporlarIcerik">
+          <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
         </div>
       </div>
 
@@ -4263,692 +4256,6 @@ html, body {
         </div>
       </div>
     </div>
-
-    <!-- RAPORLAR TAB -->
-    <div class="tab-panel" id="tab-raporlar">
-
-      <!-- HERO BANNER (Yeşil) -->
-      <div class="rapor-hero">
-        <div class="rapor-hero-header">
-          <div>
-            <div class="rapor-hero-label">📊 OKUL YÖNETİM ÖZETİ</div>
-            <h2 class="rapor-hero-title" id="raporHeroTitle">2025-2026 Dönemi</h2>
-          </div>
-          <div class="rapor-hero-actions">
-            <button class="rapor-btn-light" onclick="raporYenile()">🔄 Yenile</button>
-            <button class="rapor-btn-yellow" onclick="raporExcelTumu()">📥 Excel İndir</button>
-          </div>
-        </div>
-
-        <!-- 4 METRİK KARTI -->
-        <div class="rapor-metrik-grid">
-          <!-- Büyük Sarı Kart - Bu Ay Tahsilat -->
-          <div class="rapor-metrik rapor-metrik-sari">
-            <div class="rapor-metrik-icon-wrap">
-              <div class="rapor-metrik-icon">💰</div>
-              <div class="rapor-metrik-trend" id="raporBuAyTrend">+0%</div>
-            </div>
-            <div class="rapor-metrik-label">BU AY TAHSİLAT</div>
-            <div class="rapor-metrik-row">
-              <span class="rapor-metrik-odenen" id="raporBuAyOdenen">₺0</span>
-              <span class="rapor-metrik-beklenen" id="raporBuAyBeklenen">/ ₺0</span>
-            </div>
-            <div class="rapor-metrik-bar">
-              <div class="rapor-metrik-bar-dolu" id="raporBuAyBar" style="width:0%;"></div>
-            </div>
-            <div class="rapor-metrik-alt" id="raporBuAyAlt">— %0 tamamlandı —</div>
-          </div>
-
-          <!-- Aktif Öğrenci -->
-          <div class="rapor-metrik rapor-metrik-mavi">
-            <div class="rapor-metrik-icon">👨‍👩‍👧</div>
-            <div class="rapor-metrik-label">AKTİF ÖĞRENCİ</div>
-            <div class="rapor-metrik-buyuk" id="raporAktifOgrenci">0</div>
-            <div class="rapor-metrik-alt2" id="raporAktifAlt">— / — Montessori</div>
-          </div>
-
-          <!-- Ödemesi Tamam -->
-          <div class="rapor-metrik rapor-metrik-yesil">
-            <div class="rapor-metrik-icon">✅</div>
-            <div class="rapor-metrik-label">ÖDEMESİ TAMAM</div>
-            <div class="rapor-metrik-buyuk" id="raporTamamSayi">0</div>
-            <div class="rapor-metrik-alt2" id="raporTamamAlt">%0 bu dönem ödemiş</div>
-          </div>
-
-          <!-- Geciken -->
-          <div class="rapor-metrik rapor-metrik-kirmizi">
-            <div class="rapor-metrik-icon">⚠️</div>
-            <div class="rapor-metrik-label">GECİKEN ÖDEMELER</div>
-            <div class="rapor-metrik-buyuk" id="raporGecikenSayi">0</div>
-            <div class="rapor-metrik-alt2" id="raporGecikenAlt">öğrencide geciken ödeme</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. SATIR: GRAFİKLER -->
-      <div class="rapor-grid-3">
-        <!-- Aylık Tahsilat Trendi (Geniş) -->
-        <div class="rapor-karti rapor-karti-genis">
-          <div class="rapor-karti-header">
-            <div>
-              <h3 class="rapor-karti-title">📈 Aylık Tahsilat Trendi</h3>
-              <div class="rapor-karti-sub">Ödenen tutarların aylık dağılımı</div>
-            </div>
-            <div class="rapor-karti-rozet" id="raporTrendYuzde">%0</div>
-          </div>
-          <div class="rapor-chart-wrap" style="height:280px;">
-            <canvas id="raporTrendChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Sınıf Dağılımı (Donut) -->
-        <div class="rapor-karti">
-          <div class="rapor-karti-header">
-            <div>
-              <h3 class="rapor-karti-title">🍩 Sınıf Dağılımı</h3>
-              <div class="rapor-karti-sub">Toplam öğrenci sayısı</div>
-            </div>
-          </div>
-          <div class="rapor-chart-wrap" style="height:200px;position:relative;">
-            <canvas id="raporSinifChart"></canvas>
-            <div class="rapor-donut-ortasi">
-              <div class="rapor-donut-sayi" id="raporDonutSayi">0</div>
-              <div class="rapor-donut-label">öğrenci</div>
-            </div>
-          </div>
-          <div class="rapor-legend" id="raporSinifLegend"></div>
-        </div>
-
-        <!-- Ödeme Yöntemleri (Bar) -->
-        <div class="rapor-karti">
-          <div class="rapor-karti-header">
-            <div>
-              <h3 class="rapor-karti-title">💳 Ödeme Yöntemleri</h3>
-              <div class="rapor-karti-sub">Bu dönemki dağılım</div>
-            </div>
-          </div>
-          <div class="rapor-odeme-yontemleri" id="raporOdemeYontemleri">
-            <!-- JS ile doldurulacak -->
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. SATIR: GECİKEN + EXCEL -->
-      <div class="rapor-grid-2">
-        <!-- Geciken Öğrenciler -->
-        <div class="rapor-karti">
-          <div class="rapor-karti-header">
-            <div>
-              <h3 class="rapor-karti-title">⚠️ Geciken Öğrenciler</h3>
-              <div class="rapor-karti-sub">Ödemesi geciken veliler</div>
-            </div>
-            <button class="rapor-mini-btn" onclick="raporGecikenFiltrele()">Tümünü Gör →</button>
-          </div>
-          <div id="raporGecikenListe">
-            <div class="rapor-empty">🎉 Geciken öğrenci yok — Harika iş!</div>
-          </div>
-        </div>
-
-        <!-- Hızlı Raporlar -->
-        <div class="rapor-karti">
-          <div class="rapor-karti-header">
-            <div>
-              <h3 class="rapor-karti-title">📥 Hızlı Raporlar</h3>
-              <div class="rapor-karti-sub">Excel olarak indir</div>
-            </div>
-          </div>
-          <div class="rapor-hizli-grid">
-            <button class="rapor-hizli-btn" onclick="raporExcelAylikTahsilat()">
-              <div class="rapor-hizli-icon">📊</div>
-              <div class="rapor-hizli-title">Aylık Tahsilat</div>
-              <div class="rapor-hizli-sub">12 aylık detaylı tablo</div>
-            </button>
-            <button class="rapor-hizli-btn" onclick="raporExcelGeciken()">
-              <div class="rapor-hizli-icon">⚠️</div>
-              <div class="rapor-hizli-title">Geciken Liste</div>
-              <div class="rapor-hizli-sub">İletişim bilgileriyle</div>
-            </button>
-            <button class="rapor-hizli-btn" onclick="raporExcelOgrenciListesi()">
-              <div class="rapor-hizli-icon">👨‍👩‍👧</div>
-              <div class="rapor-hizli-title">Öğrenci Listesi</div>
-              <div class="rapor-hizli-sub">Veli bilgileriyle</div>
-            </button>
-            <button class="rapor-hizli-btn" onclick="raporExcelOdemeDetay()">
-              <div class="rapor-hizli-icon">💰</div>
-              <div class="rapor-hizli-title">Ödeme Detayı</div>
-              <div class="rapor-hizli-sub">Ay ay her öğrenci</div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-  </div>
-</div>
-
-<!-- ============ VELI PANELİ ============ -->
-<div id="veliPanel">
-  <div class="veli-layout">
-
-    <!-- SIDEBAR -->
-    <aside class="veli-sidebar">
-      <div class="veli-sidebar-logo">
-        <img src="https://yenikayit.bircicekkoleji.com/okul_logo.png" alt="Bir Çiçek Koleji" onerror="this.style.display='none'">
-        <div class="veli-sidebar-logo-text">Bir Çiçek Koleji<br>Veli Portalı</div>
-      </div>
-
-      <button type="button" class="veli-menu-item active" data-veli-tab="dashboard" onclick="veliSwitchTab('dashboard')">
-        <span class="veli-menu-icon">🏠</span><span>Dashboard</span>
-      </button>
-      <button type="button" class="veli-menu-item" data-veli-tab="odemeler" onclick="veliSwitchTab('odemeler')">
-        <span class="veli-menu-icon">💰</span><span>Ödemeler</span>
-      </button>
-      <button type="button" class="veli-menu-item" data-veli-tab="sozlesme" onclick="veliSwitchTab('sozlesme')">
-        <span class="veli-menu-icon">📄</span><span>Sözleşme</span>
-      </button>
-      <button type="button" class="veli-menu-item" data-veli-tab="ogrenci" onclick="veliSwitchTab('ogrenci')">
-        <span class="veli-menu-icon">👤</span><span>Öğrenci Bilgileri</span>
-      </button>
-      <button type="button" class="veli-menu-item" data-veli-tab="okul" onclick="veliSwitchTab('okul')">
-        <span class="veli-menu-icon">📅</span><span>Okul Hayatı</span>
-      </button>
-      <button type="button" class="veli-menu-item" data-veli-tab="iletisim" onclick="veliSwitchTab('iletisim')">
-        <span class="veli-menu-icon">💬</span><span>İletişim</span>
-      </button>
-      <button type="button" class="veli-menu-item" data-veli-tab="galeri" onclick="veliSwitchTab('galeri')">
-        <span class="veli-menu-icon">📸</span><span>Galeri</span>
-      </button>
-      <button type="button" class="veli-menu-item" data-veli-tab="raporlar" onclick="veliSwitchTab('raporlar')">
-        <span class="veli-menu-icon">📊</span><span>Raporlar</span>
-      </button>
-
-      <div class="veli-menu-spacer"></div>
-
-      <div class="veli-sidebar-bottom">
-        <button type="button" class="veli-menu-item" data-veli-tab="ayarlar" onclick="veliSwitchTab('ayarlar')">
-          <span class="veli-menu-icon">⚙️</span><span>Ayarlar</span>
-        </button>
-        <button type="button" class="veli-menu-item" onclick="signOut()">
-          <span class="veli-menu-icon">🚪</span><span>Çıkış Yap</span>
-        </button>
-      </div>
-    </aside>
-
-    <!-- ANA İÇERİK -->
-    <main class="veli-main">
-
-      <!-- Üst Başlık -->
-      <div class="veli-main-header">
-        <div>
-          <div class="veli-welcome-label">Hoş geldiniz</div>
-          <div class="veli-welcome-name" id="veliWelcomeName">—</div>
-        </div>
-        <div class="veli-user-badge">
-          <div class="veli-avatar" id="veliAvatarInitial">V</div>
-          <button class="veli-btn-secondary" onclick="signOut()" title="Çıkış Yap" style="padding:8px 14px; font-size:12px;">🚪 Çıkış</button>
-        </div>
-      </div>
-
-      <!-- Çoklu öğrenci (kardeş) seçici -->
-      <div class="veli-ogrenci-secici" id="veliOgrenciSecici" style="display:none;">
-        <!-- JS ile doldurulur -->
-      </div>
-
-      <!-- Öğrenci Hero Kart (her sekmede gösterilir) -->
-      <div class="veli-student-hero" id="veliStudentHero" style="display:none;">
-        <div class="veli-student-info">
-          <div class="veli-student-label">ÖĞRENCİ</div>
-          <div class="veli-student-name" id="veliHeroName">—</div>
-          <div class="veli-student-meta" id="veliHeroMeta">—</div>
-        </div>
-        <div class="veli-student-avatar" id="veliHeroAvatar">?</div>
-      </div>
-
-      <!-- DASHBOARD SEKMESİ -->
-      <div class="veli-tab-panel active" id="veliPanel-dashboard">
-        <div class="veli-stats-row" id="veliDashStats">
-          <!-- JS ile doldurulur -->
-        </div>
-
-        <div class="veli-card-grid-2">
-          <div class="veli-card">
-            <div class="veli-card-title">📅 Sıradaki Ödeme</div>
-            <div id="veliDashSonraki">Bilgi yok</div>
-          </div>
-          <div class="veli-card">
-            <div class="veli-card-title">📢 Son Duyurular</div>
-            <div style="font-size:13px; color:var(--gray-500);">Henüz duyuru yok</div>
-          </div>
-        </div>
-
-        <div class="veli-card">
-          <div class="veli-card-title">⚡ Hızlı İşlemler</div>
-          <div class="veli-btn-row">
-            <button class="veli-btn-primary" onclick="veliSwitchTab('odemeler')">💳 Ödeme Bildir</button>
-            <button class="veli-btn-secondary" onclick="veliSwitchTab('sozlesme')">📄 Sözleşmeyi Aç</button>
-            <button class="veli-btn-secondary" onclick="veliSwitchTab('ogrenci')">👤 Bilgilerimi Güncelle</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ÖDEMELER SEKMESİ -->
-      <div class="veli-tab-panel" id="veliPanel-odemeler">
-        <div class="veli-card">
-          <div class="veli-card-title">💰 Ödeme Takibi</div>
-          <div id="veliOdemelerContent">Yükleniyor...</div>
-        </div>
-      </div>
-
-      <!-- SÖZLEŞME SEKMESİ -->
-      <div class="veli-tab-panel" id="veliPanel-sozlesme">
-        <div class="veli-card">
-          <div class="veli-card-title">📄 MEB Kayıt Sözleşmeniz</div>
-          <div id="veliSozlesmeContent">Yükleniyor...</div>
-        </div>
-      </div>
-
-      <!-- ÖĞRENCİ BİLGİLERİ SEKMESİ -->
-      <div class="veli-tab-panel" id="veliPanel-ogrenci">
-        <div class="veli-card">
-          <div class="veli-card-title">👤 Öğrenci ve Veli Bilgileri</div>
-          <div id="veliOgrenciContent">Yükleniyor...</div>
-        </div>
-      </div>
-
-      <!-- OKUL HAYATI (Placeholder) -->
-      <div class="veli-tab-panel" id="veliPanel-okul">
-        <div class="veli-card">
-          <div class="veli-placeholder">
-            <div class="ph-icon">📅</div>
-            <h3>Okul Hayatı</h3>
-            <p>Devamsızlık takibi, haftalık yemek menüsü ve etkinlik takvimi burada görüntülenecek.</p>
-            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- İLETİŞİM (Placeholder) -->
-      <div class="veli-tab-panel" id="veliPanel-iletisim">
-        <div class="veli-card">
-          <div class="veli-placeholder">
-            <div class="ph-icon">💬</div>
-            <h3>İletişim</h3>
-            <p>Öğretmen ile mesajlaşma, yönetim ile iletişim ve randevu talebi burada yapılabilecek.</p>
-            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- GALERİ (Placeholder) -->
-      <div class="veli-tab-panel" id="veliPanel-galeri">
-        <div class="veli-card">
-          <div class="veli-placeholder">
-            <div class="ph-icon">📸</div>
-            <h3>Galeri</h3>
-            <p>Çocuğunuzun okuldaki fotoğrafları, sınıf etkinlikleri ve video paylaşımları burada görüntülenecek.</p>
-            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- RAPORLAR (Placeholder) -->
-      <div class="veli-tab-panel" id="veliPanel-raporlar">
-        <div class="veli-card">
-          <div class="veli-placeholder">
-            <div class="ph-icon">📊</div>
-            <h3>Raporlar</h3>
-            <p>Montessori gelişim raporu, katılım raporu, beslenme ve uyku düzeni burada görüntülenecek.</p>
-            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- AYARLAR SEKMESİ -->
-      <div class="veli-tab-panel" id="veliPanel-ayarlar">
-        <div class="veli-card">
-          <div class="veli-card-title">⚙️ Hesap Ayarları</div>
-          <div id="veliAyarlarContent">
-            <div style="margin-bottom:14px;">
-              <div style="font-size:12px; color:var(--gray-500);">E-posta</div>
-              <div id="veliAyarEposta" style="font-size:14px; margin-top:2px;">—</div>
-            </div>
-            <div style="margin-bottom:14px;">
-              <div style="font-size:12px; color:var(--gray-500);">Giriş Yöntemi</div>
-              <div id="veliAyarYontem" style="font-size:14px; margin-top:2px;">—</div>
-            </div>
-            <div style="padding-top:12px; border-top:1px solid var(--gray-200);">
-              <button class="veli-btn-secondary" onclick="signOut()">🚪 Çıkış Yap</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="veli-card">
-          <div class="veli-card-title">📞 Destek</div>
-          <div style="font-size:13px; line-height:1.8; color:var(--gray-700);">
-            Portal ile ilgili sorunlarınız veya sorularınız için:<br>
-            📧 <strong>eposta@bircicekkoleji.com</strong><br>
-            📱 <strong>Okul İletişim Hattı</strong>
-          </div>
-        </div>
-      </div>
-
-    </main>
-  </div>
-</div>
-<div id="ayarModal" class="modal-overlay">
-  <div class="modal modal-large">
-    <div class="modal-header">
-      <div class="modal-header-row">
-        <div>
-          <h2 id="modalOgrenciAd">Öğrenci Adı</h2>
-          <p id="modalOgrenciSub">Sınıf • Program</p>
-          <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
-            <span class="ogr-durum-rozet" id="modalDurumRozet" data-durum="aktif">Aktif</span>
-            <span class="ogr-kaynak-rozet" id="modalKaynakRozet">Elle</span>
-          </div>
-        </div>
-        <button class="btn-close" onclick="closeAyarModal()">×</button>
-      </div>
-    </div>
-
-    <div id="modalContent">
-
-      <div class="modal-tabs">
-        <button class="modal-tab active" data-modal-tab="ogrenci"><span class="modal-tab-icon">📋</span>Öğrenci</button>
-        <button class="modal-tab" data-modal-tab="veli"><span class="modal-tab-icon">👨‍👩‍👧</span>Veli</button>
-        <button class="modal-tab" data-modal-tab="kayit"><span class="modal-tab-icon">🏫</span>Kayıt</button>
-        <button class="modal-tab" data-modal-tab="aidat"><span class="modal-tab-icon">💰</span>Aidat</button>
-        <button class="modal-tab" data-modal-tab="sozlesme"><span class="modal-tab-icon">📄</span>Sözleşme</button>
-        <button class="modal-tab" data-modal-tab="cikti"><span class="modal-tab-icon">🖨️</span>Çıktı</button>
-      </div>
-
-      <!-- ============ ÖĞRENCİ SEKMESİ ============ -->
-      <div class="modal-tab-panel active" id="panel-ogrenci">
-
-        <div class="form-row-2">
-          <div class="form-group">
-            <label>T.C. Kimlik No *</label>
-            <input type="text" id="ogrAyarTC" placeholder="12345678901" maxlength="11" inputmode="numeric">
-          </div>
-          <div class="form-group">
-            <label>Ad Soyad *</label>
-            <input type="text" id="ogrAyarAdSoyad" placeholder="Öğrencinin adı ve soyadı">
-          </div>
-        </div>
-
-        <div class="form-row-3">
-          <div class="form-group">
-            <label>Cinsiyet *</label>
-            <select id="ogrAyarCinsiyet">
-              <option value="">Seçiniz</option>
-              <option value="Kız">Kız</option>
-              <option value="Erkek">Erkek</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Doğum Tarihi *</label>
-            <input type="date" id="ogrAyarDogumTarihi">
-          </div>
-          <div class="form-group">
-            <label>Kan Grubu</label>
-            <select id="ogrAyarKanGrubu">
-              <option value="">Seçiniz</option>
-              <option value="A Rh+">A Rh+</option>
-              <option value="A Rh-">A Rh-</option>
-              <option value="B Rh+">B Rh+</option>
-              <option value="B Rh-">B Rh-</option>
-              <option value="AB Rh+">AB Rh+</option>
-              <option value="AB Rh-">AB Rh-</option>
-              <option value="0 Rh+">0 Rh+</option>
-              <option value="0 Rh-">0 Rh-</option>
-              <option value="Bilinmiyor">Bilinmiyor</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row-1">
-          <div class="form-group">
-            <label>Ev Adresi *</label>
-            <textarea id="ogrAyarEvAdresi" rows="2" placeholder="Mahalle, Sokak, No, Daire, İlçe/İl"></textarea>
-          </div>
-        </div>
-
-        <div class="section-collapsible" id="sec-ekkisisel">
-          <div class="section-collapsible-header" onclick="toggleSection('sec-ekkisisel')">
-            <div class="section-header-left">
-              <span class="section-header-arrow">▶</span>
-              <span class="section-header-title">Ek kişisel bilgiler</span>
-              <span class="section-badge optional">Opsiyonel</span>
-            </div>
-            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
-              <input type="checkbox" id="sozShow_ekkisisel" checked>
-              <span>Sözleşmede göster</span>
-            </label>
-          </div>
-          <div class="section-collapsible-body">
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>Doğum Yeri</label>
-                <input type="text" id="ogrAyarDogumYeri" placeholder="İstanbul">
-              </div>
-              <div class="form-group">
-                <label>Uyruğu</label>
-                <input type="text" id="ogrAyarUyruk" placeholder="T.C." value="T.C.">
-              </div>
-            </div>
-            <div class="form-row-1">
-              <div class="form-group">
-                <label>Aile Durumu <span class="section-badge admin" style="margin-left:6px;">Admin</span></label>
-                <select id="ogrAyarAileDurumu">
-                  <option value="">Seçiniz</option>
-                  <option value="birlikte">Ebeveynler birlikte yaşıyor</option>
-                  <option value="bosanmis-anne">Boşanmış - Velayet annede</option>
-                  <option value="bosanmis-baba">Boşanmış - Velayet babada</option>
-                  <option value="bosanmis-paylasimli">Boşanmış - Paylaşımlı velayet</option>
-                  <option value="tek-veli-vefat">Tek veli (ebeveyn vefat)</option>
-                  <option value="tek-veli-evlenmemis">Tek veli (hiç evlenmemiş)</option>
-                  <option value="vasi">Vasi altında</option>
-                  <option value="diger">Diğer</option>
-                </select>
-                <div class="field-hint">Bu bilgi sadece admin panelinde görünür, sözleşmede yer almaz.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="section-collapsible" id="sec-saglik">
-          <div class="section-collapsible-header" onclick="toggleSection('sec-saglik')">
-            <div class="section-header-left">
-              <span class="section-header-arrow">▶</span>
-              <span class="section-header-title">Sağlık bilgileri</span>
-              <span class="section-badge critical">Kritik</span>
-            </div>
-            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
-              <input type="checkbox" id="sozShow_saglik" checked>
-              <span>Sözleşmede göster</span>
-            </label>
-          </div>
-          <div class="section-collapsible-body">
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>Boy (cm)</label>
-                <input type="number" id="ogrAyarBoy" placeholder="0" min="0" max="200">
-              </div>
-              <div class="form-group">
-                <label>Kilo (kg)</label>
-                <input type="number" id="ogrAyarKilo" placeholder="0" min="0" max="100" step="0.1">
-              </div>
-            </div>
-            <div class="form-row-1">
-              <div class="form-group">
-                <label>Gıda Alerjileri</label>
-                <input type="text" id="ogrAyarGidaAlerji" placeholder="Örn: fıstık, süt, yumurta, gluten">
-              </div>
-            </div>
-            <div class="form-row-1">
-              <div class="form-group">
-                <label>İlaç / Diğer Alerjiler</label>
-                <input type="text" id="ogrAyarIlacAlerji" placeholder="Örn: penisilin, polen, arı sokması">
-              </div>
-            </div>
-            <div class="form-row-1">
-              <div class="form-group">
-                <label>Kronik Hastalık</label>
-                <input type="text" id="ogrAyarKronikHastalik" placeholder="Örn: astım, diyabet, epilepsi">
-              </div>
-            </div>
-            <div class="form-row-1">
-              <div class="form-group">
-                <label>Özel Beslenme / Diyet</label>
-                <input type="text" id="ogrAyarOzelBeslenme" placeholder="Örn: vejetaryen, glutensiz, helal">
-              </div>
-            </div>
-            <div class="form-row-2">
-              <div class="form-group">
-                <label>Aile Doktoru</label>
-                <input type="text" id="ogrAyarDoktor" placeholder="Dr. Ad Soyad">
-              </div>
-              <div class="form-group">
-                <label>Doktor Telefonu</label>
-                <input type="tel" id="ogrAyarDoktorTel" placeholder="0212 xxx xx xx">
-              </div>
-            </div>
-            <div class="form-row-1">
-              <div class="form-group">
-                <label>Sağlık Notları</label>
-                <textarea id="ogrAyarSaglikNot" rows="2" placeholder="Diğer önemli sağlık bilgileri..."></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="section-collapsible" id="sec-acildurum">
-          <div class="section-collapsible-header" onclick="toggleSection('sec-acildurum')">
-            <div class="section-header-left">
-              <span class="section-header-arrow">▶</span>
-              <span class="section-header-title">Acil durum yakınları</span>
-              <span class="section-badge critical">Kritik</span>
-            </div>
-            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
-              <input type="checkbox" id="sozShow_acildurum" checked>
-              <span>Sözleşmede göster</span>
-            </label>
-          </div>
-          <div class="section-collapsible-body">
-            <div class="field-hint" style="margin-bottom: 12px;">
-              Okuldan çocuğu alabilecek veya acil durumda aranacak kişiler. (Sözleşme madde 8)
-            </div>
-            <div class="form-row-3">
-              <div class="form-group">
-                <label>1. Yakın - Ad Soyad</label>
-                <input type="text" id="ogrAyarYakin1Ad" placeholder="Ad Soyad">
-              </div>
-              <div class="form-group">
-                <label>Yakınlık</label>
-                <select id="ogrAyarYakin1Yakinlik">
-                  <option value="">Seçiniz</option>
-                  <option value="Anneanne">Anneanne</option>
-                  <option value="Babaanne">Babaanne</option>
-                  <option value="Dede">Dede</option>
-                  <option value="Teyze">Teyze</option>
-                  <option value="Hala">Hala</option>
-                  <option value="Amca">Amca</option>
-                  <option value="Dayı">Dayı</option>
-                  <option value="Komşu">Komşu</option>
-                  <option value="Aile Dostu">Aile Dostu</option>
-                  <option value="Diğer">Diğer</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Telefon</label>
-                <input type="tel" id="ogrAyarYakin1Tel" placeholder="0555 xxx xx xx">
-              </div>
-            </div>
-            <div class="form-row-3">
-              <div class="form-group">
-                <label>2. Yakın - Ad Soyad</label>
-                <input type="text" id="ogrAyarYakin2Ad" placeholder="Ad Soyad">
-              </div>
-              <div class="form-group">
-                <label>Yakınlık</label>
-                <select id="ogrAyarYakin2Yakinlik">
-                  <option value="">Seçiniz</option>
-                  <option value="Anneanne">Anneanne</option>
-                  <option value="Babaanne">Babaanne</option>
-                  <option value="Dede">Dede</option>
-                  <option value="Teyze">Teyze</option>
-                  <option value="Hala">Hala</option>
-                  <option value="Amca">Amca</option>
-                  <option value="Dayı">Dayı</option>
-                  <option value="Komşu">Komşu</option>
-                  <option value="Aile Dostu">Aile Dostu</option>
-                  <option value="Diğer">Diğer</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Telefon</label>
-                <input type="tel" id="ogrAyarYakin2Tel" placeholder="0555 xxx xx xx">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="section-collapsible" id="sec-kardes">
-          <div class="section-collapsible-header" onclick="toggleSection('sec-kardes')">
-            <div class="section-header-left">
-              <span class="section-header-arrow">▶</span>
-              <span class="section-header-title">Kardeş bilgileri</span>
-              <span class="section-badge admin">Admin</span>
-            </div>
-            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
-              <input type="checkbox" id="sozShow_kardes">
-              <span>Sözleşmede göster</span>
-            </label>
-          </div>
-          <div class="section-collapsible-body">
-            <div class="kardes-tespit kardes-tespit-empty" id="kardesTespitKart">
-              Veli telefonu girildikten sonra okulda kayıtlı kardeşler burada otomatik görünecek.
-            </div>
-            <div class="form-row-1">
-              <div class="form-group">
-                <label>Diğer Kardeşler (okul dışı)</label>
-                <textarea id="ogrAyarKardesNot" rows="2" placeholder="Örn: Ablası 7 yaşında özel okulda. Küçük kardeşi 1.5 yaşında."></textarea>
-                <div class="field-hint">Okulda kayıtlı olmayan kardeşleri serbest metin olarak yaz.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="section-collapsible" id="sec-ogrnot">
-          <div class="section-collapsible-header" onclick="toggleSection('sec-ogrnot')">
-            <div class="section-header-left">
-              <span class="section-header-arrow">▶</span>
-              <span class="section-header-title">Öğrenci notları</span>
-              <span class="section-badge admin">Admin</span>
-            </div>
-            <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
-              <input type="checkbox" id="sozShow_ogrnot">
-              <span>Sözleşmede göster</span>
-            </label>
-          </div>
-          <div class="section-collapsible-body">
-            <div class="form-row-1">
-              <div class="form-group">
-                <label>Admin Notu (Gizli)</label>
-                <textarea id="ogrAyarAdminNot" rows="2" placeholder="Sadece yöneticiler görür..."></textarea>
-              </div>
-            </div>
-            <div class="form-row-1">
-              <div class="form-group">
-                <label>Genel Notlar</label>
-                <textarea id="ogrAyarGenelNot" rows="2" placeholder="Öğretmenlerin de görebileceği notlar..."></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
 
       <!-- ============ VELİ SEKMESİ ============ -->
       <div class="modal-tab-panel" id="panel-veli">
@@ -8243,7 +7550,6 @@ async function loadFinansalData() {
     }
 
     // Render aktif alt sekmeyi
-    renderFinansalOzetKartlari();
     renderFinansalAltSekme();
   } catch (e) {
     console.error("Finansal data yükleme hatası:", e);
@@ -8349,59 +7655,6 @@ function finansFiltreleByView(liste, tarihAlani) {
   return liste;
 }
 
-// Üst özet kartlarını render et
-function renderFinansalOzetKartlari() {
-  const wrap = document.getElementById("finansOzetKartlari");
-  if (!wrap) return;
-
-  // Görünüme göre filtrele
-  const filtrelenmiGelirler = finansFiltreleByView(finansalGelirler, "odemeTarihi");
-  const filtrelenmiGiderler = finansFiltreleByView(finansalGiderler, "tarih");
-
-  const toplamGelir = filtrelenmiGelirler.reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
-  const toplamGider = filtrelenmiGiderler.reduce((s, g) => s + (parseFloat(g.tutar) || 0), 0);
-  const netKar = toplamGelir - toplamGider;
-  const karOrani = toplamGelir > 0 ? Math.round((netKar / toplamGelir) * 100) : 0;
-
-  // Tahsilat oranı (gelirlerin beklenenden ne kadarı toplandı)
-  const toplamBeklenen = filtrelenmiGelirler.reduce((s, g) => s + (parseFloat(g.beklenen) || 0), 0);
-  const tahsilatOrani = toplamBeklenen > 0 ? Math.round((toplamGelir / toplamBeklenen) * 100) : 0;
-
-  const donemLabel = aktifFinansView === "buAy" ? "BU AY"
-                   : aktifFinansView === "buYil" ? "BU YIL"
-                   : "DÖNEM TOPLAMI";
-
-  const karRengi = netKar >= 0 ? "#2d6a4f" : "#dc2626";
-  const karBg = netKar >= 0 ? "linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 100%)" : "linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)";
-  const karIkon = netKar >= 0 ? "📈" : "📉";
-  const karBaslik = netKar >= 0 ? "NET KAR" : "ZARAR";
-
-  wrap.innerHTML = `
-    <div style="background:linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 100%); border-radius:14px; padding:16px 18px;">
-      <div style="font-size:10px; color:#1a4d2e; letter-spacing:1.2px; font-weight:600;">💰 ${donemLabel} GELİR</div>
-      <div style="font-size:22px; font-weight:700; color:#1a4d2e; margin-top:4px; font-family:var(--font-display);">${toplamGelir.toLocaleString("tr-TR")} TL</div>
-      <div style="font-size:11px; color:#2d6a4f; margin-top:2px;">${filtrelenmiGelirler.length} tahsilat</div>
-    </div>
-    <div style="background:linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius:14px; padding:16px 18px;">
-      <div style="font-size:10px; color:#991b1b; letter-spacing:1.2px; font-weight:600;">💸 ${donemLabel} GİDER</div>
-      <div style="font-size:22px; font-weight:700; color:#991b1b; margin-top:4px; font-family:var(--font-display);">${toplamGider.toLocaleString("tr-TR")} TL</div>
-      <div style="font-size:11px; color:#b91c1c; margin-top:2px;">${filtrelenmiGiderler.length} kalem</div>
-    </div>
-    <div style="background:${karBg}; border-radius:14px; padding:16px 18px;">
-      <div style="font-size:10px; color:${karRengi}; letter-spacing:1.2px; font-weight:600;">${karIkon} ${karBaslik}</div>
-      <div style="font-size:22px; font-weight:700; color:${karRengi}; margin-top:4px; font-family:var(--font-display);">${Math.abs(netKar).toLocaleString("tr-TR")} TL</div>
-      <div style="font-size:11px; color:${karRengi}; margin-top:2px;">%${Math.abs(karOrani)} ${netKar >= 0 ? "kar" : "zarar"}</div>
-    </div>
-    <div style="background:linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius:14px; padding:16px 18px;">
-      <div style="font-size:10px; color:#1e40af; letter-spacing:1.2px; font-weight:600;">🎯 TAHSİLAT ORANI</div>
-      <div style="font-size:22px; font-weight:700; color:#1e40af; margin-top:4px; font-family:var(--font-display);">%${tahsilatOrani}</div>
-      <div style="margin-top:6px; background:rgba(255,255,255,0.5); height:6px; border-radius:4px; overflow:hidden;">
-        <div style="background:#1e40af; height:100%; width:${Math.min(100, tahsilatOrani)}%;"></div>
-      </div>
-    </div>
-  `;
-}
-
 // Görünüm değiştir (Bu Ay / Bu Yıl / Tümü)
 window.finansSetView = function(view) {
   aktifFinansView = view;
@@ -8416,7 +7669,6 @@ window.finansSetView = function(view) {
       b.style.border = "";
     }
   });
-  renderFinansalOzetKartlari();
   renderFinansalAltSekme();
 };
 
@@ -8446,7 +7698,7 @@ function renderFinansalAltSekme() {
   if (aktifFinansAlt === "ozet") renderFinansalOzet();
   else if (aktifFinansAlt === "gelirler") renderGelirler();
   else if (aktifFinansAlt === "giderler") renderGiderler();
-  else if (aktifFinansAlt === "geciken") renderGeciken();
+  else if (aktifFinansAlt === "raporlar") renderRaporlarAlt();
 }
 
 // ÖZET alt sekmesi
@@ -8472,37 +7724,104 @@ function renderFinansalOzet() {
 
   const toplamGelir = Object.values(gelirKategorileri).reduce((s, v) => s + v, 0);
   const toplamGider = Object.values(giderGruplari).reduce((s, v) => s + v, 0);
+  const netKar = toplamGelir - toplamGider;
+  const karOrani = toplamGelir > 0 ? Math.round((netKar / toplamGelir) * 100) : 0;
+  const tahsilatOrani = (() => {
+    const toplamBeklenen = filtrelenmiGelirler.reduce((s, g) => s + (parseFloat(g.beklenen) || 0), 0);
+    return toplamBeklenen > 0 ? Math.round((toplamGelir / toplamBeklenen) * 100) : 0;
+  })();
 
-  // Başabaş noktası: Gider kadar gelir lazım
+  // Başabaş noktası
   const basabasDurum = toplamGelir >= toplamGider
     ? { metin: "Başabaşa ulaştınız ✓", renk: "#2d6a4f", bg: "#d8f3dc" }
     : { metin: `Başabaş için ${(toplamGider - toplamGelir).toLocaleString("tr-TR")} TL daha gelir gerekli`, renk: "#b45309", bg: "#fef3c7" };
 
+  // Aktif öğrenci sayısı
+  const aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const m2Sayi = aktifOgrenciler.filter(o => {
+    const sinif = ((ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "").toLowerCase();
+    return sinif.includes("2");
+  }).length;
+  const m3Sayi = aktifOgrenciler.length - m2Sayi;
+
+  // Son ödemeler (son 5)
+  const sonOdemeler = [...filtrelenmiGelirler]
+    .filter(g => g.odemeTarihi)
+    .sort((a, b) => (b.odemeTarihi || "").localeCompare(a.odemeTarihi || ""))
+    .slice(0, 5);
+
+  // Geciken öğrenciler (en yüksek borçlu 5)
+  const gecikenler = hesaplaGecikenler().slice(0, 5);
+  const toplamGecikenBorc = gecikenler.reduce((s, g) => s + g.toplamBorc, 0);
+
+  const donemLabel = aktifFinansView === "buAy" ? "Bu Ay"
+                   : aktifFinansView === "buYil" ? "Bu Yıl"
+                   : "Dönem Toplamı";
+
   let html = `
-    <!-- KAR/ZARAR PANEL -->
-    <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px; margin-bottom:20px;">
-      <div style="font-weight:600; font-size:16px; margin-bottom:14px; display:flex; align-items:center; gap:8px;">📊 Finansal Durum</div>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
-        <div style="padding:14px 16px; background:#f0fdf4; border-left:4px solid #2d6a4f; border-radius:8px;">
-          <div style="font-size:11px; color:#166534; letter-spacing:1px;">TOPLAM GELİR</div>
-          <div style="font-size:20px; font-weight:700; color:#2d6a4f; margin-top:4px;">${toplamGelir.toLocaleString("tr-TR")} TL</div>
+    <!-- YEŞİL HERO BANNER -->
+    <div style="background:linear-gradient(135deg, #2d6a4f 0%, #40916c 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; box-shadow:0 6px 20px rgba(45,106,79,0.25);">
+      <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:16px; margin-bottom:22px;">
+        <div>
+          <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;">💼 OKUL YÖNETİM ÖZETİ</div>
+          <h2 style="font-family:var(--font-display); font-size:30px; font-weight:700; margin:8px 0 4px;">${AKTIF_DONEM} Dönemi</h2>
+          <div style="font-size:13px; opacity:0.9;">${donemLabel} için finansal durum ve performans</div>
         </div>
-        <div style="padding:14px 16px; background:#fef2f2; border-left:4px solid #dc2626; border-radius:8px;">
-          <div style="font-size:11px; color:#991b1b; letter-spacing:1px;">TOPLAM GİDER</div>
-          <div style="font-size:20px; font-weight:700; color:#dc2626; margin-top:4px;">${toplamGider.toLocaleString("tr-TR")} TL</div>
-        </div>
-        <div style="padding:14px 16px; background:${toplamGelir - toplamGider >= 0 ? '#f0fdf4' : '#fef2f2'}; border-left:4px solid ${toplamGelir - toplamGider >= 0 ? '#2d6a4f' : '#dc2626'}; border-radius:8px;">
-          <div style="font-size:11px; color:${toplamGelir - toplamGider >= 0 ? '#166534' : '#991b1b'}; letter-spacing:1px;">${toplamGelir - toplamGider >= 0 ? 'NET KAR' : 'ZARAR'}</div>
-          <div style="font-size:20px; font-weight:700; color:${toplamGelir - toplamGider >= 0 ? '#2d6a4f' : '#dc2626'}; margin-top:4px;">${Math.abs(toplamGelir - toplamGider).toLocaleString("tr-TR")} TL</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-mini" style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.3);" onclick="loadFinansalData()">🔄 Yenile</button>
         </div>
       </div>
-      <div style="margin-top:14px; padding:12px 14px; background:${basabasDurum.bg}; border-radius:8px; font-size:13px; color:${basabasDurum.renk}; font-weight:500;">
-        🎯 ${basabasDurum.metin}
+
+      <!-- 4 METRİK KARTI -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
+        <!-- SARI BÜYÜK KART -->
+        <div style="background:#facc15; color:#1f2937; border-radius:16px; padding:18px 20px; position:relative; box-shadow:0 4px 12px rgba(250,204,21,0.3);">
+          <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div style="font-size:26px;">💰</div>
+            <div style="background:rgba(0,0,0,0.1); padding:3px 8px; border-radius:10px; font-size:11px; font-weight:700;">%${karOrani}</div>
+          </div>
+          <div style="font-size:11px; font-weight:600; letter-spacing:1.2px; margin-top:10px; color:#374151;">${donemLabel.toUpperCase()} KAR/ZARAR</div>
+          <div style="font-size:24px; font-weight:700; margin-top:6px; font-family:var(--font-display); color:${netKar >= 0 ? '#1a4d2e' : '#991b1b'};">
+            ${netKar >= 0 ? '+' : '-'}₺${Math.abs(netKar).toLocaleString("tr-TR")}
+          </div>
+          <div style="font-size:11px; color:#374151; margin-top:4px;">Gelir: ₺${toplamGelir.toLocaleString("tr-TR")} · Gider: ₺${toplamGider.toLocaleString("tr-TR")}</div>
+        </div>
+
+        <!-- Aktif Öğrenci -->
+        <div style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:18px 20px;">
+          <div style="font-size:24px;">👨‍👩‍👧</div>
+          <div style="font-size:11px; letter-spacing:1.2px; margin-top:10px; opacity:0.9;">AKTİF ÖĞRENCİ</div>
+          <div style="font-size:28px; font-weight:700; margin-top:6px; font-family:var(--font-display);">${aktifOgrenciler.length}</div>
+          <div style="font-size:11px; opacity:0.85; margin-top:4px;">${m2Sayi} Montessori 2 · ${m3Sayi} Montessori 3</div>
+        </div>
+
+        <!-- Tahsilat Oranı -->
+        <div style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:18px 20px;">
+          <div style="font-size:24px;">🎯</div>
+          <div style="font-size:11px; letter-spacing:1.2px; margin-top:10px; opacity:0.9;">TAHSİLAT ORANI</div>
+          <div style="font-size:28px; font-weight:700; margin-top:6px; font-family:var(--font-display);">%${tahsilatOrani}</div>
+          <div style="margin-top:6px; background:rgba(255,255,255,0.2); height:6px; border-radius:4px; overflow:hidden;">
+            <div style="background:#facc15; height:100%; width:${Math.min(100, tahsilatOrani)}%; border-radius:4px;"></div>
+          </div>
+        </div>
+
+        <!-- Geciken -->
+        <div style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:18px 20px;">
+          <div style="font-size:24px;">⚠️</div>
+          <div style="font-size:11px; letter-spacing:1.2px; margin-top:10px; opacity:0.9;">GECİKEN ÖDEMELER</div>
+          <div style="font-size:28px; font-weight:700; margin-top:6px; font-family:var(--font-display);">${hesaplaGecikenler().length}</div>
+          <div style="font-size:11px; opacity:0.85; margin-top:4px;">${toplamGecikenBorc.toLocaleString("tr-TR")} TL toplam borç</div>
+        </div>
       </div>
     </div>
 
-    <!-- GELİR DAĞILIMI -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-bottom:20px;">
+    <!-- BAŞABAŞ BİLGİSİ -->
+    <div style="background:${basabasDurum.bg}; border-radius:12px; padding:14px 18px; margin-bottom:20px; font-size:14px; color:${basabasDurum.renk}; font-weight:600; display:flex; align-items:center; gap:10px;">
+      <span style="font-size:20px;">🎯</span> ${basabasDurum.metin}
+    </div>
+
+    <!-- GELİR-GİDER DAĞILIMI -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-bottom:20px;">
       <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
         <div style="font-weight:600; font-size:15px; margin-bottom:14px;">💰 Gelir Kaynakları</div>
         ${renderBarListesi([
@@ -8523,20 +7842,130 @@ function renderFinansalOzet() {
       </div>
     </div>
 
+    <!-- YAN YANA: SON ÖDEMELER (YEŞİL) + GECİKEN (KIRMIZI) -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(380px, 1fr)); gap:16px; margin-bottom:20px;">
+
+      <!-- SON ÖDEMELER (YEŞİL) -->
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; overflow:hidden;">
+        <div style="padding:16px 20px; background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom:1px solid #bbf7d0; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#14532d;">✅ Son Ödemeler</div>
+            <div style="font-size:11px; color:#166534; margin-top:2px;">En son yapılan tahsilatlar</div>
+          </div>
+          <button class="btn-mini" style="background:white; color:#166534; border:1px solid #bbf7d0; font-size:11px;" onclick="finansSwitchAlt('gelirler')">Tümünü Gör →</button>
+        </div>
+        <div style="padding:8px; max-height:400px; overflow-y:auto;">
+          ${sonOdemeler.length === 0 ? `
+            <div style="padding:30px 20px; text-align:center; color:var(--gray-500); font-size:13px;">
+              ${donemLabel} için ödeme kaydı yok
+            </div>
+          ` : sonOdemeler.map(o => `
+            <div style="padding:10px 14px; background:#f0fdf4; border-radius:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:600; font-size:13px; color:#14532d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(o.ogrenciAd)}</div>
+                <div style="font-size:11px; color:#166534; margin-top:2px;">${escapeHtml(o.etiket)} · ${o.odemeTarihi ? new Date(o.odemeTarihi).toLocaleDateString("tr-TR") : "—"}</div>
+              </div>
+              <div style="text-align:right; font-weight:700; color:#15803d; font-size:14px; white-space:nowrap;">₺${o.odenen.toLocaleString("tr-TR")}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <!-- GECİKEN (KIRMIZI) -->
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; overflow:hidden;">
+        <div style="padding:16px 20px; background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1px solid #fecaca; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#7f1d1d;">⚠ Geciken Öğrenciler</div>
+            <div style="font-size:11px; color:#991b1b; margin-top:2px;">Ödemesi geciken veliler</div>
+          </div>
+          <button class="btn-mini" style="background:white; color:#991b1b; border:1px solid #fecaca; font-size:11px;" onclick="finansSwitchAlt('gelirler')">Detay →</button>
+        </div>
+        <div style="padding:8px; max-height:400px; overflow-y:auto;">
+          ${gecikenler.length === 0 ? `
+            <div style="padding:30px 20px; text-align:center; color:#166534; font-size:14px;">
+              🎉 Geciken ödeme yok!
+            </div>
+          ` : gecikenler.map(g => `
+            <div style="padding:10px 14px; background:#fef2f2; border-radius:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:600; font-size:13px; color:#7f1d1d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(g.ogrenciAd)}</div>
+                <div style="font-size:11px; color:#991b1b; margin-top:2px;">${escapeHtml(g.sinif || "—")} · ${g.gecikenAySayisi} ay geciken</div>
+              </div>
+              <div style="text-align:right; font-weight:700; color:#b91c1c; font-size:14px; white-space:nowrap;">₺${g.toplamBorc.toLocaleString("tr-TR")}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+
     <!-- KAR'A GEÇİŞ ÖNERİLERİ (zarar varsa) -->
     ${toplamGelir < toplamGider ? `
-    <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:16px; padding:20px; margin-bottom:20px;">
+    <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:16px; padding:20px;">
       <div style="font-weight:600; font-size:15px; color:#78350f; margin-bottom:10px;">💡 Kara Geçiş Önerileri</div>
       <ul style="margin:0; padding-left:20px; color:#78350f; font-size:13px; line-height:1.8;">
         <li>Açık: <strong>${(toplamGider - toplamGelir).toLocaleString("tr-TR")} TL</strong> daha gelir veya gider azaltma gerekli</li>
-        ${gecikmisTahsilatTutari() > 0 ? `<li>Geciken ödemeler tahsil edilirse: <strong>+${gecikmisTahsilatTutari().toLocaleString("tr-TR")} TL</strong> ek gelir</li>` : ""}
+        ${toplamGecikenBorc > 0 ? `<li>Geciken ödemeler tahsil edilirse: <strong>+${toplamGecikenBorc.toLocaleString("tr-TR")} TL</strong> ek gelir</li>` : ""}
         ${giderGruplari.diger > 0 ? `<li>"Diğer" gider kaleminde <strong>${giderGruplari.diger.toLocaleString("tr-TR")} TL</strong> var — detaylı gözden geçirilebilir</li>` : ""}
-        ${ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif").length < 50 ? `<li>Kayıt kapasitesi artırılabilir (yeni başvurular için pazarlama)</li>` : ""}
+        ${aktifOgrenciler.length < 50 ? `<li>Kayıt kapasitesi artırılabilir (yeni başvurular için pazarlama)</li>` : ""}
       </ul>
     </div>` : ""}
   `;
 
   el.innerHTML = html;
+}
+
+// Geciken öğrencileri hesapla (ortak yardımcı)
+function hesaplaGecikenler() {
+  const bugun = new Date();
+  const gecikenler = [];
+
+  for (const o of ogrenciList) {
+    const ayar = ayarListesi[o.id];
+    if (!ayar) continue;
+    if (getOgrenciDurum(o, ayar) !== "aktif") continue;
+
+    const a = ayar.aidatAyarlari || {};
+    const baslangic = a.baslangicAyi;
+    if (!baslangic) continue;
+    const taksit = a.taksitSayisi || 10;
+    const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
+    const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
+    const aylikOdemeler = ayar.aylikOdemeler || {};
+    const ayListesi = getAyListesi(baslangic, taksit);
+
+    let toplamBorc = 0, gecikenAySayisi = 0;
+    const gecikenAylar = [];
+
+    for (const ay of ayListesi) {
+      const ayTarihi = new Date(parseInt(ay.ayKod.split("-")[0]), parseInt(ay.ayKod.split("-")[1]) - 1, 10);
+      if (ayTarihi >= bugun) continue;
+      const ayNum = parseInt(ay.ayKod.split("-")[1], 10);
+      const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
+      const od = aylikOdemeler[ay.ayKod] || {};
+      if (!od.odendi) {
+        toplamBorc += beklenen;
+        gecikenAySayisi++;
+        gecikenAylar.push(ay.tam || ay.ayKod);
+      }
+    }
+
+    if (gecikenAySayisi > 0) {
+      gecikenler.push({
+        ogrenci: o,
+        ogrenciId: o.id,
+        ogrenciAd: o.ogrenciAdSoyad || "",
+        sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
+        veliEposta: (ayar.anne && ayar.anne.eposta) || (ayar.baba && ayar.baba.eposta) || "",
+        veliTel: (ayar.anne && ayar.anne.cepTel) || (ayar.baba && ayar.baba.cepTel) || "",
+        gecikenAySayisi,
+        toplamBorc,
+        gecikenAylar
+      });
+    }
+  }
+
+  gecikenler.sort((a, b) => b.toplamBorc - a.toplamBorc);
+  return gecikenler;
 }
 
 // Basit yatay bar chart
@@ -8864,103 +8293,298 @@ window.onGiderKategoriDegisti = function() {
   // Gelecekte kategori-bağımlı alanlar için placeholder
 };
 
-// GECİKEN alt sekmesi
-function renderGeciken() {
-  const el = document.getElementById("gecikenListesi");
+// RAPORLAR alt sekmesi - Excel indirme kartları
+function renderRaporlarAlt() {
+  const el = document.getElementById("raporlarIcerik");
   if (!el) return;
 
-  const bugun = new Date();
-  const gecikenler = [];
-
-  for (const o of ogrenciList) {
-    const ayar = ayarListesi[o.id];
-    if (!ayar) continue;
-    if (getOgrenciDurum(o, ayar) !== "aktif") continue;
-
-    const a = ayar.aidatAyarlari || {};
-    const baslangic = a.baslangicAyi;
-    if (!baslangic) continue;
-    const taksit = a.taksitSayisi || 10;
-    const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-    const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-    const aylikOdemeler = ayar.aylikOdemeler || {};
-    const ayListesi = getAyListesi(baslangic, taksit);
-
-    let toplamBorc = 0, gecikenAySayisi = 0;
-    const gecikenAylar = [];
-
-    for (const ay of ayListesi) {
-      const ayTarihi = new Date(parseInt(ay.ayKod.split("-")[0]), parseInt(ay.ayKod.split("-")[1]) - 1, 10);
-      if (ayTarihi >= bugun) continue;
-      const ayNum = parseInt(ay.ayKod.split("-")[1], 10);
-      const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-      const od = aylikOdemeler[ay.ayKod] || {};
-      if (!od.odendi) {
-        toplamBorc += beklenen;
-        gecikenAySayisi++;
-        gecikenAylar.push(ay.tam || ay.ayKod);
-      }
-    }
-
-    if (gecikenAySayisi > 0) {
-      gecikenler.push({
-        ogrenci: o,
-        ogrenciAd: o.ogrenciAdSoyad || "",
-        sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
-        veliEposta: (ayar.anne && ayar.anne.eposta) || (ayar.baba && ayar.baba.eposta) || "",
-        veliTel: (ayar.anne && ayar.anne.cepTel) || (ayar.baba && ayar.baba.cepTel) || "",
-        gecikenAySayisi,
-        toplamBorc,
-        gecikenAylar
-      });
-    }
-  }
-
-  // En çok borçlu üstte
-  gecikenler.sort((a, b) => b.toplamBorc - a.toplamBorc);
-
-  const toplamBorc = gecikenler.reduce((s, g) => s + g.toplamBorc, 0);
-
-  if (gecikenler.length === 0) {
-    el.innerHTML = '<div class="ozel-madde-empty" style="padding:40px 20px;"><div style="font-size:48px; margin-bottom:12px;">🎉</div><div style="font-size:15px; color:#166534;">Geciken ödeme yok!</div></div>';
-    return;
-  }
-
-  let html = `
-    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; font-size:14px;">
-      <span><strong>${gecikenler.length}</strong> öğrencide geciken ödeme</span>
-      <span style="font-weight:700; color:#991b1b;">Toplam Borç: ${toplamBorc.toLocaleString("tr-TR")} TL</span>
-    </div>
-    <div style="display:grid; gap:10px;">
-  `;
-
-  for (const g of gecikenler) {
-    html += `
-      <div style="background:white; border:1px solid var(--gray-300); border-left:4px solid #dc2626; border-radius:10px; padding:14px 16px;">
-        <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:10px;">
-          <div style="flex:1;">
-            <div style="font-weight:600; font-size:15px; color:var(--gray-800);">${escapeHtml(g.ogrenciAd)}</div>
-            <div style="font-size:12px; color:var(--gray-600); margin-top:2px;">
-              ${escapeHtml(g.sinif) || "—"} ·
-              ${g.veliEposta ? `📧 ${escapeHtml(g.veliEposta)} · ` : ""}
-              ${g.veliTel ? `📞 ${escapeHtml(g.veliTel)}` : ""}
-            </div>
-            <div style="font-size:12px; color:#b91c1c; margin-top:6px;">
-              ⚠ ${g.gecikenAySayisi} ay geciken: ${g.gecikenAylar.slice(0,3).join(", ")}${g.gecikenAylar.length > 3 ? "..." : ""}
-            </div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:11px; color:var(--gray-500); letter-spacing:0.5px;">TOPLAM BORÇ</div>
-            <div style="font-size:20px; font-weight:700; color:#dc2626; margin-top:2px;">${g.toplamBorc.toLocaleString("tr-TR")} TL</div>
-            <button class="btn-mini" style="margin-top:6px; padding:4px 10px; font-size:11px;" onclick="openAyarModalFromId('${g.ogrenci.id}')">Detay →</button>
-          </div>
+  el.innerHTML = `
+    <div style="background:linear-gradient(135deg, #fef9c3 0%, #fef3c7 100%); border-radius:16px; padding:20px 24px; margin-bottom:20px; border:1px solid #fde68a;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="font-size:28px;">📥</div>
+        <div>
+          <div style="font-family:var(--font-display); font-size:18px; font-weight:700; color:#78350f;">Hızlı Raporlar</div>
+          <div style="font-size:13px; color:#92400e; margin-top:2px;">Excel dosyası olarak indirilebilen detaylı raporlar</div>
         </div>
       </div>
-    `;
-  }
-  html += '</div>';
-  el.innerHTML = html;
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+
+      <!-- Aylık Tahsilat Raporu -->
+      <div class="rapor-indirme-karti" onclick="raporIndirAylikTahsilat()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">📊</div>
+          <div style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:600;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Aylık Tahsilat</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">12 aylık detaylı tablo, ay bazında tahsilat performansı</div>
+      </div>
+
+      <!-- Geciken Öğrenciler Listesi -->
+      <div class="rapor-indirme-karti" onclick="raporIndirGecikenler()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">⚠️</div>
+          <div style="background:#fee2e2; color:#991b1b; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:600;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Geciken Öğrenciler</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">İletişim bilgileriyle birlikte geciken tüm öğrenciler</div>
+      </div>
+
+      <!-- Öğrenci Listesi -->
+      <div class="rapor-indirme-karti" onclick="raporIndirOgrenciler()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">👨‍👩‍👧</div>
+          <div style="background:#dbeafe; color:#1e40af; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:600;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Öğrenci Listesi</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Veli bilgileri, iletişim ve aidat durumu ile tam liste</div>
+      </div>
+
+      <!-- Ödeme Detayı -->
+      <div class="rapor-indirme-karti" onclick="raporIndirOdemeDetayi()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">💰</div>
+          <div style="background:#fef3c7; color:#78350f; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:600;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Ödeme Detayı</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Ay ay her öğrencinin ödeme durumu (çoklu sayfa)</div>
+      </div>
+
+      <!-- Gelir-Gider Raporu -->
+      <div class="rapor-indirme-karti" onclick="raporIndirGelirGider()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">📈</div>
+          <div style="background:#e9d5ff; color:#5b21b6; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:600;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Gelir-Gider Raporu</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Kar/zarar özeti + gelir/gider detay listesi</div>
+      </div>
+
+      <!-- Gider Detayı -->
+      <div class="rapor-indirme-karti" onclick="giderlerExcel()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">💸</div>
+          <div style="background:#fecaca; color:#7f1d1d; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:600;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Gider Detayı</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Kategorilere göre tüm giderlerin dökümü</div>
+      </div>
+
+    </div>
+
+    <style>
+      .rapor-indirme-karti:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        border-color: #2d6a4f !important;
+      }
+    </style>
+  `;
 }
+
+window.raporIndirAylikTahsilat = function() {
+  try {
+    // 12 aylık tahsilat dökümü
+    const bugun = new Date();
+    const yil = bugun.getFullYear();
+    const aylar = [];
+    for (let ay = 9; ay <= 12; ay++) aylar.push(`${yil}-${String(ay).padStart(2,"0")}`);
+    for (let ay = 1; ay <= 8; ay++) aylar.push(`${yil+1}-${String(ay).padStart(2,"0")}`);
+
+    const rows = [];
+    for (const ayKod of aylar) {
+      let beklenen = 0, odenen = 0, odeyenSayi = 0, odemeyenSayi = 0;
+      for (const o of ogrenciList) {
+        const ayar = ayarListesi[o.id];
+        if (!ayar || getOgrenciDurum(o, ayar) !== "aktif") continue;
+        const a = ayar.aidatAyarlari || {};
+        const ayNum = parseInt(ayKod.split("-")[1], 10);
+        const aylikBeklenen = (ayNum >= 9 || ayNum <= 1) ? (a.iDonemAylik || a.aylikAidat || 0) : (a.iiDonemAylik || a.aylikAidat || 0);
+        beklenen += aylikBeklenen;
+        const od = (ayar.aylikOdemeler || {})[ayKod] || {};
+        if (od.odendi) {
+          odenen += parseFloat(od.odenenTutar) || aylikBeklenen;
+          odeyenSayi++;
+        } else {
+          odemeyenSayi++;
+        }
+      }
+      rows.push({
+        "Ay": ayAdinda(ayKod),
+        "Beklenen Tahsilat (TL)": beklenen,
+        "Gerçekleşen Tahsilat (TL)": odenen,
+        "Fark (TL)": odenen - beklenen,
+        "Oran (%)": beklenen > 0 ? Math.round((odenen / beklenen) * 100) : 0,
+        "Ödeyen Öğrenci": odeyenSayi,
+        "Ödemeyen Öğrenci": odemeyenSayi
+      });
+    }
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.json_to_sheet(rows);
+    window.XLSX.utils.book_append_sheet(wb, ws, "Aylık Tahsilat");
+    window.XLSX.writeFile(wb, `Aylik_Tahsilat_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Aylık tahsilat raporu indirildi");
+  } catch (e) {
+    console.error(e);
+    showToast("Rapor oluşturulamadı: " + e.message, "error");
+  }
+};
+
+window.raporIndirGecikenler = function() {
+  try {
+    const gecikenler = hesaplaGecikenler();
+    if (gecikenler.length === 0) return showToast("Geciken öğrenci yok", "error");
+    const data = gecikenler.map(g => ({
+      "Öğrenci": g.ogrenciAd,
+      "Sınıf": g.sinif,
+      "Geciken Ay Sayısı": g.gecikenAySayisi,
+      "Geciken Aylar": g.gecikenAylar.join(", "),
+      "Toplam Borç (TL)": g.toplamBorc,
+      "Veli E-posta": g.veliEposta,
+      "Veli Telefon": g.veliTel
+    }));
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.json_to_sheet(data);
+    window.XLSX.utils.book_append_sheet(wb, ws, "Geciken Öğrenciler");
+    window.XLSX.writeFile(wb, `Geciken_Ogrenciler_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast(`✓ ${gecikenler.length} geciken öğrenci raporu indirildi`);
+  } catch (e) {
+    console.error(e);
+    showToast("Rapor oluşturulamadı: " + e.message, "error");
+  }
+};
+
+window.raporIndirOgrenciler = function() {
+  try {
+    const data = [];
+    for (const o of ogrenciList) {
+      const ayar = ayarListesi[o.id] || {};
+      const a = ayar.aidatAyarlari || {};
+      const anne = ayar.anne || {};
+      const baba = ayar.baba || {};
+      data.push({
+        "Öğrenci": o.ogrenciAdSoyad || "",
+        "Sınıf": (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
+        "Cinsiyet": o.cinsiyet || "",
+        "Doğum Tarihi": o.dogumTarihi || "",
+        "Durum": getOgrenciDurum(o, ayar),
+        "Aylık Aidat (TL)": a.aylikAidat || 0,
+        "Yıllık Toplam (TL)": a.yillikToplam || 0,
+        "Anne Ad Soyad": anne.adSoyad || "",
+        "Anne E-posta": anne.eposta || "",
+        "Anne Telefon": anne.cepTel || "",
+        "Baba Ad Soyad": baba.adSoyad || "",
+        "Baba E-posta": baba.eposta || "",
+        "Baba Telefon": baba.cepTel || ""
+      });
+    }
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.json_to_sheet(data);
+    window.XLSX.utils.book_append_sheet(wb, ws, "Öğrenci Listesi");
+    window.XLSX.writeFile(wb, `Ogrenci_Listesi_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast(`✓ ${data.length} öğrenci listesi indirildi`);
+  } catch (e) {
+    console.error(e);
+    showToast("Rapor oluşturulamadı: " + e.message, "error");
+  }
+};
+
+window.raporIndirOdemeDetayi = function() {
+  try {
+    const bugun = new Date();
+    const yil = bugun.getFullYear();
+    const aylar = [];
+    for (let ay = 9; ay <= 12; ay++) aylar.push(`${yil}-${String(ay).padStart(2,"0")}`);
+    for (let ay = 1; ay <= 8; ay++) aylar.push(`${yil+1}-${String(ay).padStart(2,"0")}`);
+
+    const data = [];
+    for (const o of ogrenciList) {
+      const ayar = ayarListesi[o.id] || {};
+      const a = ayar.aidatAyarlari || {};
+      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
+      const aylikOdemeler = ayar.aylikOdemeler || {};
+      const row = {
+        "Öğrenci": o.ogrenciAdSoyad || "",
+        "Sınıf": (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
+        "Aylık": a.aylikAidat || 0,
+        "Ön Ödeme": (aylikOdemeler["__onOdeme"] && aylikOdemeler["__onOdeme"].odendi) ? "✓" : "—"
+      };
+      for (const ayKod of aylar) {
+        const od = aylikOdemeler[ayKod] || {};
+        const ayNum = parseInt(ayKod.split("-")[1], 10);
+        const beklenen = (ayNum >= 9 || ayNum <= 1) ? (a.iDonemAylik || a.aylikAidat || 0) : (a.iiDonemAylik || a.aylikAidat || 0);
+        if (od.odendi) {
+          row[ayAdinda(ayKod)] = `✓ ${parseFloat(od.odenenTutar || beklenen).toLocaleString("tr-TR")}`;
+        } else {
+          row[ayAdinda(ayKod)] = "—";
+        }
+      }
+      data.push(row);
+    }
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.json_to_sheet(data);
+    window.XLSX.utils.book_append_sheet(wb, ws, "Ödeme Detayı");
+    window.XLSX.writeFile(wb, `Odeme_Detayi_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Ödeme detay raporu indirildi");
+  } catch (e) {
+    console.error(e);
+    showToast("Rapor oluşturulamadı: " + e.message, "error");
+  }
+};
+
+window.raporIndirGelirGider = function() {
+  try {
+    const wb = window.XLSX.utils.book_new();
+
+    // Sayfa 1: Özet
+    const toplamGelir = finansalGelirler.reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
+    const toplamGider = finansalGiderler.reduce((s, g) => s + (parseFloat(g.tutar) || 0), 0);
+    const ozet = [
+      { "Kalem": "Toplam Gelir", "Tutar (TL)": toplamGelir },
+      { "Kalem": "Toplam Gider", "Tutar (TL)": toplamGider },
+      { "Kalem": "Net Kar/Zarar", "Tutar (TL)": toplamGelir - toplamGider },
+      { "Kalem": "Kar Oranı (%)", "Tutar (TL)": toplamGelir > 0 ? Math.round(((toplamGelir - toplamGider) / toplamGelir) * 100) : 0 }
+    ];
+    const wsOzet = window.XLSX.utils.json_to_sheet(ozet);
+    window.XLSX.utils.book_append_sheet(wb, wsOzet, "Özet");
+
+    // Sayfa 2: Gelirler
+    const gelirData = finansalGelirler.map(g => ({
+      "Öğrenci": g.ogrenciAd,
+      "Sınıf": g.sinif,
+      "Kalem": g.etiket,
+      "Beklenen (TL)": g.beklenen,
+      "Ödenen (TL)": g.odenen,
+      "Ödeme Tarihi": g.odemeTarihi || "",
+      "Ödeme Yöntemi": g.odemeYontemi || ""
+    }));
+    const wsGelir = window.XLSX.utils.json_to_sheet(gelirData);
+    window.XLSX.utils.book_append_sheet(wb, wsGelir, "Gelirler");
+
+    // Sayfa 3: Giderler
+    const giderData = finansalGiderler.map(g => {
+      const kat = GIDER_KATEGORILERI[g.kategori] || { isim: g.kategori, grup: "" };
+      return {
+        "Grup": GIDER_GRUP_ADLARI[kat.grup] || "",
+        "Kategori": kat.isim,
+        "Açıklama": g.aciklama || "",
+        "Fatura No": g.faturaNo || "",
+        "Tutar (TL)": parseFloat(g.tutar) || 0,
+        "Tarih": g.tarih || "",
+        "Tekrarlayan": g.tekrarlayan ? "Evet" : "Hayır"
+      };
+    });
+    const wsGider = window.XLSX.utils.json_to_sheet(giderData);
+    window.XLSX.utils.book_append_sheet(wb, wsGider, "Giderler");
+
+    window.XLSX.writeFile(wb, `Gelir_Gider_Raporu_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Gelir-gider raporu indirildi");
+  } catch (e) {
+    console.error(e);
+    showToast("Rapor oluşturulamadı: " + e.message, "error");
+  }
+};
 
 // Ay kod → Ay adı (Eylül 2026)
 function ayAdinda(ayKod) {
@@ -8977,6 +8601,10 @@ let raporSinifChartInstance = null;
 
 // Ana rapor render fonksiyonu
 function renderRaporlar() {
+  // DEPRECATED: Raporlar artık Finansal Yönetim'e taşındı. Bu fonksiyon geriye
+  // dönük uyumluluk için bırakıldı; DOM yoksa sessizce çıkar.
+  if (!document.getElementById("raporHeroTitle")) return;
+
   const mevcut = hesaplaRaporVerileri();
 
   // Hero title
