@@ -3394,6 +3394,77 @@ html, body {
   .modal { padding: 24px; }
 }
 
+/* ============ ONAY BEKLEYENLER ============ */
+.onay-sayac-rozet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 6px;
+  background: #ef4444;
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.basvuru-karti {
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  transition: all 0.15s;
+}
+.basvuru-karti:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.basvuru-karti.beklemede { border-left: 4px solid #f59e0b; background: linear-gradient(90deg, #fef3c7 0%, white 6%); }
+.basvuru-karti.onaylandi { border-left: 4px solid #22c55e; opacity: 0.85; }
+.basvuru-karti.reddedildi { border-left: 4px solid #ef4444; opacity: 0.75; }
+
+.basvuru-kart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.basvuru-ogrenci-isim { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--gray-800); }
+.basvuru-meta { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+.basvuru-durum-rozet {
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.basvuru-durum-rozet.beklemede { background: #fef3c7; color: #78350f; }
+.basvuru-durum-rozet.onaylandi { background: #dcfce7; color: #166534; }
+.basvuru-durum-rozet.reddedildi { background: #fee2e2; color: #991b1b; }
+
+.basvuru-detay-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--gray-100);
+  border-radius: 8px;
+}
+.basvuru-detay-grup { font-size: 12px; }
+.basvuru-detay-baslik { font-weight: 600; color: #2d6a4f; margin-bottom: 4px; font-size: 11px; letter-spacing: 0.5px; }
+.basvuru-detay-satir { color: var(--gray-700); line-height: 1.7; }
+.basvuru-detay-label { color: var(--gray-500); }
+
+.basvuru-aksiyon-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--gray-200);
+}
+
 /* ============ VELİ PANELİ ============ */
 #veliPanel { display: none; min-height: 100vh; background: var(--cream); }
 #veliPanel.active { display: block; }
@@ -3629,54 +3700,6 @@ html, body {
 
 .veli-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.veli-magic-input {
-  width: 100%;
-  padding: 11px 14px;
-  border: 1.5px solid var(--gray-300);
-  border-radius: 10px;
-  font-size: 14px;
-  margin-bottom: 10px;
-  font-family: inherit;
-}
-
-.veli-magic-input:focus {
-  outline: none;
-  border-color: #2d6a4f;
-}
-
-.veli-auth-divider {
-  display: flex;
-  align-items: center;
-  margin: 18px 0;
-  color: var(--gray-500);
-  font-size: 12px;
-}
-.veli-auth-divider::before,
-.veli-auth-divider::after {
-  content: "";
-  flex: 1;
-  border-top: 1px solid var(--gray-300);
-}
-.veli-auth-divider::before { margin-right: 10px; }
-.veli-auth-divider::after { margin-left: 10px; }
-
-.veli-magic-btn {
-  width: 100%;
-  padding: 12px;
-  background: #2d6a4f;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
-  margin-bottom: 10px;
-}
-.veli-magic-btn:hover { background: #1b4332; }
-.veli-magic-btn:disabled { background: var(--gray-400); cursor: not-allowed; }
-
 .veli-ogrenci-secici {
   display: flex;
   gap: 8px;
@@ -3850,17 +3873,12 @@ html, body {
         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
       </svg>
-      Google ile Devam Et
+      Google ile Giriş Yap
     </button>
 
-    <div class="veli-auth-divider">veya</div>
-
-    <p style="font-size:13px; color:var(--gray-600); margin-bottom:10px;">Google hesabınız yoksa, e-posta adresinize giriş bağlantısı gönderebiliriz:</p>
-    <input type="email" id="magicLinkEmail" class="veli-magic-input" placeholder="E-posta adresiniz (örn. veli@gmail.com)" autocomplete="email">
-    <button class="veli-magic-btn" id="magicLinkBtn" onclick="sendMagicLink()">✉️ Giriş Bağlantısı Gönder</button>
-    <div id="magicLinkMsg" style="display:none; padding:10px 14px; background:#dcfce7; border:1px solid #86efac; border-radius:10px; color:#166534; font-size:13px; margin-bottom:10px;"></div>
-
     <p class="info-text">
+      Sadece okul tarafından onaylanan veli e-postaları giriş yapabilir. Google hesabınızın e-posta adresi sistemimizde kayıtlı olmalıdır.
+      <br><br>
       Giriş yaparak <a href="#">Kullanım Koşulları</a>'nı ve <a href="#">Gizlilik Politikası</a>'nı kabul etmiş olursunuz.
       <br><br>
       Kayıtlı değilseniz <a href="https://yenikayit.bircicekkoleji.com">yeni başvuru</a> yapabilirsiniz.
@@ -3933,6 +3951,7 @@ html, body {
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" data-tab="ogrenciler">👥 Öğrenci Ayarları</button>
+      <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Onay Bekleyenler <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="raporlar">📊 Raporlar</button>
     </div>
 
@@ -3988,6 +4007,50 @@ html, body {
           <p>Öğrenciler yükleniyor...</p>
         </div>
       </div>
+    </div>
+
+    <!-- ONAY BEKLEYENLER TAB -->
+    <div class="tab-panel" id="tab-onay">
+
+      <!-- HERO -->
+      <div style="background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#422006; position:relative; overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+          <div>
+            <div style="font-size:11px; font-weight:600; letter-spacing:1.5px; opacity:0.8;">📦 ONAY BEKLEYEN BAŞVURULAR</div>
+            <h2 style="font-family:var(--font-display); font-size:26px; font-weight:700; margin:6px 0; color:#422006;">Yeni Başvurular</h2>
+            <div style="font-size:13px; opacity:0.9;">Yenikayıt ve Kayıt Yenileme sitelerinden gelen başvurular burada listelenir. Onayladığınız başvurular otomatik olarak sisteme işlenir.</div>
+          </div>
+          <div>
+            <button class="btn-mini" style="background:rgba(255,255,255,0.3); color:#422006; border:1px solid rgba(66,32,6,0.2);" onclick="loadOnayBekleyenler()">🔄 Yenile</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FİLTRELER -->
+      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+        <button class="btn-mini" data-onay-filter="beklemede" onclick="onayFilter('beklemede')" style="background:#fef3c7; border-color:#fde68a; color:#78350f;">⏱ Bekleyen</button>
+        <button class="btn-mini" data-onay-filter="onaylandi" onclick="onayFilter('onaylandi')">✓ Onaylanan</button>
+        <button class="btn-mini" data-onay-filter="reddedildi" onclick="onayFilter('reddedildi')">✗ Reddedilen</button>
+        <button class="btn-mini" data-onay-filter="tumu" onclick="onayFilter('tumu')">📁 Tümü</button>
+      </div>
+
+      <!-- LİSTE -->
+      <div id="onayListesiWrap">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Başvurular yükleniyor...</p>
+        </div>
+      </div>
+
+      <!-- BİLGİ KUTUSU -->
+      <div style="margin-top:20px; padding:16px 18px; background:#f0fdf4; border:1px solid #86efac; border-radius:12px; font-size:13px; color:#166534; line-height:1.7;">
+        <strong>💡 Nasıl Çalışır?</strong><br>
+        • Yenikayit.bircicekkoleji.com ve kayityenileme.bircicekkoleji.com sitelerinden gelen başvurular <code>basvurular</code> koleksiyonuna yazılır.<br>
+        • Her başvuruyu inceleyerek <strong>Onayla</strong> veya <strong>Reddet</strong> edebilirsiniz.<br>
+        • Onayladığınızda öğrenci otomatik olarak <code>ogrenciler</code> koleksiyonuna, veli e-postaları da onaylı veli listesine eklenir.<br>
+        • Onaylanan veli, <strong>Google ile giriş</strong> yaparak veli paneline erişebilir.
+      </div>
+
     </div>
 
     <!-- RAPORLAR TAB -->
@@ -4943,22 +5006,24 @@ html, body {
           </div>
         </div>
 
-        <!-- ============ VELİ PORTAL DAVET ============ -->
+        <!-- ============ VELİ PORTAL ERİŞİMİ ============ -->
         <div class="section-divider" style="margin-top:24px;">
           <div>
-            <h3 class="section-title">🚀 Veli Portala Davet</h3>
-            <div class="section-subtitle">Velilere portal.bircicekkoleji.com/#veli linkini göndererek kendi hesaplarıyla giriş yapabilmelerini sağlayın</div>
+            <h3 class="section-title">🚀 Veli Portal Erişimi</h3>
+            <div class="section-subtitle">Bu öğrencinin velilerini portal sistemine onaylı olarak ekleyin. Onaylanan veliler Google ile giriş yapabilir.</div>
           </div>
         </div>
 
         <div style="background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%); border:1px solid #86efac; border-radius:12px; padding:16px 18px; margin:12px 0;">
           <div style="font-size:13px; color:var(--gray-700); line-height:1.7; margin-bottom:12px;">
-            <strong>Nasıl çalışır:</strong> Veliye mail yoluyla gönderilen linke tıkladığında otomatik olarak veli paneline giriş yapar. E-postası yukarıdaki <strong>Anne E-Posta</strong> veya <strong>Baba E-Posta</strong> alanıyla eşleşen her veli, bu öğrencinin bilgilerine erişebilir.
+            <strong>Nasıl çalışır:</strong> Onay verdiğin e-posta, "onaylı veli" listesine eklenir. Veli <strong>portal.bircicekkoleji.com/#veli</strong> adresinden <strong>Google ile giriş</strong> butonuna tıklayıp kendi Gmail hesabıyla sisteme girebilir. Bilgileri yukarıdaki Anne/Baba E-Posta alanlarıyla eşleşmelidir.
           </div>
           <div class="veli-btn-row">
             <button class="btn-mini" type="button" onclick="veliDavetLinkKopyala()">🔗 Portal Linkini Kopyala</button>
-            <button class="btn-mini" type="button" onclick="veliMagicLinkGonder('anne')">✉️ Anneye Giriş Linki Gönder</button>
-            <button class="btn-mini" type="button" onclick="veliMagicLinkGonder('baba')">✉️ Babaya Giriş Linki Gönder</button>
+            <button class="btn-mini btn-primary" type="button" onclick="veliOnayla('anne')">✓ Anneyi Onayla</button>
+            <button class="btn-mini btn-primary" type="button" onclick="veliOnayla('baba')">✓ Babayı Onayla</button>
+            <button class="btn-mini danger" type="button" onclick="veliKaldir('anne')">✕ Anneyi Kaldır</button>
+            <button class="btn-mini danger" type="button" onclick="veliKaldir('baba')">✕ Babayı Kaldır</button>
           </div>
           <div id="veliDavetDurum" style="margin-top:10px; font-size:12px; color:var(--gray-600);"></div>
         </div>
@@ -5789,8 +5854,7 @@ html, body {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged,
-  sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc,
@@ -5825,10 +5889,44 @@ let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
 let currentOgrenci = null; // Modalda açık olan öğrenci
 
 // ============ AUTH ============
+// Bu e-posta sistemde onaylı bir veli mi? (Whitelist kontrolü)
+async function isEmailWhitelisted(email) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return false;
+
+  // veliler/{email} koleksiyonunda onaylandi: true mi?
+  try {
+    const veliDoc = await getDoc(doc(db, "veliler", lower));
+    if (veliDoc.exists() && veliDoc.data().onaylandi === true) {
+      return true;
+    }
+  } catch (e) {
+    // Koleksiyon yoksa veya kural engelliyorsa false döner
+  }
+
+  return false;
+}
+
 window.signInWithGoogle = async function() {
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+    const email = (user.email || "").toLowerCase();
+
+    // Admin ise direkt kabul
+    if (email === ADMIN_EMAIL.toLowerCase()) {
+      showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
+      return;
+    }
+
+    // Veli ise whitelist kontrolü
+    const izinli = await isEmailWhitelisted(email);
+    if (!izinli) {
+      await fbSignOut(auth);
+      showToast(`Bu e-posta sistemimizde kayıtlı değil. Okul yönetimiyle iletişime geçin.`, "error");
+      return;
+    }
+
     showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
   } catch (e) {
     console.error(e);
@@ -5836,73 +5934,11 @@ window.signInWithGoogle = async function() {
   }
 };
 
-// ============ MAGIC LINK (Google hesabı olmayanlar için) ============
-window.sendMagicLink = async function() {
-  const emailInput = document.getElementById("magicLinkEmail");
-  const email = (emailInput?.value || "").trim().toLowerCase();
-  const btn = document.getElementById("magicLinkBtn");
-  const msgBox = document.getElementById("magicLinkMsg");
-
-  if (!email || !email.includes("@")) {
-    showToast("Geçerli bir e-posta adresi girin", "error");
-    return;
-  }
-
-  const actionCodeSettings = {
-    url: window.location.origin + window.location.pathname + "#veli",
-    handleCodeInApp: true
-  };
-
-  try {
-    btn.disabled = true;
-    btn.textContent = "Gönderiliyor...";
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-    // E-postayı tarayıcıda sakla (bağlantıya tıklayınca yeniden sormak yerine)
-    window.localStorage.setItem("emailForSignIn", email);
-
-    msgBox.style.display = "block";
-    msgBox.innerHTML = `✓ <strong>${email}</strong> adresine giriş bağlantısı gönderildi. E-postanızı kontrol edin. <br><small style="color:var(--gray-600);">Spam klasörünüze de bakın.</small>`;
-    emailInput.value = "";
-    btn.textContent = "✉️ Giriş Bağlantısı Gönder";
-    btn.disabled = false;
-  } catch (e) {
-    console.error(e);
-    showToast("Bağlantı gönderilemedi: " + e.message, "error");
-    btn.textContent = "✉️ Giriş Bağlantısı Gönder";
-    btn.disabled = false;
-  }
-};
-
-// Magic link ile gelen kullanıcıyı yakala
-async function handleMagicLinkSignIn() {
-  if (isSignInWithEmailLink(auth, window.location.href)) {
-    let email = window.localStorage.getItem("emailForSignIn");
-    if (!email) {
-      email = window.prompt("Giriş yapacağınız e-posta adresini tekrar girin:");
-    }
-    if (!email) return;
-    try {
-      await signInWithEmailLink(auth, email, window.location.href);
-      window.localStorage.removeItem("emailForSignIn");
-      // URL'deki auth parametrelerini temizle
-      const cleanUrl = window.location.origin + window.location.pathname + "#veli";
-      window.history.replaceState({}, document.title, cleanUrl);
-      showToast("Hoş geldiniz!");
-    } catch (e) {
-      console.error(e);
-      showToast("Giriş bağlantısı geçersiz: " + e.message, "error");
-    }
-  }
-}
-
 window.signOut = async function() {
   await fbSignOut(auth);
   showToast("Çıkış yapıldı");
   setTimeout(() => location.reload(), 500);
 };
-
-// Sayfa yüklenince magic link kontrolü
-handleMagicLinkSignIn();
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
@@ -5928,6 +5964,8 @@ onAuthStateChanged(auth, async (user) => {
 
       // Verileri yükle
       await loadOgrenciler();
+      // Onay bekleyenler sayacını arka planda yükle
+      if (typeof initOnayBekleyenler === "function") initOnayBekleyenler();
     } else {
       // Veli Panel
       document.getElementById("landing").style.display = "none";
@@ -6002,9 +6040,7 @@ async function loadVeliPanel(user) {
   if (epostaEl) epostaEl.textContent = user.email;
   if (yontemEl) {
     const provId = user.providerData[0]?.providerId || "";
-    yontemEl.textContent = provId === "google.com" ? "Google ile giriş" :
-                           provId === "password" ? "E-posta bağlantısı" :
-                           provId || "E-posta";
+    yontemEl.textContent = provId === "google.com" ? "Google ile giriş" : "E-posta";
   }
 
   // Bu veliye ait öğrencileri bul
@@ -6016,7 +6052,7 @@ async function loadVeliPanel(user) {
 
     if (bulunan.length === 0) {
       heroEl.style.display = "none";
-      showVeliNotLinked(user.email);
+      showVeliNotAuthorized(user.email);
       return;
     }
 
@@ -6035,64 +6071,66 @@ async function loadVeliPanel(user) {
 async function findOgrenciForVeli(user) {
   const email = (user.email || "").toLowerCase();
   const bulunan = [];
+  const eklenenIds = new Set();
 
   try {
-    // Önce users/{uid} koleksiyonuna bak (admin davet ettiyse burada eşleşme olur)
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      const ogrenciIds = data.ogrenciIds || [];
-
-      for (const ogrenciId of ogrenciIds) {
-        try {
-          const ogrRef = doc(db, "ogrenciler", ogrenciId);
-          const ogrSnap = await getDoc(ogrRef);
-          if (ogrSnap.exists()) {
-            bulunan.push({ id: ogrenciId, ...ogrSnap.data() });
+    // 1. ÖNCELİK: veliler/{email} whitelist koleksiyonundan oku
+    // Admin bir veliyi onayladığında bu koleksiyona yazılır
+    try {
+      const veliDoc = await getDoc(doc(db, "veliler", email));
+      if (veliDoc.exists() && veliDoc.data().onaylandi === true) {
+        const ogrenciIds = veliDoc.data().ogrenciIds || [];
+        for (const ogrenciId of ogrenciIds) {
+          if (eklenenIds.has(ogrenciId)) continue;
+          try {
+            const ogrSnap = await getDoc(doc(db, "ogrenciler", ogrenciId));
+            if (ogrSnap.exists()) {
+              bulunan.push({ id: ogrenciId, ...ogrSnap.data() });
+              eklenenIds.add(ogrenciId);
+            }
+          } catch (e) {
+            console.warn(`Öğrenci yüklenemedi: ${ogrenciId}`, e);
           }
-        } catch (e) {
-          console.warn(`Öğrenci yüklenemedi: ${ogrenciId}`, e);
         }
       }
-
-      if (bulunan.length > 0) return bulunan;
+    } catch (e) {
+      console.warn("veliler whitelist okunamadı:", e);
     }
 
-    // Fallback: Tüm öğrencilerin dönem dokümanlarını tarayıp veli e-postasına göre eşleştir
-    // (İlk giriş veya admin daveti yapılmadıysa)
-    const ogrSnap = await getDocs(collection(db, "ogrenciler"));
-
-    for (const ogrDoc of ogrSnap.docs) {
-      const donemRef = doc(db, "ogrenciler", ogrDoc.id, "donemler", AKTIF_DONEM);
-      try {
-        const donemSnap = await getDoc(donemRef);
-        if (!donemSnap.exists()) continue;
-        const donemVeri = donemSnap.data();
-
-        const anneEmail = (donemVeri.anne?.eposta || "").toLowerCase();
-        const babaEmail = (donemVeri.baba?.eposta || "").toLowerCase();
-        const vasiEmail = (donemVeri.vasi?.eposta || "").toLowerCase();
-
-        if (email && (email === anneEmail || email === babaEmail || email === vasiEmail)) {
-          bulunan.push({ id: ogrDoc.id, ...ogrDoc.data(), _donemVeri: donemVeri });
+    // 2. İKİNCİ ÖNCELİK: users/{uid} dokümanından oku (geçmişe uyumluluk)
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        const ogrenciIds = userDoc.data().ogrenciIds || [];
+        for (const ogrenciId of ogrenciIds) {
+          if (eklenenIds.has(ogrenciId)) continue;
+          try {
+            const ogrSnap = await getDoc(doc(db, "ogrenciler", ogrenciId));
+            if (ogrSnap.exists()) {
+              bulunan.push({ id: ogrenciId, ...ogrSnap.data() });
+              eklenenIds.add(ogrenciId);
+            }
+          } catch (e) { /* Erişim yoksa geç */ }
         }
-      } catch (e) {
-        // Firestore Security Rules bazı dokümanlara erişimi kısıtlayabilir, normal
       }
-    }
+    } catch (e) { /* users yoksa geç */ }
 
-    // Eğer e-posta ile eşleşme bulundu, users/{uid} dokümanını otomatik oluştur
+    // DİKKAT: Artık fallback taraması yapılmıyor!
+    // Eğer veli whitelist'te yoksa, giriş yapamaz.
+    // Bu, yetkisiz e-posta sahibinin giriş yapmasını engeller.
+
+    // Eğer whitelist'ten öğrenci bulundu, users/{uid} dokümanını otomatik güncelle
     if (bulunan.length > 0) {
       try {
         await setDoc(doc(db, "users", user.uid), {
           email: user.email,
-          ogrenciIds: bulunan.map(o => o.id),
+          ogrenciIds: Array.from(eklenenIds),
           rol: "veli",
-          ilkGiris: new Date().toISOString(),
+          sonGiris: new Date().toISOString(),
           guncellendi: new Date().toISOString()
         }, { merge: true });
       } catch (e) {
-        console.warn("users dokümanı oluşturulamadı:", e);
+        console.warn("users dokümanı güncellenemedi:", e);
       }
     }
   } catch (e) {
@@ -6111,7 +6149,7 @@ window.veliDavetLinkKopyala = function() {
   showToast("✓ Portal linki kopyalandı");
 };
 
-window.veliMagicLinkGonder = async function(veliTipi) {
+window.veliOnayla = async function(veliTipi) {
   const epostaId = veliTipi === "anne" ? "anneAyarEposta" : "babaAyarEposta";
   const email = (document.getElementById(epostaId)?.value || "").trim().toLowerCase();
   const durum = document.getElementById("veliDavetDurum");
@@ -6122,45 +6160,133 @@ window.veliMagicLinkGonder = async function(veliTipi) {
     return;
   }
 
-  const actionCodeSettings = {
-    url: window.location.origin + window.location.pathname + "#veli",
-    handleCodeInApp: true
-  };
+  if (!currentOgrenci) {
+    showToast("Önce bir öğrenci seçilmeli", "error");
+    return;
+  }
 
   try {
-    if (durum) durum.innerHTML = `⏳ ${email} adresine gönderiliyor...`;
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-    if (durum) durum.innerHTML = `✓ <strong>${email}</strong> adresine giriş bağlantısı gönderildi. Veliye e-postayı kontrol etmesi gerektiğini söyleyin.`;
-    showToast(`✓ ${email} adresine davet gönderildi`);
+    if (durum) durum.innerHTML = `⏳ ${email} onaylanıyor...`;
+
+    // veliler/{email} dokümanını okuyup mevcut ogrenciIds'yi koru (kardeşler için)
+    const veliRef = doc(db, "veliler", email);
+    const mevcutSnap = await getDoc(veliRef);
+    let ogrenciIds = [currentOgrenci.id];
+    if (mevcutSnap.exists()) {
+      const eski = mevcutSnap.data().ogrenciIds || [];
+      ogrenciIds = Array.from(new Set([...eski, currentOgrenci.id]));
+    }
+
+    await setDoc(veliRef, {
+      email: email,
+      ogrenciIds: ogrenciIds,
+      rol: veliTipi,  // "anne" | "baba"
+      onaylandi: true,
+      onaylayan: currentUser.email,
+      onayTarihi: new Date().toISOString()
+    }, { merge: true });
+
+    if (durum) durum.innerHTML = `✓ <strong>${email}</strong> onaylı veli listesine eklendi. Veli artık <a href="${window.location.origin + window.location.pathname}#veli" target="_blank">portal.bircicekkoleji.com/#veli</a> adresinden Google ile giriş yapabilir.`;
+    showToast(`✓ ${email} onaylandı`);
   } catch (e) {
     console.error(e);
-    if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ Gönderilemedi: ${e.message}</span>`;
-    showToast("Davet gönderilemedi: " + e.message, "error");
+    if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ Onaylanamadı: ${e.message}</span>`;
+    showToast("Onaylama başarısız: " + e.message, "error");
   }
 };
 
-function showVeliNotLinked(email) {
+window.veliKaldir = async function(veliTipi) {
+  const epostaId = veliTipi === "anne" ? "anneAyarEposta" : "babaAyarEposta";
+  const email = (document.getElementById(epostaId)?.value || "").trim().toLowerCase();
+  const durum = document.getElementById("veliDavetDurum");
+
+  if (!email || !email.includes("@")) {
+    showToast(`${veliTipi === "anne" ? "Anne" : "Baba"} e-posta adresi girilmemiş`, "error");
+    return;
+  }
+
+  if (!currentOgrenci) {
+    showToast("Önce bir öğrenci seçilmeli", "error");
+    return;
+  }
+
+  if (!confirm(`${email} adresini bu öğrencinin veli listesinden kaldırmak istediğinize emin misiniz?`)) return;
+
+  try {
+    const veliRef = doc(db, "veliler", email);
+    const mevcutSnap = await getDoc(veliRef);
+    if (!mevcutSnap.exists()) {
+      if (durum) durum.innerHTML = `<span style="color:var(--gray-600);">ℹ ${email} zaten sistemde kayıtlı değil</span>`;
+      return;
+    }
+
+    const eskiIds = mevcutSnap.data().ogrenciIds || [];
+    const yeniIds = eskiIds.filter(id => id !== currentOgrenci.id);
+
+    if (yeniIds.length === 0) {
+      // Hiç öğrenci kalmadıysa, tüm onayı kaldır
+      await setDoc(veliRef, {
+        email: email,
+        ogrenciIds: [],
+        onaylandi: false,
+        kaldirildi: new Date().toISOString(),
+        kaldiran: currentUser.email
+      }, { merge: true });
+      if (durum) durum.innerHTML = `✓ <strong>${email}</strong> tüm onaylı veli listesinden kaldırıldı (başka öğrencisi yoktu)`;
+    } else {
+      // Sadece bu öğrenciyi listeden çıkar
+      await updateDoc(veliRef, {
+        ogrenciIds: yeniIds,
+        guncellendi: new Date().toISOString()
+      });
+      if (durum) durum.innerHTML = `✓ <strong>${email}</strong> bu öğrenciden kaldırıldı. Velinin kalan ${yeniIds.length} öğrencisi hâlâ erişebilir.`;
+    }
+
+    showToast(`✓ ${email} kaldırıldı`);
+  } catch (e) {
+    console.error(e);
+    if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ Kaldırılamadı: ${e.message}</span>`;
+    showToast("Kaldırma başarısız: " + e.message, "error");
+  }
+};
+
+function showVeliNotAuthorized(email) {
   const main = document.getElementById("veliPanel-dashboard");
   if (!main) return;
   main.innerHTML = `
     <div class="veli-card" style="text-align:center; padding:40px 20px;">
       <div style="font-size:48px; margin-bottom:14px;">🔒</div>
-      <h3 style="margin:0 0 12px 0; font-family:var(--font-display);">Hesabınız henüz eşleştirilmedi</h3>
+      <h3 style="margin:0 0 12px 0; font-family:var(--font-display);">Yetkili değilsiniz</h3>
       <p style="color:var(--gray-600); margin-bottom:20px;">
         <strong>${escapeHtml(email)}</strong> e-postası ile kayıtlı bir öğrenci bulunamadı.
       </p>
       <p style="font-size:13px; color:var(--gray-500); line-height:1.8;">
-        Eğer öğrencimizin velisiyseniz ve giriş yapamıyorsanız, lütfen okul yönetimiyle iletişime geçin.<br>
-        Sistemde veli e-postanız kayıtlı olmalıdır.
+        Bu sisteme erişebilmeniz için okul yönetimi tarafından e-posta adresinizin onaylı bir veli olarak tanımlanması gerekir.<br>
+        Öğrencimizin velisiyseniz lütfen okul yönetimiyle iletişime geçin.
       </p>
       <div style="margin-top:24px;">
         <a href="mailto:eposta@bircicekkoleji.com" style="color:#2d6a4f; text-decoration:none; font-weight:500;">📧 eposta@bircicekkoleji.com</a>
       </div>
       <div style="margin-top:18px;">
-        <button class="veli-btn-secondary" onclick="signOut()">🚪 Çıkış Yap</button>
+        <button class="veli-btn-primary" onclick="signOut()">🚪 Çıkış Yap</button>
+      </div>
+      <div style="margin-top:10px; font-size:11px; color:var(--gray-500);">
+        Güvenliğiniz için 10 saniye içinde otomatik çıkış yapılacak.
       </div>
     </div>
   `;
+
+  // 10 saniye içinde otomatik sign-out (yetkisiz oturumu kapat)
+  setTimeout(() => {
+    fbSignOut(auth).then(() => {
+      location.reload();
+    });
+  }, 10000);
+}
+
+// Eski fonksiyonu da koru (geri uyumluluk)
+function showVeliNotLinked(email) {
+  return showVeliNotAuthorized(email);
 }
 
 function renderVeliOgrenciSecici(ogrenciler) {
@@ -6883,6 +7009,326 @@ function renderTable() {
   wrap.innerHTML = html;
 }
 
+// ============ ONAY BEKLEYENLER ============
+let basvuruListesi = [];
+let aktifOnayFilter = "beklemede";
+
+async function loadOnayBekleyenler() {
+  const wrap = document.getElementById("onayListesiWrap");
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Başvurular yükleniyor...</p></div>';
+
+  try {
+    const snap = await getDocs(collection(db, "basvurular"));
+    basvuruListesi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Son başvuru en üstte (tarihe göre)
+    basvuruListesi.sort((a, b) => {
+      const at = a.basvuruTarihi || a.olusturuldu || "";
+      const bt = b.basvuruTarihi || b.olusturuldu || "";
+      return bt.localeCompare(at);
+    });
+
+    renderOnayBekleyenler();
+    updateOnaySayac();
+  } catch (e) {
+    console.error(e);
+    wrap.innerHTML = `<div class="ozel-madde-empty" style="color:#b91c1c;">Başvurular yüklenemedi: ${e.message}</div>`;
+  }
+}
+
+function updateOnaySayac() {
+  const bekleyen = basvuruListesi.filter(b => (b.durum || "beklemede") === "beklemede").length;
+  const rozet = document.getElementById("onaySayacRozet");
+  if (rozet) {
+    if (bekleyen > 0) {
+      rozet.style.display = "inline-flex";
+      rozet.textContent = bekleyen;
+    } else {
+      rozet.style.display = "none";
+    }
+  }
+}
+
+window.onayFilter = function(filter) {
+  aktifOnayFilter = filter;
+  // Buton aktifleri güncelle
+  document.querySelectorAll("[data-onay-filter]").forEach(b => {
+    b.style.fontWeight = b.dataset.onayFilter === filter ? "600" : "400";
+    if (b.dataset.onayFilter === filter) {
+      b.style.background = "#2d6a4f";
+      b.style.color = "white";
+      b.style.borderColor = "#2d6a4f";
+    } else {
+      b.style.background = "";
+      b.style.color = "";
+      b.style.borderColor = "";
+    }
+  });
+  renderOnayBekleyenler();
+};
+
+function renderOnayBekleyenler() {
+  const wrap = document.getElementById("onayListesiWrap");
+  if (!wrap) return;
+
+  const filtrelenmis = aktifOnayFilter === "tumu"
+    ? basvuruListesi
+    : basvuruListesi.filter(b => (b.durum || "beklemede") === aktifOnayFilter);
+
+  if (filtrelenmis.length === 0) {
+    const mesaj = aktifOnayFilter === "beklemede"
+      ? "Şu an onay bekleyen başvuru yok. 🎉"
+      : aktifOnayFilter === "onaylandi"
+      ? "Henüz onaylanmış başvuru yok."
+      : aktifOnayFilter === "reddedildi"
+      ? "Reddedilmiş başvuru yok."
+      : "Hiç başvuru yok.";
+    wrap.innerHTML = `<div class="ozel-madde-empty">${mesaj}</div>`;
+    return;
+  }
+
+  let html = "";
+  for (const b of filtrelenmis) {
+    const durum = b.durum || "beklemede";
+    const rozetMetni = { beklemede: "⏱ Beklemede", onaylandi: "✓ Onaylandı", reddedildi: "✗ Reddedildi" }[durum];
+    const basvuruTarihi = b.basvuruTarihi || b.olusturuldu || "";
+    const tarihStr = basvuruTarihi ? formatTarihTam(basvuruTarihi) : "—";
+    const kaynak = b.kaynak || "yenikayit";
+
+    const ogr = b.ogrenci || {};
+    const anne = b.anne || {};
+    const baba = b.baba || {};
+    const aidat = b.aidatAyarlari || {};
+
+    html += `
+      <div class="basvuru-karti ${durum}" data-basvuru-id="${b.id}">
+        <div class="basvuru-kart-header">
+          <div>
+            <div class="basvuru-ogrenci-isim">${escapeHtml(ogr.adSoyad || ogr.ogrenciAdSoyad || "(İsimsiz)")}</div>
+            <div class="basvuru-meta">
+              📅 ${tarihStr} · 🌐 ${escapeHtml(kaynak === "kayityenileme" ? "Kayıt Yenileme" : "Yeni Başvuru")}
+              ${b.onayTarihi ? ` · ✓ Onay: ${formatTarihTam(b.onayTarihi)}` : ""}
+              ${b.retTarihi ? ` · ✗ Ret: ${formatTarihTam(b.retTarihi)}` : ""}
+            </div>
+          </div>
+          <span class="basvuru-durum-rozet ${durum}">${rozetMetni}</span>
+        </div>
+
+        <div class="basvuru-detay-grid">
+          <div class="basvuru-detay-grup">
+            <div class="basvuru-detay-baslik">👶 ÖĞRENCİ</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Doğum:</span> ${escapeHtml(formatTarih(ogr.dogumTarihi) || "—")}</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">T.C.:</span> ${escapeHtml(ogr.tcKimlik || "—")}</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Program:</span> ${escapeHtml(b.kayit?.program || aidat.programTuru || "—")}</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Sınıf:</span> ${escapeHtml(b.kayit?.sinif || "—")}</div>
+          </div>
+          <div class="basvuru-detay-grup">
+            <div class="basvuru-detay-baslik">👩 ANNE</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Ad:</span> ${escapeHtml(anne.adSoyad || "—")}</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Tel:</span> ${escapeHtml(anne.cepTel || "—")}</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">E-Posta:</span> ${escapeHtml(anne.eposta || "—")}</div>
+          </div>
+          <div class="basvuru-detay-grup">
+            <div class="basvuru-detay-baslik">👨 BABA</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Ad:</span> ${escapeHtml(baba.adSoyad || "—")}</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Tel:</span> ${escapeHtml(baba.cepTel || "—")}</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">E-Posta:</span> ${escapeHtml(baba.eposta || "—")}</div>
+          </div>
+          <div class="basvuru-detay-grup">
+            <div class="basvuru-detay-baslik">💰 ÖDEME</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Aylık:</span> ${aidat.aylikAidat ? aidat.aylikAidat.toLocaleString("tr-TR") + " TL" : "—"}</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Taksit:</span> ${aidat.taksitSayisi || "—"} ay</div>
+            <div class="basvuru-detay-satir"><span class="basvuru-detay-label">Başlangıç:</span> ${escapeHtml(aidat.baslangicAyi || "—")}</div>
+            ${aidat.pesinOdeme ? '<div class="basvuru-detay-satir"><strong style="color:#15803d;">💎 Peşin Ödeme</strong></div>' : ""}
+          </div>
+        </div>
+
+        <div class="basvuru-aksiyon-row">
+          ${durum === "beklemede" ? `
+            <button class="btn-mini btn-primary" onclick="basvuruOnayla('${b.id}')">✓ Onayla ve Sisteme Ekle</button>
+            <button class="btn-mini danger" onclick="basvuruReddet('${b.id}')">✗ Reddet</button>
+            <button class="btn-mini" onclick="basvuruDetayGoster('${b.id}')">🔍 Tam Detay</button>
+          ` : `
+            <button class="btn-mini" onclick="basvuruDetayGoster('${b.id}')">🔍 Detay</button>
+            ${durum === "reddedildi" ? `<button class="btn-mini btn-primary" onclick="basvuruOnayla('${b.id}')">↩ Yine de Onayla</button>` : ""}
+          `}
+        </div>
+
+        ${b.notlar ? `<div style="margin-top:10px; padding:8px 10px; background:#fef9c3; border-radius:6px; font-size:12px; color:#78350f;">📝 ${escapeHtml(b.notlar)}</div>` : ""}
+      </div>
+    `;
+  }
+
+  wrap.innerHTML = html;
+}
+
+function formatTarihTam(iso) {
+  try {
+    const d = new Date(iso);
+    const gun = String(d.getDate()).padStart(2, "0");
+    const ay = String(d.getMonth() + 1).padStart(2, "0");
+    const yil = d.getFullYear();
+    const saat = String(d.getHours()).padStart(2, "0");
+    const dk = String(d.getMinutes()).padStart(2, "0");
+    return `${gun}.${ay}.${yil} ${saat}:${dk}`;
+  } catch { return iso; }
+}
+
+window.basvuruDetayGoster = function(basvuruId) {
+  const b = basvuruListesi.find(x => x.id === basvuruId);
+  if (!b) return;
+  // Basit bir JSON dump modal — istersen detaylandırırsın
+  const detayText = JSON.stringify(b, null, 2);
+  alert(`BAŞVURU DETAYI\n\n${detayText}`);
+};
+
+window.basvuruOnayla = async function(basvuruId) {
+  const b = basvuruListesi.find(x => x.id === basvuruId);
+  if (!b) return showToast("Başvuru bulunamadı", "error");
+
+  if (!confirm(`${b.ogrenci?.adSoyad || "Bu öğrenciyi"} sisteme ekliyorsunuz. Emin misiniz?\n\n• Öğrenci: ogrenciler koleksiyonuna yazılacak\n• Anne/Baba e-postaları otomatik onaylı veli olarak eklenecek\n• Veli Google ile portal.bircicekkoleji.com/#veli'ye giriş yapabilecek`)) return;
+
+  try {
+    showToast("⏳ Başvuru onaylanıyor ve sisteme ekleniyor...");
+
+    // 1. Öğrenci ana dokümanını oluştur
+    const ogrVeri = b.ogrenci || {};
+    const anne = b.anne || {};
+    const baba = b.baba || {};
+
+    const ogrenciAnaData = {
+      ogrenciAdSoyad: ogrVeri.adSoyad || "",
+      tcKimlik: ogrVeri.tcKimlik || "",
+      cinsiyet: ogrVeri.cinsiyet || "",
+      dogumTarihi: ogrVeri.dogumTarihi || "",
+      sinif: b.kayit?.sinif || "",
+      programTuru: b.kayit?.program || b.aidatAyarlari?.programTuru || "Tam Gün",
+      aylikAidat: b.aidatAyarlari?.aylikAidat || 0,
+      veli1AdSoyad: anne.adSoyad || "",
+      veli1Telefon: anne.cepTel || "",
+      veli1Eposta: anne.eposta || "",
+      veli2AdSoyad: baba.adSoyad || "",
+      veli2Telefon: baba.cepTel || "",
+      veli2Eposta: baba.eposta || "",
+      durum: "aktif",
+      durumGuncelleyen: currentUser.email,
+      kaynakBasvuruId: basvuruId,
+      olusturuldu: new Date().toISOString(),
+      olusturan: currentUser.email,
+      guncellendi: new Date().toISOString()
+    };
+
+    // Yeni öğrenci için doküman oluştur (auto-id)
+    const yeniRef = doc(collection(db, "ogrenciler"));
+    await setDoc(yeniRef, ogrenciAnaData);
+    const yeniOgrenciId = yeniRef.id;
+
+    // 2. Dönem dokümanı
+    const donemData = {
+      donemYili: AKTIF_DONEM,
+      aktif: true,
+      aidatAyarlari: b.aidatAyarlari || {},
+      ogrenci: b.ogrenci || {},
+      saglik: b.saglik || {},
+      acilDurum: b.acilDurum || {},
+      anne: anne,
+      baba: baba,
+      vasi: b.vasi || {},
+      kayit: b.kayit || {},
+      izinler: b.izinler || { medya: true, gezi: true, acilMudahale: true, saglikTarama: true },
+      ilanUcretleri: b.ilanUcretleri || {},
+      sozlesme: b.sozlesme || {},
+      sozlesmedeGoster: b.sozlesmedeGoster || {},
+      aylikOdemeler: {},
+      digerOdemeler: {},
+      notlar: b.notlar || "",
+      kaynakBasvuruId: basvuruId,
+      olusturuldu: new Date().toISOString(),
+      olusturan: currentUser.email
+    };
+    await setDoc(doc(db, "ogrenciler", yeniOgrenciId, "donemler", AKTIF_DONEM), donemData);
+
+    // 3. Veli e-postalarını onaylı listeye ekle
+    const veliEpostalari = [];
+    if (anne.eposta) veliEpostalari.push({ email: anne.eposta.toLowerCase().trim(), rol: "anne" });
+    if (baba.eposta) veliEpostalari.push({ email: baba.eposta.toLowerCase().trim(), rol: "baba" });
+
+    for (const v of veliEpostalari) {
+      if (!v.email || !v.email.includes("@")) continue;
+      const veliRef = doc(db, "veliler", v.email);
+      const mevcut = await getDoc(veliRef);
+      let ogrenciIds = [yeniOgrenciId];
+      if (mevcut.exists()) {
+        const eski = mevcut.data().ogrenciIds || [];
+        ogrenciIds = Array.from(new Set([...eski, yeniOgrenciId]));
+      }
+      await setDoc(veliRef, {
+        email: v.email,
+        ogrenciIds: ogrenciIds,
+        rol: v.rol,
+        onaylandi: true,
+        onaylayan: currentUser.email,
+        onayTarihi: new Date().toISOString(),
+        kaynakBasvuruId: basvuruId
+      }, { merge: true });
+    }
+
+    // 4. Başvuruyu onaylı olarak işaretle
+    await updateDoc(doc(db, "basvurular", basvuruId), {
+      durum: "onaylandi",
+      onaylayan: currentUser.email,
+      onayTarihi: new Date().toISOString(),
+      eklenenOgrenciId: yeniOgrenciId
+    });
+
+    // 5. TODO: Brevo e-posta gönderimi (Aşama 4'te eklenecek)
+    // Şimdilik başarı mesajı:
+    showToast(`✓ ${ogrVeri.adSoyad} sisteme eklendi. ${veliEpostalari.length} veli onaylandı.`);
+
+    // Listeyi ve öğrenci listesini yenile
+    await loadOnayBekleyenler();
+    await loadOgrenciler();
+
+  } catch (e) {
+    console.error(e);
+    showToast("Onaylama başarısız: " + e.message, "error");
+  }
+};
+
+window.basvuruReddet = async function(basvuruId) {
+  const b = basvuruListesi.find(x => x.id === basvuruId);
+  if (!b) return;
+
+  const neden = prompt(`${b.ogrenci?.adSoyad || "Bu başvuruyu"} reddetmek istediğinize emin misiniz?\n\nRet nedeni (opsiyonel):`);
+  if (neden === null) return; // İptal
+
+  try {
+    await updateDoc(doc(db, "basvurular", basvuruId), {
+      durum: "reddedildi",
+      retNedeni: neden || "",
+      retTarihi: new Date().toISOString(),
+      reddeden: currentUser.email
+    });
+    showToast("✗ Başvuru reddedildi");
+    await loadOnayBekleyenler();
+  } catch (e) {
+    console.error(e);
+    showToast("Reddedilemedi: " + e.message, "error");
+  }
+};
+
+// Admin girişi sonrasında başvuruları yükle (sadece sayaç için)
+async function initOnayBekleyenler() {
+  try {
+    const snap = await getDocs(collection(db, "basvurular"));
+    basvuruListesi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    updateOnaySayac();
+  } catch (e) {
+    // Koleksiyon yoksa veya erişim yoksa sessiz geç
+  }
+}
+
 // ============ RAPORLAR ============
 let raporTrendChartInstance = null;
 let raporSinifChartInstance = null;
@@ -7444,6 +7890,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Raporlar sekmesine geçildiyse render et
     if (tab.dataset.tab === "raporlar") {
       setTimeout(() => renderRaporlar(), 50);
+    }
+
+    // Onay Bekleyenler sekmesine geçildiyse yükle
+    if (tab.dataset.tab === "onay") {
+      setTimeout(() => loadOnayBekleyenler(), 50);
     }
   });
 });
@@ -10690,7 +11141,14 @@ window.saveAyarlar = async function() {
     }
     
     ayarListesi[currentOgrenci.id] = donemDoc;
-    
+
+    // Veli e-postalarını otomatik olarak onaylı listeye ekle
+    try {
+      await autoOnaylaVeliler(currentOgrenci.id, anneData, babaData, vasiData);
+    } catch (e) {
+      console.warn("Veli otomatik onay hatası (kritik değil):", e);
+    }
+
     showToast("✓ Bilgiler kaydedildi");
     closeAyarModal();
     renderTable();
@@ -10701,6 +11159,41 @@ window.saveAyarlar = async function() {
     showToast("Kaydedilemedi: " + e.message, "error");
   }
 };
+
+// Admin bir öğrencinin veli bilgilerini kaydettikçe, veli e-postalarını otomatik
+// onaylı veliler listesine ekler. Böylece her veli portala Google ile giriş yapabilir.
+async function autoOnaylaVeliler(ogrenciId, anneData, babaData, vasiData) {
+  const veliList = [];
+  if (anneData?.eposta) veliList.push({ email: anneData.eposta.toLowerCase().trim(), rol: "anne" });
+  if (babaData?.eposta) veliList.push({ email: babaData.eposta.toLowerCase().trim(), rol: "baba" });
+  if (vasiData?.eposta) veliList.push({ email: vasiData.eposta.toLowerCase().trim(), rol: "vasi" });
+
+  for (const v of veliList) {
+    if (!v.email || !v.email.includes("@")) continue;
+
+    try {
+      const veliRef = doc(db, "veliler", v.email);
+      const mevcut = await getDoc(veliRef);
+      let ogrenciIds = [ogrenciId];
+      if (mevcut.exists()) {
+        const eski = mevcut.data().ogrenciIds || [];
+        ogrenciIds = Array.from(new Set([...eski, ogrenciId]));
+      }
+      await setDoc(veliRef, {
+        email: v.email,
+        ogrenciIds: ogrenciIds,
+        rol: v.rol,
+        onaylandi: true,
+        onaylayan: currentUser.email,
+        onayTarihi: mevcut.exists() ? (mevcut.data().onayTarihi || new Date().toISOString()) : new Date().toISOString(),
+        guncellendi: new Date().toISOString(),
+        otomatikOnay: true
+      }, { merge: true });
+    } catch (e) {
+      console.warn(`${v.email} otomatik onay başarısız:`, e);
+    }
+  }
+}
 
 // ============ BULK UPLOAD ============
 // ============ CSV TOPLU YÜKLEME ============
