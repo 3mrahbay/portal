@@ -5155,17 +5155,19 @@ html, body {
 
         <!-- DUYURULAR -->
         <div id="icerikAlt-duyurular" class="icerik-alt-panel">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">📝</div>
-            <h3>Duyurular</h3>
-            <p>Genel veya hedefli duyurular yazın. Velilerinize ulaşsın.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Genel duyuru (tüm veliler)</div>
-              <div>✓ Sınıf duyurusu (Montessori 2 / 3)</div>
-              <div>✓ Kişisel mesaj (belirli öğrenci velisi)</div>
-              <div>✓ Otomatik e-posta bildirimi (opsiyonel)</div>
+          <!-- Üst bar: yeni duyuru butonu + filtreler -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-mini" data-duyuru-filter="aktif" onclick="duyuruFilter('aktif')" style="background:#eab308; border:none; color:white;">✓ Aktif</button>
+              <button class="btn-mini" data-duyuru-filter="arsiv" onclick="duyuruFilter('arsiv')">📦 Arşiv</button>
+              <button class="btn-mini" data-duyuru-filter="tumu" onclick="duyuruFilter('tumu')">📁 Tümü</button>
             </div>
-            <div class="icerik-placeholder-rozet">TUR 2'de aktif olacak</div>
+            <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
+          </div>
+
+          <!-- Liste -->
+          <div id="duyurularListesi">
+            <div class="loading"><div class="spinner"></div><p>Duyurular yükleniyor...</p></div>
           </div>
         </div>
 
@@ -5324,6 +5326,89 @@ html, body {
 
       </div><!-- /icerikAltPanelWrap -->
 
+    </div>
+
+    <!-- DUYURU OLUŞTUR/DÜZENLE MODAL -->
+    <div class="modal-overlay" id="duyuruModal">
+      <div class="modal" style="max-width:640px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #fefce8 0%, #fef9c3 100%); border-bottom:1px solid #fde68a;">
+          <h3 id="duyuruModalBaslik" style="color:#78350f;">📝 Yeni Duyuru</h3>
+          <button class="close-btn" onclick="closeDuyuruModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="duyuruDuzenleId" value="">
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label>Başlık *</label>
+              <input type="text" id="duyuruBaslik" placeholder="Örn: Yarınki Doğa Gezisi Hakkında" maxlength="120">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Aciliyet</label>
+              <select id="duyuruAciliyet">
+                <option value="normal">📢 Normal</option>
+                <option value="onemli">⚠️ Önemli</option>
+                <option value="acil">🚨 Acil</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Hedef Kitle</label>
+              <select id="duyuruHedefTur" onchange="duyuruHedefDegisti()">
+                <option value="tumOkul">🏫 Tüm Okul</option>
+                <option value="sinif">👥 Belirli Sınıf</option>
+                <option value="ogrenci">👤 Belirli Öğrenci</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid full" id="duyuruHedefSinifWrap" style="display:none;">
+            <div class="form-group">
+              <label>Sınıf Seç</label>
+              <select id="duyuruHedefSinif">
+                <option value="">-- Sınıf Seçin --</option>
+                <option value="Montessori 2">Montessori 2</option>
+                <option value="Montessori 3">Montessori 3</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid full" id="duyuruHedefOgrenciWrap" style="display:none;">
+            <div class="form-group">
+              <label>Öğrenci Seç</label>
+              <select id="duyuruHedefOgrenci">
+                <option value="">-- Öğrenci Seçin --</option>
+              </select>
+              <div class="field-hint">Öğrencinin velilerine gönderilecek</div>
+            </div>
+          </div>
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label>İçerik *</label>
+              <textarea id="duyuruIcerik" rows="8" placeholder="Duyuru metnini yazın... Birden fazla paragraf için Enter tuşunu kullanabilirsiniz."></textarea>
+              <div class="field-hint">Link eklemek için: &lt;a href="https://..."&gt;Link metni&lt;/a&gt; şeklinde yazabilirsiniz.</div>
+            </div>
+          </div>
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox" id="duyuruMailGonder" style="width:18px; height:18px;" checked>
+                <span>📧 Velilere e-posta ile de gönder</span>
+              </label>
+              <div class="field-hint" style="margin-left:28px;">İşaretliyse, duyuru Brevo üzerinden tüm hedef velilere mail olarak gönderilir.</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeDuyuruModal()">İptal</button>
+          <button class="btn-primary" onclick="kaydetDuyuru()" style="background:#eab308; border:none;">💾 Yayınla</button>
+          <button class="btn-secondary" id="duyuruSilBtn" onclick="silDuyuru()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+        </div>
+      </div>
     </div>
 
     <!-- RAPORLAR TAB -->
@@ -9493,9 +9578,343 @@ window.icerikSwitchAlt = function(alt) {
 };
 
 function renderIcerikAltSekme() {
-  // Tur 2+: Her alt sekme için özel render fonksiyonu burada çağrılacak
-  // Örn: if (aktifIcerikAlt === "duyurular") renderDuyurular();
+  if (aktifIcerikAlt === "duyurular") renderDuyurular();
+  // Sonraki turlarda diğer alt sekmeler
 }
+
+// ============ DUYURULAR SİSTEMİ (Tur 2) ============
+let duyuruListesi = [];
+let aktifDuyuruFilter = "aktif";
+
+window.duyuruFilter = function(f) {
+  aktifDuyuruFilter = f;
+  document.querySelectorAll("[data-duyuru-filter]").forEach(b => {
+    if (b.dataset.duyuruFilter === f) {
+      b.style.background = "#eab308"; b.style.color = "white"; b.style.border = "none";
+    } else {
+      b.style.background = ""; b.style.color = ""; b.style.border = "";
+    }
+  });
+  renderDuyurular();
+};
+
+async function loadDuyurular() {
+  try {
+    const snap = await getDocs(collection(db, "duyurular"));
+    duyuruListesi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn("Duyurular yüklenemedi:", e);
+    duyuruListesi = [];
+  }
+}
+
+async function renderDuyurular() {
+  const el = document.getElementById("duyurularListesi");
+  if (!el) return;
+
+  await loadDuyurular();
+
+  let liste = [...duyuruListesi];
+  if (aktifDuyuruFilter === "aktif") liste = liste.filter(d => !d.arsiv);
+  else if (aktifDuyuruFilter === "arsiv") liste = liste.filter(d => d.arsiv);
+
+  liste.sort((a, b) => (b.olusturuldu || "").localeCompare(a.olusturuldu || ""));
+
+  if (liste.length === 0) {
+    el.innerHTML = `
+      <div style="background:white; border:2px dashed var(--gray-300); border-radius:14px; padding:40px 20px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:12px;">📝</div>
+        <div style="font-family:var(--font-display); font-size:17px; color:var(--gray-700); margin-bottom:6px;">${aktifDuyuruFilter === "arsiv" ? "Arşivde duyuru yok" : "Henüz duyuru yok"}</div>
+        <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">Velilerinize ilk duyurunuzu gönderin</div>
+        <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru Oluştur</button>
+      </div>
+    `;
+    return;
+  }
+
+  const aciliyetStilleri = {
+    normal: { bg: "#fef9c3", border: "#fde68a", text: "#78350f", ikon: "📢", label: "Normal" },
+    onemli: { bg: "#fff7ed", border: "#fed7aa", text: "#9a3412", ikon: "⚠️", label: "Önemli" },
+    acil: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b", ikon: "🚨", label: "Acil" }
+  };
+
+  let html = `<div style="display:flex; flex-direction:column; gap:12px;">`;
+  for (const d of liste) {
+    const st = aciliyetStilleri[d.aciliyet] || aciliyetStilleri.normal;
+    const hedefLabel = d.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
+      : d.hedefTur === "sinif" ? `👥 ${escapeHtml(d.hedefDeger)}`
+      : `👤 ${escapeHtml(d.hedefOgrenciAd || d.hedefDeger)}`;
+    const tarih = d.olusturuldu ? new Date(d.olusturuldu).toLocaleString("tr-TR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+    const okunmaSayisi = (d.okuyanVeliler || []).length;
+    const mailIkon = d.mailGonder ? '<span title="E-posta gönderildi" style="font-size:13px;">📧</span>' : '';
+
+    html += `
+      <div style="background:white; border:1px solid ${st.border}; border-left:4px solid ${st.text}; border-radius:12px; padding:16px 20px; ${d.arsiv ? 'opacity:0.65;' : ''}">
+        <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
+          <div style="flex:1; min-width:200px;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
+              <span style="background:${st.bg}; border:1px solid ${st.border}; color:${st.text}; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700;">${st.ikon} ${st.label}</span>
+              <span style="background:#f3f4f6; color:var(--gray-700); padding:3px 10px; border-radius:8px; font-size:11px; font-weight:600;">${hedefLabel}</span>
+              ${mailIkon}
+              ${d.arsiv ? '<span style="background:#f3f4f6; color:var(--gray-500); padding:3px 10px; border-radius:8px; font-size:11px; font-weight:600;">📦 Arşiv</span>' : ''}
+            </div>
+            <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800); margin-top:6px;">${escapeHtml(d.baslik)}</div>
+          </div>
+          <div style="text-align:right; font-size:11px; color:var(--gray-500);">
+            ${tarih}<br>
+            <span title="${okunmaSayisi} veli okudu" style="color:#2d6a4f;">👁 ${okunmaSayisi}</span>
+          </div>
+        </div>
+        <div style="font-size:13px; color:var(--gray-700); line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(d.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1" target="_blank" style="color:#2d6a4f;">$2</a>')}</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
+          <button onclick="duzenleDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">✏️ Düzenle</button>
+          ${!d.arsiv ? `<button onclick="arsivleDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📦 Arşivle</button>` : `<button onclick="arsivAcDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📤 Arşivden Çıkar</button>`}
+          <button onclick="silDuyuruHizli('${d.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;">🗑 Sil</button>
+        </div>
+      </div>
+    `;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// Modal aç
+window.openDuyuruModal = function() {
+  document.getElementById("duyuruModal").classList.add("active");
+  document.getElementById("duyuruModalBaslik").textContent = "📝 Yeni Duyuru";
+  document.getElementById("duyuruDuzenleId").value = "";
+  document.getElementById("duyuruBaslik").value = "";
+  document.getElementById("duyuruIcerik").value = "";
+  document.getElementById("duyuruAciliyet").value = "normali";
+  document.getElementById("duyuruAciliyet").value = "normal";
+  document.getElementById("duyuruHedefTur").value = "tumOkul";
+  document.getElementById("duyuruHedefSinif").value = "";
+  document.getElementById("duyuruMailGonder").checked = true;
+  document.getElementById("duyuruSilBtn").style.display = "none";
+  duyuruHedefDegisti();
+  doldurOgrenciSecici();
+};
+
+window.closeDuyuruModal = function() {
+  document.getElementById("duyuruModal").classList.remove("active");
+};
+
+// Hedef türü değiştiğinde alt alan göster/gizle
+window.duyuruHedefDegisti = function() {
+  const hedef = document.getElementById("duyuruHedefTur").value;
+  document.getElementById("duyuruHedefSinifWrap").style.display = hedef === "sinif" ? "block" : "none";
+  document.getElementById("duyuruHedefOgrenciWrap").style.display = hedef === "ogrenci" ? "block" : "none";
+};
+
+// Öğrenci seçici doldur
+function doldurOgrenciSecici() {
+  const sel = document.getElementById("duyuruHedefOgrenci");
+  if (!sel) return;
+  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  aktif.sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || ""));
+  sel.innerHTML = '<option value="">-- Öğrenci Seçin --</option>';
+  for (const o of aktif) {
+    const sinif = (ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "";
+    const opt = document.createElement("option");
+    opt.value = o.id;
+    opt.textContent = `${o.ogrenciAdSoyad || ""}${sinif ? ` (${sinif})` : ""}`;
+    opt.dataset.ad = o.ogrenciAdSoyad || "";
+    sel.appendChild(opt);
+  }
+}
+
+// Düzenle
+window.duzenleDuyuru = function(id) {
+  const d = duyuruListesi.find(x => x.id === id);
+  if (!d) return;
+  openDuyuruModal();
+  document.getElementById("duyuruModalBaslik").textContent = "✏️ Duyuruyu Düzenle";
+  document.getElementById("duyuruDuzenleId").value = id;
+  document.getElementById("duyuruBaslik").value = d.baslik || "";
+  document.getElementById("duyuruIcerik").value = d.icerik || "";
+  document.getElementById("duyuruAciliyet").value = d.aciliyet || "normal";
+  document.getElementById("duyuruHedefTur").value = d.hedefTur || "tumOkul";
+  if (d.hedefTur === "sinif") document.getElementById("duyuruHedefSinif").value = d.hedefDeger || "";
+  if (d.hedefTur === "ogrenci") document.getElementById("duyuruHedefOgrenci").value = d.hedefDeger || "";
+  document.getElementById("duyuruMailGonder").checked = false; // Düzenlemede mail yeniden gönderilmez
+  document.getElementById("duyuruSilBtn").style.display = "inline-block";
+  duyuruHedefDegisti();
+};
+
+// Kaydet / Yayınla
+window.kaydetDuyuru = async function() {
+  const id = document.getElementById("duyuruDuzenleId").value;
+  const baslik = document.getElementById("duyuruBaslik").value.trim();
+  const icerik = document.getElementById("duyuruIcerik").value.trim();
+  const aciliyet = document.getElementById("duyuruAciliyet").value;
+  const hedefTur = document.getElementById("duyuruHedefTur").value;
+  const mailGonder = document.getElementById("duyuruMailGonder").checked;
+
+  if (!baslik) return showToast("Başlık zorunlu", "error");
+  if (!icerik) return showToast("İçerik zorunlu", "error");
+
+  let hedefDeger = "";
+  let hedefOgrenciAd = "";
+  if (hedefTur === "sinif") {
+    hedefDeger = document.getElementById("duyuruHedefSinif").value;
+    if (!hedefDeger) return showToast("Sınıf seçin", "error");
+  } else if (hedefTur === "ogrenci") {
+    hedefDeger = document.getElementById("duyuruHedefOgrenci").value;
+    if (!hedefDeger) return showToast("Öğrenci seçin", "error");
+    const sel = document.getElementById("duyuruHedefOgrenci");
+    hedefOgrenciAd = sel.options[sel.selectedIndex]?.dataset?.ad || "";
+  }
+
+  const data = {
+    baslik, icerik, aciliyet, hedefTur, hedefDeger, hedefOgrenciAd,
+    mailGonder,
+    arsiv: false,
+    olusturan: currentUser.email,
+    guncellendi: new Date().toISOString()
+  };
+
+  try {
+    if (id) {
+      await updateDoc(doc(db, "duyurular", id), data);
+      showToast("✓ Duyuru güncellendi");
+    } else {
+      data.olusturuldu = new Date().toISOString();
+      data.okuyanVeliler = [];
+      const ref = doc(collection(db, "duyurular"));
+      await setDoc(ref, data);
+
+      // Mail gönderimi
+      if (mailGonder) {
+        duyuruMailGonder(data);
+      }
+      showToast("✓ Duyuru yayınlandı");
+    }
+    closeDuyuruModal();
+    renderDuyurular();
+  } catch (e) {
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+// Hedef velilere mail gönder (arka planda)
+async function duyuruMailGonder(data) {
+  try {
+    // Hedef velilerin mail adreslerini topla
+    const hedefMailler = [];
+    for (const o of ogrenciList) {
+      if (getOgrenciDurum(o, ayarListesi[o.id]) !== "aktif") continue;
+
+      const ayar = ayarListesi[o.id] || {};
+      const ogrSinif = (ayar.kayit?.sinif) || o.sinif || "";
+
+      let dahil = false;
+      if (data.hedefTur === "tumOkul") dahil = true;
+      else if (data.hedefTur === "sinif" && ogrSinif === data.hedefDeger) dahil = true;
+      else if (data.hedefTur === "ogrenci" && o.id === data.hedefDeger) dahil = true;
+
+      if (!dahil) continue;
+
+      const anne = ayar.anne || {};
+      const baba = ayar.baba || {};
+      if (anne.eposta) hedefMailler.push({ mail: anne.eposta, ad: anne.adSoyad || "Anne", ogrAd: o.ogrenciAdSoyad });
+      if (baba.eposta) hedefMailler.push({ mail: baba.eposta, ad: baba.adSoyad || "Baba", ogrAd: o.ogrenciAdSoyad });
+    }
+
+    if (hedefMailler.length === 0) {
+      showToast("⚠ Hedef velilerin mail adresi kayıtlı değil", "info");
+      return;
+    }
+
+    const aciliyetLabels = { normal: "📢 Duyuru", onemli: "⚠️ Önemli Duyuru", acil: "🚨 Acil Duyuru" };
+    const aciliyetRenk = { normal: "#eab308", onemli: "#f59e0b", acil: "#dc2626" };
+    const konu = `${aciliyetLabels[data.aciliyet] || '📢 Duyuru'}: ${data.baslik}`;
+
+    // Tek tek gönder (çünkü her velinin adı özelleşmiş olmalı)
+    for (const v of hedefMailler) {
+      const icerik = `
+        <p style="margin:0 0 14px; font-size:15px;">Sayın <strong>${escapeHtml(v.ad)}</strong>,</p>
+
+        <div style="background:${data.aciliyet === 'acil' ? '#fef2f2' : data.aciliyet === 'onemli' ? '#fff7ed' : '#fefce8'}; border-left:4px solid ${aciliyetRenk[data.aciliyet]}; border-radius:8px; padding:16px 20px; margin:16px 0;">
+          <div style="font-size:12px; font-weight:700; color:${aciliyetRenk[data.aciliyet]}; letter-spacing:0.5px; margin-bottom:8px;">${aciliyetLabels[data.aciliyet]}</div>
+          <h3 style="margin:0 0 10px; color:var(--gray-800); font-size:18px;">${escapeHtml(data.baslik)}</h3>
+          <div style="font-size:14px; color:#374151; line-height:1.7; white-space:pre-wrap;">${escapeHtml(data.icerik).replace(/\n/g, '<br>')}</div>
+        </div>
+
+        <p style="margin:16px 0 0; font-size:13px; color:#6b7280; line-height:1.7;">
+          Bu duyuruyu <strong>portal.bircicekkoleji.com</strong> üzerinden <strong>Bildirimler</strong> sekmesinden de görüntüleyebilirsiniz.
+        </p>
+
+        <p style="margin:20px 0 0; font-size:13px; color:#374151;">
+          Saygılarımızla,<br>
+          <strong>Bir Çiçek Koleji Anaokulu</strong>
+        </p>
+      `;
+
+      const html = portalMailSablon(data.baslik, icerik, "Bu duyuru okul yönetimi tarafından gönderilmiştir.");
+
+      await brevoMail({
+        to: v.mail, toName: v.ad,
+        subject: konu,
+        htmlContent: html
+      });
+
+      // Rate limit için kısa bekleme
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    showToast(`📧 ${hedefMailler.length} veliye mail gönderildi`);
+  } catch (e) {
+    console.warn("Duyuru maili hatası:", e);
+  }
+}
+
+// Arşivle / Arşivden çıkar
+window.arsivleDuyuru = async function(id) {
+  try {
+    await updateDoc(doc(db, "duyurular", id), { arsiv: true, guncellendi: new Date().toISOString() });
+    showToast("✓ Arşivlendi");
+    renderDuyurular();
+  } catch (e) {
+    showToast("Hata: " + e.message, "error");
+  }
+};
+
+window.arsivAcDuyuru = async function(id) {
+  try {
+    await updateDoc(doc(db, "duyurular", id), { arsiv: false, guncellendi: new Date().toISOString() });
+    showToast("✓ Arşivden çıkarıldı");
+    renderDuyurular();
+  } catch (e) {
+    showToast("Hata: " + e.message, "error");
+  }
+};
+
+// Sil
+window.silDuyuru = async function() {
+  const id = document.getElementById("duyuruDuzenleId").value;
+  if (!id) return;
+  if (!confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
+  try {
+    await deleteDoc(doc(db, "duyurular", id));
+    showToast("✗ Duyuru silindi");
+    closeDuyuruModal();
+    renderDuyurular();
+  } catch (e) {
+    showToast("Silinemedi: " + e.message, "error");
+  }
+};
+
+window.silDuyuruHizli = async function(id) {
+  if (!confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
+  try {
+    await deleteDoc(doc(db, "duyurular", id));
+    showToast("✗ Duyuru silindi");
+    renderDuyurular();
+  } catch (e) {
+    showToast("Silinemedi: " + e.message, "error");
+  }
+};
+
 
 function hesaplaFinansGecikenler() {
   const bugun = new Date();
@@ -11203,58 +11622,124 @@ async function veliRenderBildirimler() {
   const el = document.getElementById("veliBildirimlerContent");
   if (!el) return;
 
-  try {
-    const snap = await getDocs(collection(db, "krediKartiTalepleri"));
-    const tumu = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const benim = tumu
-      .filter(t => t.veliEposta === currentUser.email)
-      .sort((a, b) => (b.olusturuldu || "").localeCompare(a.olusturuldu || ""));
+  el.innerHTML = `<div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>`;
 
-    if (benim.length === 0) {
+  const bildirimler = []; // Birleşik liste
+
+  try {
+    // 1. Kredi kartı talepleri
+    const talepSnap = await getDocs(collection(db, "krediKartiTalepleri"));
+    const talepler = talepSnap.docs.map(d => ({ id: d.id, ...d.data(), _tip: "talep" }));
+    const benimTalepler = talepler.filter(t => t.veliEposta === currentUser.email);
+    bildirimler.push(...benimTalepler);
+
+    // 2. Duyurular - veli hedefli olanlar
+    try {
+      const duyuruSnap = await getDocs(collection(db, "duyurular"));
+      const duyurular = duyuruSnap.docs.map(d => ({ id: d.id, ...d.data(), _tip: "duyuru" }));
+
+      for (const d of duyurular) {
+        if (d.arsiv) continue;
+        let dahil = false;
+        if (d.hedefTur === "tumOkul") dahil = true;
+        else if (d.hedefTur === "sinif") {
+          // Bu velinin çocuklarından biri bu sınıfta mı?
+          for (const o of (veliOgrenciler || [])) {
+            const donemVeri = o._donemVeri || {};
+            const ogrSinif = (donemVeri.kayit?.sinif) || o.sinif || "";
+            if (ogrSinif === d.hedefDeger) { dahil = true; break; }
+          }
+        } else if (d.hedefTur === "ogrenci") {
+          dahil = (veliOgrenciler || []).some(o => o.id === d.hedefDeger);
+        }
+
+        if (dahil) bildirimler.push(d);
+      }
+    } catch (e) { console.warn("Duyurular yüklenemedi:", e); }
+
+    // Tarihe göre sırala (yeni üstte)
+    bildirimler.sort((a, b) => (b.olusturuldu || "").localeCompare(a.olusturuldu || ""));
+
+    if (bildirimler.length === 0) {
       el.innerHTML = `
         <div style="background:#f9fafb; border:1px solid var(--gray-200); border-radius:14px; padding:40px; text-align:center;">
           <div style="font-size:48px; margin-bottom:12px;">📭</div>
           <div style="font-family:var(--font-display); font-size:16px; color:var(--gray-700); margin-bottom:6px;">Henüz bildiriminiz yok</div>
-          <div style="font-size:13px; color:var(--gray-500);">Kredi kartı talepleriniz ve okul bildirimleri burada görünecek.</div>
+          <div style="font-size:13px; color:var(--gray-500);">Okul duyuruları ve talepleriniz burada görünecek.</div>
         </div>
       `;
       return;
     }
 
-    const durumStilleri = {
+    const talepStilleri = {
       bekliyor: { bg: "#fef9c3", border: "#fde68a", text: "#78350f", label: "⏳ Bekliyor", aciklama: "Okul yönetimi en kısa sürede sizi arayacak" },
       arandi: { bg: "#dbeafe", border: "#bfdbfe", text: "#1e40af", label: "📞 Arandınız", aciklama: "Okul yönetimi tarafından arandınız, ödeme sürecindesiniz" },
       tamamlandi: { bg: "#f0fdf4", border: "#bbf7d0", text: "#166534", label: "✓ Tamamlandı", aciklama: "Ödemeniz başarıyla alındı" },
       iptal: { bg: "#f3f4f6", border: "#d1d5db", text: "#6b7280", label: "✗ İptal", aciklama: "Talep iptal edildi" }
     };
 
+    const duyuruStilleri = {
+      normal: { bg: "#fefce8", border: "#fde68a", text: "#78350f", ikon: "📢", label: "Duyuru" },
+      onemli: { bg: "#fff7ed", border: "#fed7aa", text: "#9a3412", ikon: "⚠️", label: "Önemli Duyuru" },
+      acil: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b", ikon: "🚨", label: "Acil Duyuru" }
+    };
+
     let html = `<div style="display:flex; flex-direction:column; gap:12px;">`;
-    for (const t of benim) {
-      const stil = durumStilleri[t.durum] || durumStilleri.bekliyor;
-      const olusturuldu = t.olusturuldu ? new Date(t.olusturuldu).toLocaleString("tr-TR") : "";
-      html += `
-        <div style="background:${stil.bg}; border:1px solid ${stil.border}; border-radius:14px; padding:16px 20px;">
-          <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
-            <div>
-              <div style="font-family:var(--font-display); font-size:15px; font-weight:700; color:${stil.text};">💳 Kredi Kartı Ödeme Talebi</div>
-              <div style="font-size:12px; color:${stil.text}; opacity:0.8; margin-top:2px;">${escapeHtml(t.ogrenciAd)}</div>
+    for (const b of bildirimler) {
+      const olusturuldu = b.olusturuldu ? new Date(b.olusturuldu).toLocaleString("tr-TR") : "";
+
+      if (b._tip === "talep") {
+        const stil = talepStilleri[b.durum] || talepStilleri.bekliyor;
+        html += `
+          <div style="background:${stil.bg}; border:1px solid ${stil.border}; border-radius:14px; padding:16px 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
+              <div>
+                <div style="font-family:var(--font-display); font-size:15px; font-weight:700; color:${stil.text};">💳 Kredi Kartı Ödeme Talebi</div>
+                <div style="font-size:12px; color:${stil.text}; opacity:0.8; margin-top:2px;">${escapeHtml(b.ogrenciAd)}</div>
+              </div>
+              <span style="background:white; color:${stil.text}; padding:4px 12px; border-radius:10px; font-size:11px; font-weight:700;">${stil.label}</span>
             </div>
-            <span style="background:white; color:${stil.text}; padding:4px 12px; border-radius:10px; font-size:11px; font-weight:700;">${stil.label}</span>
-          </div>
-          <div style="font-size:13px; color:${stil.text}; line-height:1.6; margin:8px 0;">
-            ${stil.aciklama}
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:10px; padding-top:10px; border-top:1px dashed ${stil.border};">
-            <div style="font-size:11px; color:${stil.text}; opacity:0.8;">${olusturuldu}</div>
-            <div style="font-size:13px; font-weight:600; color:${stil.text};">₺${(t.borc || 0).toLocaleString("tr-TR")}</div>
-          </div>
-          ${t.adminNotu ? `
-            <div style="background:white; border-radius:8px; padding:10px 14px; margin-top:10px; font-size:12px; color:var(--gray-700);">
-              <strong>📝 Okuldan Not:</strong><br>${escapeHtml(t.adminNotu)}
+            <div style="font-size:13px; color:${stil.text}; line-height:1.6; margin:8px 0;">${stil.aciklama}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:10px; padding-top:10px; border-top:1px dashed ${stil.border};">
+              <div style="font-size:11px; color:${stil.text}; opacity:0.8;">${olusturuldu}</div>
+              <div style="font-size:13px; font-weight:600; color:${stil.text};">₺${(b.borc || 0).toLocaleString("tr-TR")}</div>
             </div>
-          ` : ''}
-        </div>
-      `;
+            ${b.adminNotu ? `
+              <div style="background:white; border-radius:8px; padding:10px 14px; margin-top:10px; font-size:12px; color:var(--gray-700);">
+                <strong>📝 Okuldan Not:</strong><br>${escapeHtml(b.adminNotu)}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      } else if (b._tip === "duyuru") {
+        const stil = duyuruStilleri[b.aciliyet] || duyuruStilleri.normal;
+        const hedefLabel = b.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
+          : b.hedefTur === "sinif" ? `👥 ${escapeHtml(b.hedefDeger)}`
+          : `👤 ${escapeHtml(b.hedefOgrenciAd || "")}`;
+
+        html += `
+          <div style="background:${stil.bg}; border:1px solid ${stil.border}; border-left:4px solid ${stil.text}; border-radius:14px; padding:16px 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                  <span style="background:white; color:${stil.text}; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700;">${stil.ikon} ${stil.label}</span>
+                  <span style="background:rgba(255,255,255,0.7); color:${stil.text}; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:600;">${hedefLabel}</span>
+                </div>
+                <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:${stil.text}; margin-top:4px;">${escapeHtml(b.baslik)}</div>
+              </div>
+              <span style="font-size:11px; color:${stil.text}; opacity:0.8;">${olusturuldu}</span>
+            </div>
+            <div style="font-size:13px; color:${stil.text}; line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(b.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1" target="_blank" style="color:inherit; font-weight:600;">$2</a>')}</div>
+          </div>
+        `;
+
+        // Duyuruyu okundu olarak işaretle (arka planda)
+        if (!b.okuyanVeliler || !b.okuyanVeliler.includes(currentUser.email)) {
+          updateDoc(doc(db, "duyurular", b.id), {
+            okuyanVeliler: [...(b.okuyanVeliler || []), currentUser.email]
+          }).catch(e => console.warn("Okundu kaydedilemedi:", e));
+        }
+      }
     }
     html += `</div>`;
     el.innerHTML = html;
