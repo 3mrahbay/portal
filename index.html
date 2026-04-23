@@ -3515,6 +3515,19 @@ html, body {
   border: none;
   text-align: left;
   font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  scroll-margin-top: 100px;
+}
+
+.veli-menu-item:focus {
+  outline: none;
+}
+.veli-menu-item:focus-visible {
+  outline: 2px solid #2d6a4f;
+  outline-offset: 2px;
 }
 
 .veli-menu-item:hover { background: rgba(45, 106, 79, 0.08); }
@@ -3733,7 +3746,7 @@ html, body {
     padding: 10px;
   }
   .veli-sidebar-logo { display: none; }
-  .veli-menu-item { flex-shrink: 0; padding: 8px 12px; font-size: 12px; }
+  .veli-menu-item { flex-shrink: 0; padding: 8px 12px; font-size: 12px; width: auto; }
   .veli-sidebar-bottom { display: none; }
   .veli-main { padding: 16px; }
   .veli-student-hero { padding: 16px 18px; }
@@ -4227,38 +4240,38 @@ html, body {
         <div class="veli-sidebar-logo-text">Bir Çiçek Koleji<br>Veli Portalı</div>
       </div>
 
-      <button class="veli-menu-item active" data-veli-tab="dashboard" onclick="veliSwitchTab('dashboard')">
+      <button type="button" class="veli-menu-item active" data-veli-tab="dashboard" onclick="veliSwitchTab('dashboard')">
         <span class="veli-menu-icon">🏠</span><span>Dashboard</span>
       </button>
-      <button class="veli-menu-item" data-veli-tab="odemeler" onclick="veliSwitchTab('odemeler')">
+      <button type="button" class="veli-menu-item" data-veli-tab="odemeler" onclick="veliSwitchTab('odemeler')">
         <span class="veli-menu-icon">💰</span><span>Ödemeler</span>
       </button>
-      <button class="veli-menu-item" data-veli-tab="sozlesme" onclick="veliSwitchTab('sozlesme')">
+      <button type="button" class="veli-menu-item" data-veli-tab="sozlesme" onclick="veliSwitchTab('sozlesme')">
         <span class="veli-menu-icon">📄</span><span>Sözleşme</span>
       </button>
-      <button class="veli-menu-item" data-veli-tab="ogrenci" onclick="veliSwitchTab('ogrenci')">
+      <button type="button" class="veli-menu-item" data-veli-tab="ogrenci" onclick="veliSwitchTab('ogrenci')">
         <span class="veli-menu-icon">👤</span><span>Öğrenci Bilgileri</span>
       </button>
-      <button class="veli-menu-item" data-veli-tab="okul" onclick="veliSwitchTab('okul')">
+      <button type="button" class="veli-menu-item" data-veli-tab="okul" onclick="veliSwitchTab('okul')">
         <span class="veli-menu-icon">📅</span><span>Okul Hayatı</span>
       </button>
-      <button class="veli-menu-item" data-veli-tab="iletisim" onclick="veliSwitchTab('iletisim')">
+      <button type="button" class="veli-menu-item" data-veli-tab="iletisim" onclick="veliSwitchTab('iletisim')">
         <span class="veli-menu-icon">💬</span><span>İletişim</span>
       </button>
-      <button class="veli-menu-item" data-veli-tab="galeri" onclick="veliSwitchTab('galeri')">
+      <button type="button" class="veli-menu-item" data-veli-tab="galeri" onclick="veliSwitchTab('galeri')">
         <span class="veli-menu-icon">📸</span><span>Galeri</span>
       </button>
-      <button class="veli-menu-item" data-veli-tab="raporlar" onclick="veliSwitchTab('raporlar')">
+      <button type="button" class="veli-menu-item" data-veli-tab="raporlar" onclick="veliSwitchTab('raporlar')">
         <span class="veli-menu-icon">📊</span><span>Raporlar</span>
       </button>
 
       <div class="veli-menu-spacer"></div>
 
       <div class="veli-sidebar-bottom">
-        <button class="veli-menu-item" data-veli-tab="ayarlar" onclick="veliSwitchTab('ayarlar')">
+        <button type="button" class="veli-menu-item" data-veli-tab="ayarlar" onclick="veliSwitchTab('ayarlar')">
           <span class="veli-menu-icon">⚙️</span><span>Ayarlar</span>
         </button>
-        <button class="veli-menu-item" onclick="signOut()">
+        <button type="button" class="veli-menu-item" onclick="signOut()">
           <span class="veli-menu-icon">🚪</span><span>Çıkış Yap</span>
         </button>
       </div>
@@ -4275,6 +4288,7 @@ html, body {
         </div>
         <div class="veli-user-badge">
           <div class="veli-avatar" id="veliAvatarInitial">V</div>
+          <button class="veli-btn-secondary" onclick="signOut()" title="Çıkış Yap" style="padding:8px 14px; font-size:12px;">🚪 Çıkış</button>
         </div>
       </div>
 
@@ -6384,6 +6398,14 @@ window.veliSwitchTab = function(tabName) {
   document.querySelectorAll(".veli-tab-panel").forEach(p => {
     p.classList.toggle("active", p.id === `veliPanel-${tabName}`);
   });
+  // Ana içerik alanını en üste kaydır (butonun odak kaymasını engellemek için)
+  const main = document.querySelector(".veli-main");
+  if (main) main.scrollTop = 0;
+  window.scrollTo({ top: 0, behavior: "instant" });
+  // Butondaki odak halkasını kaldır
+  if (document.activeElement && document.activeElement.blur) {
+    document.activeElement.blur();
+  }
   // Sekmeyi render et
   veliRenderTab(tabName);
 };
