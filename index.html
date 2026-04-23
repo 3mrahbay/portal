@@ -5173,33 +5173,41 @@ html, body {
 
         <!-- YEMEK MENÜSÜ -->
         <div id="icerikAlt-yemek" class="icerik-alt-panel" style="display:none;">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">🍽</div>
-            <h3>Yemek Menüsü</h3>
-            <p>Haftalık yemek menüsünü girin, velilerinize anlık gösterilsin.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Haftalık menü (Pzt-Cuma)</div>
-              <div>✓ Sabah kahvaltısı + öğle yemeği + ikindi</div>
-              <div>✓ Kalori bilgisi + alerjen uyarısı</div>
-              <div>✓ Mevsimsel öneriler (otomatik)</div>
+          <!-- Üst bar: hafta seçici + yeni menü -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; background:white; border:1px solid var(--gray-300); border-radius:12px; padding:14px 18px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button class="btn-mini" onclick="yemekHaftaDegistir(-1)">← Önceki Hafta</button>
+              <div id="yemekHaftaEtiketi" style="padding:8px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; font-weight:600; color:#9a3412; font-size:13px; min-width:220px; text-align:center;">Hafta yükleniyor...</div>
+              <button class="btn-mini" onclick="yemekHaftaDegistir(1)">Sonraki Hafta →</button>
+              <button class="btn-mini" onclick="yemekBuHaftaGit()" title="Bu haftaya git">📅 Bugün</button>
             </div>
-            <div class="icerik-placeholder-rozet">TUR 3'de aktif olacak</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-primary" onclick="yemekMenusuDuzenle()" style="background:#f97316; border:none; color:white;">✏️ Bu Haftayı Düzenle</button>
+            </div>
+          </div>
+
+          <!-- Menü Tablosu -->
+          <div id="yemekMenusuGorunum">
+            <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
           </div>
         </div>
 
         <!-- ETKİNLİKLER -->
         <div id="icerikAlt-etkinlik" class="icerik-alt-panel" style="display:none;">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">📅</div>
-            <h3>Etkinlik Takvimi</h3>
-            <p>Gezi, kutlama, veli toplantısı gibi etkinliklerinizi planlayın.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Tarihli etkinlik ekleme</div>
-              <div>✓ Kategori: Gezi / Kutlama / Toplantı / Atölye</div>
-              <div>✓ Hedef: Tüm okul / Sınıf bazlı</div>
-              <div>✓ Veli panelinde takvim görünümü</div>
+          <!-- Üst bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-mini" data-etkinlik-filter="yaklasan" onclick="etkinlikFilter('yaklasan')" style="background:#3b82f6; border:none; color:white;">🔜 Yaklaşan</button>
+              <button class="btn-mini" data-etkinlik-filter="buAy" onclick="etkinlikFilter('buAy')">📅 Bu Ay</button>
+              <button class="btn-mini" data-etkinlik-filter="gecmis" onclick="etkinlikFilter('gecmis')">⏮ Geçmiş</button>
+              <button class="btn-mini" data-etkinlik-filter="tumu" onclick="etkinlikFilter('tumu')">📁 Tümü</button>
             </div>
-            <div class="icerik-placeholder-rozet">TUR 3'de aktif olacak</div>
+            <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
+          </div>
+
+          <!-- Liste -->
+          <div id="etkinlikListesi">
+            <div class="loading"><div class="spinner"></div><p>Etkinlikler yükleniyor...</p></div>
           </div>
         </div>
 
@@ -5407,6 +5415,120 @@ html, body {
           <button class="btn-secondary" onclick="closeDuyuruModal()">İptal</button>
           <button class="btn-primary" onclick="kaydetDuyuru()" style="background:#eab308; border:none;">💾 Yayınla</button>
           <button class="btn-secondary" id="duyuruSilBtn" onclick="silDuyuru()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- YEMEK MENÜSÜ DÜZENLEME MODAL -->
+    <div class="modal-overlay" id="yemekModal">
+      <div class="modal" style="max-width:900px; max-height:90vh; display:flex; flex-direction:column;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border-bottom:1px solid #fed7aa;">
+          <h3 id="yemekModalBaslik" style="color:#9a3412;">🍽 Yemek Menüsü - Hafta</h3>
+          <button class="close-btn" onclick="closeYemekModal()">×</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto; flex:1;">
+          <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:14px 18px; margin-bottom:16px; font-size:13px; color:#9a3412;">
+            <strong>💡 Bilgi:</strong> Her gün için 3 öğün doldurun. Alerjen uyarıları için "Alerjen" alanına yazın (örn: "süt, buğday").
+          </div>
+          <div id="yemekModalTablo"><!-- JS ile doldurulur --></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeYemekModal()">İptal</button>
+          <button class="btn-primary" onclick="kaydetYemekMenusu()" style="background:#f97316; border:none;">💾 Kaydet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ETKİNLİK OLUŞTUR/DÜZENLE MODAL -->
+    <div class="modal-overlay" id="etkinlikModal">
+      <div class="modal" style="max-width:640px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom:1px solid #bfdbfe;">
+          <h3 id="etkinlikModalBaslik" style="color:#1e40af;">📅 Yeni Etkinlik</h3>
+          <button class="close-btn" onclick="closeEtkinlikModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="etkinlikDuzenleId" value="">
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label>Etkinlik Başlığı *</label>
+              <input type="text" id="etkinlikBaslik" placeholder="Örn: Bahar Şenliği" maxlength="120">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Kategori</label>
+              <select id="etkinlikKategori">
+                <option value="gezi">🚌 Gezi</option>
+                <option value="kutlama">🎉 Kutlama</option>
+                <option value="toplanti">👥 Veli Toplantısı</option>
+                <option value="atolye">🎨 Atölye</option>
+                <option value="diger">📌 Diğer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Hedef Kitle</label>
+              <select id="etkinlikHedefTur" onchange="etkinlikHedefDegisti()">
+                <option value="tumOkul">🏫 Tüm Okul</option>
+                <option value="sinif">👥 Belirli Sınıf</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid full" id="etkinlikHedefSinifWrap" style="display:none;">
+            <div class="form-group">
+              <label>Sınıf</label>
+              <select id="etkinlikHedefSinif">
+                <option value="">-- Sınıf Seçin --</option>
+                <option value="Montessori 2">Montessori 2</option>
+                <option value="Montessori 3">Montessori 3</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tarih *</label>
+              <input type="date" id="etkinlikTarih">
+            </div>
+            <div class="form-group">
+              <label>Saat</label>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="time" id="etkinlikBaslangicSaat" style="flex:1;">
+                <span style="color:var(--gray-500);">-</span>
+                <input type="time" id="etkinlikBitisSaat" style="flex:1;">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label>Konum</label>
+              <input type="text" id="etkinlikKonum" placeholder="Örn: Okul bahçesi / Tuzla Büyük Park">
+            </div>
+          </div>
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label>Açıklama</label>
+              <textarea id="etkinlikAciklama" rows="4" placeholder="Etkinlik detayları, veli katılımı, gerekli eşyalar..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox" id="etkinlikMailGonder" style="width:18px; height:18px;">
+                <span>📧 Velilere e-posta ile de gönder</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeEtkinlikModal()">İptal</button>
+          <button class="btn-primary" onclick="kaydetEtkinlik()" style="background:#3b82f6; border:none;">💾 Kaydet</button>
+          <button class="btn-secondary" id="etkinlikSilBtn" onclick="silEtkinlik()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
         </div>
       </div>
     </div>
@@ -5708,12 +5830,27 @@ html, body {
 
       <!-- OKUL HAYATI (Placeholder) -->
       <div class="veli-tab-panel" id="veliPanel-okul">
+        <!-- YEMEK MENÜSÜ -->
+        <div class="veli-card" style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+            <div class="veli-card-title" style="margin:0;">🍽 Yemek Menüsü</div>
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <button class="btn-mini" onclick="veliYemekHaftaDegistir(-1)">←</button>
+              <div id="veliYemekHaftaEtiketi" style="padding:6px 12px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; font-weight:600; color:#9a3412; font-size:12px; min-width:180px; text-align:center;">...</div>
+              <button class="btn-mini" onclick="veliYemekHaftaDegistir(1)">→</button>
+              <button class="btn-mini" onclick="veliYemekBuHaftaGit()" title="Bu haftaya git">📅</button>
+            </div>
+          </div>
+          <div id="veliYemekMenusuGorunum">
+            <div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>
+          </div>
+        </div>
+
+        <!-- YAKLAŞAN ETKİNLİKLER -->
         <div class="veli-card">
-          <div class="veli-placeholder">
-            <div class="ph-icon">📅</div>
-            <h3>Okul Hayatı</h3>
-            <p>Devamsızlık takibi, haftalık yemek menüsü ve etkinlik takvimi burada görüntülenecek.</p>
-            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          <div class="veli-card-title" style="margin-bottom:14px;">📅 Yaklaşan Etkinlikler</div>
+          <div id="veliEtkinlikListesi">
+            <div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>
           </div>
         </div>
       </div>
@@ -7961,6 +8098,7 @@ function veliRenderTab(tabName) {
   else if (tabName === "sozlesme") veliRenderSozlesme();
   else if (tabName === "ogrenci") veliRenderOgrenci();
   else if (tabName === "bildirimler") veliRenderBildirimler();
+  else if (tabName === "okul") veliRenderOkulHayati();
   // Diğer sekmeler placeholder — henüz render gerekmez
 }
 
@@ -9579,6 +9717,8 @@ window.icerikSwitchAlt = function(alt) {
 
 function renderIcerikAltSekme() {
   if (aktifIcerikAlt === "duyurular") renderDuyurular();
+  else if (aktifIcerikAlt === "yemek") renderYemekMenusu();
+  else if (aktifIcerikAlt === "etkinlik") renderEtkinlikler();
   // Sonraki turlarda diğer alt sekmeler
 }
 
@@ -9913,6 +10053,482 @@ window.silDuyuruHizli = async function(id) {
   } catch (e) {
     showToast("Silinemedi: " + e.message, "error");
   }
+};
+
+// ============ YEMEK MENÜSÜ SİSTEMİ (Tur 3) ============
+let aktifYemekHaftaBaslangic = null; // Pazartesi tarihi ISO
+let aktifYemekVerisi = null;
+
+const YEMEK_GUNLER = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma"];
+const YEMEK_OGUNLER = [
+  { key: "sabah", label: "🌅 Sabah Kahvaltısı", renk: "#fef9c3" },
+  { key: "ogle", label: "🍽 Öğle Yemeği", renk: "#fff7ed" },
+  { key: "ikindi", label: "🍎 İkindi Atıştırması", renk: "#dbeafe" }
+];
+
+// Tarihin o haftasının Pazartesi gününü bul (Türkiye hafta: Pzt başlar)
+function haftaBaslangic(tarih) {
+  const d = new Date(tarih);
+  const gun = d.getDay(); // 0=Pzr, 1=Pzt
+  const diff = (gun === 0 ? -6 : 1 - gun);
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isoTarih(d) {
+  return d.toISOString().substring(0, 10);
+}
+
+function haftaKodu(d) {
+  return isoTarih(haftaBaslangic(d));
+}
+
+function haftaEtiketi(d) {
+  const pzt = haftaBaslangic(d);
+  const cum = new Date(pzt);
+  cum.setDate(cum.getDate() + 4);
+  const fmt = (dd) => dd.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+  return `${fmt(pzt)} - ${fmt(cum)} ${cum.getFullYear()}`;
+}
+
+window.yemekHaftaDegistir = function(hafta) {
+  const d = new Date(aktifYemekHaftaBaslangic || new Date());
+  d.setDate(d.getDate() + (hafta * 7));
+  aktifYemekHaftaBaslangic = haftaBaslangic(d);
+  renderYemekMenusu();
+};
+
+window.yemekBuHaftaGit = function() {
+  aktifYemekHaftaBaslangic = haftaBaslangic(new Date());
+  renderYemekMenusu();
+};
+
+async function renderYemekMenusu() {
+  const el = document.getElementById("yemekMenusuGorunum");
+  if (!el) return;
+
+  if (!aktifYemekHaftaBaslangic) aktifYemekHaftaBaslangic = haftaBaslangic(new Date());
+
+  // Hafta etiketini güncelle
+  const hEtiket = document.getElementById("yemekHaftaEtiketi");
+  if (hEtiket) hEtiket.textContent = "📅 " + haftaEtiketi(aktifYemekHaftaBaslangic);
+
+  // Firestore'dan bu haftanın menüsünü çek
+  const kod = haftaKodu(aktifYemekHaftaBaslangic);
+  try {
+    const snap = await getDoc(doc(db, "yemekMenuleri", kod));
+    aktifYemekVerisi = snap.exists() ? snap.data() : null;
+  } catch (e) {
+    console.warn("Menü yüklenemedi:", e);
+    aktifYemekVerisi = null;
+  }
+
+  // Tablo oluştur
+  const pzt = aktifYemekHaftaBaslangic;
+  const gunTarihler = [];
+  for (let i = 0; i < 5; i++) {
+    const t = new Date(pzt);
+    t.setDate(pzt.getDate() + i);
+    gunTarihler.push(t);
+  }
+
+  let html = `<div style="overflow-x:auto;"><table style="width:100%; border-collapse:separate; border-spacing:6px; min-width:700px;">`;
+
+  // Başlık satırı (günler)
+  html += `<tr><th style="width:110px;"></th>`;
+  for (let i = 0; i < 5; i++) {
+    const t = gunTarihler[i];
+    const bugunMu = isoTarih(t) === isoTarih(new Date());
+    html += `
+      <th style="padding:12px; background:${bugunMu ? '#f97316' : 'white'}; color:${bugunMu ? 'white' : '#9a3412'}; border:1px solid #fed7aa; border-radius:10px; font-family:var(--font-display); font-size:13px; text-align:center;">
+        <div>${YEMEK_GUNLER[i]}</div>
+        <div style="font-size:11px; opacity:0.85; font-weight:400; margin-top:2px;">${t.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</div>
+      </th>
+    `;
+  }
+  html += `</tr>`;
+
+  // Öğün satırları
+  for (const ogun of YEMEK_OGUNLER) {
+    html += `<tr>
+      <td style="padding:10px; background:${ogun.renk}; border:1px solid #fde68a; border-radius:10px; font-size:12px; font-weight:700; color:var(--gray-700); text-align:center; font-family:var(--font-display);">${ogun.label}</td>
+    `;
+    for (let i = 0; i < 5; i++) {
+      const gunData = (aktifYemekVerisi?.gunler?.[i] || {})[ogun.key] || {};
+      const yemek = gunData.yemek || "";
+      const kalori = gunData.kalori || "";
+      const alerjen = gunData.alerjen || "";
+
+      html += `
+        <td style="padding:12px; background:white; border:1px solid var(--gray-200); border-radius:10px; font-size:12px; color:var(--gray-700); line-height:1.5; vertical-align:top; min-height:80px;">
+          ${yemek ? `
+            <div style="font-weight:600; color:var(--gray-800); margin-bottom:4px;">${escapeHtml(yemek)}</div>
+            ${kalori ? `<div style="font-size:11px; color:#166534;">🔥 ~${escapeHtml(kalori)} kcal</div>` : ''}
+            ${alerjen ? `<div style="font-size:11px; color:#991b1b; margin-top:4px;">⚠ ${escapeHtml(alerjen)}</div>` : ''}
+          ` : '<div style="color:#9ca3af; font-style:italic; text-align:center; padding:8px;">— boş —</div>'}
+        </td>
+      `;
+    }
+    html += `</tr>`;
+  }
+  html += `</table></div>`;
+
+  // Alt bilgi
+  if (!aktifYemekVerisi) {
+    html += `<div style="text-align:center; margin-top:20px; padding:20px; background:white; border:2px dashed var(--gray-300); border-radius:12px; font-size:13px; color:var(--gray-600);">
+      📭 Bu hafta için menü henüz eklenmemiş. <strong style="color:#f97316; cursor:pointer;" onclick="yemekMenusuDuzenle()">+ Şimdi Ekle</strong>
+    </div>`;
+  } else if (aktifYemekVerisi.guncellendi) {
+    html += `<div style="text-align:right; margin-top:10px; font-size:11px; color:var(--gray-500);">Son güncelleme: ${new Date(aktifYemekVerisi.guncellendi).toLocaleString("tr-TR")}</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// Menü düzenleme modalını aç
+window.yemekMenusuDuzenle = function() {
+  document.getElementById("yemekModal").classList.add("active");
+  document.getElementById("yemekModalBaslik").textContent = `🍽 Menü - ${haftaEtiketi(aktifYemekHaftaBaslangic)}`;
+
+  const tablo = document.getElementById("yemekModalTablo");
+  const pzt = aktifYemekHaftaBaslangic;
+  const gunTarihler = [];
+  for (let i = 0; i < 5; i++) {
+    const t = new Date(pzt);
+    t.setDate(pzt.getDate() + i);
+    gunTarihler.push(t);
+  }
+
+  let html = `<div style="display:grid; gap:16px;">`;
+  for (let gunIdx = 0; gunIdx < 5; gunIdx++) {
+    const t = gunTarihler[gunIdx];
+    html += `
+      <div style="background:white; border:1px solid var(--gray-200); border-radius:12px; padding:16px;">
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#9a3412; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid #fed7aa;">
+          ${YEMEK_GUNLER[gunIdx]} <span style="font-size:12px; color:var(--gray-500); font-weight:400;">${t.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })}</span>
+        </div>
+    `;
+    for (const ogun of YEMEK_OGUNLER) {
+      const gunData = (aktifYemekVerisi?.gunler?.[gunIdx] || {})[ogun.key] || {};
+      html += `
+        <div style="background:${ogun.renk}; border-radius:10px; padding:12px 14px; margin-bottom:10px;">
+          <div style="font-size:12px; font-weight:700; color:var(--gray-700); margin-bottom:8px;">${ogun.label}</div>
+          <div style="display:grid; grid-template-columns:2fr 1fr 1.5fr; gap:8px;">
+            <input type="text" id="y_${gunIdx}_${ogun.key}_yemek" placeholder="Yemek adı" value="${escapeHtml(gunData.yemek || "")}" style="padding:8px; border:1px solid var(--gray-300); border-radius:8px; font-size:13px;">
+            <input type="text" id="y_${gunIdx}_${ogun.key}_kalori" placeholder="Kalori (kcal)" value="${escapeHtml(gunData.kalori || "")}" style="padding:8px; border:1px solid var(--gray-300); border-radius:8px; font-size:13px;">
+            <input type="text" id="y_${gunIdx}_${ogun.key}_alerjen" placeholder="Alerjen (ör: süt, buğday)" value="${escapeHtml(gunData.alerjen || "")}" style="padding:8px; border:1px solid var(--gray-300); border-radius:8px; font-size:13px;">
+          </div>
+        </div>
+      `;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  tablo.innerHTML = html;
+};
+
+window.closeYemekModal = function() {
+  document.getElementById("yemekModal").classList.remove("active");
+};
+
+window.kaydetYemekMenusu = async function() {
+  const gunler = [];
+  for (let i = 0; i < 5; i++) {
+    const gun = {};
+    for (const ogun of YEMEK_OGUNLER) {
+      gun[ogun.key] = {
+        yemek: (document.getElementById(`y_${i}_${ogun.key}_yemek`).value || "").trim(),
+        kalori: (document.getElementById(`y_${i}_${ogun.key}_kalori`).value || "").trim(),
+        alerjen: (document.getElementById(`y_${i}_${ogun.key}_alerjen`).value || "").trim()
+      };
+    }
+    gunler.push(gun);
+  }
+
+  const kod = haftaKodu(aktifYemekHaftaBaslangic);
+  const data = {
+    haftaBaslangic: isoTarih(aktifYemekHaftaBaslangic),
+    gunler,
+    guncellendi: new Date().toISOString(),
+    guncelleyen: currentUser.email
+  };
+
+  try {
+    await setDoc(doc(db, "yemekMenuleri", kod), data);
+    showToast("✓ Menü kaydedildi");
+    closeYemekModal();
+    renderYemekMenusu();
+  } catch (e) {
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+// ============ ETKİNLİK TAKVİMİ (Tur 3) ============
+let etkinlikListesi = [];
+let aktifEtkinlikFilter = "yaklasan";
+
+window.etkinlikFilter = function(f) {
+  aktifEtkinlikFilter = f;
+  document.querySelectorAll("[data-etkinlik-filter]").forEach(b => {
+    if (b.dataset.etkinlikFilter === f) {
+      b.style.background = "#3b82f6"; b.style.color = "white"; b.style.border = "none";
+    } else {
+      b.style.background = ""; b.style.color = ""; b.style.border = "";
+    }
+  });
+  renderEtkinlikler();
+};
+
+async function loadEtkinlikler() {
+  try {
+    const snap = await getDocs(collection(db, "etkinlikler"));
+    etkinlikListesi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn("Etkinlikler yüklenemedi:", e);
+    etkinlikListesi = [];
+  }
+}
+
+async function renderEtkinlikler() {
+  const el = document.getElementById("etkinlikListesi");
+  if (!el) return;
+
+  await loadEtkinlikler();
+
+  const bugun = new Date();
+  bugun.setHours(0, 0, 0, 0);
+  const buAy = bugun.getFullYear() + "-" + String(bugun.getMonth() + 1).padStart(2, "0");
+
+  let liste = [...etkinlikListesi];
+  if (aktifEtkinlikFilter === "yaklasan") {
+    liste = liste.filter(e => e.tarih && new Date(e.tarih) >= bugun);
+  } else if (aktifEtkinlikFilter === "buAy") {
+    liste = liste.filter(e => (e.tarih || "").startsWith(buAy));
+  } else if (aktifEtkinlikFilter === "gecmis") {
+    liste = liste.filter(e => e.tarih && new Date(e.tarih) < bugun);
+  }
+
+  liste.sort((a, b) => aktifEtkinlikFilter === "gecmis"
+    ? (b.tarih || "").localeCompare(a.tarih || "")
+    : (a.tarih || "").localeCompare(b.tarih || ""));
+
+  if (liste.length === 0) {
+    el.innerHTML = `
+      <div style="background:white; border:2px dashed var(--gray-300); border-radius:14px; padding:40px 20px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:12px;">📅</div>
+        <div style="font-family:var(--font-display); font-size:17px; color:var(--gray-700); margin-bottom:6px;">${aktifEtkinlikFilter === "gecmis" ? "Geçmiş etkinlik yok" : "Etkinlik bulunamadı"}</div>
+        <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">İlk etkinliğinizi oluşturun</div>
+        <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
+      </div>
+    `;
+    return;
+  }
+
+  const kategoriStilleri = {
+    gezi:     { ikon: "🚌", label: "Gezi",              renk: "#059669", bg: "#f0fdf4", border: "#bbf7d0" },
+    kutlama:  { ikon: "🎉", label: "Kutlama",           renk: "#e11d48", bg: "#fff1f2", border: "#fecdd3" },
+    toplanti: { ikon: "👥", label: "Veli Toplantısı",   renk: "#1e40af", bg: "#eff6ff", border: "#bfdbfe" },
+    atolye:   { ikon: "🎨", label: "Atölye",            renk: "#9333ea", bg: "#faf5ff", border: "#e9d5ff" },
+    diger:    { ikon: "📌", label: "Diğer",             renk: "#6b7280", bg: "#f9fafb", border: "#d1d5db" }
+  };
+
+  let html = `<div style="display:flex; flex-direction:column; gap:12px;">`;
+  for (const e of liste) {
+    const st = kategoriStilleri[e.kategori] || kategoriStilleri.diger;
+    const etkinlikTarih = e.tarih ? new Date(e.tarih) : null;
+    const gecmisMi = etkinlikTarih && etkinlikTarih < bugun;
+    const buGunMu = etkinlikTarih && isoTarih(etkinlikTarih) === isoTarih(bugun);
+    const hedefLabel = e.hedefTur === "tumOkul" ? "🏫 Tüm Okul" : `👥 ${escapeHtml(e.hedefDeger)}`;
+
+    const tarihStr = etkinlikTarih ? etkinlikTarih.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "Tarih yok";
+    const saatStr = e.baslangicSaat ? (e.bitisSaat ? `${e.baslangicSaat} - ${e.bitisSaat}` : e.baslangicSaat) : "";
+
+    html += `
+      <div style="background:white; border:1px solid ${st.border}; border-left:4px solid ${st.renk}; border-radius:12px; padding:16px 20px; ${gecmisMi ? 'opacity:0.7;' : ''}">
+        <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:12px;">
+          <div style="flex:1; min-width:220px;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+              <span style="background:${st.bg}; border:1px solid ${st.border}; color:${st.renk}; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700;">${st.ikon} ${st.label}</span>
+              <span style="background:#f3f4f6; color:var(--gray-700); padding:3px 10px; border-radius:8px; font-size:11px; font-weight:600;">${hedefLabel}</span>
+              ${buGunMu ? '<span style="background:#fef9c3; border:1px solid #fde68a; color:#78350f; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700;">📍 BUGÜN</span>' : ''}
+              ${gecmisMi ? '<span style="background:#f3f4f6; color:var(--gray-500); padding:3px 10px; border-radius:8px; font-size:11px; font-weight:600;">⏮ Geçmiş</span>' : ''}
+            </div>
+            <div style="font-family:var(--font-display); font-size:17px; font-weight:700; color:var(--gray-800);">${escapeHtml(e.baslik)}</div>
+            <div style="font-size:13px; color:var(--gray-600); margin-top:6px;">
+              📅 ${tarihStr}${saatStr ? ' · ⏰ ' + saatStr : ''}
+              ${e.konum ? '<br>📍 ' + escapeHtml(e.konum) : ''}
+            </div>
+            ${e.aciklama ? `<div style="font-size:13px; color:var(--gray-700); line-height:1.6; margin-top:8px; padding-top:8px; border-top:1px dashed var(--gray-200); white-space:pre-wrap;">${escapeHtml(e.aciklama)}</div>` : ''}
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
+          <button onclick="duzenleEtkinlik('${e.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">✏️ Düzenle</button>
+          <button onclick="silEtkinlikHizli('${e.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;">🗑 Sil</button>
+        </div>
+      </div>
+    `;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+window.openEtkinlikModal = function() {
+  document.getElementById("etkinlikModal").classList.add("active");
+  document.getElementById("etkinlikModalBaslik").textContent = "📅 Yeni Etkinlik";
+  document.getElementById("etkinlikDuzenleId").value = "";
+  document.getElementById("etkinlikBaslik").value = "";
+  document.getElementById("etkinlikKategori").value = "gezi";
+  document.getElementById("etkinlikHedefTur").value = "tumOkul";
+  document.getElementById("etkinlikHedefSinif").value = "";
+  document.getElementById("etkinlikTarih").value = "";
+  document.getElementById("etkinlikBaslangicSaat").value = "";
+  document.getElementById("etkinlikBitisSaat").value = "";
+  document.getElementById("etkinlikKonum").value = "";
+  document.getElementById("etkinlikAciklama").value = "";
+  document.getElementById("etkinlikMailGonder").checked = false;
+  document.getElementById("etkinlikSilBtn").style.display = "none";
+  etkinlikHedefDegisti();
+};
+
+window.closeEtkinlikModal = function() {
+  document.getElementById("etkinlikModal").classList.remove("active");
+};
+
+window.etkinlikHedefDegisti = function() {
+  const h = document.getElementById("etkinlikHedefTur").value;
+  document.getElementById("etkinlikHedefSinifWrap").style.display = h === "sinif" ? "block" : "none";
+};
+
+window.duzenleEtkinlik = function(id) {
+  const e = etkinlikListesi.find(x => x.id === id);
+  if (!e) return;
+  openEtkinlikModal();
+  document.getElementById("etkinlikModalBaslik").textContent = "✏️ Etkinliği Düzenle";
+  document.getElementById("etkinlikDuzenleId").value = id;
+  document.getElementById("etkinlikBaslik").value = e.baslik || "";
+  document.getElementById("etkinlikKategori").value = e.kategori || "gezi";
+  document.getElementById("etkinlikHedefTur").value = e.hedefTur || "tumOkul";
+  if (e.hedefTur === "sinif") document.getElementById("etkinlikHedefSinif").value = e.hedefDeger || "";
+  document.getElementById("etkinlikTarih").value = e.tarih || "";
+  document.getElementById("etkinlikBaslangicSaat").value = e.baslangicSaat || "";
+  document.getElementById("etkinlikBitisSaat").value = e.bitisSaat || "";
+  document.getElementById("etkinlikKonum").value = e.konum || "";
+  document.getElementById("etkinlikAciklama").value = e.aciklama || "";
+  document.getElementById("etkinlikMailGonder").checked = false;
+  document.getElementById("etkinlikSilBtn").style.display = "inline-block";
+  etkinlikHedefDegisti();
+};
+
+window.kaydetEtkinlik = async function() {
+  const id = document.getElementById("etkinlikDuzenleId").value;
+  const baslik = document.getElementById("etkinlikBaslik").value.trim();
+  const kategori = document.getElementById("etkinlikKategori").value;
+  const hedefTur = document.getElementById("etkinlikHedefTur").value;
+  const tarih = document.getElementById("etkinlikTarih").value;
+  const baslangicSaat = document.getElementById("etkinlikBaslangicSaat").value;
+  const bitisSaat = document.getElementById("etkinlikBitisSaat").value;
+  const konum = document.getElementById("etkinlikKonum").value.trim();
+  const aciklama = document.getElementById("etkinlikAciklama").value.trim();
+  const mailGonder = document.getElementById("etkinlikMailGonder").checked;
+
+  if (!baslik) return showToast("Başlık zorunlu", "error");
+  if (!tarih) return showToast("Tarih seçin", "error");
+
+  let hedefDeger = "";
+  if (hedefTur === "sinif") {
+    hedefDeger = document.getElementById("etkinlikHedefSinif").value;
+    if (!hedefDeger) return showToast("Sınıf seçin", "error");
+  }
+
+  const data = {
+    baslik, kategori, hedefTur, hedefDeger,
+    tarih, baslangicSaat, bitisSaat, konum, aciklama,
+    guncellendi: new Date().toISOString(),
+    guncelleyen: currentUser.email
+  };
+
+  try {
+    if (id) {
+      await updateDoc(doc(db, "etkinlikler", id), data);
+      showToast("✓ Etkinlik güncellendi");
+    } else {
+      data.olusturuldu = new Date().toISOString();
+      data.olusturan = currentUser.email;
+      const ref = doc(collection(db, "etkinlikler"));
+      await setDoc(ref, data);
+      if (mailGonder) etkinlikMailGonder(data);
+      showToast("✓ Etkinlik oluşturuldu");
+    }
+    closeEtkinlikModal();
+    renderEtkinlikler();
+  } catch (e) {
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+async function etkinlikMailGonder(data) {
+  try {
+    const kategoriLabels = { gezi: "🚌 Gezi", kutlama: "🎉 Kutlama", toplanti: "👥 Veli Toplantısı", atolye: "🎨 Atölye", diger: "📌 Etkinlik" };
+    const hedefMailler = [];
+    for (const o of ogrenciList) {
+      if (getOgrenciDurum(o, ayarListesi[o.id]) !== "aktif") continue;
+      const ayar = ayarListesi[o.id] || {};
+      const ogrSinif = (ayar.kayit?.sinif) || o.sinif || "";
+      let dahil = false;
+      if (data.hedefTur === "tumOkul") dahil = true;
+      else if (data.hedefTur === "sinif" && ogrSinif === data.hedefDeger) dahil = true;
+      if (!dahil) continue;
+      const anne = ayar.anne || {};
+      const baba = ayar.baba || {};
+      if (anne.eposta) hedefMailler.push({ mail: anne.eposta, ad: anne.adSoyad || "Anne" });
+      if (baba.eposta) hedefMailler.push({ mail: baba.eposta, ad: baba.adSoyad || "Baba" });
+    }
+    if (hedefMailler.length === 0) return;
+
+    const tarihStr = new Date(data.tarih).toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const saatStr = data.baslangicSaat ? (data.bitisSaat ? `${data.baslangicSaat} - ${data.bitisSaat}` : data.baslangicSaat) : "";
+
+    for (const v of hedefMailler) {
+      const icerik = `
+        <p style="margin:0 0 14px; font-size:15px;">Sayın <strong>${escapeHtml(v.ad)}</strong>,</p>
+        <div style="background:#eff6ff; border-left:4px solid #3b82f6; border-radius:8px; padding:18px 22px; margin:16px 0;">
+          <div style="font-size:12px; font-weight:700; color:#1e40af; letter-spacing:0.5px; margin-bottom:8px;">${kategoriLabels[data.kategori] || '📅 Etkinlik'}</div>
+          <h3 style="margin:0 0 10px; color:var(--gray-800); font-size:20px;">${escapeHtml(data.baslik)}</h3>
+          <div style="font-size:14px; color:#374151; line-height:1.8;">
+            📅 <strong>${tarihStr}</strong>${saatStr ? '<br>⏰ ' + saatStr : ''}
+            ${data.konum ? '<br>📍 ' + escapeHtml(data.konum) : ''}
+          </div>
+          ${data.aciklama ? `<div style="font-size:13px; color:#4b5563; line-height:1.7; margin-top:12px; padding-top:10px; border-top:1px dashed #bfdbfe; white-space:pre-wrap;">${escapeHtml(data.aciklama)}</div>` : ''}
+        </div>
+        <p style="margin:20px 0 0; font-size:13px; color:#374151;">Saygılarımızla,<br><strong>Bir Çiçek Koleji Anaokulu</strong></p>
+      `;
+      await brevoMail({ to: v.mail, toName: v.ad, subject: `📅 ${data.baslik} - Bir Çiçek Koleji`, htmlContent: portalMailSablon(data.baslik, icerik, "Etkinlik duyurusu") });
+      await new Promise(r => setTimeout(r, 300));
+    }
+    showToast(`📧 ${hedefMailler.length} veliye mail gönderildi`);
+  } catch (e) { console.warn("Etkinlik maili hatası:", e); }
+}
+
+window.silEtkinlik = async function() {
+  const id = document.getElementById("etkinlikDuzenleId").value;
+  if (!id) return;
+  if (!confirm("Bu etkinliği silmek istediğinize emin misiniz?")) return;
+  try {
+    await deleteDoc(doc(db, "etkinlikler", id));
+    showToast("✗ Etkinlik silindi");
+    closeEtkinlikModal();
+    renderEtkinlikler();
+  } catch (e) { showToast("Silinemedi: " + e.message, "error"); }
+};
+
+window.silEtkinlikHizli = async function(id) {
+  if (!confirm("Bu etkinliği silmek istediğinize emin misiniz?")) return;
+  try {
+    await deleteDoc(doc(db, "etkinlikler", id));
+    showToast("✗ Silindi");
+    renderEtkinlikler();
+  } catch (e) { showToast("Silinemedi: " + e.message, "error"); }
 };
 
 
@@ -11745,6 +12361,203 @@ async function veliRenderBildirimler() {
     el.innerHTML = html;
   } catch (e) {
     el.innerHTML = `<div class="ozel-madde-empty">Bildirimler yüklenemedi: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+// ============ VELİ: OKUL HAYATI (Tur 3 / Opsiyon A) ============
+let veliYemekHaftaBaslangic = null;
+
+async function veliRenderOkulHayati() {
+  veliRenderYemekMenusu();
+  veliRenderEtkinlikListesi();
+}
+
+window.veliYemekHaftaDegistir = function(hafta) {
+  const d = new Date(veliYemekHaftaBaslangic || new Date());
+  d.setDate(d.getDate() + (hafta * 7));
+  veliYemekHaftaBaslangic = haftaBaslangic(d);
+  veliRenderYemekMenusu();
+};
+
+window.veliYemekBuHaftaGit = function() {
+  veliYemekHaftaBaslangic = haftaBaslangic(new Date());
+  veliRenderYemekMenusu();
+};
+
+async function veliRenderYemekMenusu() {
+  const el = document.getElementById("veliYemekMenusuGorunum");
+  if (!el) return;
+
+  if (!veliYemekHaftaBaslangic) veliYemekHaftaBaslangic = haftaBaslangic(new Date());
+
+  const hEtiket = document.getElementById("veliYemekHaftaEtiketi");
+  if (hEtiket) hEtiket.textContent = haftaEtiketi(veliYemekHaftaBaslangic);
+
+  // Menüyü çek
+  const kod = haftaKodu(veliYemekHaftaBaslangic);
+  let veri = null;
+  try {
+    const snap = await getDoc(doc(db, "yemekMenuleri", kod));
+    veri = snap.exists() ? snap.data() : null;
+  } catch (e) {
+    console.warn("Veli menü yüklenemedi:", e);
+  }
+
+  const pzt = veliYemekHaftaBaslangic;
+  const gunTarihler = [];
+  for (let i = 0; i < 5; i++) {
+    const t = new Date(pzt);
+    t.setDate(pzt.getDate() + i);
+    gunTarihler.push(t);
+  }
+
+  if (!veri) {
+    el.innerHTML = `
+      <div style="background:#fff7ed; border:1px dashed #fed7aa; border-radius:12px; padding:30px 20px; text-align:center;">
+        <div style="font-size:40px; margin-bottom:10px;">🍽</div>
+        <div style="font-size:14px; color:#9a3412;">Bu hafta için menü henüz eklenmemiş</div>
+        <div style="font-size:12px; color:#c2410c; margin-top:6px;">Okul yönetimi menüyü yakında yayınlayacak</div>
+      </div>
+    `;
+    return;
+  }
+
+  // Mobil için kart düzeni (daha okunabilir)
+  let html = `<div style="display:grid; gap:10px;">`;
+  for (let gunIdx = 0; gunIdx < 5; gunIdx++) {
+    const t = gunTarihler[gunIdx];
+    const bugunMu = isoTarih(t) === isoTarih(new Date());
+    const gunData = veri.gunler?.[gunIdx] || {};
+
+    // Günde yemek girilmiş mi?
+    const doluMu = YEMEK_OGUNLER.some(o => (gunData[o.key]?.yemek || "").trim() !== "");
+
+    html += `
+      <div style="background:white; border:1px solid ${bugunMu ? '#fed7aa' : 'var(--gray-200)'}; ${bugunMu ? 'border-left:4px solid #f97316;' : ''} border-radius:12px; padding:14px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed var(--gray-200);">
+          <div style="font-family:var(--font-display); font-size:15px; font-weight:700; color:${bugunMu ? '#9a3412' : 'var(--gray-800)'};">
+            ${YEMEK_GUNLER[gunIdx]}
+            ${bugunMu ? '<span style="font-size:11px; background:#f97316; color:white; padding:2px 8px; border-radius:6px; margin-left:6px; font-weight:700;">BUGÜN</span>' : ''}
+          </div>
+          <div style="font-size:11px; color:var(--gray-500);">${t.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</div>
+        </div>
+    `;
+
+    if (!doluMu) {
+      html += `<div style="text-align:center; padding:14px; color:var(--gray-400); font-size:12px; font-style:italic;">— menü girilmemiş —</div>`;
+    } else {
+      for (const ogun of YEMEK_OGUNLER) {
+        const od = gunData[ogun.key] || {};
+        if (!(od.yemek || "").trim()) continue;
+        html += `
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px dotted var(--gray-100);">
+            <div style="min-width:110px; font-size:12px; font-weight:600; color:var(--gray-600);">${ogun.label}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px; color:var(--gray-800); font-weight:500;">${escapeHtml(od.yemek)}</div>
+              <div style="display:flex; gap:10px; font-size:11px; margin-top:2px;">
+                ${od.kalori ? `<span style="color:#166534;">🔥 ~${escapeHtml(od.kalori)} kcal</span>` : ''}
+                ${od.alerjen ? `<span style="color:#991b1b;">⚠ ${escapeHtml(od.alerjen)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  el.innerHTML = html;
+}
+
+async function veliRenderEtkinlikListesi() {
+  const el = document.getElementById("veliEtkinlikListesi");
+  if (!el) return;
+
+  try {
+    const snap = await getDocs(collection(db, "etkinlikler"));
+    const tumu = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Velinin çocuklarına göre filtrele
+    const bugun = new Date();
+    bugun.setHours(0, 0, 0, 0);
+
+    const veliSiniflari = new Set();
+    const veliOgrenciIds = new Set();
+    for (const o of (veliOgrenciler || [])) {
+      veliOgrenciIds.add(o.id);
+      const donemVeri = o._donemVeri || {};
+      const sinif = (donemVeri.kayit?.sinif) || o.sinif || "";
+      if (sinif) veliSiniflari.add(sinif);
+    }
+
+    const uygun = tumu.filter(e => {
+      if (!e.tarih) return false;
+      if (new Date(e.tarih) < bugun) return false; // geçmişi gösterme
+
+      if (e.hedefTur === "tumOkul") return true;
+      if (e.hedefTur === "sinif" && veliSiniflari.has(e.hedefDeger)) return true;
+      return false;
+    });
+
+    uygun.sort((a, b) => (a.tarih || "").localeCompare(b.tarih || ""));
+
+    if (uygun.length === 0) {
+      el.innerHTML = `
+        <div style="background:#eff6ff; border:1px dashed #bfdbfe; border-radius:12px; padding:30px 20px; text-align:center;">
+          <div style="font-size:40px; margin-bottom:10px;">📅</div>
+          <div style="font-size:14px; color:#1e40af;">Yaklaşan etkinlik yok</div>
+          <div style="font-size:12px; color:#3b82f6; margin-top:6px;">Yeni etkinlikler duyurulduğunda burada görünecek</div>
+        </div>
+      `;
+      return;
+    }
+
+    const kategoriStilleri = {
+      gezi:     { ikon: "🚌", label: "Gezi",            renk: "#059669", bg: "#f0fdf4", border: "#bbf7d0" },
+      kutlama:  { ikon: "🎉", label: "Kutlama",         renk: "#e11d48", bg: "#fff1f2", border: "#fecdd3" },
+      toplanti: { ikon: "👥", label: "Veli Toplantısı", renk: "#1e40af", bg: "#eff6ff", border: "#bfdbfe" },
+      atolye:   { ikon: "🎨", label: "Atölye",          renk: "#9333ea", bg: "#faf5ff", border: "#e9d5ff" },
+      diger:    { ikon: "📌", label: "Etkinlik",        renk: "#6b7280", bg: "#f9fafb", border: "#d1d5db" }
+    };
+
+    let html = `<div style="display:flex; flex-direction:column; gap:12px;">`;
+    for (const e of uygun) {
+      const st = kategoriStilleri[e.kategori] || kategoriStilleri.diger;
+      const etkinlikTarih = new Date(e.tarih);
+      const buGunMu = isoTarih(etkinlikTarih) === isoTarih(bugun);
+      const hedefLabel = e.hedefTur === "tumOkul" ? "🏫 Tüm Okul" : `👥 ${escapeHtml(e.hedefDeger)}`;
+
+      // Kalan gün hesabı
+      const kalanGun = Math.round((etkinlikTarih - bugun) / (1000 * 60 * 60 * 24));
+      let zamanEtiketi = "";
+      if (buGunMu) zamanEtiketi = "📍 BUGÜN";
+      else if (kalanGun === 1) zamanEtiketi = "⏰ YARIN";
+      else if (kalanGun <= 7) zamanEtiketi = `⏰ ${kalanGun} gün sonra`;
+
+      const tarihStr = etkinlikTarih.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+      const saatStr = e.baslangicSaat ? (e.bitisSaat ? `${e.baslangicSaat} - ${e.bitisSaat}` : e.baslangicSaat) : "";
+
+      html += `
+        <div style="background:white; border:1px solid ${st.border}; border-left:4px solid ${st.renk}; border-radius:12px; padding:14px 18px;">
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+            <span style="background:${st.bg}; border:1px solid ${st.border}; color:${st.renk}; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700;">${st.ikon} ${st.label}</span>
+            <span style="background:#f3f4f6; color:var(--gray-700); padding:3px 10px; border-radius:8px; font-size:11px; font-weight:600;">${hedefLabel}</span>
+            ${zamanEtiketi ? `<span style="background:#fef9c3; border:1px solid #fde68a; color:#78350f; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700;">${zamanEtiketi}</span>` : ''}
+          </div>
+          <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800); margin-bottom:6px;">${escapeHtml(e.baslik)}</div>
+          <div style="font-size:13px; color:var(--gray-600); line-height:1.7;">
+            📅 ${tarihStr}${saatStr ? ' · ⏰ ' + saatStr : ''}
+            ${e.konum ? '<br>📍 ' + escapeHtml(e.konum) : ''}
+          </div>
+          ${e.aciklama ? `<div style="font-size:13px; color:var(--gray-700); line-height:1.6; margin-top:10px; padding-top:8px; border-top:1px dashed var(--gray-200); white-space:pre-wrap;">${escapeHtml(e.aciklama)}</div>` : ''}
+        </div>
+      `;
+    }
+    html += `</div>`;
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<div style="padding:30px; text-align:center; color:#991b1b; font-size:13px;">Etkinlikler yüklenemedi: ${escapeHtml(e.message)}</div>`;
   }
 }
 
