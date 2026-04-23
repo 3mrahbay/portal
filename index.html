@@ -5613,6 +5613,12 @@ const provider = new GoogleAuthProvider();
 const ADMIN_EMAIL = "emrahby@gmail.com";
 let AKTIF_DONEM = "2025-2026";  // Dropdown'dan değiştirilebilir
 
+// Türkçe ay isimleri (early definition - TDZ önlemek için)
+const AY_ISIMLERI = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+];
+
 // Brevo mail proxy (Apps Script üzerinden güvenli mail gönderimi)
 const BREVO_PROXY_URL = "https://script.google.com/macros/s/AKfycbwUNvVhTCvxUKOMtbFJ4_UASBo8-sgT13qT_9tWeYKZR3IYaYKUhGdSaGgGaaqMaZLf/exec";
 const OKUL_MAIL = "eposta@bircicekkoleji.com";
@@ -5786,9 +5792,18 @@ onAuthStateChanged(auth, async (user) => {
       }
 
       // Verileri yükle
-      await loadOgrenciler();
+      try {
+        await loadOgrenciler();
+      } catch (e) {
+        console.error("loadOgrenciler hatası:", e);
+        showToast("Veriler yüklenemedi: " + e.message, "error");
+      }
       // Onay bekleyenler sayacını arka planda yükle
-      if (typeof initOnayBekleyenler === "function") initOnayBekleyenler();
+      try {
+        if (typeof initOnayBekleyenler === "function") initOnayBekleyenler();
+      } catch (e) {
+        console.warn("initOnayBekleyenler hatası:", e);
+      }
     } else {
       // Veli Panel
       document.getElementById("landing").style.display = "none";
@@ -11620,11 +11635,7 @@ td.label { width: 35%; font-weight: bold; background: #f8f8f8; }
 };
 
 // ============ AYLIK ÖDEME TAKİBİ ============
-// Türkçe ay isimleri
-const AY_ISIMLERI = [
-  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
-];
+// AY_ISIMLERI yukarıda tanımlandı (TDZ önlemek için)
 
 // Dönem başlangıç ayından itibaren taksit sayısı kadar ay listesi
 function getAyListesi(baslangicAyi, taksitSayisi) {
