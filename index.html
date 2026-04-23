@@ -9019,8 +9019,33 @@ function renderFinansalOzet() {
   const netKar = toplamGelir - toplamGider;
   const karOrani = toplamGelir > 0 ? Math.round((netKar / toplamGelir) * 100) : 0;
 
-  const toplamBeklenen = gelirler.reduce((s, g) => s + (parseFloat(g.beklenen) || 0), 0);
-  const tahsilatOrani = toplamBeklenen > 0 ? Math.round((toplamGelir / toplamBeklenen) * 100) : 0;
+  // DOĞRU TAHSİLAT ORANI: Bugüne kadar VADESİ GELEN tüm aylık aidatların toplamı
+  // hesaplaFinansGecikenler() zaten geciken (ödenmemiş, vadesi geçmiş) borçları döner
+  const gecikenlerFull = hesaplaFinansGecikenler();
+  const toplamGecikenBorcTum = gecikenlerFull.reduce((s, g) => s + g.toplamBorc, 0);
+
+  // Vadesi gelen aylık aidatların toplamı = ödenen aylık + geciken aylık
+  const odenenAylikAidat = finansalGelirler
+    .filter(g => g.tur === "aylik")
+    .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
+  const vadesiGelenAylikToplam = odenenAylikAidat + toplamGecikenBorcTum;
+
+  // Ön ödeme beklentisi: Aktif öğrencilerin ön ödeme tutarları
+  let beklenenOnOdeme = 0, odenenOnOdeme = 0;
+  for (const o of ogrenciList) {
+    const ayar = ayarListesi[o.id];
+    if (!ayar || getOgrenciDurum(o, ayar) !== "aktif") continue;
+    const a = ayar.aidatAyarlari || {};
+    if (a.onOdeme && a.onOdeme > 0) {
+      beklenenOnOdeme += a.onOdeme;
+      const onOd = (ayar.aylikOdemeler || {})["__onOdeme"] || {};
+      if (onOd.odendi) odenenOnOdeme += parseFloat(onOd.odenenTutar) || a.onOdeme;
+    }
+  }
+
+  const toplamVadesiGelen = vadesiGelenAylikToplam + beklenenOnOdeme;
+  const toplamOdenenAidat = odenenAylikAidat + odenenOnOdeme;
+  const tahsilatOrani = toplamVadesiGelen > 0 ? Math.round((toplamOdenenAidat / toplamVadesiGelen) * 100) : 0;
 
   const gelirKategorileri = { aylik: 0, diger: 0, onOdeme: 0 };
   for (const g of gelirler) {
@@ -9033,8 +9058,8 @@ function renderFinansalOzet() {
   }
 
   const sonOdemeler = [...gelirler].filter(g => g.odemeTarihi).slice(0, 5);
-  const gecikenler = hesaplaFinansGecikenler().slice(0, 5);
-  const toplamGecikenBorc = gecikenler.reduce((s, g) => s + g.toplamBorc, 0);
+  const gecikenler = gecikenlerFull.slice(0, 5);
+  const toplamGecikenBorc = gecikenlerFull.reduce((s, g) => s + g.toplamBorc, 0);
 
   const aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
   const m2Sayi = aktifOgrenciler.filter(o => {
@@ -9082,10 +9107,13 @@ function renderFinansalOzet() {
             <div style="background:#facc15; height:100%; width:${Math.min(100, tahsilatOrani)}%;"></div>
           </div>
         </div>
-        <div style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:18px 20px;">
-          <div style="font-size:24px;">⚠️</div>
+        <div onclick="gecikenlereGit()" style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:18px 20px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.22)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='rgba(255,255,255,0.12)'; this.style.transform='';">
+          <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div style="font-size:24px;">⚠️</div>
+            <div style="background:rgba(255,255,255,0.25); padding:3px 8px; border-radius:8px; font-size:10px; font-weight:700;">TIKLA →</div>
+          </div>
           <div style="font-size:11px; letter-spacing:1.2px; margin-top:10px; opacity:0.9;">GECİKEN ÖDEMELER</div>
-          <div style="font-size:28px; font-weight:700; margin-top:6px; font-family:var(--font-display);">${hesaplaFinansGecikenler().length}</div>
+          <div style="font-size:28px; font-weight:700; margin-top:6px; font-family:var(--font-display);">${gecikenlerFull.length}</div>
           <div style="font-size:11px; opacity:0.85; margin-top:4px;">${toplamGecikenBorc.toLocaleString("tr-TR")} TL</div>
         </div>
       </div>
@@ -9135,10 +9163,18 @@ function renderFinansalOzet() {
           }
         </div>
       </div>
-      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; overflow:hidden;">
-        <div style="padding:16px 20px; background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1px solid #fecaca;">
-          <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#7f1d1d;">⚠ Geciken Öğrenciler</div>
-          <div style="font-size:11px; color:#991b1b; margin-top:2px;">Ödemesi geciken veliler</div>
+      <div id="gecikenOgrencilerBolumu" style="background:white; border:1px solid var(--gray-300); border-radius:16px; overflow:hidden; scroll-margin-top:20px;">
+        <div style="padding:16px 20px; background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1px solid #fecaca; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#7f1d1d;">⚠ Geciken Öğrenciler</div>
+            <div style="font-size:11px; color:#991b1b; margin-top:2px;">Ödemesi geciken veliler</div>
+          </div>
+          ${gecikenlerFull.length > 0 ? `
+            <div style="display:flex; gap:6px;">
+              <button onclick="acTamGecikenListesi()" style="padding:7px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📋 Tüm Liste (${gecikenlerFull.length})</button>
+              <button onclick="topluHatirlatmaGonder()" style="padding:7px 12px; background:#dc2626; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">✉ Toplu Hatırlat</button>
+            </div>
+          ` : ''}
         </div>
         <div style="padding:8px; max-height:400px; overflow-y:auto;">
           ${gecikenler.length === 0 ? `<div style="padding:30px 20px; text-align:center; color:#166534; font-size:14px;">🎉 Geciken yok!</div>` :
@@ -9149,6 +9185,7 @@ function renderFinansalOzet() {
                   <div style="font-size:11px; color:#991b1b; margin-top:2px;">${escapeHtml(g.sinif || "—")} · ${g.gecikenAySayisi} ay geciken</div>
                 </div>
                 <div style="text-align:right; font-weight:700; color:#b91c1c; font-size:14px; white-space:nowrap;">₺${g.toplamBorc.toLocaleString("tr-TR")}</div>
+                <button onclick="tekHatirlatmaGonder('${g.ogrenciId}')" title="Hatırlatma maili gönder" style="padding:6px 10px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap;">✉</button>
               </div>
             `).join("")
           }
@@ -9760,6 +9797,110 @@ function renderOdemeYontemleri() {
   }
   el.innerHTML = html;
 }
+
+// ============ GECİKEN İŞLEMLERİ (Tur A) ============
+
+// Geciken kartına tıklanınca: scroll
+window.gecikenlereGit = function() {
+  const el = document.getElementById("gecikenOgrencilerBolumu");
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Dikkat çekici pulse animasyonu
+    el.style.transition = "box-shadow 0.3s";
+    el.style.boxShadow = "0 0 0 4px rgba(220,38,38,0.3)";
+    setTimeout(() => { el.style.boxShadow = ""; }, 1500);
+  }
+};
+
+// Tam geciken listesi modalı (tüm listeyi detayla gösterir)
+window.acTamGecikenListesi = function() {
+  const gecikenler = hesaplaFinansGecikenler();
+  if (gecikenler.length === 0) return showToast("Geciken öğrenci yok", "info");
+
+  const modalHtml = `
+    <div class="modal-overlay active" id="gecikenTamListeModal" onclick="if(event.target.id==='gecikenTamListeModal') closeTamGecikenListesi()">
+      <div class="modal" style="max-width:900px; max-height:85vh; display:flex; flex-direction:column;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1px solid #fecaca;">
+          <h3 style="color:#7f1d1d;">⚠ Tüm Geciken Öğrenciler (${gecikenler.length})</h3>
+          <button class="close-btn" onclick="closeTamGecikenListesi()">×</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto; flex:1;">
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:14px 18px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div style="color:#991b1b; font-size:14px;">
+                <strong>${gecikenler.length}</strong> öğrenci · Toplam borç: <strong>₺${gecikenler.reduce((s,g)=>s+g.toplamBorc,0).toLocaleString("tr-TR")}</strong>
+              </div>
+              <button onclick="topluHatirlatmaGonder()" style="padding:9px 18px; background:#dc2626; border:none; color:white; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;">✉ Tümüne Hatırlatma Gönder</button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr; gap:8px;">
+            ${gecikenler.map(g => `
+              <div style="padding:14px 18px; background:white; border:1px solid var(--gray-300); border-radius:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div style="flex:1; min-width:240px;">
+                  <div style="font-family:var(--font-display); font-size:15px; font-weight:700; color:#7f1d1d;">${escapeHtml(g.ogrenciAd)}</div>
+                  <div style="font-size:12px; color:var(--gray-600); margin-top:3px;">
+                    ${escapeHtml(g.sinif || "—")} · <strong>${g.gecikenAySayisi} ay geciken</strong>
+                  </div>
+                  <div style="font-size:11px; color:#991b1b; margin-top:4px; line-height:1.5;">
+                    Geciken aylar: ${g.gecikenAylar.join(", ")}
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-family:var(--font-display); font-size:20px; font-weight:700; color:#b91c1c;">₺${g.toplamBorc.toLocaleString("tr-TR")}</div>
+                  <div style="font-size:10px; color:var(--gray-500); margin-top:2px;">toplam borç</div>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <button onclick="tekHatirlatmaGonder('${g.ogrenciId}')" style="padding:8px 14px; background:#dc2626; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;" title="Hatırlatma maili gönder">✉ Hatırlat</button>
+                  <button onclick="acOgrenciDetay('${g.ogrenciId}')" style="padding:8px 14px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">👁 Detay</button>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeTamGecikenListesi()">Kapat</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let wrap = document.getElementById("gecikenTamListeWrap");
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.id = "gecikenTamListeWrap";
+    document.body.appendChild(wrap);
+  }
+  wrap.innerHTML = modalHtml;
+};
+
+window.closeTamGecikenListesi = function() {
+  const m = document.getElementById("gecikenTamListeModal");
+  if (m) m.remove();
+};
+
+window.acOgrenciDetay = function(ogrenciId) {
+  closeTamGecikenListesi();
+  // Öğrenci listesinde tıklama tetikle
+  const btn = document.querySelector(`[data-ogrenci-id="${ogrenciId}"]`);
+  if (btn) btn.click();
+  else {
+    // Öğrenci sekmesine geç ve modalı aç
+    const tabBtn = document.querySelector('.tab[data-tab="ogrenciler"]');
+    if (tabBtn) tabBtn.click();
+    setTimeout(() => {
+      if (typeof openDuzenleModal === "function") openDuzenleModal(ogrenciId);
+    }, 200);
+  }
+};
+
+// Geçici stub'lar - Tur B'de tamamlanacak
+window.tekHatirlatmaGonder = function(ogrenciId) {
+  showToast("⏳ Hatırlatma maili sistemi Tur B'de aktif olacak", "info");
+};
+
+window.topluHatirlatmaGonder = function() {
+  showToast("⏳ Toplu hatırlatma sistemi Tur B'de aktif olacak", "info");
+};
 
 function renderFinansBarListesi(liste) {
   liste = liste.filter(l => l.tutar > 0);
