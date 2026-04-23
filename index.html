@@ -87,8 +87,10 @@ html, body {
 }
 
 .nav-logo img {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 50%;
 }
 
 .nav-logo-text {
@@ -317,6 +319,121 @@ html, body {
 
 .hero-stat-value.paid { color: var(--green-medium); }
 .hero-stat-value.due { color: var(--amber); }
+.hero-stat-value.hidden-stat {
+  letter-spacing: 3px;
+  color: var(--gray-400);
+}
+
+/* Hero kart slider - iki kart arasında geçiş */
+.hero-card-slider {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  min-height: 420px;
+}
+
+.hero-card-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0;
+  transform: translateX(40px) rotate(-2deg);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  pointer-events: none;
+}
+
+.hero-card-slide.active {
+  opacity: 1;
+  transform: translateX(0) rotate(-2deg);
+  pointer-events: auto;
+}
+
+.hero-card-slide.active:hover .hero-card {
+  transform: rotate(0deg) scale(1.02);
+}
+
+/* İkinci kart - sarı accent */
+.hero-card.student-card {
+  background: linear-gradient(180deg, #fffef7 0%, #ffffff 100%);
+  border: 2px solid #facc15;
+}
+
+.hero-card.student-card .hero-avatar {
+  background: linear-gradient(135deg, #facc15, #eab308);
+  color: #422006;
+}
+
+.hero-card.student-card .hero-stat-value {
+  color: #92400e;
+}
+
+/* Kart içi butonlar */
+.hero-card-btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.hero-card-btn {
+  flex: 1;
+  min-width: 140px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.hero-card-btn.primary {
+  background: var(--green-deep);
+  color: white;
+}
+
+.hero-card-btn.primary:hover {
+  background: #1b4332;
+  transform: translateY(-1px);
+}
+
+.hero-card-btn.secondary {
+  background: #fef9c3;
+  color: #78350f;
+  border: 1px solid #fde68a;
+}
+
+.hero-card-btn.secondary:hover {
+  background: #fef3c7;
+}
+
+/* Slider indicator noktaları */
+.hero-slider-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.hero-slider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gray-300);
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  padding: 0;
+}
+
+.hero-slider-dot.active {
+  background: var(--green-deep);
+  width: 24px;
+  border-radius: 4px;
+}
 
 .features {
   max-width: 1200px;
@@ -369,6 +486,249 @@ html, body {
   font-size: 14px;
   color: var(--gray-500);
   line-height: 1.6;
+}
+
+/* ============ CTA RANDEVU BÖLÜMÜ ============ */
+.cta-randevu {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 24px 40px;
+}
+
+.cta-randevu-hero {
+  background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+  border-radius: 24px;
+  padding: 56px 48px;
+  color: white;
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-randevu-hero::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(250,204,21,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-randevu-hero h2 {
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 1;
+  letter-spacing: -0.02em;
+}
+
+.cta-randevu-hero h2 em {
+  color: #facc15;
+  font-style: normal;
+}
+
+.cta-randevu-hero p {
+  font-size: 17px;
+  opacity: 0.92;
+  margin-bottom: 36px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.cta-randevu-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.cta-randevu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  min-width: 200px;
+  justify-content: center;
+}
+
+.cta-randevu-btn.yuz-yuze {
+  background: #facc15;
+  color: #422006;
+  box-shadow: 0 4px 14px rgba(250,204,21,0.35);
+}
+
+.cta-randevu-btn.yuz-yuze:hover {
+  background: #eab308;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(250,204,21,0.45);
+}
+
+.cta-randevu-btn.online {
+  background: white;
+  color: #1b4332;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+}
+
+.cta-randevu-btn.online:hover {
+  background: #f9fafb;
+  transform: translateY(-2px);
+}
+
+.cta-randevu-btn-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* İletişim + Harita Grid */
+.iletisim-harita-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.iletisim-kart {
+  background: white;
+  border: 1px solid rgba(26, 77, 46, 0.12);
+  border-radius: 20px;
+  padding: 32px;
+}
+
+.iletisim-kart h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--green-deep);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iletisim-satir {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px dashed var(--gray-200);
+}
+
+.iletisim-satir:last-child { border-bottom: none; }
+
+.iletisim-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--green-mist);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.iletisim-label {
+  font-size: 11px;
+  color: var(--gray-500);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.iletisim-deger {
+  font-size: 15px;
+  color: var(--green-deep);
+  font-weight: 500;
+  text-decoration: none;
+  line-height: 1.5;
+}
+
+.iletisim-deger:hover {
+  color: var(--green-medium);
+  text-decoration: underline;
+}
+
+.harita-kart {
+  background: white;
+  border: 1px solid rgba(26, 77, 46, 0.12);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.harita-embed {
+  flex: 1;
+  min-height: 360px;
+  width: 100%;
+  border: 0;
+  display: block;
+}
+
+.harita-yol-tarifi {
+  padding: 16px 24px;
+  background: #f9fafb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.harita-adres {
+  font-size: 13px;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+.harita-yol-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: var(--green-deep);
+  color: white;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.harita-yol-btn:hover {
+  background: #1b4332;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .cta-randevu-hero { padding: 40px 24px; }
+  .cta-randevu-hero h2 { font-size: 28px; }
+  .cta-randevu-hero p { font-size: 15px; }
+  .cta-randevu-btn { min-width: 100%; }
+  .iletisim-harita-grid { grid-template-columns: 1fr; }
+  .harita-yol-tarifi { flex-direction: column; align-items: stretch; text-align: center; }
 }
 
 .footer {
@@ -3800,7 +4160,7 @@ html, body {
   <nav class="landing-nav">
     <div class="nav-inner">
       <div class="nav-logo">
-        <img src="https://yenikayit.bircicekkoleji.com/okul_logo.png" alt="Bir Çiçek Koleji" onerror="this.style.display='none'">
+        <img src="logo_bcka.png" alt="Bir Çiçek Koleji" onerror="this.onerror=null; this.src='https://yenikayit.bircicekkoleji.com/okul_logo.png';">
         <div class="nav-logo-text">
           Bir Çiçek Koleji
           <small>Veli Portalı</small>
@@ -3816,7 +4176,7 @@ html, body {
   <section class="hero">
     <div>
       <div class="hero-tag">MACTE Montessori • Level 3 Forest School</div>
-      <h1>Çocuklarınızın gelişimi için <em>güvenli</em> ve modern bir portal</h1>
+      <h1>Çocuğunuzun <em>gelişim süreçlerini</em> ve finansal süreçlerinizin takibini kolayca yapmanızı sağlayan güvenli ve modern bir portal</h1>
       <p>
         Bir Çiçek Koleji Anaokulu Veli Portalı'nda çocuğunuzun okul süreçlerini, ödeme bilgilerinizi ve 
         eğitim takvimini tek bir yerden takip edin. Şeffaf, hızlı ve kolay erişim.
@@ -3830,30 +4190,72 @@ html, body {
       </div>
     </div>
     <div class="hero-visual">
-      <div class="hero-card">
-        <div class="hero-card-header">
-          <div class="hero-avatar">D</div>
-          <div>
-            <div class="hero-card-title">Destina'nın Portalı</div>
-            <div class="hero-card-sub">Montessori 3 • Tam Gün</div>
+      <div class="hero-card-slider" id="heroCardSlider">
+
+        <!-- KART 1: VELİ PORTALI -->
+        <div class="hero-card-slide active" data-slide="0">
+          <div class="hero-card">
+            <div class="hero-card-header">
+              <div class="hero-avatar">E</div>
+              <div>
+                <div class="hero-card-title">Emrah'ın Portalı</div>
+                <div class="hero-card-sub">Baba · Veli Erişimi</div>
+              </div>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-label">2025-2026 Dönemi</span>
+              <span class="hero-stat-value">Aktif</span>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-label">Son Ödeme</span>
+              <span class="hero-stat-value paid">✓ Nisan 2026</span>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-label">Toplam Ödenen</span>
+              <span class="hero-stat-value hidden-stat">₺ ••• •••</span>
+            </div>
+            <div class="hero-card-btn-row">
+              <button class="hero-card-btn primary" onclick="showLoginModal()">📄 Sözleşme İndir</button>
+              <button class="hero-card-btn secondary" onclick="showLoginModal()">💳 Ödeme Bildir</button>
+            </div>
           </div>
         </div>
-        <div class="hero-stat">
-          <span class="hero-stat-label">2025-2026 Dönemi</span>
-          <span class="hero-stat-value">Aktif</span>
+
+        <!-- KART 2: ÖĞRENCİ PORTALI -->
+        <div class="hero-card-slide" data-slide="1">
+          <div class="hero-card student-card">
+            <div class="hero-card-header">
+              <div class="hero-avatar">A</div>
+              <div>
+                <div class="hero-card-title">Asım'ın Portalı</div>
+                <div class="hero-card-sub">Öğrenci · Montessori 3</div>
+              </div>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-label">Bu Hafta Katılım</span>
+              <span class="hero-stat-value paid">✓ 5 Gün</span>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-label">Gelişim Raporu</span>
+              <span class="hero-stat-value">Mart 2026</span>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-label">Haftalık Etkinlik</span>
+              <span class="hero-stat-value">🌱 Bahçıvanlık</span>
+            </div>
+            <div class="hero-card-btn-row">
+              <button class="hero-card-btn primary" style="background:#92400e;" onclick="showLoginModal()">🌸 Gelişim Takibi</button>
+              <button class="hero-card-btn secondary" onclick="showLoginModal()">📸 Galeri</button>
+            </div>
+          </div>
         </div>
-        <div class="hero-stat">
-          <span class="hero-stat-label">Son Ödeme</span>
-          <span class="hero-stat-value paid">✓ Nisan 2026</span>
-        </div>
-        <div class="hero-stat">
-          <span class="hero-stat-label">Toplam Ödenen</span>
-          <span class="hero-stat-value">228.000 TL</span>
-        </div>
-        <div class="hero-stat">
-          <span class="hero-stat-label">Referans Kodu</span>
-          <span class="hero-stat-value">BCK-0023</span>
-        </div>
+
+      </div>
+
+      <!-- Slider noktaları -->
+      <div class="hero-slider-dots">
+        <button class="hero-slider-dot active" data-dot="0" onclick="heroSliderGoto(0)"></button>
+        <button class="hero-slider-dot" data-dot="1" onclick="heroSliderGoto(1)"></button>
       </div>
     </div>
   </section>
@@ -3872,8 +4274,8 @@ html, body {
       </div>
       <div class="feature">
         <div class="feature-icon">🎁</div>
-        <h3>Referans Ödülleri</h3>
-        <p>Referansınızla kayıt olan her yeni veli için özel ödüller kazanın. Kodunuzu paylaşın, kazancınızı artırın.</p>
+        <h3>Referans Süreçleri</h3>
+        <p>Referansınızla kayıt olan her yeni veli için özel avantajlar. Kodunuzu paylaşın, süreci kolayca takip edin.</p>
       </div>
       <div class="feature">
         <div class="feature-icon">🌸</div>
@@ -3889,6 +4291,92 @@ html, body {
         <div class="feature-icon">📄</div>
         <h3>Dijital Belgeler</h3>
         <p>Sözleşmeler, faturalar ve öğrenci raporları tek bir yerde. İndir, paylaş, güvende tut.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA RANDEVU BÖLÜMÜ ============ -->
+  <section class="cta-randevu">
+    <div class="cta-randevu-hero">
+      <h2>Bir Çiçek Velisi <em>değil misiniz?</em></h2>
+      <p>Çocuğunuzun <strong>eğitiminde "keşke"</strong> dememek için, kolayca randevu alın ve tanışalım! Okulumuzu yerinde görün ya da online görüşmeyle her sorunuzu cevaplayalım.</p>
+      <div class="cta-randevu-buttons">
+        <a href="https://calendar.app.google/uRS2zWbhBF5fPnRS8" target="_blank" class="cta-randevu-btn yuz-yuze">
+          <span style="font-size:22px;">🏫</span>
+          <span>
+            Yüz Yüze Okul Turu
+            <span class="cta-randevu-btn-sub">60 dakika · Tuzla Aydınlı</span>
+          </span>
+        </a>
+        <a href="https://calendar.app.google/ahfhmRHpEa3jQdqo7" target="_blank" class="cta-randevu-btn online">
+          <span style="font-size:22px;">💻</span>
+          <span>
+            Online Tanışma Görüşmesi
+            <span class="cta-randevu-btn-sub">45 dakika · Google Meet</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <div class="iletisim-harita-grid">
+      <!-- İLETİŞİM KARTI -->
+      <div class="iletisim-kart">
+        <h3>📞 İletişim Bilgileri</h3>
+        <div class="iletisim-satir">
+          <div class="iletisim-icon">📍</div>
+          <div>
+            <div class="iletisim-label">Adres</div>
+            <div class="iletisim-deger">Aydınlı Mah. Tuzla / İstanbul</div>
+          </div>
+        </div>
+        <div class="iletisim-satir">
+          <div class="iletisim-icon">☎️</div>
+          <div>
+            <div class="iletisim-label">Telefon</div>
+            <a href="tel:+902163935457" class="iletisim-deger">0216 393 54 57</a>
+          </div>
+        </div>
+        <div class="iletisim-satir">
+          <div class="iletisim-icon">✉️</div>
+          <div>
+            <div class="iletisim-label">E-posta</div>
+            <a href="mailto:eposta@bircicekkoleji.com" class="iletisim-deger">eposta@bircicekkoleji.com</a>
+          </div>
+        </div>
+        <div class="iletisim-satir">
+          <div class="iletisim-icon">🌐</div>
+          <div>
+            <div class="iletisim-label">Web</div>
+            <a href="https://bircicekkoleji.com" target="_blank" class="iletisim-deger">bircicekkoleji.com</a>
+          </div>
+        </div>
+        <div class="iletisim-satir">
+          <div class="iletisim-icon">📱</div>
+          <div>
+            <div class="iletisim-label">Sosyal Medya</div>
+            <a href="https://www.instagram.com/bircicekkoleji" target="_blank" class="iletisim-deger">@bircicekkoleji</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- HARİTA KARTI -->
+      <div class="harita-kart">
+        <iframe class="harita-embed"
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3013.1234567890!2d29.2800000!3d40.8400000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zQmlyIMOHacOnZWsgS29sZWppIEFuYW9rdWx1!5e0!3m2!1str!2str!4v1714000000000!5m2!1str!2str"
+          allowfullscreen=""
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Bir Çiçek Koleji Haritası">
+        </iframe>
+        <div class="harita-yol-tarifi">
+          <div class="harita-adres">
+            <strong>Bir Çiçek Koleji Anaokulu</strong><br>
+            Aydınlı Mah. Tuzla / İstanbul
+          </div>
+          <a href="https://www.google.com/maps/dir/?api=1&destination=Bir+Çiçek+Koleji+Anaokulu+Tuzla+Aydınlı" target="_blank" class="harita-yol-btn">
+            🧭 Yol Tarifi Al
+          </a>
+        </div>
       </div>
     </div>
   </section>
@@ -3999,7 +4487,6 @@ html, body {
       <button class="tab active" data-tab="ogrenciler">👥 Öğrenci Ayarları</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Onay Bekleyenler <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans">💼 Finansal Yönetim</button>
-      <button class="tab" data-tab="raporlar">📊 Raporlar</button>
     </div>
 
     <!-- ÖĞRENCILER TAB -->
@@ -13396,6 +13883,39 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initIndirimNedenList);
 } else {
   initIndirimNedenList();
+}
+
+// ============ HERO SLIDER (Ana Sayfa 2 Kartlı Animasyon) ============
+let heroSliderIndex = 0;
+let heroSliderInterval = null;
+
+window.heroSliderGoto = function(idx) {
+  heroSliderIndex = idx;
+  document.querySelectorAll(".hero-card-slide").forEach((s, i) => {
+    s.classList.toggle("active", i === idx);
+  });
+  document.querySelectorAll(".hero-slider-dot").forEach((d, i) => {
+    d.classList.toggle("active", i === idx);
+  });
+};
+
+function heroSliderNext() {
+  const slides = document.querySelectorAll(".hero-card-slide");
+  if (slides.length === 0) return;
+  heroSliderIndex = (heroSliderIndex + 1) % slides.length;
+  heroSliderGoto(heroSliderIndex);
+}
+
+function startHeroSlider() {
+  if (heroSliderInterval) clearInterval(heroSliderInterval);
+  heroSliderInterval = setInterval(heroSliderNext, 5000); // Her 5 saniyede bir değişir
+}
+
+// Landing sayfası görünürse slider'ı başlat
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startHeroSlider);
+} else {
+  startHeroSlider();
 }
 
 // ============ YAZ OKULU ============
