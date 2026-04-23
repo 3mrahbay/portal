@@ -3519,7 +3519,6 @@ html, body {
   box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
-  scroll-margin-top: 100px;
 }
 
 .veli-menu-item:focus {
@@ -3739,15 +3738,49 @@ html, body {
     grid-template-columns: 1fr;
   }
   .veli-sidebar {
-    position: relative;
-    height: auto;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: auto !important;
+    min-height: auto;
+    max-height: 60px;
     flex-direction: row;
     overflow-x: auto;
-    padding: 10px;
+    overflow-y: hidden;
+    padding: 8px 10px;
+    background: #f0fdf4;
+    border-bottom: 1px solid var(--gray-300);
+    border-right: none;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
   }
-  .veli-sidebar-logo { display: none; }
-  .veli-menu-item { flex-shrink: 0; padding: 8px 12px; font-size: 12px; width: auto; }
-  .veli-sidebar-bottom { display: none; }
+  .veli-sidebar::-webkit-scrollbar { height: 4px; }
+  .veli-sidebar::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 2px; }
+  .veli-sidebar-logo { display: none !important; }
+  .veli-sidebar-bottom { display: none !important; }
+  .veli-menu-spacer { display: none !important; }
+
+  /* Mobilde menu butonları - SABİT genişlik, aktif olsa bile büyümez */
+  .veli-sidebar .veli-menu-item {
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    flex-basis: auto !important;
+    width: auto !important;
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    height: 40px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+  .veli-sidebar .veli-menu-item.active {
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    width: auto !important;
+    height: 40px !important;
+    padding: 8px 14px !important;
+  }
+
   .veli-main { padding: 16px; }
   .veli-student-hero { padding: 16px 18px; }
   .veli-student-name { font-size: 18px; }
@@ -6043,10 +6076,11 @@ async function loadVeliPanel(user) {
   const avatarEl = document.getElementById("veliAvatarInitial");
   const heroEl = document.getElementById("veliStudentHero");
 
-  // Üst kısmı doldur
-  const displayName = user.displayName || user.email.split("@")[0];
-  if (welcomeEl) welcomeEl.textContent = displayName;
-  if (avatarEl) avatarEl.textContent = (displayName.charAt(0) || "V").toUpperCase();
+  // Üst kısmı başlangıçta e-posta ile doldur (henüz öğrenci verisi yüklenmedi)
+  // Gerçek ad, setAktifVeliOgrenci çağrıldıktan sonra güncellenir
+  const placeholderName = user.email.split("@")[0];
+  if (welcomeEl) welcomeEl.textContent = placeholderName;
+  if (avatarEl) avatarEl.textContent = (placeholderName.charAt(0) || "V").toUpperCase();
 
   // Ayarlar sekmesindeki bilgileri güncelle
   const epostaEl = document.getElementById("veliAyarEposta");
@@ -6058,8 +6092,6 @@ async function loadVeliPanel(user) {
   }
 
   // Bu veliye ait öğrencileri bul
-  // İki yol: users/{uid} dokümanından ogrenciIds oku, ya da tüm öğrencileri tarayıp
-  // veli.email eşleşmesi ara
   try {
     const bulunan = await findOgrenciForVeli(user);
     veliOgrenciler = bulunan;
@@ -6078,6 +6110,42 @@ async function loadVeliPanel(user) {
   } catch (e) {
     console.error("Veli paneli yüklenemedi:", e);
     showToast("Veriler yüklenemedi: " + e.message, "error");
+  }
+}
+
+// Veli adını dönem kaydındaki anne/baba/vasi bilgisinden güncelle
+function updateVeliWelcome(user, donemVeri) {
+  const welcomeEl = document.getElementById("veliWelcomeName");
+  const avatarEl = document.getElementById("veliAvatarInitial");
+  if (!donemVeri || !user) return;
+
+  const userEmail = (user.email || "").toLowerCase();
+  let veliAdi = "";
+
+  // Anne e-postası eşleşirse annenin adını kullan
+  if (donemVeri.anne && (donemVeri.anne.eposta || "").toLowerCase() === userEmail) {
+    veliAdi = donemVeri.anne.adSoyad || "";
+  }
+  // Baba e-postası eşleşirse babanın adını kullan
+  else if (donemVeri.baba && (donemVeri.baba.eposta || "").toLowerCase() === userEmail) {
+    veliAdi = donemVeri.baba.adSoyad || "";
+  }
+  // Vasi e-postası eşleşirse vasinin adını kullan
+  else if (donemVeri.vasi && (donemVeri.vasi.eposta || "").toLowerCase() === userEmail) {
+    veliAdi = donemVeri.vasi.adSoyad || "";
+  }
+
+  // Eğer eşleşme yoksa, son çare olarak e-posta kullan
+  if (!veliAdi) veliAdi = user.email.split("@")[0];
+
+  if (welcomeEl) welcomeEl.textContent = veliAdi;
+  if (avatarEl) {
+    const initials = veliAdi.split(" ")
+      .map(s => s.charAt(0))
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "V";
+    avatarEl.textContent = initials;
   }
 }
 
@@ -6364,6 +6432,12 @@ async function setAktifVeliOgrenci(ogr) {
       veliAktifDonemVeri = donemSnap.exists() ? donemSnap.data() : null;
     }
 
+    // Dönem verisi yüklendikten sonra üst menüdeki veli adını güncelle
+    // (Google displayName yerine sistemdeki anne/baba/vasi adını göster)
+    if (currentUser && veliAktifDonemVeri) {
+      updateVeliWelcome(currentUser, veliAktifDonemVeri);
+    }
+
     // Şu anki sekmeyi yenile
     const aktifTab = document.querySelector(".veli-menu-item.active")?.dataset.veliTab || "dashboard";
     veliRenderTab(aktifTab);
@@ -6398,14 +6472,27 @@ window.veliSwitchTab = function(tabName) {
   document.querySelectorAll(".veli-tab-panel").forEach(p => {
     p.classList.toggle("active", p.id === `veliPanel-${tabName}`);
   });
-  // Ana içerik alanını en üste kaydır (butonun odak kaymasını engellemek için)
+
+  // Mobil: Aktif butonu sidebar içinde yatay scroll ile görünür yap (sayfa scroll'u olmasın)
+  const aktifBtn = document.querySelector(`.veli-menu-item[data-veli-tab="${tabName}"]`);
+  const sidebar = document.querySelector(".veli-sidebar");
+  if (aktifBtn && sidebar && window.innerWidth <= 768) {
+    // Sadece yatay eksende sidebar içinde scrolla, sayfayı oynatma
+    const btnRect = aktifBtn.getBoundingClientRect();
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const scrollLeft = sidebar.scrollLeft + btnRect.left - sidebarRect.left - (sidebarRect.width - btnRect.width) / 2;
+    sidebar.scrollTo({ left: scrollLeft, behavior: "smooth" });
+  }
+
+  // Ana içerik alanını en üste kaydır (buton odağıyla sayfa kaymamı engelle)
   const main = document.querySelector(".veli-main");
   if (main) main.scrollTop = 0;
-  window.scrollTo({ top: 0, behavior: "instant" });
-  // Butondaki odak halkasını kaldır
+
+  // Butondan odağı kaldır (browser scrollIntoView'ı tetiklemesin)
   if (document.activeElement && document.activeElement.blur) {
     document.activeElement.blur();
   }
+
   // Sekmeyi render et
   veliRenderTab(tabName);
 };
