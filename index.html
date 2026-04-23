@@ -8580,6 +8580,45 @@ function renderFinansalOzet() {
         <!-- JS ile doldurulur -->
       </div>
     </div>
+
+    <!-- 3. SATIR: TRENDİ + SINIF + ÖDEME YÖNTEMLERİ -->
+    <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:16px; margin-top:16px;">
+      <!-- AYLIK TAHSİLAT TRENDİ (Ödenen vs Beklenen, geniş) -->
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:4px;">
+          <div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:16px;">📈 Aylık Tahsilat Trendi</div>
+            <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Ödenen tutarların aylık dağılımı</div>
+          </div>
+          <div id="tahsilatTrendYuzde" style="background:#fef9c3; color:#78350f; padding:4px 10px; border-radius:10px; font-size:11px; font-weight:700;">%0</div>
+        </div>
+        <div style="position:relative; height:220px; margin-top:12px;">
+          <canvas id="finansTahsilatTrendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- SINIF DAĞILIMI -->
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:16px;">🍩 Sınıf Dağılımı</div>
+        <div style="font-size:12px; color:var(--gray-500); margin-top:2px; margin-bottom:12px;">Toplam öğrenci sayısı</div>
+        <div style="position:relative; height:220px;">
+          <canvas id="finansSinifDonutChart"></canvas>
+          <div id="sinifDonutCenterText" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; pointer-events:none;">
+            <div id="sinifDonutSayi" style="font-family:var(--font-display); font-size:34px; font-weight:700; color:var(--gray-800); line-height:1;">0</div>
+            <div style="font-size:10px; color:var(--gray-500); letter-spacing:1px; font-weight:600; margin-top:4px;">ÖĞRENCİ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ÖDEME YÖNTEMLERİ -->
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:16px;">💳 Ödeme Yöntemleri</div>
+        <div style="font-size:12px; color:var(--gray-500); margin-top:2px; margin-bottom:14px;">Bu dönemki dağılım</div>
+        <div id="odemeYontemleriList">
+          <!-- JS ile doldurulur -->
+        </div>
+      </div>
+    </div>
   `;
   el.innerHTML = html;
 
@@ -8591,6 +8630,9 @@ function renderFinansalOzet() {
       cizGelirDonut(gelirKategorileri, toplamGelir);
       cizGiderDonut(giderGruplari, toplamGider);
       renderYilSonuProjeksiyon(toplamGelir, toplamGider, tahsilatOrani);
+      cizTahsilatTrendi();
+      cizSinifDonut();
+      renderOdemeYontemleri();
     } catch (e) {
       console.error("Grafik çizim hatası:", e);
     }
@@ -8872,6 +8914,242 @@ function renderYilSonuProjeksiyon(toplamGelir, toplamGider, tahsilatOrani) {
   `;
 }
 
+// 6. AYLIK TAHSİLAT TRENDİ (Ödenen vs Beklenen - Fotoğraftaki stil)
+let finansTahsilatTrendInst = null;
+function cizTahsilatTrendi() {
+  const canvas = document.getElementById("finansTahsilatTrendChart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const bugun = new Date();
+  const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+  const aylar = [];
+  for (let i = 0; i < 12; i++) {
+    const ay = 9 + i;
+    const hedefYil = ay > 12 ? donemBasYil + 1 : donemBasYil;
+    const hedefAy = ay > 12 ? ay - 12 : ay;
+    aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
+  }
+
+  // Beklenen: Aktif öğrencilerin o ayki aidat toplamı (KÜMÜLATİF yıllık)
+  let kumulatifBeklenen = 0;
+  const beklenenSeri = [];
+  for (const ayKod of aylar) {
+    const ayNum = parseInt(ayKod.split("-")[1], 10);
+    for (const o of ogrenciList) {
+      const ayar = ayarListesi[o.id];
+      if (!ayar) continue;
+      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
+      const a = ayar.aidatAyarlari || {};
+      const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
+      const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
+      kumulatifBeklenen += (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
+    }
+    beklenenSeri.push(kumulatifBeklenen);
+  }
+
+  // Ödenen: aylık aidat kaleminde o ay ödenen (KÜMÜLATİF)
+  let kumulatifOdenen = 0;
+  const odenenSeri = aylar.map(ayKod => {
+    const ayOdenen = finansalGelirler
+      .filter(g => g.tur === "aylik" && g.ayKod === ayKod)
+      .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
+    kumulatifOdenen += ayOdenen;
+    return kumulatifOdenen;
+  });
+
+  const etiketler = aylar.map(ayKod => {
+    const [y, a] = ayKod.split("-");
+    return `${AY_ISIMLERI[parseInt(a) - 1].substring(0, 3)} ${y.substring(2)}`;
+  });
+
+  // Trend yüzdesi (son/ilk gerçek ay)
+  const sonOdenen = odenenSeri[odenenSeri.length - 1];
+  const sonBeklenen = beklenenSeri[beklenenSeri.length - 1];
+  const trendYuzde = sonBeklenen > 0 ? Math.round((sonOdenen / sonBeklenen) * 100) : 0;
+  const trendEl = document.getElementById("tahsilatTrendYuzde");
+  if (trendEl) trendEl.textContent = `%${trendYuzde}`;
+
+  if (finansTahsilatTrendInst) finansTahsilatTrendInst.destroy();
+
+  finansTahsilatTrendInst = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: etiketler,
+      datasets: [
+        {
+          label: "Ödenen",
+          data: odenenSeri,
+          borderColor: "#2d6a4f",
+          backgroundColor: "rgba(45,106,79,0.15)",
+          borderWidth: 2.5,
+          tension: 0.35,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: "#2d6a4f",
+          pointBorderColor: "#ffffff",
+          pointBorderWidth: 2
+        },
+        {
+          label: "Beklenen",
+          data: beklenenSeri,
+          borderColor: "#facc15",
+          backgroundColor: "transparent",
+          borderWidth: 2,
+          borderDash: [6, 4],
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: "#ffffff",
+          pointBorderColor: "#facc15",
+          pointBorderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { boxWidth: 12, font: { size: 11 }, usePointStyle: true, pointStyle: "circle" }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ₺${ctx.parsed.y.toLocaleString("tr-TR")}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            font: { size: 10 },
+            callback: (v) => "₺" + (v >= 1000 ? (v / 1000).toFixed(0) + "K" : v)
+          }
+        },
+        x: { ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// 7. SINIF DAĞILIMI DONUT (ortada sayı ile)
+let finansSinifDonutInst = null;
+function cizSinifDonut() {
+  const canvas = document.getElementById("finansSinifDonutChart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const m2 = aktifOgrenciler.filter(o => {
+    const ayar = ayarListesi[o.id] || {};
+    const sinif = ((ayar.kayit && ayar.kayit.sinif) || o.sinif || "").toLowerCase();
+    return sinif.includes("2");
+  }).length;
+  const m3 = aktifOgrenciler.length - m2;
+
+  // Ortadaki sayıyı güncelle
+  const sayiEl = document.getElementById("sinifDonutSayi");
+  if (sayiEl) sayiEl.textContent = aktifOgrenciler.length;
+
+  if (finansSinifDonutInst) finansSinifDonutInst.destroy();
+
+  if (m2 + m3 === 0) {
+    // Veri yok
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+
+  finansSinifDonutInst = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: [`M. 2 (${m2})`, `M. 3 (${m3})`],
+      datasets: [{
+        data: [m2, m3],
+        backgroundColor: ["#2d6a4f", "#facc15"],
+        borderWidth: 3,
+        borderColor: "#ffffff"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "72%",
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            boxWidth: 10, font: { size: 11 }, padding: 10,
+            usePointStyle: true, pointStyle: "circle"
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const toplam = m2 + m3;
+              const pct = toplam > 0 ? Math.round((ctx.parsed / toplam) * 100) : 0;
+              return `${ctx.label}: %${pct}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// 8. ÖDEME YÖNTEMLERİ (yatay çubuklar)
+function renderOdemeYontemleri() {
+  const el = document.getElementById("odemeYontemleriList");
+  if (!el) return;
+
+  // Gelirlerden ödeme yöntemlerini topla
+  const yontemler = {
+    "Havale/EFT": 0,
+    "Kredi Kartı": 0,
+    "Nakit": 0,
+    "Çek/Senet": 0
+  };
+  let toplam = 0;
+  for (const g of finansalGelirler) {
+    const yontem = g.odemeYontemi || "Havale/EFT";
+    const mapped = yontemler.hasOwnProperty(yontem) ? yontem : "Havale/EFT";
+    yontemler[mapped] += parseFloat(g.odenen) || 0;
+    toplam += parseFloat(g.odenen) || 0;
+  }
+
+  const renkler = {
+    "Havale/EFT": "#2d6a4f",
+    "Kredi Kartı": "#facc15",
+    "Nakit": "#3b82f6",
+    "Çek/Senet": "#8b5cf6"
+  };
+  const ikonlar = {
+    "Havale/EFT": "🏦",
+    "Kredi Kartı": "💳",
+    "Nakit": "💵",
+    "Çek/Senet": "📝"
+  };
+
+  let html = "";
+  for (const yontem in yontemler) {
+    const tutar = yontemler[yontem];
+    const yuzde = toplam > 0 ? Math.round((tutar / toplam) * 100) : 0;
+    const barYuzde = toplam > 0 ? (tutar / toplam) * 100 : 0;
+    html += `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <div style="font-size:13px; font-weight:500; color:var(--gray-800);">${ikonlar[yontem]} ${yontem}</div>
+          <div style="font-size:13px; font-weight:700; color:var(--gray-800); font-family:var(--font-display);">₺${tutar.toLocaleString("tr-TR")}</div>
+        </div>
+        <div style="background:var(--gray-100); height:6px; border-radius:4px; overflow:hidden;">
+          <div style="background:${renkler[yontem]}; height:100%; width:${barYuzde}%; border-radius:4px; transition:width 0.5s;"></div>
+        </div>
+        <div style="text-align:right; font-size:10px; color:var(--gray-500); margin-top:2px;">%${yuzde}</div>
+      </div>
+    `;
+  }
+  el.innerHTML = html;
+}
+
 function renderFinansBarListesi(liste) {
   liste = liste.filter(l => l.tutar > 0);
   if (liste.length === 0) return '<div style="color:var(--gray-500); font-size:13px; padding:20px 0; text-align:center;">Veri yok</div>';
@@ -9134,30 +9412,204 @@ function renderRaporlarAltSekme() {
         </div>
       </div>
     </div>
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
-      <div onclick="raporIndirGecikenler()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:18px; cursor:pointer; transition:all 0.2s;">
-        <div style="font-size:28px;">⚠️</div>
-        <div style="font-family:var(--font-display); font-size:15px; font-weight:700; margin-top:8px;">Geciken Öğrenciler</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
+
+      <!-- 1. Aylık Tahsilat -->
+      <div class="rapor-indirme-karti" onclick="raporIndirAylikTahsilat()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">📊</div>
+          <div style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:700; letter-spacing:0.5px;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Aylık Tahsilat</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">12 aylık detaylı tablo</div>
+      </div>
+
+      <!-- 2. Geciken Öğrenciler -->
+      <div class="rapor-indirme-karti" onclick="raporIndirGecikenler()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">⚠️</div>
+          <div style="background:#fee2e2; color:#991b1b; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:700; letter-spacing:0.5px;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Geciken Liste</div>
         <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">İletişim bilgileriyle</div>
       </div>
-      <div onclick="raporIndirOgrenciler()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:18px; cursor:pointer;">
-        <div style="font-size:28px;">👨‍👩‍👧</div>
-        <div style="font-family:var(--font-display); font-size:15px; font-weight:700; margin-top:8px;">Öğrenci Listesi</div>
-        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Veli bilgileri dahil</div>
+
+      <!-- 3. Öğrenci Listesi -->
+      <div class="rapor-indirme-karti" onclick="raporIndirOgrenciler()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">👨‍👩‍👧</div>
+          <div style="background:#dbeafe; color:#1e40af; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:700; letter-spacing:0.5px;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Öğrenci Listesi</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Veli bilgileriyle</div>
       </div>
-      <div onclick="gelirlerExcel()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:18px; cursor:pointer;">
-        <div style="font-size:28px;">💰</div>
-        <div style="font-family:var(--font-display); font-size:15px; font-weight:700; margin-top:8px;">Gelir Listesi</div>
-        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Tüm tahsilatlar</div>
+
+      <!-- 4. Ödeme Detayı -->
+      <div class="rapor-indirme-karti" onclick="raporIndirOdemeDetayi()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">💰</div>
+          <div style="background:#fef3c7; color:#78350f; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:700; letter-spacing:0.5px;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Ödeme Detayı</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Ay ay her öğrenci</div>
       </div>
-      <div onclick="giderlerExcel()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:18px; cursor:pointer;">
-        <div style="font-size:28px;">💸</div>
-        <div style="font-family:var(--font-display); font-size:15px; font-weight:700; margin-top:8px;">Gider Listesi</div>
-        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Kategorili döküm</div>
+
+      <!-- 5. Gelir-Gider Raporu -->
+      <div class="rapor-indirme-karti" onclick="raporIndirGelirGider()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">📈</div>
+          <div style="background:#e9d5ff; color:#5b21b6; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:700; letter-spacing:0.5px;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Gelir-Gider Raporu</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Kar/Zarar özeti + detay</div>
       </div>
+
+      <!-- 6. Gider Detayı -->
+      <div class="rapor-indirme-karti" onclick="giderlerExcel()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <div style="font-size:32px;">💸</div>
+          <div style="background:#fecaca; color:#7f1d1d; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:700; letter-spacing:0.5px;">EXCEL</div>
+        </div>
+        <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--gray-800);">Gider Detayı</div>
+        <div style="font-size:12px; color:var(--gray-600); margin-top:4px;">Kategori bazlı döküm</div>
+      </div>
+
     </div>
+
+    <style>
+      .rapor-indirme-karti:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        border-color: #2d6a4f !important;
+      }
+    </style>
   `;
 }
+
+// Rapor: Aylık Tahsilat (kümülatif tablo)
+window.raporIndirAylikTahsilat = function() {
+  try {
+    const bugun = new Date();
+    const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+    const aylar = [];
+    for (let i = 0; i < 12; i++) {
+      const ay = 9 + i;
+      const hedefYil = ay > 12 ? donemBasYil + 1 : donemBasYil;
+      const hedefAy = ay > 12 ? ay - 12 : ay;
+      aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
+    }
+
+    const rows = [];
+    for (const ayKod of aylar) {
+      let beklenen = 0, odenen = 0, odeyenSayi = 0, odemeyenSayi = 0;
+      for (const o of ogrenciList) {
+        const ayar = ayarListesi[o.id];
+        if (!ayar || getOgrenciDurum(o, ayar) !== "aktif") continue;
+        const a = ayar.aidatAyarlari || {};
+        const ayNum = parseInt(ayKod.split("-")[1], 10);
+        const aylikBeklenen = (ayNum >= 9 || ayNum <= 1) ? (a.iDonemAylik || a.aylikAidat || 0) : (a.iiDonemAylik || a.aylikAidat || 0);
+        beklenen += aylikBeklenen;
+        const od = (ayar.aylikOdemeler || {})[ayKod] || {};
+        if (od.odendi) { odenen += parseFloat(od.odenenTutar) || aylikBeklenen; odeyenSayi++; }
+        else { odemeyenSayi++; }
+      }
+      rows.push({
+        "Ay": (function(ak){const [y,a]=ak.split("-"); return `${AY_ISIMLERI[parseInt(a)-1]} ${y}`;})(ayKod),
+        "Beklenen (TL)": beklenen,
+        "Tahsil Edilen (TL)": odenen,
+        "Fark (TL)": odenen - beklenen,
+        "Oran (%)": beklenen > 0 ? Math.round((odenen / beklenen) * 100) : 0,
+        "Ödeyen": odeyenSayi,
+        "Ödemeyen": odemeyenSayi
+      });
+    }
+    const ws = window.XLSX.utils.json_to_sheet(rows);
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, "Aylık Tahsilat");
+    window.XLSX.writeFile(wb, `Aylik_Tahsilat_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Aylık tahsilat indirildi");
+  } catch (e) { showToast("Hata: " + e.message, "error"); }
+};
+
+// Rapor: Ödeme Detayı (ay ay öğrenci matrisi)
+window.raporIndirOdemeDetayi = function() {
+  try {
+    const bugun = new Date();
+    const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+    const aylar = [];
+    for (let i = 0; i < 12; i++) {
+      const ay = 9 + i;
+      const hedefYil = ay > 12 ? donemBasYil + 1 : donemBasYil;
+      const hedefAy = ay > 12 ? ay - 12 : ay;
+      aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
+    }
+
+    const data = [];
+    for (const o of ogrenciList) {
+      const ayar = ayarListesi[o.id] || {};
+      const a = ayar.aidatAyarlari || {};
+      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
+      const aylikOdemeler = ayar.aylikOdemeler || {};
+      const row = {
+        "Öğrenci": o.ogrenciAdSoyad || "",
+        "Sınıf": (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
+        "Aylık": a.aylikAidat || 0,
+        "Ön Ödeme": (aylikOdemeler["__onOdeme"] && aylikOdemeler["__onOdeme"].odendi) ? "✓" : "—"
+      };
+      for (const ayKod of aylar) {
+        const od = aylikOdemeler[ayKod] || {};
+        const ayNum = parseInt(ayKod.split("-")[1], 10);
+        const beklenen = (ayNum >= 9 || ayNum <= 1) ? (a.iDonemAylik || a.aylikAidat || 0) : (a.iiDonemAylik || a.aylikAidat || 0);
+        const ayAdi = AY_ISIMLERI[parseInt(ayKod.split("-")[1]) - 1].substring(0, 3);
+        row[ayAdi] = od.odendi ? `✓ ${parseFloat(od.odenenTutar || beklenen).toLocaleString("tr-TR")}` : "—";
+      }
+      data.push(row);
+    }
+    const ws = window.XLSX.utils.json_to_sheet(data);
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, "Ödeme Detayı");
+    window.XLSX.writeFile(wb, `Odeme_Detayi_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Ödeme detayı indirildi");
+  } catch (e) { showToast("Hata: " + e.message, "error"); }
+};
+
+// Rapor: Gelir-Gider (3 sayfalı rapor)
+window.raporIndirGelirGider = function() {
+  try {
+    const wb = window.XLSX.utils.book_new();
+
+    const toplamGelir = finansalGelirler.reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
+    const toplamGider = finansalGiderler.reduce((s, g) => s + (parseFloat(g.tutar) || 0), 0);
+    const ozet = [
+      { "Kalem": "Toplam Gelir", "Tutar (TL)": toplamGelir },
+      { "Kalem": "Toplam Gider", "Tutar (TL)": toplamGider },
+      { "Kalem": "Net Kar/Zarar", "Tutar (TL)": toplamGelir - toplamGider },
+      { "Kalem": "Kar Oranı (%)", "Tutar (TL)": toplamGelir > 0 ? Math.round(((toplamGelir - toplamGider) / toplamGelir) * 100) : 0 }
+    ];
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(ozet), "Özet");
+
+    const gelirData = finansalGelirler.map(g => ({
+      "Öğrenci": g.ogrenciAd, "Sınıf": g.sinif, "Kalem": g.etiket,
+      "Beklenen (TL)": g.beklenen, "Ödenen (TL)": g.odenen,
+      "Tarih": g.odemeTarihi || "", "Yöntem": g.odemeYontemi || ""
+    }));
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(gelirData), "Gelirler");
+
+    const giderData = finansalGiderler.map(g => {
+      const kat = GIDER_KATEGORILERI[g.kategori] || { isim: g.kategori, grup: "" };
+      return {
+        "Grup": GIDER_GRUP_ADLARI[kat.grup] || "", "Kategori": kat.isim,
+        "Açıklama": g.aciklama || "", "Fatura No": g.faturaNo || "",
+        "Tutar (TL)": parseFloat(g.tutar) || 0, "Tarih": g.tarih || "",
+        "Tekrarlayan": g.tekrarlayan ? "Evet" : "Hayır"
+      };
+    });
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(giderData), "Giderler");
+
+    window.XLSX.writeFile(wb, `Gelir_Gider_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Gelir-gider raporu indirildi (3 sayfa)");
+  } catch (e) { showToast("Hata: " + e.message, "error"); }
+};
 
 window.raporIndirGecikenler = function() {
   const gecikenler = hesaplaFinansGecikenler();
