@@ -7128,8 +7128,141 @@ async function loadOnayBekleyenler() {
   wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Başvurular yükleniyor...</p></div>';
 
   try {
-    const snap = await getDocs(collection(db, "basvurular"));
-    basvuruListesi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Üç koleksiyondan paralel oku
+    const [basvuruSnap, yenikayitSnap, kayitYenilemeSnap] = await Promise.all([
+      getDocs(collection(db, "basvurular")).catch(e => { console.warn("basvurular:", e); return { docs: [] }; }),
+      getDocs(collection(db, "yenikayit")).catch(e => { console.warn("yenikayit:", e); return { docs: [] }; }),
+      getDocs(collection(db, "kayitYenileme")).catch(e => { console.warn("kayitYenileme:", e); return { docs: [] }; })
+    ]);
+
+    // basvurular (yeni şema) - doğrudan al
+    const fromBasvurular = basvuruSnap.docs.map(d => ({
+      id: d.id,
+      _kaynak: "basvurular",
+      _koleksiyon: "basvurular",
+      ...d.data()
+    }));
+
+    // yenikayit koleksiyonu (eski şema) - normalize et
+    const fromYenikayit = yenikayitSnap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,  // userId
+        _kaynak: "yenikayit",
+        _koleksiyon: "yenikayit",
+        _isLegacy: true,
+        kaynak: "yenikayit",
+        durum: data.durum || "beklemede",
+        basvuruTarihi: data.kayitTarihi || data.olusturma || "",
+        onayTarihi: data.onayTarihi || "",
+        retTarihi: data.retTarihi || "",
+        notlar: data.notlar || "",
+        // Öğrenci bilgileri
+        ogrenci: {
+          adSoyad: data.cocukAdi || data.ogrenciAdi || "",
+          tcKimlik: data.cocukTC || "",
+          dogumTarihi: data.cocukDogum || data.dogumTarihi || "",
+          cinsiyet: data.cocukCinsiyet || ""
+        },
+        // Kayıt bilgileri
+        kayit: {
+          sinif: data.sinif || "",
+          program: data.program || data.programTuru || "Tam Gün"
+        },
+        // Aidat
+        aidatAyarlari: {
+          aylikAidat: data.aylikUcret || data.aylikAidat || 0,
+          taksitSayisi: data.taksitSayisi || 12,
+          baslangicAyi: data.baslangicAyi || "",
+          pesinOdeme: !!data.pesinOdeme,
+          programTuru: data.program || data.programTuru || "Tam Gün",
+          indirimOrani: data.indirimOrani || 0
+        },
+        // Anne
+        anne: {
+          adSoyad: data.anneAdi || data.anneAdSoyad || "",
+          tcKimlik: data.anneTC || "",
+          cepTel: data.anneTelefon || data.anneCepTel || "",
+          eposta: (data.anneEposta || data.email || "").toLowerCase().trim(),
+          meslek: data.anneMeslek || ""
+        },
+        // Baba
+        baba: {
+          adSoyad: data.babaAdi || data.babaAdSoyad || "",
+          tcKimlik: data.babaTC || "",
+          cepTel: data.babaTelefon || data.babaCepTel || "",
+          eposta: (data.babaEposta || "").toLowerCase().trim(),
+          meslek: data.babaMeslek || ""
+        },
+        // İzinler
+        izinler: {
+          medya: data.medyaIzni !== false,
+          gezi: data.geziIzni !== false,
+          acilMudahale: data.acilMudahaleIzni !== false,
+          saglikTarama: data.saglikTaramasiIzni !== false
+        },
+        _raw: data  // Orijinal veriyi de sakla (detay görünümü için)
+      };
+    });
+
+    // kayitYenileme koleksiyonu (eski şema) - aynı şekilde normalize
+    const fromKayitYenileme = kayitYenilemeSnap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,  // userId
+        _kaynak: "kayityenileme",
+        _koleksiyon: "kayitYenileme",
+        _isLegacy: true,
+        kaynak: "kayityenileme",
+        durum: data.durum || "beklemede",
+        basvuruTarihi: data.kayitTarihi || data.olusturma || "",
+        onayTarihi: data.onayTarihi || "",
+        retTarihi: data.retTarihi || "",
+        notlar: data.notlar || "",
+        ogrenci: {
+          adSoyad: data.cocukAdi || data.ogrenciAdi || "",
+          tcKimlik: data.cocukTC || "",
+          dogumTarihi: data.cocukDogum || data.dogumTarihi || "",
+          cinsiyet: data.cocukCinsiyet || ""
+        },
+        kayit: {
+          sinif: data.sinif || "",
+          program: data.program || data.programTuru || "Tam Gün"
+        },
+        aidatAyarlari: {
+          aylikAidat: data.aylikUcret || data.aylikAidat || 0,
+          taksitSayisi: data.taksitSayisi || 12,
+          baslangicAyi: data.baslangicAyi || "",
+          pesinOdeme: !!data.pesinOdeme,
+          programTuru: data.program || data.programTuru || "Tam Gün",
+          indirimOrani: data.indirimOrani || 0
+        },
+        anne: {
+          adSoyad: data.anneAdi || data.anneAdSoyad || "",
+          tcKimlik: data.anneTC || "",
+          cepTel: data.anneTelefon || data.anneCepTel || "",
+          eposta: (data.anneEposta || data.email || "").toLowerCase().trim(),
+          meslek: data.anneMeslek || ""
+        },
+        baba: {
+          adSoyad: data.babaAdi || data.babaAdSoyad || "",
+          tcKimlik: data.babaTC || "",
+          cepTel: data.babaTelefon || data.babaCepTel || "",
+          eposta: (data.babaEposta || "").toLowerCase().trim(),
+          meslek: data.babaMeslek || ""
+        },
+        izinler: {
+          medya: data.medyaIzni !== false,
+          gezi: data.geziIzni !== false,
+          acilMudahale: data.acilMudahaleIzni !== false,
+          saglikTarama: data.saglikTaramasiIzni !== false
+        },
+        _raw: data
+      };
+    });
+
+    // Hepsini birleştir
+    basvuruListesi = [...fromBasvurular, ...fromYenikayit, ...fromKayitYenileme];
 
     // Son başvuru en üstte (tarihe göre)
     basvuruListesi.sort((a, b) => {
@@ -7383,15 +7516,16 @@ window.basvuruOnayla = async function(basvuruId) {
       }, { merge: true });
     }
 
-    // 4. Başvuruyu onaylı olarak işaretle
-    await updateDoc(doc(db, "basvurular", basvuruId), {
+    // 4. Başvuruyu onaylı olarak işaretle - hangi koleksiyondan geldiyse onu güncelle
+    const hedefKoleksiyon = b._koleksiyon || "basvurular";
+    await updateDoc(doc(db, hedefKoleksiyon, basvuruId), {
       durum: "onaylandi",
       onaylayan: currentUser.email,
       onayTarihi: new Date().toISOString(),
       eklenenOgrenciId: yeniOgrenciId
     });
 
-    // 5. TODO: Brevo e-posta gönderimi (Aşama 4'te eklenecek)
+    // 5. TODO: Brevo e-posta gönderimi (Tur B'de eklenecek)
     // Şimdilik başarı mesajı:
     showToast(`✓ ${ogrVeri.adSoyad} sisteme eklendi. ${veliEpostalari.length} veli onaylandı.`);
 
@@ -7413,7 +7547,9 @@ window.basvuruReddet = async function(basvuruId) {
   if (neden === null) return; // İptal
 
   try {
-    await updateDoc(doc(db, "basvurular", basvuruId), {
+    // Hangi koleksiyondan geldiyse onu güncelle
+    const hedefKoleksiyon = b._koleksiyon || "basvurular";
+    await updateDoc(doc(db, hedefKoleksiyon, basvuruId), {
       durum: "reddedildi",
       retNedeni: neden || "",
       retTarihi: new Date().toISOString(),
@@ -7430,11 +7566,32 @@ window.basvuruReddet = async function(basvuruId) {
 // Admin girişi sonrasında başvuruları yükle (sadece sayaç için)
 async function initOnayBekleyenler() {
   try {
-    const snap = await getDocs(collection(db, "basvurular"));
-    basvuruListesi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    updateOnaySayac();
+    const [basvuruSnap, yenikayitSnap, kayitYenilemeSnap] = await Promise.all([
+      getDocs(collection(db, "basvurular")).catch(() => ({ docs: [] })),
+      getDocs(collection(db, "yenikayit")).catch(() => ({ docs: [] })),
+      getDocs(collection(db, "kayitYenileme")).catch(() => ({ docs: [] }))
+    ]);
+    // Her 3 koleksiyonda "beklemede" durumundaki kayıtları say
+    let sayac = 0;
+    for (const snap of [basvuruSnap, yenikayitSnap, kayitYenilemeSnap]) {
+      for (const d of snap.docs) {
+        const data = d.data();
+        if ((data.durum || "beklemede") === "beklemede") sayac++;
+      }
+    }
+    // basvuruListesi'ni geçici doldur (detaylı liste loadOnayBekleyenler'de)
+    basvuruListesi = [];
+    const rozet = document.getElementById("onaySayacRozet");
+    if (rozet) {
+      if (sayac > 0) {
+        rozet.style.display = "inline-flex";
+        rozet.textContent = sayac;
+      } else {
+        rozet.style.display = "none";
+      }
+    }
   } catch (e) {
-    // Koleksiyon yoksa veya erişim yoksa sessiz geç
+    // Sessiz geç
   }
 }
 
