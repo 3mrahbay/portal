@@ -1086,7 +1086,7 @@ html, body {
 .tab {
   padding: 10px 20px;
   background: none;
-  border: none;
+  border: 2px solid transparent;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
   font-weight: 600;
@@ -1097,15 +1097,124 @@ html, body {
   white-space: nowrap;
 }
 
-.tab:hover { color: var(--green-deep); }
+.tab:hover {
+  background: rgba(45, 106, 79, 0.06);
+}
 
-.tab.active {
-  background: var(--green-deep);
+/* Öğrenci Ayarları - Yeşil (varsayılan) */
+.tab[data-tab="ogrenciler"]:hover {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.tab[data-tab="ogrenciler"].active {
+  background: #2d6a4f;
   color: white;
+  border-color: #2d6a4f;
+}
+
+/* Onay Bekleyenler - Amber */
+.tab[data-tab="onay"]:hover {
+  background: #fef3c7;
+  color: #78350f;
+  border-color: #fde68a;
+}
+
+.tab[data-tab="onay"].active {
+  background: #f59e0b;
+  color: white;
+  border-color: #f59e0b;
+}
+
+/* Finansal Yönetim - İndigo */
+.tab[data-tab="finans"]:hover {
+  background: #e0e7ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
+.tab[data-tab="finans"].active {
+  background: #4f46e5;
+  color: white;
+  border-color: #4f46e5;
 }
 
 .tab-panel { display: none; }
 .tab-panel.active { display: block; animation: fadeIn 0.3s; }
+
+/* ============ FİNANSAL YÖNETİM ALT SEKMELERİ (Renkli Butonlar) ============ */
+.finans-altsekme-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.finans-altsekme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: white;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.finans-altsekme-btn span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.finans-altsekme-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+/* Özet - Mavi */
+.finans-altsekme-btn[data-renk="mavi"] { color: #1e40af; border-color: #dbeafe; }
+.finans-altsekme-btn[data-renk="mavi"]:hover { background: #eff6ff; border-color: #bfdbfe; }
+.finans-altsekme-btn[data-renk="mavi"].active {
+  background: #3b82f6; color: white; border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+}
+
+/* Gelirler - Yeşil */
+.finans-altsekme-btn[data-renk="yesil"] { color: #166534; border-color: #dcfce7; }
+.finans-altsekme-btn[data-renk="yesil"]:hover { background: #f0fdf4; border-color: #bbf7d0; }
+.finans-altsekme-btn[data-renk="yesil"].active {
+  background: #16a34a; color: white; border-color: #16a34a;
+  box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+}
+
+/* Giderler - Kırmızı */
+.finans-altsekme-btn[data-renk="kirmizi"] { color: #991b1b; border-color: #fee2e2; }
+.finans-altsekme-btn[data-renk="kirmizi"]:hover { background: #fef2f2; border-color: #fecaca; }
+.finans-altsekme-btn[data-renk="kirmizi"].active {
+  background: #dc2626; color: white; border-color: #dc2626;
+  box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+}
+
+/* Raporlar - Mor */
+.finans-altsekme-btn[data-renk="mor"] { color: #6b21a8; border-color: #f3e8ff; }
+.finans-altsekme-btn[data-renk="mor"]:hover { background: #faf5ff; border-color: #e9d5ff; }
+.finans-altsekme-btn[data-renk="mor"].active {
+  background: #9333ea; color: white; border-color: #9333ea;
+  box-shadow: 0 4px 12px rgba(147,51,234,0.3);
+}
+
+/* Alt panel wrap - aktif renge göre pastel arka plan */
+#finansAltPanelWrap[data-aktif-renk="mavi"]    { background: #eff6ff; }
+#finansAltPanelWrap[data-aktif-renk="yesil"]   { background: #f0fdf4; }
+#finansAltPanelWrap[data-aktif-renk="kirmizi"] { background: #fef2f2; }
+#finansAltPanelWrap[data-aktif-renk="mor"]     { background: #faf5ff; }
 
 /* Search & Filter */
 .toolbar {
@@ -4588,12 +4697,27 @@ html, body {
 
     </div>
 
-    <!-- SON ÖDEMELER TAB -->
     <!-- FİNANSAL YÖNETİM TAB -->
     <div class="tab-panel" id="tab-finans">
 
-      <!-- DÖNEM SEÇİCİ -->
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; padding:14px 18px; background:white; border:1px solid var(--gray-300); border-radius:12px;">
+      <!-- ALT SEKMELER (Renkli Butonlar) -->
+      <div class="finans-altsekme-bar">
+        <button class="finans-altsekme-btn active" data-finans-alt="ozet" data-renk="mavi" onclick="finansSwitchAlt('ozet')">
+          <span>📊</span> Özet
+        </button>
+        <button class="finans-altsekme-btn" data-finans-alt="gelirler" data-renk="yesil" onclick="finansSwitchAlt('gelirler')">
+          <span>💰</span> Gelirler
+        </button>
+        <button class="finans-altsekme-btn" data-finans-alt="giderler" data-renk="kirmizi" onclick="finansSwitchAlt('giderler')">
+          <span>💸</span> Giderler
+        </button>
+        <button class="finans-altsekme-btn" data-finans-alt="raporlarAlt" data-renk="mor" onclick="finansSwitchAlt('raporlarAlt')">
+          <span>📥</span> Raporlar
+        </button>
+      </div>
+
+      <!-- DÖNEM SEÇİCİ (Alt sekmelerden sonra) -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px; padding:14px 18px; background:white; border:1px solid var(--gray-300); border-radius:12px;">
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <div style="font-size:13px; color:var(--gray-600); margin-right:4px;">Görünüm:</div>
           <button class="btn-mini" id="finansView-buAy" onclick="finansSetView('buAy')" style="background:#2d6a4f; color:white; border:none;">Bu Ay</button>
@@ -4605,15 +4729,8 @@ html, body {
         </div>
       </div>
 
-      <!-- ALT SEKMELER -->
-      <div style="display:flex; gap:6px; border-bottom:2px solid var(--gray-200); margin-bottom:20px; overflow-x:auto;">
-        <button class="finans-altsekme active" data-finans-alt="ozet" onclick="finansSwitchAlt('ozet')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid #2d6a4f; color:#2d6a4f; font-weight:600; cursor:pointer; font-size:14px;">📊 Özet</button>
-        <button class="finans-altsekme" data-finans-alt="gelirler" onclick="finansSwitchAlt('gelirler')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">💰 Gelirler</button>
-        <button class="finans-altsekme" data-finans-alt="giderler" onclick="finansSwitchAlt('giderler')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">💸 Giderler</button>
-        <button class="finans-altsekme" data-finans-alt="raporlarAlt" onclick="finansSwitchAlt('raporlarAlt')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">📥 Raporlar</button>
-      </div>
-
-      <!-- ALT PANELLER -->
+      <!-- ALT PANELLER (Pastel arka plan - data-renk ile dinamik) -->
+      <div id="finansAltPanelWrap" data-aktif-renk="mavi" style="border-radius:16px; padding:20px; transition:background 0.3s;">
       <div id="finansAlt-ozet" class="finans-alt-panel">
         <div id="finansOzetIcerik">
           <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
@@ -4658,6 +4775,8 @@ html, body {
           <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
         </div>
       </div>
+
+      </div><!-- /finansAltPanelWrap -->
 
     </div>
 
@@ -8820,15 +8939,19 @@ window.finansSetView = function(view) {
 
 window.finansSwitchAlt = function(alt) {
   aktifFinansAlt = alt;
-  document.querySelectorAll(".finans-altsekme").forEach(btn => {
+  let aktifRenk = "mavi";
+  document.querySelectorAll(".finans-altsekme-btn").forEach(btn => {
     if (btn.dataset.finansAlt === alt) {
-      btn.style.borderBottomColor = "#2d6a4f";
-      btn.style.color = "#2d6a4f"; btn.style.fontWeight = "600";
+      btn.classList.add("active");
+      aktifRenk = btn.dataset.renk || "mavi";
     } else {
-      btn.style.borderBottomColor = "transparent";
-      btn.style.color = "var(--gray-600)"; btn.style.fontWeight = "500";
+      btn.classList.remove("active");
     }
   });
+  // Pastel arka planı aktif renge çevir
+  const wrap = document.getElementById("finansAltPanelWrap");
+  if (wrap) wrap.setAttribute("data-aktif-renk", aktifRenk);
+
   document.querySelectorAll(".finans-alt-panel").forEach(p => p.style.display = "none");
   const panel = document.getElementById(`finansAlt-${alt}`);
   if (panel) panel.style.display = "block";
