@@ -3998,7 +3998,7 @@ html, body {
     <div class="tabs">
       <button class="tab active" data-tab="ogrenciler">👥 Öğrenci Ayarları</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Onay Bekleyenler <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
-      <button class="tab" data-tab="odemeler">💸 Son Ödemeler</button>
+      <button class="tab" data-tab="finans">💼 Finansal Yönetim</button>
       <button class="tab" data-tab="raporlar">📊 Raporlar</button>
     </div>
 
@@ -4100,47 +4100,168 @@ html, body {
 
     </div>
 
-    <!-- SON ÖDEMELER TAB -->
-    <div class="tab-panel" id="tab-odemeler">
+    <!-- FİNANSAL YÖNETİM TAB -->
+    <div class="tab-panel" id="tab-finans">
 
-      <!-- HERO -->
-      <div style="background:linear-gradient(135deg,#2d6a4f 0%,#52b788 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:white;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
-          <div>
-            <div style="font-size:11px; font-weight:600; letter-spacing:1.5px; opacity:0.8;">💸 SON YAPILAN ÖDEMELER</div>
-            <h2 style="font-family:var(--font-display); font-size:26px; font-weight:700; margin:6px 0;">Ödeme Hareketleri</h2>
-            <div style="font-size:13px; opacity:0.9;">Son yapılan aylık aidat ve ek ödemelerin listesi. Yeni ödeme en üstte.</div>
-          </div>
-          <div style="display:flex; gap:8px;">
-            <button class="btn-mini" style="background:rgba(255,255,255,0.25); color:white; border:1px solid rgba(255,255,255,0.3);" onclick="loadSonOdemeler()">🔄 Yenile</button>
-            <button class="btn-mini" style="background:white; color:#1a4d2e; border:none;" onclick="sonOdemelerExcel()">📊 Excel</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- FİLTRELER -->
-      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
-        <div style="font-size:12px; color:#6b7280; margin-right:4px;">Filtrele:</div>
-        <button class="btn-mini" data-odeme-filter="hepsi" onclick="sonOdemelerFilter('hepsi')" style="background:#2d6a4f; color:white; border:none;">Tümü</button>
-        <button class="btn-mini" data-odeme-filter="aylik" onclick="sonOdemelerFilter('aylik')">Aylık Aidat</button>
-        <button class="btn-mini" data-odeme-filter="diger" onclick="sonOdemelerFilter('diger')">Diğer Ödemeler</button>
-        <button class="btn-mini" data-odeme-filter="buay" onclick="sonOdemelerFilter('buay')">Bu Ay</button>
-        <button class="btn-mini" data-odeme-filter="geciken" onclick="sonOdemelerFilter('geciken')" style="background:#fee2e2; color:#991b1b; border-color:#fecaca;">⚠ Geciken</button>
-      </div>
-
-      <!-- ÖZET KARTLAR -->
-      <div id="sonOdemelerOzet" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:20px;">
+      <!-- ÜST ÖZET KARTLARI -->
+      <div id="finansOzetKartlari" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:20px;">
         <!-- JS ile doldurulur -->
       </div>
 
-      <!-- LİSTE -->
-      <div id="sonOdemelerListesi">
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Ödemeler yükleniyor...</p>
+      <!-- DÖNEM SEÇİCİ -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; padding:14px 18px; background:white; border:1px solid var(--gray-300); border-radius:12px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <div style="font-size:13px; color:var(--gray-600); margin-right:4px;">Görünüm:</div>
+          <button class="btn-mini" id="finansView-buAy" onclick="finansSetView('buAy')" style="background:#2d6a4f; color:white; border:none;">Bu Ay</button>
+          <button class="btn-mini" id="finansView-buYil" onclick="finansSetView('buYil')">Bu Yıl</button>
+          <button class="btn-mini" id="finansView-tumu" onclick="finansSetView('tumu')">Dönem Toplamı</button>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-mini" onclick="loadFinansalData()">🔄 Yenile</button>
+          <button class="btn-mini btn-primary" onclick="openGiderEkleModal()">+ Gider Ekle</button>
         </div>
       </div>
 
+      <!-- ALT SEKMELER -->
+      <div style="display:flex; gap:6px; border-bottom:2px solid var(--gray-200); margin-bottom:20px; overflow-x:auto;">
+        <button class="finans-altsekme active" data-finans-alt="ozet" onclick="finansSwitchAlt('ozet')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid #2d6a4f; color:#2d6a4f; font-weight:600; cursor:pointer; font-size:14px;">📊 Özet</button>
+        <button class="finans-altsekme" data-finans-alt="gelirler" onclick="finansSwitchAlt('gelirler')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">💰 Gelirler</button>
+        <button class="finans-altsekme" data-finans-alt="giderler" onclick="finansSwitchAlt('giderler')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">💸 Giderler</button>
+        <button class="finans-altsekme" data-finans-alt="geciken" onclick="finansSwitchAlt('geciken')" style="padding:10px 18px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--gray-600); font-weight:500; cursor:pointer; font-size:14px;">⚠ Geciken</button>
+      </div>
+
+      <!-- ALT PANELLER -->
+      <div id="finansAlt-ozet" class="finans-alt-panel">
+        <div id="finansOzetIcerik">
+          <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+        </div>
+      </div>
+
+      <div id="finansAlt-gelirler" class="finans-alt-panel" style="display:none;">
+        <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+          <div style="font-size:12px; color:#6b7280; margin-right:4px;">Filtrele:</div>
+          <button class="btn-mini" data-gelir-filter="hepsi" onclick="gelirFilter('hepsi')" style="background:#2d6a4f; color:white; border:none;">Tümü</button>
+          <button class="btn-mini" data-gelir-filter="aylik" onclick="gelirFilter('aylik')">Aylık Aidat</button>
+          <button class="btn-mini" data-gelir-filter="diger" onclick="gelirFilter('diger')">Diğer Ödemeler</button>
+          <button class="btn-mini" data-gelir-filter="onOdeme" onclick="gelirFilter('onOdeme')">Ön Ödemeler</button>
+          <div style="margin-left:auto;">
+            <button class="btn-mini" onclick="gelirlerExcel()">📊 Excel</button>
+          </div>
+        </div>
+        <div id="gelirlerListesi">
+          <div class="ozel-madde-empty">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <div id="finansAlt-giderler" class="finans-alt-panel" style="display:none;">
+        <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+          <div style="font-size:12px; color:#6b7280; margin-right:4px;">Kategori:</div>
+          <button class="btn-mini" data-gider-filter="hepsi" onclick="giderFilter('hepsi')" style="background:#2d6a4f; color:white; border:none;">Tümü</button>
+          <button class="btn-mini" data-gider-filter="personel" onclick="giderFilter('personel')">👥 Personel</button>
+          <button class="btn-mini" data-gider-filter="sabit" onclick="giderFilter('sabit')">🏠 Sabit</button>
+          <button class="btn-mini" data-gider-filter="isletme" onclick="giderFilter('isletme')">🍽️ İşletme</button>
+          <button class="btn-mini" data-gider-filter="diger" onclick="giderFilter('diger')">📝 Diğer</button>
+          <div style="margin-left:auto;">
+            <button class="btn-mini" onclick="giderlerExcel()">📊 Excel</button>
+          </div>
+        </div>
+        <div id="giderlerListesi">
+          <div class="ozel-madde-empty">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <div id="finansAlt-geciken" class="finans-alt-panel" style="display:none;">
+        <div id="gecikenListesi">
+          <div class="ozel-madde-empty">Yükleniyor...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- GİDER EKLE/DÜZENLE MODAL -->
+    <div class="modal-overlay" id="giderEkleModal">
+      <div class="modal" style="max-width:560px;">
+        <div class="modal-header">
+          <h3 id="giderEkleBaslik">💸 Yeni Gider Ekle</h3>
+          <button class="close-btn" onclick="closeGiderEkleModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="giderDuzenleId" value="">
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Kategori *</label>
+              <select id="giderKategori" onchange="onGiderKategoriDegisti()">
+                <option value="">Kategori seçin</option>
+                <optgroup label="👥 Personel">
+                  <option value="personel_ogretmen">Öğretmen Maaşı</option>
+                  <option value="personel_yonetici">Yönetici/İdari</option>
+                  <option value="personel_temizlik">Temizlik Görevlisi</option>
+                  <option value="personel_guvenlik">Güvenlik</option>
+                  <option value="personel_sgk">SGK Primleri</option>
+                  <option value="personel_egitim">Öğretmen Eğitimi</option>
+                </optgroup>
+                <optgroup label="🏠 Sabit Giderler">
+                  <option value="sabit_kira">Kira</option>
+                  <option value="sabit_elektrik">Elektrik</option>
+                  <option value="sabit_su">Su</option>
+                  <option value="sabit_dogalgaz">Doğalgaz</option>
+                  <option value="sabit_internet">İnternet/Telefon</option>
+                  <option value="sabit_vergi">Vergiler</option>
+                </optgroup>
+                <optgroup label="🍽️ İşletme">
+                  <option value="isletme_yemek">Yemek/Gıda Tedariki</option>
+                  <option value="isletme_temizlik">Temizlik Malzemesi</option>
+                  <option value="isletme_kirtasiye">Kırtasiye/Sarf</option>
+                  <option value="isletme_bakim">Bakım/Onarım</option>
+                </optgroup>
+                <optgroup label="📝 Diğer">
+                  <option value="diger_reklam">Reklam/Pazarlama</option>
+                  <option value="diger_muhasebe">Muhasebe/Danışmanlık</option>
+                  <option value="diger_sigorta">Sigorta</option>
+                  <option value="diger_genel">Genel/Diğer</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tutar (TL) *</label>
+              <input type="number" id="giderTutar" placeholder="0" min="0" step="0.01">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tarih *</label>
+              <input type="date" id="giderTarih">
+            </div>
+            <div class="form-group">
+              <label>Fatura/Fiş No</label>
+              <input type="text" id="giderFaturaNo" placeholder="opsiyonel">
+            </div>
+          </div>
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label>Açıklama</label>
+              <input type="text" id="giderAciklama" placeholder="Örn: Nisan ayı elektrik faturası">
+            </div>
+          </div>
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox" id="giderTekrarlayan" style="width:18px; height:18px;">
+                <span>🔄 Tekrarlayan gider (her ay otomatik aynı tutarda)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeGiderEkleModal()">İptal</button>
+          <button class="btn-primary" onclick="kaydetGider()">💾 Kaydet</button>
+          <button class="btn-secondary" id="giderSilBtn" onclick="silGider()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+        </div>
+      </div>
     </div>
 
     <!-- RAPORLAR TAB -->
@@ -5955,7 +6076,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc,
+  getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -8065,254 +8186,790 @@ async function initOnayBekleyenler() {
   }
 }
 
-// ============ SON ÖDEMELER (Admin Sekmesi) ============
-let sonOdemelerListesi = [];
-let aktifOdemeFilter = "hepsi";
 
-async function loadSonOdemeler() {
-  const wrap = document.getElementById("sonOdemelerListesi");
-  if (!wrap) return;
-  wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Ödemeler yükleniyor...</p></div>';
+// ============ FİNANSAL YÖNETİM ============
+// Veri state
+let finansalGelirler = [];  // Öğrenci ödemelerinden gelenler (hesaplanmış)
+let finansalGiderler = []; // Firestore giderler koleksiyonu
+let aktifFinansView = "buAy";  // buAy | buYil | tumu
+let aktifFinansAlt = "ozet";   // ozet | gelirler | giderler | geciken
+let aktifGelirFilter = "hepsi";
+let aktifGiderFilter = "hepsi";
 
+// Gider kategorileri (display için)
+const GIDER_KATEGORILERI = {
+  personel_ogretmen:  { grup: "personel", isim: "Öğretmen Maaşı",       ikon: "👨‍🏫", renk: "#2d6a4f" },
+  personel_yonetici:  { grup: "personel", isim: "Yönetici/İdari",       ikon: "💼", renk: "#2d6a4f" },
+  personel_temizlik:  { grup: "personel", isim: "Temizlik Görevlisi",   ikon: "🧹", renk: "#2d6a4f" },
+  personel_guvenlik:  { grup: "personel", isim: "Güvenlik",             ikon: "🛡️", renk: "#2d6a4f" },
+  personel_sgk:       { grup: "personel", isim: "SGK Primleri",         ikon: "📋", renk: "#2d6a4f" },
+  personel_egitim:    { grup: "personel", isim: "Öğretmen Eğitimi",     ikon: "🎓", renk: "#2d6a4f" },
+  sabit_kira:         { grup: "sabit",    isim: "Kira",                 ikon: "🏠", renk: "#f59e0b" },
+  sabit_elektrik:     { grup: "sabit",    isim: "Elektrik",             ikon: "⚡", renk: "#f59e0b" },
+  sabit_su:           { grup: "sabit",    isim: "Su",                   ikon: "💧", renk: "#f59e0b" },
+  sabit_dogalgaz:     { grup: "sabit",    isim: "Doğalgaz",             ikon: "🔥", renk: "#f59e0b" },
+  sabit_internet:     { grup: "sabit",    isim: "İnternet/Telefon",     ikon: "📞", renk: "#f59e0b" },
+  sabit_vergi:        { grup: "sabit",    isim: "Vergiler",             ikon: "🧾", renk: "#f59e0b" },
+  isletme_yemek:      { grup: "isletme",  isim: "Yemek/Gıda",           ikon: "🍽️", renk: "#3b82f6" },
+  isletme_temizlik:   { grup: "isletme",  isim: "Temizlik Malzemesi",   ikon: "🧴", renk: "#3b82f6" },
+  isletme_kirtasiye:  { grup: "isletme",  isim: "Kırtasiye/Sarf",       ikon: "✏️", renk: "#3b82f6" },
+  isletme_bakim:      { grup: "isletme",  isim: "Bakım/Onarım",         ikon: "🔧", renk: "#3b82f6" },
+  diger_reklam:       { grup: "diger",    isim: "Reklam/Pazarlama",     ikon: "📣", renk: "#8b5cf6" },
+  diger_muhasebe:     { grup: "diger",    isim: "Muhasebe/Danışmanlık", ikon: "📊", renk: "#8b5cf6" },
+  diger_sigorta:      { grup: "diger",    isim: "Sigorta",              ikon: "🛡️", renk: "#8b5cf6" },
+  diger_genel:        { grup: "diger",    isim: "Genel/Diğer",          ikon: "📦", renk: "#8b5cf6" }
+};
+
+const GIDER_GRUP_ADLARI = {
+  personel: "👥 Personel",
+  sabit:    "🏠 Sabit Giderler",
+  isletme:  "🍽️ İşletme",
+  diger:    "📝 Diğer"
+};
+
+// Ana yükleme fonksiyonu
+async function loadFinansalData() {
   try {
-    // ogrenciList ve ayarListesi zaten yüklü olmalı
-    // Her öğrencinin aylık ödemeleri ve diğer ödemelerini dolaş
-    sonOdemelerListesi = [];
+    // 1. Gelirleri öğrenci verisinden hesapla
+    finansalGelirler = hesaplaGelirler();
 
-    for (const o of ogrenciList) {
-      const ayar = ayarListesi[o.id];
-      if (!ayar) continue;
-      const durum = getOgrenciDurum(o, ayar);
-      if (durum !== "aktif") continue;
-
-      const a = ayar.aidatAyarlari || {};
-      const aylikAidat = a.aylikAidat || 0;
-      const iDonemAylik = a.iDonemAylik || aylikAidat;
-      const iiDonemAylik = a.iiDonemAylik || aylikAidat;
-
-      // Aylık ödemeler
-      const aylikOdemeler = ayar.aylikOdemeler || {};
-      for (const ayKod in aylikOdemeler) {
-        const od = aylikOdemeler[ayKod];
-        if (!od.odendi) continue;
-        const ayNum = parseInt(ayKod.split("-")[1], 10);
-        const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-        const odenen = parseFloat(od.odenenTutar) || beklenen;
-        sonOdemelerListesi.push({
-          ogrenciId: o.id,
-          ogrenciAd: o.ogrenciAdSoyad || "",
-          sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
-          tur: "aylik",
-          etiket: `${ayAdinda(ayKod)} Aylık Aidat`,
-          ayKod: ayKod,
-          beklenen: beklenen,
-          odenen: odenen,
-          fark: odenen - beklenen,
-          odemeTarihi: od.odemeTarihi || "",
-          odemeYontemi: od.odemeYontemi || "Havale/EFT",
-          not: od.not || ""
-        });
-      }
-
-      // Diğer ödemeler
-      const digerOdemeler = ayar.digerOdemeler || {};
-      for (const kod in digerOdemeler) {
-        const d = digerOdemeler[kod];
-        if (!d.odendi) continue;
-        const kalem = DIGER_ODEME_KALEMLERI.find(k => k.kod === kod);
-        const isim = kalem ? kalem.isim : kod;
-        const ikon = kalem ? kalem.ikon : "📄";
-        sonOdemelerListesi.push({
-          ogrenciId: o.id,
-          ogrenciAd: o.ogrenciAdSoyad || "",
-          sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
-          tur: "diger",
-          etiket: `${ikon} ${isim}`,
-          kalemKod: kod,
-          beklenen: parseFloat(d.tutar) || 0,
-          odenen: parseFloat(d.odenenTutar || d.tutar) || 0,
-          fark: 0,
-          odemeTarihi: d.odemeTarihi || "",
-          odemeYontemi: d.odemeYontemi || "Havale/EFT",
-          not: d.not || ""
-        });
-      }
+    // 2. Giderleri Firestore'dan çek
+    try {
+      const snap = await getDocs(collection(db, "giderler"));
+      finansalGiderler = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Giderler yüklenemedi (koleksiyon boş olabilir):", e);
+      finansalGiderler = [];
     }
 
-    // Yeni ödeme en üstte (tarihe göre)
-    sonOdemelerListesi.sort((a, b) => {
-      const at = a.odemeTarihi || "";
-      const bt = b.odemeTarihi || "";
-      return bt.localeCompare(at);
-    });
-
-    renderSonOdemeler();
-    renderSonOdemelerOzet();
+    // Render aktif alt sekmeyi
+    renderFinansalOzetKartlari();
+    renderFinansalAltSekme();
   } catch (e) {
-    console.error(e);
-    wrap.innerHTML = `<div class="ozel-madde-empty" style="color:#b91c1c;">Ödemeler yüklenemedi: ${e.message}</div>`;
+    console.error("Finansal data yükleme hatası:", e);
+    showToast("Finansal veriler yüklenemedi: " + e.message, "error");
   }
 }
 
-function ayAdinda(ayKod) {
-  // "2025-09" → "Eylül 2025"
-  try {
-    const [yil, ay] = ayKod.split("-");
-    const ayAdlari = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
-    return `${ayAdlari[parseInt(ay, 10) - 1]} ${yil}`;
-  } catch {
-    return ayKod;
+// Öğrenci ödeme verilerinden gelir listesi oluştur
+function hesaplaGelirler() {
+  const gelirler = [];
+  for (const o of ogrenciList) {
+    const ayar = ayarListesi[o.id];
+    if (!ayar) continue;
+    const durum = getOgrenciDurum(o, ayar);
+    if (durum !== "aktif") continue;
+
+    const a = ayar.aidatAyarlari || {};
+    const aylikAidat = a.aylikAidat || 0;
+    const iDonemAylik = a.iDonemAylik || aylikAidat;
+    const iiDonemAylik = a.iiDonemAylik || aylikAidat;
+    const onOdemeTutari = a.onOdeme || 0;
+
+    const aylikOdemeler = ayar.aylikOdemeler || {};
+
+    // Ön ödeme (özel kayıt __onOdeme)
+    const onOdemeDurum = aylikOdemeler["__onOdeme"] || {};
+    if (onOdemeDurum.odendi && onOdemeTutari > 0) {
+      gelirler.push({
+        ogrenciId: o.id,
+        ogrenciAd: o.ogrenciAdSoyad || "",
+        sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
+        tur: "onOdeme",
+        etiket: `🎫 Ön Ödeme`,
+        beklenen: onOdemeTutari,
+        odenen: parseFloat(onOdemeDurum.odenenTutar) || onOdemeTutari,
+        odemeTarihi: onOdemeDurum.odemeTarihi || "",
+        odemeYontemi: onOdemeDurum.odemeYontemi || "Havale/EFT"
+      });
+    }
+
+    // Aylık ödemeler
+    for (const ayKod in aylikOdemeler) {
+      if (ayKod.startsWith("__")) continue;  // __onOdeme gibi özel alanları atla
+      const od = aylikOdemeler[ayKod];
+      if (!od.odendi) continue;
+      const ayNum = parseInt(ayKod.split("-")[1], 10);
+      const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
+      const odenen = parseFloat(od.odenenTutar) || beklenen;
+      gelirler.push({
+        ogrenciId: o.id,
+        ogrenciAd: o.ogrenciAdSoyad || "",
+        sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
+        tur: "aylik",
+        etiket: `${ayAdinda(ayKod)}`,
+        ayKod: ayKod,
+        beklenen: beklenen,
+        odenen: odenen,
+        odemeTarihi: od.odemeTarihi || "",
+        odemeYontemi: od.odemeYontemi || "Havale/EFT"
+      });
+    }
+
+    // Diğer ödemeler
+    const digerOdemeler = ayar.digerOdemeler || {};
+    for (const kod in digerOdemeler) {
+      const d = digerOdemeler[kod];
+      if (!d.odendi) continue;
+      const kalem = DIGER_ODEME_KALEMLERI.find(k => k.kod === kod);
+      const isim = kalem ? kalem.isim : kod;
+      const ikon = kalem ? kalem.ikon : "📄";
+      const tutar = parseFloat(d.tutar) || 0;
+      if (tutar <= 0) continue;
+      gelirler.push({
+        ogrenciId: o.id,
+        ogrenciAd: o.ogrenciAdSoyad || "",
+        sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
+        tur: "diger",
+        etiket: `${ikon} ${isim}`,
+        kalemKod: kod,
+        beklenen: tutar,
+        odenen: parseFloat(d.odenenTutar) || tutar,
+        odemeTarihi: d.odemeTarihi || "",
+        odemeYontemi: d.odemeYontemi || "Havale/EFT"
+      });
+    }
   }
+  // Tarihe göre sırala (yeni üstte)
+  gelirler.sort((a, b) => (b.odemeTarihi || "").localeCompare(a.odemeTarihi || ""));
+  return gelirler;
 }
 
-function renderSonOdemelerOzet() {
-  const wrap = document.getElementById("sonOdemelerOzet");
-  if (!wrap) return;
-
-  const toplamOdenen = sonOdemelerListesi.reduce((s, o) => s + o.odenen, 0);
-  const aylikOdemeler = sonOdemelerListesi.filter(o => o.tur === "aylik");
-  const digerOdemeler = sonOdemelerListesi.filter(o => o.tur === "diger");
-
+// Döneme göre filtreleme (bu ay / bu yıl / tümü)
+function finansFiltreleByView(liste, tarihAlani) {
   const bugun = new Date();
   const buAy = `${bugun.getFullYear()}-${String(bugun.getMonth() + 1).padStart(2, "0")}`;
-  const buAyOdemeler = sonOdemelerListesi.filter(o => (o.odemeTarihi || "").startsWith(buAy));
-  const buAyToplam = buAyOdemeler.reduce((s, o) => s + o.odenen, 0);
+  const buYil = `${bugun.getFullYear()}`;
+
+  if (aktifFinansView === "buAy") {
+    return liste.filter(o => (o[tarihAlani] || "").startsWith(buAy));
+  } else if (aktifFinansView === "buYil") {
+    return liste.filter(o => (o[tarihAlani] || "").startsWith(buYil));
+  }
+  return liste;
+}
+
+// Üst özet kartlarını render et
+function renderFinansalOzetKartlari() {
+  const wrap = document.getElementById("finansOzetKartlari");
+  if (!wrap) return;
+
+  // Görünüme göre filtrele
+  const filtrelenmiGelirler = finansFiltreleByView(finansalGelirler, "odemeTarihi");
+  const filtrelenmiGiderler = finansFiltreleByView(finansalGiderler, "tarih");
+
+  const toplamGelir = filtrelenmiGelirler.reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
+  const toplamGider = filtrelenmiGiderler.reduce((s, g) => s + (parseFloat(g.tutar) || 0), 0);
+  const netKar = toplamGelir - toplamGider;
+  const karOrani = toplamGelir > 0 ? Math.round((netKar / toplamGelir) * 100) : 0;
+
+  // Tahsilat oranı (gelirlerin beklenenden ne kadarı toplandı)
+  const toplamBeklenen = filtrelenmiGelirler.reduce((s, g) => s + (parseFloat(g.beklenen) || 0), 0);
+  const tahsilatOrani = toplamBeklenen > 0 ? Math.round((toplamGelir / toplamBeklenen) * 100) : 0;
+
+  const donemLabel = aktifFinansView === "buAy" ? "BU AY"
+                   : aktifFinansView === "buYil" ? "BU YIL"
+                   : "DÖNEM TOPLAMI";
+
+  const karRengi = netKar >= 0 ? "#2d6a4f" : "#dc2626";
+  const karBg = netKar >= 0 ? "linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 100%)" : "linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)";
+  const karIkon = netKar >= 0 ? "📈" : "📉";
+  const karBaslik = netKar >= 0 ? "NET KAR" : "ZARAR";
 
   wrap.innerHTML = `
-    <div style="background:linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 100%); border-radius:12px; padding:16px 18px;">
-      <div style="font-size:11px; color:#1a4d2e; letter-spacing:1px; font-weight:600;">💰 TOPLAM TAHSİLAT</div>
-      <div style="font-size:24px; font-weight:700; color:#1a4d2e; margin-top:4px;">${toplamOdenen.toLocaleString("tr-TR")} TL</div>
-      <div style="font-size:12px; color:#2d6a4f; margin-top:2px;">${sonOdemelerListesi.length} ödeme</div>
+    <div style="background:linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 100%); border-radius:14px; padding:16px 18px;">
+      <div style="font-size:10px; color:#1a4d2e; letter-spacing:1.2px; font-weight:600;">💰 ${donemLabel} GELİR</div>
+      <div style="font-size:22px; font-weight:700; color:#1a4d2e; margin-top:4px; font-family:var(--font-display);">${toplamGelir.toLocaleString("tr-TR")} TL</div>
+      <div style="font-size:11px; color:#2d6a4f; margin-top:2px;">${filtrelenmiGelirler.length} tahsilat</div>
     </div>
-    <div style="background:#fef3c7; border-radius:12px; padding:16px 18px;">
-      <div style="font-size:11px; color:#78350f; letter-spacing:1px; font-weight:600;">📅 BU AY</div>
-      <div style="font-size:24px; font-weight:700; color:#78350f; margin-top:4px;">${buAyToplam.toLocaleString("tr-TR")} TL</div>
-      <div style="font-size:12px; color:#92400e; margin-top:2px;">${buAyOdemeler.length} ödeme</div>
+    <div style="background:linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius:14px; padding:16px 18px;">
+      <div style="font-size:10px; color:#991b1b; letter-spacing:1.2px; font-weight:600;">💸 ${donemLabel} GİDER</div>
+      <div style="font-size:22px; font-weight:700; color:#991b1b; margin-top:4px; font-family:var(--font-display);">${toplamGider.toLocaleString("tr-TR")} TL</div>
+      <div style="font-size:11px; color:#b91c1c; margin-top:2px;">${filtrelenmiGiderler.length} kalem</div>
     </div>
-    <div style="background:#dbeafe; border-radius:12px; padding:16px 18px;">
-      <div style="font-size:11px; color:#1e40af; letter-spacing:1px; font-weight:600;">🏦 AYLIK AİDAT</div>
-      <div style="font-size:24px; font-weight:700; color:#1e40af; margin-top:4px;">${aylikOdemeler.reduce((s, o) => s + o.odenen, 0).toLocaleString("tr-TR")} TL</div>
-      <div style="font-size:12px; color:#1e3a8a; margin-top:2px;">${aylikOdemeler.length} taksit</div>
+    <div style="background:${karBg}; border-radius:14px; padding:16px 18px;">
+      <div style="font-size:10px; color:${karRengi}; letter-spacing:1.2px; font-weight:600;">${karIkon} ${karBaslik}</div>
+      <div style="font-size:22px; font-weight:700; color:${karRengi}; margin-top:4px; font-family:var(--font-display);">${Math.abs(netKar).toLocaleString("tr-TR")} TL</div>
+      <div style="font-size:11px; color:${karRengi}; margin-top:2px;">%${Math.abs(karOrani)} ${netKar >= 0 ? "kar" : "zarar"}</div>
     </div>
-    <div style="background:#ede9fe; border-radius:12px; padding:16px 18px;">
-      <div style="font-size:11px; color:#5b21b6; letter-spacing:1px; font-weight:600;">📦 DİĞER ÖDEMELER</div>
-      <div style="font-size:24px; font-weight:700; color:#5b21b6; margin-top:4px;">${digerOdemeler.reduce((s, o) => s + o.odenen, 0).toLocaleString("tr-TR")} TL</div>
-      <div style="font-size:12px; color:#6d28d9; margin-top:2px;">${digerOdemeler.length} kalem</div>
+    <div style="background:linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius:14px; padding:16px 18px;">
+      <div style="font-size:10px; color:#1e40af; letter-spacing:1.2px; font-weight:600;">🎯 TAHSİLAT ORANI</div>
+      <div style="font-size:22px; font-weight:700; color:#1e40af; margin-top:4px; font-family:var(--font-display);">%${tahsilatOrani}</div>
+      <div style="margin-top:6px; background:rgba(255,255,255,0.5); height:6px; border-radius:4px; overflow:hidden;">
+        <div style="background:#1e40af; height:100%; width:${Math.min(100, tahsilatOrani)}%;"></div>
+      </div>
     </div>
   `;
 }
 
-window.sonOdemelerFilter = function(filter) {
-  aktifOdemeFilter = filter;
-  // Buton aktiflerini güncelle
-  document.querySelectorAll("[data-odeme-filter]").forEach(b => {
-    if (b.dataset.odemeFilter === filter) {
+// Görünüm değiştir (Bu Ay / Bu Yıl / Tümü)
+window.finansSetView = function(view) {
+  aktifFinansView = view;
+  document.querySelectorAll("[id^='finansView-']").forEach(b => {
+    if (b.id === `finansView-${view}`) {
       b.style.background = "#2d6a4f";
       b.style.color = "white";
-      b.style.borderColor = "#2d6a4f";
+      b.style.border = "none";
     } else {
       b.style.background = "";
       b.style.color = "";
-      b.style.borderColor = "";
+      b.style.border = "";
     }
   });
-  renderSonOdemeler();
+  renderFinansalOzetKartlari();
+  renderFinansalAltSekme();
 };
 
-function renderSonOdemeler() {
-  const wrap = document.getElementById("sonOdemelerListesi");
-  if (!wrap) return;
+// Alt sekme değiştir
+window.finansSwitchAlt = function(alt) {
+  aktifFinansAlt = alt;
+  // Butonları güncelle
+  document.querySelectorAll(".finans-altsekme").forEach(btn => {
+    if (btn.dataset.finansAlt === alt) {
+      btn.style.borderBottomColor = "#2d6a4f";
+      btn.style.color = "#2d6a4f";
+      btn.style.fontWeight = "600";
+    } else {
+      btn.style.borderBottomColor = "transparent";
+      btn.style.color = "var(--gray-600)";
+      btn.style.fontWeight = "500";
+    }
+  });
+  // Panelleri göster/gizle
+  document.querySelectorAll(".finans-alt-panel").forEach(p => p.style.display = "none");
+  const panel = document.getElementById(`finansAlt-${alt}`);
+  if (panel) panel.style.display = "block";
+  renderFinansalAltSekme();
+};
 
-  let filtrelenmis = sonOdemelerListesi;
+function renderFinansalAltSekme() {
+  if (aktifFinansAlt === "ozet") renderFinansalOzet();
+  else if (aktifFinansAlt === "gelirler") renderGelirler();
+  else if (aktifFinansAlt === "giderler") renderGiderler();
+  else if (aktifFinansAlt === "geciken") renderGeciken();
+}
 
-  if (aktifOdemeFilter === "aylik") {
-    filtrelenmis = sonOdemelerListesi.filter(o => o.tur === "aylik");
-  } else if (aktifOdemeFilter === "diger") {
-    filtrelenmis = sonOdemelerListesi.filter(o => o.tur === "diger");
-  } else if (aktifOdemeFilter === "buay") {
-    const bugun = new Date();
-    const buAy = `${bugun.getFullYear()}-${String(bugun.getMonth() + 1).padStart(2, "0")}`;
-    filtrelenmis = sonOdemelerListesi.filter(o => (o.odemeTarihi || "").startsWith(buAy));
-  } else if (aktifOdemeFilter === "geciken") {
-    filtrelenmis = sonOdemelerListesi.filter(o => o.odemeTarihi === "");
+// ÖZET alt sekmesi
+function renderFinansalOzet() {
+  const el = document.getElementById("finansOzetIcerik");
+  if (!el) return;
+
+  const filtrelenmiGelirler = finansFiltreleByView(finansalGelirler, "odemeTarihi");
+  const filtrelenmiGiderler = finansFiltreleByView(finansalGiderler, "tarih");
+
+  // Gelir kategorileri
+  const gelirKategorileri = { aylik: 0, diger: 0, onOdeme: 0 };
+  for (const g of filtrelenmiGelirler) {
+    gelirKategorileri[g.tur] = (gelirKategorileri[g.tur] || 0) + (parseFloat(g.odenen) || 0);
   }
 
-  if (filtrelenmis.length === 0) {
-    wrap.innerHTML = `<div class="ozel-madde-empty">Bu filtreye uyan ödeme yok.</div>`;
-    return;
+  // Gider kategorileri (grup bazlı)
+  const giderGruplari = { personel: 0, sabit: 0, isletme: 0, diger: 0 };
+  for (const g of filtrelenmiGiderler) {
+    const kat = GIDER_KATEGORILERI[g.kategori];
+    if (kat) giderGruplari[kat.grup] = (giderGruplari[kat.grup] || 0) + (parseFloat(g.tutar) || 0);
   }
+
+  const toplamGelir = Object.values(gelirKategorileri).reduce((s, v) => s + v, 0);
+  const toplamGider = Object.values(giderGruplari).reduce((s, v) => s + v, 0);
+
+  // Başabaş noktası: Gider kadar gelir lazım
+  const basabasDurum = toplamGelir >= toplamGider
+    ? { metin: "Başabaşa ulaştınız ✓", renk: "#2d6a4f", bg: "#d8f3dc" }
+    : { metin: `Başabaş için ${(toplamGider - toplamGelir).toLocaleString("tr-TR")} TL daha gelir gerekli`, renk: "#b45309", bg: "#fef3c7" };
 
   let html = `
-    <div style="background:white; border-radius:12px; overflow:hidden; border:1px solid var(--gray-300);">
-      <div style="display:grid; grid-template-columns:2.2fr 1fr 1.5fr 1.2fr 1fr 0.8fr; gap:8px; padding:14px 18px; background:#f9fafb; border-bottom:1px solid var(--gray-300); font-size:12px; color:var(--gray-500); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
-        <div>Öğrenci</div>
-        <div>Sınıf</div>
-        <div>Kalem</div>
-        <div style="text-align:right;">Tutar</div>
-        <div>Tarih</div>
-        <div style="text-align:center;">Detay</div>
+    <!-- KAR/ZARAR PANEL -->
+    <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px; margin-bottom:20px;">
+      <div style="font-weight:600; font-size:16px; margin-bottom:14px; display:flex; align-items:center; gap:8px;">📊 Finansal Durum</div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+        <div style="padding:14px 16px; background:#f0fdf4; border-left:4px solid #2d6a4f; border-radius:8px;">
+          <div style="font-size:11px; color:#166534; letter-spacing:1px;">TOPLAM GELİR</div>
+          <div style="font-size:20px; font-weight:700; color:#2d6a4f; margin-top:4px;">${toplamGelir.toLocaleString("tr-TR")} TL</div>
+        </div>
+        <div style="padding:14px 16px; background:#fef2f2; border-left:4px solid #dc2626; border-radius:8px;">
+          <div style="font-size:11px; color:#991b1b; letter-spacing:1px;">TOPLAM GİDER</div>
+          <div style="font-size:20px; font-weight:700; color:#dc2626; margin-top:4px;">${toplamGider.toLocaleString("tr-TR")} TL</div>
+        </div>
+        <div style="padding:14px 16px; background:${toplamGelir - toplamGider >= 0 ? '#f0fdf4' : '#fef2f2'}; border-left:4px solid ${toplamGelir - toplamGider >= 0 ? '#2d6a4f' : '#dc2626'}; border-radius:8px;">
+          <div style="font-size:11px; color:${toplamGelir - toplamGider >= 0 ? '#166534' : '#991b1b'}; letter-spacing:1px;">${toplamGelir - toplamGider >= 0 ? 'NET KAR' : 'ZARAR'}</div>
+          <div style="font-size:20px; font-weight:700; color:${toplamGelir - toplamGider >= 0 ? '#2d6a4f' : '#dc2626'}; margin-top:4px;">${Math.abs(toplamGelir - toplamGider).toLocaleString("tr-TR")} TL</div>
+        </div>
       </div>
+      <div style="margin-top:14px; padding:12px 14px; background:${basabasDurum.bg}; border-radius:8px; font-size:13px; color:${basabasDurum.renk}; font-weight:500;">
+        🎯 ${basabasDurum.metin}
+      </div>
+    </div>
+
+    <!-- GELİR DAĞILIMI -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-bottom:20px;">
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
+        <div style="font-weight:600; font-size:15px; margin-bottom:14px;">💰 Gelir Kaynakları</div>
+        ${renderBarListesi([
+          { ad: "🎫 Ön Ödeme",           tutar: gelirKategorileri.onOdeme, renk: "#f59e0b", toplam: toplamGelir },
+          { ad: "🏦 Aylık Aidat",        tutar: gelirKategorileri.aylik,   renk: "#2d6a4f", toplam: toplamGelir },
+          { ad: "📦 Diğer Ödemeler",     tutar: gelirKategorileri.diger,   renk: "#8b5cf6", toplam: toplamGelir }
+        ])}
+      </div>
+
+      <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
+        <div style="font-weight:600; font-size:15px; margin-bottom:14px;">💸 Gider Dağılımı</div>
+        ${renderBarListesi([
+          { ad: "👥 Personel",          tutar: giderGruplari.personel, renk: "#2d6a4f", toplam: toplamGider },
+          { ad: "🏠 Sabit Giderler",    tutar: giderGruplari.sabit,    renk: "#f59e0b", toplam: toplamGider },
+          { ad: "🍽️ İşletme",           tutar: giderGruplari.isletme,  renk: "#3b82f6", toplam: toplamGider },
+          { ad: "📝 Diğer",             tutar: giderGruplari.diger,    renk: "#8b5cf6", toplam: toplamGider }
+        ])}
+      </div>
+    </div>
+
+    <!-- KAR'A GEÇİŞ ÖNERİLERİ (zarar varsa) -->
+    ${toplamGelir < toplamGider ? `
+    <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:16px; padding:20px; margin-bottom:20px;">
+      <div style="font-weight:600; font-size:15px; color:#78350f; margin-bottom:10px;">💡 Kara Geçiş Önerileri</div>
+      <ul style="margin:0; padding-left:20px; color:#78350f; font-size:13px; line-height:1.8;">
+        <li>Açık: <strong>${(toplamGider - toplamGelir).toLocaleString("tr-TR")} TL</strong> daha gelir veya gider azaltma gerekli</li>
+        ${gecikmisTahsilatTutari() > 0 ? `<li>Geciken ödemeler tahsil edilirse: <strong>+${gecikmisTahsilatTutari().toLocaleString("tr-TR")} TL</strong> ek gelir</li>` : ""}
+        ${giderGruplari.diger > 0 ? `<li>"Diğer" gider kaleminde <strong>${giderGruplari.diger.toLocaleString("tr-TR")} TL</strong> var — detaylı gözden geçirilebilir</li>` : ""}
+        ${ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif").length < 50 ? `<li>Kayıt kapasitesi artırılabilir (yeni başvurular için pazarlama)</li>` : ""}
+      </ul>
+    </div>` : ""}
   `;
 
-  for (const o of filtrelenmis) {
-    const tarihStr = o.odemeTarihi ? new Date(o.odemeTarihi).toLocaleDateString("tr-TR") : "—";
-    const renk = o.tur === "aylik" ? "#1e40af" : "#5b21b6";
-    const bgRenk = o.tur === "aylik" ? "#dbeafe" : "#ede9fe";
+  el.innerHTML = html;
+}
+
+// Basit yatay bar chart
+function renderBarListesi(liste) {
+  liste = liste.filter(l => l.tutar > 0);
+  if (liste.length === 0) return '<div style="color:var(--gray-500); font-size:13px; padding:20px 0; text-align:center;">Veri yok</div>';
+  liste.sort((a, b) => b.tutar - a.tutar);
+  const max = Math.max(...liste.map(l => l.tutar), 1);
+
+  let html = '';
+  for (const l of liste) {
+    const yuzde = l.toplam > 0 ? Math.round((l.tutar / l.toplam) * 100) : 0;
+    const genislik = (l.tutar / max) * 100;
     html += `
-      <div style="display:grid; grid-template-columns:2.2fr 1fr 1.5fr 1.2fr 1fr 0.8fr; gap:8px; padding:12px 18px; border-bottom:1px solid var(--gray-200); align-items:center; font-size:13px;">
-        <div style="font-weight:500; color:var(--gray-800);">${escapeHtml(o.ogrenciAd)}</div>
-        <div style="color:var(--gray-600);">${escapeHtml(o.sinif) || "—"}</div>
-        <div>
-          <span style="background:${bgRenk}; color:${renk}; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:500;">${escapeHtml(o.etiket)}</span>
+      <div style="margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+          <span>${l.ad}</span>
+          <span style="font-weight:600;">${l.tutar.toLocaleString("tr-TR")} TL <span style="color:var(--gray-500); font-weight:400;">(%${yuzde})</span></span>
         </div>
-        <div style="text-align:right; font-weight:600; color:var(--gray-800);">${o.odenen.toLocaleString("tr-TR")} TL</div>
-        <div style="color:var(--gray-600); font-size:12px;">${tarihStr}</div>
-        <div style="text-align:center;">
-          <button class="btn-mini" style="padding:4px 10px; font-size:11px;" onclick="openAyarModalFromId('${o.ogrenciId}')" title="Öğrenci detayını aç">→</button>
+        <div style="background:var(--gray-100); height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:${l.renk}; height:100%; width:${genislik}%; border-radius:4px; transition:width 0.3s;"></div>
         </div>
       </div>
     `;
   }
+  return html;
+}
 
+// Gecikmiş tahsilat tutarı (kara geçiş için)
+function gecikmisTahsilatTutari() {
+  let toplam = 0;
+  const bugun = new Date();
+  for (const o of ogrenciList) {
+    const ayar = ayarListesi[o.id];
+    if (!ayar) continue;
+    const durum = getOgrenciDurum(o, ayar);
+    if (durum !== "aktif") continue;
+    const a = ayar.aidatAyarlari || {};
+    const baslangic = a.baslangicAyi;
+    if (!baslangic) continue;
+    const taksit = a.taksitSayisi || 10;
+    const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
+    const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
+    const aylikOdemeler = ayar.aylikOdemeler || {};
+    const ayListesi = getAyListesi(baslangic, taksit);
+    for (const ay of ayListesi) {
+      const ayTarihi = new Date(parseInt(ay.ayKod.split("-")[0]), parseInt(ay.ayKod.split("-")[1]) - 1, 10);
+      if (ayTarihi >= bugun) continue;  // Gelecek ay değil
+      const ayNum = parseInt(ay.ayKod.split("-")[1], 10);
+      const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
+      const od = aylikOdemeler[ay.ayKod] || {};
+      if (!od.odendi) toplam += beklenen;
+    }
+  }
+  return toplam;
+}
+
+// GELİRLER alt sekmesi
+window.gelirFilter = function(filter) {
+  aktifGelirFilter = filter;
+  document.querySelectorAll("[data-gelir-filter]").forEach(b => {
+    if (b.dataset.gelirFilter === filter) {
+      b.style.background = "#2d6a4f"; b.style.color = "white"; b.style.border = "none";
+    } else {
+      b.style.background = ""; b.style.color = ""; b.style.border = "";
+    }
+  });
+  renderGelirler();
+};
+
+function renderGelirler() {
+  const el = document.getElementById("gelirlerListesi");
+  if (!el) return;
+
+  let liste = finansFiltreleByView(finansalGelirler, "odemeTarihi");
+  if (aktifGelirFilter === "aylik") liste = liste.filter(g => g.tur === "aylik");
+  else if (aktifGelirFilter === "diger") liste = liste.filter(g => g.tur === "diger");
+  else if (aktifGelirFilter === "onOdeme") liste = liste.filter(g => g.tur === "onOdeme");
+
+  if (liste.length === 0) {
+    el.innerHTML = '<div class="ozel-madde-empty">Bu filtrede gelir yok.</div>';
+    return;
+  }
+
+  const toplam = liste.reduce((s, g) => s + g.odenen, 0);
+  let html = `
+    <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:12px 16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; font-size:14px;">
+      <span><strong>${liste.length}</strong> gelir kaydı</span>
+      <span style="font-weight:700; color:#166534;">Toplam: ${toplam.toLocaleString("tr-TR")} TL</span>
+    </div>
+    <div style="background:white; border:1px solid var(--gray-300); border-radius:12px; overflow:hidden;">
+      <div style="display:grid; grid-template-columns:2fr 1fr 1.5fr 1.2fr 1fr 0.6fr; gap:8px; padding:12px 16px; background:#f9fafb; border-bottom:1px solid var(--gray-200); font-size:11px; color:var(--gray-500); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+        <div>Öğrenci</div><div>Sınıf</div><div>Kalem</div><div style="text-align:right;">Tutar</div><div>Tarih</div><div></div>
+      </div>
+  `;
+  for (const g of liste) {
+    const tarihStr = g.odemeTarihi ? new Date(g.odemeTarihi).toLocaleDateString("tr-TR") : "—";
+    html += `
+      <div style="display:grid; grid-template-columns:2fr 1fr 1.5fr 1.2fr 1fr 0.6fr; gap:8px; padding:10px 16px; border-bottom:1px solid var(--gray-100); align-items:center; font-size:13px;">
+        <div style="font-weight:500;">${escapeHtml(g.ogrenciAd)}</div>
+        <div style="color:var(--gray-600);">${escapeHtml(g.sinif) || "—"}</div>
+        <div style="color:var(--gray-700); font-size:12px;">${escapeHtml(g.etiket)}</div>
+        <div style="text-align:right; font-weight:600;">${g.odenen.toLocaleString("tr-TR")} TL</div>
+        <div style="color:var(--gray-500); font-size:12px;">${tarihStr}</div>
+        <div style="text-align:center;"><button class="btn-mini" style="padding:3px 8px; font-size:11px;" onclick="openAyarModalFromId('${g.ogrenciId}')">→</button></div>
+      </div>
+    `;
+  }
   html += '</div>';
-  wrap.innerHTML = html;
+  el.innerHTML = html;
 }
 
 window.openAyarModalFromId = function(ogrenciId) {
   const ogr = ogrenciList.find(x => x.id === ogrenciId);
-  if (!ogr) return;
-  // Mevcut öğrenci ayar modalını aç
-  if (typeof openAyarModal === "function") {
-    openAyarModal(ogr);
+  if (ogr && typeof openAyarModal === "function") openAyarModal(ogr);
+};
+
+window.gelirlerExcel = function() {
+  const liste = finansFiltreleByView(finansalGelirler, "odemeTarihi");
+  if (liste.length === 0) return showToast("İndirilecek gelir yok", "error");
+  try {
+    const data = liste.map(g => ({
+      "Öğrenci": g.ogrenciAd,
+      "Sınıf": g.sinif,
+      "Kalem": g.etiket,
+      "Beklenen (TL)": g.beklenen,
+      "Ödenen (TL)": g.odenen,
+      "Ödeme Tarihi": g.odemeTarihi || "",
+      "Ödeme Yöntemi": g.odemeYontemi || ""
+    }));
+    const ws = window.XLSX.utils.json_to_sheet(data);
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, "Gelirler");
+    window.XLSX.writeFile(wb, `Gelirler_${aktifFinansView}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Excel indirildi");
+  } catch (e) {
+    showToast("Excel hatası: " + e.message, "error");
   }
 };
 
-window.sonOdemelerExcel = function() {
-  if (!sonOdemelerListesi || sonOdemelerListesi.length === 0) {
-    return showToast("İndirilecek ödeme yok", "error");
+// GİDERLER alt sekmesi
+window.giderFilter = function(filter) {
+  aktifGiderFilter = filter;
+  document.querySelectorAll("[data-gider-filter]").forEach(b => {
+    if (b.dataset.giderFilter === filter) {
+      b.style.background = "#2d6a4f"; b.style.color = "white"; b.style.border = "none";
+    } else {
+      b.style.background = ""; b.style.color = ""; b.style.border = "";
+    }
+  });
+  renderGiderler();
+};
+
+function renderGiderler() {
+  const el = document.getElementById("giderlerListesi");
+  if (!el) return;
+
+  let liste = finansFiltreleByView(finansalGiderler, "tarih");
+  if (aktifGiderFilter !== "hepsi") {
+    liste = liste.filter(g => {
+      const kat = GIDER_KATEGORILERI[g.kategori];
+      return kat && kat.grup === aktifGiderFilter;
+    });
   }
+
+  // Yeni tarih en üstte
+  liste.sort((a, b) => (b.tarih || "").localeCompare(a.tarih || ""));
+
+  const toplam = liste.reduce((s, g) => s + (parseFloat(g.tutar) || 0), 0);
+
+  if (liste.length === 0) {
+    el.innerHTML = `
+      <div class="ozel-madde-empty" style="padding:40px 20px;">
+        <div style="font-size:48px; margin-bottom:12px;">💼</div>
+        <div style="font-size:15px; color:var(--gray-700); margin-bottom:6px;">Henüz gider kaydı yok</div>
+        <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">Yukarıdaki "+ Gider Ekle" butonu ile yeni kalem ekleyin.</div>
+        <button class="btn-primary" onclick="openGiderEkleModal()">+ İlk Gideri Ekle</button>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; font-size:14px;">
+      <span><strong>${liste.length}</strong> gider kaydı</span>
+      <span style="font-weight:700; color:#991b1b;">Toplam: ${toplam.toLocaleString("tr-TR")} TL</span>
+    </div>
+    <div style="background:white; border:1px solid var(--gray-300); border-radius:12px; overflow:hidden;">
+      <div style="display:grid; grid-template-columns:2fr 2fr 1fr 1.2fr 1fr 0.8fr; gap:8px; padding:12px 16px; background:#f9fafb; border-bottom:1px solid var(--gray-200); font-size:11px; color:var(--gray-500); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+        <div>Kategori</div><div>Açıklama</div><div>Fatura</div><div style="text-align:right;">Tutar</div><div>Tarih</div><div style="text-align:center;">İşlem</div>
+      </div>
+  `;
+  for (const g of liste) {
+    const kat = GIDER_KATEGORILERI[g.kategori] || { ikon: "📦", isim: g.kategori, renk: "#6b7280" };
+    const tarihStr = g.tarih ? new Date(g.tarih).toLocaleDateString("tr-TR") : "—";
+    const tekrarIkon = g.tekrarlayan ? ' 🔄' : '';
+    html += `
+      <div style="display:grid; grid-template-columns:2fr 2fr 1fr 1.2fr 1fr 0.8fr; gap:8px; padding:10px 16px; border-bottom:1px solid var(--gray-100); align-items:center; font-size:13px;">
+        <div style="font-weight:500;">${kat.ikon} ${escapeHtml(kat.isim)}${tekrarIkon}</div>
+        <div style="color:var(--gray-600); font-size:12px;">${escapeHtml(g.aciklama || "—")}</div>
+        <div style="color:var(--gray-500); font-size:11px;">${escapeHtml(g.faturaNo || "—")}</div>
+        <div style="text-align:right; font-weight:600; color:#991b1b;">${parseFloat(g.tutar || 0).toLocaleString("tr-TR")} TL</div>
+        <div style="color:var(--gray-500); font-size:12px;">${tarihStr}</div>
+        <div style="text-align:center;"><button class="btn-mini" style="padding:3px 8px; font-size:11px;" onclick="duzenleGider('${g.id}')">✏</button></div>
+      </div>
+    `;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+window.giderlerExcel = function() {
+  const liste = finansFiltreleByView(finansalGiderler, "tarih");
+  if (liste.length === 0) return showToast("İndirilecek gider yok", "error");
   try {
-    const wb = window.XLSX.utils.book_new();
-    const data = sonOdemelerListesi.map(o => ({
-      "Öğrenci": o.ogrenciAd,
-      "Sınıf": o.sinif,
-      "Kalem": o.etiket,
-      "Beklenen Tutar (TL)": o.beklenen,
-      "Ödenen Tutar (TL)": o.odenen,
-      "Fark (TL)": o.fark,
-      "Ödeme Tarihi": o.odemeTarihi || "",
-      "Ödeme Yöntemi": o.odemeYontemi || "",
-      "Not": o.not || ""
-    }));
+    const data = liste.map(g => {
+      const kat = GIDER_KATEGORILERI[g.kategori] || { isim: g.kategori, grup: "" };
+      return {
+        "Grup": GIDER_GRUP_ADLARI[kat.grup] || "",
+        "Kategori": kat.isim,
+        "Açıklama": g.aciklama || "",
+        "Fatura No": g.faturaNo || "",
+        "Tutar (TL)": parseFloat(g.tutar) || 0,
+        "Tarih": g.tarih || "",
+        "Tekrarlayan": g.tekrarlayan ? "Evet" : "Hayır"
+      };
+    });
     const ws = window.XLSX.utils.json_to_sheet(data);
-    window.XLSX.utils.book_append_sheet(wb, ws, "Son Ödemeler");
-    window.XLSX.writeFile(wb, `Son_Odemeler_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, "Giderler");
+    window.XLSX.writeFile(wb, `Giderler_${aktifFinansView}_${new Date().toISOString().substring(0,10)}.xlsx`);
     showToast("✓ Excel indirildi");
   } catch (e) {
-    console.error(e);
-    showToast("Excel oluşturulamadı: " + e.message, "error");
+    showToast("Excel hatası: " + e.message, "error");
   }
 };
+
+// GİDER EKLE/DÜZENLE Modal
+window.openGiderEkleModal = function(giderId) {
+  document.getElementById("giderEkleModal").classList.add("active");
+  document.getElementById("giderDuzenleId").value = "";
+  document.getElementById("giderKategori").value = "";
+  document.getElementById("giderTutar").value = "";
+  document.getElementById("giderTarih").value = new Date().toISOString().substring(0, 10);
+  document.getElementById("giderFaturaNo").value = "";
+  document.getElementById("giderAciklama").value = "";
+  document.getElementById("giderTekrarlayan").checked = false;
+  document.getElementById("giderEkleBaslik").textContent = "💸 Yeni Gider Ekle";
+  document.getElementById("giderSilBtn").style.display = "none";
+};
+
+window.closeGiderEkleModal = function() {
+  document.getElementById("giderEkleModal").classList.remove("active");
+};
+
+window.duzenleGider = function(giderId) {
+  const g = finansalGiderler.find(x => x.id === giderId);
+  if (!g) return;
+  document.getElementById("giderEkleModal").classList.add("active");
+  document.getElementById("giderDuzenleId").value = giderId;
+  document.getElementById("giderKategori").value = g.kategori || "";
+  document.getElementById("giderTutar").value = g.tutar || "";
+  document.getElementById("giderTarih").value = g.tarih || "";
+  document.getElementById("giderFaturaNo").value = g.faturaNo || "";
+  document.getElementById("giderAciklama").value = g.aciklama || "";
+  document.getElementById("giderTekrarlayan").checked = !!g.tekrarlayan;
+  document.getElementById("giderEkleBaslik").textContent = "✏ Gideri Düzenle";
+  document.getElementById("giderSilBtn").style.display = "inline-block";
+};
+
+window.kaydetGider = async function() {
+  const id = document.getElementById("giderDuzenleId").value;
+  const kategori = document.getElementById("giderKategori").value;
+  const tutar = parseFloat(document.getElementById("giderTutar").value) || 0;
+  const tarih = document.getElementById("giderTarih").value;
+  const faturaNo = document.getElementById("giderFaturaNo").value.trim();
+  const aciklama = document.getElementById("giderAciklama").value.trim();
+  const tekrarlayan = document.getElementById("giderTekrarlayan").checked;
+
+  if (!kategori) return showToast("Kategori seçin", "error");
+  if (tutar <= 0) return showToast("Geçerli bir tutar girin", "error");
+  if (!tarih) return showToast("Tarih seçin", "error");
+
+  const data = {
+    kategori, tutar, tarih, faturaNo, aciklama, tekrarlayan,
+    olusturan: currentUser.email,
+    guncellendi: new Date().toISOString()
+  };
+
+  try {
+    if (id) {
+      // Güncelle
+      await updateDoc(doc(db, "giderler", id), data);
+      showToast("✓ Gider güncellendi");
+    } else {
+      // Yeni
+      data.olusturuldu = new Date().toISOString();
+      const ref = doc(collection(db, "giderler"));
+      await setDoc(ref, data);
+      showToast("✓ Gider eklendi");
+    }
+    closeGiderEkleModal();
+    await loadFinansalData();
+  } catch (e) {
+    console.error(e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+window.silGider = async function() {
+  const id = document.getElementById("giderDuzenleId").value;
+  if (!id) return;
+  if (!confirm("Bu gideri silmek istediğinize emin misiniz?")) return;
+  try {
+    await deleteDoc(doc(db, "giderler", id));
+    showToast("✗ Gider silindi");
+    closeGiderEkleModal();
+    await loadFinansalData();
+  } catch (e) {
+    showToast("Silinemedi: " + e.message, "error");
+  }
+};
+
+window.onGiderKategoriDegisti = function() {
+  // Gelecekte kategori-bağımlı alanlar için placeholder
+};
+
+// GECİKEN alt sekmesi
+function renderGeciken() {
+  const el = document.getElementById("gecikenListesi");
+  if (!el) return;
+
+  const bugun = new Date();
+  const gecikenler = [];
+
+  for (const o of ogrenciList) {
+    const ayar = ayarListesi[o.id];
+    if (!ayar) continue;
+    if (getOgrenciDurum(o, ayar) !== "aktif") continue;
+
+    const a = ayar.aidatAyarlari || {};
+    const baslangic = a.baslangicAyi;
+    if (!baslangic) continue;
+    const taksit = a.taksitSayisi || 10;
+    const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
+    const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
+    const aylikOdemeler = ayar.aylikOdemeler || {};
+    const ayListesi = getAyListesi(baslangic, taksit);
+
+    let toplamBorc = 0, gecikenAySayisi = 0;
+    const gecikenAylar = [];
+
+    for (const ay of ayListesi) {
+      const ayTarihi = new Date(parseInt(ay.ayKod.split("-")[0]), parseInt(ay.ayKod.split("-")[1]) - 1, 10);
+      if (ayTarihi >= bugun) continue;
+      const ayNum = parseInt(ay.ayKod.split("-")[1], 10);
+      const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
+      const od = aylikOdemeler[ay.ayKod] || {};
+      if (!od.odendi) {
+        toplamBorc += beklenen;
+        gecikenAySayisi++;
+        gecikenAylar.push(ay.tam || ay.ayKod);
+      }
+    }
+
+    if (gecikenAySayisi > 0) {
+      gecikenler.push({
+        ogrenci: o,
+        ogrenciAd: o.ogrenciAdSoyad || "",
+        sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
+        veliEposta: (ayar.anne && ayar.anne.eposta) || (ayar.baba && ayar.baba.eposta) || "",
+        veliTel: (ayar.anne && ayar.anne.cepTel) || (ayar.baba && ayar.baba.cepTel) || "",
+        gecikenAySayisi,
+        toplamBorc,
+        gecikenAylar
+      });
+    }
+  }
+
+  // En çok borçlu üstte
+  gecikenler.sort((a, b) => b.toplamBorc - a.toplamBorc);
+
+  const toplamBorc = gecikenler.reduce((s, g) => s + g.toplamBorc, 0);
+
+  if (gecikenler.length === 0) {
+    el.innerHTML = '<div class="ozel-madde-empty" style="padding:40px 20px;"><div style="font-size:48px; margin-bottom:12px;">🎉</div><div style="font-size:15px; color:#166534;">Geciken ödeme yok!</div></div>';
+    return;
+  }
+
+  let html = `
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; font-size:14px;">
+      <span><strong>${gecikenler.length}</strong> öğrencide geciken ödeme</span>
+      <span style="font-weight:700; color:#991b1b;">Toplam Borç: ${toplamBorc.toLocaleString("tr-TR")} TL</span>
+    </div>
+    <div style="display:grid; gap:10px;">
+  `;
+
+  for (const g of gecikenler) {
+    html += `
+      <div style="background:white; border:1px solid var(--gray-300); border-left:4px solid #dc2626; border-radius:10px; padding:14px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:10px;">
+          <div style="flex:1;">
+            <div style="font-weight:600; font-size:15px; color:var(--gray-800);">${escapeHtml(g.ogrenciAd)}</div>
+            <div style="font-size:12px; color:var(--gray-600); margin-top:2px;">
+              ${escapeHtml(g.sinif) || "—"} ·
+              ${g.veliEposta ? `📧 ${escapeHtml(g.veliEposta)} · ` : ""}
+              ${g.veliTel ? `📞 ${escapeHtml(g.veliTel)}` : ""}
+            </div>
+            <div style="font-size:12px; color:#b91c1c; margin-top:6px;">
+              ⚠ ${g.gecikenAySayisi} ay geciken: ${g.gecikenAylar.slice(0,3).join(", ")}${g.gecikenAylar.length > 3 ? "..." : ""}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px; color:var(--gray-500); letter-spacing:0.5px;">TOPLAM BORÇ</div>
+            <div style="font-size:20px; font-weight:700; color:#dc2626; margin-top:2px;">${g.toplamBorc.toLocaleString("tr-TR")} TL</div>
+            <button class="btn-mini" style="margin-top:6px; padding:4px 10px; font-size:11px;" onclick="openAyarModalFromId('${g.ogrenci.id}')">Detay →</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// Ay kod → Ay adı (Eylül 2026)
+function ayAdinda(ayKod) {
+  try {
+    const [yil, ay] = ayKod.split("-");
+    const ayAdlari = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+    return `${ayAdlari[parseInt(ay, 10) - 1]} ${yil}`;
+  } catch { return ayKod; }
+}
 
 // ============ RAPORLAR ============
 let raporTrendChartInstance = null;
@@ -8921,9 +9578,9 @@ document.querySelectorAll(".tab").forEach(tab => {
       setTimeout(() => loadOnayBekleyenler(), 50);
     }
 
-    // Son Ödemeler sekmesine geçildiyse yükle
-    if (tab.dataset.tab === "odemeler") {
-      setTimeout(() => loadSonOdemeler(), 50);
+    // Finansal Yönetim sekmesine geçildiyse yükle
+    if (tab.dataset.tab === "finans") {
+      setTimeout(() => loadFinansalData(), 50);
     }
   });
 });
