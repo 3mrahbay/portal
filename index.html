@@ -5238,20 +5238,19 @@ html, body {
 
         <!-- GALERİ -->
         <div id="icerikAlt-galeri" class="icerik-alt-panel" style="display:none;">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">📸</div>
-            <h3>Galeri</h3>
-            <p>Sınıf fotoğrafları yükleyin, velilerinize güvenli şekilde paylaşın.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Toplu fotoğraf yükleme (Firebase Storage)</div>
-              <div>✓ Sınıf bazlı erişim (velin çocuğunun sınıfı)</div>
-              <div>✓ Etkinlik/gün etiketleri</div>
-              <div>✓ Yorum ve beğeni (opsiyonel)</div>
+          <!-- Üst bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-mini" data-galeri-filter="tumu" onclick="galeriFilter('tumu')" style="background:#9333ea; border:none; color:white;">📁 Tümü</button>
+              <button class="btn-mini" data-galeri-filter="foto" onclick="galeriFilter('foto')">🖼 Fotoğraflar</button>
+              <button class="btn-mini" data-galeri-filter="video" onclick="galeriFilter('video')">🎥 Videolar</button>
             </div>
-            <div class="icerik-placeholder-rozet">TUR 5-6'da aktif olacak</div>
-            <div class="icerik-placeholder-not">
-              ⚠️ Firebase Storage'ın aktifleştirilmesi gerekiyor (ücretsiz, 5GB)
-            </div>
+            <button class="btn-primary" onclick="openGaleriYuklemeModal()" style="background:#9333ea; border:none; color:white;">+ Yükleme</button>
+          </div>
+
+          <!-- Liste -->
+          <div id="galeriListesi">
+            <div class="loading"><div class="spinner"></div><p>Galeri yükleniyor...</p></div>
           </div>
         </div>
 
@@ -5582,6 +5581,108 @@ html, body {
         <div class="modal-footer">
           <button class="btn-secondary" onclick="closeDevamsizlikNot()">İptal</button>
           <button class="btn-primary" onclick="kaydetDevamsizlikNot()">💾 Kaydet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GALERİ YÜKLEME MODAL -->
+    <div class="modal-overlay" id="galeriYuklemeModal">
+      <div class="modal" style="max-width:700px; max-height:90vh; display:flex; flex-direction:column;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-bottom:1px solid #e9d5ff;">
+          <h3 style="color:#6b21a8;">📸 Galeri Yüklemesi</h3>
+          <button class="close-btn" onclick="closeGaleriYuklemeModal()">×</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto; flex:1;">
+          <!-- Drag & Drop Alanı -->
+          <div id="galeriDropZone" style="border:2px dashed #c084fc; border-radius:14px; padding:40px 20px; text-align:center; background:#faf5ff; cursor:pointer; transition:all 0.2s;"
+               onclick="document.getElementById('galeriFileInput').click()"
+               ondragover="galeriDragOver(event)"
+               ondragleave="galeriDragLeave(event)"
+               ondrop="galeriDrop(event)">
+            <div style="font-size:48px; margin-bottom:10px;">📤</div>
+            <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#6b21a8; margin-bottom:6px;">Dosyaları Buraya Sürükleyin</div>
+            <div style="font-size:13px; color:#7c3aed;">veya tıklayıp seçin</div>
+            <div style="font-size:11px; color:#a855f7; margin-top:10px;">JPG, PNG, MP4, MOV desteklenir · Max 500MB/dosya</div>
+            <input type="file" id="galeriFileInput" multiple accept="image/*,video/*" style="display:none;" onchange="galeriDosyalarSecildi(event)">
+          </div>
+
+          <!-- Seçilen Dosya Listesi -->
+          <div id="galeriSecilenDosyalar" style="margin-top:16px;"></div>
+
+          <!-- Hedef ve Detaylar -->
+          <div style="margin-top:20px; border-top:1px solid var(--gray-200); padding-top:16px;">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>🎯 Hedef Kitle</label>
+                <select id="galeriHedefTur" onchange="galeriHedefDegisti()">
+                  <option value="tumOkul">🏫 Tüm Okul</option>
+                  <option value="sinif">👥 Belirli Sınıf</option>
+                  <option value="ogrenci">👤 Belirli Öğrenci</option>
+                </select>
+              </div>
+              <div class="form-group" id="galeriHedefSinifWrap" style="display:none;">
+                <label>Sınıf</label>
+                <select id="galeriHedefSinif">
+                  <option value="">-- Seçin --</option>
+                  <option value="Montessori 2">Montessori 2</option>
+                  <option value="Montessori 3">Montessori 3</option>
+                </select>
+              </div>
+              <div class="form-group" id="galeriHedefOgrenciWrap" style="display:none;">
+                <label>Öğrenci</label>
+                <select id="galeriHedefOgrenci">
+                  <option value="">-- Seçin --</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid full">
+              <div class="form-group">
+                <label>🏷 Etkinlik / Album Adı</label>
+                <input type="text" id="galeriEtkinlik" placeholder="Örn: Bahar Şenliği, Doğa Gezisi..." maxlength="100">
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>📅 Etkinlik Tarihi</label>
+                <input type="date" id="galeriEtkinlikTarih">
+              </div>
+            </div>
+
+            <div class="form-grid full">
+              <div class="form-group">
+                <label>📝 Açıklama (opsiyonel)</label>
+                <textarea id="galeriAciklama" rows="2" placeholder="Fotoğraflar/video hakkında kısa açıklama..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Yükleme İlerlemesi -->
+          <div id="galeriYuklemeIlerleme" style="margin-top:16px; display:none;">
+            <div style="font-size:13px; font-weight:600; color:#6b21a8; margin-bottom:8px;">
+              <span id="galeriYuklemeDurum">Yükleniyor...</span>
+              <span style="float:right;"><span id="galeriYuklemeSayac">0</span> / <span id="galeriYuklemeToplam">0</span></span>
+            </div>
+            <div style="background:#f3e8ff; height:8px; border-radius:4px; overflow:hidden;">
+              <div id="galeriYuklemeBar" style="background:#9333ea; height:100%; width:0%; transition:width 0.3s;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeGaleriYuklemeModal()">İptal</button>
+          <button class="btn-primary" id="btnGaleriYukle" onclick="galeriYukle()" style="background:#9333ea; border:none;">🚀 Yükle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GALERİ LIGHTBOX (BÜYÜK GÖRÜNTÜ) -->
+    <div class="modal-overlay" id="galeriLightbox" onclick="if(event.target.id==='galeriLightbox') closeGaleriLightbox()">
+      <div style="position:relative; max-width:95vw; max-height:95vh;">
+        <button onclick="closeGaleriLightbox()" style="position:absolute; top:-40px; right:0; background:white; border:none; width:36px; height:36px; border-radius:50%; font-size:20px; cursor:pointer; z-index:10;">×</button>
+        <div id="galeriLightboxIcerik" style="background:white; border-radius:14px; overflow:hidden; max-height:95vh; display:flex; align-items:center; justify-content:center;"></div>
+        <div style="position:absolute; bottom:10px; left:0; right:0; text-align:center;">
+          <button onclick="galeriLightboxIndir()" id="galeriLightboxIndirBtn" style="padding:10px 20px; background:white; border:1px solid #d1d5db; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);">📥 İndir</button>
         </div>
       </div>
     </div>
@@ -9788,6 +9889,7 @@ function renderIcerikAltSekme() {
   else if (aktifIcerikAlt === "yemek") renderYemekMenusu();
   else if (aktifIcerikAlt === "etkinlik") renderEtkinlikler();
   else if (aktifIcerikAlt === "devamsizlik") renderDevamsizlik();
+  else if (aktifIcerikAlt === "galeri") renderGaleri();
   // Sonraki turlarda diğer alt sekmeler
 }
 
@@ -11027,6 +11129,545 @@ async function renderAylikOzet() {
 
   el.innerHTML = html;
 }
+
+
+// ============ BUNNY.NET HELPER (Tur 5A) ============
+let bunnyConfig = null;
+
+async function loadBunnyConfig() {
+  if (bunnyConfig) return bunnyConfig;
+  try {
+    const snap = await getDoc(doc(db, "config", "bunny"));
+    if (!snap.exists()) {
+      console.error("Bunny config bulunamadı! Firestore'da config/bunny dokümanı var mı?");
+      return null;
+    }
+    bunnyConfig = snap.data();
+    return bunnyConfig;
+  } catch (e) {
+    console.error("Bunny config yüklenemedi:", e);
+    return null;
+  }
+}
+
+// Fotoğraf yükle (Storage API)
+async function bunnyUploadPhoto(file, path) {
+  const cfg = await loadBunnyConfig();
+  if (!cfg) throw new Error("Bunny config yüklenemedi");
+
+  // Path: galeri/tumOkul/2026-04-23-etkinlik/foto_001.jpg
+  const url = `${cfg.storageEndpoint}/${path}`;
+
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "AccessKey": cfg.storagePassword,
+      "Content-Type": file.type || "application/octet-stream"
+    },
+    body: file
+  });
+
+  if (!response.ok) {
+    const txt = await response.text().catch(() => "");
+    throw new Error(`Upload hatası (${response.status}): ${txt}`);
+  }
+
+  // CDN URL'i döndür
+  const cdnUrl = `${cfg.cdnUrl}/${path}`;
+  return cdnUrl;
+}
+
+// Video yükle (Stream API - 2 adımlı: create + upload)
+async function bunnyUploadVideo(file, title, onProgress) {
+  const cfg = await loadBunnyConfig();
+  if (!cfg) throw new Error("Bunny config yüklenemedi");
+
+  // Adım 1: Video oluştur (metadata)
+  const createResp = await fetch(`https://video.bunnycdn.com/library/${cfg.streamLibraryId}/videos`, {
+    method: "POST",
+    headers: {
+      "AccessKey": cfg.streamApiKey,
+      "Content-Type": "application/json",
+      "accept": "application/json"
+    },
+    body: JSON.stringify({ title: title || file.name })
+  });
+
+  if (!createResp.ok) {
+    const txt = await createResp.text().catch(() => "");
+    throw new Error(`Video oluşturulamadı (${createResp.status}): ${txt}`);
+  }
+
+  const videoData = await createResp.json();
+  const videoGuid = videoData.guid;
+
+  // Adım 2: Video dosyasını yükle (PUT)
+  const uploadResp = await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", `https://video.bunnycdn.com/library/${cfg.streamLibraryId}/videos/${videoGuid}`);
+    xhr.setRequestHeader("AccessKey", cfg.streamApiKey);
+    xhr.setRequestHeader("accept", "application/json");
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress((e.loaded / e.total) * 100);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
+      else reject(new Error(`Upload hatası (${xhr.status}): ${xhr.responseText}`));
+    };
+    xhr.onerror = () => reject(new Error("Network hatası"));
+    xhr.send(file);
+  });
+
+  return {
+    videoGuid,
+    embedUrl: `https://iframe.mediadelivery.net/embed/${cfg.streamLibraryId}/${videoGuid}`,
+    thumbnailUrl: `https://${cfg.streamCdnHost}/${videoGuid}/thumbnail.jpg`,
+    playUrl: `https://${cfg.streamCdnHost}/${videoGuid}/playlist.m3u8`,
+    mp4FallbackUrl: `https://${cfg.streamCdnHost}/${videoGuid}/play_720p.mp4`
+  };
+}
+
+// Storage'dan dosya sil
+async function bunnyDeleteFile(path) {
+  const cfg = await loadBunnyConfig();
+  if (!cfg) throw new Error("Bunny config yüklenemedi");
+
+  const resp = await fetch(`${cfg.storageEndpoint}/${path}`, {
+    method: "DELETE",
+    headers: { "AccessKey": cfg.storagePassword }
+  });
+  return resp.ok;
+}
+
+// Video sil (Stream)
+async function bunnyDeleteVideo(videoGuid) {
+  const cfg = await loadBunnyConfig();
+  if (!cfg) throw new Error("Bunny config yüklenemedi");
+
+  const resp = await fetch(`https://video.bunnycdn.com/library/${cfg.streamLibraryId}/videos/${videoGuid}`, {
+    method: "DELETE",
+    headers: { "AccessKey": cfg.streamApiKey, "accept": "application/json" }
+  });
+  return resp.ok;
+}
+
+// Fotoğrafları sıkıştır (tarayıcıda, Canvas ile)
+async function resimSikistir(file, maxBoyut = 1920, kalite = 0.85) {
+  if (!file.type.startsWith("image/")) return file; // Sadece resim
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxBoyut || height > maxBoyut) {
+          const oran = width / height;
+          if (width > height) {
+            width = maxBoyut; height = maxBoyut / oran;
+          } else {
+            height = maxBoyut; width = maxBoyut * oran;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error("Sıkıştırma başarısız"));
+          // Blob'u File'a dönüştür
+          const yeniDosya = new File([blob], file.name, { type: "image/jpeg" });
+          resolve(yeniDosya);
+        }, "image/jpeg", kalite);
+      };
+      img.onerror = () => reject(new Error("Resim yüklenemedi"));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Dosya okunamadı"));
+    reader.readAsDataURL(file);
+  });
+}
+
+// ============ GALERİ SİSTEMİ (Tur 5A) ============
+let galeriListesiVerisi = [];
+let aktifGaleriFilter = "tumu";
+let galeriSecilenDosyalar = [];
+
+window.galeriFilter = function(f) {
+  aktifGaleriFilter = f;
+  document.querySelectorAll("[data-galeri-filter]").forEach(b => {
+    if (b.dataset.galeriFilter === f) {
+      b.style.background = "#9333ea"; b.style.color = "white"; b.style.border = "none";
+    } else {
+      b.style.background = ""; b.style.color = ""; b.style.border = "";
+    }
+  });
+  renderGaleri();
+};
+
+async function loadGaleri() {
+  try {
+    const snap = await getDocs(collection(db, "galeri"));
+    galeriListesiVerisi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn("Galeri yüklenemedi:", e);
+    galeriListesiVerisi = [];
+  }
+}
+
+async function renderGaleri() {
+  const el = document.getElementById("galeriListesi");
+  if (!el) return;
+  await loadGaleri();
+
+  let liste = [...galeriListesiVerisi];
+  if (aktifGaleriFilter === "foto") liste = liste.filter(g => g.dosyaTipi === "foto");
+  else if (aktifGaleriFilter === "video") liste = liste.filter(g => g.dosyaTipi === "video");
+
+  // Etkinlik/album bazında grupla
+  const gruplar = {};
+  for (const g of liste) {
+    const anahtar = `${g.etkinlikTarih || "tarihsiz"}|${g.etkinlikBaslik || "Diğer"}|${g.hedefTur || ""}|${g.hedefDeger || ""}`;
+    if (!gruplar[anahtar]) {
+      gruplar[anahtar] = {
+        etkinlikTarih: g.etkinlikTarih,
+        etkinlikBaslik: g.etkinlikBaslik || "Diğer",
+        hedefTur: g.hedefTur,
+        hedefDeger: g.hedefDeger,
+        hedefOgrenciAd: g.hedefOgrenciAd,
+        dosyalar: []
+      };
+    }
+    gruplar[anahtar].dosyalar.push(g);
+  }
+
+  const gruplarDizi = Object.values(gruplar).sort((a, b) => (b.etkinlikTarih || "").localeCompare(a.etkinlikTarih || ""));
+
+  if (gruplarDizi.length === 0) {
+    el.innerHTML = `
+      <div style="background:white; border:2px dashed var(--gray-300); border-radius:14px; padding:40px 20px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:12px;">📸</div>
+        <div style="font-family:var(--font-display); font-size:17px; color:var(--gray-700); margin-bottom:6px;">Galeri boş</div>
+        <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">İlk yüklemenizi yapın</div>
+        <button class="btn-primary" onclick="openGaleriYuklemeModal()" style="background:#9333ea; border:none; color:white;">+ Yeni Yükleme</button>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
+  for (const grup of gruplarDizi) {
+    const hedefLabel = grup.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
+      : grup.hedefTur === "sinif" ? `👥 ${escapeHtml(grup.hedefDeger)}`
+      : `👤 ${escapeHtml(grup.hedefOgrenciAd || grup.hedefDeger || "")}`;
+
+    const tarihStr = grup.etkinlikTarih ? new Date(grup.etkinlikTarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "Tarihsiz";
+
+    const fotoSayi = grup.dosyalar.filter(d => d.dosyaTipi === "foto").length;
+    const videoSayi = grup.dosyalar.filter(d => d.dosyaTipi === "video").length;
+
+    html += `
+      <div style="background:white; border:1px solid var(--gray-200); border-radius:14px; overflow:hidden;">
+        <div style="padding:14px 18px; background:linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-bottom:1px solid #e9d5ff;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#6b21a8;">${escapeHtml(grup.etkinlikBaslik)}</div>
+              <div style="font-size:12px; color:#7c3aed; margin-top:3px;">📅 ${tarihStr} · ${hedefLabel} · ${fotoSayi > 0 ? `🖼 ${fotoSayi}` : ''} ${videoSayi > 0 ? `🎥 ${videoSayi}` : ''}</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px;">
+    `;
+
+    for (const d of grup.dosyalar) {
+      const previewUrl = d.dosyaTipi === "video" ? d.kucukResim : d.bunnyUrl;
+      html += `
+        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:10px; overflow:hidden; cursor:pointer;" onclick="acGaleriLightbox('${d.id}')">
+          ${d.dosyaTipi === "video" ?
+            `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+             <div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center; font-size:24px;">🎥</div>
+             <div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.6); color:white; padding:3px 8px; border-radius:6px; font-size:10px;">🎥 Video</div>
+             <div style="position:absolute; inset:0; background:rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center;"><div style="background:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;">▶</div></div>`
+            :
+            `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:cover;" loading="lazy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCBmaWxsPSIjZjNmNGY2IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+TuDwvdGV4dD48L3N2Zz4='">`
+          }
+          <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:11px; opacity:0; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" class="galeri-sil-btn">🗑</button>
+        </div>
+      `;
+    }
+    html += `</div></div>`;
+  }
+  html += `</div><style>.galeri-sil-btn:hover{opacity:1 !important;}div:hover > .galeri-sil-btn{opacity:0.8;}</style>`;
+  el.innerHTML = html;
+}
+
+// Yükleme Modalı
+window.openGaleriYuklemeModal = function() {
+  document.getElementById("galeriYuklemeModal").classList.add("active");
+  galeriSecilenDosyalar = [];
+  document.getElementById("galeriSecilenDosyalar").innerHTML = "";
+  document.getElementById("galeriEtkinlik").value = "";
+  document.getElementById("galeriEtkinlikTarih").value = isoTarih(new Date());
+  document.getElementById("galeriAciklama").value = "";
+  document.getElementById("galeriHedefTur").value = "tumOkul";
+  document.getElementById("galeriYuklemeIlerleme").style.display = "none";
+  galeriHedefDegisti();
+  doldurGaleriOgrenciSecici();
+};
+
+window.closeGaleriYuklemeModal = function() {
+  document.getElementById("galeriYuklemeModal").classList.remove("active");
+};
+
+window.galeriHedefDegisti = function() {
+  const h = document.getElementById("galeriHedefTur").value;
+  document.getElementById("galeriHedefSinifWrap").style.display = h === "sinif" ? "block" : "none";
+  document.getElementById("galeriHedefOgrenciWrap").style.display = h === "ogrenci" ? "block" : "none";
+};
+
+function doldurGaleriOgrenciSecici() {
+  const sel = document.getElementById("galeriHedefOgrenci");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Öğrenci Seçin --</option>';
+  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  aktif.sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || ""));
+  for (const o of aktif) {
+    const sinif = (ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "";
+    const opt = document.createElement("option");
+    opt.value = o.id;
+    opt.textContent = `${o.ogrenciAdSoyad || ""}${sinif ? ` (${sinif})` : ""}`;
+    opt.dataset.ad = o.ogrenciAdSoyad || "";
+    sel.appendChild(opt);
+  }
+}
+
+// Drag & Drop
+window.galeriDragOver = function(e) {
+  e.preventDefault();
+  document.getElementById("galeriDropZone").style.background = "#f3e8ff";
+  document.getElementById("galeriDropZone").style.borderColor = "#9333ea";
+};
+
+window.galeriDragLeave = function(e) {
+  e.preventDefault();
+  document.getElementById("galeriDropZone").style.background = "#faf5ff";
+  document.getElementById("galeriDropZone").style.borderColor = "#c084fc";
+};
+
+window.galeriDrop = function(e) {
+  e.preventDefault();
+  galeriDragLeave(e);
+  const files = Array.from(e.dataTransfer.files);
+  galeriDosyalarEkle(files);
+};
+
+window.galeriDosyalarSecildi = function(e) {
+  const files = Array.from(e.target.files);
+  galeriDosyalarEkle(files);
+};
+
+function galeriDosyalarEkle(files) {
+  for (const f of files) {
+    // Max 500MB kontrolü
+    if (f.size > 500 * 1024 * 1024) {
+      showToast(`${f.name} çok büyük (max 500MB)`, "error");
+      continue;
+    }
+    galeriSecilenDosyalar.push(f);
+  }
+  renderGaleriSecilenDosyalar();
+}
+
+function renderGaleriSecilenDosyalar() {
+  const el = document.getElementById("galeriSecilenDosyalar");
+  if (galeriSecilenDosyalar.length === 0) { el.innerHTML = ""; return; }
+
+  let html = `<div style="background:#faf5ff; border:1px solid #e9d5ff; border-radius:10px; padding:12px; margin-top:12px;">
+    <div style="font-size:13px; font-weight:600; color:#6b21a8; margin-bottom:8px;">📂 ${galeriSecilenDosyalar.length} dosya seçildi:</div>
+    <div style="display:flex; flex-direction:column; gap:4px;">`;
+  for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
+    const f = galeriSecilenDosyalar[i];
+    const boyutMB = (f.size / 1024 / 1024).toFixed(1);
+    const tip = f.type.startsWith("video/") ? "🎥" : "🖼";
+    html += `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; background:white; border-radius:8px; font-size:12px;">
+        <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${tip} ${escapeHtml(f.name)}</div>
+        <div style="color:var(--gray-500); font-size:11px;">${boyutMB} MB</div>
+        <button onclick="galeriDosyaKaldir(${i})" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:14px;">×</button>
+      </div>
+    `;
+  }
+  html += `</div></div>`;
+  el.innerHTML = html;
+}
+
+window.galeriDosyaKaldir = function(index) {
+  galeriSecilenDosyalar.splice(index, 1);
+  renderGaleriSecilenDosyalar();
+};
+
+// YÜKLE
+window.galeriYukle = async function() {
+  if (galeriSecilenDosyalar.length === 0) return showToast("Dosya seçin", "error");
+
+  const etkinlik = document.getElementById("galeriEtkinlik").value.trim() || "Genel";
+  const etkinlikTarih = document.getElementById("galeriEtkinlikTarih").value || isoTarih(new Date());
+  const aciklama = document.getElementById("galeriAciklama").value.trim();
+  const hedefTur = document.getElementById("galeriHedefTur").value;
+
+  let hedefDeger = "", hedefOgrenciAd = "";
+  if (hedefTur === "sinif") {
+    hedefDeger = document.getElementById("galeriHedefSinif").value;
+    if (!hedefDeger) return showToast("Sınıf seçin", "error");
+  } else if (hedefTur === "ogrenci") {
+    hedefDeger = document.getElementById("galeriHedefOgrenci").value;
+    if (!hedefDeger) return showToast("Öğrenci seçin", "error");
+    const sel = document.getElementById("galeriHedefOgrenci");
+    hedefOgrenciAd = sel.options[sel.selectedIndex]?.dataset?.ad || "";
+  }
+
+  const btn = document.getElementById("btnGaleriYukle");
+  btn.disabled = true;
+  btn.textContent = "⏳ Yükleniyor...";
+  document.getElementById("galeriYuklemeIlerleme").style.display = "block";
+  document.getElementById("galeriYuklemeToplam").textContent = galeriSecilenDosyalar.length;
+
+  // Klasör path: galeri/{hedefTur}/{hedefDeger}/{etkinlikTarih}-{etkinlikBaslik}/
+  const hedefPath = hedefTur === "tumOkul" ? "tumOkul"
+    : `${hedefTur}/${hedefDeger}`.replace(/\s+/g, "-");
+  const etkinlikSlug = (etkinlikTarih + "-" + etkinlik).replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\-]/g, "-").replace(/-+/g, "-").toLowerCase();
+  const klasorPath = `galeri/${hedefPath}/${etkinlikSlug}`;
+
+  let basarili = 0, hatali = 0;
+  for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
+    const f = galeriSecilenDosyalar[i];
+    document.getElementById("galeriYuklemeDurum").textContent = `${f.name}...`;
+    document.getElementById("galeriYuklemeSayac").textContent = i + 1;
+
+    try {
+      let oge = {
+        etkinlikBaslik: etkinlik,
+        etkinlikTarih,
+        aciklama,
+        hedefTur, hedefDeger, hedefOgrenciAd,
+        yukleyen: currentUser.email,
+        yuklemeZamani: new Date().toISOString(),
+        dosyaBoyutu: f.size,
+        orjinalAd: f.name,
+        donem: AKTIF_DONEM
+      };
+
+      if (f.type.startsWith("video/")) {
+        // VİDEO
+        document.getElementById("galeriYuklemeDurum").textContent = `${f.name} (video yükleniyor...)`;
+        const videoData = await bunnyUploadVideo(f, `${etkinlik}-${i+1}`, (prog) => {
+          const toplam = ((i + prog / 100) / galeriSecilenDosyalar.length) * 100;
+          document.getElementById("galeriYuklemeBar").style.width = `${toplam}%`;
+        });
+        oge.dosyaTipi = "video";
+        oge.bunnyVideoId = videoData.videoGuid;
+        oge.bunnyUrl = videoData.embedUrl;
+        oge.kucukResim = videoData.thumbnailUrl;
+        oge.playUrl = videoData.playUrl;
+        oge.mp4Url = videoData.mp4FallbackUrl;
+      } else if (f.type.startsWith("image/")) {
+        // FOTOĞRAF - sıkıştır ve yükle
+        const sikistirilmis = await resimSikistir(f, 1920, 0.85);
+        const dosyaAdi = `${Date.now()}-${i+1}.jpg`;
+        const tamPath = `${klasorPath}/${dosyaAdi}`;
+        const cdnUrl = await bunnyUploadPhoto(sikistirilmis, tamPath);
+        oge.dosyaTipi = "foto";
+        oge.bunnyUrl = cdnUrl;
+        oge.kucukResim = cdnUrl; // fotoğraf için aynı
+        oge.bunnyPath = tamPath;
+        oge.dosyaBoyutu = sikistirilmis.size;
+      } else {
+        hatali++;
+        continue;
+      }
+
+      // Firestore'a metadata kaydet
+      const ref = doc(collection(db, "galeri"));
+      await setDoc(ref, oge);
+      basarili++;
+
+      const toplam = ((i + 1) / galeriSecilenDosyalar.length) * 100;
+      document.getElementById("galeriYuklemeBar").style.width = `${toplam}%`;
+    } catch (e) {
+      console.error("Yükleme hatası:", e);
+      hatali++;
+    }
+  }
+
+  document.getElementById("galeriYuklemeDurum").textContent = `✓ ${basarili} başarılı${hatali > 0 ? `, ${hatali} hatalı` : ''}`;
+  showToast(`✓ ${basarili} dosya yüklendi${hatali > 0 ? ` (${hatali} hatalı)` : ''}`);
+
+  btn.textContent = "Kapat";
+  btn.onclick = closeGaleriYuklemeModal;
+  btn.disabled = false;
+  renderGaleri();
+};
+
+// Lightbox
+let aktifLightboxOge = null;
+
+window.acGaleriLightbox = function(id) {
+  const oge = galeriListesiVerisi.find(g => g.id === id);
+  if (!oge) return;
+  aktifLightboxOge = oge;
+  document.getElementById("galeriLightbox").classList.add("active");
+
+  const icerik = document.getElementById("galeriLightboxIcerik");
+  if (oge.dosyaTipi === "video") {
+    icerik.innerHTML = `<iframe src="${oge.bunnyUrl}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
+  } else {
+    icerik.innerHTML = `<img src="${oge.bunnyUrl}" style="max-width:95vw; max-height:90vh; object-fit:contain;">`;
+  }
+};
+
+window.closeGaleriLightbox = function() {
+  document.getElementById("galeriLightbox").classList.remove("active");
+  document.getElementById("galeriLightboxIcerik").innerHTML = "";
+  aktifLightboxOge = null;
+};
+
+window.galeriLightboxIndir = async function() {
+  if (!aktifLightboxOge) return;
+  const url = aktifLightboxOge.dosyaTipi === "video" ? aktifLightboxOge.mp4Url : aktifLightboxOge.bunnyUrl;
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = aktifLightboxOge.orjinalAd || "dosya";
+  a.target = "_blank";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
+// Sil
+window.silGaleriOge = async function(id) {
+  const oge = galeriListesiVerisi.find(g => g.id === id);
+  if (!oge) return;
+  if (!confirm(`"${oge.orjinalAd || oge.etkinlikBaslik}" silinsin mi?`)) return;
+
+  try {
+    // Bunny'den sil
+    if (oge.dosyaTipi === "video" && oge.bunnyVideoId) {
+      await bunnyDeleteVideo(oge.bunnyVideoId);
+    } else if (oge.dosyaTipi === "foto" && oge.bunnyPath) {
+      await bunnyDeleteFile(oge.bunnyPath);
+    }
+    // Firestore'dan sil
+    await deleteDoc(doc(db, "galeri", id));
+    showToast("✗ Silindi");
+    renderGaleri();
+  } catch (e) {
+    showToast("Silinemedi: " + e.message, "error");
+  }
+};
 
 
 function hesaplaFinansGecikenler() {
