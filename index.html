@@ -11638,13 +11638,83 @@ window.closeGaleriLightbox = function() {
 window.galeriLightboxIndir = async function() {
   if (!aktifLightboxOge) return;
   const url = aktifLightboxOge.dosyaTipi === "video" ? aktifLightboxOge.mp4Url : aktifLightboxOge.bunnyUrl;
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = aktifLightboxOge.orjinalAd || "dosya";
-  a.target = "_blank";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const btn = document.getElementById("galeriLightboxIndirBtn");
+
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = "⏳ İndiriliyor..."; }
+
+    // Dosya adını belirle
+    let dosyaAdi = aktifLightboxOge.orjinalAd || "dosya";
+    // Uzantıyı garanti et
+    if (aktifLightboxOge.dosyaTipi === "video" && !dosyaAdi.match(/\.(mp4|mov|webm)$/i)) {
+      dosyaAdi = dosyaAdi.replace(/\.[^/.]+$/, "") + ".mp4";
+    } else if (aktifLightboxOge.dosyaTipi === "foto" && !dosyaAdi.match(/\.(jpg|jpeg|png|webp)$/i)) {
+      dosyaAdi = dosyaAdi.replace(/\.[^/.]+$/, "") + ".jpg";
+    }
+
+    // MIME type
+    const mimeType = aktifLightboxOge.dosyaTipi === "video" ? "video/mp4" : "image/jpeg";
+
+    // Modern tarayıcılarda: "Farklı Kaydet" diyalogu göster (Chrome/Edge)
+    if (window.showSaveFilePicker) {
+      try {
+        // Önce dosya picker'ı göster
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: dosyaAdi,
+          types: [{
+            description: aktifLightboxOge.dosyaTipi === "video" ? "Video Dosyası" : "Fotoğraf",
+            accept: { [mimeType]: aktifLightboxOge.dosyaTipi === "video" ? [".mp4"] : [".jpg", ".jpeg", ".png"] }
+          }]
+        });
+
+        // Dosyayı Bunny'den çek
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error("Dosya indirilemedi: " + resp.status);
+        const blob = await resp.blob();
+
+        // Kullanıcının seçtiği yere yaz
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+
+        showToast("✓ Dosya kaydedildi");
+        if (btn) { btn.disabled = false; btn.textContent = "📥 İndir"; }
+        return;
+      } catch (pickerErr) {
+        // Kullanıcı iptal ettiyse sessizce çık
+        if (pickerErr.name === "AbortError") {
+          if (btn) { btn.disabled = false; btn.textContent = "📥 İndir"; }
+          return;
+        }
+        // Başka hata varsa fallback'e geç
+        console.warn("File picker hatası, fallback kullanılıyor:", pickerErr);
+      }
+    }
+
+    // FALLBACK: Blob yöntemi (eski tarayıcılar / Firefox / Safari / Mobil)
+    // Bu yöntem tarayıcının varsayılan indirme klasörüne kaydeder
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error("Dosya indirilemedi: " + resp.status);
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = dosyaAdi;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // Blob URL'i serbest bırak
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+    showToast("✓ İndirme başladı");
+    if (btn) { btn.disabled = false; btn.textContent = "📥 İndir"; }
+  } catch (e) {
+    console.error("İndirme hatası:", e);
+    showToast("İndirilemedi: " + e.message, "error");
+    if (btn) { btn.disabled = false; btn.textContent = "📥 İndir"; }
+  }
 };
 
 // Sil
