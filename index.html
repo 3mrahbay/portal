@@ -5687,17 +5687,6 @@ html, body {
       </div>
     </div>
 
-    <!-- GALERİ LIGHTBOX (BÜYÜK GÖRÜNTÜ) -->
-    <div class="modal-overlay" id="galeriLightbox" onclick="if(event.target.id==='galeriLightbox') closeGaleriLightbox()">
-      <div style="position:relative; max-width:95vw; max-height:95vh;">
-        <button onclick="closeGaleriLightbox()" style="position:absolute; top:-40px; right:0; background:white; border:none; width:36px; height:36px; border-radius:50%; font-size:20px; cursor:pointer; z-index:10;">×</button>
-        <div id="galeriLightboxIcerik" style="background:white; border-radius:14px; overflow:hidden; max-height:95vh; display:flex; align-items:center; justify-content:center;"></div>
-        <div style="position:absolute; bottom:10px; left:0; right:0; text-align:center;">
-          <button onclick="galeriLightboxIndir()" id="galeriLightboxIndirBtn" style="padding:10px 20px; background:white; border:1px solid #d1d5db; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);">📥 İndir</button>
-        </div>
-      </div>
-    </div>
-
     <!-- RAPORLAR TAB -->
     <div class="tab-panel" id="tab-raporlar">
 
@@ -7562,6 +7551,17 @@ html, body {
 
 <!-- Toast -->
 <div id="toast" class="toast"></div>
+
+<!-- GALERİ LIGHTBOX - body seviyesinde, her yerden erişilir -->
+<div class="modal-overlay" id="galeriLightbox" onclick="if(event.target.id==='galeriLightbox') closeGaleriLightbox()">
+  <div style="position:relative; max-width:95vw; max-height:95vh;">
+    <button onclick="closeGaleriLightbox()" style="position:absolute; top:-40px; right:0; background:white; border:none; width:36px; height:36px; border-radius:50%; font-size:20px; cursor:pointer; z-index:10;">×</button>
+    <div id="galeriLightboxIcerik" style="background:white; border-radius:14px; overflow:hidden; max-height:95vh; display:flex; align-items:center; justify-content:center;"></div>
+    <div style="position:absolute; bottom:10px; left:0; right:0; text-align:center;">
+      <button onclick="galeriLightboxIndir()" id="galeriLightboxIndirBtn" style="padding:10px 20px; background:white; border:1px solid #d1d5db; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);">📥 İndir</button>
+    </div>
+  </div>
+</div>
 
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
@@ -11399,6 +11399,7 @@ async function renderGaleri() {
     const videoSayi = grup.dosyalar.filter(d => d.dosyaTipi === "video").length;
 
     const zipArgs = `'${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '${grup.etkinlikTarih || ''}', '${grup.hedefTur || ''}', '${(grup.hedefDeger || '').replace(/'/g, "\\'")}'`;
+    const eklArgs = `'${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '${grup.etkinlikTarih || ''}', '${grup.hedefTur || ''}', '${(grup.hedefDeger || '').replace(/'/g, "\\'")}', '${(grup.hedefOgrenciAd || '').replace(/'/g, "\\'")}'`;
 
     html += `
       <div style="background:white; border:1px solid var(--gray-200); border-radius:14px; overflow:hidden;">
@@ -11408,7 +11409,10 @@ async function renderGaleri() {
               <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#6b21a8;">${escapeHtml(grup.etkinlikBaslik)}</div>
               <div style="font-size:12px; color:#7c3aed; margin-top:3px;">📅 ${tarihStr} · ${hedefLabel} · ${fotoSayi > 0 ? `🖼 ${fotoSayi}` : ''} ${videoSayi > 0 ? `🎥 ${videoSayi}` : ''}</div>
             </div>
-            <button onclick="albumZipIndir(${zipArgs})" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">📦 ZIP İndir</button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button onclick="albumEEkle(${eklArgs})" style="padding:7px 12px; background:#9333ea; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ İçerik Ekle</button>
+              <button onclick="albumZipIndir(${zipArgs})" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">📦 ZIP İndir</button>
+            </div>
           </div>
         </div>
         <div style="padding:12px; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px;">
@@ -11438,20 +11442,73 @@ async function renderGaleri() {
 
 // Yükleme Modalı
 window.openGaleriYuklemeModal = function() {
+  // "Yeni Yükleme" butonu tıklandıysa (albumEkleMod null ise) sıfırla
+  // "Albüme Ekle" çağırmışsa albumEEkle kendi setTimeout'unda doldurur
   document.getElementById("galeriYuklemeModal").classList.add("active");
   galeriSecilenDosyalar = [];
   document.getElementById("galeriSecilenDosyalar").innerHTML = "";
-  document.getElementById("galeriEtkinlik").value = "";
-  document.getElementById("galeriEtkinlikTarih").value = isoTarih(new Date());
-  document.getElementById("galeriAciklama").value = "";
-  document.getElementById("galeriHedefTur").value = "tumOkul";
   document.getElementById("galeriYuklemeIlerleme").style.display = "none";
+
+  // Alanları sıfırla
+  const etkInp = document.getElementById("galeriEtkinlik");
+  const tarInp = document.getElementById("galeriEtkinlikTarih");
+  const hedefSel = document.getElementById("galeriHedefTur");
+  const sinifSel = document.getElementById("galeriHedefSinif");
+  const ogrSel = document.getElementById("galeriHedefOgrenci");
+  const aciklamaTxt = document.getElementById("galeriAciklama");
+
+  // Kilit sıfırlama (düzenlemeden normal moda geçiş)
+  if (etkInp) { etkInp.readOnly = false; etkInp.style.background = ""; etkInp.style.cursor = ""; }
+  if (tarInp) { tarInp.readOnly = false; tarInp.style.background = ""; tarInp.style.cursor = ""; }
+  if (hedefSel) { hedefSel.disabled = false; hedefSel.style.background = ""; hedefSel.style.cursor = ""; }
+  if (sinifSel) { sinifSel.disabled = false; sinifSel.style.background = ""; sinifSel.style.cursor = ""; }
+  if (ogrSel) { ogrSel.disabled = false; ogrSel.style.background = ""; ogrSel.style.cursor = ""; }
+
+  // Başlık sıfırla
+  const header = document.querySelector("#galeriYuklemeModal .modal-header h3");
+  if (header) header.innerHTML = `📸 Galeri Yüklemesi`;
+
+  // Mail checkbox alanını geri getir
+  const mailAlan = document.querySelector("#galeriMailGonder")?.closest(".form-group");
+  if (!document.getElementById("galeriMailGonder")) {
+    // albumEEkle tarafından değiştirilmişse yeniden ekle
+    const placeholderDiv = document.querySelector("#galeriYuklemeModal .modal-body .form-grid.full:last-of-type");
+    if (placeholderDiv) {
+      const grp = placeholderDiv.querySelector(".form-group");
+      if (grp && grp.innerHTML.includes("bildirim olarak gösterilir")) {
+        grp.innerHTML = `
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+            <input type="checkbox" id="galeriMailGonder" style="width:18px; height:18px;">
+            <span>📧 Yükleme tamamlandıktan sonra hedef velilere bildirim maili gönder</span>
+          </label>
+          <div class="field-hint" style="margin-left:28px;">Veliler "Yeni fotoğraflar eklendi" maili alır ve portal galerisine yönlendirilir.</div>
+        `;
+      }
+    }
+  }
+
+  // Buton sıfırla
+  const btn = document.getElementById("btnGaleriYukle");
+  if (btn) {
+    btn.textContent = "🚀 Yükle";
+    btn.onclick = galeriYukle;
+  }
+
+  // Varsayılan değerler (sadece yeni yüklemede)
+  if (!albumEkleMod) {
+    if (etkInp) etkInp.value = "";
+    if (tarInp) tarInp.value = isoTarih(new Date());
+    if (aciklamaTxt) aciklamaTxt.value = "";
+    if (hedefSel) hedefSel.value = "tumOkul";
+  }
+
   galeriHedefDegisti();
   doldurGaleriOgrenciSecici();
 };
 
 window.closeGaleriYuklemeModal = function() {
   document.getElementById("galeriYuklemeModal").classList.remove("active");
+  albumEkleMod = null; // Modu temizle
 };
 
 window.galeriHedefDegisti = function() {
@@ -11637,13 +11694,28 @@ window.galeriYukle = async function() {
   document.getElementById("galeriYuklemeDurum").textContent = `✓ ${basarili} başarılı${hatali > 0 ? `, ${hatali} hatalı` : ''}`;
   showToast(`✓ ${basarili} dosya yüklendi${hatali > 0 ? ` (${hatali} hatalı)` : ''}`);
 
-  // Mail bildirim (opsiyonel)
-  const mailGonder = document.getElementById("galeriMailGonder").checked;
-  if (mailGonder && basarili > 0) {
+  // Yüklenen dosyaların sayısını hesapla
+  const fotoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("image/")).length;
+  const videoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("video/")).length;
+
+  // Mail bildirim kontrolü (opsiyonel - YENİ yükleme modunda)
+  const mailGonder = document.getElementById("galeriMailGonder")?.checked;
+
+  if (albumEkleMod && basarili > 0) {
+    // MEVCUT ALBÜME EKLEME: Sistem bildirimi oluştur (mail GİTMEZ)
+    document.getElementById("galeriYuklemeDurum").textContent = "🔔 Veli bildirimleri oluşturuluyor...";
+    await galeriGuncellemeBildirimi({
+      etkinlikBaslik: etkinlik,
+      etkinlikTarih,
+      hedefTur,
+      hedefDeger,
+      hedefOgrenciAd: albumEkleMod.hedefOgrenciAd,
+      fotoSayisi,
+      videoSayisi
+    });
+  } else if (mailGonder && basarili > 0) {
+    // YENİ YÜKLEME: Mail gönder
     document.getElementById("galeriYuklemeDurum").textContent = "📧 Velilere mail gönderiliyor...";
-    // Yüklenen dosyaların sayısını hesapla
-    const fotoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("image/")).length;
-    const videoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("video/")).length;
     await galeriBildirimMailGonder({
       etkinlikBaslik: etkinlik,
       etkinlikTarih,
@@ -11790,6 +11862,56 @@ window.silGaleriOge = async function(id) {
 };
 
 // ============ ALBÜM ZIP İNDİRME (Admin + Veli ortak) ============
+// ============ MEVCUT ALBÜME İÇERİK EKLEME (Düzenleme) ============
+let albumEkleMod = null; // { etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, hedefOgrenciAd }
+
+window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, hedefOgrenciAd) {
+  albumEkleMod = { etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger: hedefDeger || "", hedefOgrenciAd: hedefOgrenciAd || "" };
+  openGaleriYuklemeModal();
+
+  // Modal'ı düzenleme moduna çevir - alanları kilitle ve doldur
+  setTimeout(() => {
+    // Başlığı değiştir
+    const header = document.querySelector("#galeriYuklemeModal .modal-header h3");
+    if (header) header.innerHTML = `✏️ Albüme İçerik Ekle`;
+
+    // Alanları doldur + kilitle
+    const etkInp = document.getElementById("galeriEtkinlik");
+    const tarInp = document.getElementById("galeriEtkinlikTarih");
+    const hedefSel = document.getElementById("galeriHedefTur");
+    const sinifSel = document.getElementById("galeriHedefSinif");
+    const ogrSel = document.getElementById("galeriHedefOgrenci");
+    const mailChk = document.getElementById("galeriMailGonder");
+
+    if (etkInp) { etkInp.value = etkinlikBaslik; etkInp.readOnly = true; etkInp.style.background = "#f3f4f6"; etkInp.style.cursor = "not-allowed"; }
+    if (tarInp) { tarInp.value = etkinlikTarih; tarInp.readOnly = true; tarInp.style.background = "#f3f4f6"; tarInp.style.cursor = "not-allowed"; }
+    if (hedefSel) { hedefSel.value = hedefTur; hedefSel.disabled = true; hedefSel.style.background = "#f3f4f6"; hedefSel.style.cursor = "not-allowed"; }
+
+    galeriHedefDegisti();
+
+    if (hedefTur === "sinif" && sinifSel) { sinifSel.value = hedefDeger; sinifSel.disabled = true; sinifSel.style.background = "#f3f4f6"; sinifSel.style.cursor = "not-allowed"; }
+    if (hedefTur === "ogrenci" && ogrSel) { ogrSel.value = hedefDeger; ogrSel.disabled = true; ogrSel.style.background = "#f3f4f6"; ogrSel.style.cursor = "not-allowed"; }
+
+    // Mail checkbox'ı kapat ve gizle (güncellemede mail gitmez, sistem bildirim yeterli)
+    if (mailChk) {
+      mailChk.checked = false;
+      const mailLabel = mailChk.closest(".form-group");
+      if (mailLabel) {
+        mailLabel.innerHTML = `
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; font-size:12px; color:#1e40af;">
+            🔔 Güncellemeler velilere <strong>bildirim</strong> olarak gösterilir (mail gitmez).
+          </div>
+        `;
+      }
+    }
+
+    // Buton metnini değiştir
+    const btn = document.getElementById("btnGaleriYukle");
+    if (btn) btn.textContent = "➕ Albüme Ekle";
+  }, 50);
+};
+
+// Eski fonksiyonu güncelle - düzenleme modunu da destekleyecek
 window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger) {
   if (!window.JSZip) return showToast("ZIP kütüphanesi yüklenmedi", "error");
 
@@ -11925,6 +12047,63 @@ window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, h
 };
 
 // ============ ADMIN GALERİ YÜKLEME - MAİL BİLDİRİMİ ============
+// ============ GALERİ GÜNCELLEME SİSTEM BİLDİRİMİ ============
+// Mevcut albüme içerik eklendiğinde mail değil, sistem bildirimi (bildirimler sekmesinde görünür)
+async function galeriGuncellemeBildirimi(grup) {
+  try {
+    const { etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, hedefOgrenciAd, fotoSayisi, videoSayisi } = grup;
+
+    // Hedef öğrencileri topla
+    const hedefOgrenciler = [];
+    for (const o of ogrenciList) {
+      if (getOgrenciDurum(o, ayarListesi[o.id]) !== "aktif") continue;
+      const ayar = ayarListesi[o.id] || {};
+      const ogrSinif = (ayar.kayit?.sinif) || o.sinif || "";
+
+      let dahil = false;
+      if (hedefTur === "tumOkul") dahil = true;
+      else if (hedefTur === "sinif" && ogrSinif === hedefDeger) dahil = true;
+      else if (hedefTur === "ogrenci" && o.id === hedefDeger) dahil = true;
+
+      if (dahil) hedefOgrenciler.push(o);
+    }
+
+    if (hedefOgrenciler.length === 0) return;
+
+    // İçerik metni
+    let icerikParcalari = [];
+    if (fotoSayisi > 0) icerikParcalari.push(`${fotoSayisi} yeni fotoğraf`);
+    if (videoSayisi > 0) icerikParcalari.push(`${videoSayisi} yeni video`);
+    const icerikMetni = icerikParcalari.join(" ve ");
+
+    const tarihStr = etkinlikTarih ? new Date(etkinlikTarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "";
+
+    // Her hedef öğrencinin bildirimler alt koleksiyonuna kaydet
+    for (const o of hedefOgrenciler) {
+      const bildirimRef = doc(collection(db, "ogrenciler", o.id, "bildirimler"));
+      await setDoc(bildirimRef, {
+        tip: "galeri_guncelleme",
+        baslik: `📸 ${etkinlikBaslik} albümü güncellendi`,
+        icerik: `${etkinlikBaslik} albümüne ${icerikMetni} eklenmiştir.${tarihStr ? ` (Etkinlik: ${tarihStr})` : ''}`,
+        etkinlikBaslik,
+        etkinlikTarih,
+        fotoSayisi,
+        videoSayisi,
+        gonderenUid: currentUser.uid,
+        gonderenAd: "Okul Yönetimi",
+        tarih: new Date().toISOString(),
+        okundu: false,
+        donem: AKTIF_DONEM
+      });
+    }
+
+    showToast(`🔔 ${hedefOgrenciler.length} öğrencinin velisine bildirim gönderildi`);
+  } catch (e) {
+    console.warn("Galeri bildirim hatası:", e);
+    showToast("Bildirim oluşturulurken hata: " + e.message, "error");
+  }
+}
+
 async function galeriBildirimMailGonder(grup) {
   try {
     const { etkinlikBaslik, etkinlikTarih, aciklama, hedefTur, hedefDeger, dosyaSayisi, fotoSayisi, videoSayisi } = grup;
