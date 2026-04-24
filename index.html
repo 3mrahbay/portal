@@ -7603,28 +7603,37 @@ const OKUL_MAIL = "eposta@bircicekkoleji.com";
 
 // Brevo üzerinden mail gönder (Apps Script proxy ile)
 async function brevoMail(opts) {
-  if (!opts.to || !opts.subject || !opts.htmlContent) {
+  if(!opts.to || !opts.subject || !opts.htmlContent) {
     console.warn("brevoMail: to, subject, htmlContent zorunlu");
     return { success: false };
   }
   try {
-    const resp = await fetch(BREVO_PROXY_URL, {
+    var payload = {
+      origin: window.location.hostname,
+      to: opts.to,
+      toName: opts.toName || "",
+      subject: opts.subject,
+      htmlContent: opts.htmlContent,
+      replyTo: opts.replyTo || SCHOOL_EMAIL,
+      senderName: "Bir Çiçek Koleji Anaokulu",
+      senderEmail: SCHOOL_EMAIL
+    };
+    var response = await fetch(BREVO_PROXY_URL, {
       method: "POST",
-      mode: "no-cors",  // Apps Script CORS bypass
-      headers: { "Content-Type": "text/plain" },  // no-cors için text/plain
-      body: JSON.stringify({
-        action: "sendMail",
-        to: opts.to,
-        toName: opts.toName || "",
-        subject: opts.subject,
-        htmlContent: opts.htmlContent,
-        replyTo: opts.replyTo || OKUL_MAIL
-      })
+      redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
     });
-    // no-cors modda response okunamaz, başarı kabul edilir
-    return { success: true };
-  } catch (e) {
-    console.warn("Brevo mail hatası:", e);
+    var result = await response.json();
+    console.log("Brevo mail sonucu:", result);
+    if(result.success) {
+      return { success: true, messageId: result.messageId };
+    } else {
+      console.error("Brevo API hatası:", result.error || result.detail);
+      return { success: false, error: result.error };
+    }
+  } catch(e) {
+    console.error("brevoMail fetch hatası:", e);
     return { success: false, error: e.message };
   }
 }
