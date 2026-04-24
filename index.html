@@ -4482,6 +4482,7 @@ html, body {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -5656,6 +5657,16 @@ html, body {
                 <textarea id="galeriAciklama" rows="2" placeholder="Fotoğraflar/video hakkında kısa açıklama..."></textarea>
               </div>
             </div>
+
+            <div class="form-grid full">
+              <div class="form-group">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                  <input type="checkbox" id="galeriMailGonder" style="width:18px; height:18px;">
+                  <span>📧 Yükleme tamamlandıktan sonra hedef velilere bildirim maili gönder</span>
+                </label>
+                <div class="field-hint" style="margin-left:28px;">Veliler "Yeni fotoğraflar eklendi" maili alır ve portal galerisine yönlendirilir.</div>
+              </div>
+            </div>
           </div>
 
           <!-- Yükleme İlerlemesi -->
@@ -6039,11 +6050,25 @@ html, body {
       <!-- GALERİ (Placeholder) -->
       <div class="veli-tab-panel" id="veliPanel-galeri">
         <div class="veli-card">
-          <div class="veli-placeholder">
-            <div class="ph-icon">📸</div>
-            <h3>Galeri</h3>
-            <p>Çocuğunuzun okuldaki fotoğrafları, sınıf etkinlikleri ve video paylaşımları burada görüntülenecek.</p>
-            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+            <div>
+              <div class="veli-card-title" style="margin:0;">📸 Galeri</div>
+              <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Çocuğunuzun okul anıları</div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;" id="veliGaleriFiltreler">
+              <button class="btn-mini" data-veli-galeri-filter="tumu" onclick="veliGaleriFilter('tumu')" style="background:#9333ea; border:none; color:white;">📁 Tümü</button>
+              <button class="btn-mini" data-veli-galeri-filter="ozel" onclick="veliGaleriFilter('ozel')">⭐ Size Özel</button>
+              <button class="btn-mini" data-veli-galeri-filter="sinif" onclick="veliGaleriFilter('sinif')">👥 Sınıf</button>
+              <button class="btn-mini" data-veli-galeri-filter="okul" onclick="veliGaleriFilter('okul')">🏫 Tüm Okul</button>
+            </div>
+          </div>
+
+          <!-- Çocuk filtresi (birden fazla çocuk varsa) -->
+          <div id="veliGaleriCocukFiltre" style="display:none; margin-bottom:14px;"></div>
+
+          <!-- Galeri listesi -->
+          <div id="veliGaleriListesi">
+            <div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>
           </div>
         </div>
       </div>
@@ -8268,6 +8293,7 @@ function veliRenderTab(tabName) {
   else if (tabName === "ogrenci") veliRenderOgrenci();
   else if (tabName === "bildirimler") veliRenderBildirimler();
   else if (tabName === "okul") veliRenderOkulHayati();
+  else if (tabName === "galeri") veliRenderGaleri();
   // Diğer sekmeler placeholder — henüz render gerekmez
 }
 
@@ -11313,9 +11339,11 @@ async function loadGaleri() {
   try {
     const snap = await getDocs(collection(db, "galeri"));
     galeriListesiVerisi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    window.galeriListesiVerisi = galeriListesiVerisi; // ZIP indir için global erişim
   } catch (e) {
     console.warn("Galeri yüklenemedi:", e);
     galeriListesiVerisi = [];
+    window.galeriListesiVerisi = [];
   }
 }
 
@@ -11370,6 +11398,8 @@ async function renderGaleri() {
     const fotoSayi = grup.dosyalar.filter(d => d.dosyaTipi === "foto").length;
     const videoSayi = grup.dosyalar.filter(d => d.dosyaTipi === "video").length;
 
+    const zipArgs = `'${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '${grup.etkinlikTarih || ''}', '${grup.hedefTur || ''}', '${(grup.hedefDeger || '').replace(/'/g, "\\'")}'`;
+
     html += `
       <div style="background:white; border:1px solid var(--gray-200); border-radius:14px; overflow:hidden;">
         <div style="padding:14px 18px; background:linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-bottom:1px solid #e9d5ff;">
@@ -11378,6 +11408,7 @@ async function renderGaleri() {
               <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#6b21a8;">${escapeHtml(grup.etkinlikBaslik)}</div>
               <div style="font-size:12px; color:#7c3aed; margin-top:3px;">📅 ${tarihStr} · ${hedefLabel} · ${fotoSayi > 0 ? `🖼 ${fotoSayi}` : ''} ${videoSayi > 0 ? `🎥 ${videoSayi}` : ''}</div>
             </div>
+            <button onclick="albumZipIndir(${zipArgs})" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">📦 ZIP İndir</button>
           </div>
         </div>
         <div style="padding:12px; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px;">
@@ -11606,6 +11637,25 @@ window.galeriYukle = async function() {
   document.getElementById("galeriYuklemeDurum").textContent = `✓ ${basarili} başarılı${hatali > 0 ? `, ${hatali} hatalı` : ''}`;
   showToast(`✓ ${basarili} dosya yüklendi${hatali > 0 ? ` (${hatali} hatalı)` : ''}`);
 
+  // Mail bildirim (opsiyonel)
+  const mailGonder = document.getElementById("galeriMailGonder").checked;
+  if (mailGonder && basarili > 0) {
+    document.getElementById("galeriYuklemeDurum").textContent = "📧 Velilere mail gönderiliyor...";
+    // Yüklenen dosyaların sayısını hesapla
+    const fotoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("image/")).length;
+    const videoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("video/")).length;
+    await galeriBildirimMailGonder({
+      etkinlikBaslik: etkinlik,
+      etkinlikTarih,
+      aciklama,
+      hedefTur,
+      hedefDeger,
+      dosyaSayisi: basarili,
+      fotoSayisi,
+      videoSayisi
+    });
+  }
+
   btn.textContent = "Kapat";
   btn.onclick = closeGaleriYuklemeModal;
   btn.disabled = false;
@@ -11739,6 +11789,442 @@ window.silGaleriOge = async function(id) {
   }
 };
 
+// ============ ALBÜM ZIP İNDİRME (Admin + Veli ortak) ============
+window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger) {
+  if (!window.JSZip) return showToast("ZIP kütüphanesi yüklenmedi", "error");
+
+  // Bu albüme ait dosyaları bul
+  const dosyalar = (window.galeriListesiVerisi || []).filter(g =>
+    g.etkinlikBaslik === etkinlikBaslik &&
+    g.etkinlikTarih === etkinlikTarih &&
+    g.hedefTur === hedefTur &&
+    g.hedefDeger === (hedefDeger || "")
+  );
+
+  // Veli panelinden çağrılıyorsa veliGaleriVerisi'ne bak
+  const dosyalarVeli = (window.veliGaleriVerisi || []).filter(g =>
+    g.etkinlikBaslik === etkinlikBaslik &&
+    g.etkinlikTarih === etkinlikTarih
+  );
+  const tumDosyalar = dosyalar.length > 0 ? dosyalar : dosyalarVeli;
+
+  if (tumDosyalar.length === 0) return showToast("Dosya bulunamadı", "error");
+
+  // Büyük ZIP indirme uyarısı
+  const videoSay = tumDosyalar.filter(d => d.dosyaTipi === "video").length;
+  if (videoSay > 0 && !confirm(`Bu albümde ${videoSay} video var. Videolar çok büyük olabilir, indirme uzun sürebilir. Devam edilsin mi?`)) return;
+
+  // Progress modal
+  const progressId = "albumZipProgress_" + Date.now();
+  const progressHtml = `
+    <div class="modal-overlay active" id="${progressId}">
+      <div class="modal" style="max-width:440px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);">
+          <h3 style="color:#6b21a8;">📦 Albüm İndiriliyor</h3>
+        </div>
+        <div class="modal-body">
+          <div style="font-size:14px; color:var(--gray-700); margin-bottom:12px;">
+            <strong>${escapeHtml(etkinlikBaslik)}</strong><br>
+            <span style="font-size:12px; color:var(--gray-500);">${tumDosyalar.length} dosya</span>
+          </div>
+          <div style="font-size:13px; color:#6b21a8; margin-bottom:8px;">
+            <span id="${progressId}_durum">Hazırlanıyor...</span>
+            <span style="float:right;"><span id="${progressId}_sayac">0</span> / ${tumDosyalar.length}</span>
+          </div>
+          <div style="background:#f3e8ff; height:10px; border-radius:5px; overflow:hidden;">
+            <div id="${progressId}_bar" style="background:#9333ea; height:100%; width:0%; transition:width 0.3s;"></div>
+          </div>
+          <div style="font-size:11px; color:var(--gray-500); margin-top:10px; text-align:center;">Dosyalar hazırlandıktan sonra ZIP otomatik olarak inecek</div>
+        </div>
+      </div>
+    </div>
+  `;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = progressHtml;
+  document.body.appendChild(wrap);
+
+  try {
+    const zip = new JSZip();
+    let basarili = 0, hatali = 0;
+
+    for (let i = 0; i < tumDosyalar.length; i++) {
+      const d = tumDosyalar[i];
+      document.getElementById(progressId + "_durum").textContent = `İndiriliyor: ${(d.orjinalAd || "dosya").substring(0, 30)}...`;
+      document.getElementById(progressId + "_sayac").textContent = i + 1;
+
+      try {
+        const url = d.dosyaTipi === "video" ? d.mp4Url : d.bunnyUrl;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error("Fetch başarısız");
+        const blob = await resp.blob();
+
+        // Dosya adını belirle
+        let dosyaAdi = d.orjinalAd || `dosya_${i + 1}`;
+        if (d.dosyaTipi === "video" && !dosyaAdi.match(/\.(mp4|mov|webm)$/i)) {
+          dosyaAdi = dosyaAdi.replace(/\.[^/.]+$/, "") + ".mp4";
+        } else if (d.dosyaTipi === "foto" && !dosyaAdi.match(/\.(jpg|jpeg|png|webp)$/i)) {
+          dosyaAdi = dosyaAdi.replace(/\.[^/.]+$/, "") + ".jpg";
+        }
+
+        // Aynı isimde birden fazla olabilir, prefix ekle
+        dosyaAdi = `${String(i + 1).padStart(3, "0")}_${dosyaAdi}`;
+
+        zip.file(dosyaAdi, blob);
+        basarili++;
+      } catch (e) {
+        console.warn(`${d.orjinalAd} indirilemedi:`, e);
+        hatali++;
+      }
+
+      // Progress
+      const yuzde = ((i + 1) / tumDosyalar.length) * 100;
+      document.getElementById(progressId + "_bar").style.width = `${yuzde}%`;
+    }
+
+    document.getElementById(progressId + "_durum").textContent = "ZIP oluşturuluyor...";
+
+    // ZIP oluştur ve indir
+    const zipBlob = await zip.generateAsync({
+      type: "blob",
+      compression: "STORE" // Fotoğraflar zaten sıkıştırılmış, STORE hızlı
+    }, (meta) => {
+      document.getElementById(progressId + "_bar").style.width = `${meta.percent}%`;
+    });
+
+    // Dosya adı
+    const albumAdi = `${etkinlikBaslik || "Album"}-${etkinlikTarih || isoTarih(new Date())}`.replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\-]/g, "-").replace(/-+/g, "-");
+
+    // Modern file picker
+    if (window.showSaveFilePicker) {
+      try {
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: `${albumAdi}.zip`,
+          types: [{ description: "ZIP Dosyası", accept: { "application/zip": [".zip"] } }]
+        });
+        const writable = await fileHandle.createWritable();
+        await writable.write(zipBlob);
+        await writable.close();
+      } catch (pickerErr) {
+        if (pickerErr.name !== "AbortError") {
+          // Fallback
+          saveAs(zipBlob, `${albumAdi}.zip`);
+        }
+      }
+    } else {
+      // Eski tarayıcılar - FileSaver.js
+      saveAs(zipBlob, `${albumAdi}.zip`);
+    }
+
+    document.getElementById(progressId).remove();
+    showToast(`✓ Albüm indirildi (${basarili} dosya${hatali > 0 ? `, ${hatali} hatalı` : ''})`);
+  } catch (e) {
+    console.error("ZIP hatası:", e);
+    document.getElementById(progressId)?.remove();
+    showToast("ZIP oluşturulamadı: " + e.message, "error");
+  }
+};
+
+// ============ ADMIN GALERİ YÜKLEME - MAİL BİLDİRİMİ ============
+async function galeriBildirimMailGonder(grup) {
+  try {
+    const { etkinlikBaslik, etkinlikTarih, aciklama, hedefTur, hedefDeger, dosyaSayisi, fotoSayisi, videoSayisi } = grup;
+
+    // Hedef velileri topla
+    const hedefMailler = [];
+    for (const o of ogrenciList) {
+      if (getOgrenciDurum(o, ayarListesi[o.id]) !== "aktif") continue;
+      const ayar = ayarListesi[o.id] || {};
+      const ogrSinif = (ayar.kayit?.sinif) || o.sinif || "";
+
+      let dahil = false;
+      if (hedefTur === "tumOkul") dahil = true;
+      else if (hedefTur === "sinif" && ogrSinif === hedefDeger) dahil = true;
+      else if (hedefTur === "ogrenci" && o.id === hedefDeger) dahil = true;
+
+      if (!dahil) continue;
+
+      const anne = ayar.anne || {};
+      const baba = ayar.baba || {};
+      if (anne.eposta) hedefMailler.push({ mail: anne.eposta, ad: anne.adSoyad || "Anne", ogrAd: o.ogrenciAdSoyad });
+      if (baba.eposta) hedefMailler.push({ mail: baba.eposta, ad: baba.adSoyad || "Baba", ogrAd: o.ogrenciAdSoyad });
+    }
+
+    if (hedefMailler.length === 0) {
+      showToast("Mail gönderilecek veli bulunamadı", "info");
+      return;
+    }
+
+    const hedefLabel = hedefTur === "tumOkul" ? "tüm okul" : hedefTur === "sinif" ? `${hedefDeger} sınıfı` : "özel";
+    const tarihStr = etkinlikTarih ? new Date(etkinlikTarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "";
+
+    for (const v of hedefMailler) {
+      const icerik = `
+        <p style="margin:0 0 14px; font-size:15px;">Sayın <strong>${escapeHtml(v.ad)}</strong>,</p>
+
+        <div style="background:#faf5ff; border-left:4px solid #9333ea; border-radius:8px; padding:18px 22px; margin:16px 0;">
+          <div style="font-size:12px; font-weight:700; color:#6b21a8; letter-spacing:0.5px; margin-bottom:8px;">📸 YENİ GALERİ EKLENDİ</div>
+          <h3 style="margin:0 0 10px; color:var(--gray-800); font-size:20px;">${escapeHtml(etkinlikBaslik)}</h3>
+          ${tarihStr ? `<div style="font-size:13px; color:#6b7280; margin-bottom:10px;">📅 ${tarihStr}</div>` : ''}
+          <div style="font-size:14px; color:#374151; line-height:1.7;">
+            ${hedefLabel} için yeni fotoğraf ve videolar galeriye eklendi:
+          </div>
+          <div style="background:white; border-radius:8px; padding:12px; margin-top:12px; display:flex; gap:16px; font-size:14px; color:#374151;">
+            ${fotoSayisi > 0 ? `<div>🖼 <strong>${fotoSayisi}</strong> fotoğraf</div>` : ''}
+            ${videoSayisi > 0 ? `<div>🎥 <strong>${videoSayisi}</strong> video</div>` : ''}
+          </div>
+          ${aciklama ? `<div style="font-size:13px; color:#4b5563; line-height:1.6; margin-top:12px; padding-top:10px; border-top:1px dashed #e9d5ff;">${escapeHtml(aciklama)}</div>` : ''}
+        </div>
+
+        <div style="text-align:center; margin:20px 0;">
+          <a href="https://portal.bircicekkoleji.com" style="display:inline-block; background:#9333ea; color:white; text-decoration:none; padding:12px 28px; border-radius:10px; font-weight:700; font-size:14px;">📸 Galeriyi Görüntüle</a>
+        </div>
+
+        <p style="margin:16px 0 0; font-size:13px; color:#6b7280; line-height:1.7; border-top:1px solid #e5e7eb; padding-top:14px;">
+          Portal'a girip <strong>Galeri</strong> sekmesinden tüm fotoğraflara erişebilir, albümü tek seferde ZIP olarak indirebilirsiniz.
+        </p>
+
+        <p style="margin:16px 0 0; font-size:13px; color:#374151;">
+          Saygılarımızla,<br>
+          <strong>Bir Çiçek Koleji Anaokulu</strong>
+        </p>
+      `;
+
+      await brevoMail({
+        to: v.mail, toName: v.ad,
+        subject: `📸 Yeni Fotoğraflar: ${etkinlikBaslik} - Bir Çiçek Koleji`,
+        htmlContent: portalMailSablon(etkinlikBaslik, icerik, "Portal'daki galeriye yeni içerik eklendi.")
+      });
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    showToast(`📧 ${hedefMailler.length} veliye mail gönderildi`);
+  } catch (e) {
+    console.warn("Galeri mail hatası:", e);
+  }
+}
+
+// ============ VELİ GALERİ (Tur 5B) ============
+let veliGaleriVerisi = [];
+let aktifVeliGaleriFilter = "tumu";
+let veliGaleriAktifCocuk = "hepsi"; // "hepsi" veya ogrenciId
+
+async function veliRenderGaleri() {
+  const el = document.getElementById("veliGaleriListesi");
+  if (!el) return;
+
+  el.innerHTML = `<div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>`;
+
+  try {
+    const snap = await getDocs(collection(db, "galeri"));
+    const tumu = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Velinin çocuklarına göre filtrele
+    const veliSiniflari = new Set();
+    const veliOgrenciIds = new Set();
+    for (const o of (veliOgrenciler || [])) {
+      veliOgrenciIds.add(o.id);
+      const donemVeri = o._donemVeri || {};
+      const sinif = (donemVeri.kayit?.sinif) || o.sinif || "";
+      if (sinif) veliSiniflari.add(sinif);
+    }
+
+    // Kendi erişebildiği galerileri filtrele
+    veliGaleriVerisi = tumu.filter(g => {
+      if (g.hedefTur === "tumOkul") return true;
+      if (g.hedefTur === "sinif" && veliSiniflari.has(g.hedefDeger)) return true;
+      if (g.hedefTur === "ogrenci" && veliOgrenciIds.has(g.hedefDeger)) return true;
+      return false;
+    });
+    window.veliGaleriVerisi = veliGaleriVerisi; // ZIP indir için global erişim
+
+    // Birden fazla çocuğu varsa filtre göster
+    renderVeliGaleriCocukFiltre();
+
+    // Filtreleri uygula
+    renderVeliGaleri();
+  } catch (e) {
+    el.innerHTML = `<div style="padding:30px; text-align:center; color:#991b1b; font-size:13px;">Galeri yüklenemedi: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+window.veliGaleriFilter = function(f) {
+  aktifVeliGaleriFilter = f;
+  document.querySelectorAll("[data-veli-galeri-filter]").forEach(b => {
+    if (b.dataset.veliGaleriFilter === f) {
+      b.style.background = "#9333ea"; b.style.color = "white"; b.style.border = "none";
+    } else {
+      b.style.background = ""; b.style.color = ""; b.style.border = "";
+    }
+  });
+  renderVeliGaleri();
+};
+
+window.veliGaleriCocukSec = function(id) {
+  veliGaleriAktifCocuk = id;
+  document.querySelectorAll("[data-veli-galeri-cocuk]").forEach(b => {
+    if (b.dataset.veliGaleriCocuk === id) {
+      b.style.background = "#9333ea"; b.style.color = "white"; b.style.border = "none";
+    } else {
+      b.style.background = ""; b.style.color = ""; b.style.border = "";
+    }
+  });
+  renderVeliGaleri();
+};
+
+function renderVeliGaleriCocukFiltre() {
+  const el = document.getElementById("veliGaleriCocukFiltre");
+  if (!el) return;
+  if (!veliOgrenciler || veliOgrenciler.length <= 1) {
+    el.style.display = "none";
+    return;
+  }
+  el.style.display = "block";
+  let html = `<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+    <span style="font-size:12px; color:var(--gray-600); font-weight:600;">Çocuk:</span>
+    <button class="btn-mini" data-veli-galeri-cocuk="hepsi" onclick="veliGaleriCocukSec('hepsi')" style="background:#9333ea; border:none; color:white;">Tümü</button>`;
+  for (const o of veliOgrenciler) {
+    html += `<button class="btn-mini" data-veli-galeri-cocuk="${o.id}" onclick="veliGaleriCocukSec('${o.id}')">${escapeHtml(o.ogrenciAdSoyad || "")}</button>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function renderVeliGaleri() {
+  const el = document.getElementById("veliGaleriListesi");
+  if (!el) return;
+
+  let liste = [...veliGaleriVerisi];
+
+  // Filtre: tip
+  if (aktifVeliGaleriFilter === "okul") liste = liste.filter(g => g.hedefTur === "tumOkul");
+  else if (aktifVeliGaleriFilter === "sinif") liste = liste.filter(g => g.hedefTur === "sinif");
+  else if (aktifVeliGaleriFilter === "ozel") liste = liste.filter(g => g.hedefTur === "ogrenci");
+
+  // Filtre: çocuk
+  if (veliGaleriAktifCocuk !== "hepsi") {
+    // Sadece bu çocuğun sınıfı + özel galerileri
+    const ogr = veliOgrenciler.find(o => o.id === veliGaleriAktifCocuk);
+    if (ogr) {
+      const donemVeri = ogr._donemVeri || {};
+      const sinif = (donemVeri.kayit?.sinif) || ogr.sinif || "";
+      liste = liste.filter(g => {
+        if (g.hedefTur === "tumOkul") return true;
+        if (g.hedefTur === "sinif" && g.hedefDeger === sinif) return true;
+        if (g.hedefTur === "ogrenci" && g.hedefDeger === veliGaleriAktifCocuk) return true;
+        return false;
+      });
+    }
+  }
+
+  // Etkinlik bazlı grupla
+  const gruplar = {};
+  for (const g of liste) {
+    const anahtar = `${g.etkinlikTarih || "tarihsiz"}|${g.etkinlikBaslik || "Diğer"}|${g.hedefTur || ""}|${g.hedefDeger || ""}`;
+    if (!gruplar[anahtar]) {
+      gruplar[anahtar] = {
+        etkinlikTarih: g.etkinlikTarih,
+        etkinlikBaslik: g.etkinlikBaslik || "Diğer",
+        hedefTur: g.hedefTur,
+        hedefDeger: g.hedefDeger,
+        hedefOgrenciAd: g.hedefOgrenciAd,
+        aciklama: g.aciklama,
+        dosyalar: []
+      };
+    }
+    gruplar[anahtar].dosyalar.push(g);
+  }
+
+  const gruplarDizi = Object.values(gruplar).sort((a, b) => (b.etkinlikTarih || "").localeCompare(a.etkinlikTarih || ""));
+
+  if (gruplarDizi.length === 0) {
+    el.innerHTML = `
+      <div style="background:#faf5ff; border:1px dashed #e9d5ff; border-radius:14px; padding:40px 20px; text-align:center;">
+        <div style="font-size:48px; margin-bottom:12px;">📸</div>
+        <div style="font-family:var(--font-display); font-size:16px; color:#6b21a8; margin-bottom:6px;">Bu filtrede galeri yok</div>
+        <div style="font-size:13px; color:#7c3aed;">Yeni fotoğraflar eklendiğinde burada görünecek</div>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
+  for (const grup of gruplarDizi) {
+    const hedefLabel = grup.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
+      : grup.hedefTur === "sinif" ? `👥 ${escapeHtml(grup.hedefDeger)}`
+      : `⭐ Size Özel`;
+
+    const tarihStr = grup.etkinlikTarih ? new Date(grup.etkinlikTarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "Tarihsiz";
+
+    const fotoSayi = grup.dosyalar.filter(d => d.dosyaTipi === "foto").length;
+    const videoSayi = grup.dosyalar.filter(d => d.dosyaTipi === "video").length;
+
+    // ZIP indirme parametreleri (JSON'a çevirmek zor, args olarak verelim)
+    const zipArgs = `'${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '${grup.etkinlikTarih || ''}', '${grup.hedefTur || ''}', '${(grup.hedefDeger || '').replace(/'/g, "\\'")}'`;
+
+    html += `
+      <div style="background:white; border:1px solid var(--gray-200); border-radius:14px; overflow:hidden;">
+        <div style="padding:14px 18px; background:linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-bottom:1px solid #e9d5ff;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+            <div style="flex:1; min-width:220px;">
+              <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#6b21a8;">${escapeHtml(grup.etkinlikBaslik)}</div>
+              <div style="font-size:12px; color:#7c3aed; margin-top:3px;">📅 ${tarihStr} · ${hedefLabel}</div>
+              <div style="font-size:12px; color:#7c3aed; margin-top:2px;">${fotoSayi > 0 ? `🖼 ${fotoSayi} fotoğraf` : ''} ${videoSayi > 0 ? `· 🎥 ${videoSayi} video` : ''}</div>
+              ${grup.aciklama ? `<div style="font-size:12px; color:var(--gray-600); margin-top:8px; padding-top:8px; border-top:1px dashed #e9d5ff;">${escapeHtml(grup.aciklama)}</div>` : ''}
+            </div>
+            <button onclick="albumZipIndir(${zipArgs})" style="padding:8px 14px; background:#9333ea; border:none; color:white; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">📦 Tümünü İndir</button>
+          </div>
+        </div>
+        <div style="padding:12px; display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:8px;">
+    `;
+
+    for (const d of grup.dosyalar) {
+      const previewUrl = d.dosyaTipi === "video" ? d.kucukResim : d.bunnyUrl;
+      html += `
+        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:10px; overflow:hidden; cursor:pointer;" onclick="veliAcGaleriLightbox('${d.id}')">
+          ${d.dosyaTipi === "video" ?
+            `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+             <div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center; font-size:24px;">🎥</div>
+             <div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.6); color:white; padding:3px 8px; border-radius:6px; font-size:10px;">🎥</div>
+             <div style="position:absolute; inset:0; background:rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center;"><div style="background:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;">▶</div></div>`
+            :
+            `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">`
+          }
+        </div>
+      `;
+    }
+    html += `</div></div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// Veli lightbox (admin lightbox'ın aynısını kullanır)
+let veliLightboxListe = [];
+let veliLightboxIndex = 0;
+
+window.veliAcGaleriLightbox = function(id) {
+  const idx = veliGaleriVerisi.findIndex(g => g.id === id);
+  if (idx === -1) return;
+  veliLightboxListe = veliGaleriVerisi;
+  veliLightboxIndex = idx;
+  aktifLightboxOge = veliGaleriVerisi[idx];
+
+  document.getElementById("galeriLightbox").classList.add("active");
+  renderVeliLightbox();
+};
+
+function renderVeliLightbox() {
+  const oge = veliLightboxListe[veliLightboxIndex];
+  if (!oge) return;
+  aktifLightboxOge = oge;
+
+  const icerik = document.getElementById("galeriLightboxIcerik");
+  if (oge.dosyaTipi === "video") {
+    icerik.innerHTML = `<iframe src="${oge.bunnyUrl}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
+  } else {
+    icerik.innerHTML = `<img src="${oge.bunnyUrl}" style="max-width:95vw; max-height:85vh; object-fit:contain;">`;
+  }
+}
 
 function hesaplaFinansGecikenler() {
   const bugun = new Date();
