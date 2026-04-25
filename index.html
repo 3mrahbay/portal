@@ -1153,6 +1153,19 @@ html, body {
   border-color: #e11d48;
 }
 
+/* Eğitim - Indigo/Mor (eğitim, akademik) */
+.tab[data-tab="egitim"]:hover {
+  background: #e0e7ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
+.tab[data-tab="egitim"].active {
+  background: #4f46e5;
+  color: white;
+  border-color: #4f46e5;
+}
+
 .tab-panel { display: none; }
 .tab-panel.active { display: block; animation: fadeIn 0.3s; }
 
@@ -4640,6 +4653,358 @@ html, body {
   border-color: #d1d5db;
 }
 
+/* ============ EĞİTİM MATRIX SİSTEMİ ============ */
+
+/* 3 disiplin seçim kutuları */
+.egitim-disiplin-secici {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.egitim-disiplin-kutu {
+  position: relative;
+  background: white;
+  border: 3px solid var(--d-renk, #4f46e5);
+  border-radius: 16px;
+  padding: 28px 24px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: left;
+  font-family: inherit;
+  overflow: hidden;
+}
+.egitim-disiplin-kutu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--d-renk) 0%, transparent 60%);
+  opacity: 0.05;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.egitim-disiplin-kutu:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px -10px var(--d-renk);
+}
+.egitim-disiplin-kutu:hover::before {
+  opacity: 0.12;
+}
+.egitim-disiplin-ikon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+.egitim-disiplin-baslik {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--d-renk);
+  margin-bottom: 6px;
+}
+.egitim-disiplin-aciklama {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 14px;
+}
+.egitim-disiplin-ileri {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-renk);
+  letter-spacing: 0.3px;
+}
+
+/* Matrix container */
+.egitim-matrix-baslik {
+  background: white;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  border-left: 5px solid var(--matrix-renk, #4f46e5);
+}
+.egitim-matrix-baslik h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  margin: 0;
+  font-size: 22px;
+  color: var(--matrix-renk, #1f2937);
+}
+.egitim-matrix-baslik-bilgi {
+  font-size: 13px;
+  color: #6b7280;
+  margin-left: auto;
+}
+
+/* Alan/grup seçici bar */
+.egitim-secici-bar {
+  background: white;
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  border: 1px solid #e5e7eb;
+}
+.egitim-secici-grup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.egitim-secici-grup label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.egitim-secici-grup select {
+  padding: 8px 32px 8px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: white;
+  cursor: pointer;
+  font-family: inherit;
+  min-width: 200px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.egitim-secici-grup select:focus {
+  outline: none;
+  border-color: var(--matrix-renk, #4f46e5);
+}
+.egitim-secici-bilgi {
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: auto;
+}
+.egitim-secici-bilgi strong {
+  color: #1f2937;
+}
+
+/* Matrix tablosu */
+.egitim-matrix-wrap {
+  background: white;
+  border-radius: 12px;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  overflow: auto;
+  max-height: 70vh;
+}
+.egitim-matrix-tablosu {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 12px;
+}
+.egitim-matrix-tablosu thead th {
+  position: sticky;
+  top: 0;
+  background: #f9fafb;
+  z-index: 10;
+  padding: 12px 6px;
+  border-bottom: 2px solid #e5e7eb;
+  vertical-align: bottom;
+}
+.egitim-matrix-tablosu thead th.ders-baslik-h {
+  text-align: left;
+  padding-left: 14px;
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background: #f9fafb;
+  min-width: 220px;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  color: #6b7280;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.egitim-matrix-tablosu thead th.ogrenci-h {
+  min-width: 70px;
+  max-width: 70px;
+}
+.matrix-ogr-foto {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  margin: 0 auto 6px;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.matrix-ogr-foto:hover {
+  transform: scale(1.1);
+}
+.matrix-ogr-ad {
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.egitim-matrix-tablosu tbody td.ders-adi {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  font-weight: 500;
+  color: #1f2937;
+  background: white;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  border-right: 1px solid #e5e7eb;
+}
+.egitim-matrix-tablosu tbody tr:nth-child(even) td.ders-adi { background: #fafbfc; }
+.egitim-matrix-tablosu tbody tr:nth-child(even) td { background-color: #fafbfc; }
+
+.egitim-matrix-hucre {
+  text-align: center;
+  padding: 6px 4px;
+  border-bottom: 1px solid #f3f4f6;
+  border-left: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.egitim-matrix-hucre:hover {
+  background: #fefce8 !important;
+}
+.matrix-stu-buton {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  color: #d1d5db;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.matrix-stu-buton:hover {
+  border-color: #9ca3af;
+  transform: scale(1.08);
+}
+.matrix-stu-buton.aktif-S {
+  background: #16a34a;
+  color: white;
+  border-color: #15803d;
+}
+.matrix-stu-buton.aktif-T {
+  background: #d97706;
+  color: white;
+  border-color: #b45309;
+}
+.matrix-stu-buton.aktif-U {
+  background: #7c3aed;
+  color: white;
+  border-color: #6d28d9;
+}
+
+/* Alt bilgi (S/T/U açıklama) */
+.egitim-matrix-altbilgi {
+  margin-top: 14px;
+  background: white;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+.egitim-matrix-aciklama {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 13px;
+  color: #374151;
+}
+.stu-rozet {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  color: white;
+  font-size: 13px;
+}
+.stu-rozet.stu-S { background: #16a34a; }
+.stu-rozet.stu-T { background: #d97706; }
+.stu-rozet.stu-U { background: #7c3aed; }
+
+/* Öğrenci foto modal/popup */
+.foto-yukle-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.foto-yukle-modal.active { display: flex; }
+.foto-yukle-icerik {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+}
+.foto-yukle-icerik h3 {
+  margin: 0 0 14px 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 18px;
+}
+.foto-yukle-onizleme {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: #f3f4f6 center / cover;
+  margin: 0 auto 16px;
+  border: 3px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  color: #9ca3af;
+}
+.foto-yukle-aksiyon {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 /* ============ DİSİPLİN SEKMELERİ (3 disiplin + yorumlar) ============ */
 .disiplin-sekme-bar {
   display: grid;
@@ -5516,6 +5881,7 @@ html, body {
       <button class="tab active" data-tab="ogrenciler">👥 Öğrenci Ayarları</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Onay Bekleyenler <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans">💼 Finansal Yönetim</button>
+      <button class="tab" data-tab="egitim">📚 Eğitim</button>
       <button class="tab" data-tab="icerik">🌸 Okul-Aile İçerik Yönetimi</button>
     </div>
 
@@ -5799,6 +6165,86 @@ html, body {
           <button class="btn-secondary" id="giderSilBtn" onclick="silGider()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
         </div>
       </div>
+    </div>
+
+    <!-- ============ EĞİTİM TAB (3 disiplin matrix sistemi) ============ -->
+    <div class="tab-panel" id="tab-egitim">
+
+      <!-- HERO -->
+      <div style="background:linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-10%; width:300px; height:300px; background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;">📚 EĞİTİM TAKİP SİSTEMİ</div>
+          <h2 style="font-family:'Fraunces', Georgia, serif; font-weight:600; font-size:30px; margin:8px 0 6px 0;">Sınıf Bazlı Gelişim Takibi</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:780px; margin:0;">3 disiplinde tüm öğrencileri tek bakışta görüp hızlıca işaretleme yapın. Her hücreye tıklayarak <strong>Sunuldu (S) → Tekrar (T) → Uzmanlaştı (U) → Boş</strong> arasında geçiş yapabilirsiniz.</p>
+        </div>
+      </div>
+
+      <!-- 3 DİSİPLİN SEÇİM KUTULARI -->
+      <div class="egitim-disiplin-secici" id="egitimDisiplinSecici">
+        <button type="button" class="egitim-disiplin-kutu" data-disiplin="montessori" onclick="egitimDisiplinAc('montessori')" style="--d-renk:#16a34a;">
+          <div class="egitim-disiplin-ikon">🌱</div>
+          <div class="egitim-disiplin-baslik">Montessori</div>
+          <div class="egitim-disiplin-aciklama">5 alan, 149 ders</div>
+          <div class="egitim-disiplin-ileri">Aç →</div>
+        </button>
+        <button type="button" class="egitim-disiplin-kutu" data-disiplin="ingilizce" onclick="egitimDisiplinAc('ingilizce')" style="--d-renk:#2563eb;">
+          <div class="egitim-disiplin-ikon">🇬🇧</div>
+          <div class="egitim-disiplin-baslik">İngilizce</div>
+          <div class="egitim-disiplin-aciklama">5 alan, 120+ ders</div>
+          <div class="egitim-disiplin-ileri">Aç →</div>
+        </button>
+        <button type="button" class="egitim-disiplin-kutu" data-disiplin="degerler" onclick="egitimDisiplinAc('degerler')" style="--d-renk:#7c3aed;">
+          <div class="egitim-disiplin-ikon">💎</div>
+          <div class="egitim-disiplin-baslik">Değerler Eğitimi</div>
+          <div class="egitim-disiplin-aciklama">6 alan, 100+ ders</div>
+          <div class="egitim-disiplin-ileri">Aç →</div>
+        </button>
+      </div>
+
+      <!-- MATRIX SİSTEMİ (gizli, disiplin seçilince açılır) -->
+      <div id="egitimMatrixContainer" style="display:none;">
+        <!-- Geri & başlık -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+          <button class="rapor-geri-btn" onclick="egitimDisiplinKapat()">← Disiplin Seçimine Dön</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-mini" onclick="mufredatEditorAc()" style="font-size:12px;">⚙️ Müfredat Düzenle</button>
+            <button class="btn-mini" onclick="egitimMatrixYenile()" style="font-size:12px;">🔄 Yenile</button>
+          </div>
+        </div>
+
+        <!-- Disiplin başlığı -->
+        <div id="egitimMatrixBaslik" class="egitim-matrix-baslik"></div>
+
+        <!-- Alan & grup seçici -->
+        <div class="egitim-secici-bar">
+          <div class="egitim-secici-grup">
+            <label>Alan:</label>
+            <select id="egitimAlanSec" onchange="egitimAlanDegisti()"></select>
+          </div>
+          <div class="egitim-secici-grup">
+            <label>Grup:</label>
+            <select id="egitimGrupSec" onchange="egitimGrupDegisti()"></select>
+          </div>
+          <div class="egitim-secici-bilgi" id="egitimSeciciBilgi"></div>
+        </div>
+
+        <!-- MATRIX TABLOSU -->
+        <div class="egitim-matrix-wrap" id="egitimMatrixWrap">
+          <div style="padding:40px; text-align:center; color:#9ca3af;">Yükleniyor...</div>
+        </div>
+
+        <!-- ALT BİLGİ: S/T/U açıklama -->
+        <div class="egitim-matrix-altbilgi">
+          <div class="egitim-matrix-aciklama">
+            <span><span class="stu-rozet stu-S">S</span> Sunuldu — Öğretmen tanıttı</span>
+            <span><span class="stu-rozet stu-T">T</span> Tekrar — Çocuk üzerinde çalışıyor</span>
+            <span><span class="stu-rozet stu-U">U</span> Uzmanlaştı — İçselleştirdi</span>
+            <span style="color:#6b7280; font-size:11px;">💡 Hücreye tıklayarak durumu değiştirin</span>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
@@ -12333,6 +12779,408 @@ async function tumGelisimYukle() {
 }
 
 
+// ============ EĞİTİM SEKMESİ: SINIF BAZLI MATRIX SİSTEMİ ============
+// Ana sayfada, sınıfın tamamını tek tabloda gösteren Compass tarzı görünüm
+
+let egitimAktifDisiplin = null;  // null = disiplin seçim ekranı, "montessori"/"ingilizce"/"degerler" = matrix
+let egitimAktifAlanIdx = 0;      // Hangi alan seçili (Matematik vs.)
+let egitimAktifGrupIdx = 0;      // Hangi grup seçili (1-10 Rakamlar vs.)
+let egitimMatrixVerisi = null;   // { ogrenciler: [...], gelisim: { ogrId: { ... } } }
+
+// Sekme açıldığında çağrılır
+window.egitimSekmesiAcildi = function() {
+  // Disiplin seçim ekranını göster, matrix'i gizle
+  const secici = document.getElementById("egitimDisiplinSecici");
+  const matrix = document.getElementById("egitimMatrixContainer");
+  if (secici) secici.style.display = "grid";
+  if (matrix) matrix.style.display = "none";
+  egitimAktifDisiplin = null;
+};
+
+// Disiplin kutusuna tıklandı
+window.egitimDisiplinAc = async function(disiplin) {
+  egitimAktifDisiplin = disiplin;
+  egitimAktifAlanIdx = 0;
+  egitimAktifGrupIdx = 0;
+
+  // Seçici ekranını gizle, matrix'i göster
+  document.getElementById("egitimDisiplinSecici").style.display = "none";
+  document.getElementById("egitimMatrixContainer").style.display = "block";
+
+  // Müfredat ve tüm öğrencilerin gelişimini yükle
+  document.getElementById("egitimMatrixWrap").innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Müfredat ve öğrenci verileri yükleniyor...</div>`;
+  await mufredatYukle(disiplin);
+  await egitimMatrixVeriYukle();
+
+  // Disiplin başlığı + renk
+  const dInfo = DISIPLINLER.find(x => x.id === disiplin);
+  const baslik = document.getElementById("egitimMatrixBaslik");
+  if (baslik) {
+    baslik.style.setProperty("--matrix-renk", dInfo.renk);
+    const ogrSayisi = egitimMatrixVerisi.ogrenciler.length;
+    baslik.innerHTML = `
+      <div style="font-size:36px;">${dInfo.ikon}</div>
+      <div>
+        <h3 style="color:${dInfo.renk};">${dInfo.ad}</h3>
+        <div style="font-size:13px; color:#6b7280; margin-top:2px;">${dInfo.aciklama}</div>
+      </div>
+      <div class="egitim-matrix-baslik-bilgi"><strong>${ogrSayisi}</strong> aktif öğrenci · <strong>${aktifMufredatlar[disiplin].length}</strong> alan</div>
+    `;
+  }
+  // Container'ın da renk değişkeni
+  document.getElementById("egitimMatrixContainer").style.setProperty("--matrix-renk", dInfo.renk);
+
+  // Alan ve grup seçicilerini doldur
+  egitimAlanSeciciDoldur();
+  egitimGrupSeciciDoldur();
+  egitimMatrixRender();
+};
+
+window.egitimDisiplinKapat = function() {
+  egitimSekmesiAcildi();
+};
+
+window.egitimMatrixYenile = async function() {
+  if (!egitimAktifDisiplin) return;
+  await egitimMatrixVeriYukle();
+  egitimMatrixRender();
+  if (typeof showToast === "function") showToast("✓ Yenilendi");
+};
+
+async function egitimMatrixVeriYukle() {
+  // Aktif öğrencileri filtrele
+  const aktifOgrenciler = ogrenciList.filter(o =>
+    o.durum !== "iptal" && o.durum !== "ayrildi" && o.donem === AKTIF_DONEM
+  ).sort((a,b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "", "tr"));
+
+  // Tüm öğrencilerin gelişim verilerini yükle
+  const tumGelisim = await tumGelisimYukle();
+
+  egitimMatrixVerisi = {
+    ogrenciler: aktifOgrenciler,
+    gelisim: tumGelisim
+  };
+}
+
+function egitimAlanSeciciDoldur() {
+  const sel = document.getElementById("egitimAlanSec");
+  if (!sel) return;
+  const mufredat = aktifMufredatlar[egitimAktifDisiplin];
+  if (!mufredat) return;
+  sel.innerHTML = mufredat.map((alan, i) =>
+    `<option value="${i}" ${i===egitimAktifAlanIdx?"selected":""}>${alan.ikon} ${alan.ad}</option>`
+  ).join("");
+}
+
+function egitimGrupSeciciDoldur() {
+  const sel = document.getElementById("egitimGrupSec");
+  if (!sel) return;
+  const mufredat = aktifMufredatlar[egitimAktifDisiplin];
+  if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
+  const alan = mufredat[egitimAktifAlanIdx];
+  sel.innerHTML = alan.gruplar.map((g, i) =>
+    `<option value="${i}" ${i===egitimAktifGrupIdx?"selected":""}>📁 ${g.ad} (${g.dersler.length} ders)</option>`
+  ).join("");
+}
+
+window.egitimAlanDegisti = function() {
+  const sel = document.getElementById("egitimAlanSec");
+  if (!sel) return;
+  egitimAktifAlanIdx = parseInt(sel.value, 10) || 0;
+  egitimAktifGrupIdx = 0;
+  egitimGrupSeciciDoldur();
+  egitimMatrixRender();
+};
+
+window.egitimGrupDegisti = function() {
+  const sel = document.getElementById("egitimGrupSec");
+  if (!sel) return;
+  egitimAktifGrupIdx = parseInt(sel.value, 10) || 0;
+  egitimMatrixRender();
+};
+
+function egitimMatrixRender() {
+  const wrap = document.getElementById("egitimMatrixWrap");
+  if (!wrap || !egitimMatrixVerisi) return;
+  const mufredat = aktifMufredatlar[egitimAktifDisiplin];
+  if (!mufredat || !mufredat[egitimAktifAlanIdx]) {
+    wrap.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Alan bulunamadı</div>`;
+    return;
+  }
+  const alan = mufredat[egitimAktifAlanIdx];
+  const grup = alan.gruplar[egitimAktifGrupIdx];
+  if (!grup) {
+    wrap.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Grup bulunamadı</div>`;
+    return;
+  }
+
+  // Bilgi alanı güncelle
+  const bilgi = document.getElementById("egitimSeciciBilgi");
+  if (bilgi) {
+    const toplamHucre = grup.dersler.length * egitimMatrixVerisi.ogrenciler.length;
+    let dolu = 0;
+    egitimMatrixVerisi.ogrenciler.forEach(o => {
+      const kayitlar = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
+      grup.dersler.forEach(d => {
+        const k = `${alan.id}__${grup.ad}__${d}`;
+        if (kayitlar[k]) dolu++;
+      });
+    });
+    const yuzde = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
+    bilgi.innerHTML = `<strong>${grup.dersler.length}</strong> ders × <strong>${egitimMatrixVerisi.ogrenciler.length}</strong> öğrenci · <strong>%${yuzde}</strong> dolu`;
+  }
+
+  if (egitimMatrixVerisi.ogrenciler.length === 0) {
+    wrap.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Aktif öğrenci bulunamadı</div>`;
+    return;
+  }
+
+  // Tabloyu oluştur
+  const ogrenciler = egitimMatrixVerisi.ogrenciler;
+
+  let html = `<table class="egitim-matrix-tablosu"><thead><tr>`;
+  html += `<th class="ders-baslik-h">📚 ${escapeHtmlGelisim(grup.ad)}</th>`;
+  ogrenciler.forEach(o => {
+    const ad = o.ogrenciAdSoyad || "—";
+    const adKisa = ad.length > 16 ? ad.substring(0,14)+"…" : ad;
+    const fotoUrl = o.fotoUrl || "";
+    const ilkHarf = ad.charAt(0).toUpperCase();
+    const stil = fotoUrl ? `background-image:url('${escapeHtmlGelisim(fotoUrl)}');` : '';
+    const harfHTML = fotoUrl ? '' : ilkHarf;
+    html += `
+      <th class="ogrenci-h">
+        <div class="matrix-ogr-foto" style="${stil}" onclick="ogrenciFotoYonet('${o.id}')" title="Fotoğraf yönet">${harfHTML}</div>
+        <div class="matrix-ogr-ad" title="${escapeHtmlGelisim(ad)}">${escapeHtmlGelisim(adKisa)}</div>
+      </th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  grup.dersler.forEach(d => {
+    html += `<tr><td class="ders-adi">${escapeHtmlGelisim(d)}</td>`;
+    const grupAdEsc = grup.ad.replace(/'/g,"\\'");
+    const dersEsc   = d.replace(/'/g,"\\'");
+    ogrenciler.forEach(o => {
+      const kayitlar = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
+      const k = `${alan.id}__${grup.ad}__${d}`;
+      const v = kayitlar[k] || "";
+      const sinif = v ? `aktif-${v}` : "";
+      const goster = v || "·";
+      html += `
+        <td class="egitim-matrix-hucre" onclick="matrixHucreTikla('${o.id}','${alan.id}','${grupAdEsc}','${dersEsc}', this)">
+          <button type="button" class="matrix-stu-buton ${sinif}">${goster}</button>
+        </td>`;
+    });
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+
+// Hücre tıklandığında: boş → S → T → U → boş döngüsü
+window.matrixHucreTikla = async function(ogrId, alanId, grupAd, dersAd, hucreEl) {
+  const kayitlar = (egitimMatrixVerisi.gelisim[ogrId] || {})[egitimAktifDisiplin]?.kayitlar || {};
+  const k = `${alanId}__${grupAd}__${dersAd}`;
+  const mevcut = kayitlar[k] || "";
+  // Döngü
+  const sira = ["", "S", "T", "U"];
+  const idx = sira.indexOf(mevcut);
+  const yeni = sira[(idx + 1) % 4];
+
+  // UI'yi anlık güncelle
+  const btn = hucreEl?.querySelector(".matrix-stu-buton");
+  if (btn) {
+    btn.classList.remove("aktif-S","aktif-T","aktif-U");
+    if (yeni) btn.classList.add(`aktif-${yeni}`);
+    btn.textContent = yeni || "·";
+  }
+
+  // Cache'i güncelle
+  if (!egitimMatrixVerisi.gelisim[ogrId]) egitimMatrixVerisi.gelisim[ogrId] = {};
+  if (!egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin]) egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin] = { kayitlar:{}, notlar:[] };
+  if (yeni) egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin].kayitlar[k] = yeni;
+  else delete egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin].kayitlar[k];
+
+  // Firestore'a kaydet
+  const ok = await gelisimDersGuncelle(ogrId, egitimAktifDisiplin, alanId, grupAd, dersAd, yeni || null);
+  if (!ok) {
+    if (typeof showToast === "function") showToast("Kayıt başarısız!", "error");
+    // UI'yi geri al
+    if (btn) {
+      btn.classList.remove("aktif-S","aktif-T","aktif-U");
+      if (mevcut) btn.classList.add(`aktif-${mevcut}`);
+      btn.textContent = mevcut || "·";
+    }
+  } else {
+    // Bilgi alanını güncelle (yüzde değişti)
+    setTimeout(() => {
+      const bilgi = document.getElementById("egitimSeciciBilgi");
+      if (bilgi && egitimMatrixVerisi) {
+        const mufredat = aktifMufredatlar[egitimAktifDisiplin];
+        const alan = mufredat[egitimAktifAlanIdx];
+        const grup = alan.gruplar[egitimAktifGrupIdx];
+        const toplamHucre = grup.dersler.length * egitimMatrixVerisi.ogrenciler.length;
+        let dolu = 0;
+        egitimMatrixVerisi.ogrenciler.forEach(o => {
+          const kayitlar2 = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
+          grup.dersler.forEach(d2 => {
+            const k2 = `${alan.id}__${grup.ad}__${d2}`;
+            if (kayitlar2[k2]) dolu++;
+          });
+        });
+        const yuzde = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
+        bilgi.innerHTML = `<strong>${grup.dersler.length}</strong> ders × <strong>${egitimMatrixVerisi.ogrenciler.length}</strong> öğrenci · <strong>%${yuzde}</strong> dolu`;
+      }
+    }, 50);
+  }
+};
+
+
+// ============ ÖĞRENCİ FOTOĞRAF YÖNETİMİ ============
+let aktifFotoOgrId = null;
+
+window.ogrenciFotoYonet = function(ogrId) {
+  aktifFotoOgrId = ogrId;
+  const ogr = ogrenciList.find(o => o.id === ogrId);
+  if (!ogr) return;
+
+  let modal = document.getElementById("fotoYukleModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "fotoYukleModal";
+    modal.className = "foto-yukle-modal";
+    modal.innerHTML = `
+      <div class="foto-yukle-icerik">
+        <h3 id="fotoYukleBaslik">Öğrenci Fotoğrafı</h3>
+        <div class="foto-yukle-onizleme" id="fotoYukleOnizleme">📷</div>
+        <input type="file" id="fotoYukleInput" accept="image/*" style="display:none;" onchange="fotoSecildi(event)">
+        <div class="foto-yukle-aksiyon">
+          <button class="btn-secondary" onclick="fotoYukleKapat()">İptal</button>
+          <button class="btn-primary" onclick="document.getElementById('fotoYukleInput').click()">📁 Dosya Seç</button>
+          <button class="btn-secondary" id="fotoSilBtn" style="background:#fef2f2; color:#dc2626; border-color:#fecaca;" onclick="fotoSil()">🗑 Fotoğrafı Sil</button>
+        </div>
+        <p style="font-size:11px; color:#6b7280; margin-top:14px;">📌 Maksimum 500 KB. JPG/PNG önerilir. Resim otomatik küçültülecek.</p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const baslikEl = document.getElementById("fotoYukleBaslik");
+  if (baslikEl) baslikEl.textContent = `📷 ${ogr.ogrenciAdSoyad || 'Öğrenci'} - Fotoğraf`;
+
+  const onizleme = document.getElementById("fotoYukleOnizleme");
+  const silBtn = document.getElementById("fotoSilBtn");
+  if (ogr.fotoUrl) {
+    onizleme.style.backgroundImage = `url('${ogr.fotoUrl}')`;
+    onizleme.textContent = "";
+    if (silBtn) silBtn.style.display = "inline-flex";
+  } else {
+    onizleme.style.backgroundImage = "";
+    onizleme.textContent = (ogr.ogrenciAdSoyad || "?").charAt(0).toUpperCase();
+    if (silBtn) silBtn.style.display = "none";
+  }
+
+  modal.classList.add("active");
+};
+
+window.fotoYukleKapat = function() {
+  const modal = document.getElementById("fotoYukleModal");
+  if (modal) modal.classList.remove("active");
+  aktifFotoOgrId = null;
+};
+
+window.fotoSecildi = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!aktifFotoOgrId) { alert("Hata: Öğrenci seçilmedi"); return; }
+  // Dosya tipini kontrol et
+  if (!file.type.startsWith("image/")) {
+    alert("Lütfen bir resim dosyası seçin (JPG, PNG, vb.)");
+    return;
+  }
+
+  // Resmi canvas ile küçült (max 400px, kalite 0.85)
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = async () => {
+      const MAX_SIZE = 400;
+      let w = img.width, h = img.height;
+      if (w > h) {
+        if (w > MAX_SIZE) { h = h * (MAX_SIZE/w); w = MAX_SIZE; }
+      } else {
+        if (h > MAX_SIZE) { w = w * (MAX_SIZE/h); h = MAX_SIZE; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+
+      // Boyut kontrolü
+      const sizeKB = (dataUrl.length * 0.75) / 1024;
+      if (sizeKB > 500) {
+        alert(`Resim hala çok büyük (${Math.round(sizeKB)} KB). Daha küçük bir resim seçin.`);
+        return;
+      }
+
+      // Önce önizlemeyi güncelle
+      const onizleme = document.getElementById("fotoYukleOnizleme");
+      if (onizleme) {
+        onizleme.style.backgroundImage = `url('${dataUrl}')`;
+        onizleme.textContent = "";
+      }
+
+      // Firestore'a kaydet
+      try {
+        await updateDoc(doc(db, "ogrenciler", aktifFotoOgrId), {
+          fotoUrl: dataUrl,
+          fotoGuncelleme: serverTimestamp()
+        });
+        // Cache'i güncelle
+        const ogr = ogrenciList.find(o => o.id === aktifFotoOgrId);
+        if (ogr) ogr.fotoUrl = dataUrl;
+
+        if (typeof showToast === "function") showToast("✓ Fotoğraf yüklendi");
+
+        // Eğitim sekmesindeki matrix'i yenile (eğer açıksa)
+        if (egitimAktifDisiplin) egitimMatrixRender();
+        // Öğrenci listesini yenile
+        if (typeof renderTable === "function") setTimeout(() => renderTable(), 100);
+
+        setTimeout(() => fotoYukleKapat(), 600);
+      } catch(err) {
+        console.error("Foto kayıt hatası:", err);
+        alert("Fotoğraf kaydedilemedi: " + err.message);
+      }
+    };
+    img.onerror = () => alert("Resim yüklenemedi. Dosya bozuk olabilir.");
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.fotoSil = async function() {
+  if (!aktifFotoOgrId) return;
+  if (!confirm("Bu öğrencinin fotoğrafını silmek istediğinizden emin misiniz?")) return;
+  try {
+    await updateDoc(doc(db, "ogrenciler", aktifFotoOgrId), {
+      fotoUrl: null,
+      fotoGuncelleme: serverTimestamp()
+    });
+    const ogr = ogrenciList.find(o => o.id === aktifFotoOgrId);
+    if (ogr) ogr.fotoUrl = null;
+    if (typeof showToast === "function") showToast("✓ Fotoğraf silindi");
+    if (egitimAktifDisiplin) egitimMatrixRender();
+    if (typeof renderTable === "function") setTimeout(() => renderTable(), 100);
+    fotoYukleKapat();
+  } catch(err) {
+    console.error("Foto silme hatası:", err);
+    alert("Fotoğraf silinemedi: " + err.message);
+  }
+};
+
+
 // ============ ADMIN MODAL: EĞİTİM SEKMESİ RENDER (3 DİSİPLİN) ============
 let aktifGelisimVerisi = null;       // Tüm öğrencinin tüm disiplin verisi
 let aktifSeciliDisiplin = "montessori"; // Hangi disiplin sekmesi açık
@@ -18181,6 +19029,13 @@ document.querySelectorAll(".tab").forEach(tab => {
         if (typeof icerikSwitchAlt === "function") {
           icerikSwitchAlt(aktifIcerikAlt || "duyurular");
         }
+      }, 50);
+    }
+
+    // Eğitim sekmesine geçildiyse disiplin seçicide göster
+    if (tab.dataset.tab === "egitim") {
+      setTimeout(() => {
+        if (typeof egitimSekmesiAcildi === "function") egitimSekmesiAcildi();
       }, 50);
     }
   });
