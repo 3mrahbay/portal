@@ -4653,6 +4653,596 @@ html, body {
   border-color: #d1d5db;
 }
 
+/* ============ MODERN MOBİL-İLK VELİ DASHBOARD ============ */
+
+/* Hero başlık (öğrenci kartı) */
+.veli-dash-hero {
+  background: linear-gradient(135deg, #2d6a4f 0%, #16a34a 100%);
+  border-radius: 20px;
+  padding: 22px 24px;
+  margin-bottom: 14px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+.veli-dash-hero::before {
+  content: '';
+  position: absolute;
+  top: -40%; right: -10%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.veli-dash-hero-icerik {
+  position: relative; z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.veli-dash-hero-foto {
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  background-size: cover;
+  background-position: center;
+  border: 3px solid rgba(255,255,255,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+.veli-dash-hero-bilgi {
+  flex: 1;
+  min-width: 0;
+}
+.veli-dash-hero-adi {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+.veli-dash-hero-sinif {
+  font-size: 13px;
+  opacity: 0.95;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.veli-dash-hero-sinif span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Dashboard kart yapısı */
+.dash-karti {
+  background: white;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  border: 1px solid #f3f4f6;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.dash-karti-baslik {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+.dash-karti-saglar {
+  margin-left: auto;
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* 2 sütunlu satır (Bugün + Yemek) */
+.dash-iki-sutun {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 480px) {
+  .dash-iki-sutun {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Bugün durumu kartı (geldi/gelmedi/hasta/izinli) */
+.dash-bugun {
+  text-align: center;
+}
+.dash-bugun-tarih {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-bottom: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.dash-bugun-rozet {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.dash-bugun-rozet.geldi { background: #dcfce7; color: #166534; }
+.dash-bugun-rozet.gelmedi { background: #fee2e2; color: #991b1b; }
+.dash-bugun-rozet.hasta { background: #fef3c7; color: #92400e; }
+.dash-bugun-rozet.izinli { background: #dbeafe; color: #1e40af; }
+.dash-bugun-rozet.bilgiyok { background: #f3f4f6; color: #6b7280; }
+.dash-bugun-not {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* Yemek kartı */
+.dash-yemek-icerik {
+  font-size: 13px;
+  color: #1f2937;
+  line-height: 1.6;
+}
+.dash-yemek-ogun {
+  margin-bottom: 8px;
+}
+.dash-yemek-ogun:last-child { margin-bottom: 0; }
+.dash-yemek-ogun-etiket {
+  font-size: 10px;
+  font-weight: 700;
+  background: #fff7ed;
+  color: #9a3412;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  margin-bottom: 3px;
+}
+.dash-yemek-ogun-icerik {
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.5;
+}
+.dash-yemek-bos {
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+  font-style: italic;
+  padding: 12px 0;
+}
+
+/* Eğitim ilerleme kartı */
+.dash-egitim-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dash-egitim-satir {
+  cursor: pointer;
+  transition: background 0.15s;
+  padding: 10px 12px;
+  margin: 0 -12px;
+  border-radius: 10px;
+}
+.dash-egitim-satir:hover {
+  background: #f9fafb;
+}
+.dash-egitim-satir-ust {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.dash-egitim-ikon {
+  font-size: 22px;
+  line-height: 1;
+}
+.dash-egitim-ad {
+  flex: 1;
+  font-weight: 600;
+  font-size: 13px;
+  color: #1f2937;
+}
+.dash-egitim-yuzde {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 16px;
+}
+.dash-egitim-bar {
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.dash-egitim-bar > div {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s;
+}
+.dash-egitim-link-ipucu {
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* Ödeme kartı */
+.dash-odeme {
+  background: linear-gradient(135deg, #fafbfc 0%, white 100%);
+  border-left: 4px solid #16a34a;
+}
+.dash-odeme.gecikmis {
+  border-left-color: #dc2626;
+  background: linear-gradient(135deg, #fef2f2 0%, white 100%);
+}
+.dash-odeme-aciklama {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+.dash-odeme-tutar {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.dash-odeme-tutar small {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 400;
+}
+.dash-odeme-bilgi {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #6b7280;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.dash-odeme-bilgi strong { color: #1f2937; }
+.dash-odeme-bilgi.gecikmis-bilgi strong { color: #b91c1c; }
+.dash-odeme-aksiyon {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dash-odeme-buton {
+  flex: 1 1 130px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.dash-odeme-buton.primary {
+  background: linear-gradient(135deg, #2d6a4f 0%, #16a34a 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+}
+.dash-odeme-buton.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.35);
+}
+.dash-odeme-buton.ikincil {
+  background: #f3f4f6;
+  color: #374151;
+}
+.dash-odeme-buton.ikincil:hover {
+  background: #e5e7eb;
+}
+.dash-odeme-genel-bar {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+.dash-odeme-genel-bar-bilgi {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+.dash-odeme-genel-bar-bar {
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.dash-odeme-genel-bar-bar > div {
+  height: 100%;
+  background: linear-gradient(90deg, #16a34a 0%, #22c55e 100%);
+  border-radius: 99px;
+  transition: width 0.6s;
+}
+
+/* Öğretmen yorumları kartı */
+.dash-yorum-onizleme {
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.dash-yorum-onizleme:last-child { margin-bottom: 0; }
+.dash-yorum-onizleme-ust {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #92400e;
+  font-weight: 600;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dash-yorum-onizleme-metin {
+  font-size: 12px;
+  color: #1f2937;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Hızlı işlemler */
+.dash-hizli-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+@media (max-width: 480px) {
+  .dash-hizli-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.dash-hizli-btn {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+}
+.dash-hizli-btn:hover {
+  background: #f0fdf4;
+  border-color: #86efac;
+  transform: translateY(-2px);
+}
+.dash-hizli-btn-ikon {
+  font-size: 26px;
+  line-height: 1;
+}
+.dash-hizli-btn-yazi {
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Eğitim popup (alan tıklanınca) */
+.dash-egitim-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 9999;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+@media (min-width: 600px) {
+  .dash-egitim-popup {
+    align-items: center;
+    padding: 20px;
+  }
+}
+.dash-egitim-popup.active { display: flex; animation: popupFadeIn 0.2s; }
+@keyframes popupFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.dash-egitim-popup-icerik {
+  background: white;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 540px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: popupSlideUp 0.25s;
+}
+@media (min-width: 600px) {
+  .dash-egitim-popup-icerik { border-radius: 20px; }
+}
+@keyframes popupSlideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.dash-popup-baslik {
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+.dash-popup-baslik h3 {
+  margin: 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 19px;
+  color: #1f2937;
+}
+.dash-popup-baslik p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+.dash-popup-kapat {
+  background: #f3f4f6;
+  border: none;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+.dash-popup-kapat:hover { background: #e5e7eb; }
+
+.dash-popup-govde {
+  padding: 16px 22px 22px;
+}
+.dash-popup-bolum {
+  margin-bottom: 18px;
+}
+.dash-popup-bolum:last-child { margin-bottom: 0; }
+.dash-popup-bolum-baslik {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 10px;
+}
+.dash-popup-ders {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fafafa;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.dash-popup-ders-rozet {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: white;
+  flex-shrink: 0;
+}
+.dash-popup-ders-rozet.S { background: #16a34a; }
+.dash-popup-ders-rozet.T { background: #d97706; }
+.dash-popup-ders-rozet.U { background: #7c3aed; }
+.dash-popup-ders-icerik { flex: 1; min-width: 0; }
+.dash-popup-ders-ad {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+.dash-popup-ders-grup {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.dash-popup-istatistik {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.dash-popup-stat {
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.dash-popup-stat-deger {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+.dash-popup-stat-etiket {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 4px;
+}
+.dash-popup-bos {
+  text-align: center;
+  padding: 20px;
+  font-size: 13px;
+  color: #9ca3af;
+  font-style: italic;
+}
+.dash-popup-detay-link {
+  display: block;
+  text-align: center;
+  padding: 12px;
+  background: linear-gradient(135deg, #2d6a4f 0%, #16a34a 100%);
+  color: white;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 16px;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  font-family: inherit;
+}
+.dash-popup-detay-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+}
+
+/* Mobile optimizasyonları */
+@media (max-width: 600px) {
+  .veli-dash-hero {
+    padding: 18px 18px;
+    border-radius: 16px;
+  }
+  .veli-dash-hero-foto { width: 64px; height: 64px; font-size: 24px; }
+  .veli-dash-hero-adi { font-size: 19px; }
+  .dash-karti { padding: 14px 16px; border-radius: 14px; }
+  .dash-odeme-tutar { font-size: 24px; }
+}
+
 /* ============ PROFESYONEL VELİ RAPOR SAYFASI ============ */
 
 .rapor-aksiyon-bar {
@@ -7592,28 +8182,9 @@ html, body {
 
       <!-- DASHBOARD SEKMESİ -->
       <div class="veli-tab-panel active" id="veliPanel-dashboard">
-        <div class="veli-stats-row" id="veliDashStats">
-          <!-- JS ile doldurulur -->
-        </div>
-
-        <div class="veli-card-grid-2">
-          <div class="veli-card">
-            <div class="veli-card-title">📅 Sıradaki Ödeme</div>
-            <div id="veliDashSonraki">Bilgi yok</div>
-          </div>
-          <div class="veli-card">
-            <div class="veli-card-title">📢 Son Duyurular</div>
-            <div style="font-size:13px; color:var(--gray-500);">Henüz duyuru yok</div>
-          </div>
-        </div>
-
-        <div class="veli-card">
-          <div class="veli-card-title">⚡ Hızlı İşlemler</div>
-          <div class="veli-btn-row">
-            <button class="veli-btn-primary" onclick="veliSwitchTab('odemeler')">💳 Ödeme Bildir</button>
-            <button class="veli-btn-secondary" onclick="veliSwitchTab('sozlesme')">📄 Sözleşmeyi Aç</button>
-            <button class="veli-btn-secondary" onclick="veliSwitchTab('ogrenci')">👤 Bilgilerimi Güncelle</button>
-          </div>
+        <!-- TÜM DASHBOARD JS ile dolduruluyor -->
+        <div id="veliDashContent">
+          <div style="padding:40px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>
         </div>
       </div>
 
@@ -10047,20 +10618,421 @@ function veliRenderTab(tabName) {
   // Diğer sekmeler placeholder — henüz render gerekmez
 }
 
-function veliRenderDashboard() {
-  const statsEl = document.getElementById("veliDashStats");
-  const sonrakiEl = document.getElementById("veliDashSonraki");
-  if (!statsEl) return;
+async function veliRenderDashboard() {
+  const el = document.getElementById("veliDashContent");
+  if (!el) return;
+
+  if (!veliAktifOgrenci) {
+    el.innerHTML = `<div style="padding:40px; text-align:center; color:var(--gray-500); font-size:13px;">Öğrenci bilgisi yükleniyor...</div>`;
+    return;
+  }
+
+  // Önce iskeleti çiz, sonra arka planda verileri yükle
+  const ogr = veliAktifOgrenci;
+  const ad = ogr.ogrenciAdSoyad || "Öğrenci";
+  const sinif = ogr.sinif || "—";
+  const fotoUrl = ogr.fotoUrl || "";
+  const ilkHarf = ad.charAt(0).toUpperCase();
+
+  // Bugünün tarih bilgileri
+  const bugun = new Date();
+  const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+  const bugunGuzel = bugun.toLocaleDateString("tr-TR", { day:"numeric", month:"long" });
+  const gunIsmi = bugun.toLocaleDateString("tr-TR", { weekday:"long" });
+
+  el.innerHTML = `
+    <!-- HERO -->
+    <div class="veli-dash-hero">
+      <div class="veli-dash-hero-icerik">
+        <div class="veli-dash-hero-foto" style="${fotoUrl ? `background-image:url('${fotoUrl}');` : ''}">${fotoUrl ? '' : ilkHarf}</div>
+        <div class="veli-dash-hero-bilgi">
+          <h2 class="veli-dash-hero-adi">${escapeHtmlGelisim(ad)}</h2>
+          <div class="veli-dash-hero-sinif">
+            <span>🌸 ${escapeHtmlGelisim(sinif)}</span>
+            <span>·</span>
+            <span>📅 ${gunIsmi}, ${bugunGuzel}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 SÜTUN: BUGÜN + YEMEK -->
+    <div class="dash-iki-sutun">
+      <div class="dash-karti dash-bugun" id="dashBugunKart">
+        <div class="dash-karti-baslik">
+          <span>📍</span>
+          <span>Bugün</span>
+        </div>
+        <div id="dashBugunIcerik">
+          <div style="padding:16px 0; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+        </div>
+      </div>
+      <div class="dash-karti">
+        <div class="dash-karti-baslik">
+          <span>🍽</span>
+          <span>Bugünün Yemeği</span>
+        </div>
+        <div id="dashYemekIcerik">
+          <div style="padding:8px 0; color:#9ca3af; font-size:12px;">Yükleniyor...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EĞİTİM İLERLEMESİ -->
+    <div class="dash-karti">
+      <div class="dash-karti-baslik">
+        <span>📚</span>
+        <span>Eğitim İlerlemesi</span>
+        <span class="dash-karti-saglar">Detay için tıklayın</span>
+      </div>
+      <div id="dashEgitimIcerik">
+        <div style="padding:8px 0; color:#9ca3af; font-size:12px;">Yükleniyor...</div>
+      </div>
+    </div>
+
+    <!-- ÖDEME -->
+    <div id="dashOdemeKonteyner">
+      <!-- Ödeme kartı buraya gelir -->
+    </div>
+
+    <!-- ÖĞRETMEN GÖZLEMLERİ -->
+    <div id="dashYorumlarKonteyner">
+      <!-- Eğer yorum varsa burada görünür -->
+    </div>
+
+    <!-- HIZLI İŞLEMLER -->
+    <div class="dash-karti">
+      <div class="dash-karti-baslik">
+        <span>⚡</span>
+        <span>Hızlı İşlemler</span>
+      </div>
+      <div class="dash-hizli-grid">
+        <button class="dash-hizli-btn" onclick="veliSwitchTab('galeri')">
+          <span class="dash-hizli-btn-ikon">📸</span>
+          <span class="dash-hizli-btn-yazi">Galeri</span>
+        </button>
+        <button class="dash-hizli-btn" onclick="veliSwitchTab('raporlar')">
+          <span class="dash-hizli-btn-ikon">📊</span>
+          <span class="dash-hizli-btn-yazi">Raporlar</span>
+        </button>
+        <button class="dash-hizli-btn" onclick="veliSwitchTab('ogrenci')">
+          <span class="dash-hizli-btn-ikon">👤</span>
+          <span class="dash-hizli-btn-yazi">Bilgilerim</span>
+        </button>
+        <button class="dash-hizli-btn" onclick="veliSwitchTab('sozlesme')">
+          <span class="dash-hizli-btn-ikon">📄</span>
+          <span class="dash-hizli-btn-yazi">Sözleşme</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Şimdi arka planda 4 veriyi paralel olarak yükle
+  Promise.all([
+    dashBugunDoldur(bugunStr, ogr.id),
+    dashYemekDoldur(bugun),
+    dashEgitimDoldur(ogr.id),
+    dashOdemeDoldur(),
+    dashYorumlariDoldur(ogr.id)
+  ]).catch(err => console.error("Dashboard yüklerken hata:", err));
+}
+
+// ============ DASHBOARD: BUGÜN DURUMU ============
+async function dashBugunDoldur(bugunStr, ogrId) {
+  const el = document.getElementById("dashBugunIcerik");
+  if (!el) return;
+  try {
+    const snap = await getDoc(doc(db, "devamsizlik", bugunStr));
+    let durum = null, not = "";
+    if (snap.exists()) {
+      const d = snap.data();
+      const k = d.kayitlar?.[ogrId];
+      if (k) {
+        durum = (k.durum || "").toLowerCase();
+        not = k.not || "";
+      }
+    }
+
+    let rozetSinif = "bilgiyok";
+    let rozetMetin = "📋 Henüz bilgi yok";
+    if (durum === "geldi" || durum === "var") {
+      rozetSinif = "geldi";
+      rozetMetin = "✅ Bugün okuldaydı";
+    } else if (durum === "gelmedi" || durum === "yok" || durum === "devamsiz") {
+      rozetSinif = "gelmedi";
+      rozetMetin = "❌ Bugün gelmedi";
+    } else if (durum === "hasta") {
+      rozetSinif = "hasta";
+      rozetMetin = "🤒 Hasta";
+    } else if (durum === "izinli" || durum === "izin") {
+      rozetSinif = "izinli";
+      rozetMetin = "🌴 İzinli";
+    }
+
+    el.innerHTML = `
+      <div class="dash-bugun-rozet ${rozetSinif}">${rozetMetin}</div>
+      ${not ? `<div class="dash-bugun-not">${escapeHtmlGelisim(not)}</div>` : ''}
+    `;
+  } catch(e) {
+    console.warn("Devamsızlık yüklenemedi:", e);
+    el.innerHTML = `<div class="dash-bugun-rozet bilgiyok">📋 Bilgi yok</div>`;
+  }
+}
+
+// ============ DASHBOARD: BUGÜNÜN YEMEĞİ ============
+async function dashYemekDoldur(bugun) {
+  const el = document.getElementById("dashYemekIcerik");
+  if (!el) return;
+  try {
+    // Hafta kodu hesapla (yyyy-Www formatı): bu haftanın pazartesi'sini bul
+    const pazartesi = new Date(bugun);
+    const gunNo = pazartesi.getDay(); // 0=Paz, 1=Pzt, ...
+    const fark = gunNo === 0 ? -6 : 1 - gunNo;
+    pazartesi.setDate(pazartesi.getDate() + fark);
+    const haftaKodu = `${pazartesi.getFullYear()}-W${getWeekNumber(pazartesi)}`;
+
+    // Bu haftanın menüsünü Firestore'dan çek
+    const snap = await getDoc(doc(db, "yemekMenuleri", haftaKodu));
+    if (!snap.exists()) {
+      el.innerHTML = `<div class="dash-yemek-bos">Bu haftanın menüsü henüz girilmemiş.</div>`;
+      return;
+    }
+    const veri = snap.data();
+    // Hangi gün?
+    const gunNoBugun = bugun.getDay(); // 0-6
+    const gunAnahtarlari = ["pazar","pazartesi","sali","carsamba","persembe","cuma","cumartesi"];
+    const gunKey = gunAnahtarlari[gunNoBugun];
+
+    // Hafta sonu mu?
+    if (gunNoBugun === 0 || gunNoBugun === 6) {
+      el.innerHTML = `<div class="dash-yemek-bos">Hafta sonu, okul kapalı 🌸</div>`;
+      return;
+    }
+
+    const gunVerisi = veri.gunler?.[gunKey] || veri[gunKey] || {};
+    const ogunler = [];
+
+    // Birkaç olası anahtar dene (kahvalti/breakfast/sabah, oglen/lunch, ikindi/snack)
+    const ogunMap = [
+      { etiket: "Kahvaltı", anahtarlar: ["kahvalti","kahvaltı","sabah","breakfast"] },
+      { etiket: "Öğlen",    anahtarlar: ["oglen","öğlen","ogle","öğle","lunch","anaogun"] },
+      { etiket: "İkindi",   anahtarlar: ["ikindi","atistirmalik","atıştırmalık","snack"] }
+    ];
+    ogunMap.forEach(o => {
+      let icerik = "";
+      for (const a of o.anahtarlar) {
+        if (gunVerisi[a]) { icerik = gunVerisi[a]; break; }
+      }
+      if (icerik) ogunler.push({ etiket: o.etiket, icerik });
+    });
+
+    if (ogunler.length === 0) {
+      el.innerHTML = `<div class="dash-yemek-bos">Bugünün menüsü girilmemiş.</div>`;
+      return;
+    }
+
+    el.innerHTML = `<div class="dash-yemek-icerik">${ogunler.map(o => `
+      <div class="dash-yemek-ogun">
+        <div class="dash-yemek-ogun-etiket">${o.etiket}</div>
+        <div class="dash-yemek-ogun-icerik">${escapeHtmlGelisim(o.icerik)}</div>
+      </div>
+    `).join("")}</div>`;
+  } catch(e) {
+    console.warn("Yemek yüklenemedi:", e);
+    el.innerHTML = `<div class="dash-yemek-bos">Yemek bilgisi şu an yüklenemiyor.</div>`;
+  }
+}
+
+// Yardımcı: ISO hafta numarası
+function getWeekNumber(d) {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const wk = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return String(wk).padStart(2, "0");
+}
+
+// ============ DASHBOARD: EĞİTİM İLERLEMESİ ============
+let dashEgitimGelisimVerisi = null;
+
+async function dashEgitimDoldur(ogrId) {
+  const el = document.getElementById("dashEgitimIcerik");
+  if (!el) return;
+  try {
+    await tumMufredatlariYukle();
+    dashEgitimGelisimVerisi = await gelisimYukle(ogrId);
+    const v = dashEgitimGelisimVerisi;
+
+    let html = `<div class="dash-egitim-liste">`;
+    DISIPLINLER.forEach(d => {
+      const veri = v[d.id] || { kayitlar:{} };
+      const genel = disiplinGenelIlerleme(veri.kayitlar, aktifMufredatlar[d.id]);
+      const aktif = genel.calisilan > 0;
+      html += `
+        <div class="dash-egitim-satir" onclick="dashEgitimPopupAc('${d.id}')">
+          <div class="dash-egitim-satir-ust">
+            <span class="dash-egitim-ikon">${d.ikon}</span>
+            <span class="dash-egitim-ad">${d.ad}</span>
+            <span class="dash-egitim-yuzde" style="color:${d.renk};">%${genel.yuzde}</span>
+          </div>
+          <div class="dash-egitim-bar"><div style="width:${genel.yuzde}%; background:${d.renk};"></div></div>
+        </div>`;
+    });
+    html += `</div>`;
+    el.innerHTML = html;
+  } catch(e) {
+    console.warn("Eğitim ilerlemesi yüklenemedi:", e);
+    el.innerHTML = `<div style="padding:8px; color:#9ca3af; font-size:12px;">Eğitim verileri yüklenemedi.</div>`;
+  }
+}
+
+// Eğitim popup aç — tıklanan disiplinin son işlenen derslerini gösterir
+window.dashEgitimPopupAc = function(disiplin) {
+  if (!dashEgitimGelisimVerisi || !aktifMufredatlar[disiplin]) {
+    alert("Veriler henüz hazır değil. Lütfen biraz bekleyin.");
+    return;
+  }
+  const dInfo = DISIPLINLER.find(x => x.id === disiplin);
+  const veri = dashEgitimGelisimVerisi[disiplin] || { kayitlar:{} };
+  const mufredat = aktifMufredatlar[disiplin];
+  const genel = disiplinGenelIlerleme(veri.kayitlar, mufredat);
+
+  // İşaretli dersleri topla
+  const isaretliDersler = [];
+  mufredat.forEach(alan => {
+    alan.gruplar.forEach(g => {
+      g.dersler.forEach(d => {
+        const k = `${alan.id}__${g.ad}__${d}`;
+        if (veri.kayitlar[k]) {
+          isaretliDersler.push({
+            durum: veri.kayitlar[k],
+            alanAd: alan.ad,
+            alanIkon: alan.ikon,
+            grupAd: g.ad,
+            dersAd: d
+          });
+        }
+      });
+    });
+  });
+
+  // Modal HTML
+  let modal = document.getElementById("dashEgitimPopupModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "dashEgitimPopupModal";
+    modal.className = "dash-egitim-popup";
+    modal.onclick = (e) => { if (e.target === modal) dashEgitimPopupKapat(); };
+    document.body.appendChild(modal);
+  }
+
+  // Uzmanlaştı / Tekrar / Sunuldu sayıları
+  const uzmanlasti = isaretliDersler.filter(x => x.durum === "U");
+  const tekrar = isaretliDersler.filter(x => x.durum === "T");
+  const sunuldu = isaretliDersler.filter(x => x.durum === "S");
+
+  // En son işaretlenen 6 ders (uzmanlaştı önce gösterilir, sonra tekrar, sonra sunuldu)
+  const sonDersler = [...uzmanlasti, ...tekrar, ...sunuldu].slice(0, 8);
+
+  const stuAciklama = {
+    S: "Öğretmen tanıttı",
+    T: "Üzerinde çalışıyor",
+    U: "İçselleştirdi"
+  };
+
+  modal.innerHTML = `
+    <div class="dash-egitim-popup-icerik">
+      <div class="dash-popup-baslik">
+        <div>
+          <h3>${dInfo.ikon} ${escapeHtmlGelisim(dInfo.ad)}</h3>
+          <p>${escapeHtmlGelisim(dInfo.aciklama)}</p>
+        </div>
+        <button class="dash-popup-kapat" onclick="dashEgitimPopupKapat()">×</button>
+      </div>
+      <div class="dash-popup-govde">
+        <!-- İSTATİSTİK -->
+        <div class="dash-popup-istatistik">
+          <div class="dash-popup-stat">
+            <div class="dash-popup-stat-deger" style="color:#16a34a;">${sunuldu.length}</div>
+            <div class="dash-popup-stat-etiket">Sunuldu</div>
+          </div>
+          <div class="dash-popup-stat">
+            <div class="dash-popup-stat-deger" style="color:#d97706;">${tekrar.length}</div>
+            <div class="dash-popup-stat-etiket">Tekrar</div>
+          </div>
+          <div class="dash-popup-stat">
+            <div class="dash-popup-stat-deger" style="color:#7c3aed;">${uzmanlasti.length}</div>
+            <div class="dash-popup-stat-etiket">Uzmanlaştı</div>
+          </div>
+        </div>
+
+        <!-- GENEL İLERLEME -->
+        <div style="background:#fafafa; border-radius:10px; padding:14px; margin-bottom:18px; text-align:center;">
+          <div style="font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:6px;">Genel İlerleme</div>
+          <div style="font-family:'Fraunces', Georgia, serif; font-size:32px; font-weight:700; color:${dInfo.renk}; line-height:1;">%${genel.yuzde}</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:6px;">${genel.calisilan} / ${genel.toplam} ders üzerinde çalışıldı</div>
+        </div>
+
+        ${sonDersler.length > 0 ? `
+          <div class="dash-popup-bolum">
+            <div class="dash-popup-bolum-baslik">📚 Son İşlenen Dersler</div>
+            ${sonDersler.map(d => `
+              <div class="dash-popup-ders">
+                <div class="dash-popup-ders-rozet ${d.durum}">${d.durum}</div>
+                <div class="dash-popup-ders-icerik">
+                  <div class="dash-popup-ders-ad">${escapeHtmlGelisim(d.dersAd)}</div>
+                  <div class="dash-popup-ders-grup">${d.alanIkon} ${escapeHtmlGelisim(d.alanAd)} · ${escapeHtmlGelisim(d.grupAd)}</div>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        ` : `
+          <div class="dash-popup-bos">
+            <div style="font-size:36px; margin-bottom:8px;">🌱</div>
+            <div>Henüz bu alanda işaretlenmiş ders yok.<br>Öğretmen yakında eklemeye başlayacak.</div>
+          </div>
+        `}
+
+        <!-- S/T/U Açıklama -->
+        <div style="background:#f9fafb; border-radius:10px; padding:12px 14px; margin-top:16px; font-size:11px; color:#6b7280; line-height:1.6;">
+          <strong style="color:#374151;">Ne anlama geliyor?</strong><br>
+          🌱 <strong>Sunuldu (S):</strong> ${stuAciklama.S}<br>
+          🌿 <strong>Tekrar (T):</strong> ${stuAciklama.T}<br>
+          🌳 <strong>Uzmanlaştı (U):</strong> ${stuAciklama.U}
+        </div>
+
+        <!-- Detaylı rapor butonu -->
+        <button class="dash-popup-detay-link" onclick="dashEgitimPopupKapat(); veliSwitchTab('raporlar'); setTimeout(()=>veliRaporDisiplinAc('${disiplin}'), 200);">
+          📊 Detaylı Raporu Görüntüle →
+        </button>
+      </div>
+    </div>
+  `;
+  modal.classList.add("active");
+};
+
+window.dashEgitimPopupKapat = function() {
+  const modal = document.getElementById("dashEgitimPopupModal");
+  if (modal) modal.classList.remove("active");
+};
+
+// ============ DASHBOARD: ÖDEME ============
+function dashOdemeDoldur() {
+  const el = document.getElementById("dashOdemeKonteyner");
+  if (!el) return;
 
   if (!veliAktifDonemVeri) {
-    statsEl.innerHTML = `<div class="veli-stat-card"><div class="veli-stat-label">Bilgi yükleniyor...</div></div>`;
+    el.innerHTML = `
+      <div class="dash-karti">
+        <div class="dash-karti-baslik"><span>💳</span><span>Ödeme Durumu</span></div>
+        <div style="padding:12px 0; color:#9ca3af; font-size:13px; text-align:center;">Henüz dönem verisi bulunmuyor.</div>
+      </div>`;
     return;
   }
 
   const v = veliAktifDonemVeri;
   const aylikOdemeler = v.aylikOdemeler || {};
   const aidatBeklenen = v.aidatAyarlari?.toplamAidatBeklenen || 0;
-
   let toplamOdenen = 0;
   for (const k in aylikOdemeler) {
     toplamOdenen += parseFloat(aylikOdemeler[k].odenenTutar) || 0;
@@ -10068,58 +11040,132 @@ function veliRenderDashboard() {
   const kalan = Math.max(0, aidatBeklenen - toplamOdenen);
   const yuzde = aidatBeklenen > 0 ? Math.round((toplamOdenen / aidatBeklenen) * 100) : 0;
 
-  statsEl.innerHTML = `
-    <div class="veli-stat-card green">
-      <div class="veli-stat-label">TOPLAM ÖDENEN</div>
-      <div class="veli-stat-value">${Math.round(toplamOdenen).toLocaleString("tr-TR")} TL</div>
-    </div>
-    <div class="veli-stat-card yellow">
-      <div class="veli-stat-label">KALAN</div>
-      <div class="veli-stat-value">${Math.round(kalan).toLocaleString("tr-TR")} TL</div>
-    </div>
-    <div class="veli-stat-card blue">
-      <div class="veli-stat-label">TAMAMLANMA</div>
-      <div class="veli-stat-value">%${yuzde}</div>
-    </div>
-  `;
-
   // Sıradaki ödeme
-  if (sonrakiEl) {
-    const baslangic = v.aidatAyarlari?.baslangicAyi;
-    const taksit = v.aidatAyarlari?.gercekAySayisi || v.aidatAyarlari?.taksitSayisi || 12;
-    const aidat = v.aidatAyarlari?.aylikAidat || 0;
+  let sonraki = null;
+  let gecikti = false;
+  let gunFark = 0;
+  const baslangic = v.aidatAyarlari?.baslangicAyi;
+  const taksit = v.aidatAyarlari?.gercekAySayisi || v.aidatAyarlari?.taksitSayisi || 12;
+  const aidat = v.aidatAyarlari?.aylikAidat || 0;
 
-    if (baslangic && aidat > 0 && !v.aidatAyarlari?.pesinOdeme) {
-      const ayListesi = getAyListesi(baslangic, taksit);
-      let sonraki = null;
-      for (const ay of ayListesi) {
-        const od = aylikOdemeler[ay.ayKod];
-        if (!od || !od.odendi) {
-          sonraki = ay;
-          break;
-        }
+  if (baslangic && aidat > 0 && !v.aidatAyarlari?.pesinOdeme && typeof getAyListesi === "function") {
+    const ayListesi = getAyListesi(baslangic, taksit);
+    for (const ay of ayListesi) {
+      const od = aylikOdemeler[ay.ayKod];
+      if (!od || !od.odendi) {
+        sonraki = ay;
+        break;
       }
-
-      if (sonraki) {
-        const ayIlk = new Date(sonraki.yil, sonraki.ay - 1, 1);
-        const bugun = new Date();
-        const gecikti = ayIlk < bugun;
-        sonrakiEl.innerHTML = `
-          <div style="font-size:15px; font-weight:500;">${sonraki.tam}</div>
-          <div style="font-size:13px; ${gecikti ? 'color:#b91c1c;' : 'color:var(--gray-600);'} margin-top:4px;">
-            ${aidat.toLocaleString("tr-TR")} TL ${gecikti ? '· Gecikmiş' : ''}
-          </div>
-        `;
-      } else {
-        sonrakiEl.innerHTML = `<div style="color:#15803d; font-size:14px;">✓ Tüm taksitler ödendi</div>`;
-      }
-    } else if (v.aidatAyarlari?.pesinOdeme) {
-      sonrakiEl.innerHTML = `<div style="color:#15803d; font-size:14px;">💎 Peşin ödeme yapıldı</div>`;
-    } else {
-      sonrakiEl.innerHTML = `<div style="font-size:13px; color:var(--gray-500);">Henüz ödeme planı oluşturulmamış</div>`;
+    }
+    if (sonraki) {
+      const ayIlk = new Date(sonraki.yil, sonraki.ay - 1, 1);
+      const bugun = new Date();
+      gecikti = ayIlk < bugun;
+      gunFark = Math.round((ayIlk - bugun) / (1000 * 60 * 60 * 24));
     }
   }
+
+  let icerik = "";
+  if (v.aidatAyarlari?.pesinOdeme) {
+    icerik = `
+      <div class="dash-karti">
+        <div class="dash-karti-baslik"><span>💎</span><span>Ödeme Durumu</span></div>
+        <div style="text-align:center; padding:14px 0;">
+          <div style="font-size:36px;">💎</div>
+          <div style="font-size:15px; font-weight:600; color:#15803d; margin-top:6px;">Peşin Ödeme Yapıldı</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Bu dönem için tüm ödemeler tamamlandı.</div>
+        </div>
+      </div>`;
+  } else if (sonraki) {
+    const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+    const aylAdi = aylar[sonraki.ay - 1];
+    let bilgi = "";
+    if (gecikti) {
+      const gecikenGun = Math.abs(gunFark);
+      bilgi = `<span class="dash-odeme-bilgi gecikmis-bilgi"><strong>⚠️ ${gecikenGun} gün gecikti</strong></span>`;
+    } else if (gunFark <= 7) {
+      bilgi = `<span style="color:#d97706; font-weight:600;">⏰ ${gunFark} gün kaldı</span>`;
+    } else {
+      bilgi = `<span><strong>${gunFark}</strong> gün kaldı</span>`;
+    }
+
+    icerik = `
+      <div class="dash-karti dash-odeme ${gecikti ? 'gecikmis' : ''}">
+        <div class="dash-karti-baslik"><span>💳</span><span>${gecikti ? 'Geciken Ödeme' : 'Sıradaki Ödeme'}</span></div>
+        <div class="dash-odeme-aciklama">${aylAdi} ${sonraki.yil}</div>
+        <div class="dash-odeme-tutar">${aidat.toLocaleString("tr-TR")} <small>TL</small></div>
+        <div class="dash-odeme-bilgi">${bilgi}</div>
+        <div class="dash-odeme-aksiyon">
+          <button class="dash-odeme-buton primary" onclick="veliSwitchTab('odemeler')">💳 Ödeme Bildir</button>
+          <button class="dash-odeme-buton ikincil" onclick="veliSwitchTab('sozlesme')">📄 Sözleşme</button>
+        </div>
+        <div class="dash-odeme-genel-bar">
+          <div class="dash-odeme-genel-bar-bilgi">
+            <span>Toplam ilerleme</span>
+            <span><strong>%${yuzde}</strong> · ${Math.round(toplamOdenen).toLocaleString("tr-TR")} / ${aidatBeklenen.toLocaleString("tr-TR")} TL</span>
+          </div>
+          <div class="dash-odeme-genel-bar-bar"><div style="width:${yuzde}%;"></div></div>
+        </div>
+      </div>`;
+  } else if (yuzde >= 100) {
+    icerik = `
+      <div class="dash-karti">
+        <div class="dash-karti-baslik"><span>✅</span><span>Ödeme Durumu</span></div>
+        <div style="text-align:center; padding:14px 0;">
+          <div style="font-size:36px;">🎉</div>
+          <div style="font-size:15px; font-weight:600; color:#15803d; margin-top:6px;">Tüm Taksitler Ödendi</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Toplam ${Math.round(toplamOdenen).toLocaleString("tr-TR")} TL ödendi.</div>
+        </div>
+      </div>`;
+  } else {
+    icerik = `
+      <div class="dash-karti">
+        <div class="dash-karti-baslik"><span>💳</span><span>Ödeme Durumu</span></div>
+        <div style="text-align:center; padding:14px 0; color:#6b7280; font-size:13px;">Henüz ödeme planı oluşturulmamış.</div>
+      </div>`;
+  }
+
+  el.innerHTML = icerik;
 }
+
+// ============ DASHBOARD: ÖĞRETMEN GÖZLEMLERİ ============
+function dashYorumlariDoldur(ogrId) {
+  const el = document.getElementById("dashYorumlarKonteyner");
+  if (!el || !dashEgitimGelisimVerisi) {
+    if (el) el.innerHTML = "";
+    return;
+  }
+  const yorumlar = (dashEgitimGelisimVerisi.ogretmenYorumlari || []).filter(y => y.paylas);
+  if (yorumlar.length === 0) {
+    el.innerHTML = "";
+    return;
+  }
+  // En yeni 2 yorumu önizleme olarak göster
+  const sonYorumlar = [...yorumlar].sort((a,b) => new Date(b.tarih) - new Date(a.tarih)).slice(0, 2);
+  el.innerHTML = `
+    <div class="dash-karti">
+      <div class="dash-karti-baslik">
+        <span>📝</span>
+        <span>Son Öğretmen Gözlemleri</span>
+        <span class="dash-karti-saglar" style="cursor:pointer; color:#16a34a;" onclick="veliSwitchTab('raporlar')">Tümünü gör →</span>
+      </div>
+      ${sonYorumlar.map(y => {
+        const t = new Date(y.tarih);
+        const tarihStr = t.toLocaleDateString("tr-TR", {day:"numeric", month:"long"});
+        return `
+          <div class="dash-yorum-onizleme">
+            <div class="dash-yorum-onizleme-ust">
+              <strong>${escapeHtmlGelisim(y.baslik || 'Genel Gözlem')}</strong>
+              <span>${tarihStr}</span>
+            </div>
+            <div class="dash-yorum-onizleme-metin">${escapeHtmlGelisim(y.metin)}</div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 
 function veliRenderOdemeler() {
   const el = document.getElementById("veliOdemelerContent");
