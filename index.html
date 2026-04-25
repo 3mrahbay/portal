@@ -7599,7 +7599,10 @@ const AY_ISIMLERI = [
 
 // Brevo mail proxy (Apps Script üzerinden güvenli mail gönderimi)
 const BREVO_PROXY_URL = "https://script.google.com/macros/s/AKfycbwUNvVhTCvxUKOMtbFJ4_UASBo8-sgT13qT_9tWeYKZR3IYaYKUhGdSaGgGaaqMaZLf/exec";
-const OKUL_MAIL = "eposta@bircicekkoleji.com";
+// Standart isim — 3 site (yenikayit, kayityenileme, portal) ortak kullanır
+const SCHOOL_EMAIL = "eposta@bircicekkoleji.com";
+// Geriye dönük uyumluluk için alias (eski OKUL_MAIL referanslarını bozmamak için)
+const OKUL_MAIL = SCHOOL_EMAIL;
 
 // Brevo üzerinden mail gönder (Apps Script proxy ile)
 async function brevoMail(opts) {
