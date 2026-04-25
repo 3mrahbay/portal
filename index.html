@@ -12848,10 +12848,23 @@ window.egitimMatrixYenile = async function() {
 };
 
 async function egitimMatrixVeriYukle() {
-  // Aktif öğrencileri filtrele
-  const aktifOgrenciler = ogrenciList.filter(o =>
-    o.durum !== "iptal" && o.durum !== "ayrildi" && o.donem === AKTIF_DONEM
-  ).sort((a,b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "", "tr"));
+  // Aktif öğrencileri filtrele - sistemdeki standart fonksiyonu kullan
+  let aktifOgrenciler;
+  if (typeof getOgrenciDurum === "function") {
+    aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi?.[o.id]) === "aktif");
+  } else {
+    // Fallback: aktif öğrencileri en geniş anlamda al (iptal/ayrılmış olanları çıkar)
+    aktifOgrenciler = ogrenciList.filter(o => {
+      const d = (o.durum || "").toLowerCase();
+      return d !== "iptal" && d !== "ayrildi" && d !== "ayrılmış" && d !== "iptal_edildi";
+    });
+  }
+  // Hala boşsa - tüm öğrencileri göster (yeni kurulumda durum/dönem alanı boş olabilir)
+  if (aktifOgrenciler.length === 0 && ogrenciList.length > 0) {
+    console.warn("Aktif öğrenci filtresi boş döndü, tüm öğrenciler gösteriliyor.");
+    aktifOgrenciler = [...ogrenciList];
+  }
+  aktifOgrenciler.sort((a,b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "", "tr"));
 
   // Tüm öğrencilerin gelişim verilerini yükle
   const tumGelisim = await tumGelisimYukle();
@@ -12860,6 +12873,7 @@ async function egitimMatrixVeriYukle() {
     ogrenciler: aktifOgrenciler,
     gelisim: tumGelisim
   };
+  console.log(`[Eğitim Matrix] ${aktifOgrenciler.length} öğrenci yüklendi (toplam ogrenciList: ${ogrenciList.length})`);
 }
 
 function egitimAlanSeciciDoldur() {
@@ -12931,7 +12945,15 @@ function egitimMatrixRender() {
   }
 
   if (egitimMatrixVerisi.ogrenciler.length === 0) {
-    wrap.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Aktif öğrenci bulunamadı</div>`;
+    wrap.innerHTML = `
+      <div style="padding:40px 20px; text-align:center; color:#6b7280;">
+        <div style="font-size:48px; margin-bottom:12px;">👥</div>
+        <div style="font-size:15px; font-weight:600; color:#374151; margin-bottom:6px;">Aktif öğrenci bulunamadı</div>
+        <div style="font-size:13px; max-width:420px; margin:0 auto;">
+          Sistemde toplam <strong>${ogrenciList.length}</strong> öğrenci kayıtlı ama hiçbiri "aktif" durumda değil.<br>
+          Öğrenci Ayarları sekmesinden öğrenci durumlarını kontrol edin.
+        </div>
+      </div>`;
     return;
   }
 
@@ -14116,7 +14138,18 @@ window.adminMontessoriYenile = async function() {
   try {
     await tumMufredatlariYukle();
     const tumGelisim = await tumGelisimYukle();
-    const aktifOgrenciler = ogrenciList.filter(o => o.durum !== "iptal" && o.durum !== "ayrildi" && o.donem === AKTIF_DONEM);
+    let aktifOgrenciler;
+    if (typeof getOgrenciDurum === "function") {
+      aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi?.[o.id]) === "aktif");
+    } else {
+      aktifOgrenciler = ogrenciList.filter(o => {
+        const d = (o.durum || "").toLowerCase();
+        return d !== "iptal" && d !== "ayrildi" && d !== "ayrılmış";
+      });
+    }
+    if (aktifOgrenciler.length === 0 && ogrenciList.length > 0) {
+      aktifOgrenciler = [...ogrenciList];
+    }
     if (aktifOgrenciler.length === 0) {
       el.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Aktif öğrenci bulunamadı.</div>`;
       return;
