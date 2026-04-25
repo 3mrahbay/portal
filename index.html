@@ -4653,6 +4653,508 @@ html, body {
   border-color: #d1d5db;
 }
 
+/* ============ PROFESYONEL VELİ RAPOR SAYFASI ============ */
+
+.rapor-aksiyon-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.rapor-aksiyon-saglar {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.rapor-aksiyon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.rapor-aksiyon-btn.yazdir {
+  background: #1f2937;
+  color: white;
+}
+.rapor-aksiyon-btn.yazdir:hover { background: #111827; transform:translateY(-1px); }
+.rapor-aksiyon-btn.mail {
+  background: #16a34a;
+  color: white;
+}
+.rapor-aksiyon-btn.mail:hover { background: #15803d; transform:translateY(-1px); }
+.rapor-aksiyon-btn.pdf {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+.rapor-aksiyon-btn.pdf:hover { background: #f9fafb; }
+
+/* Yazdırılabilir alan */
+.veli-rapor-yazdirilabilir {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+
+/* Kapak */
+.rapor-kapak {
+  padding: 30px 28px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+.rapor-kapak::before {
+  content: '';
+  position: absolute;
+  top: -50%; right: -10%;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.rapor-kapak-icerik { position: relative; z-index: 1; }
+.rapor-kapak-okul {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+.rapor-kapak-okul-logo {
+  font-size: 32px;
+  width: 50px;
+  height: 50px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rapor-kapak-okul-ad {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+.rapor-kapak-okul-alt {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.rapor-kapak-disiplin {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  opacity: 0.92;
+  margin-bottom: 8px;
+}
+.rapor-kapak-baslik h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  line-height: 1.15;
+}
+.rapor-kapak-altbilgi {
+  font-size: 13px;
+  opacity: 0.9;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Özet metrikler */
+.rapor-ozet-metrikler {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 22px 24px;
+}
+@media (max-width: 600px) {
+  .rapor-ozet-metrikler { grid-template-columns: 1fr; }
+}
+.rapor-metrik-karti {
+  padding: 18px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid;
+}
+.rapor-metrik-karti.yesil { background:#f0fdf4; border-color:#bbf7d0; color:#166534; }
+.rapor-metrik-karti.turuncu { background:#fffbeb; border-color:#fde68a; color:#92400e; }
+.rapor-metrik-karti.mor { background:#faf5ff; border-color:#e9d5ff; color:#6d28d9; }
+.rapor-metrik-ikon {
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+.rapor-metrik-deger {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+}
+.rapor-metrik-deger span {
+  font-size: 17px;
+  opacity: 0.6;
+}
+.rapor-metrik-etiket {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  opacity: 0.8;
+}
+
+/* 2 grafik yan yana */
+.rapor-grafik-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 0 24px 22px;
+}
+@media (max-width: 800px) {
+  .rapor-grafik-grid { grid-template-columns: 1fr; }
+}
+.rapor-grafik-karti {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+}
+.rapor-grafik-baslik {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 14px;
+}
+.rapor-grafik-aciklama {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f3f4f6;
+}
+.rapor-grafik-aciklama span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.rapor-renk-nokta {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Güçlü + Geliştirilebilir */
+.rapor-degerlendirme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 0 24px 22px;
+}
+@media (max-width: 800px) {
+  .rapor-degerlendirme-grid { grid-template-columns: 1fr; }
+}
+.rapor-degerlendirme-karti {
+  border-radius: 14px;
+  padding: 18px;
+  border: 2px solid;
+}
+.rapor-degerlendirme-karti.rapor-guclu {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #86efac;
+}
+.rapor-degerlendirme-karti.rapor-gelistir {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fcd34d;
+}
+.rapor-degerlendirme-baslik {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rapor-guclu .rapor-degerlendirme-baslik { color: #166534; }
+.rapor-gelistir .rapor-degerlendirme-baslik { color: #92400e; }
+.rapor-degerlendirme-ikon { font-size: 22px; }
+.rapor-degerlendirme-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rapor-degerlendirme-satir {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: white;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.rapor-degerlendirme-numara {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rapor-degerlendirme-icerik { flex: 1; }
+.rapor-degerlendirme-ad {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1f2937;
+  margin-bottom: 2px;
+}
+.rapor-degerlendirme-detay {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #6b7280;
+}
+.rapor-deg-yuzde {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+.rapor-degerlendirme-bos {
+  text-align: center;
+  padding: 22px 12px;
+  font-size: 13px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Rapor genel bölüm yapısı */
+.rapor-bolum {
+  padding: 0 24px 22px;
+}
+.rapor-bolum-baslik {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+/* Alan detay kartları */
+.rapor-alan-detay-grid {
+  display: grid;
+  gap: 10px;
+}
+.rapor-alan-detay-karti {
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 14px;
+}
+.rapor-alan-detay-ust {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.rapor-alan-detay-ad {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+}
+.rapor-alan-detay-yuzde {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 18px;
+}
+.rapor-alan-detay-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 99px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.rapor-alan-detay-bar > div {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s;
+}
+.rapor-alan-detay-rakamlar {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #4b5563;
+}
+.rapor-alan-detay-rakamlar strong { color: #1f2937; }
+
+/* Yorumlar */
+.rapor-yorumlar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rapor-yorum-karti {
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.rapor-yorum-ust {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.rapor-yorum-ust strong {
+  color: #92400e;
+  font-size: 14px;
+}
+.rapor-yorum-tarih {
+  font-size: 11px;
+  color: #6b7280;
+}
+.rapor-yorum-metin {
+  font-size: 13px;
+  color: #1f2937;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Footer */
+.rapor-footer {
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.rapor-footer-aciklama {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.7;
+  flex: 1;
+  min-width: 250px;
+}
+.rapor-footer-aciklama strong { color: #374151; }
+.rapor-footer-imza {
+  text-align: right;
+  font-size: 12px;
+  color: #374151;
+  font-weight: 600;
+  align-self: flex-end;
+}
+
+/* Mail modal */
+.rapor-mail-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.rapor-mail-modal.active { display: flex; }
+.rapor-mail-icerik {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 440px;
+  width: 100%;
+}
+.rapor-mail-icerik h3 {
+  margin: 0 0 6px 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 19px;
+}
+.rapor-mail-icerik p {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
+}
+.rapor-mail-icerik .form-grup {
+  margin-bottom: 14px;
+}
+.rapor-mail-icerik label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+}
+.rapor-mail-icerik input, .rapor-mail-icerik textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.rapor-mail-icerik textarea { resize: vertical; min-height: 80px; }
+.rapor-mail-aksiyon {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  justify-content: flex-end;
+}
+
+/* ============ YAZDIRMA STİLLERİ (PRİNT) ============ */
+@media print {
+  /* Sayfanın çoğunu gizle */
+  body * { visibility: hidden; }
+  /* Sadece rapor görünür */
+  #veliRaporYazdirilabilir, #veliRaporYazdirilabilir * { visibility: visible; }
+  #veliRaporYazdirilabilir {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%;
+  }
+  /* Aksiyon barlarını gizle */
+  .no-print { display: none !important; }
+  /* Yazdırma için renkler */
+  .rapor-kapak { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+  .rapor-metrik-karti, .rapor-degerlendirme-karti, .rapor-yorum-karti,
+  .rapor-alan-detay-bar > div { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Sayfa kırılımları */
+  .rapor-bolum, .rapor-grafik-karti { page-break-inside: avoid; }
+  .rapor-degerlendirme-grid { page-break-inside: avoid; }
+  /* Sayfa kenar boşlukları */
+  @page { margin: 12mm; }
+  body { background: white !important; }
+}
+
 /* ============ EĞİTİM MATRIX SİSTEMİ ============ */
 
 /* 3 disiplin seçim kutuları */
@@ -13009,6 +13511,10 @@ window.matrixHucreTikla = async function(ogrId, alanId, grupAd, dersAd, hucreEl)
   const idx = sira.indexOf(mevcut);
   const yeni = sira[(idx + 1) % 4];
 
+  // ---- DEBUG ----
+  console.log("[Matrix Tıklama] Öğrenci ID:", ogrId, "| Disiplin:", egitimAktifDisiplin, "| Anahtar:", k, "| Yeni:", yeni);
+  // --------------
+
   // UI'yi anlık güncelle
   const btn = hucreEl?.querySelector(".matrix-stu-buton");
   if (btn) {
@@ -13804,6 +14310,19 @@ async function veliRenderRaporlar() {
     await tumMufredatlariYukle();
     veliRaporGelisimVerisi = await gelisimYukle(veliAktifOgrenci.id);
 
+    // ---- DEBUG ----
+    console.log("[Veli Rapor] Aktif öğrenci ID:", veliAktifOgrenci.id);
+    console.log("[Veli Rapor] Öğrenci adı:", veliAktifOgrenci.ogrenciAdSoyad);
+    console.log("[Veli Rapor] Yüklenen veri:", veliRaporGelisimVerisi);
+    console.log("[Veli Rapor] Montessori kayıt sayısı:", Object.keys(veliRaporGelisimVerisi.montessori?.kayitlar || {}).length);
+    console.log("[Veli Rapor] İngilizce kayıt sayısı:", Object.keys(veliRaporGelisimVerisi.ingilizce?.kayitlar || {}).length);
+    console.log("[Veli Rapor] Değerler kayıt sayısı:", Object.keys(veliRaporGelisimVerisi.degerler?.kayitlar || {}).length);
+    console.log("[Veli Rapor] Müfredat - Montessori alan sayısı:", aktifMufredatlar.montessori?.length || 0);
+    if (Object.keys(veliRaporGelisimVerisi.montessori?.kayitlar || {}).length > 0) {
+      console.log("[Veli Rapor] Örnek Montessori kayıtları:", veliRaporGelisimVerisi.montessori.kayitlar);
+    }
+    // --------------
+
     // Ana dashboard veya detay görünümü?
     if (!veliRaporSeciliDisiplin) {
       veliRenderRaporDashboard();
@@ -13926,73 +14445,217 @@ function veliRenderRaporDetay(disiplin) {
   const genel = disiplinGenelIlerleme(veri.kayitlar, mufredat);
   const ogrAd = veliAktifOgrenci.ogrenciAdSoyad || "Çocuğunuz";
 
+  // Güçlü ve geliştirilebilir alanları belirle
+  // Mantık: Yüzdesi >= %50 olanlar güçlü; en yüksek 3
+  //         Veri girilen ama yüzdesi en düşük olanlar geliştirilebilir; en düşük 3
+  const calisilanAlanlar = istat.filter(s => s.calisilan > 0);
+  const guclu = [...calisilanAlanlar].sort((a,b) => b.yuzde - a.yuzde).slice(0, 3);
+  const gelistir = [...calisilanAlanlar].sort((a,b) => a.yuzde - b.yuzde).slice(0, 3);
+
+  // Veliyle paylaşılan öğretmen yorumları (ana dashboardakini de bu sekmede gösterelim)
+  const paylasYorumlar = (veliRaporGelisimVerisi.ogretmenYorumlari || []).filter(y => y.paylas);
+
+  // Disipline özel notlar (öğretmenin bu disiplin için yazdıkları, paylas:true olanlar)
+  const disiplinNotlari = (veri.notlar || []);
+
+  const tarihStr = new Date().toLocaleDateString("tr-TR", { day:"numeric", month:"long", year:"numeric" });
+
   el.innerHTML = `
-    <!-- ÜST: Disiplin başlığı + Geri butonu -->
-    <button onclick="veliRaporDashboarDon()" class="rapor-geri-btn">← Tüm Raporlara Dön</button>
-
-    <div class="veli-gelisim-hero" style="background:linear-gradient(135deg, ${dInfo.renk} 0%, ${dInfo.renk}dd 100%);">
-      <h2>${dInfo.ikon} ${escapeHtmlGelisim(ogrAd)} - ${dInfo.ad}</h2>
-      <p>${escapeHtmlGelisim(dInfo.aciklama)}</p>
-    </div>
-
-    <!-- METRİKLER -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:18px;">
-      <div class="veli-stat-card green">
-        <div class="veli-stat-label">ÇALIŞILAN DERS</div>
-        <div class="veli-stat-value">${genel.calisilan} / ${genel.toplam}</div>
-      </div>
-      <div class="veli-stat-card yellow">
-        <div class="veli-stat-label">GENEL İLERLEME</div>
-        <div class="veli-stat-value">%${genel.yuzde}</div>
-      </div>
-      <div class="veli-stat-card blue">
-        <div class="veli-stat-label">UZMANLAŞILAN</div>
-        <div class="veli-stat-value">${genel.uzmanlasti}</div>
+    <!-- AKSİYON BAR (yazdırılabilir alanın dışında) -->
+    <div class="rapor-aksiyon-bar no-print">
+      <button onclick="veliRaporDashboarDon()" class="rapor-geri-btn" style="margin-bottom:0;">← Tüm Raporlara Dön</button>
+      <div class="rapor-aksiyon-saglar">
+        <button class="rapor-aksiyon-btn yazdir" onclick="veliRaporYazdir()">🖨️ Yazdır / PDF</button>
       </div>
     </div>
 
-    <!-- GRAFİKLER -->
-    <div class="veli-gelisim-radar-wrap">
-      <div class="veli-gelisim-card">
-        <div class="veli-gelisim-card-baslik">📊 Alanların Dengesi</div>
-        <div style="position:relative; height:280px;">
-          <canvas id="veliRaporRadarCanvas"></canvas>
-        </div>
-        <div class="veli-stu-aciklama">
-          <span><span class="veli-stu-nokta" style="background:#16a34a;"></span> Sunuldu (S)</span>
-          <span><span class="veli-stu-nokta" style="background:#d97706;"></span> Tekrar (T)</span>
-          <span><span class="veli-stu-nokta" style="background:#7c3aed;"></span> Uzmanlaştı (U)</span>
-        </div>
-      </div>
-      <div class="veli-gelisim-card">
-        <div class="veli-gelisim-card-baslik">📈 Alan Bazlı Dağılım</div>
-        <div style="position:relative; height:280px;">
-          <canvas id="veliRaporBarCanvas"></canvas>
-        </div>
-      </div>
-    </div>
+    <!-- YAZDIRILABİLİR İÇERİK -->
+    <div id="veliRaporYazdirilabilir" class="veli-rapor-yazdirilabilir">
 
-    <!-- ALAN DETAYLARI -->
-    <div class="veli-gelisim-card">
-      <div class="veli-gelisim-card-baslik">🌿 Alan Bazlı Detay</div>
-      <div style="display:grid; gap:12px;">
-        ${istat.map(s => `
-          <div style="padding:14px; background:#fafafa; border-radius:10px; border-left:4px solid ${s.renk};">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-              <div style="font-weight:600; font-size:14px;">${s.ikon} ${escapeHtmlGelisim(s.ad)}</div>
-              <div style="font-size:13px; color:${s.renk}; font-weight:700;">%${s.yuzde}</div>
-            </div>
-            <div style="display:flex; gap:14px; font-size:12px; color:#4b5563; flex-wrap:wrap;">
-              <span>🌱 Sunuldu: <strong>${s.sunuldu}</strong></span>
-              <span>🌿 Tekrar: <strong>${s.tekrar}</strong></span>
-              <span>🌳 Uzmanlaştı: <strong>${s.uzmanlasti}</strong></span>
-              <span style="color:#9ca3af;">📚 Toplam: ${s.toplam}</span>
-            </div>
-            <div style="height:6px; background:#e5e7eb; border-radius:99px; margin-top:10px; overflow:hidden;">
-              <div style="height:100%; width:${s.yuzde}%; background:${s.renk}; border-radius:99px;"></div>
+      <!-- BAŞLIK / KAPAK -->
+      <div class="rapor-kapak" style="background:linear-gradient(135deg, ${dInfo.renk} 0%, ${dInfo.renk}dd 100%);">
+        <div class="rapor-kapak-icerik">
+          <div class="rapor-kapak-okul">
+            <div class="rapor-kapak-okul-logo">🌸</div>
+            <div>
+              <div class="rapor-kapak-okul-ad">Bir Çiçek Koleji Anaokulu</div>
+              <div class="rapor-kapak-okul-alt">MACTE Sertifikalı Montessori &amp; Level 3 Forest School</div>
             </div>
           </div>
-        `).join("")}
+          <div class="rapor-kapak-baslik">
+            <div class="rapor-kapak-disiplin">${dInfo.ikon} ${dInfo.ad}</div>
+            <h1>${escapeHtmlGelisim(ogrAd)}</h1>
+            <div class="rapor-kapak-altbilgi">
+              <span>📅 ${tarihStr}</span>
+              <span>·</span>
+              <span>${escapeHtmlGelisim(dInfo.aciklama)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ÖZET METRİKLER -->
+      <div class="rapor-ozet-metrikler">
+        <div class="rapor-metrik-karti yesil">
+          <div class="rapor-metrik-ikon">📚</div>
+          <div class="rapor-metrik-deger">${genel.calisilan}<span>/${genel.toplam}</span></div>
+          <div class="rapor-metrik-etiket">Çalışılan Ders</div>
+        </div>
+        <div class="rapor-metrik-karti turuncu">
+          <div class="rapor-metrik-ikon">📈</div>
+          <div class="rapor-metrik-deger">%${genel.yuzde}</div>
+          <div class="rapor-metrik-etiket">Genel İlerleme</div>
+        </div>
+        <div class="rapor-metrik-karti mor">
+          <div class="rapor-metrik-ikon">🌳</div>
+          <div class="rapor-metrik-deger">${genel.uzmanlasti}</div>
+          <div class="rapor-metrik-etiket">Uzmanlaşılan</div>
+        </div>
+      </div>
+
+      <!-- 2 GRAFİK YAN YANA -->
+      <div class="rapor-grafik-grid">
+        <div class="rapor-grafik-karti">
+          <div class="rapor-grafik-baslik">📊 Alanların Dengesi</div>
+          <div style="position:relative; height:280px;">
+            <canvas id="veliRaporRadarCanvas"></canvas>
+          </div>
+          <div class="rapor-grafik-aciklama">
+            <span><span class="rapor-renk-nokta" style="background:${dInfo.renk};"></span> Genel İlerleme</span>
+            <span><span class="rapor-renk-nokta" style="background:#7c3aed;"></span> Uzmanlaşma</span>
+          </div>
+        </div>
+        <div class="rapor-grafik-karti">
+          <div class="rapor-grafik-baslik">📈 Alan Bazlı Dağılım</div>
+          <div style="position:relative; height:280px;">
+            <canvas id="veliRaporBarCanvas"></canvas>
+          </div>
+          <div class="rapor-grafik-aciklama">
+            <span><span class="rapor-renk-nokta" style="background:#16a34a;"></span> Sunuldu</span>
+            <span><span class="rapor-renk-nokta" style="background:#d97706;"></span> Tekrar</span>
+            <span><span class="rapor-renk-nokta" style="background:#7c3aed;"></span> Uzmanlaştı</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GÜÇLÜ + GELİŞTİRİLEBİLİR ALANLAR -->
+      <div class="rapor-degerlendirme-grid">
+        <div class="rapor-degerlendirme-karti rapor-guclu">
+          <div class="rapor-degerlendirme-baslik">
+            <span class="rapor-degerlendirme-ikon">🌟</span>
+            <span>Güçlü Olduğu Alanlar</span>
+          </div>
+          ${guclu.length === 0 ? `
+            <div class="rapor-degerlendirme-bos">Henüz değerlendirme için yeterli veri yok.</div>
+          ` : `
+            <div class="rapor-degerlendirme-liste">
+              ${guclu.map((s, i) => `
+                <div class="rapor-degerlendirme-satir">
+                  <div class="rapor-degerlendirme-numara" style="background:#16a34a;">${i+1}</div>
+                  <div class="rapor-degerlendirme-icerik">
+                    <div class="rapor-degerlendirme-ad">${s.ikon} ${escapeHtmlGelisim(s.ad)}</div>
+                    <div class="rapor-degerlendirme-detay">
+                      <span class="rapor-deg-yuzde" style="color:#16a34a;">%${s.yuzde}</span>
+                      <span class="rapor-deg-bilgi">${s.calisilan}/${s.toplam} ders · ${s.uzmanlasti} uzmanlaşıldı</span>
+                    </div>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          `}
+        </div>
+        <div class="rapor-degerlendirme-karti rapor-gelistir">
+          <div class="rapor-degerlendirme-baslik">
+            <span class="rapor-degerlendirme-ikon">🌱</span>
+            <span>Geliştirilebilir Alanlar</span>
+          </div>
+          ${gelistir.length === 0 ? `
+            <div class="rapor-degerlendirme-bos">Henüz değerlendirme için yeterli veri yok.</div>
+          ` : `
+            <div class="rapor-degerlendirme-liste">
+              ${gelistir.map((s, i) => `
+                <div class="rapor-degerlendirme-satir">
+                  <div class="rapor-degerlendirme-numara" style="background:#d97706;">${i+1}</div>
+                  <div class="rapor-degerlendirme-icerik">
+                    <div class="rapor-degerlendirme-ad">${s.ikon} ${escapeHtmlGelisim(s.ad)}</div>
+                    <div class="rapor-degerlendirme-detay">
+                      <span class="rapor-deg-yuzde" style="color:#d97706;">%${s.yuzde}</span>
+                      <span class="rapor-deg-bilgi">${s.calisilan}/${s.toplam} ders · ${s.sunuldu+s.tekrar} aktif çalışma</span>
+                    </div>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          `}
+        </div>
+      </div>
+
+      <!-- TÜM ALANLAR DETAY -->
+      <div class="rapor-bolum">
+        <div class="rapor-bolum-baslik">📋 Tüm Alanların Detaylı Görünümü</div>
+        <div class="rapor-alan-detay-grid">
+          ${istat.map(s => `
+            <div class="rapor-alan-detay-karti" style="border-left:4px solid ${s.renk};">
+              <div class="rapor-alan-detay-ust">
+                <div class="rapor-alan-detay-ad">${s.ikon} ${escapeHtmlGelisim(s.ad)}</div>
+                <div class="rapor-alan-detay-yuzde" style="color:${s.renk};">%${s.yuzde}</div>
+              </div>
+              <div class="rapor-alan-detay-bar">
+                <div style="width:${s.yuzde}%; background:${s.renk};"></div>
+              </div>
+              <div class="rapor-alan-detay-rakamlar">
+                <span>🌱 Sunuldu: <strong>${s.sunuldu}</strong></span>
+                <span>🌿 Tekrar: <strong>${s.tekrar}</strong></span>
+                <span>🌳 Uzmanlaştı: <strong>${s.uzmanlasti}</strong></span>
+                <span style="color:#9ca3af;">📚 Toplam: ${s.toplam}</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <!-- ÖĞRETMEN GÖZLEMLERİ -->
+      ${paylasYorumlar.length > 0 ? `
+        <div class="rapor-bolum">
+          <div class="rapor-bolum-baslik">📝 Öğretmen Gözlem ve Görüşleri</div>
+          <div class="rapor-yorumlar">
+            ${[...paylasYorumlar].sort((a,b)=>new Date(b.tarih)-new Date(a.tarih)).map(y => {
+              const t = new Date(y.tarih);
+              const tarihYazi = t.toLocaleDateString("tr-TR", { day:"numeric", month:"long", year:"numeric" });
+              return `
+                <div class="rapor-yorum-karti">
+                  <div class="rapor-yorum-ust">
+                    <strong>${escapeHtmlGelisim(y.baslik || 'Genel Değerlendirme')}</strong>
+                    <span class="rapor-yorum-tarih">📅 ${tarihYazi}</span>
+                  </div>
+                  <div class="rapor-yorum-metin">${escapeHtmlGelisim(y.metin)}</div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      <!-- İMZA / FOOTER -->
+      <div class="rapor-footer">
+        <div class="rapor-footer-aciklama">
+          <strong>S/T/U Sistemi Açıklaması:</strong><br>
+          🌱 <strong>Sunuldu (S):</strong> Öğretmen çocuğa bu materyali tanıttı.<br>
+          🌿 <strong>Tekrar (T):</strong> Çocuk üzerinde aktif olarak çalışıyor.<br>
+          🌳 <strong>Uzmanlaştı (U):</strong> Çocuk konuyu içselleştirdi, bağımsız uygulayabiliyor.
+        </div>
+        <div class="rapor-footer-imza">
+          <div>Bir Çiçek Koleji Anaokulu</div>
+          <div style="opacity:0.7; font-size:11px; margin-top:4px;">Tuzla Aydınlı, İstanbul · ${tarihStr} tarihinde oluşturuldu</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ALT AKSİYON BAR -->
+    <div class="rapor-aksiyon-bar no-print" style="margin-top:18px; justify-content:center;">
+      <div class="rapor-aksiyon-saglar" style="margin-left:0;">
+        <button class="rapor-aksiyon-btn yazdir" onclick="veliRaporYazdir()">🖨️ Yazdır / PDF</button>
       </div>
     </div>
   `;
@@ -14014,7 +14677,12 @@ function veliRenderRaporDetay(disiplin) {
             { label:"Uzmanlaştı %", data:istat.map(s=>s.uzmanlikYuzde), backgroundColor:"rgba(124, 58, 237, 0.15)", borderColor:"#7c3aed", borderWidth:2, pointBackgroundColor:"#7c3aed", pointRadius:4 }
           ]
         },
-        options: { responsive:true, maintainAspectRatio:false, scales:{ r:{ beginAtZero:true, max:100, ticks:{stepSize:25, font:{size:10}}, pointLabels:{font:{size:11, weight:"600"}} } }, plugins:{ legend:{ position:"bottom", labels:{font:{size:11}, padding:12} } } }
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          animation: { duration: 600 },
+          scales:{ r:{ beginAtZero:true, max:100, ticks:{stepSize:25, font:{size:10}}, pointLabels:{font:{size:11, weight:"600"}} } },
+          plugins:{ legend:{ position:"bottom", labels:{font:{size:11}, padding:12} } }
+        }
       });
     }
     const barCtx = document.getElementById("veliRaporBarCanvas");
@@ -14029,14 +14697,232 @@ function veliRenderRaporDetay(disiplin) {
             { label:"Uzmanlaştı", data:istat.map(s=>s.uzmanlasti), backgroundColor:"#7c3aed" }
           ]
         },
-        options: { responsive:true, maintainAspectRatio:false, scales:{ x:{stacked:true, ticks:{font:{size:10}}}, y:{stacked:true, beginAtZero:true, ticks:{font:{size:10}}} }, plugins:{ legend:{ position:"bottom", labels:{font:{size:11}, padding:10} } } }
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          animation: { duration: 600 },
+          scales:{ x:{stacked:true, ticks:{font:{size:10}}}, y:{stacked:true, beginAtZero:true, ticks:{font:{size:10}}} },
+          plugins:{ legend:{ position:"bottom", labels:{font:{size:11}, padding:10} } }
+        }
       });
     }
   }, 100);
 }
 
+// ============ YAZDIR (Browser print API ile - en güvenilir) ============
+window.veliRaporYazdir = function() {
+  // Kullanıcı tarayıcı print diyaloğunda PDF olarak kaydet seçebilir
+  // veya doğrudan yazdırabilir
+  window.print();
+};
+
+// ============ PDF İNDİR (jsPDF + grafikleri PNG olarak ekler) ============
 window.veliRaporPdfIndir = async function() {
   if (!veliAktifOgrenci) return;
+
+  // Bir disiplin sayfasındaysa o disiplinin grafikli PDF'i, dashboardayda 3 disiplinin özeti
+  if (veliRaporSeciliDisiplin) {
+    return await veliRaporPdfTekDisiplin(veliRaporSeciliDisiplin);
+  } else {
+    return await veliRaporPdfTumDisiplinler();
+  }
+};
+
+// Tek disiplin için grafikli PDF
+async function veliRaporPdfTekDisiplin(disiplin) {
+  try {
+    if (typeof window.jspdf === "undefined") {
+      alert("PDF kütüphanesi yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.");
+      return;
+    }
+    const { jsPDF } = window.jspdf;
+    const dInfo = DISIPLINLER.find(x => x.id === disiplin);
+    const veri = veliRaporGelisimVerisi[disiplin];
+    const mufredat = aktifMufredatlar[disiplin];
+    const istat = gelisimIstatistik(veri.kayitlar, mufredat);
+    const genel = disiplinGenelIlerleme(veri.kayitlar, mufredat);
+
+    const tr = s => (s||"").replace(/ğ/g,'g').replace(/Ğ/g,'G').replace(/ü/g,'u').replace(/Ü/g,'U')
+      .replace(/ş/g,'s').replace(/Ş/g,'S').replace(/ı/g,'i').replace(/İ/g,'I')
+      .replace(/ö/g,'o').replace(/Ö/g,'O').replace(/ç/g,'c').replace(/Ç/g,'C');
+
+    const ogrAd = veliAktifOgrenci.ogrenciAdSoyad || "Ogrenci";
+    const tarih = new Date().toLocaleDateString("tr-TR");
+
+    const pdf = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
+
+    // Hex string'i RGB'ye çevirme (renk için)
+    const hexToRgb = (h) => {
+      const r = parseInt(h.slice(1,3), 16);
+      const g = parseInt(h.slice(3,5), 16);
+      const b = parseInt(h.slice(5,7), 16);
+      return [r, g, b];
+    };
+    const [dR, dG, dB] = hexToRgb(dInfo.renk);
+
+    // KAPAK
+    pdf.setFillColor(dR, dG, dB);
+    pdf.rect(0, 0, 210, 50, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(11);
+    pdf.text("Bir Cicek Koleji Anaokulu", 14, 12);
+    pdf.setFontSize(9);
+    pdf.text("MACTE Sertifikali Montessori & Level 3 Forest School", 14, 17);
+    pdf.setFontSize(20);
+    pdf.text(`${tr(dInfo.ad)}`, 14, 32);
+    pdf.setFontSize(15);
+    pdf.text(tr(ogrAd), 14, 41);
+    pdf.setFontSize(9);
+    pdf.text(`Rapor Tarihi: ${tarih}`, 14, 47);
+
+    // Üst metrikler
+    pdf.setTextColor(0, 0, 0);
+    let y = 60;
+    pdf.setFillColor(240, 253, 244);
+    pdf.rect(14, y, 60, 20, "F");
+    pdf.setFontSize(8);
+    pdf.setTextColor(22, 101, 52);
+    pdf.text("CALISILAN DERS", 17, y+6);
+    pdf.setFontSize(14);
+    pdf.setFont(undefined, "bold");
+    pdf.text(`${genel.calisilan} / ${genel.toplam}`, 17, y+14);
+    pdf.setFont(undefined, "normal");
+
+    pdf.setFillColor(255, 251, 235);
+    pdf.rect(78, y, 60, 20, "F");
+    pdf.setFontSize(8);
+    pdf.setTextColor(146, 64, 14);
+    pdf.text("GENEL ILERLEME", 81, y+6);
+    pdf.setFontSize(14);
+    pdf.setFont(undefined, "bold");
+    pdf.text(`%${genel.yuzde}`, 81, y+14);
+    pdf.setFont(undefined, "normal");
+
+    pdf.setFillColor(250, 245, 255);
+    pdf.rect(142, y, 54, 20, "F");
+    pdf.setFontSize(8);
+    pdf.setTextColor(109, 40, 217);
+    pdf.text("UZMANLASILAN", 145, y+6);
+    pdf.setFontSize(14);
+    pdf.setFont(undefined, "bold");
+    pdf.text(`${genel.uzmanlasti}`, 145, y+14);
+    pdf.setFont(undefined, "normal");
+
+    y += 28;
+    pdf.setTextColor(0, 0, 0);
+
+    // GRAFİKLER (canvas'tan PNG olarak)
+    try {
+      const radarCanvas = document.getElementById("veliRaporRadarCanvas");
+      const barCanvas   = document.getElementById("veliRaporBarCanvas");
+      if (radarCanvas && barCanvas) {
+        const radarImg = radarCanvas.toDataURL("image/png", 1.0);
+        const barImg   = barCanvas.toDataURL("image/png", 1.0);
+        pdf.setFontSize(11);
+        pdf.setFont(undefined, "bold");
+        pdf.text("Alanlarin Dengesi", 14, y);
+        pdf.text("Alan Bazli Dagilim", 110, y);
+        pdf.setFont(undefined, "normal");
+        y += 3;
+        // Yan yana 2 grafik (her biri ~85x65 mm)
+        pdf.addImage(radarImg, "PNG", 14, y, 88, 66);
+        pdf.addImage(barImg,   "PNG", 108, y, 88, 66);
+        y += 72;
+      }
+    } catch(e) {
+      console.warn("Grafik PDF'e eklenemedi:", e);
+    }
+
+    // GÜÇLÜ + GELİŞTİR
+    if (y > 230) { pdf.addPage(); y = 20; }
+    const calisilanAlanlar = istat.filter(s => s.calisilan > 0);
+    const guclu = [...calisilanAlanlar].sort((a,b) => b.yuzde - a.yuzde).slice(0, 3);
+    const gelistir = [...calisilanAlanlar].sort((a,b) => a.yuzde - b.yuzde).slice(0, 3);
+
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, "bold");
+    pdf.setTextColor(22, 101, 52);
+    pdf.text("Guclu Oldugu Alanlar", 14, y);
+    pdf.setTextColor(146, 64, 14);
+    pdf.text("Gelistirilebilir Alanlar", 110, y);
+    pdf.setFont(undefined, "normal");
+    pdf.setTextColor(0, 0, 0);
+    y += 6;
+    pdf.setFontSize(10);
+
+    const maxRow = Math.max(guclu.length, gelistir.length);
+    for (let i = 0; i < maxRow; i++) {
+      if (guclu[i]) {
+        pdf.setTextColor(22, 101, 52);
+        pdf.text(`${i+1}. ${tr(guclu[i].ad)} - %${guclu[i].yuzde}`, 14, y);
+      }
+      if (gelistir[i]) {
+        pdf.setTextColor(146, 64, 14);
+        pdf.text(`${i+1}. ${tr(gelistir[i].ad)} - %${gelistir[i].yuzde}`, 110, y);
+      }
+      y += 6;
+    }
+    pdf.setTextColor(0, 0, 0);
+    y += 4;
+
+    // ALAN DETAY
+    if (y > 250) { pdf.addPage(); y = 20; }
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, "bold");
+    pdf.text("Tum Alanlarin Detayi", 14, y);
+    pdf.setFont(undefined, "normal");
+    y += 6;
+    pdf.setFontSize(9);
+    istat.forEach(s => {
+      if (y > 275) { pdf.addPage(); y = 20; }
+      pdf.setFont(undefined, "bold");
+      pdf.text(`${tr(s.ad)}: %${s.yuzde}`, 14, y);
+      pdf.setFont(undefined, "normal");
+      y += 4;
+      pdf.text(`   Sunuldu: ${s.sunuldu} | Tekrar: ${s.tekrar} | Uzmanlasti: ${s.uzmanlasti} | Toplam: ${s.toplam}`, 14, y);
+      y += 6;
+    });
+
+    // ÖĞRETMEN YORUMLARI
+    const paylasYorumlar = (veliRaporGelisimVerisi.ogretmenYorumlari || []).filter(yo => yo.paylas);
+    if (paylasYorumlar.length > 0) {
+      if (y > 240) { pdf.addPage(); y = 20; }
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, "bold");
+      pdf.text("Ogretmen Gozlem ve Goruslerı", 14, y);
+      pdf.setFont(undefined, "normal");
+      y += 6;
+      pdf.setFontSize(9);
+      [...paylasYorumlar].sort((a,b)=>new Date(b.tarih)-new Date(a.tarih)).slice(0,15).forEach(yo => {
+        if (y > 270) { pdf.addPage(); y = 20; }
+        const t = new Date(yo.tarih);
+        pdf.setFont(undefined, "bold");
+        pdf.text(`${tr(yo.baslik || 'Genel Yorum')} - ${t.toLocaleDateString("tr-TR")}`, 14, y);
+        pdf.setFont(undefined, "normal");
+        y += 5;
+        const lines = pdf.splitTextToSize(tr(yo.metin), 180);
+        pdf.text(lines, 18, y);
+        y += lines.length * 4 + 4;
+      });
+    }
+
+    // FOOTER
+    const sayfaSayisi = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= sayfaSayisi; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(140, 140, 140);
+      pdf.text(`Bir Cicek Koleji Anaokulu - ${tarih} - Sayfa ${i}/${sayfaSayisi}`, 105, 290, { align:"center" });
+    }
+
+    pdf.save(`${tr(dInfo.ad)}-Raporu-${tr(ogrAd).replace(/\s+/g,"-")}-${tarih.replace(/\./g,"-")}.pdf`);
+  } catch(e) {
+    console.error("PDF hata:", e);
+    alert("PDF oluşturulamadı: " + e.message);
+  }
+}
+
+// Tüm disiplinler özet PDF (dashboard'dan)
+async function veliRaporPdfTumDisiplinler() {
   try {
     if (typeof window.jspdf === "undefined") {
       alert("PDF kütüphanesi yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.");
@@ -14047,7 +14933,6 @@ window.veliRaporPdfIndir = async function() {
     const veri = await gelisimYukle(veliAktifOgrenci.id);
     const pdf = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
 
-    // Türkçe karakter ASCII'ye çevirme yardımcısı
     const tr = s => (s||"").replace(/ğ/g,'g').replace(/Ğ/g,'G').replace(/ü/g,'u').replace(/Ü/g,'U')
       .replace(/ş/g,'s').replace(/Ş/g,'S').replace(/ı/g,'i').replace(/İ/g,'I')
       .replace(/ö/g,'o').replace(/Ö/g,'O').replace(/ç/g,'c').replace(/Ç/g,'C');
@@ -14055,7 +14940,6 @@ window.veliRaporPdfIndir = async function() {
     const ogrAd = veliAktifOgrenci.ogrenciAdSoyad || "Ogrenci";
     const tarih = new Date().toLocaleDateString("tr-TR");
 
-    // Kapak
     pdf.setFillColor(45, 106, 79);
     pdf.rect(0, 0, 210, 30, "F");
     pdf.setTextColor(255, 255, 255);
@@ -14067,7 +14951,6 @@ window.veliRaporPdfIndir = async function() {
     let y = 40;
     pdf.setTextColor(0, 0, 0);
 
-    // Her disiplin için bölüm
     for (const d of DISIPLINLER) {
       if (y > 250) { pdf.addPage(); y = 20; }
       const dVeri = veri[d.id];
@@ -14082,31 +14965,24 @@ window.veliRaporPdfIndir = async function() {
       pdf.setFontSize(10);
       pdf.text(`Calisilan: ${genel.calisilan} / ${genel.toplam}  |  Uzmanlasilan: ${genel.uzmanlasti}`, 14, y);
       y += 8;
-
-      // Alan detayları
       istat.forEach(s => {
         if (y > 270) { pdf.addPage(); y = 20; }
-        pdf.setFont(undefined, "bold");
-        pdf.text(`  ${tr(s.ad)}: %${s.yuzde}`, 14, y);
-        pdf.setFont(undefined, "normal");
+        pdf.text(`  ${tr(s.ad)}: %${s.yuzde}  (S:${s.sunuldu}/T:${s.tekrar}/U:${s.uzmanlasti})`, 14, y);
         y += 5;
-        pdf.text(`     Sunuldu:${s.sunuldu} | Tekrar:${s.tekrar} | Uzmanlasti:${s.uzmanlasti} | Toplam:${s.toplam}`, 14, y);
-        y += 7;
       });
-      y += 5;
+      y += 6;
     }
 
-    // Öğretmen yorumları (sadece paylaşılanlar)
     const paylasYorumlar = (veri.ogretmenYorumlari || []).filter(yo => yo.paylas);
     if (paylasYorumlar.length > 0) {
       if (y > 240) { pdf.addPage(); y = 20; }
-      pdf.setFontSize(14);
+      pdf.setFontSize(13);
       pdf.setFont(undefined, "bold");
       pdf.text("Ogretmen Gorusleri", 14, y);
       pdf.setFont(undefined, "normal");
       y += 7;
       pdf.setFontSize(9);
-      [...paylasYorumlar].sort((a,b)=>new Date(b.tarih)-new Date(a.tarih)).slice(0,15).forEach(yo => {
+      [...paylasYorumlar].sort((a,b)=>new Date(b.tarih)-new Date(a.tarih)).slice(0,10).forEach(yo => {
         if (y > 270) { pdf.addPage(); y = 20; }
         const t = new Date(yo.tarih);
         pdf.setFont(undefined, "bold");
@@ -14124,7 +15000,8 @@ window.veliRaporPdfIndir = async function() {
     console.error("PDF hata:", e);
     alert("PDF oluşturulamadı: " + e.message);
   }
-};
+}
+
 
 
 // ============ ADMIN: TÜM SINIF GENEL BAKIŞ (3 disiplin) ============
