@@ -11951,11 +11951,6 @@ function renderGelisimNotlar() {
   }).join("");
 }
 
-function escapeHtml(s) {
-  if (!s) return "";
-  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-}
-
 // Yeni not kaydet (Admin)
 window.gelisimNotKaydet = async function() {
   if (!currentOgrenci) return;
