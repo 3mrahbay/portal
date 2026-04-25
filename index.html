@@ -13099,7 +13099,7 @@ window.fotoSecildi = function(event) {
     return;
   }
 
-  // Resmi canvas ile küçült (max 400px, kalite 0.85)
+  // Resmi canvas ile küçült (max 400px, kalite 0.85) - sonra Bunny'e yükle
   const reader = new FileReader();
   reader.onload = (e) => {
     const img = new Image();
@@ -13115,43 +13115,85 @@ window.fotoSecildi = function(event) {
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
 
-      // Boyut kontrolü
-      const sizeKB = (dataUrl.length * 0.75) / 1024;
-      if (sizeKB > 500) {
-        alert(`Resim hala çok büyük (${Math.round(sizeKB)} KB). Daha küçük bir resim seçin.`);
-        return;
-      }
+      // Canvas'ı Blob'a çevir (Bunny PUT için)
+      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.85));
+      if (!blob) { alert("Resim işlenemedi."); return; }
 
-      // Önce önizlemeyi güncelle
+      // Önce önizlemeyi local URL ile güncelle (kullanıcı hızlı geri bildirim alsın)
+      const localUrl = URL.createObjectURL(blob);
       const onizleme = document.getElementById("fotoYukleOnizleme");
       if (onizleme) {
-        onizleme.style.backgroundImage = `url('${dataUrl}')`;
+        onizleme.style.backgroundImage = `url('${localUrl}')`;
         onizleme.textContent = "";
       }
 
-      // Firestore'a kaydet
+      // Yükleme göstergesi
+      const aksiyonAlani = onizleme?.parentElement?.querySelector(".foto-yukle-aksiyon");
+      let yuklemeRozeti = null;
+      if (aksiyonAlani) {
+        yuklemeRozeti = document.createElement("div");
+        yuklemeRozeti.style.cssText = "width:100%; padding:10px; font-size:12px; color:#6b7280; text-align:center;";
+        yuklemeRozeti.textContent = "📤 Bunny.net'e yükleniyor...";
+        aksiyonAlani.parentElement.insertBefore(yuklemeRozeti, aksiyonAlani);
+      }
+
       try {
+        // Bunny.net'e yükle: ogrenci-fotolari/{ogrId}_{timestamp}.jpg
+        const dosyaAdi = `${aktifFotoOgrId}_${Date.now()}.jpg`;
+        const path = `ogrenci-fotolari/${dosyaAdi}`;
+
+        // Blob'u File'a çevir (bunnyUploadPhoto File bekliyor)
+        const fileObj = new File([blob], dosyaAdi, { type: "image/jpeg" });
+
+        const cdnUrl = await bunnyUploadPhoto(fileObj, path);
+
+        // Eski fotoyu sil (varsa)
+        const ogr = ogrenciList.find(o => o.id === aktifFotoOgrId);
+        const eskiFotoUrl = ogr?.fotoUrl;
+
+        // Firestore'a SADECE URL kaydet (resim verisini değil!)
         await updateDoc(doc(db, "ogrenciler", aktifFotoOgrId), {
-          fotoUrl: dataUrl,
+          fotoUrl: cdnUrl,
+          fotoYol: path,  // silmek için path'i de saklayalım
           fotoGuncelleme: serverTimestamp()
         });
-        // Cache'i güncelle
-        const ogr = ogrenciList.find(o => o.id === aktifFotoOgrId);
-        if (ogr) ogr.fotoUrl = dataUrl;
 
+        // Cache'i güncelle
+        if (ogr) {
+          ogr.fotoUrl = cdnUrl;
+          ogr.fotoYol = path;
+        }
+
+        // Eski fotoyu Bunny'den sil (varsa ve farklıysa)
+        if (eskiFotoUrl && eskiFotoUrl !== cdnUrl) {
+          try {
+            // Eski yol varsa onu kullan, yoksa URL'den çıkarmaya çalış
+            const eskiPath = ogr?._eskiFotoYol || (eskiFotoUrl.startsWith("data:") ? null : eskiFotoUrl.replace(/^https?:\/\/[^/]+\//,""));
+            if (eskiPath && !eskiPath.startsWith("data:")) {
+              const cfg = await loadBunnyConfig();
+              if (cfg) {
+                await fetch(`${cfg.storageEndpoint}/${eskiPath}`, {
+                  method: "DELETE",
+                  headers: { "AccessKey": cfg.storagePassword }
+                }).catch(() => {});
+              }
+            }
+          } catch(e) { console.warn("Eski foto silinemedi:", e); }
+        }
+
+        if (yuklemeRozeti) yuklemeRozeti.remove();
         if (typeof showToast === "function") showToast("✓ Fotoğraf yüklendi");
 
-        // Eğitim sekmesindeki matrix'i yenile (eğer açıksa)
+        // Eğitim Matrix'i yenile
         if (egitimAktifDisiplin) egitimMatrixRender();
-        // Öğrenci listesini yenile
         if (typeof renderTable === "function") setTimeout(() => renderTable(), 100);
 
         setTimeout(() => fotoYukleKapat(), 600);
       } catch(err) {
-        console.error("Foto kayıt hatası:", err);
-        alert("Fotoğraf kaydedilemedi: " + err.message);
+        if (yuklemeRozeti) yuklemeRozeti.remove();
+        console.error("Foto yükleme hatası:", err);
+        alert("Fotoğraf Bunny.net'e yüklenemedi:\n" + err.message + "\n\nLütfen internet bağlantınızı kontrol edin.");
       }
     };
     img.onerror = () => alert("Resim yüklenemedi. Dosya bozuk olabilir.");
@@ -13164,12 +13206,29 @@ window.fotoSil = async function() {
   if (!aktifFotoOgrId) return;
   if (!confirm("Bu öğrencinin fotoğrafını silmek istediğinizden emin misiniz?")) return;
   try {
+    const ogr = ogrenciList.find(o => o.id === aktifFotoOgrId);
+    const eskiPath = ogr?.fotoYol;
+
+    // Önce Bunny'den sil
+    if (eskiPath) {
+      try {
+        const cfg = await loadBunnyConfig();
+        if (cfg) {
+          await fetch(`${cfg.storageEndpoint}/${eskiPath}`, {
+            method: "DELETE",
+            headers: { "AccessKey": cfg.storagePassword }
+          }).catch(() => {});
+        }
+      } catch(e) { console.warn("Bunny silme hatası:", e); }
+    }
+
+    // Sonra Firestore'dan kaldır
     await updateDoc(doc(db, "ogrenciler", aktifFotoOgrId), {
       fotoUrl: null,
+      fotoYol: null,
       fotoGuncelleme: serverTimestamp()
     });
-    const ogr = ogrenciList.find(o => o.id === aktifFotoOgrId);
-    if (ogr) ogr.fotoUrl = null;
+    if (ogr) { ogr.fotoUrl = null; ogr.fotoYol = null; }
     if (typeof showToast === "function") showToast("✓ Fotoğraf silindi");
     if (egitimAktifDisiplin) egitimMatrixRender();
     if (typeof renderTable === "function") setTimeout(() => renderTable(), 100);
