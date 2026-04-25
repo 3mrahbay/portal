@@ -4545,6 +4545,313 @@ html, body {
   display: inline-block;
 }
 
+/* Veli rapor dashboard - 3 disiplin mini kartları */
+.rapor-disiplin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.rapor-disiplin-karti {
+  background: white;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.rapor-disiplin-karti:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+.rapor-disiplin-ust {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.rapor-disiplin-ikon {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.rapor-disiplin-ad {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: #1f2937;
+}
+.rapor-disiplin-yuzde {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.rapor-disiplin-detay {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #4b5563;
+  margin-bottom: 12px;
+}
+.rapor-disiplin-detay strong {
+  color: #1f2937;
+}
+.rapor-disiplin-bar {
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.rapor-disiplin-bar > div {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s;
+}
+.rapor-disiplin-link {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: right;
+  font-weight: 500;
+}
+.rapor-disiplin-karti:hover .rapor-disiplin-link {
+  color: #166534;
+}
+.rapor-geri-btn {
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  margin-bottom: 14px;
+  font-family: inherit;
+}
+.rapor-geri-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+/* ============ DİSİPLİN SEKMELERİ (3 disiplin + yorumlar) ============ */
+.disiplin-sekme-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 6px;
+  background: #f3f4f6;
+  border-radius: 12px;
+}
+@media (max-width: 700px) {
+  .disiplin-sekme-bar { grid-template-columns: repeat(2, 1fr); }
+}
+.disiplin-sekme-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px;
+  background: white;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.disiplin-sekme-btn:hover {
+  background: #fafafa;
+  transform: translateY(-1px);
+}
+.disiplin-sekme-btn.aktif {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-color: #2d6a4f;
+}
+.disiplin-sekme-btn[data-disiplin="ingilizce"].aktif { border-color: #1d4ed8; }
+.disiplin-sekme-btn[data-disiplin="degerler"].aktif  { border-color: #7c3aed; }
+.disiplin-sekme-btn.ozel.aktif { border-color: #ea580c; }
+.disiplin-sekme-ikon {
+  font-size: 22px;
+  line-height: 1;
+}
+.disiplin-sekme-ad {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+  line-height: 1.2;
+}
+.disiplin-sekme-yuzde {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  font-family: 'Fraunces', Georgia, serif;
+}
+.disiplin-sekme-btn.aktif .disiplin-sekme-yuzde { color: #1f2937; }
+
+/* Öğretmen yorumları formu */
+.yorum-bilgi-kutusu {
+  padding: 12px 14px;
+  background: #fff7ed;
+  border-left: 4px solid #ea580c;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+.yorum-bilgi-kutusu strong {
+  font-size: 13px;
+  color: #9a3412;
+  display: block;
+  margin-bottom: 4px;
+}
+.yorum-bilgi-kutusu p {
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0;
+}
+.yorum-yeni-form {
+  background: #fafafa;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+.yorum-yeni-form input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+.yorum-yeni-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+.yorum-yeni-alt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.yorum-paylas-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #1f2937;
+  user-select: none;
+}
+.yorum-paylas-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #ea580c;
+}
+
+/* Yorum kartları */
+.yorum-karti {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  position: relative;
+}
+.yorum-karti.paylas {
+  border-left: 4px solid #16a34a;
+  background: #f0fdf4;
+}
+.yorum-karti.gizli {
+  border-left: 4px solid #9ca3af;
+}
+.yorum-karti-ust {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.yorum-karti-baslik {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1f2937;
+  flex: 1;
+}
+.yorum-karti-meta {
+  font-size: 11px;
+  color: #6b7280;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.yorum-karti-rozet {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.yorum-karti-rozet.paylas {
+  background: #dcfce7;
+  color: #166534;
+}
+.yorum-karti-rozet.gizli {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.yorum-karti-metin {
+  font-size: 13px;
+  color: #1f2937;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-bottom: 6px;
+}
+.yorum-karti-aksiyonlar {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.yorum-karti-btn {
+  background: none;
+  border: 1px solid #e5e7eb;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #6b7280;
+}
+.yorum-karti-btn:hover {
+  background: #f9fafb;
+}
+.yorum-karti-btn.sil {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.yorum-karti-btn.sil:hover {
+  background: #fef2f2;
+}
+
 /* ============ VELİ PANELİ ============ */
 #veliPanel { display: none; min-height: 100vh; background: var(--cream); }
 #veliPanel.active { display: block; }
@@ -7648,11 +7955,11 @@ html, body {
       </div>
       </div>
 
-      <!-- ============ GELİŞİM SEKMESİ (Montessori) ============ -->
+      <!-- ============ EĞİTİM SEKMESİ (3 Disiplin + Yorumlar) ============ -->
       <div class="modal-tab-panel" id="panel-gelisim">
         <div class="gelisim-baslik">
           <div>
-            <strong>🌱 Montessori Gelişim Takibi</strong>
+            <strong>📚 Eğitim Takibi</strong>
             <small id="gelisimSonGuncelleme">Henüz kayıt yok</small>
           </div>
           <div class="gelisim-baslik-saglar">
@@ -7660,22 +7967,74 @@ html, body {
           </div>
         </div>
 
-        <!-- 5 alan özet kartları -->
-        <div class="gelisim-ozet-grid" id="gelisimOzetGrid">
-          <div style="padding:30px; text-align:center; color:#6b7280; font-size:13px;">Yükleniyor...</div>
+        <!-- DİSİPLİN SEKMELERİ -->
+        <div class="disiplin-sekme-bar" id="disiplinSekmeBar">
+          <button type="button" class="disiplin-sekme-btn aktif" data-disiplin="montessori" onclick="disiplinSec('montessori')">
+            <span class="disiplin-sekme-ikon">🌱</span>
+            <span class="disiplin-sekme-ad">Montessori</span>
+            <span class="disiplin-sekme-yuzde" id="disiplinYuzde-montessori">%0</span>
+          </button>
+          <button type="button" class="disiplin-sekme-btn" data-disiplin="ingilizce" onclick="disiplinSec('ingilizce')">
+            <span class="disiplin-sekme-ikon">🇬🇧</span>
+            <span class="disiplin-sekme-ad">İngilizce</span>
+            <span class="disiplin-sekme-yuzde" id="disiplinYuzde-ingilizce">%0</span>
+          </button>
+          <button type="button" class="disiplin-sekme-btn" data-disiplin="degerler" onclick="disiplinSec('degerler')">
+            <span class="disiplin-sekme-ikon">💎</span>
+            <span class="disiplin-sekme-ad">Değerler</span>
+            <span class="disiplin-sekme-yuzde" id="disiplinYuzde-degerler">%0</span>
+          </button>
+          <button type="button" class="disiplin-sekme-btn ozel" data-disiplin="yorumlar" onclick="disiplinSec('yorumlar')">
+            <span class="disiplin-sekme-ikon">📝</span>
+            <span class="disiplin-sekme-ad">Öğretmen Yorumları</span>
+            <span class="disiplin-sekme-yuzde" id="disiplinYuzde-yorumlar">0</span>
+          </button>
         </div>
 
-        <!-- Detay alan -->
-        <div id="gelisimDetayAlanlari"></div>
+        <!-- DİSİPLİN İÇERİĞİ -->
+        <div id="disiplinIcerikAlani">
+          <!-- Standart 3 disiplin için -->
+          <div id="disiplinStandartIcerik" style="display:none;">
+            <!-- Alan özet kartları -->
+            <div class="gelisim-ozet-grid" id="gelisimOzetGrid">
+              <div style="padding:30px; text-align:center; color:#6b7280; font-size:13px; grid-column:1/-1;">Yükleniyor...</div>
+            </div>
 
-        <!-- Öğretmen notları -->
-        <div class="gelisim-notlar-bolumu">
-          <div class="gelisim-notlar-baslik">📝 Öğretmen Gözlem Notları</div>
-          <div style="display:flex; gap:8px; margin-bottom:12px;">
-            <textarea id="gelisimYeniNot" rows="2" placeholder="Bu hafta nasıl bir gelişim gördünüz? Çocuğun ilgisi neredeydi?" style="flex:1; padding:10px; border:1px solid #e5e7eb; border-radius:8px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
-            <button type="button" class="btn-primary" onclick="gelisimNotKaydet()" style="white-space:nowrap; align-self:flex-start;">💾 Not Ekle</button>
+            <!-- Detay alan akordiyon -->
+            <div id="gelisimDetayAlanlari"></div>
+
+            <!-- Disipline özel öğretmen notları -->
+            <div class="gelisim-notlar-bolumu">
+              <div class="gelisim-notlar-baslik">📝 Disipline Özel Notlar (sadece öğretmen görür)</div>
+              <div style="display:flex; gap:8px; margin-bottom:12px;">
+                <textarea id="gelisimYeniNot" rows="2" placeholder="Bu hafta bu alanda nasıl bir gelişim gördünüz?" style="flex:1; padding:10px; border:1px solid #e5e7eb; border-radius:8px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
+                <button type="button" class="btn-primary" onclick="gelisimNotKaydet()" style="white-space:nowrap; align-self:flex-start;">💾 Not Ekle</button>
+              </div>
+              <div id="gelisimNotlarListesi" style="max-height:250px; overflow-y:auto;"></div>
+            </div>
           </div>
-          <div id="gelisimNotlarListesi" style="max-height:300px; overflow-y:auto;"></div>
+
+          <!-- Öğretmen yorumları için ayrı içerik -->
+          <div id="ogretmenYorumlariIcerik" style="display:none;">
+            <div class="yorum-bilgi-kutusu">
+              <strong>💡 Öğretmen Yorumları nedir?</strong>
+              <p>Burası, çocuk hakkında genel gözlem ve değerlendirmelerinizi paylaştığınız yer. <strong>"Veliyle paylaş"</strong> seçili yorumlar veliye Raporlar sekmesinde görünür. İşaretsiz yorumlar sadece öğretmenler görür.</p>
+            </div>
+
+            <div class="yorum-yeni-form">
+              <input type="text" id="yorumYeniBaslik" placeholder="Başlık (örn: Sosyal Gelişim, Aile Toplantısı Notu)" maxlength="80">
+              <textarea id="yorumYeniMetin" rows="4" placeholder="Çocuğun bu dönemde nasıl bir gelişim gösterdiğini detaylı yazın. Spesifik örnekler verin."></textarea>
+              <div class="yorum-yeni-alt">
+                <label class="yorum-paylas-check">
+                  <input type="checkbox" id="yorumYeniPaylas">
+                  <span>👨‍👩‍👧 Bu yorumu veliyle paylaş</span>
+                </label>
+                <button type="button" class="btn-primary" onclick="yorumKaydet()">💾 Yorumu Kaydet</button>
+              </div>
+            </div>
+
+            <div id="yorumlarListesi" style="margin-top:18px;"></div>
+          </div>
         </div>
       </div>
 
@@ -11600,15 +11959,35 @@ async function renderAylikOzet() {
 }
 
 
-// ============ MONTESSORI GELİŞİM SİSTEMİ ============
+// ============ EĞİTİM TAKİP SİSTEMİ (Çoklu Disiplin) ============
+// 3 ayrı eğitim disiplini: Montessori, İngilizce, Değerler Eğitimi
 // Veri yapısı:
-//   montessoriMufredat/aktif → { alanlar: [...] }     (admin düzenleyebilir)
-//   montessoriGelisim/{ogrId} → { kayitlar: {key: "S"|"T"|"U"}, notlar: [], sonGuncelleme }
-//
+//   mufredatlar/{disiplin} → { alanlar: [...] }    (admin düzenleyebilir)
+//   ogrenciGelisim/{ogrId} → {
+//      montessori: { kayitlar:{}, notlar:[] },
+//      ingilizce:  { kayitlar:{}, notlar:[] },
+//      degerler:   { kayitlar:{}, notlar:[] },
+//      ogretmenYorumlari: [{ tarih, baslik, metin, yazar, paylas }]
+//   }
 // Kayıt anahtarı: "alanId__grupAd__dersAd"  (örn: "practical__Öz Bakım__El Yıkama")
 
-// Varsayılan müfredat — Bir Çiçek Koleji PDF'inden
-const VARSAYILAN_MUFREDAT = [
+// 3 disiplinin meta bilgisi
+const DISIPLINLER = [
+  { id:"montessori", ad:"Montessori",        ikon:"🌱", renk:"#2d6a4f", aciklama:"Maria Montessori metoduna göre 5 alanda ders takibi" },
+  { id:"ingilizce",  ad:"İngilizce",         ikon:"🇬🇧", renk:"#1d4ed8", aciklama:"Yaş grubuna uygun erken İngilizce takibi" },
+  { id:"degerler",   ad:"Değerler Eğitimi",  ikon:"💎", renk:"#7c3aed", aciklama:"Çocuğun karakter ve değer gelişimi" }
+];
+
+// Renk haritası (S/T/U için)
+const STU_BILGI = {
+  S: { ad:"Sunuldu",     ikon:"🌱", renk:"#16a34a", bg:"#f0fdf4", border:"#bbf7d0" },
+  T: { ad:"Tekrar",      ikon:"🌿", renk:"#d97706", bg:"#fffbeb", border:"#fde68a" },
+  U: { ad:"Uzmanlaştı",  ikon:"🌳", renk:"#7c3aed", bg:"#faf5ff", border:"#e9d5ff" }
+};
+
+// =================== MÜFREDAT 1: MONTESSORI ===================
+// Bir Çiçek Koleji PDF'inden alınan tam müfredat
+const VARSAYILAN_MUFREDAT_MONTESSORI = [
   { id:"practical", ad:"Günlük Yaşam", ikon:"🌿", renk:"#5C8B5A", gruplar:[
     { ad:"Ön Çalışmalar", dersler:["Sandalye Taşıma","Kapı Açma/Kapama","Tepsi Taşıma","Masa Servisi","Peçete Katlama","Kaşıklama 1","Kaşıklama 2","Kuru Aktarma 1","Kuru Aktarma 2","Kuru Aktarma 3","Sulu Aktarma 1","Sulu Aktarma 2","Süngerle Aktarma"] },
     { ad:"Öz Bakım", dersler:["Düğme Çerçevesi","Çıt Çıtlı Çerçeve","Kopça Çerçeve","Cırt Cırtlı Çerçeve","Kemer Tokası Çerçeve","Fermuar Çerçeve","Kurdele Çerçevesi","El Yıkama","Muz Kesme","Ayakkabı Cilalama"] },
@@ -11643,47 +12022,129 @@ const VARSAYILAN_MUFREDAT = [
   ]}
 ];
 
-// Renk haritası (S/T/U için)
-const STU_BILGI = {
-  S: { ad:"Sunuldu",     ikon:"🌱", renk:"#16a34a", bg:"#f0fdf4", border:"#bbf7d0" },
-  T: { ad:"Tekrar",      ikon:"🌿", renk:"#d97706", bg:"#fffbeb", border:"#fde68a" },
-  U: { ad:"Uzmanlaştı",  ikon:"🌳", renk:"#7c3aed", bg:"#faf5ff", border:"#e9d5ff" }
+// =================== MÜFREDAT 2: İNGİLİZCE ===================
+// Erken yaş İngilizce eğitimi - 2-6 yaş için CEFR Pre-A1 / Starters seviyesi
+// Cambridge Young Learners ve British Council ESL standartlarına uygun
+const VARSAYILAN_MUFREDAT_INGILIZCE = [
+  { id:"listening", ad:"Listening (Dinleme)", ikon:"👂", renk:"#0891b2", gruplar:[
+    { ad:"Sınıf İçi Komutlar", dersler:["Stand up / Sit down","Come here / Go there","Open / Close (door, book)","Listen / Look","Be quiet / Tidy up","Line up / Hold hands","Wash your hands","Put on / Take off","Give me / Show me","Touch your ___ (head, nose, etc.)"] },
+    { ad:"Şarkı Tanıma", dersler:["Hello Song","Goodbye Song","ABC Song","Head Shoulders Knees and Toes","If You're Happy","Twinkle Twinkle Little Star","Old MacDonald","Wheels on the Bus","Five Little Monkeys","Itsy Bitsy Spider"] },
+    { ad:"Hikâye Dinleme", dersler:["The Very Hungry Caterpillar","Brown Bear Brown Bear","Goldilocks","The Three Little Pigs","The Gingerbread Man","We're Going on a Bear Hunt","Hikayeyi takip etme","Karakter tanıma","Olay sırası","Sonu tahmin etme"] }
+  ]},
+  { id:"speaking", ad:"Speaking (Konuşma)", ikon:"💬", renk:"#0e7490", gruplar:[
+    { ad:"Selamlaşma & Tanışma", dersler:["Hello / Hi / Bye","Good morning / afternoon","How are you?","I'm fine, thank you","What's your name?","My name is ___","How old are you?","I'm ___ years old","Nice to meet you","See you tomorrow"] },
+    { ad:"Temel İfadeler", dersler:["Yes / No","Please / Thank you","You're welcome","Sorry / Excuse me","I don't know","I like / I don't like","I want / I need","Help me please","Can I…?","May I go to the toilet?"] },
+    { ad:"Kendini İfade", dersler:["I am happy / sad / angry","I am hungry / thirsty","I am tired / sleepy","This is my ___","Look at me!","I can ___ (jump, run, sing)","It's mine / yours","I love my mum / dad","Today is ___ (day)","The weather is ___"] }
+  ]},
+  { id:"vocabulary", ad:"Vocabulary (Kelime)", ikon:"📚", renk:"#2563eb", gruplar:[
+    { ad:"Renkler", dersler:["Red","Blue","Yellow","Green","Orange","Purple","Pink","Black","White","Brown"] },
+    { ad:"Sayılar", dersler:["One to Ten","Eleven to Twenty","Counting objects","How many?","First / Second / Third"] },
+    { ad:"Aile", dersler:["Mother / Mum","Father / Dad","Sister","Brother","Grandmother","Grandfather","Baby","Family"] },
+    { ad:"Vücut", dersler:["Head","Eyes","Nose","Mouth","Ears","Hair","Hands / Fingers","Feet / Toes","Arms / Legs","Tummy"] },
+    { ad:"Hayvanlar", dersler:["Dog","Cat","Bird","Fish","Cow","Horse","Sheep","Lion","Elephant","Monkey","Rabbit","Bear"] },
+    { ad:"Yiyecek & İçecek", dersler:["Apple","Banana","Bread","Milk","Water","Juice","Cheese","Egg","Cake","Cookie","Pasta","Soup"] },
+    { ad:"Giysiler", dersler:["T-shirt","Trousers","Shoes","Socks","Hat","Coat","Dress","Skirt"] },
+    { ad:"Ev & Sınıf", dersler:["Door","Window","Table","Chair","Bed","Book","Pencil","Bag","Toy","Ball"] },
+    { ad:"Doğa & Hava", dersler:["Sun","Moon","Star","Tree","Flower","Cloud","Rain","Snow","Hot / Cold","Sunny / Rainy"] }
+  ]},
+  { id:"songs", ad:"Songs & Rhymes", ikon:"🎵", renk:"#7c3aed", gruplar:[
+    { ad:"Hareket Şarkıları", dersler:["Hokey Pokey","Head Shoulders Knees and Toes","If You're Happy","Walking Walking","Skidamarink","Baby Shark","Five Little Ducks","Open Shut Them"] },
+    { ad:"Konu Şarkıları", dersler:["Rainbow Song (renkler)","Days of the Week","Months Song","Weather Song","Family Finger","ABC Song","Number Song 1-10","Animal Sounds"] },
+    { ad:"Tekerlemeler", dersler:["Humpty Dumpty","Jack and Jill","Mary Had a Little Lamb","Hey Diddle Diddle","One Two Buckle My Shoe","Round and Round the Garden"] }
+  ]},
+  { id:"reading", ad:"Stories & Reading", ikon:"📖", renk:"#0369a1", gruplar:[
+    { ad:"Görsel Okuma", dersler:["Resimden hikâye anlatma","Karakter tanıma","Duygu okuma","Renk eşleştirme","Şekil eşleştirme","Sayı tanıma"] },
+    { ad:"Erken Okuma", dersler:["Alfabe tanıma","Büyük-küçük harf","İlk sesler (phonics)","Basit kelimeler (sight words)","Kelime-resim eşleştirme","Basit cümle okuma"] },
+    { ad:"Yazma Hazırlık", dersler:["Çizgi takip","Şekil çizme","Harf çizme","Adını yazma","Renk yazısı","Sayı yazısı"] }
+  ]}
+];
+
+// =================== MÜFREDAT 3: DEĞERLER EĞİTİMİ ===================
+// MEB Okul Öncesi Değerler Eğitimi + Bir Çiçek Koleji eklemeleri
+const VARSAYILAN_MUFREDAT_DEGERLER = [
+  { id:"saygi", ad:"Saygı & Empati", ikon:"💗", renk:"#dc2626", gruplar:[
+    { ad:"Büyüklere Saygı", dersler:["Anne-babaya saygı","Öğretmene saygı","Yaşlılara saygı","Selam verme","Söz dinleme","Teşekkür etme","Özür dileme","Lütfen demek"] },
+    { ad:"Akranlara Saygı", dersler:["Sıra bekleme","Konuşma sırası","Başkasının fikrine saygı","Farklılıklara saygı","Engelli arkadaşlara saygı","İsme dikkat","Kıskanmama","Alay etmeme"] },
+    { ad:"Empati", dersler:["Üzgün arkadaşı fark etme","Acı çeken hayvanı fark etme","Mutluluğa eşlik etme","Yardım teklif etme","Duyguları adlandırma","Kendini başkasının yerine koyma"] }
+  ]},
+  { id:"sorumluluk", ad:"Sorumluluk", ikon:"🌟", renk:"#ea580c", gruplar:[
+    { ad:"Öz Sorumluluk", dersler:["Eşyalarını toplama","Ayakkabı bağcığı","Giyinme","Diş fırçalama","Yatağını düzeltme","Eşyalarını kaybetmeme","Sözünü tutma","Hatasını kabul etme"] },
+    { ad:"Sınıf Sorumluluğu", dersler:["Sırasını temiz tutma","Materyalleri yerine koyma","Sınıf nöbetçiliği","Bitki sulama","Kapıyı yavaş kapatma","Gürültü yapmama","Sıraya girme","Kuyrukta sırasını koruma"] },
+    { ad:"Çevreye Sorumluluk", dersler:["Çöpü çöpe atma","Geri dönüşüm","Suyu boşa harcamama","Elektriği boşa harcamama","Ağaca zarar vermeme","Hayvanlara zarar vermeme"] }
+  ]},
+  { id:"sabir", ad:"Sabır & Sebat", ikon:"🌱", renk:"#16a34a", gruplar:[
+    { ad:"Sabır", dersler:["Sırasını bekleme","Yemek beklerken sabırlı olma","Konuşma sırası bekleme","Sıra arkadaşının işini bitirmesini bekleme","Hemen istememe","Kızmadan tekrar deneme"] },
+    { ad:"Sebat & Azim", dersler:["Zor işi bırakmama","Tekrar deneme","Yardım isteyebilme","Hata yapmaktan korkmama","Kendine güvenme","Bir işi bitirme alışkanlığı","Hedefe ulaşma keyfi"] }
+  ]},
+  { id:"paylasim", ad:"Paylaşım & İşbirliği", ikon:"🤝", renk:"#0ea5e9", gruplar:[
+    { ad:"Paylaşım", dersler:["Oyuncak paylaşma","Yiyecek paylaşma","Sırasını paylaşma","Bilgisini paylaşma","Sevgi paylaşma","Üzüntü paylaşma","Sevinç paylaşma"] },
+    { ad:"İşbirliği", dersler:["Grup oyunu","Birlikte iş yapma","Yardımlaşma","Birbirini dinleme","Ortak karar verme","Anlaşmazlık çözme","Takım çalışması"] },
+    { ad:"Cömertlik", dersler:["İhtiyaç sahibine yardım","Hediye verme","İltifat etme","Affetme","Yardım severlik","Misafirperverlik"] }
+  ]},
+  { id:"doga", ad:"Doğa Sevgisi", ikon:"🌳", renk:"#15803d", gruplar:[
+    { ad:"Hayvan Sevgisi", dersler:["Hayvanları sevme","Hayvanlara nazik olma","Sokak hayvanlarını koruma","Hayvanlara su/yem verme","Hayvan beslerken sorumluluk","Yaban hayvanlarına saygı"] },
+    { ad:"Bitki Sevgisi", dersler:["Bitki büyütme","Çiçek koparmama","Ağaç dikme","Bitki sulama","Bitki bakımı","Mevsim takibi"] },
+    { ad:"Çevre Bilinci", dersler:["Doğada temizlik","Geri dönüşüm","Su tasarrufu","Enerji tasarrufu","Plastik kullanımını azaltma","Doğa sevgisi"] }
+  ]},
+  { id:"kultur", ad:"Kültürel Değerler", ikon:"🎭", renk:"#9333ea", gruplar:[
+    { ad:"Aile Değerleri", dersler:["Aile büyüklerine saygı","Yemek adabı","Ziyaret kuralları","Misafir ağırlama","Aile fertlerini sevme","Aile geleneklerini bilme"] },
+    { ad:"Milli & Manevi Değerler", dersler:["Bayrak sevgisi","İstiklal Marşı","Atatürk sevgisi","Millî bayramlar","Ülke sevgisi","Şehit ve gazileri anma"] },
+    { ad:"Yardımseverlik", dersler:["Komşu ziyareti","Hasta ziyareti","Kardeşlik bilinci","Yetimleri unutmama","İhtiyaç sahibini gözetme"] },
+    { ad:"Dürüstlük & Doğruluk", dersler:["Yalan söylememe","Hırsızlık yapmama","Sözünde durma","Dürüst alışveriş","Doğruyu söyleme cesareti","Emanete sahip çıkma"] }
+  ]}
+];
+
+// Aktif müfredatlar (Firestore'dan yüklenenler)
+let aktifMufredatlar = {
+  montessori: null,
+  ingilizce:  null,
+  degerler:   null
 };
 
-// Aktif müfredat (Firestore'dan yüklenen veya varsayılan)
-let aktifMufredat = null;
-
 // Müfredatı Firestore'dan yükle (yoksa varsayılanı kaydet)
-async function mufredatYukle() {
-  if (aktifMufredat) return aktifMufredat;
+async function mufredatYukle(disiplin) {
+  if (aktifMufredatlar[disiplin]) return aktifMufredatlar[disiplin];
+  const varsayilanlar = {
+    montessori: VARSAYILAN_MUFREDAT_MONTESSORI,
+    ingilizce:  VARSAYILAN_MUFREDAT_INGILIZCE,
+    degerler:   VARSAYILAN_MUFREDAT_DEGERLER
+  };
   try {
-    const snap = await getDoc(doc(db, "montessoriMufredat", "aktif"));
+    const snap = await getDoc(doc(db, "mufredatlar", disiplin));
     if (snap.exists() && snap.data().alanlar) {
-      aktifMufredat = snap.data().alanlar;
+      aktifMufredatlar[disiplin] = snap.data().alanlar;
     } else {
-      // İlk kullanım — varsayılanı kaydet
-      aktifMufredat = JSON.parse(JSON.stringify(VARSAYILAN_MUFREDAT));
-      await setDoc(doc(db, "montessoriMufredat", "aktif"), {
-        alanlar: aktifMufredat,
+      aktifMufredatlar[disiplin] = JSON.parse(JSON.stringify(varsayilanlar[disiplin]));
+      await setDoc(doc(db, "mufredatlar", disiplin), {
+        alanlar: aktifMufredatlar[disiplin],
         olusturulma: serverTimestamp(),
         sonGuncelleme: serverTimestamp()
       });
-      console.log("Varsayılan Montessori müfredatı oluşturuldu.");
+      console.log(`Varsayılan ${disiplin} müfredatı oluşturuldu.`);
     }
-    return aktifMufredat;
+    return aktifMufredatlar[disiplin];
   } catch(e) {
-    console.error("Müfredat yüklenemedi:", e);
-    aktifMufredat = JSON.parse(JSON.stringify(VARSAYILAN_MUFREDAT));
-    return aktifMufredat;
+    console.error(`${disiplin} müfredatı yüklenemedi:`, e);
+    aktifMufredatlar[disiplin] = JSON.parse(JSON.stringify(varsayilanlar[disiplin]));
+    return aktifMufredatlar[disiplin];
   }
 }
 
+// Tüm müfredatları yükle (yan yana)
+async function tumMufredatlariYukle() {
+  await Promise.all([
+    mufredatYukle("montessori"),
+    mufredatYukle("ingilizce"),
+    mufredatYukle("degerler")
+  ]);
+}
+
 // Müfredatı Firestore'a kaydet (admin düzenlediğinde)
-async function mufredatKaydet() {
-  if (!aktifMufredat) return false;
+async function mufredatKaydet(disiplin) {
+  if (!aktifMufredatlar[disiplin]) return false;
   try {
-    await setDoc(doc(db, "montessoriMufredat", "aktif"), {
-      alanlar: aktifMufredat,
+    await setDoc(doc(db, "mufredatlar", disiplin), {
+      alanlar: aktifMufredatlar[disiplin],
       sonGuncelleme: serverTimestamp()
     }, { merge: true });
     return true;
@@ -11693,41 +12154,52 @@ async function mufredatKaydet() {
   }
 }
 
-// Bir öğrencinin gelişim verilerini yükle
+// Bir öğrencinin gelişim verilerini yükle (tüm disiplinler)
 async function gelisimYukle(ogrenciId) {
-  if (!ogrenciId) return { kayitlar:{}, notlar:[] };
+  const bos = {
+    montessori: { kayitlar:{}, notlar:[] },
+    ingilizce:  { kayitlar:{}, notlar:[] },
+    degerler:   { kayitlar:{}, notlar:[] },
+    ogretmenYorumlari: [],
+    sonGuncelleme: null
+  };
+  if (!ogrenciId) return bos;
   try {
-    const snap = await getDoc(doc(db, "montessoriGelisim", ogrenciId));
+    const snap = await getDoc(doc(db, "ogrenciGelisim", ogrenciId));
     if (snap.exists()) {
       const d = snap.data();
       return {
-        kayitlar: d.kayitlar || {},
-        notlar:   d.notlar   || [],
+        montessori: d.montessori || { kayitlar:{}, notlar:[] },
+        ingilizce:  d.ingilizce  || { kayitlar:{}, notlar:[] },
+        degerler:   d.degerler   || { kayitlar:{}, notlar:[] },
+        ogretmenYorumlari: d.ogretmenYorumlari || [],
         sonGuncelleme: d.sonGuncelleme || null
       };
     }
-    return { kayitlar:{}, notlar:[] };
+    return bos;
   } catch(e) {
     console.error("Gelişim yüklenemedi:", e);
-    return { kayitlar:{}, notlar:[] };
+    return bos;
   }
 }
 
-// Tek bir ders durumunu güncelle
-async function gelisimDersGuncelle(ogrenciId, alanId, grupAd, dersAd, durum) {
-  if (!ogrenciId) return false;
+// Tek bir ders durumunu güncelle (disipline göre)
+async function gelisimDersGuncelle(ogrenciId, disiplin, alanId, grupAd, dersAd, durum) {
+  if (!ogrenciId || !disiplin) return false;
   const anahtar = `${alanId}__${grupAd}__${dersAd}`;
   try {
-    const ref = doc(db, "montessoriGelisim", ogrenciId);
+    const ref = doc(db, "ogrenciGelisim", ogrenciId);
     const snap = await getDoc(ref);
-    let mevcut = snap.exists() ? (snap.data().kayitlar || {}) : {};
+    let mevcutDisiplin = (snap.exists() && snap.data()[disiplin]) ? snap.data()[disiplin] : { kayitlar:{}, notlar:[] };
+    let kayitlar = mevcutDisiplin.kayitlar || {};
     if (durum === null || durum === "") {
-      delete mevcut[anahtar];
+      delete kayitlar[anahtar];
     } else {
-      mevcut[anahtar] = durum;
+      kayitlar[anahtar] = durum;
     }
+    mevcutDisiplin.kayitlar = kayitlar;
     await setDoc(ref, {
-      kayitlar: mevcut,
+      [disiplin]: mevcutDisiplin,
       sonGuncelleme: serverTimestamp(),
       sonGuncelleyenEmail: currentUser?.email || "bilinmiyor"
     }, { merge: true });
@@ -11738,22 +12210,23 @@ async function gelisimDersGuncelle(ogrenciId, alanId, grupAd, dersAd, durum) {
   }
 }
 
-// Öğretmen notu ekle
-async function gelisimNotEkle(ogrenciId, metin) {
-  if (!ogrenciId || !metin || !metin.trim()) return false;
+// Disipline özel öğretmen notu ekle (alana içine - her disiplinin kendi notu)
+async function gelisimNotEkle(ogrenciId, disiplin, metin) {
+  if (!ogrenciId || !disiplin || !metin || !metin.trim()) return false;
   try {
-    const ref = doc(db, "montessoriGelisim", ogrenciId);
+    const ref = doc(db, "ogrenciGelisim", ogrenciId);
     const snap = await getDoc(ref);
-    let notlar = snap.exists() ? (snap.data().notlar || []) : [];
+    let mevcutDisiplin = (snap.exists() && snap.data()[disiplin]) ? snap.data()[disiplin] : { kayitlar:{}, notlar:[] };
+    let notlar = mevcutDisiplin.notlar || [];
     notlar.push({
       tarih: new Date().toISOString(),
       metin: metin.trim(),
       yazarEmail: currentUser?.email || "bilinmiyor"
     });
-    // En son 50 notu tut
     if (notlar.length > 50) notlar = notlar.slice(-50);
+    mevcutDisiplin.notlar = notlar;
     await setDoc(ref, {
-      notlar: notlar,
+      [disiplin]: mevcutDisiplin,
       sonGuncelleme: serverTimestamp()
     }, { merge: true });
     return true;
@@ -11763,7 +12236,52 @@ async function gelisimNotEkle(ogrenciId, metin) {
   }
 }
 
-// İstatistik hesapla — bir öğrenci için 5 alanın yüzdeleri
+// Genel öğretmen yorumu ekle (tüm disiplinler için ortak yorumlar bölümü)
+// Bu, "Öğretmen Yorumları" bölümünde tutulur ve veliyle paylaşılabilir
+async function ogretmenYorumuEkle(ogrenciId, baslik, metin, paylas) {
+  if (!ogrenciId || !metin || !metin.trim()) return false;
+  try {
+    const ref = doc(db, "ogrenciGelisim", ogrenciId);
+    const snap = await getDoc(ref);
+    let yorumlar = (snap.exists() && snap.data().ogretmenYorumlari) ? snap.data().ogretmenYorumlari : [];
+    yorumlar.push({
+      tarih: new Date().toISOString(),
+      baslik: (baslik || "").trim() || "Genel Yorum",
+      metin: metin.trim(),
+      yazarEmail: currentUser?.email || "bilinmiyor",
+      paylas: !!paylas  // true: veliye gösterilir
+    });
+    if (yorumlar.length > 100) yorumlar = yorumlar.slice(-100);
+    await setDoc(ref, {
+      ogretmenYorumlari: yorumlar,
+      sonGuncelleme: serverTimestamp()
+    }, { merge: true });
+    return true;
+  } catch(e) {
+    console.error("Yorum eklenemedi:", e);
+    return false;
+  }
+}
+
+async function ogretmenYorumuSil(ogrenciId, index) {
+  if (!ogrenciId) return false;
+  try {
+    const ref = doc(db, "ogrenciGelisim", ogrenciId);
+    const snap = await getDoc(ref);
+    let yorumlar = (snap.exists() && snap.data().ogretmenYorumlari) ? snap.data().ogretmenYorumlari : [];
+    yorumlar.splice(index, 1);
+    await setDoc(ref, {
+      ogretmenYorumlari: yorumlar,
+      sonGuncelleme: serverTimestamp()
+    }, { merge: true });
+    return true;
+  } catch(e) {
+    console.error("Yorum silinemedi:", e);
+    return false;
+  }
+}
+
+// İstatistik hesapla — bir disiplinin alanlarının yüzdeleri
 function gelisimIstatistik(kayitlar, mufredat) {
   if (!mufredat) return [];
   return mufredat.map(alan => {
@@ -11780,10 +12298,7 @@ function gelisimIstatistik(kayitlar, mufredat) {
     });
     const calisilan = sunuldu + tekrar + uzmanlasti;
     return {
-      alanId: alan.id,
-      ad: alan.ad,
-      ikon: alan.ikon,
-      renk: alan.renk,
+      alanId: alan.id, ad: alan.ad, ikon: alan.ikon, renk: alan.renk,
       toplam, sunuldu, tekrar, uzmanlasti, calisilan,
       yuzde: toplam ? Math.round((calisilan / toplam) * 100) : 0,
       uzmanlikYuzde: toplam ? Math.round((uzmanlasti / toplam) * 100) : 0
@@ -11791,10 +12306,23 @@ function gelisimIstatistik(kayitlar, mufredat) {
   });
 }
 
+// Disiplin bazlı genel ilerleme (3 disiplin için tek değer)
+function disiplinGenelIlerleme(kayitlarDisiplin, mufredat) {
+  const istat = gelisimIstatistik(kayitlarDisiplin, mufredat);
+  const toplam = istat.reduce((t,s)=>t+s.toplam,0);
+  const calisilan = istat.reduce((t,s)=>t+s.calisilan,0);
+  const uzmanlasti = istat.reduce((t,s)=>t+s.uzmanlasti,0);
+  return {
+    toplam, calisilan, uzmanlasti,
+    yuzde: toplam ? Math.round((calisilan/toplam)*100) : 0,
+    uzmanlikYuzde: toplam ? Math.round((uzmanlasti/toplam)*100) : 0
+  };
+}
+
 // Tüm öğrencilerin gelişim verilerini yükle (admin Raporlar için)
 async function tumGelisimYukle() {
   try {
-    const snap = await getDocs(collection(db, "montessoriGelisim"));
+    const snap = await getDocs(collection(db, "ogrenciGelisim"));
     const sonuc = {};
     snap.forEach(d => { sonuc[d.id] = d.data(); });
     return sonuc;
@@ -11804,33 +12332,87 @@ async function tumGelisimYukle() {
   }
 }
 
-// ============ ADMIN MODAL: GELİŞİM SEKMESİ RENDER ============
-let aktifGelisimVerisi = null; // { kayitlar, notlar }
-let acikAlanlar = new Set();   // Hangi alanların akordiyonu açık
+
+// ============ ADMIN MODAL: EĞİTİM SEKMESİ RENDER (3 DİSİPLİN) ============
+let aktifGelisimVerisi = null;       // Tüm öğrencinin tüm disiplin verisi
+let aktifSeciliDisiplin = "montessori"; // Hangi disiplin sekmesi açık
+let acikAlanlar = {                  // Her disiplinin ayrı akordiyon durumu
+  montessori: new Set(),
+  ingilizce:  new Set(),
+  degerler:   new Set()
+};
+
+function escapeHtmlGelisim(s) {
+  if (!s) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
 
 window.renderGelisimSekmesi = async function() {
-  const ozetGrid = document.getElementById("gelisimOzetGrid");
-  const detay    = document.getElementById("gelisimDetayAlanlari");
   const sonGuncEl = document.getElementById("gelisimSonGuncelleme");
-  if (!currentOgrenci || !ozetGrid || !detay) return;
+  if (!currentOgrenci) return;
 
-  ozetGrid.innerHTML = `<div style="padding:30px; text-align:center; color:#6b7280; font-size:13px; grid-column:1/-1;">Yükleniyor...</div>`;
-  detay.innerHTML = "";
-
-  // Müfredat ve gelişim verisini yükle
-  await mufredatYukle();
+  // Tüm müfredatları + öğrencinin gelişim verisini paralel yükle
+  await tumMufredatlariYukle();
   aktifGelisimVerisi = await gelisimYukle(currentOgrenci.id);
 
   // Son güncelleme bilgisi
-  if (aktifGelisimVerisi.sonGuncelleme) {
-    const t = aktifGelisimVerisi.sonGuncelleme.toDate ? aktifGelisimVerisi.sonGuncelleme.toDate() : new Date(aktifGelisimVerisi.sonGuncelleme);
-    sonGuncEl.textContent = `Son güncelleme: ${t.toLocaleDateString("tr-TR")} ${t.toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"})}`;
-  } else {
-    sonGuncEl.textContent = "Henüz kayıt yok";
+  if (sonGuncEl) {
+    if (aktifGelisimVerisi.sonGuncelleme) {
+      const t = aktifGelisimVerisi.sonGuncelleme.toDate ? aktifGelisimVerisi.sonGuncelleme.toDate() : new Date(aktifGelisimVerisi.sonGuncelleme);
+      sonGuncEl.textContent = `Son güncelleme: ${t.toLocaleDateString("tr-TR")} ${t.toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"})}`;
+    } else {
+      sonGuncEl.textContent = "Henüz kayıt yok";
+    }
   }
 
-  // Özet kartları çiz
-  const istat = gelisimIstatistik(aktifGelisimVerisi.kayitlar, aktifMufredat);
+  // Her disiplinin yüzdesini hesapla ve sekme butonlarına yaz
+  ["montessori","ingilizce","degerler"].forEach(d => {
+    const genel = disiplinGenelIlerleme(aktifGelisimVerisi[d].kayitlar, aktifMufredatlar[d]);
+    const el = document.getElementById(`disiplinYuzde-${d}`);
+    if (el) el.textContent = `%${genel.yuzde}`;
+  });
+  // Yorumlar sekmesi: yorum sayısı
+  const yorumSayisi = (aktifGelisimVerisi.ogretmenYorumlari || []).length;
+  const yorumEl = document.getElementById("disiplinYuzde-yorumlar");
+  if (yorumEl) yorumEl.textContent = yorumSayisi > 0 ? `${yorumSayisi} yorum` : "0 yorum";
+
+  // Aktif disiplini render et
+  disiplinSec(aktifSeciliDisiplin);
+};
+
+window.disiplinSec = function(disiplin) {
+  aktifSeciliDisiplin = disiplin;
+  // Sekme buton durumlarını güncelle
+  document.querySelectorAll(".disiplin-sekme-btn").forEach(b => {
+    b.classList.toggle("aktif", b.dataset.disiplin === disiplin);
+  });
+  // İçerikleri göster/gizle
+  const standart = document.getElementById("disiplinStandartIcerik");
+  const yorumlar = document.getElementById("ogretmenYorumlariIcerik");
+  if (disiplin === "yorumlar") {
+    if (standart) standart.style.display = "none";
+    if (yorumlar) yorumlar.style.display = "block";
+    renderOgretmenYorumlari();
+  } else {
+    if (standart) standart.style.display = "block";
+    if (yorumlar) yorumlar.style.display = "none";
+    renderDisiplinDetay(disiplin);
+  }
+};
+
+function renderDisiplinDetay(disiplin) {
+  const ozetGrid = document.getElementById("gelisimOzetGrid");
+  const detay    = document.getElementById("gelisimDetayAlanlari");
+  if (!ozetGrid || !detay) return;
+  const mufredat = aktifMufredatlar[disiplin];
+  const veri     = aktifGelisimVerisi[disiplin];
+  if (!mufredat) {
+    ozetGrid.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af; grid-column:1/-1;">Müfredat yüklenemedi</div>`;
+    return;
+  }
+
+  // Özet kartları
+  const istat = gelisimIstatistik(veri.kayitlar, mufredat);
   ozetGrid.innerHTML = istat.map(s => `
     <div class="gelisim-ozet-kart" style="border-color:${s.renk};" onclick="gelisimAlanToggle('${s.alanId}')">
       <div class="gelisim-ozet-ikon">${s.ikon}</div>
@@ -11843,10 +12425,11 @@ window.renderGelisimSekmesi = async function() {
     </div>
   `).join("");
 
-  // Detay alanları (akordiyon)
-  detay.innerHTML = aktifMufredat.map(alan => {
+  // Detay akordiyon
+  const acikSet = acikAlanlar[disiplin];
+  detay.innerHTML = mufredat.map(alan => {
     const s = istat.find(x => x.alanId === alan.id);
-    const acik = acikAlanlar.has(alan.id) ? "acik" : "";
+    const acik = acikSet.has(alan.id) ? "acik" : "";
     return `
       <div class="gelisim-alan ${acik}" id="gelisim-alan-${alan.id}">
         <div class="gelisim-alan-header" onclick="gelisimAlanToggle('${alan.id}')">
@@ -11863,15 +12446,17 @@ window.renderGelisimSekmesi = async function() {
               <div class="gelisim-grup-baslik">${g.ad}</div>
               ${g.dersler.map(d => {
                 const k = `${alan.id}__${g.ad}__${d}`;
-                const v = aktifGelisimVerisi.kayitlar[k] || "";
+                const v = veri.kayitlar[k] || "";
+                const grupEsc = g.ad.replace(/'/g,"\\'");
+                const dersEsc = d.replace(/'/g,"\\'");
                 return `
                   <div class="gelisim-ders-satir">
                     <div class="gelisim-ders-ad">${d}</div>
                     <div class="gelisim-stu-grup">
-                      <button type="button" class="gelisim-stu-btn ${v==='S'?'aktif-S':''}" onclick="gelisimStuTikla('${alan.id}','${g.ad.replace(/'/g,"\\'")}','${d.replace(/'/g,"\\'")}','S')" title="Sunuldu">S</button>
-                      <button type="button" class="gelisim-stu-btn ${v==='T'?'aktif-T':''}" onclick="gelisimStuTikla('${alan.id}','${g.ad.replace(/'/g,"\\'")}','${d.replace(/'/g,"\\'")}','T')" title="Tekrar">T</button>
-                      <button type="button" class="gelisim-stu-btn ${v==='U'?'aktif-U':''}" onclick="gelisimStuTikla('${alan.id}','${g.ad.replace(/'/g,"\\'")}','${d.replace(/'/g,"\\'")}','U')" title="Uzmanlaştı">U</button>
-                      ${v ? `<button type="button" class="gelisim-stu-btn temizle" onclick="gelisimStuTikla('${alan.id}','${g.ad.replace(/'/g,"\\'")}','${d.replace(/'/g,"\\'")}',null)" title="Temizle">×</button>` : ''}
+                      <button type="button" class="gelisim-stu-btn ${v==='S'?'aktif-S':''}" onclick="gelisimStuTikla('${alan.id}','${grupEsc}','${dersEsc}','S')" title="Sunuldu">S</button>
+                      <button type="button" class="gelisim-stu-btn ${v==='T'?'aktif-T':''}" onclick="gelisimStuTikla('${alan.id}','${grupEsc}','${dersEsc}','T')" title="Tekrar">T</button>
+                      <button type="button" class="gelisim-stu-btn ${v==='U'?'aktif-U':''}" onclick="gelisimStuTikla('${alan.id}','${grupEsc}','${dersEsc}','U')" title="Uzmanlaştı">U</button>
+                      ${v ? `<button type="button" class="gelisim-stu-btn temizle" onclick="gelisimStuTikla('${alan.id}','${grupEsc}','${dersEsc}',null)" title="Temizle">×</button>` : ''}
                     </div>
                   </div>
                 `;
@@ -11883,118 +12468,222 @@ window.renderGelisimSekmesi = async function() {
     `;
   }).join("");
 
-  // Notları render et
-  renderGelisimNotlar();
-};
+  // Disipline özel notları render
+  renderDisiplinNotlari(disiplin);
+}
 
-// Alan akordiyonunu aç/kapa
-window.gelisimAlanToggle = function(alanId) {
-  if (acikAlanlar.has(alanId)) acikAlanlar.delete(alanId);
-  else acikAlanlar.add(alanId);
-  const el = document.getElementById(`gelisim-alan-${alanId}`);
-  if (el) el.classList.toggle("acik");
-};
-
-// S/T/U butonuna tıklandığında
-window.gelisimStuTikla = async function(alanId, grupAd, dersAd, durum) {
-  if (!currentOgrenci) return;
-  if (!aktifGelisimVerisi) aktifGelisimVerisi = { kayitlar:{}, notlar:[] };
-
-  const k = `${alanId}__${grupAd}__${dersAd}`;
-  // Eğer aynı durum tekrar tıklandıysa, temizle (toggle davranışı)
-  if (aktifGelisimVerisi.kayitlar[k] === durum && durum !== null) {
-    durum = null;
-  }
-
-  // Anlık UI güncellemesi
-  if (durum === null) {
-    delete aktifGelisimVerisi.kayitlar[k];
-  } else {
-    aktifGelisimVerisi.kayitlar[k] = durum;
-  }
-
-  // Firestore'a kaydet
-  const ok = await gelisimDersGuncelle(currentOgrenci.id, alanId, grupAd, dersAd, durum);
-  if (ok) {
-    // Sadece bu satırı tekrar render etmek için tüm sekmeyi yenile (akordiyon durumları korunur)
-    await renderGelisimSekmesi();
-    if (typeof toast === "function") toast("✓ Kaydedildi", "ok");
-  } else {
-    if (typeof toast === "function") toast("Kayıt başarısız!", "err");
-  }
-};
-
-// Notları render
-function renderGelisimNotlar() {
+function renderDisiplinNotlari(disiplin) {
   const el = document.getElementById("gelisimNotlarListesi");
-  if (!el || !aktifGelisimVerisi) return;
-  const notlar = aktifGelisimVerisi.notlar || [];
+  if (!el) return;
+  const notlar = aktifGelisimVerisi[disiplin]?.notlar || [];
   if (notlar.length === 0) {
     el.innerHTML = `<div style="padding:14px; text-align:center; color:#9ca3af; font-size:12px; font-style:italic;">Henüz not eklenmemiş.</div>`;
     return;
   }
-  // En yeni en üstte
   const sirali = [...notlar].sort((a,b) => new Date(b.tarih) - new Date(a.tarih));
-  el.innerHTML = sirali.map((n, i) => {
+  el.innerHTML = sirali.map(n => {
     const t = new Date(n.tarih);
     const tarihStr = t.toLocaleDateString("tr-TR") + " " + t.toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"});
     const yazar = n.yazarEmail ? n.yazarEmail.split("@")[0] : "—";
+    const orjIndex = notlar.indexOf(n);
     return `
       <div class="gelisim-not-karti">
         <div class="gelisim-not-karti-ust">
           <span>📅 ${tarihStr} · ✍️ ${yazar}</span>
-          <button type="button" class="gelisim-not-sil" onclick="gelisimNotSil(${notlar.indexOf(n)})" title="Notu sil">🗑</button>
+          <button type="button" class="gelisim-not-sil" onclick="gelisimNotSil(${orjIndex})" title="Notu sil">🗑</button>
         </div>
-        <div class="gelisim-not-karti-metin">${escapeHtml(n.metin)}</div>
+        <div class="gelisim-not-karti-metin">${escapeHtmlGelisim(n.metin)}</div>
       </div>
     `;
   }).join("");
 }
 
-// Yeni not kaydet (Admin)
+window.gelisimAlanToggle = function(alanId) {
+  const acikSet = acikAlanlar[aktifSeciliDisiplin];
+  if (acikSet.has(alanId)) acikSet.delete(alanId);
+  else acikSet.add(alanId);
+  const el = document.getElementById(`gelisim-alan-${alanId}`);
+  if (el) el.classList.toggle("acik");
+};
+
+window.gelisimStuTikla = async function(alanId, grupAd, dersAd, durum) {
+  if (!currentOgrenci) return;
+  if (!aktifGelisimVerisi) return;
+  const disiplin = aktifSeciliDisiplin;
+  if (!aktifGelisimVerisi[disiplin]) aktifGelisimVerisi[disiplin] = { kayitlar:{}, notlar:[] };
+
+  const k = `${alanId}__${grupAd}__${dersAd}`;
+  // Aynı durum tekrar tıklandıysa toggle (temizle)
+  if (aktifGelisimVerisi[disiplin].kayitlar[k] === durum && durum !== null) {
+    durum = null;
+  }
+  if (durum === null) {
+    delete aktifGelisimVerisi[disiplin].kayitlar[k];
+  } else {
+    aktifGelisimVerisi[disiplin].kayitlar[k] = durum;
+  }
+
+  const ok = await gelisimDersGuncelle(currentOgrenci.id, disiplin, alanId, grupAd, dersAd, durum);
+  if (ok) {
+    // Sekme yüzdesini güncelle
+    const genel = disiplinGenelIlerleme(aktifGelisimVerisi[disiplin].kayitlar, aktifMufredatlar[disiplin]);
+    const yEl = document.getElementById(`disiplinYuzde-${disiplin}`);
+    if (yEl) yEl.textContent = `%${genel.yuzde}`;
+    // Detayı yenile (akordiyon korunur)
+    renderDisiplinDetay(disiplin);
+    if (typeof showToast === "function") showToast("✓ Kaydedildi");
+  } else {
+    if (typeof showToast === "function") showToast("Kayıt başarısız!", "error");
+  }
+};
+
 window.gelisimNotKaydet = async function() {
   if (!currentOgrenci) return;
   const ta = document.getElementById("gelisimYeniNot");
   if (!ta) return;
   const metin = ta.value.trim();
   if (!metin) {
-    if (typeof toast === "function") toast("Lütfen bir not yazın", "err");
+    if (typeof showToast === "function") showToast("Lütfen bir not yazın", "error");
     return;
   }
-  const ok = await gelisimNotEkle(currentOgrenci.id, metin);
+  const disiplin = aktifSeciliDisiplin;
+  const ok = await gelisimNotEkle(currentOgrenci.id, disiplin, metin);
   if (ok) {
     ta.value = "";
     aktifGelisimVerisi = await gelisimYukle(currentOgrenci.id);
-    renderGelisimNotlar();
-    if (typeof toast === "function") toast("✓ Not eklendi", "ok");
+    renderDisiplinNotlari(disiplin);
+    if (typeof showToast === "function") showToast("✓ Not eklendi");
   } else {
-    if (typeof toast === "function") toast("Not eklenemedi", "err");
+    if (typeof showToast === "function") showToast("Not eklenemedi", "error");
   }
 };
 
-// Not sil
 window.gelisimNotSil = async function(index) {
   if (!currentOgrenci || !aktifGelisimVerisi) return;
   if (!confirm("Bu notu silmek istediğinizden emin misiniz?")) return;
+  const disiplin = aktifSeciliDisiplin;
   try {
-    const ref = doc(db, "montessoriGelisim", currentOgrenci.id);
+    const ref = doc(db, "ogrenciGelisim", currentOgrenci.id);
     const snap = await getDoc(ref);
-    let notlar = snap.exists() ? (snap.data().notlar || []) : [];
+    let mevcutDisiplin = (snap.exists() && snap.data()[disiplin]) ? snap.data()[disiplin] : { kayitlar:{}, notlar:[] };
+    let notlar = mevcutDisiplin.notlar || [];
     notlar.splice(index, 1);
-    await setDoc(ref, { notlar: notlar, sonGuncelleme: serverTimestamp() }, { merge: true });
-    aktifGelisimVerisi.notlar = notlar;
-    renderGelisimNotlar();
-    if (typeof toast === "function") toast("✓ Not silindi", "ok");
+    mevcutDisiplin.notlar = notlar;
+    await setDoc(ref, { [disiplin]: mevcutDisiplin, sonGuncelleme: serverTimestamp() }, { merge: true });
+    aktifGelisimVerisi[disiplin].notlar = notlar;
+    renderDisiplinNotlari(disiplin);
+    if (typeof showToast === "function") showToast("✓ Not silindi");
   } catch(e) {
     console.error(e);
-    if (typeof toast === "function") toast("Silme başarısız", "err");
+    if (typeof showToast === "function") showToast("Silme başarısız", "error");
+  }
+};
+
+// ============ ÖĞRETMEN YORUMLARI ============
+function renderOgretmenYorumlari() {
+  const el = document.getElementById("yorumlarListesi");
+  if (!el || !aktifGelisimVerisi) return;
+  const yorumlar = aktifGelisimVerisi.ogretmenYorumlari || [];
+  if (yorumlar.length === 0) {
+    el.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px; font-style:italic;">Henüz yorum eklenmemiş.</div>`;
+    return;
+  }
+  // En yeni en üstte
+  const sirali = yorumlar.map((y,i) => ({...y, _orjIndex: i})).sort((a,b) => new Date(b.tarih) - new Date(a.tarih));
+  el.innerHTML = sirali.map(y => {
+    const t = new Date(y.tarih);
+    const tarihStr = t.toLocaleDateString("tr-TR") + " " + t.toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"});
+    const yazar = y.yazarEmail ? y.yazarEmail.split("@")[0] : "—";
+    return `
+      <div class="yorum-karti ${y.paylas ? 'paylas' : 'gizli'}">
+        <div class="yorum-karti-ust">
+          <div class="yorum-karti-baslik">${escapeHtmlGelisim(y.baslik || 'Genel Yorum')}</div>
+          <span class="yorum-karti-rozet ${y.paylas ? 'paylas' : 'gizli'}">${y.paylas ? '👨‍👩‍👧 PAYLAŞILDI' : '🔒 GİZLİ'}</span>
+        </div>
+        <div class="yorum-karti-meta">
+          <span>📅 ${tarihStr}</span>
+          <span>✍️ ${yazar}</span>
+        </div>
+        <div class="yorum-karti-metin">${escapeHtmlGelisim(y.metin)}</div>
+        <div class="yorum-karti-aksiyonlar">
+          <button type="button" class="yorum-karti-btn" onclick="yorumPaylasimDegistir(${y._orjIndex})">${y.paylas ? '🔒 Gizle' : '👨‍👩‍👧 Veliye Aç'}</button>
+          <button type="button" class="yorum-karti-btn sil" onclick="yorumSil(${y._orjIndex})">🗑 Sil</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+window.yorumKaydet = async function() {
+  if (!currentOgrenci) return;
+  const baslikEl = document.getElementById("yorumYeniBaslik");
+  const metinEl  = document.getElementById("yorumYeniMetin");
+  const paylasEl = document.getElementById("yorumYeniPaylas");
+  if (!metinEl) return;
+  const metin = metinEl.value.trim();
+  if (!metin) {
+    if (typeof showToast === "function") showToast("Lütfen yorum yazın", "error");
+    return;
+  }
+  const baslik = (baslikEl?.value || "").trim();
+  const paylas = paylasEl?.checked || false;
+  const ok = await ogretmenYorumuEkle(currentOgrenci.id, baslik, metin, paylas);
+  if (ok) {
+    if (baslikEl) baslikEl.value = "";
+    metinEl.value = "";
+    if (paylasEl) paylasEl.checked = false;
+    aktifGelisimVerisi = await gelisimYukle(currentOgrenci.id);
+    renderOgretmenYorumlari();
+    // Sekme sayacını güncelle
+    const sayi = (aktifGelisimVerisi.ogretmenYorumlari || []).length;
+    const yEl = document.getElementById("disiplinYuzde-yorumlar");
+    if (yEl) yEl.textContent = `${sayi} yorum`;
+    if (typeof showToast === "function") showToast("✓ Yorum kaydedildi");
+  } else {
+    if (typeof showToast === "function") showToast("Kayıt başarısız", "error");
+  }
+};
+
+window.yorumSil = async function(index) {
+  if (!currentOgrenci) return;
+  if (!confirm("Bu yorumu kalıcı olarak silmek istediğinizden emin misiniz?")) return;
+  const ok = await ogretmenYorumuSil(currentOgrenci.id, index);
+  if (ok) {
+    aktifGelisimVerisi = await gelisimYukle(currentOgrenci.id);
+    renderOgretmenYorumlari();
+    const sayi = (aktifGelisimVerisi.ogretmenYorumlari || []).length;
+    const yEl = document.getElementById("disiplinYuzde-yorumlar");
+    if (yEl) yEl.textContent = `${sayi} yorum`;
+    if (typeof showToast === "function") showToast("✓ Silindi");
+  } else {
+    if (typeof showToast === "function") showToast("Silme başarısız", "error");
+  }
+};
+
+window.yorumPaylasimDegistir = async function(index) {
+  if (!currentOgrenci) return;
+  try {
+    const ref = doc(db, "ogrenciGelisim", currentOgrenci.id);
+    const snap = await getDoc(ref);
+    let yorumlar = (snap.exists() && snap.data().ogretmenYorumlari) ? snap.data().ogretmenYorumlari : [];
+    if (!yorumlar[index]) return;
+    yorumlar[index].paylas = !yorumlar[index].paylas;
+    await setDoc(ref, { ogretmenYorumlari: yorumlar, sonGuncelleme: serverTimestamp() }, { merge: true });
+    aktifGelisimVerisi.ogretmenYorumlari = yorumlar;
+    renderOgretmenYorumlari();
+    if (typeof showToast === "function") showToast(yorumlar[index].paylas ? "✓ Veliye açıldı" : "✓ Gizlendi");
+  } catch(e) {
+    console.error(e);
+    if (typeof showToast === "function") showToast("Güncelleme başarısız", "error");
   }
 };
 
 
-// ============ MÜFREDAT EDİTÖRÜ (Admin) ============
+// ============ MÜFREDAT EDİTÖRÜ (3 disiplin) ============
+let aktifEditorDisiplin = "montessori";
+
 window.mufredatEditorAc = async function() {
-  await mufredatYukle();
+  await tumMufredatlariYukle();
   let modal = document.getElementById("mufredatEditorModal");
   if (!modal) {
     modal = document.createElement("div");
@@ -12006,17 +12695,33 @@ window.mufredatEditorAc = async function() {
           <div class="modal-header-row">
             <div>
               <h2>⚙️ Müfredat Düzenleyici</h2>
-              <p>5 alan, gruplar ve derslere ekleme/çıkarma yapabilirsiniz</p>
+              <p>3 disiplinin müfredatını düzenleyebilirsiniz</p>
             </div>
             <button class="btn-close" onclick="mufredatEditorKapat()">×</button>
           </div>
         </div>
-        <div id="mufredatEditorIcerik" style="padding:16px; max-height:70vh; overflow-y:auto;"></div>
+        <div style="padding:12px 16px 0; border-bottom:1px solid #e5e7eb;">
+          <div class="disiplin-sekme-bar" style="margin-bottom:12px;">
+            <button type="button" class="disiplin-sekme-btn aktif" data-editor-disiplin="montessori" onclick="mufredatEditorDisiplinSec('montessori')">
+              <span class="disiplin-sekme-ikon">🌱</span>
+              <span class="disiplin-sekme-ad">Montessori</span>
+            </button>
+            <button type="button" class="disiplin-sekme-btn" data-editor-disiplin="ingilizce" onclick="mufredatEditorDisiplinSec('ingilizce')">
+              <span class="disiplin-sekme-ikon">🇬🇧</span>
+              <span class="disiplin-sekme-ad">İngilizce</span>
+            </button>
+            <button type="button" class="disiplin-sekme-btn" data-editor-disiplin="degerler" onclick="mufredatEditorDisiplinSec('degerler')">
+              <span class="disiplin-sekme-ikon">💎</span>
+              <span class="disiplin-sekme-ad">Değerler</span>
+            </button>
+          </div>
+        </div>
+        <div id="mufredatEditorIcerik" style="padding:16px; max-height:60vh; overflow-y:auto;"></div>
         <div style="padding:14px 16px; border-top:1px solid #e5e7eb; display:flex; justify-content:space-between; gap:8px; background:#f9fafb;">
-          <button class="btn-secondary" onclick="mufredatVarsayilanaAl()">🔄 Varsayılana Dön</button>
+          <button class="btn-secondary" onclick="mufredatVarsayilanaAl()">🔄 Bu Disiplini Varsayılana Döndür</button>
           <div style="display:flex; gap:8px;">
             <button class="btn-secondary" onclick="mufredatEditorKapat()">İptal</button>
-            <button class="btn-primary" onclick="mufredatKaydetVeKapat()">💾 Kaydet</button>
+            <button class="btn-primary" onclick="mufredatKaydetVeKapat()">💾 Tüm Değişiklikleri Kaydet</button>
           </div>
         </div>
       </div>
@@ -12024,6 +12729,7 @@ window.mufredatEditorAc = async function() {
     document.body.appendChild(modal);
   }
   modal.classList.add("active");
+  aktifEditorDisiplin = "montessori";
   renderMufredatEditor();
 };
 
@@ -12032,10 +12738,23 @@ window.mufredatEditorKapat = function() {
   if (m) m.classList.remove("active");
 };
 
+window.mufredatEditorDisiplinSec = function(disiplin) {
+  aktifEditorDisiplin = disiplin;
+  document.querySelectorAll("[data-editor-disiplin]").forEach(b => {
+    b.classList.toggle("aktif", b.dataset.editorDisiplin === disiplin);
+  });
+  renderMufredatEditor();
+};
+
 function renderMufredatEditor() {
   const el = document.getElementById("mufredatEditorIcerik");
-  if (!el || !aktifMufredat) return;
-  el.innerHTML = aktifMufredat.map((alan, ai) => `
+  if (!el) return;
+  const mufredat = aktifMufredatlar[aktifEditorDisiplin];
+  if (!mufredat) {
+    el.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af;">Müfredat yükleniyor...</div>`;
+    return;
+  }
+  el.innerHTML = mufredat.map((alan, ai) => `
     <div class="mufredat-alan-kart" style="border-left:4px solid ${alan.renk};">
       <div class="mufredat-alan-baslik">
         <span style="font-size:20px;">${alan.ikon}</span>
@@ -12047,7 +12766,7 @@ function renderMufredatEditor() {
       ${alan.gruplar.map((g, gi) => `
         <div class="mufredat-grup">
           <div class="mufredat-grup-ust">
-            <span class="mufredat-grup-ad">📁 ${g.ad}</span>
+            <span class="mufredat-grup-ad">📁 ${escapeHtmlGelisim(g.ad)}</span>
             <div style="display:flex; gap:4px;">
               <button class="btn-mini" onclick="mufredatDersEkle(${ai},${gi})" style="font-size:11px;">+ Ders</button>
               <button class="btn-mini" onclick="mufredatGrupSil(${ai},${gi})" style="font-size:11px; background:#fef2f2; color:#dc2626;">Sil</button>
@@ -12056,7 +12775,7 @@ function renderMufredatEditor() {
           <div class="mufredat-ders-listesi">
             ${g.dersler.map((d, di) => `
               <span class="mufredat-ders-cip">
-                ${escapeHtml(d)}
+                ${escapeHtmlGelisim(d)}
                 <button onclick="mufredatDersSil(${ai},${gi},${di})" title="Sil">×</button>
               </span>
             `).join("")}
@@ -12073,54 +12792,414 @@ function renderMufredatEditor() {
 window.mufredatDersEkle = function(ai, gi) {
   const ad = prompt("Yeni dersin adı:");
   if (!ad || !ad.trim()) return;
-  aktifMufredat[ai].gruplar[gi].dersler.push(ad.trim());
+  aktifMufredatlar[aktifEditorDisiplin][ai].gruplar[gi].dersler.push(ad.trim());
   renderMufredatEditor();
 };
 
 window.mufredatDersSil = function(ai, gi, di) {
-  const ders = aktifMufredat[ai].gruplar[gi].dersler[di];
+  const ders = aktifMufredatlar[aktifEditorDisiplin][ai].gruplar[gi].dersler[di];
   if (!confirm(`"${ders}" dersini silmek istediğinizden emin misiniz?\n\n(Mevcut öğrenci kayıtları korunur ama bu ders artık görünmez.)`)) return;
-  aktifMufredat[ai].gruplar[gi].dersler.splice(di, 1);
+  aktifMufredatlar[aktifEditorDisiplin][ai].gruplar[gi].dersler.splice(di, 1);
   renderMufredatEditor();
 };
 
 window.mufredatGrupEkle = function(ai) {
   const ad = prompt("Yeni grubun adı:");
   if (!ad || !ad.trim()) return;
-  aktifMufredat[ai].gruplar.push({ ad: ad.trim(), dersler: [] });
+  aktifMufredatlar[aktifEditorDisiplin][ai].gruplar.push({ ad: ad.trim(), dersler: [] });
   renderMufredatEditor();
 };
 
 window.mufredatGrupSil = function(ai, gi) {
-  const grup = aktifMufredat[ai].gruplar[gi];
+  const grup = aktifMufredatlar[aktifEditorDisiplin][ai].gruplar[gi];
   if (!confirm(`"${grup.ad}" grubunu (${grup.dersler.length} ders ile birlikte) silmek istediğinizden emin misiniz?`)) return;
-  aktifMufredat[ai].gruplar.splice(gi, 1);
+  aktifMufredatlar[aktifEditorDisiplin][ai].gruplar.splice(gi, 1);
   renderMufredatEditor();
 };
 
 window.mufredatVarsayilanaAl = function() {
-  if (!confirm("Müfredatı tamamen varsayılana sıfırlamak istediğinizden emin misiniz?\n\nMevcut özelleştirmeler kaybolacak. (Öğrenci kayıtları etkilenmez.)")) return;
-  aktifMufredat = JSON.parse(JSON.stringify(VARSAYILAN_MUFREDAT));
+  const adlar = { montessori: "Montessori", ingilizce: "İngilizce", degerler: "Değerler" };
+  if (!confirm(`${adlar[aktifEditorDisiplin]} müfredatını varsayılana sıfırlamak istediğinizden emin misiniz?\n\nBu disiplinin özelleştirmeleri kaybolacak. (Öğrenci kayıtları etkilenmez.)`)) return;
+  const varsayilanlar = {
+    montessori: VARSAYILAN_MUFREDAT_MONTESSORI,
+    ingilizce:  VARSAYILAN_MUFREDAT_INGILIZCE,
+    degerler:   VARSAYILAN_MUFREDAT_DEGERLER
+  };
+  aktifMufredatlar[aktifEditorDisiplin] = JSON.parse(JSON.stringify(varsayilanlar[aktifEditorDisiplin]));
   renderMufredatEditor();
 };
 
 window.mufredatKaydetVeKapat = async function() {
-  const ok = await mufredatKaydet();
-  if (ok) {
-    if (typeof toast === "function") toast("✓ Müfredat kaydedildi", "ok");
+  let basarili = 0, hata = 0;
+  for (const d of ["montessori","ingilizce","degerler"]) {
+    const ok = await mufredatKaydet(d);
+    if (ok) basarili++; else hata++;
+  }
+  if (hata === 0) {
+    if (typeof showToast === "function") showToast(`✓ ${basarili} müfredat kaydedildi`);
     mufredatEditorKapat();
-    // Açık olan gelişim sekmesini yenile
     if (currentOgrenci && document.querySelector('[data-modal-tab="gelisim"]')?.classList.contains("active")) {
       renderGelisimSekmesi();
     }
   } else {
-    if (typeof toast === "function") toast("Kayıt başarısız!", "err");
+    if (typeof showToast === "function") showToast(`Bazı müfredatlar kaydedilemedi (${hata} hata)`, "error");
   }
 };
 
 
-// ============ ADMIN: MONTESSORI TÜM SINIF GENEL BAKIŞ ============
-let adminMontessoriBarChart = null;
+// ============ VELİ PANELİ: 3 DİSİPLİN RAPORLAR ============
+let veliRaporSeciliDisiplin = null; // null = ana dashboard, "montessori" vs = detay
+let veliRaporGelisimVerisi = null;
+let veliRaporRadarChart = null;
+let veliRaporBarChart = null;
+
+async function veliRenderRaporlar() {
+  const el = document.getElementById("veliRaporlarContent");
+  if (!el) return;
+
+  if (!veliAktifOgrenci || !veliAktifOgrenci.id) {
+    el.innerHTML = `
+      <div class="veli-card">
+        <div class="veli-placeholder">
+          <div class="ph-icon">📊</div>
+          <h3>Öğrenci bilgisi bulunamadı</h3>
+          <p>Lütfen önce Dashboard sekmesinden çocuğunuzu seçin.</p>
+        </div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af; font-size:13px;">Eğitim raporları yükleniyor...</div>`;
+
+  try {
+    await tumMufredatlariYukle();
+    veliRaporGelisimVerisi = await gelisimYukle(veliAktifOgrenci.id);
+
+    // Ana dashboard veya detay görünümü?
+    if (!veliRaporSeciliDisiplin) {
+      veliRenderRaporDashboard();
+    } else {
+      veliRenderRaporDetay(veliRaporSeciliDisiplin);
+    }
+  } catch(e) {
+    console.error("Veli raporlar hata:", e);
+    el.innerHTML = `<div class="veli-card"><div class="veli-placeholder"><div class="ph-icon">⚠️</div><h3>Rapor yüklenemedi</h3><p>${escapeHtmlGelisim(e.message || "Bir hata oluştu")}</p></div></div>`;
+  }
+}
+
+function veliRenderRaporDashboard() {
+  const el = document.getElementById("veliRaporlarContent");
+  if (!el) return;
+  const ogrAd = veliAktifOgrenci.ogrenciAdSoyad || "Çocuğunuz";
+  const sonGuncStr = veliRaporGelisimVerisi.sonGuncelleme ?
+    (veliRaporGelisimVerisi.sonGuncelleme.toDate ? veliRaporGelisimVerisi.sonGuncelleme.toDate() : new Date(veliRaporGelisimVerisi.sonGuncelleme)).toLocaleDateString("tr-TR")
+    : "—";
+
+  // 3 disiplin için genel ilerleme hesapla
+  const disiplinKartlari = DISIPLINLER.map(d => {
+    const veri = veliRaporGelisimVerisi[d.id];
+    const genel = disiplinGenelIlerleme(veri.kayitlar, aktifMufredatlar[d.id]);
+    const notSayisi = (veri.notlar || []).length;
+    return { ...d, genel, notSayisi };
+  });
+
+  // Veliye paylaşılan öğretmen yorumları
+  const paylasYorumlar = (veliRaporGelisimVerisi.ogretmenYorumlari || []).filter(y => y.paylas);
+
+  el.innerHTML = `
+    <!-- HERO -->
+    <div class="veli-gelisim-hero">
+      <h2>📚 ${escapeHtmlGelisim(ogrAd)} - Eğitim Raporu</h2>
+      <p>Öğretmen tarafından son güncelleme: ${sonGuncStr}</p>
+    </div>
+
+    <!-- 3 DİSİPLİN MİNİ DASHBOARD -->
+    <div class="rapor-disiplin-grid">
+      ${disiplinKartlari.map(d => `
+        <div class="rapor-disiplin-karti" style="border-top:5px solid ${d.renk};" onclick="veliRaporDisiplinAc('${d.id}')">
+          <div class="rapor-disiplin-ust">
+            <div class="rapor-disiplin-ikon" style="background:${d.renk}22; color:${d.renk};">${d.ikon}</div>
+            <div class="rapor-disiplin-ad">${d.ad}</div>
+          </div>
+          <div class="rapor-disiplin-yuzde" style="color:${d.renk};">%${d.genel.yuzde}</div>
+          <div class="rapor-disiplin-detay">
+            <div>📚 <strong>${d.genel.calisilan}</strong> / ${d.genel.toplam} ders</div>
+            <div>🌳 <strong>${d.genel.uzmanlasti}</strong> uzmanlaşıldı</div>
+          </div>
+          <div class="rapor-disiplin-bar">
+            <div style="width:${d.genel.yuzde}%; background:${d.renk};"></div>
+          </div>
+          <div class="rapor-disiplin-link">Ayrıntılı bakış →</div>
+        </div>
+      `).join("")}
+    </div>
+
+    <!-- ÖĞRETMEN YORUMLARI (sadece paylaşılanlar) -->
+    ${paylasYorumlar.length > 0 ? `
+      <div class="veli-gelisim-card" style="margin-top:18px;">
+        <div class="veli-gelisim-card-baslik">📝 Öğretmen Görüşleri</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${[...paylasYorumlar].sort((a,b)=>new Date(b.tarih)-new Date(a.tarih)).map(y => {
+            const t = new Date(y.tarih);
+            const tarihStr = t.toLocaleDateString("tr-TR");
+            return `
+              <div style="padding:14px; background:#fff7ed; border-left:4px solid #ea580c; border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; flex-wrap:wrap; gap:8px;">
+                  <strong style="color:#9a3412; font-size:14px;">${escapeHtmlGelisim(y.baslik || 'Genel Yorum')}</strong>
+                  <span style="font-size:11px; color:#6b7280;">📅 ${tarihStr}</span>
+                </div>
+                <div style="font-size:13px; color:#1f2937; line-height:1.6; white-space:pre-wrap;">${escapeHtmlGelisim(y.metin)}</div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    ` : `
+      <div class="veli-gelisim-card" style="margin-top:18px;">
+        <div class="veli-gelisim-card-baslik">📝 Öğretmen Görüşleri</div>
+        <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Henüz veliyle paylaşılmış yorum yok.</div>
+      </div>
+    `}
+
+    <!-- PDF İNDİR -->
+    <div style="margin-top:18px; text-align:center;">
+      <button class="veli-btn-primary" onclick="veliRaporPdfIndir()" style="padding:12px 24px; font-size:14px;">
+        📄 Tüm Raporu PDF Olarak İndir
+      </button>
+    </div>
+  `;
+}
+
+window.veliRaporDisiplinAc = function(disiplin) {
+  veliRaporSeciliDisiplin = disiplin;
+  veliRenderRaporDetay(disiplin);
+};
+
+window.veliRaporDashboarDon = function() {
+  veliRaporSeciliDisiplin = null;
+  if (veliRaporRadarChart) { veliRaporRadarChart.destroy(); veliRaporRadarChart = null; }
+  if (veliRaporBarChart)   { veliRaporBarChart.destroy();   veliRaporBarChart = null; }
+  veliRenderRaporDashboard();
+};
+
+function veliRenderRaporDetay(disiplin) {
+  const el = document.getElementById("veliRaporlarContent");
+  if (!el) return;
+  const dInfo = DISIPLINLER.find(x => x.id === disiplin);
+  const veri = veliRaporGelisimVerisi[disiplin];
+  const mufredat = aktifMufredatlar[disiplin];
+  if (!dInfo || !veri || !mufredat) {
+    el.innerHTML = `<div class="veli-card"><div class="veli-placeholder">Disiplin bulunamadı</div></div>`;
+    return;
+  }
+
+  const istat = gelisimIstatistik(veri.kayitlar, mufredat);
+  const genel = disiplinGenelIlerleme(veri.kayitlar, mufredat);
+  const ogrAd = veliAktifOgrenci.ogrenciAdSoyad || "Çocuğunuz";
+
+  el.innerHTML = `
+    <!-- ÜST: Disiplin başlığı + Geri butonu -->
+    <button onclick="veliRaporDashboarDon()" class="rapor-geri-btn">← Tüm Raporlara Dön</button>
+
+    <div class="veli-gelisim-hero" style="background:linear-gradient(135deg, ${dInfo.renk} 0%, ${dInfo.renk}dd 100%);">
+      <h2>${dInfo.ikon} ${escapeHtmlGelisim(ogrAd)} - ${dInfo.ad}</h2>
+      <p>${escapeHtmlGelisim(dInfo.aciklama)}</p>
+    </div>
+
+    <!-- METRİKLER -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:18px;">
+      <div class="veli-stat-card green">
+        <div class="veli-stat-label">ÇALIŞILAN DERS</div>
+        <div class="veli-stat-value">${genel.calisilan} / ${genel.toplam}</div>
+      </div>
+      <div class="veli-stat-card yellow">
+        <div class="veli-stat-label">GENEL İLERLEME</div>
+        <div class="veli-stat-value">%${genel.yuzde}</div>
+      </div>
+      <div class="veli-stat-card blue">
+        <div class="veli-stat-label">UZMANLAŞILAN</div>
+        <div class="veli-stat-value">${genel.uzmanlasti}</div>
+      </div>
+    </div>
+
+    <!-- GRAFİKLER -->
+    <div class="veli-gelisim-radar-wrap">
+      <div class="veli-gelisim-card">
+        <div class="veli-gelisim-card-baslik">📊 Alanların Dengesi</div>
+        <div style="position:relative; height:280px;">
+          <canvas id="veliRaporRadarCanvas"></canvas>
+        </div>
+        <div class="veli-stu-aciklama">
+          <span><span class="veli-stu-nokta" style="background:#16a34a;"></span> Sunuldu (S)</span>
+          <span><span class="veli-stu-nokta" style="background:#d97706;"></span> Tekrar (T)</span>
+          <span><span class="veli-stu-nokta" style="background:#7c3aed;"></span> Uzmanlaştı (U)</span>
+        </div>
+      </div>
+      <div class="veli-gelisim-card">
+        <div class="veli-gelisim-card-baslik">📈 Alan Bazlı Dağılım</div>
+        <div style="position:relative; height:280px;">
+          <canvas id="veliRaporBarCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALAN DETAYLARI -->
+    <div class="veli-gelisim-card">
+      <div class="veli-gelisim-card-baslik">🌿 Alan Bazlı Detay</div>
+      <div style="display:grid; gap:12px;">
+        ${istat.map(s => `
+          <div style="padding:14px; background:#fafafa; border-radius:10px; border-left:4px solid ${s.renk};">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+              <div style="font-weight:600; font-size:14px;">${s.ikon} ${escapeHtmlGelisim(s.ad)}</div>
+              <div style="font-size:13px; color:${s.renk}; font-weight:700;">%${s.yuzde}</div>
+            </div>
+            <div style="display:flex; gap:14px; font-size:12px; color:#4b5563; flex-wrap:wrap;">
+              <span>🌱 Sunuldu: <strong>${s.sunuldu}</strong></span>
+              <span>🌿 Tekrar: <strong>${s.tekrar}</strong></span>
+              <span>🌳 Uzmanlaştı: <strong>${s.uzmanlasti}</strong></span>
+              <span style="color:#9ca3af;">📚 Toplam: ${s.toplam}</span>
+            </div>
+            <div style="height:6px; background:#e5e7eb; border-radius:99px; margin-top:10px; overflow:hidden;">
+              <div style="height:100%; width:${s.yuzde}%; background:${s.renk}; border-radius:99px;"></div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  // Grafikleri çiz
+  setTimeout(() => {
+    if (typeof Chart === "undefined") return;
+    if (veliRaporRadarChart) veliRaporRadarChart.destroy();
+    if (veliRaporBarChart)   veliRaporBarChart.destroy();
+
+    const radarCtx = document.getElementById("veliRaporRadarCanvas");
+    if (radarCtx) {
+      veliRaporRadarChart = new Chart(radarCtx, {
+        type: "radar",
+        data: {
+          labels: istat.map(s => s.ad),
+          datasets: [
+            { label:"İlerleme %", data:istat.map(s=>s.yuzde), backgroundColor:dInfo.renk+"33", borderColor:dInfo.renk, borderWidth:2, pointBackgroundColor:dInfo.renk, pointRadius:4 },
+            { label:"Uzmanlaştı %", data:istat.map(s=>s.uzmanlikYuzde), backgroundColor:"rgba(124, 58, 237, 0.15)", borderColor:"#7c3aed", borderWidth:2, pointBackgroundColor:"#7c3aed", pointRadius:4 }
+          ]
+        },
+        options: { responsive:true, maintainAspectRatio:false, scales:{ r:{ beginAtZero:true, max:100, ticks:{stepSize:25, font:{size:10}}, pointLabels:{font:{size:11, weight:"600"}} } }, plugins:{ legend:{ position:"bottom", labels:{font:{size:11}, padding:12} } } }
+      });
+    }
+    const barCtx = document.getElementById("veliRaporBarCanvas");
+    if (barCtx) {
+      veliRaporBarChart = new Chart(barCtx, {
+        type: "bar",
+        data: {
+          labels: istat.map(s => s.ad),
+          datasets: [
+            { label:"Sunuldu", data:istat.map(s=>s.sunuldu), backgroundColor:"#16a34a" },
+            { label:"Tekrar", data:istat.map(s=>s.tekrar), backgroundColor:"#d97706" },
+            { label:"Uzmanlaştı", data:istat.map(s=>s.uzmanlasti), backgroundColor:"#7c3aed" }
+          ]
+        },
+        options: { responsive:true, maintainAspectRatio:false, scales:{ x:{stacked:true, ticks:{font:{size:10}}}, y:{stacked:true, beginAtZero:true, ticks:{font:{size:10}}} }, plugins:{ legend:{ position:"bottom", labels:{font:{size:11}, padding:10} } } }
+      });
+    }
+  }, 100);
+}
+
+window.veliRaporPdfIndir = async function() {
+  if (!veliAktifOgrenci) return;
+  try {
+    if (typeof window.jspdf === "undefined") {
+      alert("PDF kütüphanesi yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.");
+      return;
+    }
+    const { jsPDF } = window.jspdf;
+    await tumMufredatlariYukle();
+    const veri = await gelisimYukle(veliAktifOgrenci.id);
+    const pdf = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
+
+    // Türkçe karakter ASCII'ye çevirme yardımcısı
+    const tr = s => (s||"").replace(/ğ/g,'g').replace(/Ğ/g,'G').replace(/ü/g,'u').replace(/Ü/g,'U')
+      .replace(/ş/g,'s').replace(/Ş/g,'S').replace(/ı/g,'i').replace(/İ/g,'I')
+      .replace(/ö/g,'o').replace(/Ö/g,'O').replace(/ç/g,'c').replace(/Ç/g,'C');
+
+    const ogrAd = veliAktifOgrenci.ogrenciAdSoyad || "Ogrenci";
+    const tarih = new Date().toLocaleDateString("tr-TR");
+
+    // Kapak
+    pdf.setFillColor(45, 106, 79);
+    pdf.rect(0, 0, 210, 30, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(16);
+    pdf.text("Bir Cicek Koleji - Egitim Gelisim Raporu", 105, 12, { align:"center" });
+    pdf.setFontSize(10);
+    pdf.text(`Ogrenci: ${tr(ogrAd)}  |  Rapor Tarihi: ${tarih}`, 105, 22, { align:"center" });
+
+    let y = 40;
+    pdf.setTextColor(0, 0, 0);
+
+    // Her disiplin için bölüm
+    for (const d of DISIPLINLER) {
+      if (y > 250) { pdf.addPage(); y = 20; }
+      const dVeri = veri[d.id];
+      const istat = gelisimIstatistik(dVeri.kayitlar, aktifMufredatlar[d.id]);
+      const genel = disiplinGenelIlerleme(dVeri.kayitlar, aktifMufredatlar[d.id]);
+
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, "bold");
+      pdf.text(`${tr(d.ad)} - %${genel.yuzde}`, 14, y);
+      pdf.setFont(undefined, "normal");
+      y += 7;
+      pdf.setFontSize(10);
+      pdf.text(`Calisilan: ${genel.calisilan} / ${genel.toplam}  |  Uzmanlasilan: ${genel.uzmanlasti}`, 14, y);
+      y += 8;
+
+      // Alan detayları
+      istat.forEach(s => {
+        if (y > 270) { pdf.addPage(); y = 20; }
+        pdf.setFont(undefined, "bold");
+        pdf.text(`  ${tr(s.ad)}: %${s.yuzde}`, 14, y);
+        pdf.setFont(undefined, "normal");
+        y += 5;
+        pdf.text(`     Sunuldu:${s.sunuldu} | Tekrar:${s.tekrar} | Uzmanlasti:${s.uzmanlasti} | Toplam:${s.toplam}`, 14, y);
+        y += 7;
+      });
+      y += 5;
+    }
+
+    // Öğretmen yorumları (sadece paylaşılanlar)
+    const paylasYorumlar = (veri.ogretmenYorumlari || []).filter(yo => yo.paylas);
+    if (paylasYorumlar.length > 0) {
+      if (y > 240) { pdf.addPage(); y = 20; }
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, "bold");
+      pdf.text("Ogretmen Gorusleri", 14, y);
+      pdf.setFont(undefined, "normal");
+      y += 7;
+      pdf.setFontSize(9);
+      [...paylasYorumlar].sort((a,b)=>new Date(b.tarih)-new Date(a.tarih)).slice(0,15).forEach(yo => {
+        if (y > 270) { pdf.addPage(); y = 20; }
+        const t = new Date(yo.tarih);
+        pdf.setFont(undefined, "bold");
+        pdf.text(`${tr(yo.baslik || 'Genel Yorum')} - ${t.toLocaleDateString("tr-TR")}`, 14, y);
+        pdf.setFont(undefined, "normal");
+        y += 5;
+        const lines = pdf.splitTextToSize(tr(yo.metin), 180);
+        pdf.text(lines, 18, y);
+        y += lines.length * 4 + 4;
+      });
+    }
+
+    pdf.save(`Egitim-Raporu-${tr(ogrAd).replace(/\s+/g,"-")}-${tarih.replace(/\./g,"-")}.pdf`);
+  } catch(e) {
+    console.error("PDF hata:", e);
+    alert("PDF oluşturulamadı: " + e.message);
+  }
+};
+
+
+// ============ ADMIN: TÜM SINIF GENEL BAKIŞ (3 disiplin) ============
+let adminEgitimChart = null;
 
 window.adminMontessoriYenile = async function() {
   const el = document.getElementById("adminMontessoriIcerik");
@@ -12128,122 +13207,86 @@ window.adminMontessoriYenile = async function() {
   el.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Veriler yükleniyor...</div>`;
 
   try {
-    await mufredatYukle();
+    await tumMufredatlariYukle();
     const tumGelisim = await tumGelisimYukle();
-
-    // Aktif öğrencileri filtrele
-    const aktifOgrenciler = ogrenciList.filter(o =>
-      o.durum !== "iptal" && o.durum !== "ayrildi" && o.donem === AKTIF_DONEM
-    );
-
+    const aktifOgrenciler = ogrenciList.filter(o => o.durum !== "iptal" && o.durum !== "ayrildi" && o.donem === AKTIF_DONEM);
     if (aktifOgrenciler.length === 0) {
       el.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Aktif öğrenci bulunamadı.</div>`;
       return;
     }
 
-    // Her öğrenci için her alanın yüzdesini hesapla
-    const ogrenciIstatistikleri = aktifOgrenciler.map(o => {
-      const veri = tumGelisim[o.id] || { kayitlar:{} };
-      const istat = gelisimIstatistik(veri.kayitlar || {}, aktifMufredat);
-      return { ogrenci: o, istat, sonGuncelleme: veri.sonGuncelleme };
+    // 3 disiplin için ortalama hesapla
+    const disiplinOrtalamalari = DISIPLINLER.map(d => {
+      const yuzdeler = aktifOgrenciler.map(o => {
+        const veri = tumGelisim[o.id]?.[d.id] || { kayitlar:{} };
+        return disiplinGenelIlerleme(veri.kayitlar, aktifMufredatlar[d.id]).yuzde;
+      });
+      const ortalama = yuzdeler.length ? Math.round(yuzdeler.reduce((t,y)=>t+y,0)/yuzdeler.length) : 0;
+      return { ...d, ortalama };
     });
 
-    // Alan bazlı ortalama hesapla
-    const alanOrtalamalari = aktifMufredat.map(alan => {
-      const yuzdeler = ogrenciIstatistikleri.map(o =>
-        o.istat.find(s => s.alanId === alan.id)?.yuzde || 0
-      );
-      const uzmanlikYuzdeleri = ogrenciIstatistikleri.map(o =>
-        o.istat.find(s => s.alanId === alan.id)?.uzmanlikYuzde || 0
-      );
-      const veriOlanlar = yuzdeler.filter(y => y > 0).length;
-      const ortalama = yuzdeler.length ? Math.round(yuzdeler.reduce((t,y)=>t+y,0) / yuzdeler.length) : 0;
-      const uzmanlikOrt = yuzdeler.length ? Math.round(uzmanlikYuzdeleri.reduce((t,y)=>t+y,0) / yuzdeler.length) : 0;
-      return {
-        alanId: alan.id, ad: alan.ad, ikon: alan.ikon, renk: alan.renk,
-        ortalama, uzmanlikOrt, veriOlanlar, toplamOgrenci: aktifOgrenciler.length
-      };
-    });
-
-    // Veri olan/olmayan öğrenci sayıları
-    const veriOlanOgrSayisi = ogrenciIstatistikleri.filter(o =>
-      o.istat.some(s => s.calisilan > 0)
-    ).length;
+    // Veri girilen öğrenci sayısı (en az 1 disiplinde kaydı olan)
+    const veriOlanOgrSayisi = aktifOgrenciler.filter(o => {
+      const v = tumGelisim[o.id];
+      if (!v) return false;
+      return DISIPLINLER.some(d => Object.keys(v[d.id]?.kayitlar || {}).length > 0);
+    }).length;
 
     el.innerHTML = `
-      <!-- Özet metrikler -->
+      <!-- Üst metrikler -->
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:18px;">
         <div style="padding:14px; background:#f0fdf4; border-radius:10px; border-left:4px solid #16a34a;">
           <div style="font-size:11px; color:#166534; font-weight:700; letter-spacing:0.3px;">VERİ GİRİLEN</div>
           <div style="font-size:24px; font-weight:700; color:#166534; margin-top:4px;">${veriOlanOgrSayisi} <span style="font-size:13px; color:#6b7280; font-weight:400;">/ ${aktifOgrenciler.length} öğrenci</span></div>
         </div>
-        <div style="padding:14px; background:#fffbeb; border-radius:10px; border-left:4px solid #d97706;">
-          <div style="font-size:11px; color:#92400e; font-weight:700; letter-spacing:0.3px;">SINIF ORTALAMASI</div>
-          <div style="font-size:24px; font-weight:700; color:#92400e; margin-top:4px;">%${Math.round(alanOrtalamalari.reduce((t,a)=>t+a.ortalama,0)/alanOrtalamalari.length)}</div>
-        </div>
-        <div style="padding:14px; background:#faf5ff; border-radius:10px; border-left:4px solid #7c3aed;">
-          <div style="font-size:11px; color:#6d28d9; font-weight:700; letter-spacing:0.3px;">UZMANLAŞMA ORT.</div>
-          <div style="font-size:24px; font-weight:700; color:#6d28d9; margin-top:4px;">%${Math.round(alanOrtalamalari.reduce((t,a)=>t+a.uzmanlikOrt,0)/alanOrtalamalari.length)}</div>
-        </div>
-      </div>
-
-      <!-- Alan ortalamaları grafik -->
-      <div style="background:white; padding:16px; border:1px solid #e5e7eb; border-radius:12px; margin-bottom:16px;">
-        <div style="font-weight:600; font-size:14px; margin-bottom:12px; color:#1f2937;">📊 Alan Bazlı Sınıf Ortalaması</div>
-        <div style="position:relative; height:240px;">
-          <canvas id="adminMontessoriBarCanvas"></canvas>
-        </div>
-      </div>
-
-      <!-- Alan kartları -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-bottom:16px;">
-        ${alanOrtalamalari.map(a => `
-          <div style="padding:14px; background:white; border-radius:10px; border:2px solid ${a.renk}33;">
-            <div style="font-size:24px; margin-bottom:4px;">${a.ikon}</div>
-            <div style="font-size:13px; font-weight:600; color:#1f2937; margin-bottom:6px;">${a.ad}</div>
-            <div style="font-size:22px; font-weight:700; color:${a.renk};">%${a.ortalama}</div>
-            <div style="font-size:10px; color:#6b7280; margin-top:4px;">Uzmanlaşma: %${a.uzmanlikOrt}</div>
-            <div style="height:4px; background:#f3f4f6; border-radius:99px; overflow:hidden; margin-top:8px;">
-              <div style="height:100%; width:${a.ortalama}%; background:${a.renk}; border-radius:99px;"></div>
-            </div>
+        ${disiplinOrtalamalari.map(d => `
+          <div style="padding:14px; background:white; border-radius:10px; border-left:4px solid ${d.renk};">
+            <div style="font-size:11px; color:${d.renk}; font-weight:700; letter-spacing:0.3px;">${d.ikon} ${d.ad.toUpperCase()}</div>
+            <div style="font-size:24px; font-weight:700; color:${d.renk}; margin-top:4px;">%${d.ortalama}</div>
           </div>
         `).join("")}
       </div>
 
-      <!-- Öğrenci listesi tablo -->
+      <!-- Karşılaştırma grafiği -->
+      <div style="background:white; padding:16px; border:1px solid #e5e7eb; border-radius:12px; margin-bottom:16px;">
+        <div style="font-weight:600; font-size:14px; margin-bottom:12px; color:#1f2937;">📊 3 Disiplin Sınıf Ortalaması</div>
+        <div style="position:relative; height:240px;">
+          <canvas id="adminEgitimBarCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Öğrenci tablosu -->
       <div style="background:white; padding:16px; border:1px solid #e5e7eb; border-radius:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div style="font-weight:600; font-size:14px; color:#1f2937;">👥 Öğrenci Bazlı Detay</div>
-          <button class="btn-mini" onclick="adminMontessoriExcelIndir()" style="font-size:11px; background:#16a34a; color:white;">📥 Excel İndir</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <div style="font-weight:600; font-size:14px; color:#1f2937;">👥 Öğrenci Bazlı Özet</div>
+          <button class="btn-mini" onclick="adminEgitimExcelIndir()" style="font-size:11px; background:#16a34a; color:white;">📥 Excel İndir</button>
         </div>
         <div style="overflow-x:auto;">
           <table style="width:100%; border-collapse:collapse; font-size:12px;">
             <thead>
               <tr style="background:#f9fafb; border-bottom:2px solid #e5e7eb;">
                 <th style="padding:8px 10px; text-align:left; color:#374151;">Öğrenci</th>
-                ${aktifMufredat.map(a => `<th style="padding:8px 6px; text-align:center; color:${a.renk};">${a.ikon}<br><span style="font-size:10px;">${a.ad.split(' ')[0]}</span></th>`).join("")}
-                <th style="padding:8px 10px; text-align:center; color:#374151;">Genel</th>
-                <th style="padding:8px 10px; text-align:center; color:#9ca3af; font-size:10px;">Son Güncelleme</th>
+                ${DISIPLINLER.map(d => `<th style="padding:8px 10px; text-align:center; color:${d.renk};">${d.ikon} ${d.ad}</th>`).join("")}
+                <th style="padding:8px 10px; text-align:center; color:#9ca3af; font-size:10px;">Yorumlar</th>
               </tr>
             </thead>
             <tbody>
-              ${ogrenciIstatistikleri.map(o => {
-                const genelToplam = o.istat.reduce((t,s)=>t+s.toplam,0);
-                const genelCalisilan = o.istat.reduce((t,s)=>t+s.calisilan,0);
-                const genelYuzde = genelToplam ? Math.round((genelCalisilan/genelToplam)*100) : 0;
-                const sonGuncStr = o.sonGuncelleme ?
-                  (o.sonGuncelleme.toDate ? o.sonGuncelleme.toDate() : new Date(o.sonGuncelleme)).toLocaleDateString("tr-TR")
-                  : "—";
+              ${aktifOgrenciler.map(o => {
+                const v = tumGelisim[o.id];
+                const yuzdeler = DISIPLINLER.map(d => {
+                  const veri = v?.[d.id] || { kayitlar:{} };
+                  return { d, yuzde: disiplinGenelIlerleme(veri.kayitlar, aktifMufredatlar[d.id]).yuzde };
+                });
+                const yorumSayisi = (v?.ogretmenYorumlari || []).length;
                 return `
-                  <tr style="border-bottom:1px solid #f3f4f6; cursor:pointer;" onclick="openAyarModal('${o.ogrenci.id}','gelisim')">
-                    <td style="padding:8px 10px; font-weight:500;">${escapeHtml(o.ogrenci.ogrenciAdSoyad || "—")}</td>
-                    ${o.istat.map(s => `
+                  <tr style="border-bottom:1px solid #f3f4f6; cursor:pointer;" onclick="openAyarModal('${o.id}','gelisim')">
+                    <td style="padding:8px 10px; font-weight:500;">${escapeHtmlGelisim(o.ogrenciAdSoyad || "—")}</td>
+                    ${yuzdeler.map(y => `
                       <td style="padding:6px; text-align:center;">
-                        <span style="display:inline-block; padding:3px 8px; border-radius:6px; font-weight:600; font-size:11px; background:${s.yuzde>=50 ? s.renk+'22' : '#f3f4f6'}; color:${s.yuzde>=50 ? s.renk : '#9ca3af'};">%${s.yuzde}</span>
+                        <span style="display:inline-block; padding:3px 10px; border-radius:6px; font-weight:600; font-size:11px; background:${y.yuzde>=50 ? y.d.renk+'22' : '#f3f4f6'}; color:${y.yuzde>=50 ? y.d.renk : '#9ca3af'};">%${y.yuzde}</span>
                       </td>
                     `).join("")}
-                    <td style="padding:8px 10px; text-align:center; font-weight:700; color:${genelYuzde>=50 ? '#166534' : '#6b7280'};">%${genelYuzde}</td>
-                    <td style="padding:8px 10px; text-align:center; color:#9ca3af; font-size:11px;">${sonGuncStr}</td>
+                    <td style="padding:8px 10px; text-align:center; font-size:11px; color:#6b7280;">${yorumSayisi > 0 ? `📝 ${yorumSayisi}` : '—'}</td>
                   </tr>
                 `;
               }).join("")}
@@ -12253,125 +13296,80 @@ window.adminMontessoriYenile = async function() {
       </div>
     `;
 
-    // Bar chart çiz
+    // Bar chart
     setTimeout(() => {
-      const ctx = document.getElementById("adminMontessoriBarCanvas");
+      const ctx = document.getElementById("adminEgitimBarCanvas");
       if (ctx && typeof Chart !== "undefined") {
-        if (adminMontessoriBarChart) adminMontessoriBarChart.destroy();
-        adminMontessoriBarChart = new Chart(ctx, {
+        if (adminEgitimChart) adminEgitimChart.destroy();
+        adminEgitimChart = new Chart(ctx, {
           type: "bar",
           data: {
-            labels: alanOrtalamalari.map(a => a.ad),
-            datasets: [
-              {
-                label: "Genel İlerleme %",
-                data: alanOrtalamalari.map(a => a.ortalama),
-                backgroundColor: alanOrtalamalari.map(a => a.renk + "AA"),
-                borderColor: alanOrtalamalari.map(a => a.renk),
-                borderWidth: 2
-              },
-              {
-                label: "Uzmanlaşma %",
-                data: alanOrtalamalari.map(a => a.uzmanlikOrt),
-                backgroundColor: "#7c3aed99",
-                borderColor: "#7c3aed",
-                borderWidth: 2
-              }
-            ]
+            labels: disiplinOrtalamalari.map(d => `${d.ikon} ${d.ad}`),
+            datasets: [{
+              label: "Sınıf Ortalaması %",
+              data: disiplinOrtalamalari.map(d => d.ortalama),
+              backgroundColor: disiplinOrtalamalari.map(d => d.renk + "AA"),
+              borderColor: disiplinOrtalamalari.map(d => d.renk),
+              borderWidth: 2
+            }]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: { beginAtZero: true, max: 100, ticks: { callback: v => "%" + v, font: { size: 10 } } },
-              x: { ticks: { font: { size: 11 } } }
-            },
-            plugins: {
-              legend: { position: "bottom", labels: { font: { size: 11 }, padding: 12 } }
-            }
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero:true, max:100, ticks:{ callback: v => "%" + v, font:{size:10} } }, x: { ticks:{ font:{size:11} } } },
+            plugins: { legend: { display: false } }
           }
         });
       }
     }, 100);
 
-    // Global olarak son veriyi sakla (Excel için)
-    window._adminMontessoriSonVeri = { ogrenciIstatistikleri, alanOrtalamalari };
+    window._adminEgitimSonVeri = { aktifOgrenciler, tumGelisim, disiplinOrtalamalari };
 
   } catch(e) {
-    console.error("Admin Montessori hata:", e);
-    el.innerHTML = `<div style="padding:30px; text-align:center; color:#dc2626; font-size:13px;">Veri yüklenirken hata: ${e.message}</div>`;
+    console.error("Admin Eğitim hata:", e);
+    el.innerHTML = `<div style="padding:30px; text-align:center; color:#dc2626; font-size:13px;">Veri yüklenirken hata: ${escapeHtmlGelisim(e.message)}</div>`;
   }
 };
 
-// Excel indir
-window.adminMontessoriExcelIndir = function() {
-  if (typeof XLSX === "undefined") {
-    alert("Excel kütüphanesi yüklenemedi.");
-    return;
-  }
-  const veri = window._adminMontessoriSonVeri;
-  if (!veri) {
-    alert("Önce 'Yenile' butonuna basın.");
-    return;
-  }
-
+window.adminEgitimExcelIndir = function() {
+  if (typeof XLSX === "undefined") { alert("Excel kütüphanesi yüklenemedi."); return; }
+  const veri = window._adminEgitimSonVeri;
+  if (!veri) { alert("Önce 'Yenile' butonuna basın."); return; }
   const wb = XLSX.utils.book_new();
 
-  // Sayfa 1: Genel Özet
+  // Özet
   const ozetData = [
-    ["Bir Çiçek Koleji - Montessori Gelişim Raporu"],
+    ["Bir Çiçek Koleji - Eğitim Gelişim Raporu"],
     ["Rapor Tarihi:", new Date().toLocaleDateString("tr-TR")],
     [],
-    ["Alan", "Sınıf Ortalaması %", "Uzmanlaşma Ort. %", "Veri Olan Öğrenci", "Toplam Öğrenci"]
+    ["Disiplin", "Sınıf Ortalaması %", "Toplam Öğrenci"]
   ];
-  veri.alanOrtalamalari.forEach(a => {
-    ozetData.push([a.ad, a.ortalama, a.uzmanlikOrt, a.veriOlanlar, a.toplamOgrenci]);
-  });
+  veri.disiplinOrtalamalari.forEach(d => ozetData.push([d.ad, d.ortalama, veri.aktifOgrenciler.length]));
   const ws1 = XLSX.utils.aoa_to_sheet(ozetData);
-  ws1['!cols'] = [{wch:20},{wch:20},{wch:20},{wch:18},{wch:15}];
+  ws1['!cols'] = [{wch:20},{wch:20},{wch:18}];
   XLSX.utils.book_append_sheet(wb, ws1, "Genel Özet");
 
-  // Sayfa 2: Öğrenci Detay
+  // Öğrenci detayı
   const detayHeader = ["Öğrenci"];
-  veri.alanOrtalamalari.forEach(a => detayHeader.push(a.ad + " %"));
-  detayHeader.push("Genel %", "Son Güncelleme");
+  DISIPLINLER.forEach(d => detayHeader.push(`${d.ad} %`));
+  detayHeader.push("Yorum Sayısı");
   const detayData = [detayHeader];
-  veri.ogrenciIstatistikleri.forEach(o => {
-    const row = [o.ogrenci.ogrenciAdSoyad || "—"];
-    o.istat.forEach(s => row.push(s.yuzde));
-    const genelToplam = o.istat.reduce((t,s)=>t+s.toplam,0);
-    const genelCalisilan = o.istat.reduce((t,s)=>t+s.calisilan,0);
-    row.push(genelToplam ? Math.round((genelCalisilan/genelToplam)*100) : 0);
-    const sonGuncStr = o.sonGuncelleme ?
-      (o.sonGuncelleme.toDate ? o.sonGuncelleme.toDate() : new Date(o.sonGuncelleme)).toLocaleDateString("tr-TR")
-      : "—";
-    row.push(sonGuncStr);
+  veri.aktifOgrenciler.forEach(o => {
+    const v = veri.tumGelisim[o.id];
+    const row = [o.ogrenciAdSoyad || "—"];
+    DISIPLINLER.forEach(d => {
+      const dv = v?.[d.id] || { kayitlar:{} };
+      row.push(disiplinGenelIlerleme(dv.kayitlar, aktifMufredatlar[d.id]).yuzde);
+    });
+    row.push((v?.ogretmenYorumlari || []).length);
     detayData.push(row);
   });
   const ws2 = XLSX.utils.aoa_to_sheet(detayData);
-  ws2['!cols'] = [{wch:25},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:18}];
+  ws2['!cols'] = [{wch:25},{wch:15},{wch:15},{wch:15},{wch:15}];
   XLSX.utils.book_append_sheet(wb, ws2, "Öğrenci Detay");
 
-  // Sayfa 3: Tüm dersler ve durumları
-  const tumDerslerHeader = ["Öğrenci", "Alan", "Grup", "Ders", "Durum"];
-  const tumDerslerData = [tumDerslerHeader];
-  veri.ogrenciIstatistikleri.forEach(o => {
-    const tumGelisim = window._adminMontessoriSonVeri?.ogrenciIstatistikleri || [];
-    // Her öğrencinin tüm kayıtlarını çek
-    aktifMufredat.forEach(alan => {
-      alan.gruplar.forEach(g => {
-        g.dersler.forEach(d => {
-          // Bu öğrencinin ham gelişim verisini bulmak gerekir — ama sadece istat var
-          // Onun yerine sadece ortalama gösterelim
-        });
-      });
-    });
-  });
-  // 3. sayfa için ham veri lazım, atlayalım
-
   const tarih = new Date().toLocaleDateString("tr-TR").replace(/\./g,"-");
-  XLSX.writeFile(wb, `Montessori-Sinif-Raporu-${tarih}.xlsx`);
-  if (typeof toast === "function") toast("✓ Excel indirildi", "ok");
+  XLSX.writeFile(wb, `Egitim-Sinif-Raporu-${tarih}.xlsx`);
+  if (typeof showToast === "function") showToast("✓ Excel indirildi");
 };
 
 
@@ -15323,350 +16321,6 @@ window.talepOkunduIsaretle = async function(talepId) {
     showToast("Güncellenemedi: " + e.message, "error");
   }
 };
-
-// ============ VELİ: MONTESSORI GELİŞİM RAPORU ============
-let veliGelisimChart = null;
-let veliGelisimRadarChart = null;
-
-async function veliRenderRaporlar() {
-  const el = document.getElementById("veliRaporlarContent");
-  if (!el) return;
-
-  if (!veliAktifOgrenci || !veliAktifOgrenci.id) {
-    el.innerHTML = `
-      <div class="veli-card">
-        <div class="veli-placeholder">
-          <div class="ph-icon">📊</div>
-          <h3>Öğrenci bilgisi bulunamadı</h3>
-          <p>Lütfen önce Dashboard sekmesinden çocuğunuzu seçin.</p>
-        </div>
-      </div>`;
-    return;
-  }
-
-  el.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af; font-size:13px;">Gelişim raporu yükleniyor...</div>`;
-
-  try {
-    // Müfredat ve öğrencinin gelişim verilerini yükle
-    await mufredatYukle();
-    const veri = await gelisimYukle(veliAktifOgrenci.id);
-    const istat = gelisimIstatistik(veri.kayitlar, aktifMufredat);
-
-    // Genel toplam
-    const genelToplam = istat.reduce((t,s)=>t+s.toplam,0);
-    const genelCalisilan = istat.reduce((t,s)=>t+s.calisilan,0);
-    const genelUzmanlasti = istat.reduce((t,s)=>t+s.uzmanlasti,0);
-    const genelYuzde = genelToplam ? Math.round((genelCalisilan/genelToplam)*100) : 0;
-
-    const ogrAd = veliAktifOgrenci.ogrenciAdSoyad || "Çocuğunuz";
-    const sonGuncStr = veri.sonGuncelleme ?
-      (veri.sonGuncelleme.toDate ? veri.sonGuncelleme.toDate() : new Date(veri.sonGuncelleme)).toLocaleDateString("tr-TR")
-      : "—";
-
-    el.innerHTML = `
-      <!-- HERO -->
-      <div class="veli-gelisim-hero">
-        <h2>🌱 ${escapeHtml(ogrAd)} - Montessori Gelişim Raporu</h2>
-        <p>Öğretmen tarafından son güncelleme: ${sonGuncStr}</p>
-      </div>
-
-      <!-- ÖZET METRİKLER -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:18px;">
-        <div class="veli-stat-card green">
-          <div class="veli-stat-label">ÇALIŞILAN DERS</div>
-          <div class="veli-stat-value">${genelCalisilan} / ${genelToplam}</div>
-        </div>
-        <div class="veli-stat-card yellow">
-          <div class="veli-stat-label">GENEL İLERLEME</div>
-          <div class="veli-stat-value">%${genelYuzde}</div>
-        </div>
-        <div class="veli-stat-card blue">
-          <div class="veli-stat-label">UZMANLAŞILAN</div>
-          <div class="veli-stat-value">${genelUzmanlasti}</div>
-        </div>
-      </div>
-
-      <!-- RADAR + ALAN BAZLI -->
-      <div class="veli-gelisim-radar-wrap">
-        <div class="veli-gelisim-card">
-          <div class="veli-gelisim-card-baslik">📊 Beş Alan Genel Bakış</div>
-          <div style="position:relative; height:280px;">
-            <canvas id="veliGelisimRadarCanvas"></canvas>
-          </div>
-          <div class="veli-stu-aciklama">
-            <span><span class="veli-stu-nokta" style="background:#16a34a;"></span> Sunuldu (S)</span>
-            <span><span class="veli-stu-nokta" style="background:#d97706;"></span> Tekrar (T)</span>
-            <span><span class="veli-stu-nokta" style="background:#7c3aed;"></span> Uzmanlaştı (U)</span>
-          </div>
-        </div>
-        <div class="veli-gelisim-card">
-          <div class="veli-gelisim-card-baslik">📈 Alan Bazlı Dağılım</div>
-          <div style="position:relative; height:280px;">
-            <canvas id="veliGelisimBarCanvas"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- ALAN DETAYLARI -->
-      <div class="veli-gelisim-card">
-        <div class="veli-gelisim-card-baslik">🌿 Alan Bazlı Detay</div>
-        <div style="display:grid; gap:12px;">
-          ${istat.map(s => `
-            <div style="padding:14px; background:#fafafa; border-radius:10px; border-left:4px solid ${s.renk};">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-                <div style="font-weight:600; font-size:14px;">${s.ikon} ${s.ad}</div>
-                <div style="font-size:13px; color:${s.renk}; font-weight:700;">%${s.yuzde}</div>
-              </div>
-              <div style="display:flex; gap:14px; font-size:12px; color:#4b5563; flex-wrap:wrap;">
-                <span>🌱 Sunuldu: <strong>${s.sunuldu}</strong></span>
-                <span>🌿 Tekrar: <strong>${s.tekrar}</strong></span>
-                <span>🌳 Uzmanlaştı: <strong>${s.uzmanlasti}</strong></span>
-                <span style="color:#9ca3af;">📚 Toplam: ${s.toplam}</span>
-              </div>
-              <div style="height:6px; background:#e5e7eb; border-radius:99px; margin-top:10px; overflow:hidden;">
-                <div style="height:100%; width:${s.yuzde}%; background:${s.renk}; border-radius:99px;"></div>
-              </div>
-            </div>
-          `).join("")}
-        </div>
-      </div>
-
-      <!-- ÖĞRETMEN NOTLARI -->
-      ${veri.notlar && veri.notlar.length > 0 ? `
-        <div class="veli-gelisim-card" style="margin-top:14px;">
-          <div class="veli-gelisim-card-baslik">📝 Öğretmen Gözlem Notları</div>
-          <div style="max-height:400px; overflow-y:auto;">
-            ${[...veri.notlar].sort((a,b)=>new Date(b.tarih)-new Date(a.tarih)).map(n => {
-              const t = new Date(n.tarih);
-              const tarihStr = t.toLocaleDateString("tr-TR") + " " + t.toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"});
-              return `
-                <div style="padding:12px; background:#fffbeb; border-left:3px solid #f59e0b; border-radius:8px; margin-bottom:8px;">
-                  <div style="font-size:11px; color:#92400e; margin-bottom:6px;">📅 ${tarihStr}</div>
-                  <div style="font-size:13px; color:#1f2937; line-height:1.6; white-space:pre-wrap;">${escapeHtml(n.metin)}</div>
-                </div>
-              `;
-            }).join("")}
-          </div>
-        </div>
-      ` : ''}
-
-      <!-- PDF İNDİR BUTONU -->
-      <div style="margin-top:18px; text-align:center;">
-        <button class="veli-btn-primary" onclick="veliGelisimPdfIndir()" style="padding:12px 24px; font-size:14px;">
-          📄 Bu Raporu PDF Olarak İndir
-        </button>
-      </div>
-    `;
-
-    // Grafikleri çiz
-    setTimeout(() => {
-      veliGelisimGrafikCiz(istat);
-    }, 100);
-
-  } catch(e) {
-    console.error("Veli raporlar hata:", e);
-    el.innerHTML = `
-      <div class="veli-card">
-        <div class="veli-placeholder">
-          <div class="ph-icon">⚠️</div>
-          <h3>Rapor yüklenemedi</h3>
-          <p>${e.message || "Bir hata oluştu"}</p>
-        </div>
-      </div>`;
-  }
-}
-
-function veliGelisimGrafikCiz(istat) {
-  if (typeof Chart === "undefined") {
-    console.warn("Chart.js yüklü değil");
-    return;
-  }
-
-  // RADAR CHART
-  const radarCtx = document.getElementById("veliGelisimRadarCanvas");
-  if (radarCtx) {
-    if (veliGelisimRadarChart) veliGelisimRadarChart.destroy();
-    veliGelisimRadarChart = new Chart(radarCtx, {
-      type: "radar",
-      data: {
-        labels: istat.map(s => s.ad),
-        datasets: [
-          {
-            label: "İlerleme %",
-            data: istat.map(s => s.yuzde),
-            backgroundColor: "rgba(45, 106, 79, 0.15)",
-            borderColor: "#2d6a4f",
-            borderWidth: 2,
-            pointBackgroundColor: "#2d6a4f",
-            pointRadius: 4
-          },
-          {
-            label: "Uzmanlaştı %",
-            data: istat.map(s => s.uzmanlikYuzde),
-            backgroundColor: "rgba(124, 58, 237, 0.15)",
-            borderColor: "#7c3aed",
-            borderWidth: 2,
-            pointBackgroundColor: "#7c3aed",
-            pointRadius: 4
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          r: {
-            beginAtZero: true,
-            max: 100,
-            ticks: { stepSize: 25, font: { size: 10 } },
-            pointLabels: { font: { size: 11, weight: "600" } }
-          }
-        },
-        plugins: {
-          legend: { position: "bottom", labels: { font: { size: 11 }, padding: 12 } }
-        }
-      }
-    });
-  }
-
-  // BAR CHART (yığılmış)
-  const barCtx = document.getElementById("veliGelisimBarCanvas");
-  if (barCtx) {
-    if (veliGelisimChart) veliGelisimChart.destroy();
-    veliGelisimChart = new Chart(barCtx, {
-      type: "bar",
-      data: {
-        labels: istat.map(s => s.ad),
-        datasets: [
-          {
-            label: "Sunuldu",
-            data: istat.map(s => s.sunuldu),
-            backgroundColor: "#16a34a"
-          },
-          {
-            label: "Tekrar",
-            data: istat.map(s => s.tekrar),
-            backgroundColor: "#d97706"
-          },
-          {
-            label: "Uzmanlaştı",
-            data: istat.map(s => s.uzmanlasti),
-            backgroundColor: "#7c3aed"
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: { stacked: true, ticks: { font: { size: 10 } } },
-          y: { stacked: true, beginAtZero: true, ticks: { font: { size: 10 } } }
-        },
-        plugins: {
-          legend: { position: "bottom", labels: { font: { size: 11 }, padding: 10 } }
-        }
-      }
-    });
-  }
-}
-
-// PDF olarak indir
-window.veliGelisimPdfIndir = async function() {
-  if (!veliAktifOgrenci) return;
-  try {
-    if (typeof jspdf === "undefined" && typeof window.jspdf === "undefined") {
-      alert("PDF kütüphanesi yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.");
-      return;
-    }
-    const { jsPDF } = window.jspdf;
-    const veri = await gelisimYukle(veliAktifOgrenci.id);
-    const istat = gelisimIstatistik(veri.kayitlar, aktifMufredat);
-
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
-    // Türkçe karakter desteği için Carlito fontu yüklüyse kullan
-    if (typeof carlitoBase64 !== "undefined") {
-      pdf.addFileToVFS("Carlito-Regular.ttf", carlitoBase64);
-      pdf.addFont("Carlito-Regular.ttf", "Carlito", "normal");
-      pdf.setFont("Carlito");
-    }
-
-    const ogrAd = veliAktifOgrenci.ogrenciAdSoyad || "Öğrenci";
-    const tarih = new Date().toLocaleDateString("tr-TR");
-
-    // Başlık
-    pdf.setFillColor(45, 106, 79);
-    pdf.rect(0, 0, 210, 30, "F");
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(16);
-    pdf.text("Bir Cicek Koleji - Montessori Gelisim Raporu", 105, 12, { align: "center" });
-    pdf.setFontSize(10);
-    pdf.text(`Ogrenci: ${ogrAd}  |  Rapor Tarihi: ${tarih}`, 105, 22, { align: "center" });
-
-    let y = 40;
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFontSize(13);
-    pdf.text("Genel Ozet", 14, y);
-    y += 7;
-
-    pdf.setFontSize(10);
-    const genelToplam = istat.reduce((t,s)=>t+s.toplam,0);
-    const genelCalisilan = istat.reduce((t,s)=>t+s.calisilan,0);
-    const genelYuzde = genelToplam ? Math.round((genelCalisilan/genelToplam)*100) : 0;
-
-    pdf.text(`Toplam ders: ${genelToplam}`, 14, y); y += 5;
-    pdf.text(`Calisilan ders: ${genelCalisilan}`, 14, y); y += 5;
-    pdf.text(`Genel ilerleme: %${genelYuzde}`, 14, y); y += 10;
-
-    // Alan detayları
-    pdf.setFontSize(13);
-    pdf.text("Alan Bazli Detay", 14, y);
-    y += 7;
-    pdf.setFontSize(10);
-
-    istat.forEach(s => {
-      if (y > 270) { pdf.addPage(); y = 20; }
-      // Alan adı (Türkçe karakterleri ASCII'ye çevir basit)
-      const ad = s.ad.replace(/ğ/g,'g').replace(/Ğ/g,'G').replace(/ü/g,'u').replace(/Ü/g,'U')
-        .replace(/ş/g,'s').replace(/Ş/g,'S').replace(/ı/g,'i').replace(/İ/g,'I')
-        .replace(/ö/g,'o').replace(/Ö/g,'O').replace(/ç/g,'c').replace(/Ç/g,'C');
-      pdf.setFont(undefined, "bold");
-      pdf.text(`${ad}: %${s.yuzde}`, 14, y);
-      pdf.setFont(undefined, "normal");
-      y += 5;
-      pdf.text(`  Sunuldu: ${s.sunuldu}  |  Tekrar: ${s.tekrar}  |  Uzmanlasti: ${s.uzmanlasti}  |  Toplam: ${s.toplam}`, 14, y);
-      y += 8;
-    });
-
-    // Notlar
-    if (veri.notlar && veri.notlar.length > 0) {
-      if (y > 240) { pdf.addPage(); y = 20; }
-      pdf.setFontSize(13);
-      pdf.text("Ogretmen Gozlem Notlari", 14, y);
-      y += 7;
-      pdf.setFontSize(9);
-      [...veri.notlar].sort((a,b)=>new Date(b.tarih)-new Date(a.tarih)).slice(0,10).forEach(n => {
-        if (y > 270) { pdf.addPage(); y = 20; }
-        const t = new Date(n.tarih);
-        pdf.setTextColor(120,120,120);
-        pdf.text(t.toLocaleDateString("tr-TR"), 14, y);
-        pdf.setTextColor(0,0,0);
-        const metinAscii = (n.metin||"").replace(/ğ/g,'g').replace(/Ğ/g,'G').replace(/ü/g,'u').replace(/Ü/g,'U')
-          .replace(/ş/g,'s').replace(/Ş/g,'S').replace(/ı/g,'i').replace(/İ/g,'I')
-          .replace(/ö/g,'o').replace(/Ö/g,'O').replace(/ç/g,'c').replace(/Ç/g,'C');
-        const lines = pdf.splitTextToSize(metinAscii, 180);
-        pdf.text(lines, 30, y);
-        y += lines.length * 4 + 4;
-      });
-    }
-
-    pdf.save(`Montessori-Gelisim-${ogrAd.replace(/\s+/g,"-")}-${tarih.replace(/\./g,"-")}.pdf`);
-  } catch(e) {
-    console.error("PDF hata:", e);
-    alert("PDF oluşturulamadı: " + e.message);
-  }
-};
-
 
 // ============ TUR C: VELİ TARAFI BİLDİRİMLER SEKMESİ ============
 async function veliRenderBildirimler() {
