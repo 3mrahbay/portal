@@ -5243,6 +5243,90 @@ html, body {
   .dash-odeme-tutar { font-size: 24px; }
 }
 
+/* ============ ÖDEME 2 KOLONLU GRID ============ */
+.dash-odeme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 720px) {
+  .dash-odeme-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.dash-odeme-grid > .dash-karti {
+  margin: 0;
+}
+/* Sol kolon: Son ödeme - yeşil (yapılmış) */
+.dash-odeme-son {
+  border-left: 4px solid #15803d;
+  background: linear-gradient(135deg, #f0fdf4 0%, white 100%);
+}
+.dash-odeme-son-bos {
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+}
+.dash-odeme-tamamlandi {
+  background: linear-gradient(135deg, #f0fdf4 0%, white 100%);
+  border-left: 4px solid #15803d;
+}
+
+/* ============ AKIŞ KARTI (Duyuru + Galeri + Etkinlik + Gözlem) ============ */
+.dash-akis-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.dash-akis-oge {
+  border-left: 3px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dash-akis-oge:hover {
+  transform: translateX(2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+.dash-akis-oge-ust {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.dash-akis-oge-ikon {
+  font-size: 14px;
+}
+.dash-akis-oge-etiket {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dash-akis-oge-tarih {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: auto;
+}
+.dash-akis-oge-baslik {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.4;
+  margin-bottom: 2px;
+}
+.dash-akis-oge-ozet {
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* ============ PROFESYONEL VELİ RAPOR SAYFASI ============ */
 
 .rapor-aksiyon-bar {
@@ -10690,14 +10774,14 @@ async function veliRenderDashboard() {
       </div>
     </div>
 
-    <!-- ÖDEME -->
+    <!-- ÖDEME (2 KOLONLU: Son Ödeme | Gelecek Ödeme) -->
     <div id="dashOdemeKonteyner">
-      <!-- Ödeme kartı buraya gelir -->
+      <!-- Ödeme kartları buraya gelir (2 kolonlu grid) -->
     </div>
 
-    <!-- ÖĞRETMEN GÖZLEMLERİ -->
-    <div id="dashYorumlarKonteyner">
-      <!-- Eğer yorum varsa burada görünür -->
+    <!-- AKIŞ (Duyurular + Galeri + Etkinlikler + Gözlemler birleşik, tarihe göre sıralı) -->
+    <div id="dashAkisKonteyner">
+      <!-- Akış kartı buraya gelir -->
     </div>
 
     <!-- HIZLI İŞLEMLER -->
@@ -10733,7 +10817,7 @@ async function veliRenderDashboard() {
     dashYemekDoldur(bugun),
     dashEgitimDoldur(ogr.id),
     dashOdemeDoldur(),
-    dashYorumlariDoldur(ogr.id)
+    dashAkisDoldur(ogr.id)
   ]).catch(err => console.error("Dashboard yüklerken hata:", err));
 }
 
@@ -11037,10 +11121,86 @@ function dashOdemeDoldur() {
   for (const k in aylikOdemeler) {
     toplamOdenen += parseFloat(aylikOdemeler[k].odenenTutar) || 0;
   }
-  const kalan = Math.max(0, aidatBeklenen - toplamOdenen);
   const yuzde = aidatBeklenen > 0 ? Math.round((toplamOdenen / aidatBeklenen) * 100) : 0;
 
-  // Sıradaki ödeme
+  const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+
+  // ===== Peşin ödeme özel durumu (tek kart, kolon yok) =====
+  if (v.aidatAyarlari?.pesinOdeme) {
+    el.innerHTML = `
+      <div class="dash-karti">
+        <div class="dash-karti-baslik"><span>💎</span><span>Ödeme Durumu</span></div>
+        <div style="text-align:center; padding:14px 0;">
+          <div style="font-size:36px;">💎</div>
+          <div style="font-size:15px; font-weight:600; color:#15803d; margin-top:6px;">Peşin Ödeme Yapıldı</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Bu dönem için tüm ödemeler tamamlandı.</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ===== SOL KOLON: Son (en son yapılan) ödeme =====
+  // aylikOdemeler içinde odendi=true olanların en yenisi (odemeTarihi bazında)
+  let sonOdeme = null;
+  for (const ayKod in aylikOdemeler) {
+    const od = aylikOdemeler[ayKod];
+    if (!od || !od.odendi) continue;
+    if (!sonOdeme || (od.odemeTarihi || "") > (sonOdeme.odemeTarihi || "")) {
+      sonOdeme = { ...od, ayKod };
+    }
+  }
+
+  let solKolon = "";
+  if (sonOdeme) {
+    let etiket = "";
+    if (sonOdeme.ayKod === "__onOdeme") {
+      etiket = "Ön Ödeme";
+    } else {
+      const parca = (sonOdeme.ayKod || "").split("-");
+      if (parca.length === 2) {
+        const ayNum = parseInt(parca[1], 10);
+        if (ayNum >= 1 && ayNum <= 12) etiket = `${aylar[ayNum - 1]} ${parca[0]}`;
+      }
+    }
+    if (!etiket) etiket = "Ödeme";
+
+    const tutar = parseFloat(sonOdeme.odenenTutar) || 0;
+    let tarihStr = "";
+    if (sonOdeme.odemeTarihi) {
+      try {
+        tarihStr = new Date(sonOdeme.odemeTarihi).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+      } catch (e) { tarihStr = sonOdeme.odemeTarihi; }
+    }
+    const yontem = sonOdeme.yontem || sonOdeme.odemeYontemi || "";
+
+    solKolon = `
+      <div class="dash-karti dash-odeme dash-odeme-son">
+        <div class="dash-karti-baslik"><span>✅</span><span>Son Ödeme</span></div>
+        <div class="dash-odeme-aciklama">${escapeHtml(etiket)}</div>
+        <div class="dash-odeme-tutar">${Math.round(tutar).toLocaleString("tr-TR")} <small>TL</small></div>
+        <div class="dash-odeme-bilgi">
+          ${tarihStr ? `<span>📅 ${escapeHtml(tarihStr)}</span>` : `<span></span>`}
+          ${yontem ? `<span><strong>${escapeHtml(yontem)}</strong></span>` : ``}
+        </div>
+        <div class="dash-odeme-genel-bar">
+          <div class="dash-odeme-genel-bar-bilgi">
+            <span>Toplam ilerleme</span>
+            <span><strong>%${yuzde}</strong> · ${Math.round(toplamOdenen).toLocaleString("tr-TR")} / ${aidatBeklenen.toLocaleString("tr-TR")} TL</span>
+          </div>
+          <div class="dash-odeme-genel-bar-bar"><div style="width:${yuzde}%;"></div></div>
+        </div>
+      </div>`;
+  } else {
+    solKolon = `
+      <div class="dash-karti dash-odeme-son-bos">
+        <div class="dash-karti-baslik"><span>📭</span><span>Son Ödeme</span></div>
+        <div style="padding:18px 0; text-align:center; color:#9ca3af; font-size:13px;">
+          Henüz yapılmış ödeme bulunmuyor
+        </div>
+      </div>`;
+  }
+
+  // ===== SAĞ KOLON: Gelecek (sıradaki) ödeme =====
   let sonraki = null;
   let gecikti = false;
   let gunFark = 0;
@@ -11048,7 +11208,7 @@ function dashOdemeDoldur() {
   const taksit = v.aidatAyarlari?.gercekAySayisi || v.aidatAyarlari?.taksitSayisi || 12;
   const aidat = v.aidatAyarlari?.aylikAidat || 0;
 
-  if (baslangic && aidat > 0 && !v.aidatAyarlari?.pesinOdeme && typeof getAyListesi === "function") {
+  if (baslangic && aidat > 0 && typeof getAyListesi === "function") {
     const ayListesi = getAyListesi(baslangic, taksit);
     for (const ay of ayListesi) {
       const od = aylikOdemeler[ay.ayKod];
@@ -11065,19 +11225,8 @@ function dashOdemeDoldur() {
     }
   }
 
-  let icerik = "";
-  if (v.aidatAyarlari?.pesinOdeme) {
-    icerik = `
-      <div class="dash-karti">
-        <div class="dash-karti-baslik"><span>💎</span><span>Ödeme Durumu</span></div>
-        <div style="text-align:center; padding:14px 0;">
-          <div style="font-size:36px;">💎</div>
-          <div style="font-size:15px; font-weight:600; color:#15803d; margin-top:6px;">Peşin Ödeme Yapıldı</div>
-          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Bu dönem için tüm ödemeler tamamlandı.</div>
-        </div>
-      </div>`;
-  } else if (sonraki) {
-    const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  let sagKolon = "";
+  if (sonraki) {
     const aylAdi = aylar[sonraki.ay - 1];
     let bilgi = "";
     if (gecikti) {
@@ -11089,9 +11238,9 @@ function dashOdemeDoldur() {
       bilgi = `<span><strong>${gunFark}</strong> gün kaldı</span>`;
     }
 
-    icerik = `
+    sagKolon = `
       <div class="dash-karti dash-odeme ${gecikti ? 'gecikmis' : ''}">
-        <div class="dash-karti-baslik"><span>💳</span><span>${gecikti ? 'Geciken Ödeme' : 'Sıradaki Ödeme'}</span></div>
+        <div class="dash-karti-baslik"><span>💳</span><span>${gecikti ? 'Geciken Ödeme' : 'Gelecek Ödeme'}</span></div>
         <div class="dash-odeme-aciklama">${aylAdi} ${sonraki.yil}</div>
         <div class="dash-odeme-tutar">${aidat.toLocaleString("tr-TR")} <small>TL</small></div>
         <div class="dash-odeme-bilgi">${bilgi}</div>
@@ -11099,69 +11248,246 @@ function dashOdemeDoldur() {
           <button class="dash-odeme-buton primary" onclick="veliSwitchTab('odemeler')">💳 Ödeme Bildir</button>
           <button class="dash-odeme-buton ikincil" onclick="veliSwitchTab('sozlesme')">📄 Sözleşme</button>
         </div>
-        <div class="dash-odeme-genel-bar">
-          <div class="dash-odeme-genel-bar-bilgi">
-            <span>Toplam ilerleme</span>
-            <span><strong>%${yuzde}</strong> · ${Math.round(toplamOdenen).toLocaleString("tr-TR")} / ${aidatBeklenen.toLocaleString("tr-TR")} TL</span>
-          </div>
-          <div class="dash-odeme-genel-bar-bar"><div style="width:${yuzde}%;"></div></div>
-        </div>
       </div>`;
   } else if (yuzde >= 100) {
-    icerik = `
-      <div class="dash-karti">
-        <div class="dash-karti-baslik"><span>✅</span><span>Ödeme Durumu</span></div>
-        <div style="text-align:center; padding:14px 0;">
-          <div style="font-size:36px;">🎉</div>
-          <div style="font-size:15px; font-weight:600; color:#15803d; margin-top:6px;">Tüm Taksitler Ödendi</div>
-          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Toplam ${Math.round(toplamOdenen).toLocaleString("tr-TR")} TL ödendi.</div>
+    sagKolon = `
+      <div class="dash-karti dash-odeme-tamamlandi">
+        <div class="dash-karti-baslik"><span>✅</span><span>Gelecek Ödeme</span></div>
+        <div style="text-align:center; padding:18px 0;">
+          <div style="font-size:32px;">🎉</div>
+          <div style="font-size:14px; font-weight:600; color:#15803d; margin-top:6px;">Tüm Taksitler Ödendi</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Yeni ödeme bulunmuyor.</div>
         </div>
       </div>`;
   } else {
-    icerik = `
+    sagKolon = `
       <div class="dash-karti">
-        <div class="dash-karti-baslik"><span>💳</span><span>Ödeme Durumu</span></div>
-        <div style="text-align:center; padding:14px 0; color:#6b7280; font-size:13px;">Henüz ödeme planı oluşturulmamış.</div>
+        <div class="dash-karti-baslik"><span>💳</span><span>Gelecek Ödeme</span></div>
+        <div style="text-align:center; padding:18px 0; color:#6b7280; font-size:13px;">
+          Henüz ödeme planı oluşturulmamış.
+        </div>
       </div>`;
   }
 
-  el.innerHTML = icerik;
+  // ===== 2 KOLONLU GRID =====
+  el.innerHTML = `
+    <div class="dash-odeme-grid">
+      ${solKolon}
+      ${sagKolon}
+    </div>`;
 }
 
-// ============ DASHBOARD: ÖĞRETMEN GÖZLEMLERİ ============
-function dashYorumlariDoldur(ogrId) {
-  const el = document.getElementById("dashYorumlarKonteyner");
-  if (!el || !dashEgitimGelisimVerisi) {
-    if (el) el.innerHTML = "";
-    return;
+// ============ DASHBOARD: AKIŞ (Duyurular + Galeri + Etkinlikler + Gözlemler) ============
+async function dashAkisDoldur(ogrId) {
+  const el = document.getElementById("dashAkisKonteyner");
+  if (!el) return;
+
+  // Birleşik akış öğeleri: { tip, tarih (ISO string), baslik, ozet, ikon, renk, bg, etiket, hedef }
+  const akis = [];
+
+  // Veli filtreleme için gerekli setler
+  const veliSiniflari = new Set();
+  const veliOgrenciIds = new Set();
+  for (const o of (veliOgrenciler || [])) {
+    veliOgrenciIds.add(o.id);
+    const donemVeri = o._donemVeri || {};
+    const sinif = (donemVeri.kayit?.sinif) || o.sinif || "";
+    if (sinif) veliSiniflari.add(sinif);
   }
-  const yorumlar = (dashEgitimGelisimVerisi.ogretmenYorumlari || []).filter(y => y.paylas);
-  if (yorumlar.length === 0) {
+
+  // ----- 1. DUYURULAR -----
+  try {
+    const duyuruSnap = await getDocs(collection(db, "duyurular"));
+    for (const d of duyuruSnap.docs) {
+      const dt = d.data();
+      if (dt.arsiv) continue;
+
+      // Veli hedeflemesi
+      let dahil = false;
+      if (dt.hedefTur === "tumOkul") dahil = true;
+      else if (dt.hedefTur === "sinif" && veliSiniflari.has(dt.hedefDeger)) dahil = true;
+      else if (dt.hedefTur === "ogrenci" && veliOgrenciIds.has(dt.hedefDeger)) dahil = true;
+      if (!dahil) continue;
+
+      const tarih = dt.olusturuldu || dt.tarih || "";
+      const oncelik = dt.oncelik || "normal";
+      const ikon = oncelik === "acil" ? "🚨" : oncelik === "onemli" ? "⚠️" : "📢";
+      const renk = oncelik === "acil" ? "#dc2626" : oncelik === "onemli" ? "#ea580c" : "#ca8a04";
+      const bg = oncelik === "acil" ? "#fef2f2" : oncelik === "onemli" ? "#fff7ed" : "#fefce8";
+
+      akis.push({
+        tip: "duyuru",
+        tarih,
+        baslik: dt.baslik || "Duyuru",
+        ozet: dt.icerik || dt.metin || "",
+        etiket: oncelik === "acil" ? "Acil Duyuru" : oncelik === "onemli" ? "Önemli Duyuru" : "Duyuru",
+        ikon, renk, bg,
+        hedef: "bildirimler"
+      });
+    }
+  } catch (e) { console.warn("Akış: duyurular yüklenemedi", e); }
+
+  // ----- 2. GALERİ (gruplu - etkinlik bazında tek öğe) -----
+  try {
+    const galSnap = await getDocs(collection(db, "galeri"));
+    const tumGaleri = galSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Veli erişimine göre filtrele
+    const erisilebilir = tumGaleri.filter(g => {
+      if (g.hedefTur === "tumOkul") return true;
+      if (g.hedefTur === "sinif" && veliSiniflari.has(g.hedefDeger)) return true;
+      if (g.hedefTur === "ogrenci" && veliOgrenciIds.has(g.hedefDeger)) return true;
+      return false;
+    });
+
+    // Etkinlik/album bazında grupla (admin galerideki yapı ile aynı)
+    const gruplar = {};
+    for (const g of erisilebilir) {
+      const anahtar = `${g.etkinlikTarih || "tarihsiz"}|${g.etkinlikBaslik || "Diğer"}|${g.hedefTur || ""}|${g.hedefDeger || ""}`;
+      if (!gruplar[anahtar]) {
+        gruplar[anahtar] = {
+          etkinlikTarih: g.etkinlikTarih,
+          etkinlikBaslik: g.etkinlikBaslik || "Galeri",
+          dosyaSayisi: 0,
+          fotoSayisi: 0,
+          videoSayisi: 0
+        };
+      }
+      gruplar[anahtar].dosyaSayisi++;
+      if (g.dosyaTipi === "video") gruplar[anahtar].videoSayisi++;
+      else gruplar[anahtar].fotoSayisi++;
+    }
+
+    for (const grupAnahtar in gruplar) {
+      const grup = gruplar[grupAnahtar];
+      let parcalar = [];
+      if (grup.fotoSayisi > 0) parcalar.push(`${grup.fotoSayisi} foto`);
+      if (grup.videoSayisi > 0) parcalar.push(`${grup.videoSayisi} video`);
+      const ozet = parcalar.join(" · ") || `${grup.dosyaSayisi} dosya`;
+
+      akis.push({
+        tip: "galeri",
+        tarih: grup.etkinlikTarih || "",
+        baslik: grup.etkinlikBaslik,
+        ozet,
+        etiket: "Yeni Galeri",
+        ikon: "📸",
+        renk: "#9333ea",
+        bg: "#faf5ff",
+        hedef: "galeri"
+      });
+    }
+  } catch (e) { console.warn("Akış: galeri yüklenemedi", e); }
+
+  // ----- 3. ETKİNLİKLER -----
+  try {
+    const etkSnap = await getDocs(collection(db, "etkinlikler"));
+    const bugun = new Date();
+    bugun.setHours(0, 0, 0, 0);
+
+    for (const d of etkSnap.docs) {
+      const dt = d.data();
+      if (!dt.tarih) continue;
+
+      // Hedefleme
+      let dahil = false;
+      if (dt.hedefTur === "tumOkul") dahil = true;
+      else if (dt.hedefTur === "sinif" && veliSiniflari.has(dt.hedefDeger)) dahil = true;
+      if (!dahil) continue;
+
+      // Geçmiş etkinlikleri akışta çok eski göstermemek için sadece son 30 gün ve gelecek
+      const etkTarih = new Date(dt.tarih);
+      const farkGun = (etkTarih - bugun) / (1000 * 60 * 60 * 24);
+      if (farkGun < -30) continue;
+
+      const kategoriIkon = {
+        gezi: "🚌", kutlama: "🎉", toplanti: "👥", atolye: "🎨", diger: "📅"
+      };
+      const ikon = kategoriIkon[dt.kategori] || "📅";
+
+      let zamanEtiket = "";
+      if (farkGun >= 0) {
+        if (farkGun < 1) zamanEtiket = "Bugün";
+        else if (farkGun < 2) zamanEtiket = "Yarın";
+        else if (farkGun <= 7) zamanEtiket = `${Math.round(farkGun)} gün sonra`;
+        else zamanEtiket = "Yaklaşan";
+      } else {
+        zamanEtiket = "Geçti";
+      }
+
+      akis.push({
+        tip: "etkinlik",
+        tarih: dt.tarih,
+        baslik: dt.baslik || "Etkinlik",
+        ozet: dt.aciklama || dt.detay || zamanEtiket,
+        etiket: zamanEtiket,
+        ikon,
+        renk: "#0891b2",
+        bg: "#ecfeff",
+        hedef: "etkinlikler"
+      });
+    }
+  } catch (e) { console.warn("Akış: etkinlikler yüklenemedi", e); }
+
+  // ----- 4. ÖĞRETMEN GÖZLEMLERİ -----
+  try {
+    if (dashEgitimGelisimVerisi && dashEgitimGelisimVerisi.ogretmenYorumlari) {
+      const yorumlar = dashEgitimGelisimVerisi.ogretmenYorumlari.filter(y => y.paylas);
+      for (const y of yorumlar) {
+        akis.push({
+          tip: "gozlem",
+          tarih: y.tarih || "",
+          baslik: y.baslik || "Genel Gözlem",
+          ozet: y.metin || "",
+          etiket: "Öğretmen Gözlemi",
+          ikon: "📝",
+          renk: "#16a34a",
+          bg: "#f0fdf4",
+          hedef: "raporlar"
+        });
+      }
+    }
+  } catch (e) { console.warn("Akış: gözlemler yüklenemedi", e); }
+
+  // ----- TARİHE GÖRE SIRALA (yeni üstte) ve son 8 öğeyi al -----
+  akis.sort((a, b) => (b.tarih || "").localeCompare(a.tarih || ""));
+  const son8 = akis.slice(0, 8);
+
+  if (son8.length === 0) {
     el.innerHTML = "";
     return;
   }
-  // En yeni 2 yorumu önizleme olarak göster
-  const sonYorumlar = [...yorumlar].sort((a,b) => new Date(b.tarih) - new Date(a.tarih)).slice(0, 2);
+
+  // ----- HTML üret -----
   el.innerHTML = `
     <div class="dash-karti">
       <div class="dash-karti-baslik">
-        <span>📝</span>
-        <span>Son Öğretmen Gözlemleri</span>
-        <span class="dash-karti-saglar" style="cursor:pointer; color:#16a34a;" onclick="veliSwitchTab('raporlar')">Tümünü gör →</span>
+        <span>📰</span>
+        <span>Son Gelişmeler</span>
+        <span class="dash-karti-saglar">son ${son8.length} öğe</span>
       </div>
-      ${sonYorumlar.map(y => {
-        const t = new Date(y.tarih);
-        const tarihStr = t.toLocaleDateString("tr-TR", {day:"numeric", month:"long"});
-        return `
-          <div class="dash-yorum-onizleme">
-            <div class="dash-yorum-onizleme-ust">
-              <strong>${escapeHtmlGelisim(y.baslik || 'Genel Gözlem')}</strong>
-              <span>${tarihStr}</span>
+      <div class="dash-akis-liste">
+        ${son8.map(o => {
+          let tarihStr = "";
+          if (o.tarih) {
+            try {
+              tarihStr = new Date(o.tarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
+            } catch (e) { tarihStr = ""; }
+          }
+          const ozetK = (o.ozet || "").replace(/<[^>]+>/g, "").slice(0, 140);
+          return `
+            <div class="dash-akis-oge" style="background:${o.bg}; border-left-color:${o.renk};" onclick="veliSwitchTab('${o.hedef}')">
+              <div class="dash-akis-oge-ust">
+                <span class="dash-akis-oge-ikon">${o.ikon}</span>
+                <span class="dash-akis-oge-etiket" style="color:${o.renk};">${escapeHtml(o.etiket)}</span>
+                ${tarihStr ? `<span class="dash-akis-oge-tarih">${escapeHtml(tarihStr)}</span>` : ""}
+              </div>
+              <div class="dash-akis-oge-baslik">${escapeHtml(o.baslik)}</div>
+              ${ozetK ? `<div class="dash-akis-oge-ozet">${escapeHtml(ozetK)}</div>` : ""}
             </div>
-            <div class="dash-yorum-onizleme-metin">${escapeHtmlGelisim(y.metin)}</div>
-          </div>
-        `;
-      }).join("")}
+          `;
+        }).join("")}
+      </div>
     </div>
   `;
 }
