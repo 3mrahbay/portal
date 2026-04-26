@@ -6019,6 +6019,94 @@ html, body {
   border-color: #6d28d9;
 }
 
+/* ============ SINIF SEÇİCİ BAR ============ */
+.egitim-sinif-secici-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 14px;
+}
+.egitim-sinif-secici-baslik {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+}
+.egitim-sinif-secici-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+.egitim-sinif-secici-chiplar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.egitim-sinif-chip {
+  padding: 7px 13px;
+  background: #f3f4f6;
+  border: 1.5px solid transparent;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.egitim-sinif-chip:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+.egitim-sinif-chip.aktif {
+  background: linear-gradient(135deg, #2d6a4f 0%, #16a34a 100%);
+  color: white;
+  border-color: #15803d;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+}
+.egitim-sinif-chip-sayi {
+  background: rgba(255,255,255,0.7);
+  color: #1f2937;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.egitim-sinif-chip.aktif .egitim-sinif-chip-sayi {
+  background: rgba(255,255,255,0.95);
+  color: #15803d;
+}
+.egitim-sinif-rapor-btn {
+  padding: 8px 14px;
+  background: white;
+  border: 1.5px solid #2d6a4f;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2d6a4f;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.egitim-sinif-rapor-btn:hover {
+  background: #f0fdf4;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.15);
+}
+
 /* ============ AÇILIR/KAPANIR GRUP BAŞLIKLARI ============ */
 .egitim-tumu-toggle-btn {
   padding: 9px 14px;
@@ -6038,7 +6126,6 @@ html, body {
   border-color: #9ca3af;
 }
 
-/* Grup başlığı satırı (tıklanabilir) */
 .matrix-grup-baslik-tr td {
   background: linear-gradient(90deg, #fef3c7 0%, #fef9c3 100%) !important;
   border-top: 2px solid #f59e0b !important;
@@ -6095,10 +6182,137 @@ html, body {
   text-transform: none;
   letter-spacing: 0;
 }
-
-/* Kapalı durumda grup içi satırları gizle */
 .matrix-grup-icerik-tr.gizli {
   display: none;
+}
+
+/* ============ SINIF RAPORU MODALI ============ */
+.sinif-rapor-modal-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.2s;
+}
+.sinif-rapor-modal {
+  background: white;
+  border-radius: 18px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 88vh;
+  overflow: auto;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+  animation: slideUp 0.25s;
+}
+.sinif-rapor-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #f0fdf4 0%, white 100%);
+  border-radius: 18px 18px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.sinif-rapor-modal-header h2 {
+  margin: 0;
+  font-family: var(--font-display, 'Playfair Display', serif);
+  font-size: 20px;
+  color: #15803d;
+}
+.sinif-rapor-modal-kapat {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6b7280;
+}
+.sinif-rapor-modal-icerik {
+  padding: 20px 24px;
+}
+.sinif-rapor-ozet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.sinif-rapor-ozet-kutu {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-align: center;
+}
+.sinif-rapor-ozet-deger {
+  font-size: 22px;
+  font-weight: 700;
+  color: #15803d;
+  font-family: var(--font-display, 'Playfair Display', serif);
+}
+.sinif-rapor-ozet-etiket {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+.sinif-rapor-alan-bar {
+  margin-bottom: 14px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.sinif-rapor-alan-bar-ust {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sinif-rapor-alan-ad {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+}
+.sinif-rapor-alan-yuzde {
+  font-weight: 700;
+  color: #15803d;
+  font-size: 13px;
+}
+.sinif-rapor-alan-progress {
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.sinif-rapor-alan-progress > div {
+  height: 100%;
+  background: linear-gradient(90deg, #16a34a 0%, #2d6a4f 100%);
+  border-radius: 99px;
+  transition: width 0.6s;
+}
+.sinif-rapor-alan-detay {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
 }
 
 /* Mobil */
@@ -6106,6 +6320,10 @@ html, body {
   .egitim-tumu-toggle-btn { font-size: 12px; padding: 8px 12px; }
   .matrix-grup-baslik-tr td { font-size: 11px; padding: 8px 10px !important; }
   .matrix-grup-baslik-ad { font-size: 11px; }
+  .egitim-sinif-secici-bar { gap: 10px; padding: 10px 12px; }
+  .egitim-sinif-chip { padding: 6px 10px; font-size: 11px; }
+  .sinif-rapor-modal-header h2 { font-size: 16px; }
+  .sinif-rapor-ozet-deger { font-size: 18px; }
 }
 
 /* Alt bilgi (S/T/U açıklama) */
@@ -7396,6 +7614,19 @@ html, body {
 
         <!-- Disiplin başlığı -->
         <div id="egitimMatrixBaslik" class="egitim-matrix-baslik"></div>
+
+        <!-- SINIF SEÇİCİ (chip'ler) -->
+        <div class="egitim-sinif-secici-bar">
+          <div class="egitim-sinif-secici-baslik">
+            <span class="egitim-sinif-secici-label">🏫 Sınıf:</span>
+            <div id="egitimSinifSecici" class="egitim-sinif-secici-chiplar">
+              <!-- Sınıf butonları buraya gelir -->
+            </div>
+          </div>
+          <button type="button" id="egitimSinifRaporBtn" class="egitim-sinif-rapor-btn" onclick="egitimSinifRaporuAc()">
+            📊 Sınıf Raporu
+          </button>
+        </div>
 
         <!-- Alan seçici + Tümünü Aç/Kapat -->
         <div class="egitim-secici-bar">
@@ -14423,7 +14654,8 @@ async function tumGelisimYukle() {
 let egitimAktifDisiplin = null;  // null = disiplin seçim ekranı, "montessori"/"ingilizce"/"degerler" = matrix
 let egitimAktifAlanIdx = 0;      // Hangi alan seçili (Matematik vs.)
 let egitimAktifGrupIdx = 0;      // (Eski uyumluluk için) Hangi grup seçili
-let egitimMatrixVerisi = null;   // { ogrenciler: [...], gelisim: { ogrId: { ... } } }
+let egitimAktifSinif = null;     // null = tüm sınıflar, string = belirli sınıf adı
+let egitimMatrixVerisi = null;   // { ogrenciler: [...], gelisim: { ogrId: { ... } } } — TÜM aktif öğrenciler
 let egitimGrupAcik = {};         // { 'GrupAd1': true, 'GrupAd2': false } — açılır/kapanır state
 let egitimTumuKapaliMi = false;  // "Tümünü Kapat/Aç" düğmesinin durumu
 
@@ -14442,6 +14674,8 @@ window.egitimDisiplinAc = async function(disiplin) {
   egitimAktifDisiplin = disiplin;
   egitimAktifAlanIdx = 0;
   egitimAktifGrupIdx = 0;
+  egitimAktifSinif = null; // null = tüm sınıflar (varsayılan)
+  egitimGrupAcik = {};
 
   // Seçici ekranını gizle, matrix'i göster
   document.getElementById("egitimDisiplinSecici").style.display = "none";
@@ -14470,7 +14704,8 @@ window.egitimDisiplinAc = async function(disiplin) {
   // Container'ın da renk değişkeni
   document.getElementById("egitimMatrixContainer").style.setProperty("--matrix-renk", dInfo.renk);
 
-  // Alan ve grup seçicilerini doldur
+  // Sınıf, alan seçicilerini doldur
+  egitimSinifSeciciDoldur();
   egitimAlanSeciciDoldur();
   egitimGrupSeciciDoldur();
   egitimMatrixRender();
@@ -14483,6 +14718,7 @@ window.egitimDisiplinKapat = function() {
 window.egitimMatrixYenile = async function() {
   if (!egitimAktifDisiplin) return;
   await egitimMatrixVeriYukle();
+  egitimSinifSeciciDoldur(); // Sınıf chip'leri de yenilensin (yeni öğrenci eklenmişse)
   egitimMatrixRender();
   if (typeof showToast === "function") showToast("✓ Yenilendi");
 };
@@ -14504,7 +14740,19 @@ async function egitimMatrixVeriYukle() {
     console.warn("Aktif öğrenci filtresi boş döndü, tüm öğrenciler gösteriliyor.");
     aktifOgrenciler = [...ogrenciList];
   }
-  aktifOgrenciler.sort((a,b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "", "tr"));
+
+  // Her öğrencinin sınıfını _sinif alanına yaz (filtreleme için)
+  aktifOgrenciler.forEach(o => {
+    const ayar = (typeof ayarListesi !== "undefined" && ayarListesi) ? ayarListesi[o.id] : null;
+    o._sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "Sınıfsız";
+  });
+
+  // Önce sınıfa, sonra ada göre sırala
+  aktifOgrenciler.sort((a,b) => {
+    const sf = (a._sinif || "").localeCompare(b._sinif || "", "tr");
+    if (sf !== 0) return sf;
+    return (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "", "tr");
+  });
 
   // Tüm öğrencilerin gelişim verilerini yükle
   const tumGelisim = await tumGelisimYukle();
@@ -14538,28 +14786,78 @@ function egitimGrupSeciciDoldur() {
   egitimTumuKapaliMi = false;
 }
 
+// SINIF SEÇİCİ: Aktif öğrencilerden benzersiz sınıfları çıkar ve chip'leri oluştur
+function egitimSinifSeciciDoldur() {
+  const el = document.getElementById("egitimSinifSecici");
+  if (!el || !egitimMatrixVerisi) return;
+
+  // Benzersiz sınıfları bul ve sırala
+  const sinifMap = {}; // { sinif: ogrSayisi }
+  for (const o of egitimMatrixVerisi.ogrenciler) {
+    const s = o._sinif || "Sınıfsız";
+    sinifMap[s] = (sinifMap[s] || 0) + 1;
+  }
+  const sinifAdlari = Object.keys(sinifMap).sort((a, b) => a.localeCompare(b, "tr"));
+
+  let html = "";
+  // "Tüm Sınıflar" butonu
+  const tumAktif = egitimAktifSinif === null ? "aktif" : "";
+  html += `
+    <button type="button" class="egitim-sinif-chip ${tumAktif}" onclick="egitimSinifSec(null)">
+      <span>🌐 Tüm Sınıflar</span>
+      <span class="egitim-sinif-chip-sayi">${egitimMatrixVerisi.ogrenciler.length}</span>
+    </button>`;
+
+  // Her sınıf için bir chip
+  for (const s of sinifAdlari) {
+    const aktif = egitimAktifSinif === s ? "aktif" : "";
+    const sEsc = s.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    html += `
+      <button type="button" class="egitim-sinif-chip ${aktif}" onclick="egitimSinifSec('${sEsc}')">
+        <span>${escapeHtmlGelisim(s)}</span>
+        <span class="egitim-sinif-chip-sayi">${sinifMap[s]}</span>
+      </button>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// Aktif sınıfı değiştir
+window.egitimSinifSec = function(sinif) {
+  egitimAktifSinif = sinif;
+  egitimSinifSeciciDoldur(); // Aktif chip'i güncelle
+  egitimMatrixRender();
+};
+
+// Aktif sınıfa göre öğrenci listesini döndüren yardımcı
+function egitimAktifOgrenciler() {
+  if (!egitimMatrixVerisi) return [];
+  if (egitimAktifSinif === null) return egitimMatrixVerisi.ogrenciler;
+  return egitimMatrixVerisi.ogrenciler.filter(o => (o._sinif || "Sınıfsız") === egitimAktifSinif);
+}
+
 window.egitimAlanDegisti = function() {
   const sel = document.getElementById("egitimAlanSec");
   if (!sel) return;
   egitimAktifAlanIdx = parseInt(sel.value, 10) || 0;
   egitimAktifGrupIdx = 0;
-  egitimGrupSeciciDoldur(); // Yeni alan değişti, grup state'lerini sıfırla (hepsi açık)
+  egitimGrupSeciciDoldur(); // Yeni alan, grup state'lerini sıfırla (hepsi açık)
   egitimMatrixRender();
 };
 
-// Eski uyumluluk: hala bir yerlerden çağrılıyor olabilir (zararsız NO-OP)
+// Eski uyumluluk
 window.egitimGrupDegisti = function() { /* artık dropdown yok */ };
 
 // Tek bir grubu aç/kapat
 window.egitimGrupToggle = function(grupAd) {
   egitimGrupAcik[grupAd] = !egitimGrupAcik[grupAd];
 
-  // DOM üzerinde sadece etkilenen satırları aç/kapat (re-render gerekmez, performanslı)
   const tablo = document.getElementById("egitimMatrixWrap");
   if (!tablo) return;
 
-  const baslikTr = tablo.querySelector(`tr.matrix-grup-baslik-tr[data-grup-ad="${cssEscape(grupAd)}"]`);
-  const icerikSatirlari = tablo.querySelectorAll(`tr.matrix-grup-icerik-tr[data-grup-ad="${cssEscape(grupAd)}"]`);
+  const grupAdAttr = cssAttrEscape(grupAd);
+  const baslikTr = tablo.querySelector(`tr.matrix-grup-baslik-tr[data-grup-ad="${grupAdAttr}"]`);
+  const icerikSatirlari = tablo.querySelectorAll(`tr.matrix-grup-icerik-tr[data-grup-ad="${grupAdAttr}"]`);
 
   if (egitimGrupAcik[grupAd]) {
     if (baslikTr) baslikTr.classList.remove("kapali");
@@ -14569,12 +14867,11 @@ window.egitimGrupToggle = function(grupAd) {
     icerikSatirlari.forEach(tr => tr.classList.add("gizli"));
   }
 
-  // Toggle butonu metnini güncelle (eğer artık tüm grupların açık/kapalı olduğunu yansıtıyorsa)
   egitimTumuToggleBtnGuncelle();
 };
 
-// CSS-uyumlu attribute selector için kaçış
-function cssEscape(s) {
+// CSS attribute selector için kaçış
+function cssAttrEscape(s) {
   if (!s) return "";
   return String(s).replace(/(["'\\\[\]\(\):])/g, "\\$1");
 }
@@ -14585,15 +14882,13 @@ window.egitimTumGruplarToggle = function() {
   if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
   const alan = mufredat[egitimAktifAlanIdx];
 
-  // Şu anki duruma bak: hepsi açık mı, yoksa en az bir kapalı var mı
   const hepsiAcik = alan.gruplar.every(g => egitimGrupAcik[g.ad]);
-  const yeniDurum = !hepsiAcik; // Hepsi açıksa hepsini kapat, değilse hepsini aç
+  const yeniDurum = !hepsiAcik;
 
   alan.gruplar.forEach(g => {
     egitimGrupAcik[g.ad] = yeniDurum;
   });
 
-  // DOM güncelle
   const tablo = document.getElementById("egitimMatrixWrap");
   if (tablo) {
     const baslikSatirlari = tablo.querySelectorAll("tr.matrix-grup-baslik-tr");
@@ -14611,7 +14906,6 @@ window.egitimTumGruplarToggle = function() {
   egitimTumuToggleBtnGuncelle();
 };
 
-// Toggle butonunun yazısını ve ikonunu güncelle
 function egitimTumuToggleBtnGuncelle() {
   const btn = document.getElementById("egitimTumuToggleBtn");
   if (!btn) return;
@@ -14619,11 +14913,7 @@ function egitimTumuToggleBtnGuncelle() {
   if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
   const alan = mufredat[egitimAktifAlanIdx];
   const hepsiAcik = alan.gruplar.every(g => egitimGrupAcik[g.ad]);
-  if (hepsiAcik) {
-    btn.innerHTML = "⊟ Tümünü Kapat";
-  } else {
-    btn.innerHTML = "⊞ Tümünü Aç";
-  }
+  btn.innerHTML = hepsiAcik ? "⊟ Tümünü Kapat" : "⊞ Tümünü Aç";
 }
 
 function egitimMatrixRender() {
@@ -14640,14 +14930,15 @@ function egitimMatrixRender() {
     return;
   }
 
-  // Eğer egitimGrupAcik henüz oluşturulmadıysa varsayılanı uygula (hepsi açık)
+  // Grup state'i hazır değilse hazırla (hepsi açık)
   if (Object.keys(egitimGrupAcik).length === 0) {
     alan.gruplar.forEach(g => { egitimGrupAcik[g.ad] = true; });
   }
 
-  const ogrenciler = egitimMatrixVerisi.ogrenciler;
+  // SINIF FİLTRESİ uygulanmış öğrenci listesi
+  const ogrenciler = egitimAktifOgrenciler();
 
-  // Bilgi alanı: alanın TAMAMINA göre yüzde
+  // Bilgi alanı: aktif sınıfa + alanın TAMAMINA göre yüzde
   const bilgi = document.getElementById("egitimSeciciBilgi");
   if (bilgi) {
     let toplamHucre = 0;
@@ -14664,17 +14955,18 @@ function egitimMatrixRender() {
     });
     const toplamDers = alan.gruplar.reduce((t, g) => t + g.dersler.length, 0);
     const yuzde = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
-    bilgi.innerHTML = `<strong>${alan.gruplar.length}</strong> grup · <strong>${toplamDers}</strong> ders × <strong>${ogrenciler.length}</strong> öğrenci · <strong>%${yuzde}</strong> dolu`;
+    const sinifEtiket = egitimAktifSinif === null ? "Tüm Sınıflar" : egitimAktifSinif;
+    bilgi.innerHTML = `<strong>${escapeHtmlGelisim(sinifEtiket)}</strong> · <strong>${alan.gruplar.length}</strong> grup · <strong>${toplamDers}</strong> ders × <strong>${ogrenciler.length}</strong> öğrenci · <strong>%${yuzde}</strong> dolu`;
   }
 
   if (ogrenciler.length === 0) {
+    const sinifEtiket = egitimAktifSinif === null ? "" : ` "${egitimAktifSinif}"`;
     wrap.innerHTML = `
       <div style="padding:40px 20px; text-align:center; color:#6b7280;">
         <div style="font-size:48px; margin-bottom:12px;">👥</div>
-        <div style="font-size:15px; font-weight:600; color:#374151; margin-bottom:6px;">Aktif öğrenci bulunamadı</div>
+        <div style="font-size:15px; font-weight:600; color:#374151; margin-bottom:6px;">${egitimAktifSinif ? `${escapeHtmlGelisim(sinifEtiket)} sınıfında öğrenci yok` : 'Aktif öğrenci bulunamadı'}</div>
         <div style="font-size:13px; max-width:420px; margin:0 auto;">
-          Sistemde toplam <strong>${ogrenciList.length}</strong> öğrenci kayıtlı ama hiçbiri "aktif" durumda değil.<br>
-          Öğrenci Ayarları sekmesinden öğrenci durumlarını kontrol edin.
+          ${egitimAktifSinif ? 'Başka bir sınıf seçin veya öğrencilerin sınıf bilgilerini kontrol edin.' : `Sistemde toplam <strong>${ogrenciList.length}</strong> öğrenci kayıtlı ama hiçbiri "aktif" durumda değil.`}
         </div>
       </div>`;
     return;
@@ -14699,18 +14991,17 @@ function egitimMatrixRender() {
   html += `</tr></thead><tbody>`;
 
   // ========== TABLO BODY (her grup için bir başlık satırı + ders satırları) ==========
-  // Toplam kolon sayısı: 1 (sol sticky) + öğrenci sayısı
   const toplamKolon = 1 + ogrenciler.length;
 
   alan.gruplar.forEach(g => {
     const grupAd = g.ad;
     const grupAdAttr = escapeHtmlGelisim(grupAd);
     const grupAdEsc = grupAd.replace(/'/g, "\\'");
-    const acik = egitimGrupAcik[grupAd] !== false; // varsayılan açık
+    const acik = egitimGrupAcik[grupAd] !== false;
     const baslikSinif = acik ? "" : "kapali";
     const icerikSinif = acik ? "" : "gizli";
 
-    // Grup için yüzde
+    // Grup yüzdesi (sadece görünür öğrenciler için)
     let grupToplam = g.dersler.length * ogrenciler.length;
     let grupDolu = 0;
     ogrenciler.forEach(o => {
@@ -14722,7 +15013,6 @@ function egitimMatrixRender() {
     });
     const grupYuzde = grupToplam ? Math.round((grupDolu / grupToplam) * 100) : 0;
 
-    // GRUP BAŞLIK SATIRI
     html += `
       <tr class="matrix-grup-baslik-tr ${baslikSinif}" data-grup-ad="${grupAdAttr}" onclick="egitimGrupToggle('${grupAdEsc}')">
         <td colspan="${toplamKolon}">
@@ -14736,7 +15026,6 @@ function egitimMatrixRender() {
       </tr>
     `;
 
-    // GRUP İÇERİK SATIRLARI (dersler)
     g.dersler.forEach(d => {
       const dersEsc = d.replace(/'/g, "\\'");
       html += `<tr class="matrix-grup-icerik-tr ${icerikSinif}" data-grup-ad="${grupAdAttr}">`;
@@ -14759,9 +15048,118 @@ function egitimMatrixRender() {
   html += `</tbody></table>`;
   wrap.innerHTML = html;
 
-  // Toggle butonu metnini güncelle
   egitimTumuToggleBtnGuncelle();
 }
+
+// ============ SINIF RAPORU MODALI ============
+window.egitimSinifRaporuAc = function() {
+  if (!egitimMatrixVerisi || !egitimAktifDisiplin) return;
+  const mufredat = aktifMufredatlar[egitimAktifDisiplin];
+  if (!mufredat) return;
+
+  const ogrenciler = egitimAktifOgrenciler();
+  const sinifEtiket = egitimAktifSinif === null ? "Tüm Sınıflar" : egitimAktifSinif;
+  const dInfo = (typeof DISIPLINLER !== "undefined" ? DISIPLINLER : []).find(x => x.id === egitimAktifDisiplin) || { ad: egitimAktifDisiplin, ikon: "📚", renk: "#16a34a" };
+
+  // Alan bazlı yüzdeler
+  let genelToplam = 0;
+  let genelDolu = 0;
+  let genelDersSayisi = 0;
+  const alanRaporlari = mufredat.map(alan => {
+    let alanToplam = 0;
+    let alanDolu = 0;
+    let alanDersSayisi = 0;
+    alan.gruplar.forEach(g => {
+      alanDersSayisi += g.dersler.length;
+      alanToplam += g.dersler.length * ogrenciler.length;
+      ogrenciler.forEach(o => {
+        const kayitlar = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
+        g.dersler.forEach(d => {
+          const k = `${alan.id}__${g.ad}__${d}`;
+          if (kayitlar[k]) alanDolu++;
+        });
+      });
+    });
+    genelToplam += alanToplam;
+    genelDolu += alanDolu;
+    genelDersSayisi += alanDersSayisi;
+    return {
+      ad: alan.ad,
+      ikon: alan.ikon || "📚",
+      yuzde: alanToplam ? Math.round((alanDolu / alanToplam) * 100) : 0,
+      dolu: alanDolu,
+      toplam: alanToplam,
+      dersSayisi: alanDersSayisi,
+      grupSayisi: alan.gruplar.length
+    };
+  });
+
+  const genelYuzde = genelToplam ? Math.round((genelDolu / genelToplam) * 100) : 0;
+
+  // Modal HTML
+  let alanlarHtml = "";
+  alanRaporlari.forEach(a => {
+    alanlarHtml += `
+      <div class="sinif-rapor-alan-bar">
+        <div class="sinif-rapor-alan-bar-ust">
+          <span class="sinif-rapor-alan-ad">${a.ikon} ${escapeHtmlGelisim(a.ad)}</span>
+          <span class="sinif-rapor-alan-yuzde">%${a.yuzde}</span>
+        </div>
+        <div class="sinif-rapor-alan-progress">
+          <div style="width:${a.yuzde}%;"></div>
+        </div>
+        <div class="sinif-rapor-alan-detay">
+          ${a.grupSayisi} grup · ${a.dersSayisi} ders · ${a.dolu}/${a.toplam} tamamlandı
+        </div>
+      </div>`;
+  });
+
+  // Eski modal varsa kaldır
+  const eski = document.getElementById("sinifRaporModal");
+  if (eski) eski.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "sinifRaporModal";
+  modal.className = "sinif-rapor-modal-bg";
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="sinif-rapor-modal">
+      <div class="sinif-rapor-modal-header">
+        <h2>${dInfo.ikon} ${escapeHtmlGelisim(sinifEtiket)} — ${escapeHtmlGelisim(dInfo.ad)} Raporu</h2>
+        <button type="button" class="sinif-rapor-modal-kapat" onclick="document.getElementById('sinifRaporModal').remove()">×</button>
+      </div>
+      <div class="sinif-rapor-modal-icerik">
+        <div class="sinif-rapor-ozet-grid">
+          <div class="sinif-rapor-ozet-kutu">
+            <div class="sinif-rapor-ozet-deger">${ogrenciler.length}</div>
+            <div class="sinif-rapor-ozet-etiket">Öğrenci</div>
+          </div>
+          <div class="sinif-rapor-ozet-kutu">
+            <div class="sinif-rapor-ozet-deger">${mufredat.length}</div>
+            <div class="sinif-rapor-ozet-etiket">Alan</div>
+          </div>
+          <div class="sinif-rapor-ozet-kutu">
+            <div class="sinif-rapor-ozet-deger">${genelDersSayisi}</div>
+            <div class="sinif-rapor-ozet-etiket">Ders</div>
+          </div>
+          <div class="sinif-rapor-ozet-kutu">
+            <div class="sinif-rapor-ozet-deger">%${genelYuzde}</div>
+            <div class="sinif-rapor-ozet-etiket">Genel İlerleme</div>
+          </div>
+        </div>
+
+        <h3 style="margin:18px 0 10px; font-size:14px; color:#374151; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Alan Bazlı İlerleme</h3>
+        ${alanlarHtml}
+
+        <div style="margin-top:18px; padding:12px 14px; background:#f9fafb; border-radius:10px; font-size:12px; color:#6b7280; line-height:1.6;">
+          <strong>📅 Rapor tarihi:</strong> ${new Date().toLocaleString("tr-TR")}<br>
+          <strong>ℹ️ Hesaplama:</strong> Her hücre eşit ağırlıkta sayılır. S, T veya U işaretli her ders "tamamlanmış" sayılır.
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
 
 // Hücre tıklandığında: boş → S → T → U → boş döngüsü
 window.matrixHucreTikla = async function(ogrId, alanId, grupAd, dersAd, hucreEl) {
@@ -14802,15 +15200,17 @@ window.matrixHucreTikla = async function(ogrId, alanId, grupAd, dersAd, hucreEl)
       btn.textContent = mevcut || "·";
     }
   } else {
-    // Bilgi alanını güncelle (alanın tamamı için yüzde) + tıklanan grubun başlığındaki yüzde
+    // Bilgi alanını + tıklanan grubun başlığındaki yüzdeyi güncelle (sınıf bazlı)
     setTimeout(() => {
       if (!egitimMatrixVerisi) return;
       const mufredat = aktifMufredatlar[egitimAktifDisiplin];
       if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
       const alan = mufredat[egitimAktifAlanIdx];
-      const ogrenciler = egitimMatrixVerisi.ogrenciler;
 
-      // 1) Alan toplamı (üst bilgi)
+      // Sınıf filtresi uygulanmış öğrenci listesi
+      const ogrenciler = egitimAktifOgrenciler();
+
+      // 1) Üst bilgi (alan toplamı)
       const bilgi = document.getElementById("egitimSeciciBilgi");
       if (bilgi) {
         let toplamHucre = 0;
@@ -14827,7 +15227,8 @@ window.matrixHucreTikla = async function(ogrId, alanId, grupAd, dersAd, hucreEl)
         });
         const toplamDers = alan.gruplar.reduce((t, g) => t + g.dersler.length, 0);
         const yuzdeAlan = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
-        bilgi.innerHTML = `<strong>${alan.gruplar.length}</strong> grup · <strong>${toplamDers}</strong> ders × <strong>${ogrenciler.length}</strong> öğrenci · <strong>%${yuzdeAlan}</strong> dolu`;
+        const sinifEtiket = egitimAktifSinif === null ? "Tüm Sınıflar" : egitimAktifSinif;
+        bilgi.innerHTML = `<strong>${escapeHtmlGelisim(sinifEtiket)}</strong> · <strong>${alan.gruplar.length}</strong> grup · <strong>${toplamDers}</strong> ders × <strong>${ogrenciler.length}</strong> öğrenci · <strong>%${yuzdeAlan}</strong> dolu`;
       }
 
       // 2) Tıklanan grubun başlığındaki yüzde
