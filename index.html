@@ -5243,90 +5243,6 @@ html, body {
   .dash-odeme-tutar { font-size: 24px; }
 }
 
-/* ============ ÖDEME 2 KOLONLU GRID ============ */
-.dash-odeme-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 720px) {
-  .dash-odeme-grid {
-    grid-template-columns: 1fr;
-  }
-}
-.dash-odeme-grid > .dash-karti {
-  margin: 0;
-}
-/* Sol kolon: Son ödeme - yeşil (yapılmış) */
-.dash-odeme-son {
-  border-left: 4px solid #15803d;
-  background: linear-gradient(135deg, #f0fdf4 0%, white 100%);
-}
-.dash-odeme-son-bos {
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
-}
-.dash-odeme-tamamlandi {
-  background: linear-gradient(135deg, #f0fdf4 0%, white 100%);
-  border-left: 4px solid #15803d;
-}
-
-/* ============ AKIŞ KARTI (Duyuru + Galeri + Etkinlik + Gözlem) ============ */
-.dash-akis-liste {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
-}
-.dash-akis-oge {
-  border-left: 3px solid #d1d5db;
-  border-radius: 8px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.dash-akis-oge:hover {
-  transform: translateX(2px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-}
-.dash-akis-oge-ust {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-  flex-wrap: wrap;
-}
-.dash-akis-oge-ikon {
-  font-size: 14px;
-}
-.dash-akis-oge-etiket {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.dash-akis-oge-tarih {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-left: auto;
-}
-.dash-akis-oge-baslik {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1f2937;
-  line-height: 1.4;
-  margin-bottom: 2px;
-}
-.dash-akis-oge-ozet {
-  font-size: 12px;
-  color: #4b5563;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 /* ============ PROFESYONEL VELİ RAPOR SAYFASI ============ */
 
 .rapor-aksiyon-bar {
@@ -6101,6 +6017,95 @@ html, body {
   background: #7c3aed;
   color: white;
   border-color: #6d28d9;
+}
+
+/* ============ AÇILIR/KAPANIR GRUP BAŞLIKLARI ============ */
+.egitim-tumu-toggle-btn {
+  padding: 9px 14px;
+  background: white;
+  border: 1.5px solid #d1d5db;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.egitim-tumu-toggle-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* Grup başlığı satırı (tıklanabilir) */
+.matrix-grup-baslik-tr td {
+  background: linear-gradient(90deg, #fef3c7 0%, #fef9c3 100%) !important;
+  border-top: 2px solid #f59e0b !important;
+  border-bottom: 1px solid #fde68a !important;
+  cursor: pointer;
+  padding: 10px 14px !important;
+  font-weight: 700;
+  color: #78350f;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  user-select: none;
+  position: sticky;
+  left: 0;
+  z-index: 6;
+}
+.matrix-grup-baslik-tr td:hover {
+  background: linear-gradient(90deg, #fde68a 0%, #fef3c7 100%) !important;
+}
+.matrix-grup-baslik-icerik {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.matrix-grup-baslik-ikon {
+  font-size: 14px;
+  transition: transform 0.2s;
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+}
+.matrix-grup-baslik-tr.kapali .matrix-grup-baslik-ikon {
+  transform: rotate(-90deg);
+}
+.matrix-grup-baslik-ad {
+  font-weight: 700;
+}
+.matrix-grup-baslik-ders-sayisi {
+  font-size: 11px;
+  font-weight: 500;
+  color: #92400e;
+  background: white;
+  padding: 2px 8px;
+  border-radius: 99px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.matrix-grup-baslik-yuzde {
+  margin-left: auto;
+  font-size: 11px;
+  color: #78350f;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Kapalı durumda grup içi satırları gizle */
+.matrix-grup-icerik-tr.gizli {
+  display: none;
+}
+
+/* Mobil */
+@media (max-width: 768px) {
+  .egitim-tumu-toggle-btn { font-size: 12px; padding: 8px 12px; }
+  .matrix-grup-baslik-tr td { font-size: 11px; padding: 8px 10px !important; }
+  .matrix-grup-baslik-ad { font-size: 11px; }
 }
 
 /* Alt bilgi (S/T/U açıklama) */
@@ -7392,15 +7397,16 @@ html, body {
         <!-- Disiplin başlığı -->
         <div id="egitimMatrixBaslik" class="egitim-matrix-baslik"></div>
 
-        <!-- Alan & grup seçici -->
+        <!-- Alan seçici + Tümünü Aç/Kapat -->
         <div class="egitim-secici-bar">
           <div class="egitim-secici-grup">
             <label>Alan:</label>
             <select id="egitimAlanSec" onchange="egitimAlanDegisti()"></select>
           </div>
           <div class="egitim-secici-grup">
-            <label>Grup:</label>
-            <select id="egitimGrupSec" onchange="egitimGrupDegisti()"></select>
+            <button type="button" id="egitimTumuToggleBtn" class="egitim-tumu-toggle-btn" onclick="egitimTumGruplarToggle()">
+              ⊟ Tümünü Kapat
+            </button>
           </div>
           <div class="egitim-secici-bilgi" id="egitimSeciciBilgi"></div>
         </div>
@@ -10774,14 +10780,14 @@ async function veliRenderDashboard() {
       </div>
     </div>
 
-    <!-- ÖDEME (2 KOLONLU: Son Ödeme | Gelecek Ödeme) -->
+    <!-- ÖDEME -->
     <div id="dashOdemeKonteyner">
-      <!-- Ödeme kartları buraya gelir (2 kolonlu grid) -->
+      <!-- Ödeme kartı buraya gelir -->
     </div>
 
-    <!-- AKIŞ (Duyurular + Galeri + Etkinlikler + Gözlemler birleşik, tarihe göre sıralı) -->
-    <div id="dashAkisKonteyner">
-      <!-- Akış kartı buraya gelir -->
+    <!-- ÖĞRETMEN GÖZLEMLERİ -->
+    <div id="dashYorumlarKonteyner">
+      <!-- Eğer yorum varsa burada görünür -->
     </div>
 
     <!-- HIZLI İŞLEMLER -->
@@ -10817,7 +10823,7 @@ async function veliRenderDashboard() {
     dashYemekDoldur(bugun),
     dashEgitimDoldur(ogr.id),
     dashOdemeDoldur(),
-    dashAkisDoldur(ogr.id)
+    dashYorumlariDoldur(ogr.id)
   ]).catch(err => console.error("Dashboard yüklerken hata:", err));
 }
 
@@ -11121,86 +11127,10 @@ function dashOdemeDoldur() {
   for (const k in aylikOdemeler) {
     toplamOdenen += parseFloat(aylikOdemeler[k].odenenTutar) || 0;
   }
+  const kalan = Math.max(0, aidatBeklenen - toplamOdenen);
   const yuzde = aidatBeklenen > 0 ? Math.round((toplamOdenen / aidatBeklenen) * 100) : 0;
 
-  const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
-
-  // ===== Peşin ödeme özel durumu (tek kart, kolon yok) =====
-  if (v.aidatAyarlari?.pesinOdeme) {
-    el.innerHTML = `
-      <div class="dash-karti">
-        <div class="dash-karti-baslik"><span>💎</span><span>Ödeme Durumu</span></div>
-        <div style="text-align:center; padding:14px 0;">
-          <div style="font-size:36px;">💎</div>
-          <div style="font-size:15px; font-weight:600; color:#15803d; margin-top:6px;">Peşin Ödeme Yapıldı</div>
-          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Bu dönem için tüm ödemeler tamamlandı.</div>
-        </div>
-      </div>`;
-    return;
-  }
-
-  // ===== SOL KOLON: Son (en son yapılan) ödeme =====
-  // aylikOdemeler içinde odendi=true olanların en yenisi (odemeTarihi bazında)
-  let sonOdeme = null;
-  for (const ayKod in aylikOdemeler) {
-    const od = aylikOdemeler[ayKod];
-    if (!od || !od.odendi) continue;
-    if (!sonOdeme || (od.odemeTarihi || "") > (sonOdeme.odemeTarihi || "")) {
-      sonOdeme = { ...od, ayKod };
-    }
-  }
-
-  let solKolon = "";
-  if (sonOdeme) {
-    let etiket = "";
-    if (sonOdeme.ayKod === "__onOdeme") {
-      etiket = "Ön Ödeme";
-    } else {
-      const parca = (sonOdeme.ayKod || "").split("-");
-      if (parca.length === 2) {
-        const ayNum = parseInt(parca[1], 10);
-        if (ayNum >= 1 && ayNum <= 12) etiket = `${aylar[ayNum - 1]} ${parca[0]}`;
-      }
-    }
-    if (!etiket) etiket = "Ödeme";
-
-    const tutar = parseFloat(sonOdeme.odenenTutar) || 0;
-    let tarihStr = "";
-    if (sonOdeme.odemeTarihi) {
-      try {
-        tarihStr = new Date(sonOdeme.odemeTarihi).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
-      } catch (e) { tarihStr = sonOdeme.odemeTarihi; }
-    }
-    const yontem = sonOdeme.yontem || sonOdeme.odemeYontemi || "";
-
-    solKolon = `
-      <div class="dash-karti dash-odeme dash-odeme-son">
-        <div class="dash-karti-baslik"><span>✅</span><span>Son Ödeme</span></div>
-        <div class="dash-odeme-aciklama">${escapeHtml(etiket)}</div>
-        <div class="dash-odeme-tutar">${Math.round(tutar).toLocaleString("tr-TR")} <small>TL</small></div>
-        <div class="dash-odeme-bilgi">
-          ${tarihStr ? `<span>📅 ${escapeHtml(tarihStr)}</span>` : `<span></span>`}
-          ${yontem ? `<span><strong>${escapeHtml(yontem)}</strong></span>` : ``}
-        </div>
-        <div class="dash-odeme-genel-bar">
-          <div class="dash-odeme-genel-bar-bilgi">
-            <span>Toplam ilerleme</span>
-            <span><strong>%${yuzde}</strong> · ${Math.round(toplamOdenen).toLocaleString("tr-TR")} / ${aidatBeklenen.toLocaleString("tr-TR")} TL</span>
-          </div>
-          <div class="dash-odeme-genel-bar-bar"><div style="width:${yuzde}%;"></div></div>
-        </div>
-      </div>`;
-  } else {
-    solKolon = `
-      <div class="dash-karti dash-odeme-son-bos">
-        <div class="dash-karti-baslik"><span>📭</span><span>Son Ödeme</span></div>
-        <div style="padding:18px 0; text-align:center; color:#9ca3af; font-size:13px;">
-          Henüz yapılmış ödeme bulunmuyor
-        </div>
-      </div>`;
-  }
-
-  // ===== SAĞ KOLON: Gelecek (sıradaki) ödeme =====
+  // Sıradaki ödeme
   let sonraki = null;
   let gecikti = false;
   let gunFark = 0;
@@ -11208,7 +11138,7 @@ function dashOdemeDoldur() {
   const taksit = v.aidatAyarlari?.gercekAySayisi || v.aidatAyarlari?.taksitSayisi || 12;
   const aidat = v.aidatAyarlari?.aylikAidat || 0;
 
-  if (baslangic && aidat > 0 && typeof getAyListesi === "function") {
+  if (baslangic && aidat > 0 && !v.aidatAyarlari?.pesinOdeme && typeof getAyListesi === "function") {
     const ayListesi = getAyListesi(baslangic, taksit);
     for (const ay of ayListesi) {
       const od = aylikOdemeler[ay.ayKod];
@@ -11225,8 +11155,19 @@ function dashOdemeDoldur() {
     }
   }
 
-  let sagKolon = "";
-  if (sonraki) {
+  let icerik = "";
+  if (v.aidatAyarlari?.pesinOdeme) {
+    icerik = `
+      <div class="dash-karti">
+        <div class="dash-karti-baslik"><span>💎</span><span>Ödeme Durumu</span></div>
+        <div style="text-align:center; padding:14px 0;">
+          <div style="font-size:36px;">💎</div>
+          <div style="font-size:15px; font-weight:600; color:#15803d; margin-top:6px;">Peşin Ödeme Yapıldı</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Bu dönem için tüm ödemeler tamamlandı.</div>
+        </div>
+      </div>`;
+  } else if (sonraki) {
+    const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
     const aylAdi = aylar[sonraki.ay - 1];
     let bilgi = "";
     if (gecikti) {
@@ -11238,9 +11179,9 @@ function dashOdemeDoldur() {
       bilgi = `<span><strong>${gunFark}</strong> gün kaldı</span>`;
     }
 
-    sagKolon = `
+    icerik = `
       <div class="dash-karti dash-odeme ${gecikti ? 'gecikmis' : ''}">
-        <div class="dash-karti-baslik"><span>💳</span><span>${gecikti ? 'Geciken Ödeme' : 'Gelecek Ödeme'}</span></div>
+        <div class="dash-karti-baslik"><span>💳</span><span>${gecikti ? 'Geciken Ödeme' : 'Sıradaki Ödeme'}</span></div>
         <div class="dash-odeme-aciklama">${aylAdi} ${sonraki.yil}</div>
         <div class="dash-odeme-tutar">${aidat.toLocaleString("tr-TR")} <small>TL</small></div>
         <div class="dash-odeme-bilgi">${bilgi}</div>
@@ -11248,246 +11189,69 @@ function dashOdemeDoldur() {
           <button class="dash-odeme-buton primary" onclick="veliSwitchTab('odemeler')">💳 Ödeme Bildir</button>
           <button class="dash-odeme-buton ikincil" onclick="veliSwitchTab('sozlesme')">📄 Sözleşme</button>
         </div>
+        <div class="dash-odeme-genel-bar">
+          <div class="dash-odeme-genel-bar-bilgi">
+            <span>Toplam ilerleme</span>
+            <span><strong>%${yuzde}</strong> · ${Math.round(toplamOdenen).toLocaleString("tr-TR")} / ${aidatBeklenen.toLocaleString("tr-TR")} TL</span>
+          </div>
+          <div class="dash-odeme-genel-bar-bar"><div style="width:${yuzde}%;"></div></div>
+        </div>
       </div>`;
   } else if (yuzde >= 100) {
-    sagKolon = `
-      <div class="dash-karti dash-odeme-tamamlandi">
-        <div class="dash-karti-baslik"><span>✅</span><span>Gelecek Ödeme</span></div>
-        <div style="text-align:center; padding:18px 0;">
-          <div style="font-size:32px;">🎉</div>
-          <div style="font-size:14px; font-weight:600; color:#15803d; margin-top:6px;">Tüm Taksitler Ödendi</div>
-          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Yeni ödeme bulunmuyor.</div>
+    icerik = `
+      <div class="dash-karti">
+        <div class="dash-karti-baslik"><span>✅</span><span>Ödeme Durumu</span></div>
+        <div style="text-align:center; padding:14px 0;">
+          <div style="font-size:36px;">🎉</div>
+          <div style="font-size:15px; font-weight:600; color:#15803d; margin-top:6px;">Tüm Taksitler Ödendi</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:4px;">Toplam ${Math.round(toplamOdenen).toLocaleString("tr-TR")} TL ödendi.</div>
         </div>
       </div>`;
   } else {
-    sagKolon = `
+    icerik = `
       <div class="dash-karti">
-        <div class="dash-karti-baslik"><span>💳</span><span>Gelecek Ödeme</span></div>
-        <div style="text-align:center; padding:18px 0; color:#6b7280; font-size:13px;">
-          Henüz ödeme planı oluşturulmamış.
-        </div>
+        <div class="dash-karti-baslik"><span>💳</span><span>Ödeme Durumu</span></div>
+        <div style="text-align:center; padding:14px 0; color:#6b7280; font-size:13px;">Henüz ödeme planı oluşturulmamış.</div>
       </div>`;
   }
 
-  // ===== 2 KOLONLU GRID =====
-  el.innerHTML = `
-    <div class="dash-odeme-grid">
-      ${solKolon}
-      ${sagKolon}
-    </div>`;
+  el.innerHTML = icerik;
 }
 
-// ============ DASHBOARD: AKIŞ (Duyurular + Galeri + Etkinlikler + Gözlemler) ============
-async function dashAkisDoldur(ogrId) {
-  const el = document.getElementById("dashAkisKonteyner");
-  if (!el) return;
-
-  // Birleşik akış öğeleri: { tip, tarih (ISO string), baslik, ozet, ikon, renk, bg, etiket, hedef }
-  const akis = [];
-
-  // Veli filtreleme için gerekli setler
-  const veliSiniflari = new Set();
-  const veliOgrenciIds = new Set();
-  for (const o of (veliOgrenciler || [])) {
-    veliOgrenciIds.add(o.id);
-    const donemVeri = o._donemVeri || {};
-    const sinif = (donemVeri.kayit?.sinif) || o.sinif || "";
-    if (sinif) veliSiniflari.add(sinif);
+// ============ DASHBOARD: ÖĞRETMEN GÖZLEMLERİ ============
+function dashYorumlariDoldur(ogrId) {
+  const el = document.getElementById("dashYorumlarKonteyner");
+  if (!el || !dashEgitimGelisimVerisi) {
+    if (el) el.innerHTML = "";
+    return;
   }
-
-  // ----- 1. DUYURULAR -----
-  try {
-    const duyuruSnap = await getDocs(collection(db, "duyurular"));
-    for (const d of duyuruSnap.docs) {
-      const dt = d.data();
-      if (dt.arsiv) continue;
-
-      // Veli hedeflemesi
-      let dahil = false;
-      if (dt.hedefTur === "tumOkul") dahil = true;
-      else if (dt.hedefTur === "sinif" && veliSiniflari.has(dt.hedefDeger)) dahil = true;
-      else if (dt.hedefTur === "ogrenci" && veliOgrenciIds.has(dt.hedefDeger)) dahil = true;
-      if (!dahil) continue;
-
-      const tarih = dt.olusturuldu || dt.tarih || "";
-      const oncelik = dt.oncelik || "normal";
-      const ikon = oncelik === "acil" ? "🚨" : oncelik === "onemli" ? "⚠️" : "📢";
-      const renk = oncelik === "acil" ? "#dc2626" : oncelik === "onemli" ? "#ea580c" : "#ca8a04";
-      const bg = oncelik === "acil" ? "#fef2f2" : oncelik === "onemli" ? "#fff7ed" : "#fefce8";
-
-      akis.push({
-        tip: "duyuru",
-        tarih,
-        baslik: dt.baslik || "Duyuru",
-        ozet: dt.icerik || dt.metin || "",
-        etiket: oncelik === "acil" ? "Acil Duyuru" : oncelik === "onemli" ? "Önemli Duyuru" : "Duyuru",
-        ikon, renk, bg,
-        hedef: "bildirimler"
-      });
-    }
-  } catch (e) { console.warn("Akış: duyurular yüklenemedi", e); }
-
-  // ----- 2. GALERİ (gruplu - etkinlik bazında tek öğe) -----
-  try {
-    const galSnap = await getDocs(collection(db, "galeri"));
-    const tumGaleri = galSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // Veli erişimine göre filtrele
-    const erisilebilir = tumGaleri.filter(g => {
-      if (g.hedefTur === "tumOkul") return true;
-      if (g.hedefTur === "sinif" && veliSiniflari.has(g.hedefDeger)) return true;
-      if (g.hedefTur === "ogrenci" && veliOgrenciIds.has(g.hedefDeger)) return true;
-      return false;
-    });
-
-    // Etkinlik/album bazında grupla (admin galerideki yapı ile aynı)
-    const gruplar = {};
-    for (const g of erisilebilir) {
-      const anahtar = `${g.etkinlikTarih || "tarihsiz"}|${g.etkinlikBaslik || "Diğer"}|${g.hedefTur || ""}|${g.hedefDeger || ""}`;
-      if (!gruplar[anahtar]) {
-        gruplar[anahtar] = {
-          etkinlikTarih: g.etkinlikTarih,
-          etkinlikBaslik: g.etkinlikBaslik || "Galeri",
-          dosyaSayisi: 0,
-          fotoSayisi: 0,
-          videoSayisi: 0
-        };
-      }
-      gruplar[anahtar].dosyaSayisi++;
-      if (g.dosyaTipi === "video") gruplar[anahtar].videoSayisi++;
-      else gruplar[anahtar].fotoSayisi++;
-    }
-
-    for (const grupAnahtar in gruplar) {
-      const grup = gruplar[grupAnahtar];
-      let parcalar = [];
-      if (grup.fotoSayisi > 0) parcalar.push(`${grup.fotoSayisi} foto`);
-      if (grup.videoSayisi > 0) parcalar.push(`${grup.videoSayisi} video`);
-      const ozet = parcalar.join(" · ") || `${grup.dosyaSayisi} dosya`;
-
-      akis.push({
-        tip: "galeri",
-        tarih: grup.etkinlikTarih || "",
-        baslik: grup.etkinlikBaslik,
-        ozet,
-        etiket: "Yeni Galeri",
-        ikon: "📸",
-        renk: "#9333ea",
-        bg: "#faf5ff",
-        hedef: "galeri"
-      });
-    }
-  } catch (e) { console.warn("Akış: galeri yüklenemedi", e); }
-
-  // ----- 3. ETKİNLİKLER -----
-  try {
-    const etkSnap = await getDocs(collection(db, "etkinlikler"));
-    const bugun = new Date();
-    bugun.setHours(0, 0, 0, 0);
-
-    for (const d of etkSnap.docs) {
-      const dt = d.data();
-      if (!dt.tarih) continue;
-
-      // Hedefleme
-      let dahil = false;
-      if (dt.hedefTur === "tumOkul") dahil = true;
-      else if (dt.hedefTur === "sinif" && veliSiniflari.has(dt.hedefDeger)) dahil = true;
-      if (!dahil) continue;
-
-      // Geçmiş etkinlikleri akışta çok eski göstermemek için sadece son 30 gün ve gelecek
-      const etkTarih = new Date(dt.tarih);
-      const farkGun = (etkTarih - bugun) / (1000 * 60 * 60 * 24);
-      if (farkGun < -30) continue;
-
-      const kategoriIkon = {
-        gezi: "🚌", kutlama: "🎉", toplanti: "👥", atolye: "🎨", diger: "📅"
-      };
-      const ikon = kategoriIkon[dt.kategori] || "📅";
-
-      let zamanEtiket = "";
-      if (farkGun >= 0) {
-        if (farkGun < 1) zamanEtiket = "Bugün";
-        else if (farkGun < 2) zamanEtiket = "Yarın";
-        else if (farkGun <= 7) zamanEtiket = `${Math.round(farkGun)} gün sonra`;
-        else zamanEtiket = "Yaklaşan";
-      } else {
-        zamanEtiket = "Geçti";
-      }
-
-      akis.push({
-        tip: "etkinlik",
-        tarih: dt.tarih,
-        baslik: dt.baslik || "Etkinlik",
-        ozet: dt.aciklama || dt.detay || zamanEtiket,
-        etiket: zamanEtiket,
-        ikon,
-        renk: "#0891b2",
-        bg: "#ecfeff",
-        hedef: "etkinlikler"
-      });
-    }
-  } catch (e) { console.warn("Akış: etkinlikler yüklenemedi", e); }
-
-  // ----- 4. ÖĞRETMEN GÖZLEMLERİ -----
-  try {
-    if (dashEgitimGelisimVerisi && dashEgitimGelisimVerisi.ogretmenYorumlari) {
-      const yorumlar = dashEgitimGelisimVerisi.ogretmenYorumlari.filter(y => y.paylas);
-      for (const y of yorumlar) {
-        akis.push({
-          tip: "gozlem",
-          tarih: y.tarih || "",
-          baslik: y.baslik || "Genel Gözlem",
-          ozet: y.metin || "",
-          etiket: "Öğretmen Gözlemi",
-          ikon: "📝",
-          renk: "#16a34a",
-          bg: "#f0fdf4",
-          hedef: "raporlar"
-        });
-      }
-    }
-  } catch (e) { console.warn("Akış: gözlemler yüklenemedi", e); }
-
-  // ----- TARİHE GÖRE SIRALA (yeni üstte) ve son 8 öğeyi al -----
-  akis.sort((a, b) => (b.tarih || "").localeCompare(a.tarih || ""));
-  const son8 = akis.slice(0, 8);
-
-  if (son8.length === 0) {
+  const yorumlar = (dashEgitimGelisimVerisi.ogretmenYorumlari || []).filter(y => y.paylas);
+  if (yorumlar.length === 0) {
     el.innerHTML = "";
     return;
   }
-
-  // ----- HTML üret -----
+  // En yeni 2 yorumu önizleme olarak göster
+  const sonYorumlar = [...yorumlar].sort((a,b) => new Date(b.tarih) - new Date(a.tarih)).slice(0, 2);
   el.innerHTML = `
     <div class="dash-karti">
       <div class="dash-karti-baslik">
-        <span>📰</span>
-        <span>Son Gelişmeler</span>
-        <span class="dash-karti-saglar">son ${son8.length} öğe</span>
+        <span>📝</span>
+        <span>Son Öğretmen Gözlemleri</span>
+        <span class="dash-karti-saglar" style="cursor:pointer; color:#16a34a;" onclick="veliSwitchTab('raporlar')">Tümünü gör →</span>
       </div>
-      <div class="dash-akis-liste">
-        ${son8.map(o => {
-          let tarihStr = "";
-          if (o.tarih) {
-            try {
-              tarihStr = new Date(o.tarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
-            } catch (e) { tarihStr = ""; }
-          }
-          const ozetK = (o.ozet || "").replace(/<[^>]+>/g, "").slice(0, 140);
-          return `
-            <div class="dash-akis-oge" style="background:${o.bg}; border-left-color:${o.renk};" onclick="veliSwitchTab('${o.hedef}')">
-              <div class="dash-akis-oge-ust">
-                <span class="dash-akis-oge-ikon">${o.ikon}</span>
-                <span class="dash-akis-oge-etiket" style="color:${o.renk};">${escapeHtml(o.etiket)}</span>
-                ${tarihStr ? `<span class="dash-akis-oge-tarih">${escapeHtml(tarihStr)}</span>` : ""}
-              </div>
-              <div class="dash-akis-oge-baslik">${escapeHtml(o.baslik)}</div>
-              ${ozetK ? `<div class="dash-akis-oge-ozet">${escapeHtml(ozetK)}</div>` : ""}
+      ${sonYorumlar.map(y => {
+        const t = new Date(y.tarih);
+        const tarihStr = t.toLocaleDateString("tr-TR", {day:"numeric", month:"long"});
+        return `
+          <div class="dash-yorum-onizleme">
+            <div class="dash-yorum-onizleme-ust">
+              <strong>${escapeHtmlGelisim(y.baslik || 'Genel Gözlem')}</strong>
+              <span>${tarihStr}</span>
             </div>
-          `;
-        }).join("")}
-      </div>
+            <div class="dash-yorum-onizleme-metin">${escapeHtmlGelisim(y.metin)}</div>
+          </div>
+        `;
+      }).join("")}
     </div>
   `;
 }
@@ -14658,8 +14422,10 @@ async function tumGelisimYukle() {
 
 let egitimAktifDisiplin = null;  // null = disiplin seçim ekranı, "montessori"/"ingilizce"/"degerler" = matrix
 let egitimAktifAlanIdx = 0;      // Hangi alan seçili (Matematik vs.)
-let egitimAktifGrupIdx = 0;      // Hangi grup seçili (1-10 Rakamlar vs.)
+let egitimAktifGrupIdx = 0;      // (Eski uyumluluk için) Hangi grup seçili
 let egitimMatrixVerisi = null;   // { ogrenciler: [...], gelisim: { ogrId: { ... } } }
+let egitimGrupAcik = {};         // { 'GrupAd1': true, 'GrupAd2': false } — açılır/kapanır state
+let egitimTumuKapaliMi = false;  // "Tümünü Kapat/Aç" düğmesinin durumu
 
 // Sekme açıldığında çağrılır
 window.egitimSekmesiAcildi = function() {
@@ -14760,15 +14526,16 @@ function egitimAlanSeciciDoldur() {
   ).join("");
 }
 
+// Aktif alanın gruplarını açılır state'e hazırla (varsayılan: hepsi açık)
 function egitimGrupSeciciDoldur() {
-  const sel = document.getElementById("egitimGrupSec");
-  if (!sel) return;
   const mufredat = aktifMufredatlar[egitimAktifDisiplin];
   if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
   const alan = mufredat[egitimAktifAlanIdx];
-  sel.innerHTML = alan.gruplar.map((g, i) =>
-    `<option value="${i}" ${i===egitimAktifGrupIdx?"selected":""}>📁 ${g.ad} (${g.dersler.length} ders)</option>`
-  ).join("");
+  egitimGrupAcik = {};
+  alan.gruplar.forEach(g => {
+    egitimGrupAcik[g.ad] = true; // Varsayılan: tümü açık
+  });
+  egitimTumuKapaliMi = false;
 }
 
 window.egitimAlanDegisti = function() {
@@ -14776,16 +14543,88 @@ window.egitimAlanDegisti = function() {
   if (!sel) return;
   egitimAktifAlanIdx = parseInt(sel.value, 10) || 0;
   egitimAktifGrupIdx = 0;
-  egitimGrupSeciciDoldur();
+  egitimGrupSeciciDoldur(); // Yeni alan değişti, grup state'lerini sıfırla (hepsi açık)
   egitimMatrixRender();
 };
 
-window.egitimGrupDegisti = function() {
-  const sel = document.getElementById("egitimGrupSec");
-  if (!sel) return;
-  egitimAktifGrupIdx = parseInt(sel.value, 10) || 0;
-  egitimMatrixRender();
+// Eski uyumluluk: hala bir yerlerden çağrılıyor olabilir (zararsız NO-OP)
+window.egitimGrupDegisti = function() { /* artık dropdown yok */ };
+
+// Tek bir grubu aç/kapat
+window.egitimGrupToggle = function(grupAd) {
+  egitimGrupAcik[grupAd] = !egitimGrupAcik[grupAd];
+
+  // DOM üzerinde sadece etkilenen satırları aç/kapat (re-render gerekmez, performanslı)
+  const tablo = document.getElementById("egitimMatrixWrap");
+  if (!tablo) return;
+
+  const baslikTr = tablo.querySelector(`tr.matrix-grup-baslik-tr[data-grup-ad="${cssEscape(grupAd)}"]`);
+  const icerikSatirlari = tablo.querySelectorAll(`tr.matrix-grup-icerik-tr[data-grup-ad="${cssEscape(grupAd)}"]`);
+
+  if (egitimGrupAcik[grupAd]) {
+    if (baslikTr) baslikTr.classList.remove("kapali");
+    icerikSatirlari.forEach(tr => tr.classList.remove("gizli"));
+  } else {
+    if (baslikTr) baslikTr.classList.add("kapali");
+    icerikSatirlari.forEach(tr => tr.classList.add("gizli"));
+  }
+
+  // Toggle butonu metnini güncelle (eğer artık tüm grupların açık/kapalı olduğunu yansıtıyorsa)
+  egitimTumuToggleBtnGuncelle();
 };
+
+// CSS-uyumlu attribute selector için kaçış
+function cssEscape(s) {
+  if (!s) return "";
+  return String(s).replace(/(["'\\\[\]\(\):])/g, "\\$1");
+}
+
+// Tümünü aç/kapat
+window.egitimTumGruplarToggle = function() {
+  const mufredat = aktifMufredatlar[egitimAktifDisiplin];
+  if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
+  const alan = mufredat[egitimAktifAlanIdx];
+
+  // Şu anki duruma bak: hepsi açık mı, yoksa en az bir kapalı var mı
+  const hepsiAcik = alan.gruplar.every(g => egitimGrupAcik[g.ad]);
+  const yeniDurum = !hepsiAcik; // Hepsi açıksa hepsini kapat, değilse hepsini aç
+
+  alan.gruplar.forEach(g => {
+    egitimGrupAcik[g.ad] = yeniDurum;
+  });
+
+  // DOM güncelle
+  const tablo = document.getElementById("egitimMatrixWrap");
+  if (tablo) {
+    const baslikSatirlari = tablo.querySelectorAll("tr.matrix-grup-baslik-tr");
+    const icerikSatirlari = tablo.querySelectorAll("tr.matrix-grup-icerik-tr");
+    if (yeniDurum) {
+      baslikSatirlari.forEach(tr => tr.classList.remove("kapali"));
+      icerikSatirlari.forEach(tr => tr.classList.remove("gizli"));
+    } else {
+      baslikSatirlari.forEach(tr => tr.classList.add("kapali"));
+      icerikSatirlari.forEach(tr => tr.classList.add("gizli"));
+    }
+  }
+
+  egitimTumuKapaliMi = !yeniDurum;
+  egitimTumuToggleBtnGuncelle();
+};
+
+// Toggle butonunun yazısını ve ikonunu güncelle
+function egitimTumuToggleBtnGuncelle() {
+  const btn = document.getElementById("egitimTumuToggleBtn");
+  if (!btn) return;
+  const mufredat = aktifMufredatlar[egitimAktifDisiplin];
+  if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
+  const alan = mufredat[egitimAktifAlanIdx];
+  const hepsiAcik = alan.gruplar.every(g => egitimGrupAcik[g.ad]);
+  if (hepsiAcik) {
+    btn.innerHTML = "⊟ Tümünü Kapat";
+  } else {
+    btn.innerHTML = "⊞ Tümünü Aç";
+  }
+}
 
 function egitimMatrixRender() {
   const wrap = document.getElementById("egitimMatrixWrap");
@@ -14796,29 +14635,39 @@ function egitimMatrixRender() {
     return;
   }
   const alan = mufredat[egitimAktifAlanIdx];
-  const grup = alan.gruplar[egitimAktifGrupIdx];
-  if (!grup) {
-    wrap.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Grup bulunamadı</div>`;
+  if (!alan.gruplar || alan.gruplar.length === 0) {
+    wrap.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Bu alanda grup bulunamadı</div>`;
     return;
   }
 
-  // Bilgi alanı güncelle
-  const bilgi = document.getElementById("egitimSeciciBilgi");
-  if (bilgi) {
-    const toplamHucre = grup.dersler.length * egitimMatrixVerisi.ogrenciler.length;
-    let dolu = 0;
-    egitimMatrixVerisi.ogrenciler.forEach(o => {
-      const kayitlar = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
-      grup.dersler.forEach(d => {
-        const k = `${alan.id}__${grup.ad}__${d}`;
-        if (kayitlar[k]) dolu++;
-      });
-    });
-    const yuzde = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
-    bilgi.innerHTML = `<strong>${grup.dersler.length}</strong> ders × <strong>${egitimMatrixVerisi.ogrenciler.length}</strong> öğrenci · <strong>%${yuzde}</strong> dolu`;
+  // Eğer egitimGrupAcik henüz oluşturulmadıysa varsayılanı uygula (hepsi açık)
+  if (Object.keys(egitimGrupAcik).length === 0) {
+    alan.gruplar.forEach(g => { egitimGrupAcik[g.ad] = true; });
   }
 
-  if (egitimMatrixVerisi.ogrenciler.length === 0) {
+  const ogrenciler = egitimMatrixVerisi.ogrenciler;
+
+  // Bilgi alanı: alanın TAMAMINA göre yüzde
+  const bilgi = document.getElementById("egitimSeciciBilgi");
+  if (bilgi) {
+    let toplamHucre = 0;
+    let dolu = 0;
+    alan.gruplar.forEach(g => {
+      toplamHucre += g.dersler.length * ogrenciler.length;
+      ogrenciler.forEach(o => {
+        const kayitlar = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
+        g.dersler.forEach(d => {
+          const k = `${alan.id}__${g.ad}__${d}`;
+          if (kayitlar[k]) dolu++;
+        });
+      });
+    });
+    const toplamDers = alan.gruplar.reduce((t, g) => t + g.dersler.length, 0);
+    const yuzde = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
+    bilgi.innerHTML = `<strong>${alan.gruplar.length}</strong> grup · <strong>${toplamDers}</strong> ders × <strong>${ogrenciler.length}</strong> öğrenci · <strong>%${yuzde}</strong> dolu`;
+  }
+
+  if (ogrenciler.length === 0) {
     wrap.innerHTML = `
       <div style="padding:40px 20px; text-align:center; color:#6b7280;">
         <div style="font-size:48px; margin-bottom:12px;">👥</div>
@@ -14831,11 +14680,9 @@ function egitimMatrixRender() {
     return;
   }
 
-  // Tabloyu oluştur
-  const ogrenciler = egitimMatrixVerisi.ogrenciler;
-
+  // ========== TABLO HEAD ==========
   let html = `<table class="egitim-matrix-tablosu"><thead><tr>`;
-  html += `<th class="ders-baslik-h">📚 ${escapeHtmlGelisim(grup.ad)}</th>`;
+  html += `<th class="ders-baslik-h">${alan.ikon || "📚"} ${escapeHtmlGelisim(alan.ad)}</th>`;
   ogrenciler.forEach(o => {
     const ad = o.ogrenciAdSoyad || "—";
     const adKisa = ad.length > 16 ? ad.substring(0,14)+"…" : ad;
@@ -14851,26 +14698,69 @@ function egitimMatrixRender() {
   });
   html += `</tr></thead><tbody>`;
 
-  grup.dersler.forEach(d => {
-    html += `<tr><td class="ders-adi">${escapeHtmlGelisim(d)}</td>`;
-    const grupAdEsc = grup.ad.replace(/'/g,"\\'");
-    const dersEsc   = d.replace(/'/g,"\\'");
+  // ========== TABLO BODY (her grup için bir başlık satırı + ders satırları) ==========
+  // Toplam kolon sayısı: 1 (sol sticky) + öğrenci sayısı
+  const toplamKolon = 1 + ogrenciler.length;
+
+  alan.gruplar.forEach(g => {
+    const grupAd = g.ad;
+    const grupAdAttr = escapeHtmlGelisim(grupAd);
+    const grupAdEsc = grupAd.replace(/'/g, "\\'");
+    const acik = egitimGrupAcik[grupAd] !== false; // varsayılan açık
+    const baslikSinif = acik ? "" : "kapali";
+    const icerikSinif = acik ? "" : "gizli";
+
+    // Grup için yüzde
+    let grupToplam = g.dersler.length * ogrenciler.length;
+    let grupDolu = 0;
     ogrenciler.forEach(o => {
       const kayitlar = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
-      const k = `${alan.id}__${grup.ad}__${d}`;
-      const v = kayitlar[k] || "";
-      const sinif = v ? `aktif-${v}` : "";
-      const goster = v || "·";
-      html += `
-        <td class="egitim-matrix-hucre" onclick="matrixHucreTikla('${o.id}','${alan.id}','${grupAdEsc}','${dersEsc}', this)">
-          <button type="button" class="matrix-stu-buton ${sinif}">${goster}</button>
-        </td>`;
+      g.dersler.forEach(d => {
+        const k = `${alan.id}__${grupAd}__${d}`;
+        if (kayitlar[k]) grupDolu++;
+      });
     });
-    html += `</tr>`;
+    const grupYuzde = grupToplam ? Math.round((grupDolu / grupToplam) * 100) : 0;
+
+    // GRUP BAŞLIK SATIRI
+    html += `
+      <tr class="matrix-grup-baslik-tr ${baslikSinif}" data-grup-ad="${grupAdAttr}" onclick="egitimGrupToggle('${grupAdEsc}')">
+        <td colspan="${toplamKolon}">
+          <div class="matrix-grup-baslik-icerik">
+            <span class="matrix-grup-baslik-ikon">▼</span>
+            <span class="matrix-grup-baslik-ad">📁 ${escapeHtmlGelisim(grupAd)}</span>
+            <span class="matrix-grup-baslik-ders-sayisi">${g.dersler.length} ders</span>
+            <span class="matrix-grup-baslik-yuzde">%${grupYuzde}</span>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    // GRUP İÇERİK SATIRLARI (dersler)
+    g.dersler.forEach(d => {
+      const dersEsc = d.replace(/'/g, "\\'");
+      html += `<tr class="matrix-grup-icerik-tr ${icerikSinif}" data-grup-ad="${grupAdAttr}">`;
+      html += `<td class="ders-adi">${escapeHtmlGelisim(d)}</td>`;
+      ogrenciler.forEach(o => {
+        const kayitlar = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
+        const k = `${alan.id}__${grupAd}__${d}`;
+        const v = kayitlar[k] || "";
+        const sinif = v ? `aktif-${v}` : "";
+        const goster = v || "·";
+        html += `
+          <td class="egitim-matrix-hucre" onclick="matrixHucreTikla('${o.id}','${alan.id}','${grupAdEsc}','${dersEsc}', this)">
+            <button type="button" class="matrix-stu-buton ${sinif}">${goster}</button>
+          </td>`;
+      });
+      html += `</tr>`;
+    });
   });
 
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+
+  // Toggle butonu metnini güncelle
+  egitimTumuToggleBtnGuncelle();
 }
 
 // Hücre tıklandığında: boş → S → T → U → boş döngüsü
@@ -14912,24 +14802,53 @@ window.matrixHucreTikla = async function(ogrId, alanId, grupAd, dersAd, hucreEl)
       btn.textContent = mevcut || "·";
     }
   } else {
-    // Bilgi alanını güncelle (yüzde değişti)
+    // Bilgi alanını güncelle (alanın tamamı için yüzde) + tıklanan grubun başlığındaki yüzde
     setTimeout(() => {
+      if (!egitimMatrixVerisi) return;
+      const mufredat = aktifMufredatlar[egitimAktifDisiplin];
+      if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
+      const alan = mufredat[egitimAktifAlanIdx];
+      const ogrenciler = egitimMatrixVerisi.ogrenciler;
+
+      // 1) Alan toplamı (üst bilgi)
       const bilgi = document.getElementById("egitimSeciciBilgi");
-      if (bilgi && egitimMatrixVerisi) {
-        const mufredat = aktifMufredatlar[egitimAktifDisiplin];
-        const alan = mufredat[egitimAktifAlanIdx];
-        const grup = alan.gruplar[egitimAktifGrupIdx];
-        const toplamHucre = grup.dersler.length * egitimMatrixVerisi.ogrenciler.length;
+      if (bilgi) {
+        let toplamHucre = 0;
         let dolu = 0;
-        egitimMatrixVerisi.ogrenciler.forEach(o => {
-          const kayitlar2 = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
-          grup.dersler.forEach(d2 => {
-            const k2 = `${alan.id}__${grup.ad}__${d2}`;
-            if (kayitlar2[k2]) dolu++;
+        alan.gruplar.forEach(g => {
+          toplamHucre += g.dersler.length * ogrenciler.length;
+          ogrenciler.forEach(o => {
+            const kayitlar2 = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
+            g.dersler.forEach(d2 => {
+              const k2 = `${alan.id}__${g.ad}__${d2}`;
+              if (kayitlar2[k2]) dolu++;
+            });
           });
         });
-        const yuzde = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
-        bilgi.innerHTML = `<strong>${grup.dersler.length}</strong> ders × <strong>${egitimMatrixVerisi.ogrenciler.length}</strong> öğrenci · <strong>%${yuzde}</strong> dolu`;
+        const toplamDers = alan.gruplar.reduce((t, g) => t + g.dersler.length, 0);
+        const yuzdeAlan = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
+        bilgi.innerHTML = `<strong>${alan.gruplar.length}</strong> grup · <strong>${toplamDers}</strong> ders × <strong>${ogrenciler.length}</strong> öğrenci · <strong>%${yuzdeAlan}</strong> dolu`;
+      }
+
+      // 2) Tıklanan grubun başlığındaki yüzde
+      const grupObj = alan.gruplar.find(g => g.ad === grupAd);
+      if (grupObj) {
+        let grupToplam = grupObj.dersler.length * ogrenciler.length;
+        let grupDolu = 0;
+        ogrenciler.forEach(o => {
+          const kayitlar3 = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
+          grupObj.dersler.forEach(d3 => {
+            const k3 = `${alan.id}__${grupAd}__${d3}`;
+            if (kayitlar3[k3]) grupDolu++;
+          });
+        });
+        const grupYuzde = grupToplam ? Math.round((grupDolu / grupToplam) * 100) : 0;
+        const grupAdAttr = grupAd.replace(/(["'\\\[\]\(\):])/g, "\\$1");
+        const baslikTr = document.querySelector(`tr.matrix-grup-baslik-tr[data-grup-ad="${grupAdAttr}"]`);
+        if (baslikTr) {
+          const yuzdeEl = baslikTr.querySelector(".matrix-grup-baslik-yuzde");
+          if (yuzdeEl) yuzdeEl.textContent = `%${grupYuzde}`;
+        }
       }
     }, 50);
   }
