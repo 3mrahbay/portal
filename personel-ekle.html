@@ -274,7 +274,7 @@
       color: var(--gri);
     }
 
-    /* SINIF SEÇİMİ (CHECKBOX) */
+    /* SINIF SEÇİMİ */
     .sinif-grup {
       display: none;
       margin-bottom: 16px;
@@ -471,6 +471,21 @@
       flex-shrink: 0;
     }
 
+    .personel-rol.yonetim {
+      background: var(--pastel-mor);
+      color: #6B4FB6;
+    }
+
+    .personel-rol.muhasebe {
+      background: var(--pastel-sari);
+      color: #B8860B;
+    }
+
+    .personel-rol.diger {
+      background: var(--pastel-mavi);
+      color: #2E5C8A;
+    }
+
     .personel-aksiyon {
       display: flex;
       gap: 4px;
@@ -532,7 +547,7 @@
       margin-bottom: 16px;
     }
 
-    /* YÜKLEN İYO İNDİKATÖRÜ */
+    /* YÜKLENİYOR */
     .yukleniyor {
       display: inline-block;
       width: 18px;
@@ -638,7 +653,7 @@
           <label class="form-label form-label-zorunlu">Rol</label>
           <select class="form-select" id="rol" onchange="rolDegisti()">
             <option value="">Rol seçiniz</option>
-            <optgroup label="Yönetim">
+            <optgroup label="Yönetim (Tam Yetki)">
               <option value="kurucu_mudur">Kurucu Müdür</option>
               <option value="kurucu">Kurucu</option>
               <option value="mudur">Müdür</option>
@@ -648,9 +663,14 @@
               <option value="egitim_koordinatoru">Eğitim Koordinatörü</option>
               <option value="ogretmen">Öğretmen</option>
             </optgroup>
-            <optgroup label="Operasyon">
+            <optgroup label="Finans">
               <option value="muhasebe">Muhasebe</option>
-              <option value="personel">Personel (Aşçı/Temizlik/Danışma/Halkla İlişkiler)</option>
+            </optgroup>
+            <optgroup label="Diğer Personel (En Düşük Yetki)">
+              <option value="asci">👨‍🍳 Aşçı</option>
+              <option value="temizlik">🧹 Temizlik</option>
+              <option value="danisma">📞 Danışma</option>
+              <option value="halkla_iliskiler">🤝 Halkla İlişkiler</option>
             </optgroup>
           </select>
         </div>
@@ -704,7 +724,7 @@
           <button class="filtre-btn" onclick="filtreSec(this, 'yonetim')">Yönetim</button>
           <button class="filtre-btn" onclick="filtreSec(this, 'ogretmen')">Öğretmen</button>
           <button class="filtre-btn" onclick="filtreSec(this, 'muhasebe')">Muhasebe</button>
-          <button class="filtre-btn" onclick="filtreSec(this, 'personel')">Personel</button>
+          <button class="filtre-btn" onclick="filtreSec(this, 'diger')">Diğer Personel</button>
         </div>
 
         <div class="personel-listesi" id="personelListesi">
@@ -727,16 +747,16 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // ⚠️ FIREBASE CONFIG - Senin bcka-site projeden!
+    // ⚠️ FIREBASE CONFIG - bcka-site projesi
     const firebaseConfig = {
-  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
-  authDomain: "bcka-site.firebaseapp.com",
-  projectId: "bcka-site",
-  storageBucket: "bcka-site.firebasestorage.app",
-  messagingSenderId: "736581475783",
-  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2",
-  measurementId: "G-PMZ7T84FB5"
-};
+      apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
+      authDomain: "bcka-site.firebaseapp.com",
+      projectId: "bcka-site",
+      storageBucket: "bcka-site.firebasestorage.app",
+      messagingSenderId: "736581475783",
+      appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2",
+      measurementId: "G-PMZ7T84FB5"
+    };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -772,7 +792,7 @@
       setTimeout(() => lucide.createIcons(), 100);
     });
 
-    // GOOGLE GIRIŞ
+    // GOOGLE GİRİŞ
     window.googleGiris = async function() {
       try {
         await signInWithPopup(auth, provider);
@@ -910,6 +930,19 @@
       }
     }
 
+    // ROL KATEGORİSİNİ GETİR
+    function rolKategorisiniGetir(rol) {
+      if (['kurucu_mudur', 'kurucu', 'mudur', 'mudur_yardimcisi'].includes(rol)) {
+        return 'yonetim';
+      } else if (['ogretmen', 'egitim_koordinatoru'].includes(rol)) {
+        return '';
+      } else if (rol === 'muhasebe') {
+        return 'muhasebe';
+      } else {
+        return 'diger';
+      }
+    }
+
     // PERSONELLERİ EKRANA YAZ
     function personelleriYaz(personeller) {
       let filtreliPersoneller = personeller;
@@ -924,8 +957,10 @@
         );
       } else if (aktifFiltre === 'muhasebe') {
         filtreliPersoneller = personeller.filter(p => p.rol === 'muhasebe');
-      } else if (aktifFiltre === 'personel') {
-        filtreliPersoneller = personeller.filter(p => p.rol === 'personel');
+      } else if (aktifFiltre === 'diger') {
+        filtreliPersoneller = personeller.filter(p => 
+          ['asci', 'temizlik', 'danisma', 'halkla_iliskiler'].includes(p.rol)
+        );
       }
 
       document.getElementById('toplamSayisi').textContent = filtreliPersoneller.length;
@@ -943,6 +978,7 @@
         liste.innerHTML = filtreliPersoneller.map(p => {
           const harf = p.ad ? p.ad[0].toUpperCase() : '?';
           const rolAd = rolAdiniGetir(p.rol);
+          const rolKategori = rolKategorisiniGetir(p.rol);
           const sinif = p.sinifAtamalari && p.sinifAtamalari.length > 0 
             ? ' · ' + p.sinifAtamalari.map(s => sinifAdiniGetir(s)).join(', ')
             : '';
@@ -954,7 +990,7 @@
                 <div class="personel-ad">${p.ad} ${p.soyad}</div>
                 <div class="personel-detay">${p.eposta}${sinif}</div>
               </div>
-              <div class="personel-rol">${rolAd}</div>
+              <div class="personel-rol ${rolKategori}">${rolAd}</div>
               <div class="personel-aksiyon">
                 <button class="aksiyon-btn sil" onclick="personelSil('${p.id}', '${p.ad} ${p.soyad}')">
                   <i data-lucide="trash-2"></i>
@@ -978,7 +1014,10 @@
         'egitim_koordinatoru': 'Eğt. Koord.',
         'muhasebe': 'Muhasebe',
         'ogretmen': 'Öğretmen',
-        'personel': 'Personel'
+        'asci': '👨‍🍳 Aşçı',
+        'temizlik': '🧹 Temizlik',
+        'danisma': '📞 Danışma',
+        'halkla_iliskiler': '🤝 Halkla İlişkiler'
       };
       return rolAdlari[rol] || rol;
     }
