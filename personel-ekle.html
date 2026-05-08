@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personel Ekle - Bir Çiçek Koleji</title>
+  <style>
+    :root {
+      --logo-koyu: #2D5E3E;
+      --ana-yesil: #4A7C59;
+      --acik-yesil: #7CB97C;
+      --pastel-pembe: #F4C2C2;
+      --pastel-sari: #F9E5A0;
+      --pastel-mavi: #B8D4E8;
+      --pastel-mor: #D4C4E8;
+      --pastel-yesil: #C5E1B5;
+      --pastel-turuncu: #FFD4A8;
+      --bg: #FAFAF7;
+      --beyaz: #FFFFFF;
+      --siyah: #2D2D2D;
+      --gri: #8E8E93;
+      --gri-acik: #E5E5EA;
+      --basari: #34C759;
+      --hata: #FF3B30;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Quicksand", "DM Sans", sans-serif;
+      background: var(--bg);
+      color: var(--siyah);
+      min-height: 100vh;
+    }
+
+    [data-lucide] { stroke-width: 2; }
+
+    /* GİRİŞ EKRANI */
+    .login-ekran {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(135deg, var(--logo-koyu), var(--ana-yesil));
+    }
+
+    .login-kart {
+      background: var(--beyaz);
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .login-logo {
+      width: 80px;
+      height: 80px;
+      background: var(--ana-yesil);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+    }
+
+    .login-logo [data-lucide] {
+      width: 40px;
+      height: 40px;
+      color: var(--beyaz);
+    }
+
+    .login-baslik {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--siyah);
+      margin-bottom: 8px;
+    }
+
+    .login-alt {
+      font-size: 14px;
+      color: var(--gri);
+      margin-bottom: 32px;
+    }
+
+    .google-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--ana-yesil);
+      color: var(--beyaz);
+      border: none;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.2s;
+    }
+
+    .google-btn:hover {
+      transform: scale(1.02);
+    }
+
+    .login-uyari {
+      margin-top: 20px;
+      padding: 12px;
+      background: var(--pastel-sari);
+      border-radius: 10px;
+      font-size: 12px;
+      color: #B8860B;
+    }
+
+    /* ANA EKRAN */
+    .header {
+      background: var(--beyaz);
+      border-bottom: 1px solid var(--gri-acik);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-baslik-grup {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .header-logo {
+      width: 44px;
+      height: 44px;
+      background: var(--ana-yesil);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-logo [data-lucide] {
+      width: 22px;
+      height: 22px;
+      color: var(--beyaz);
+    }
+
+    .header-baslik {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--siyah);
+    }
+
+    .header-alt {
+      font-size: 12px;
+      color: var(--gri);
+    }
+
+    .header-kullanici {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-kullanici-adi {
+      font-size: 13px;
+      color: var(--siyah);
+      font-weight: 600;
+    }
+
+    .cikis-btn {
+      padding: 8px 16px;
+      background: transparent;
+      color: var(--hata);
+      border: 1px solid var(--hata);
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cikis-btn [data-lucide] {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* İÇERİK */
+    .icerik {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .icerik {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--beyaz);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .panel-baslik {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--siyah);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-baslik [data-lucide] {
+      width: 22px;
+      height: 22px;
+      color: var(--ana-yesil);
+    }
+
+    /* FORM */
+    .form-grup {
+      margin-bottom: 16px;
+    }
+
+    .form-grup-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--siyah);
+      margin-bottom: 6px;
+    }
+
+    .form-label-zorunlu::after {
+      content: ' *';
+      color: var(--hata);
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--gri-acik);
+      border-radius: 12px;
+      font-size: 14px;
+      color: var(--siyah);
+      background: var(--bg);
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--ana-yesil);
+    }
+
+    .form-input::placeholder {
+      color: var(--gri);
+    }
+
+    /* SINIF SEÇİMİ (CHECKBOX) */
+    .sinif-grup {
+      display: none;
+      margin-bottom: 16px;
+    }
+
+    .sinif-grup.gorunur {
+      display: block;
+    }
+
+    .sinif-checkboxlar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      background: var(--bg);
+      border-radius: 12px;
+      border: 1px solid var(--gri-acik);
+    }
+
+    .sinif-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .sinif-checkbox:hover {
+      background: var(--gri-acik);
+    }
+
+    .sinif-checkbox input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--ana-yesil);
+    }
+
+    .sinif-checkbox span {
+      font-size: 14px;
+      color: var(--siyah);
+    }
+
+    /* EKLE BUTONU */
+    .ekle-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--ana-yesil);
+      color: var(--beyaz);
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .ekle-btn:hover {
+      transform: scale(1.02);
+      background: var(--logo-koyu);
+    }
+
+    .ekle-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .ekle-btn [data-lucide] {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* MESAJLAR */
+    .mesaj {
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mesaj.gorunur {
+      display: flex;
+    }
+
+    .mesaj.basari {
+      background: rgba(52, 199, 89, 0.15);
+      color: var(--basari);
+    }
+
+    .mesaj.hata {
+      background: rgba(255, 59, 48, 0.15);
+      color: var(--hata);
+    }
+
+    .mesaj [data-lucide] {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* PERSONEL LİSTESİ */
+    .filtre-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filtre-btn {
+      padding: 6px 12px;
+      border-radius: 16px;
+      background: var(--bg);
+      border: 1px solid var(--gri-acik);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--siyah);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .filtre-btn.aktif {
+      background: var(--ana-yesil);
+      color: var(--beyaz);
+      border-color: var(--ana-yesil);
+    }
+
+    .personel-listesi {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .personel-kart {
+      background: var(--bg);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: transform 0.2s;
+    }
+
+    .personel-kart:hover {
+      transform: translateX(4px);
+    }
+
+    .personel-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--ana-yesil);
+      color: var(--beyaz);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .personel-bilgi {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .personel-ad {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--siyah);
+      margin-bottom: 2px;
+    }
+
+    .personel-detay {
+      font-size: 12px;
+      color: var(--gri);
+    }
+
+    .personel-rol {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 8px;
+      background: var(--pastel-yesil);
+      color: #2D7A2D;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .personel-aksiyon {
+      display: flex;
+      gap: 4px;
+    }
+
+    .aksiyon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--beyaz);
+      border: 1px solid var(--gri-acik);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+    }
+
+    .aksiyon-btn [data-lucide] {
+      width: 14px;
+      height: 14px;
+    }
+
+    .aksiyon-btn.duzenle [data-lucide] {
+      color: var(--ana-yesil);
+    }
+
+    .aksiyon-btn.sil [data-lucide] {
+      color: var(--hata);
+    }
+
+    .aksiyon-btn:hover {
+      background: var(--bg);
+    }
+
+    /* BOŞ DURUM */
+    .bos-durum {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gri);
+    }
+
+    .bos-durum [data-lucide] {
+      width: 48px;
+      height: 48px;
+      color: var(--gri-acik);
+      margin-bottom: 12px;
+    }
+
+    /* TOPLAM SAYAÇ */
+    .toplam-sayac {
+      background: var(--pastel-yesil);
+      color: #2D7A2D;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      display: inline-block;
+      margin-bottom: 16px;
+    }
+
+    /* YÜKLEN İYO İNDİKATÖRÜ */
+    .yukleniyor {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: var(--beyaz);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN EKRANI -->
+  <div id="loginEkran" class="login-ekran">
+    <div class="login-kart">
+      <div class="login-logo">
+        <i data-lucide="shield-check"></i>
+      </div>
+      <div class="login-baslik">Personel Yönetimi</div>
+      <div class="login-alt">Bir Çiçek Koleji - Admin Paneli</div>
+      
+      <button class="google-btn" onclick="googleGiris()">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <path fill="#FFFFFF" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#FFFFFF" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" opacity="0.9"/>
+          <path fill="#FFFFFF" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" opacity="0.7"/>
+          <path fill="#FFFFFF" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" opacity="0.5"/>
+        </svg>
+        Google ile Giriş Yap
+      </button>
+      
+      <div class="login-uyari">
+        <strong>⚠️ Sadece Yetkili Yöneticiler</strong><br>
+        Bu sayfa sadece Bir Çiçek Koleji yönetim ekibi içindir.
+      </div>
+    </div>
+  </div>
+
+  <!-- ANA EKRAN -->
+  <div id="anaEkran" style="display: none;">
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-baslik-grup">
+        <div class="header-logo">
+          <i data-lucide="users"></i>
+        </div>
+        <div>
+          <div class="header-baslik">Personel Yönetimi</div>
+          <div class="header-alt">Bir Çiçek Koleji</div>
+        </div>
+      </div>
+      <div class="header-kullanici">
+        <span class="header-kullanici-adi" id="kullaniciAdi">Yükleniyor...</span>
+        <button class="cikis-btn" onclick="cikisYap()">
+          <i data-lucide="log-out"></i>
+          Çıkış
+        </button>
+      </div>
+    </div>
+
+    <!-- İÇERİK -->
+    <div class="icerik">
+
+      <!-- SOL: FORM -->
+      <div class="panel">
+        <div class="panel-baslik">
+          <i data-lucide="user-plus"></i>
+          Yeni Personel Ekle
+        </div>
+
+        <div id="mesaj" class="mesaj">
+          <i data-lucide="check-circle" id="mesajIkon"></i>
+          <span id="mesajYazi"></span>
+        </div>
+
+        <div class="form-grup-2">
+          <div>
+            <label class="form-label form-label-zorunlu">Ad</label>
+            <input type="text" class="form-input" id="ad" placeholder="Emrah">
+          </div>
+          <div>
+            <label class="form-label form-label-zorunlu">Soyad</label>
+            <input type="text" class="form-input" id="soyad" placeholder="Bay">
+          </div>
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label form-label-zorunlu">Email (Gmail)</label>
+          <input type="email" class="form-input" id="eposta" placeholder="ornek@gmail.com">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Telefon</label>
+          <input type="tel" class="form-input" id="telefon" placeholder="0555 123 45 67">
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label form-label-zorunlu">Rol</label>
+          <select class="form-select" id="rol" onchange="rolDegisti()">
+            <option value="">Rol seçiniz</option>
+            <optgroup label="Yönetim">
+              <option value="kurucu_mudur">Kurucu Müdür</option>
+              <option value="kurucu">Kurucu</option>
+              <option value="mudur">Müdür</option>
+              <option value="mudur_yardimcisi">Müdür Yardımcısı</option>
+            </optgroup>
+            <optgroup label="Eğitim">
+              <option value="egitim_koordinatoru">Eğitim Koordinatörü</option>
+              <option value="ogretmen">Öğretmen</option>
+            </optgroup>
+            <optgroup label="Operasyon">
+              <option value="muhasebe">Muhasebe</option>
+              <option value="personel">Personel (Aşçı/Temizlik/Danışma/Halkla İlişkiler)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Sınıf Seçimi (sadece öğretmen için) -->
+        <div class="form-grup sinif-grup" id="sinifGrup">
+          <label class="form-label">Sınıf Atamaları</label>
+          <div class="sinif-checkboxlar">
+            <label class="sinif-checkbox">
+              <input type="checkbox" name="sinif" value="papatyalar">
+              <span>🌼 Papatyalar Sınıfı (Toddler)</span>
+            </label>
+            <label class="sinif-checkbox">
+              <input type="checkbox" name="sinif" value="kardelenler">
+              <span>❄️ Kardelenler Sınıfı</span>
+            </label>
+            <label class="sinif-checkbox">
+              <input type="checkbox" name="sinif" value="nar_cicekleri">
+              <span>🌺 Nar Çiçekleri Sınıfı</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-grup">
+          <label class="form-label">Durum</label>
+          <select class="form-select" id="durum">
+            <option value="aktif">Aktif</option>
+            <option value="pasif">Pasif</option>
+          </select>
+        </div>
+
+        <button class="ekle-btn" id="ekleBtn" onclick="personelEkle()">
+          <i data-lucide="user-plus"></i>
+          <span id="ekleBtnYazi">Personel Ekle</span>
+        </button>
+      </div>
+
+      <!-- SAĞ: LİSTE -->
+      <div class="panel">
+        <div class="panel-baslik">
+          <i data-lucide="list"></i>
+          Eklenen Personeller
+        </div>
+
+        <div class="toplam-sayac">
+          <span id="toplamSayisi">0</span> personel
+        </div>
+
+        <div class="filtre-bar">
+          <button class="filtre-btn aktif" onclick="filtreSec(this, 'tumu')">Tümü</button>
+          <button class="filtre-btn" onclick="filtreSec(this, 'yonetim')">Yönetim</button>
+          <button class="filtre-btn" onclick="filtreSec(this, 'ogretmen')">Öğretmen</button>
+          <button class="filtre-btn" onclick="filtreSec(this, 'muhasebe')">Muhasebe</button>
+          <button class="filtre-btn" onclick="filtreSec(this, 'personel')">Personel</button>
+        </div>
+
+        <div class="personel-listesi" id="personelListesi">
+          <div class="bos-durum">
+            <i data-lucide="users"></i>
+            <div>Yükleniyor...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LUCIDE -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- FIREBASE -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // ⚠️ FIREBASE CONFIG - Senin bcka-site projeden!
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEkeTQ1QZBhqBaBQXm0yeXr8AzS5hGJsM",
+      authDomain: "bcka-site.firebaseapp.com",
+      projectId: "bcka-site",
+      storageBucket: "bcka-site.firebasestorage.app",
+      messagingSenderId: "736581475783",
+      appId: "1:736581475783:web:ba7a5d0e7e1f9dae1d0de2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    // ADMIN EMAIL LİSTESİ (sadece bunlar girebilir)
+    const ADMIN_EMAILS = [
+      'emrahby@gmail.com'
+      // Buraya ileride başka admin email'leri ekleyebilirsin
+    ];
+
+    let mevcutKullanici = null;
+    let aktifFiltre = 'tumu';
+
+    // GİRİŞ KONTROLÜ
+    onAuthStateChanged(auth, (kullanici) => {
+      if (kullanici) {
+        if (ADMIN_EMAILS.includes(kullanici.email)) {
+          mevcutKullanici = kullanici;
+          document.getElementById('loginEkran').style.display = 'none';
+          document.getElementById('anaEkran').style.display = 'block';
+          document.getElementById('kullaniciAdi').textContent = kullanici.email;
+          personelleriYukle();
+        } else {
+          alert('❌ Yetkili değilsiniz!\n\nBu sayfa sadece yönetim için.');
+          signOut(auth);
+        }
+      } else {
+        document.getElementById('loginEkran').style.display = 'flex';
+        document.getElementById('anaEkran').style.display = 'none';
+      }
+      setTimeout(() => lucide.createIcons(), 100);
+    });
+
+    // GOOGLE GIRIŞ
+    window.googleGiris = async function() {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        alert('Giriş hatası: ' + error.message);
+      }
+    };
+
+    // ÇIKIŞ
+    window.cikisYap = async function() {
+      await signOut(auth);
+    };
+
+    // ROL DEĞİŞTİĞİNDE
+    window.rolDegisti = function() {
+      const rol = document.getElementById('rol').value;
+      const sinifGrup = document.getElementById('sinifGrup');
+      
+      if (rol === 'ogretmen') {
+        sinifGrup.classList.add('gorunur');
+      } else {
+        sinifGrup.classList.remove('gorunur');
+        document.querySelectorAll('input[name="sinif"]').forEach(cb => cb.checked = false);
+      }
+    };
+
+    // PERSONEL EKLE
+    window.personelEkle = async function() {
+      const ad = document.getElementById('ad').value.trim();
+      const soyad = document.getElementById('soyad').value.trim();
+      const eposta = document.getElementById('eposta').value.trim().toLowerCase();
+      const telefon = document.getElementById('telefon').value.trim();
+      const rol = document.getElementById('rol').value;
+      const durum = document.getElementById('durum').value;
+
+      // Validasyon
+      if (!ad || !soyad || !eposta || !rol) {
+        mesajGoster('hata', 'Lütfen zorunlu alanları doldurun (*)');
+        return;
+      }
+
+      if (!eposta.includes('@')) {
+        mesajGoster('hata', 'Geçerli bir email adresi girin');
+        return;
+      }
+
+      // Sınıf atamaları (sadece öğretmen için)
+      let sinifAtamalari = [];
+      if (rol === 'ogretmen') {
+        document.querySelectorAll('input[name="sinif"]:checked').forEach(cb => {
+          sinifAtamalari.push(cb.value);
+        });
+      }
+
+      // Buton durumu
+      const btn = document.getElementById('ekleBtn');
+      const btnYazi = document.getElementById('ekleBtnYazi');
+      btn.disabled = true;
+      btnYazi.innerHTML = '<span class="yukleniyor"></span> Ekleniyor...';
+
+      try {
+        await setDoc(doc(db, 'personeller', eposta), {
+          ad: ad,
+          soyad: soyad,
+          eposta: eposta,
+          telefon: telefon,
+          rol: rol,
+          durum: durum,
+          sinifAtamalari: sinifAtamalari,
+          eklenme: serverTimestamp(),
+          ekleyen: mevcutKullanici.email,
+          sonGuncelleme: serverTimestamp()
+        });
+
+        mesajGoster('basari', `✅ ${ad} ${soyad} başarıyla eklendi!`);
+        formuTemizle();
+        personelleriYukle();
+      } catch (error) {
+        mesajGoster('hata', 'Hata: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btnYazi.textContent = 'Personel Ekle';
+        lucide.createIcons();
+      }
+    };
+
+    // FORMU TEMİZLE
+    function formuTemizle() {
+      document.getElementById('ad').value = '';
+      document.getElementById('soyad').value = '';
+      document.getElementById('eposta').value = '';
+      document.getElementById('telefon').value = '';
+      document.getElementById('rol').value = '';
+      document.getElementById('durum').value = 'aktif';
+      document.querySelectorAll('input[name="sinif"]').forEach(cb => cb.checked = false);
+      document.getElementById('sinifGrup').classList.remove('gorunur');
+    }
+
+    // MESAJ GÖSTER
+    function mesajGoster(tip, yazi) {
+      const mesaj = document.getElementById('mesaj');
+      const ikon = document.getElementById('mesajIkon');
+      
+      mesaj.className = 'mesaj gorunur ' + tip;
+      ikon.setAttribute('data-lucide', tip === 'basari' ? 'check-circle' : 'alert-circle');
+      document.getElementById('mesajYazi').textContent = yazi;
+      
+      lucide.createIcons();
+      
+      setTimeout(() => {
+        mesaj.classList.remove('gorunur');
+      }, 4000);
+    }
+
+    // PERSONELLERİ YÜKLE
+    async function personelleriYukle() {
+      try {
+        const q = query(collection(db, 'personeller'), orderBy('eklenme', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        const personeller = [];
+        snapshot.forEach(d => {
+          personeller.push({ id: d.id, ...d.data() });
+        });
+        
+        personelleriYaz(personeller);
+      } catch (error) {
+        document.getElementById('personelListesi').innerHTML = `
+          <div class="bos-durum">
+            <i data-lucide="alert-circle"></i>
+            <div>Hata: ${error.message}</div>
+          </div>
+        `;
+        lucide.createIcons();
+      }
+    }
+
+    // PERSONELLERİ EKRANA YAZ
+    function personelleriYaz(personeller) {
+      let filtreliPersoneller = personeller;
+      
+      if (aktifFiltre === 'yonetim') {
+        filtreliPersoneller = personeller.filter(p => 
+          ['kurucu_mudur', 'kurucu', 'mudur', 'mudur_yardimcisi'].includes(p.rol)
+        );
+      } else if (aktifFiltre === 'ogretmen') {
+        filtreliPersoneller = personeller.filter(p => 
+          ['ogretmen', 'egitim_koordinatoru'].includes(p.rol)
+        );
+      } else if (aktifFiltre === 'muhasebe') {
+        filtreliPersoneller = personeller.filter(p => p.rol === 'muhasebe');
+      } else if (aktifFiltre === 'personel') {
+        filtreliPersoneller = personeller.filter(p => p.rol === 'personel');
+      }
+
+      document.getElementById('toplamSayisi').textContent = filtreliPersoneller.length;
+      
+      const liste = document.getElementById('personelListesi');
+      
+      if (filtreliPersoneller.length === 0) {
+        liste.innerHTML = `
+          <div class="bos-durum">
+            <i data-lucide="users"></i>
+            <div>Henüz personel eklenmedi</div>
+          </div>
+        `;
+      } else {
+        liste.innerHTML = filtreliPersoneller.map(p => {
+          const harf = p.ad ? p.ad[0].toUpperCase() : '?';
+          const rolAd = rolAdiniGetir(p.rol);
+          const sinif = p.sinifAtamalari && p.sinifAtamalari.length > 0 
+            ? ' · ' + p.sinifAtamalari.map(s => sinifAdiniGetir(s)).join(', ')
+            : '';
+          
+          return `
+            <div class="personel-kart">
+              <div class="personel-avatar">${harf}</div>
+              <div class="personel-bilgi">
+                <div class="personel-ad">${p.ad} ${p.soyad}</div>
+                <div class="personel-detay">${p.eposta}${sinif}</div>
+              </div>
+              <div class="personel-rol">${rolAd}</div>
+              <div class="personel-aksiyon">
+                <button class="aksiyon-btn sil" onclick="personelSil('${p.id}', '${p.ad} ${p.soyad}')">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      lucide.createIcons();
+    }
+
+    // ROL ADINI GETİR
+    function rolAdiniGetir(rol) {
+      const rolAdlari = {
+        'kurucu_mudur': 'Kurucu Müdür',
+        'kurucu': 'Kurucu',
+        'mudur': 'Müdür',
+        'mudur_yardimcisi': 'Müdür Yrd.',
+        'egitim_koordinatoru': 'Eğt. Koord.',
+        'muhasebe': 'Muhasebe',
+        'ogretmen': 'Öğretmen',
+        'personel': 'Personel'
+      };
+      return rolAdlari[rol] || rol;
+    }
+
+    // SINIF ADINI GETİR
+    function sinifAdiniGetir(sinif) {
+      const sinifAdlari = {
+        'papatyalar': '🌼 Papatya',
+        'kardelenler': '❄️ Kardelen',
+        'nar_cicekleri': '🌺 Nar Çiçeği'
+      };
+      return sinifAdlari[sinif] || sinif;
+    }
+
+    // FİLTRE SEÇ
+    window.filtreSec = function(btn, filtre) {
+      document.querySelectorAll('.filtre-btn').forEach(b => b.classList.remove('aktif'));
+      btn.classList.add('aktif');
+      aktifFiltre = filtre;
+      personelleriYukle();
+    };
+
+    // PERSONEL SİL
+    window.personelSil = async function(id, ad) {
+      if (!confirm(`${ad} kişisini silmek istediğinden emin misin?`)) return;
+      
+      try {
+        await deleteDoc(doc(db, 'personeller', id));
+        mesajGoster('basari', `✅ ${ad} silindi`);
+        personelleriYukle();
+      } catch (error) {
+        mesajGoster('hata', 'Silme hatası: ' + error.message);
+      }
+    };
+
+    lucide.createIcons();
+  </script>
+
+</body>
+</html>
