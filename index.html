@@ -10194,6 +10194,7 @@ html, body {
 
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
+const docx = window.docx;  
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
@@ -10202,7 +10203,7 @@ import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+const docx = window.docx;
 const firebaseConfig = {
   apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
   authDomain: "bcka-site.firebaseapp.com",
