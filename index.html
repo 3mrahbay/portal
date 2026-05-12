@@ -23362,7 +23362,7 @@ window.sozlesmeCiktiWord = async function() {
     if (!veri.sablon) { showToast("Önce sözleşme şablonunu yükleyin", "error"); return; }
 
     const bolumler = olusturSozlesmeMetni(veri);
-    const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Packer, PageBreak, ImageRun } = docx;
+    const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Packer, PageBreak, ImageRun } = windows.docx;
 
     const children = [];
 
