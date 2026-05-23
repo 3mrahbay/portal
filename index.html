@@ -11566,27 +11566,33 @@ window.bildirimDurum = async function() {
   console.log("Dinleyici aktif mi:", mesajBildirimUnsub ? "EVET" : "HAYIR");
   console.log("Toplam okunmamış (cache):", mesajBildirimToplam);
 
-  // DB'den TÜM mesaj thread'lerini çek (admin gibi tara) ve eşleşmeyi göster
-  console.log("--- DB'deki thread'ler taranıyor ---");
+  // DB'den SADECE kendi thread'lerini çek (velinin görebileceği sorgu)
+  console.log("--- Kendi thread'lerim sorgulanıyor (array-contains) ---");
   try {
-    const snap = await getDocs(collection(db, "mesajlar"));
-    console.log("Toplam thread sayısı (DB):", snap.size);
+    const q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benimLower));
+    const snap = await getDocs(q);
+    console.log("Bulunan thread sayısı:", snap.size);
     let i = 0;
     snap.forEach(d => {
       i++;
       const t = d.data();
-      const benKatilimciMiyim = (t.katilimcilar || []).includes(benimLower);
       console.log(`Thread ${i}:`, {
         id: d.id,
         katilimcilar: t.katilimcilar,
-        benKatilimciMiyim: benKatilimciMiyim,
         okunmamis: t.okunmamis,
         benimOkunmamisim: t.okunmamis?.[benimLower],
-        sonMesaj: t.sonMesaj
+        sonMesaj: t.sonMesaj,
+        sonMesajGonderen: t.sonMesajGonderen
       });
     });
+    if (snap.size === 0) {
+      console.log("⚠️ Bu e-posta hiçbir thread'in katılımcısı değil. Olası neden: katilimcilar dizisinde e-posta farklı yazılmış (büyük harf?).");
+    }
   } catch (e) {
-    console.error("DB tarama hatası:", e.code, e.message);
+    console.error("Kendi thread sorgu hatası:", e.code, e.message);
+    if (e.code === "failed-precondition") {
+      console.log("⚠️ INDEX gerekiyor! Hata mesajındaki linke tıkla.");
+    }
   }
 
   console.log("--- Dinleyici yeniden başlatılıyor ---");
