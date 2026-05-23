@@ -12603,6 +12603,59 @@ function veliRenderOgrenci() {
 }
 
 // ============ LOAD ÖĞRENCILER ============
+// ============================================================
+// ===== FAZ 2: VERİ SEVİYESİNDE ROL KISITLAMASI =====
+// ============================================================
+
+// Bir öğrencinin sınıfını al (ayar > ogrenci > "")
+function ogrenciSinifiAl(o) {
+  const ayar = ayarListesi[o.id];
+  return (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "";
+}
+
+// Öğretmen bu öğrenciye erişebilir mi? (sınıf bazlı)
+function ogrenciErisilebilirMi(o) {
+  // Admin + yönetim + eğitim koordinatörü + muhasebe → tüm öğrenciler
+  if (isAdmin || TUM_SINIF_ROLLERI.includes(aktifKullaniciRol) || aktifKullaniciRol === "muhasebe") {
+    return true;
+  }
+  // Öğretmen → sadece atandığı sınıflar
+  if (aktifKullaniciRol === "ogretmen") {
+    const sinif = ogrenciSinifiAl(o);
+    return aktifKullaniciSiniflari.includes(sinif);
+  }
+  // Diğer (tanımsız) → güvenli taraf: erişim yok
+  return false;
+}
+
+// Öğrenci listesini role göre filtrele
+function ogrenciListeyiRoleGoreFiltrele(liste) {
+  // Sadece öğretmen için kısıtlama (diğerleri tümünü görür)
+  if (aktifKullaniciRol === "ogretmen" && !isAdmin) {
+    const filtreli = liste.filter(o => ogrenciErisilebilirMi(o));
+    console.log(`[Faz 2a] Öğretmen filtresi: ${liste.length} → ${filtreli.length} öğrenci (sınıflar: ${aktifKullaniciSiniflari.join(", ") || "yok"})`);
+    return filtreli;
+  }
+  return liste;
+}
+
+// Öğretmen veli iletişim bilgisini görebilir mi?
+// Mimari kuralı: Öğretmen veli telefon/e-posta GÖREMEZ (kesin yasak)
+function veliIletisimGorebilirMi() {
+  if (isAdmin || YONETIM_ROLLERI.includes(aktifKullaniciRol)) return true;
+  if (aktifKullaniciRol === "muhasebe" || aktifKullaniciRol === "egitim_koordinator") return true;
+  // Öğretmen → göremez
+  return false;
+}
+
+// Veli iletişim bilgisini maskele (öğretmen için)
+function veliBilgisiMaskele(deger, tip) {
+  if (veliIletisimGorebilirMi()) return deger || "";
+  if (!deger) return "";
+  // Öğretmen için gizle
+  return tip === "email" ? "•••@•••" : "••• ••• ••••";
+}
+
 async function loadOgrenciler() {
   const wrap = document.getElementById("ogrenciTableWrap");
   wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Öğrenciler yükleniyor...</p></div>';
@@ -12643,6 +12696,10 @@ async function loadOgrenciler() {
     
     // Dönem ayarlarını ayrı sorgu
     await loadAyarlar();
+
+    // ===== FAZ 2a: ÖĞRETMEN SINIF FİLTRESİ =====
+    // Öğretmen sadece atandığı sınıfların öğrencilerini görür
+    ogrenciList = ogrenciListeyiRoleGoreFiltrele(ogrenciList);
     
     renderTable();
     updateStats();
@@ -22579,6 +22636,9 @@ window.openAyarModal = async function(ogrenciId) {
   // Modal sekmeyi her açılışta "Öğrenci" sekmesine resetle
   resetModalTab();
 
+  // Faz 2: Modal sekmelerini role göre göster/gizle
+  try { modalSekmeleriRoleGoreAyarla(); } catch(e) { console.warn(e); }
+
   // Tüm açılır bölümleri kapat (temiz başlangıç)
   document.querySelectorAll(".section-collapsible").forEach(s => s.classList.remove("open"));
 
@@ -22684,6 +22744,11 @@ window.closeAyarModal = function() {
 
 // ============ MODAL SEKME SİSTEMİ ============
 window.switchModalTab = function(tabName) {
+  // Faz 2: Yetkisiz modal sekmesine geçişi engelle (konsol bypass koruması)
+  if (typeof modalSekmesineErisim === "function" && !modalSekmesineErisim(tabName)) {
+    if (typeof showToast === "function") showToast("Bu bilgiye erişim yetkiniz yok", "error");
+    return;
+  }
   document.querySelectorAll(".modal-tab").forEach(t => {
     t.classList.toggle("active", t.dataset.modalTab === tabName);
   });
@@ -22701,6 +22766,33 @@ window.switchModalTab = function(tabName) {
 
 function resetModalTab() {
   switchModalTab("ogrenci");
+}
+
+// ===== FAZ 2b/2c: MODAL SEKMELERİ ROL BAZLI GÖRÜNÜRLÜK =====
+// Her modal sekmesi (data-modal-tab) hangi rollere görünür?
+const MODAL_SEKME_YETKILERI = {
+  ogrenci:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  veli:     ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe"], // Öğretmen GÖREMEZ (iletişim bilgisi)
+  kayit:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  aidat:    ["kurucu_mudur", "mudur", "muhasebe"], // Öğretmen + Eğitim Koord. göremez (mali)
+  gelisim:  ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"], // Muhasebe göremez (eğitim)
+  sozlesme: ["kurucu_mudur", "mudur", "muhasebe"], // Öğretmen + Eğitim Koord. göremez (mali)
+  cikti:    ["kurucu_mudur", "mudur", "muhasebe"]  // Çıktı = sözleşme/mali içerik
+};
+
+function modalSekmesineErisim(sekmeAdi) {
+  if (isAdmin) return true;
+  const izinli = MODAL_SEKME_YETKILERI[sekmeAdi];
+  if (!izinli) return true;
+  return izinli.includes(aktifKullaniciRol);
+}
+
+function modalSekmeleriRoleGoreAyarla() {
+  const sekmeler = document.querySelectorAll(".modal-tab[data-modal-tab]");
+  sekmeler.forEach(s => {
+    const erisim = modalSekmesineErisim(s.dataset.modalTab);
+    s.style.display = erisim ? "" : "none";
+  });
 }
 
 // ============ AÇILIR BÖLÜM SİSTEMİ ============
