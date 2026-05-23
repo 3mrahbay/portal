@@ -6937,6 +6937,140 @@ html, body {
   .veli-student-name { font-size: 18px; }
   .veli-student-avatar { width: 50px; height: 50px; font-size: 18px; }
 }
+
+/* ============ PERSONEL YÖNETİMİ ============ */
+.personel-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.personel-hero-ikon {
+  width: 56px; height: 56px;
+  background: linear-gradient(135deg, #2e5339, #4a7c59);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; flex-shrink: 0;
+}
+.personel-hero-metin { flex: 1; min-width: 200px; }
+.personel-hero-metin h2 { margin: 0; font-size: 19px; color: #15803d; }
+.personel-hero-metin p { margin: 4px 0 0; font-size: 13px; color: #4b5563; line-height: 1.5; }
+.personel-ekle-btn {
+  padding: 11px 18px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: inherit; white-space: nowrap;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.personel-ekle-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+
+.personel-filtre-bar {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; margin-bottom: 16px;
+}
+.personel-durum-sekmeleri { display: flex; gap: 6px; }
+.personel-durum-sekme {
+  padding: 8px 14px; background: #f3f4f6; border: 1.5px solid transparent;
+  border-radius: 99px; font-size: 13px; font-weight: 600; color: #4b5563;
+  cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 7px;
+  transition: all 0.15s;
+}
+.personel-durum-sekme:hover { background: #e5e7eb; }
+.personel-durum-sekme.active { background: #15803d; color: white; }
+.personel-sayac {
+  background: rgba(255,255,255,0.7); color: #1f2937; padding: 1px 7px;
+  border-radius: 99px; font-size: 11px; font-weight: 700;
+}
+.personel-durum-sekme.active .personel-sayac { background: rgba(255,255,255,0.95); color: #15803d; }
+.personel-arama {
+  flex: 1; min-width: 180px; padding: 10px 14px;
+  border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit;
+}
+.personel-arama:focus { outline: none; border-color: #16a34a; }
+
+.personel-liste {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;
+}
+.personel-kart {
+  background: white; border: 1px solid #e5e7eb; border-radius: 14px;
+  padding: 16px; transition: box-shadow 0.15s;
+}
+.personel-kart:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.07); }
+.personel-kart.arsiv { opacity: 0.7; background: #f9fafb; }
+.personel-kart-ust { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.personel-kart-avatar {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  background: linear-gradient(135deg, #2e5339, #4a7c59);
+  color: white; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700;
+}
+.personel-kart-bilgi { flex: 1; min-width: 0; }
+.personel-kart-ad { font-size: 15px; font-weight: 700; color: #1f2937; }
+.personel-kart-email { font-size: 12px; color: #6b7280; word-break: break-all; }
+.personel-kart-rol-rozet {
+  display: inline-block; padding: 3px 10px; border-radius: 99px;
+  font-size: 11px; font-weight: 700; margin-top: 4px;
+}
+.rol-kurucu_mudur { background: #fef3c7; color: #92400e; }
+.rol-mudur { background: #dbeafe; color: #1e40af; }
+.rol-egitim_koordinator { background: #dcfce7; color: #15803d; }
+.rol-muhasebe { background: #fce7f3; color: #9d174d; }
+.rol-ogretmen { background: #e0e7ff; color: #4338ca; }
+.personel-kart-detay { font-size: 12px; color: #4b5563; line-height: 1.7; margin-bottom: 12px; }
+.personel-kart-detay .etiket { color: #9ca3af; }
+.personel-kart-siniflar {
+  display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px;
+}
+.personel-kart-sinif-rozet {
+  background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d;
+  padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+}
+.personel-kart-aksiyon { display: flex; gap: 8px; flex-wrap: wrap; }
+.personel-kart-btn {
+  flex: 1; min-width: 80px; padding: 8px; border-radius: 8px; border: 1.5px solid #e5e7eb;
+  background: white; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: all 0.15s;
+}
+.personel-kart-btn:hover { background: #f9fafb; }
+.personel-kart-btn.duzenle { color: #1e40af; border-color: #bfdbfe; }
+.personel-kart-btn.duzenle:hover { background: #eff6ff; }
+.personel-kart-btn.arsivle { color: #b45309; border-color: #fde68a; }
+.personel-kart-btn.arsivle:hover { background: #fffbeb; }
+.personel-kart-btn.aktiflestir { color: #15803d; border-color: #bbf7d0; }
+.personel-kart-btn.aktiflestir:hover { background: #f0fdf4; }
+.personel-kart-btn.sil { color: #dc2626; border-color: #fecaca; }
+.personel-kart-btn.sil:hover { background: #fef2f2; }
+
+.personel-sinif-chiplar { display: flex; gap: 8px; flex-wrap: wrap; }
+.personel-sinif-chip-sec {
+  padding: 8px 14px; background: #f3f4f6; border: 1.5px solid transparent;
+  border-radius: 99px; font-size: 13px; font-weight: 600; color: #4b5563;
+  cursor: pointer; font-family: inherit; user-select: none; transition: all 0.15s;
+}
+.personel-sinif-chip-sec:hover { background: #e5e7eb; }
+.personel-sinif-chip-sec.secili {
+  background: linear-gradient(135deg, #16a34a, #15803d); color: white; border-color: #15803d;
+}
+.form-ipucu { display: block; font-size: 11px; color: #9ca3af; margin-top: 4px; line-height: 1.5; }
+.personel-form-uyari {
+  background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
+  padding: 10px 14px; border-radius: 9px; font-size: 13px; margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .personel-liste { grid-template-columns: 1fr; }
+  .personel-hero { padding: 16px; }
+  .personel-hero-metin h2 { font-size: 17px; }
+  .personel-ekle-btn { width: 100%; }
+  .personel-filtre-bar { flex-direction: column; align-items: stretch; }
+  .personel-durum-sekmeleri { justify-content: center; }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -7227,7 +7361,10 @@ html, body {
       <div class="user-menu">
         <div class="user-badge">
           <div class="user-avatar" id="userAvatar">E</div>
-          <span id="userName">Emrah</span>
+          <div style="display:flex; flex-direction:column; line-height:1.2;">
+            <span id="userName">Emrah</span>
+            <small id="userRol" style="font-size:10px; color:var(--gray-500); font-weight:600;">Kurucu Müdür</small>
+          </div>
         </div>
         <button class="btn-logout" onclick="signOut()">Çıkış</button>
       </div>
@@ -7282,6 +7419,7 @@ html, body {
       <button class="tab" data-tab="finans">💼 Finansal Yönetim</button>
       <button class="tab" data-tab="egitim">📚 Eğitim</button>
       <button class="tab" data-tab="icerik">🌸 Okul-Aile İçerik Yönetimi</button>
+      <button class="tab" data-tab="personel" id="tab-personel-btn" style="display:none;">🧑‍🏫 Personel Yönetimi</button>
     </div>
 
     <!-- ÖĞRENCILER TAB -->
@@ -8432,6 +8570,100 @@ html, body {
 
     </div>
 
+    <!-- ============ PERSONEL YÖNETİMİ TAB ============ -->
+    <div class="tab-panel" id="tab-personel">
+
+      <!-- HERO -->
+      <div class="personel-hero">
+        <div class="personel-hero-ikon">🧑‍🏫</div>
+        <div class="personel-hero-metin">
+          <h2>Personel Yönetimi</h2>
+          <p>Öğretmen, koordinatör ve idari personeli ekleyin, rollerini ve sınıf atamalarını yönetin.</p>
+        </div>
+        <button class="personel-ekle-btn" onclick="personelFormAc()">+ Personel Ekle</button>
+      </div>
+
+      <!-- FİLTRE + ARAMA -->
+      <div class="personel-filtre-bar">
+        <div class="personel-durum-sekmeleri">
+          <button class="personel-durum-sekme active" data-pdurum="aktif" onclick="personelDurumFiltre('aktif')">
+            ✓ Aktif <span class="personel-sayac" id="personelSayacAktif">0</span>
+          </button>
+          <button class="personel-durum-sekme" data-pdurum="arsiv" onclick="personelDurumFiltre('arsiv')">
+            🗄️ Arşiv <span class="personel-sayac" id="personelSayacArsiv">0</span>
+          </button>
+        </div>
+        <input type="text" id="personelArama" class="personel-arama" placeholder="🔍 İsim veya e-posta ara..." oninput="personelListele()">
+      </div>
+
+      <!-- PERSONEL LİSTESİ -->
+      <div id="personelListe" class="personel-liste">
+        <div style="padding:40px; text-align:center; color:#9ca3af;">Yükleniyor...</div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ PERSONEL EKLE/DÜZENLE MODAL ============ -->
+<div class="modal-overlay" id="personelModal" onclick="if(event.target.id==='personelModal') personelFormKapat()">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom:1px solid #bbf7d0;">
+      <h3 id="personelModalBaslik" style="color:#15803d;">🧑‍🏫 Personel Ekle</h3>
+      <button class="close-btn" onclick="personelFormKapat()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="personelDuzenleEmail" value="">
+
+      <div class="form-group">
+        <label>Ad Soyad <span style="color:#dc2626;">*</span></label>
+        <input type="text" id="personelAdSoyad" placeholder="Örn: Ayşe Yılmaz">
+      </div>
+
+      <div class="form-group">
+        <label>E-posta (Gmail) <span style="color:#dc2626;">*</span></label>
+        <input type="email" id="personelEmail" placeholder="ornek@gmail.com">
+        <small class="form-ipucu">⚠️ Personel bu Gmail hesabıyla giriş yapacak. Doğru yazıldığından emin olun.</small>
+      </div>
+
+      <div class="form-group">
+        <label>Rol <span style="color:#dc2626;">*</span></label>
+        <select id="personelRol" onchange="personelRolDegisti()">
+          <option value="">— Rol seçin —</option>
+          <option value="mudur">Müdür (tüm yetki)</option>
+          <option value="egitim_koordinator">Eğitim Koordinatörü (tüm sınıflar, eğitim)</option>
+          <option value="muhasebe">Muhasebe (mali işler)</option>
+          <option value="ogretmen">Öğretmen / Branş (atanan sınıflar)</option>
+          <option value="kurucu_mudur">Kurucu Müdür (tüm yetki)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Ünvan (görüntü için, opsiyonel)</label>
+        <input type="text" id="personelUnvan" placeholder="Örn: Branş Öğretmeni - İngilizce">
+      </div>
+
+      <div class="form-group">
+        <label>Telefon (opsiyonel)</label>
+        <input type="tel" id="personelTelefon" placeholder="0532 xxx xx xx">
+      </div>
+
+      <!-- SINIF ATAMA (sadece öğretmen için görünür) -->
+      <div class="form-group" id="personelSinifAtamaGrup" style="display:none;">
+        <label>Atanan Sınıflar <span style="color:#dc2626;">*</span></label>
+        <small class="form-ipucu" style="display:block; margin-bottom:8px;">Öğretmen sadece seçili sınıfların öğrencilerine erişebilir. Birden fazla seçebilirsiniz.</small>
+        <div id="personelSinifChiplar" class="personel-sinif-chiplar">
+          <!-- Sınıf checkbox'ları JS ile gelir -->
+        </div>
+      </div>
+
+      <div id="personelFormUyari" class="personel-form-uyari" style="display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="personelFormKapat()">İptal</button>
+      <button class="btn-primary" id="personelKaydetBtn" onclick="personelKaydet()">💾 Kaydet</button>
+    </div>
   </div>
 </div>
 
@@ -10344,6 +10576,21 @@ function portalMailSablon(baslik, icerik, altMesaj) {
 // Global state
 let currentUser = null;
 let isAdmin = false;
+// ===== FAZ 1a: ROL SİSTEMİ =====
+let aktifPersonel = null;        // personeller/{email} dokümanı (null = personel değil, yani veli)
+let aktifKullaniciRol = null;    // "kurucu_mudur" | "mudur" | "egitim_koordinator" | "muhasebe" | "ogretmen" | null(veli)
+let aktifKullaniciSiniflari = []; // Öğretmenin atandığı sınıflar (sinifAtamalari'ndan)
+const ROL_ETIKETLERI = {
+  kurucu_mudur: "Kurucu Müdür",
+  mudur: "Müdür",
+  egitim_koordinator: "Eğitim Koordinatörü",
+  muhasebe: "Muhasebe",
+  ogretmen: "Öğretmen"
+};
+// Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
+const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator"];
+// Yönetim rolleri (her şeye erişir)
+const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
 let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
 let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
 let filteredList = [];     // Filtrelenmiş liste (tablo için)
@@ -10352,6 +10599,456 @@ let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
 let currentOgrenci = null; // Modalda açık olan öğrenci
 
 // ============ AUTH ============
+// ===== FAZ 1a: Bu e-posta sistemde kayıtlı bir PERSONEL mi? =====
+// Döner: personel dokümanı (varsa) veya null
+async function personelGetir(email) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return null;
+  try {
+    const snap = await getDoc(doc(db, "personeller", lower));
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    }
+  } catch (e) {
+    console.warn("personelGetir hatası:", e);
+  }
+  return null;
+}
+
+// Bir öğretmenin atandığı sınıfları getir (sinifAtamalari koleksiyonu)
+async function personelSiniflariGetir(email) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return [];
+  try {
+    const q = query(collection(db, "sinifAtamalari"), where("email", "==", lower));
+    const snap = await getDocs(q);
+    const siniflar = [];
+    snap.forEach(d => {
+      const s = d.data().sinif;
+      if (s && !siniflar.includes(s)) siniflar.push(s);
+    });
+    return siniflar;
+  } catch (e) {
+    console.warn("personelSiniflariGetir hatası:", e);
+    return [];
+  }
+}
+
+// ============================================================
+// ===== FAZ 1b: PERSONEL YÖNETİMİ (CRUD) =====
+// ============================================================
+let personelListesi = [];          // Tüm personeller (Firestore'dan)
+let personelAtamaHaritasi = {};    // { email: [sinif1, sinif2] } — sınıf atamaları
+let personelAktifDurumFiltre = "aktif"; // "aktif" | "arsiv"
+let personelSeciliSiniflar = [];   // Modal'da seçili sınıflar
+
+// Sadece yönetim rolleri personel yönetebilir
+function personelYonetebilirMi() {
+  return isAdmin || YONETIM_ROLLERI.includes(aktifKullaniciRol);
+}
+
+// Personel sekmesinin görünürlüğünü ayarla
+function personelSekmeGorunurluk() {
+  const btn = document.getElementById("tab-personel-btn");
+  if (!btn) return;
+  btn.style.display = personelYonetebilirMi() ? "" : "none";
+}
+
+// Tüm öğrencilerin sınıflarından benzersiz sınıf listesi çıkar
+function tumSiniflariGetir() {
+  const set = new Set();
+  for (const o of (ogrenciList || [])) {
+    const ayar = ayarListesi[o.id];
+    const sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "";
+    if (sinif && sinif.trim()) set.add(sinif.trim());
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, "tr"));
+}
+
+// Firestore'dan tüm personelleri ve sınıf atamalarını yükle
+async function loadPersoneller() {
+  if (!personelYonetebilirMi()) return;
+  const liste = document.getElementById("personelListe");
+  try {
+    // Personeller
+    const snap = await getDocs(collection(db, "personeller"));
+    personelListesi = [];
+    snap.forEach(d => personelListesi.push({ id: d.id, ...d.data() }));
+
+    // Sınıf atamaları (tüm öğretmenler için tek seferde)
+    personelAtamaHaritasi = {};
+    const atamaSnap = await getDocs(collection(db, "sinifAtamalari"));
+    atamaSnap.forEach(d => {
+      const v = d.data();
+      const em = (v.email || "").toLowerCase();
+      if (!em) return;
+      if (!personelAtamaHaritasi[em]) personelAtamaHaritasi[em] = [];
+      if (v.sinif && !personelAtamaHaritasi[em].includes(v.sinif)) {
+        personelAtamaHaritasi[em].push(v.sinif);
+      }
+    });
+
+    personelListele();
+  } catch (e) {
+    console.error("loadPersoneller hatası:", e);
+    if (liste) liste.innerHTML = `<div style="padding:30px; text-align:center; color:#dc2626;">Personel verileri yüklenemedi: ${e.message}</div>`;
+  }
+}
+
+// Aktif/Arşiv filtresi değiştir
+window.personelDurumFiltre = function(durum) {
+  personelAktifDurumFiltre = durum;
+  document.querySelectorAll(".personel-durum-sekme").forEach(s => {
+    s.classList.toggle("active", s.dataset.pdurum === durum);
+  });
+  personelListele();
+};
+
+// Personel kartlarını render et (filtre + arama uygulanmış)
+function personelListele() {
+  const liste = document.getElementById("personelListe");
+  if (!liste) return;
+
+  const arama = (document.getElementById("personelArama")?.value || "").toLowerCase().trim();
+
+  // Sayaçları güncelle
+  const aktifSayi = personelListesi.filter(p => (p.durum || "aktif") === "aktif").length;
+  const arsivSayi = personelListesi.filter(p => p.durum === "arsiv").length;
+  const sa = document.getElementById("personelSayacAktif");
+  const sr = document.getElementById("personelSayacArsiv");
+  if (sa) sa.textContent = aktifSayi;
+  if (sr) sr.textContent = arsivSayi;
+
+  // Filtrele
+  let filtreli = personelListesi.filter(p => {
+    const durum = p.durum || "aktif";
+    if (durum !== personelAktifDurumFiltre) return false;
+    if (arama) {
+      const ad = (p.adSoyad || "").toLowerCase();
+      const em = (p.email || p.id || "").toLowerCase();
+      if (!ad.includes(arama) && !em.includes(arama)) return false;
+    }
+    return true;
+  });
+
+  // Sırala: önce role göre, sonra ada göre
+  const rolSira = { kurucu_mudur: 0, mudur: 1, egitim_koordinator: 2, muhasebe: 3, ogretmen: 4 };
+  filtreli.sort((a, b) => {
+    const ra = rolSira[a.rol] ?? 9;
+    const rb = rolSira[b.rol] ?? 9;
+    if (ra !== rb) return ra - rb;
+    return (a.adSoyad || "").localeCompare(b.adSoyad || "", "tr");
+  });
+
+  if (filtreli.length === 0) {
+    liste.innerHTML = `
+      <div style="grid-column:1/-1; padding:40px 20px; text-align:center; color:#9ca3af;">
+        <div style="font-size:42px; margin-bottom:10px;">${personelAktifDurumFiltre === "arsiv" ? "🗄️" : "🧑‍🏫"}</div>
+        <div style="font-size:14px; color:#6b7280;">
+          ${personelAktifDurumFiltre === "arsiv" ? "Arşivde personel yok." : (arama ? "Arama sonucu bulunamadı." : "Henüz personel eklenmemiş. + Personel Ekle ile başlayın.")}
+        </div>
+      </div>`;
+    return;
+  }
+
+  liste.innerHTML = filtreli.map(p => {
+    const email = p.email || p.id;
+    const ad = p.adSoyad || email;
+    const initial = ad.charAt(0).toUpperCase();
+    const rol = p.rol || "ogretmen";
+    const rolEtiket = ROL_ETIKETLERI[rol] || rol;
+    const arsivMi = (p.durum === "arsiv");
+    const emailEsc = email.replace(/'/g, "\\'");
+
+    // Sınıf atamaları (öğretmen ise)
+    let sinifHtml = "";
+    if (rol === "ogretmen") {
+      const siniflar = personelAtamaHaritasi[email.toLowerCase()] || [];
+      if (siniflar.length > 0) {
+        sinifHtml = `
+          <div class="personel-kart-siniflar">
+            ${siniflar.map(s => `<span class="personel-kart-sinif-rozet">${escapeHtmlGelisim(s)}</span>`).join("")}
+          </div>`;
+      } else {
+        sinifHtml = `<div style="font-size:11px; color:#dc2626; margin-top:4px;">⚠️ Sınıf atanmamış</div>`;
+      }
+    } else if (TUM_SINIF_ROLLERI.includes(rol)) {
+      sinifHtml = `<div style="font-size:11px; color:#15803d; margin-top:4px;">🏫 Tüm sınıflar</div>`;
+    }
+
+    // Aksiyon butonları
+    let aksiyonlar = "";
+    if (arsivMi) {
+      aksiyonlar = `
+        <button class="personel-kart-btn aktiflestir" onclick="personelAktiflestir('${emailEsc}')">↩️ Aktifleştir</button>
+        ${isAdmin ? `<button class="personel-kart-btn sil" onclick="personelSil('${emailEsc}')">🗑️ Sil</button>` : ""}`;
+    } else {
+      // Kurucu müdür kendini arşivleyemez
+      const kendisiMi = email.toLowerCase() === (currentUser?.email || "").toLowerCase();
+      aksiyonlar = `
+        <button class="personel-kart-btn duzenle" onclick="personelDuzenle('${emailEsc}')">✏️ Düzenle</button>
+        ${kendisiMi ? "" : `<button class="personel-kart-btn arsivle" onclick="personelArsivle('${emailEsc}')">🗄️ Arşivle</button>`}`;
+    }
+
+    return `
+      <div class="personel-kart ${arsivMi ? 'arsiv' : ''}">
+        <div class="personel-kart-ust">
+          <div class="personel-kart-avatar">${initial}</div>
+          <div class="personel-kart-bilgi">
+            <div class="personel-kart-ad">${escapeHtmlGelisim(ad)}</div>
+            <div class="personel-kart-email">${escapeHtmlGelisim(email)}</div>
+            <span class="personel-kart-rol-rozet rol-${rol}">${escapeHtmlGelisim(rolEtiket)}</span>
+          </div>
+        </div>
+        <div class="personel-kart-detay">
+          ${p.unvan ? `<div><span class="etiket">Ünvan:</span> ${escapeHtmlGelisim(p.unvan)}</div>` : ""}
+          ${p.telefon ? `<div><span class="etiket">Telefon:</span> ${escapeHtmlGelisim(p.telefon)}</div>` : ""}
+          ${sinifHtml}
+        </div>
+        <div class="personel-kart-aksiyon">${aksiyonlar}</div>
+      </div>`;
+  }).join("");
+}
+
+// Modal: yeni personel ekleme formunu aç
+window.personelFormAc = function() {
+  document.getElementById("personelModalBaslik").innerHTML = "🧑‍🏫 Personel Ekle";
+  document.getElementById("personelDuzenleEmail").value = "";
+  document.getElementById("personelAdSoyad").value = "";
+  document.getElementById("personelEmail").value = "";
+  document.getElementById("personelEmail").disabled = false;
+  document.getElementById("personelRol").value = "";
+  document.getElementById("personelUnvan").value = "";
+  document.getElementById("personelTelefon").value = "";
+  personelSeciliSiniflar = [];
+  document.getElementById("personelFormUyari").style.display = "none";
+  personelRolDegisti();
+  document.getElementById("personelModal").classList.add("active");
+};
+
+// Modal kapat
+window.personelFormKapat = function() {
+  document.getElementById("personelModal").classList.remove("active");
+};
+
+// Mevcut personeli düzenle
+window.personelDuzenle = function(email) {
+  const p = personelListesi.find(x => (x.email || x.id).toLowerCase() === email.toLowerCase());
+  if (!p) { showToast("Personel bulunamadı", "error"); return; }
+
+  document.getElementById("personelModalBaslik").innerHTML = "✏️ Personel Düzenle";
+  document.getElementById("personelDuzenleEmail").value = email;
+  document.getElementById("personelAdSoyad").value = p.adSoyad || "";
+  document.getElementById("personelEmail").value = p.email || p.id;
+  document.getElementById("personelEmail").disabled = true; // E-posta değiştirilemez (doküman ID)
+  document.getElementById("personelRol").value = p.rol || "";
+  document.getElementById("personelUnvan").value = p.unvan || "";
+  document.getElementById("personelTelefon").value = p.telefon || "";
+  personelSeciliSiniflar = [...(personelAtamaHaritasi[email.toLowerCase()] || [])];
+  document.getElementById("personelFormUyari").style.display = "none";
+  personelRolDegisti();
+  document.getElementById("personelModal").classList.add("active");
+};
+
+// Rol değişince sınıf atama alanını göster/gizle
+window.personelRolDegisti = function() {
+  const rol = document.getElementById("personelRol").value;
+  const grup = document.getElementById("personelSinifAtamaGrup");
+  if (rol === "ogretmen") {
+    grup.style.display = "";
+    personelSinifChiplariDoldur();
+  } else {
+    grup.style.display = "none";
+  }
+};
+
+// Sınıf seçim chip'lerini doldur
+function personelSinifChiplariDoldur() {
+  const kapsayici = document.getElementById("personelSinifChiplar");
+  if (!kapsayici) return;
+  const siniflar = tumSiniflariGetir();
+  if (siniflar.length === 0) {
+    kapsayici.innerHTML = `<div style="font-size:12px; color:#9ca3af;">Henüz sınıf tanımlı değil. Öğrencilere sınıf atandıkça burada görünecek.</div>`;
+    return;
+  }
+  kapsayici.innerHTML = siniflar.map(s => {
+    const secili = personelSeciliSiniflar.includes(s);
+    const sEsc = s.replace(/'/g, "\\'");
+    return `<div class="personel-sinif-chip-sec ${secili ? 'secili' : ''}" data-sinif="${escapeHtmlGelisim(s)}" onclick="personelSinifSec('${sEsc}')">${escapeHtmlGelisim(s)}</div>`;
+  }).join("");
+}
+
+// Sınıf chip'i seç/kaldır
+window.personelSinifSec = function(sinif) {
+  const idx = personelSeciliSiniflar.indexOf(sinif);
+  if (idx >= 0) personelSeciliSiniflar.splice(idx, 1);
+  else personelSeciliSiniflar.push(sinif);
+  personelSinifChiplariDoldur();
+};
+
+// Personeli kaydet (ekle veya güncelle)
+window.personelKaydet = async function() {
+  const uyari = document.getElementById("personelFormUyari");
+  const btn = document.getElementById("personelKaydetBtn");
+
+  const duzenleEmail = document.getElementById("personelDuzenleEmail").value.trim();
+  const adSoyad = document.getElementById("personelAdSoyad").value.trim();
+  const emailRaw = document.getElementById("personelEmail").value.trim().toLowerCase();
+  const rol = document.getElementById("personelRol").value;
+  const unvan = document.getElementById("personelUnvan").value.trim();
+  const telefon = document.getElementById("personelTelefon").value.trim();
+
+  // Doğrulama
+  function uyariGoster(mesaj) {
+    uyari.textContent = mesaj;
+    uyari.style.display = "block";
+  }
+  uyari.style.display = "none";
+
+  if (!adSoyad) return uyariGoster("Ad Soyad zorunludur.");
+  if (!emailRaw) return uyariGoster("E-posta zorunludur.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) return uyariGoster("Geçerli bir e-posta girin.");
+  if (!rol) return uyariGoster("Rol seçmelisiniz.");
+  if (rol === "ogretmen" && personelSeciliSiniflar.length === 0) {
+    return uyariGoster("Öğretmen için en az bir sınıf seçmelisiniz.");
+  }
+
+  // Yeni eklemede e-posta çakışması kontrolü
+  if (!duzenleEmail) {
+    const mevcut = personelListesi.find(p => (p.email || p.id).toLowerCase() === emailRaw);
+    if (mevcut) return uyariGoster("Bu e-posta zaten kayıtlı. Düzenlemek için kartından 'Düzenle'yi kullanın.");
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Kaydediliyor...";
+
+  try {
+    const email = duzenleEmail || emailRaw;
+
+    // Mevcut dokümanı koru (eklendi tarihi vb.)
+    const mevcutP = personelListesi.find(p => (p.email || p.id).toLowerCase() === email.toLowerCase());
+
+    const veri = {
+      email: email,
+      adSoyad: adSoyad,
+      rol: rol,
+      durum: mevcutP?.durum || "aktif",
+      unvan: unvan,
+      telefon: telefon,
+      guncelleyen: currentUser?.email || "",
+      guncellemeTarihi: serverTimestamp()
+    };
+    if (!mevcutP) {
+      veri.ekleyen = currentUser?.email || "";
+      veri.eklemeTarihi = serverTimestamp();
+    } else {
+      // Mevcut eklenme bilgisini koru
+      if (mevcutP.ekleyen) veri.ekleyen = mevcutP.ekleyen;
+      if (mevcutP.eklemeTarihi) veri.eklemeTarihi = mevcutP.eklemeTarihi;
+    }
+
+    await setDoc(doc(db, "personeller", email), veri, { merge: true });
+
+    // Sınıf atamalarını güncelle (öğretmen için)
+    // Önce bu personelin eski atamalarını sil, sonra yenilerini yaz
+    const eskiAtamaQ = query(collection(db, "sinifAtamalari"), where("email", "==", email));
+    const eskiSnap = await getDocs(eskiAtamaQ);
+    const batch = writeBatch(db);
+    eskiSnap.forEach(d => batch.delete(d.ref));
+
+    if (rol === "ogretmen") {
+      for (const sinif of personelSeciliSiniflar) {
+        // Deterministik ID: email__sinif (Rules'daki ogretmenSinifaAtanmis ile uyumlu)
+        const atamaId = `${email}__${sinif}`;
+        const atamaRef = doc(db, "sinifAtamalari", atamaId);
+        batch.set(atamaRef, {
+          email: email,
+          sinif: sinif,
+          rol: "ogretmen",
+          atayan: currentUser?.email || "",
+          atamaTarihi: serverTimestamp()
+        });
+      }
+    }
+    await batch.commit();
+
+    showToast(duzenleEmail ? "✓ Personel güncellendi" : "✓ Personel eklendi");
+    personelFormKapat();
+    await loadPersoneller();
+
+  } catch (e) {
+    console.error("personelKaydet hatası:", e);
+    uyariGoster("Kaydedilemedi: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "💾 Kaydet";
+  }
+};
+
+// Personeli arşivle
+window.personelArsivle = async function(email) {
+  const p = personelListesi.find(x => (x.email || x.id).toLowerCase() === email.toLowerCase());
+  if (!p) return;
+  if (!confirm(`${p.adSoyad || email} arşivlenecek. Bu kişi artık sisteme giriş yapamayacak. Onaylıyor musunuz?`)) return;
+  try {
+    await updateDoc(doc(db, "personeller", email), {
+      durum: "arsiv",
+      arsivlendi: serverTimestamp(),
+      arsivleyen: currentUser?.email || ""
+    });
+    showToast("🗄️ Personel arşivlendi");
+    await loadPersoneller();
+  } catch (e) {
+    console.error("personelArsivle hatası:", e);
+    showToast("Arşivlenemedi: " + e.message, "error");
+  }
+};
+
+// Personeli aktifleştir (arşivden çıkar)
+window.personelAktiflestir = async function(email) {
+  const p = personelListesi.find(x => (x.email || x.id).toLowerCase() === email.toLowerCase());
+  if (!p) return;
+  if (!confirm(`${p.adSoyad || email} yeniden aktifleştirilecek. Onaylıyor musunuz?`)) return;
+  try {
+    await updateDoc(doc(db, "personeller", email), {
+      durum: "aktif",
+      aktiflestirildi: serverTimestamp(),
+      aktiflestiren: currentUser?.email || ""
+    });
+    showToast("✓ Personel aktifleştirildi");
+    await loadPersoneller();
+  } catch (e) {
+    console.error("personelAktiflestir hatası:", e);
+    showToast("Aktifleştirilemedi: " + e.message, "error");
+  }
+};
+
+// Personeli kalıcı sil (sadece Kurucu Müdür, arşivden)
+window.personelSil = async function(email) {
+  if (!isAdmin) { showToast("Sadece Kurucu Müdür silebilir", "error"); return; }
+  const p = personelListesi.find(x => (x.email || x.id).toLowerCase() === email.toLowerCase());
+  if (!p) return;
+  const onay = prompt(`⚠️ DİKKAT: ${p.adSoyad || email} kalıcı olarak silinecek (geri alınamaz).\n\nOnaylamak için personelin e-postasını yazın:`);
+  if (!onay || onay.trim().toLowerCase() !== email.toLowerCase()) {
+    showToast("Silme iptal edildi (e-posta eşleşmedi)", "warn");
+    return;
+  }
+  try {
+    // Önce sınıf atamalarını sil
+    const atamaQ = query(collection(db, "sinifAtamalari"), where("email", "==", email));
+    const atamaSnap = await getDocs(atamaQ);
+    const batch = writeBatch(db);
+    atamaSnap.forEach(d => batch.delete(d.ref));
+    batch.delete(doc(db, "personeller", email));
+    await batch.commit();
+    showToast("🗑️ Personel silindi");
+    await loadPersoneller();
+  } catch (e) {
+    console.error("personelSil hatası:", e);
+    showToast("Silinemedi: " + e.message, "error");
+  }
+};
+
 // Bu e-posta sistemde onaylı bir veli mi? (Whitelist kontrolü)
 async function isEmailWhitelisted(email) {
   const lower = (email || "").trim().toLowerCase();
@@ -10376,21 +11073,38 @@ window.signInWithGoogle = async function() {
     const user = result.user;
     const email = (user.email || "").toLowerCase();
 
-    // Admin ise direkt kabul
+    // ===== FAZ 1a: ROL-FARKINDALIKLI GİRİŞ AKIŞI =====
+    // KONTROL 1: Admin (kalıcı güvenlik ağı) — her zaman kabul
     if (email === ADMIN_EMAIL.toLowerCase()) {
       showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
       return;
     }
 
-    // Veli ise whitelist kontrolü
-    const izinli = await isEmailWhitelisted(email);
-    if (!izinli) {
-      await fbSignOut(auth);
-      showToast(`Bu e-posta sistemimizde kayıtlı değil. Okul yönetimiyle iletişime geçin.`, "error");
+    // KONTROL 2: Sistemde PERSONEL mi?
+    const personel = await personelGetir(email);
+    if (personel) {
+      // KONTROL 2a: Personel arşivde mi?
+      if (personel.durum === "arsiv") {
+        await fbSignOut(auth);
+        showToast(`Hesabınız arşivlenmiş. Okul yönetimiyle iletişime geçin.`, "error");
+        return;
+      }
+      // Aktif personel — kabul (rolüne göre yönlendirme onAuthStateChanged'de)
+      showToast(`Hoş geldiniz, ${personel.adSoyad || user.displayName || user.email}!`);
       return;
     }
 
-    showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
+    // KONTROL 3: Sistemde onaylı VELİ mi?
+    const izinli = await isEmailWhitelisted(email);
+    if (izinli) {
+      showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
+      return;
+    }
+
+    // KONTROL 4: Hiçbiri değil — reddet (generic mesaj, hint verme)
+    await fbSignOut(auth);
+    showToast(`Bu e-posta sistemimizde kayıtlı değil. Okul yönetimiyle iletişime geçin.`, "error");
+
   } catch (e) {
     console.error(e);
     showToast("Giriş yapılamadı: " + e.message, "error");
@@ -10406,24 +11120,62 @@ window.signOut = async function() {
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    isAdmin = user.email === ADMIN_EMAIL;
+    const email = (user.email || "").toLowerCase();
 
+    // ===== FAZ 1a: Rol bilgisini belirle =====
+    isAdmin = email === ADMIN_EMAIL.toLowerCase();
+    aktifPersonel = null;
+    aktifKullaniciRol = null;
+    aktifKullaniciSiniflari = [];
+
+    // Personel kaydını getir (admin de personeller'de kayıtlı olabilir)
+    const personel = await personelGetir(email);
+
+    // Admin ise: personel kaydı varsa onu kullan, yoksa kurucu_mudur say (güvenlik ağı)
     if (isAdmin) {
-      // Admin Dashboard
+      aktifPersonel = personel || { email, adSoyad: user.displayName || "Kurucu Müdür", rol: "kurucu_mudur", durum: "aktif" };
+      aktifKullaniciRol = aktifPersonel.rol || "kurucu_mudur";
+    } else if (personel && personel.durum === "aktif") {
+      // Aktif personel
+      aktifPersonel = personel;
+      aktifKullaniciRol = personel.rol;
+      // Öğretmen ise atandığı sınıfları yükle (tüm-sınıf rolleri için gerekmez)
+      if (!TUM_SINIF_ROLLERI.includes(aktifKullaniciRol)) {
+        aktifKullaniciSiniflari = await personelSiniflariGetir(email);
+      }
+    }
+
+    // ===== PERSONEL veya ADMIN → Dashboard =====
+    const personelMi = isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif");
+
+    if (personelMi) {
+      // Personel/Admin Dashboard
       document.getElementById("landing").style.display = "none";
       document.getElementById("loginModal").classList.remove("active");
       document.getElementById("veliPanel").classList.remove("active");
       document.getElementById("dashboard").classList.add("active");
 
       // Kullanıcı bilgisi
-      const initial = (user.displayName || user.email).charAt(0).toUpperCase();
+      const gosterilenAd = aktifPersonel.adSoyad || user.displayName || user.email;
+      const initial = gosterilenAd.charAt(0).toUpperCase();
       document.getElementById("userAvatar").textContent = initial;
-      document.getElementById("userName").textContent = user.displayName || "Admin";
+      document.getElementById("userName").textContent = gosterilenAd;
 
-      // Admin ise hash'i temizle (URL'de #veli varsa)
+      // Rol etiketini göster (varsa userRol elementine)
+      const rolEl = document.getElementById("userRol");
+      if (rolEl) {
+        rolEl.textContent = ROL_ETIKETLERI[aktifKullaniciRol] || "Personel";
+      }
+
+      // Hash temizle
       if (window.location.hash === "#veli") {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
+
+      console.log(`[Giriş] ${gosterilenAd} · Rol: ${aktifKullaniciRol} · Sınıflar: ${aktifKullaniciSiniflari.length ? aktifKullaniciSiniflari.join(", ") : "(tümü/atama yok)"}`);
+
+      // Personel sekmesi sadece yönetim rollerine görünür
+      try { personelSekmeGorunurluk(); } catch(e) { console.warn(e); }
 
       // Verileri yükle
       try {
@@ -10448,7 +11200,7 @@ onAuthStateChanged(auth, async (user) => {
         console.warn("Talep kontrolü hatası:", e);
       }
     } else {
-      // Veli Panel
+      // ===== VELİ Panel =====
       document.getElementById("landing").style.display = "none";
       document.getElementById("loginModal").classList.remove("active");
       document.getElementById("dashboard").classList.remove("active");
@@ -10471,6 +11223,9 @@ onAuthStateChanged(auth, async (user) => {
   } else {
     currentUser = null;
     isAdmin = false;
+    aktifPersonel = null;
+    aktifKullaniciRol = null;
+    aktifKullaniciSiniflari = [];
     document.getElementById("landing").style.display = "block";
     document.getElementById("dashboard").classList.remove("active");
     document.getElementById("veliPanel").classList.remove("active");
@@ -21685,6 +22440,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Onay Bekleyenler sekmesine geçildiyse yükle
     if (tab.dataset.tab === "onay") {
       setTimeout(() => loadOnayBekleyenler(), 50);
+    }
+
+    // Personel Yönetimi sekmesine geçildiyse yükle
+    if (tab.dataset.tab === "personel") {
+      setTimeout(() => loadPersoneller(), 50);
     }
 
     // Son Ödemeler sekmesine geçildiyse yükle (geriye uyumluluk)
