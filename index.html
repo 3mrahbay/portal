@@ -7071,6 +7071,153 @@ html, body {
   .personel-filtre-bar { flex-direction: column; align-items: stretch; }
   .personel-durum-sekmeleri { justify-content: center; }
 }
+
+/* ============ MESAJLAŞMA ============ */
+.mesaj-konteyner {
+  display: flex;
+  gap: 0;
+  height: 600px;
+  max-height: 75vh;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  background: white;
+}
+.mesaj-liste-panel {
+  width: 320px;
+  flex-shrink: 0;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+.mesaj-liste-baslik {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; font-weight: 700; font-size: 16px; color: #1f2937;
+  border-bottom: 1px solid #e5e7eb; background: white;
+}
+.mesaj-yeni-btn {
+  padding: 6px 12px; background: linear-gradient(135deg,#ec4899,#db2777);
+  color: white; border: none; border-radius: 8px; font-size: 13px;
+  font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.mesaj-yeni-btn:hover { opacity: 0.9; }
+.mesaj-liste-ara { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; background: white; }
+.mesaj-liste-ara input {
+  width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb;
+  border-radius: 8px; font-size: 13px; font-family: inherit;
+}
+.mesaj-thread-listesi { flex: 1; overflow-y: auto; }
+.mesaj-thread-item {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background 0.12s;
+}
+.mesaj-thread-item:hover { background: #f3f4f6; }
+.mesaj-thread-item.aktif { background: #fce7f3; }
+.mesaj-thread-avatar {
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg,#2e5339,#4a7c59); color: white;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;
+}
+.mesaj-thread-bilgi { flex: 1; min-width: 0; }
+.mesaj-thread-ust { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mesaj-thread-ad { font-weight: 600; font-size: 14px; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mesaj-thread-tarih { font-size: 11px; color: #9ca3af; flex-shrink: 0; }
+.mesaj-thread-son { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.mesaj-thread-alt { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mesaj-okunmamis-rozet {
+  background: #ec4899; color: white; font-size: 11px; font-weight: 700;
+  min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.mesaj-thread-ogrenci { font-size: 11px; color: #9333ea; margin-top: 1px; }
+
+.mesaj-sohbet-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.mesaj-sohbet-bos {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #9ca3af; text-align: center; padding: 20px;
+}
+.mesaj-sohbet-bos h3 { margin: 12px 0 4px; color: #6b7280; }
+.mesaj-sohbet-bos p { font-size: 13px; margin: 0; }
+.mesaj-sohbet-aktif { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.mesaj-sohbet-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb; background: white;
+}
+.mesaj-geri-btn {
+  display: none; background: none; border: none; font-size: 22px;
+  cursor: pointer; color: #6b7280; padding: 0 4px;
+}
+.mesaj-sohbet-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg,#2e5339,#4a7c59); color: white;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+.mesaj-sohbet-ad { font-weight: 700; font-size: 15px; color: #1f2937; }
+.mesaj-sohbet-alt { font-size: 12px; color: #9333ea; }
+.mesaj-sohbet-govde {
+  flex: 1; overflow-y: auto; padding: 16px; display: flex;
+  flex-direction: column; gap: 8px; background: #f9fafb;
+}
+.mesaj-balon {
+  max-width: 75%; padding: 9px 13px; border-radius: 14px; font-size: 14px;
+  line-height: 1.4; word-wrap: break-word; position: relative;
+}
+.mesaj-balon-meta { font-size: 10px; opacity: 0.7; margin-top: 3px; text-align: right; }
+.mesaj-balon.giden {
+  align-self: flex-end; background: linear-gradient(135deg,#2e5339,#4a7c59); color: white;
+  border-bottom-right-radius: 4px;
+}
+.mesaj-balon.gelen {
+  align-self: flex-start; background: white; color: #1f2937;
+  border: 1px solid #e5e7eb; border-bottom-left-radius: 4px;
+}
+.mesaj-balon.cc-gozetim {
+  align-self: center; background: #fef9c3; color: #78350f; font-size: 12px;
+  max-width: 90%; border: 1px solid #fde68a; text-align: center;
+}
+.mesaj-gonderen-etiket { font-size: 11px; font-weight: 700; margin-bottom: 2px; opacity: 0.85; }
+.mesaj-sohbet-giris {
+  display: flex; gap: 8px; padding: 12px; border-top: 1px solid #e5e7eb; background: white;
+  align-items: flex-end;
+}
+.mesaj-sohbet-giris textarea {
+  flex: 1; border: 1px solid #d1d5db; border-radius: 20px; padding: 9px 14px;
+  font-size: 14px; font-family: inherit; resize: none; max-height: 100px; line-height: 1.4;
+}
+.mesaj-sohbet-giris textarea:focus { outline: none; border-color: #2e5339; }
+.mesaj-gonder-btn {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg,#2e5339,#4a7c59); color: white; border: none;
+  font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.mesaj-gonder-btn:hover { opacity: 0.9; }
+.mesaj-gonder-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.mesaj-yeni-ogrenci-listesi { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.mesaj-yeni-ogrenci-kart {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border: 1px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.12s;
+}
+.mesaj-yeni-ogrenci-kart:hover { background: #fdf2f8; border-color: #f9a8d4; }
+.mesaj-yeni-ogrenci-kart .ad { font-weight: 600; font-size: 14px; color: #1f2937; }
+.mesaj-yeni-ogrenci-kart .alt { font-size: 12px; color: #6b7280; }
+.mesaj-yeni-veli-secim { padding: 4px 0; }
+.mesaj-yeni-veli-btn {
+  display: block; width: 100%; text-align: left; padding: 10px 12px; margin-top: 6px;
+  border: 1px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer;
+  font-family: inherit; font-size: 13px; transition: all 0.12s;
+}
+.mesaj-yeni-veli-btn:hover { background: #fdf2f8; border-color: #f9a8d4; }
+
+/* Mobil: liste/sohbet geçişli görünüm */
+@media (max-width: 768px) {
+  .mesaj-konteyner { height: 70vh; max-height: none; }
+  .mesaj-liste-panel { width: 100%; }
+  .mesaj-konteyner.sohbet-acik .mesaj-liste-panel { display: none; }
+  .mesaj-konteyner:not(.sohbet-acik) .mesaj-sohbet-panel { display: none; }
+  .mesaj-geri-btn { display: block; }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -8032,20 +8179,65 @@ html, body {
 
         <!-- MESAJLAŞMA -->
         <div id="icerikAlt-mesajlasma" class="icerik-alt-panel" style="display:none;">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">💬</div>
-            <h3>Mesajlaşma Sistemi</h3>
-            <p>Rol bazlı çift yönlü mesajlaşma.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Veli ↔ Okul Yönetimi</div>
-              <div>✓ Veli ↔ Sınıf Öğretmeni</div>
-              <div>✓ Veli ↔ Eğitim Koordinatörü</div>
-              <div>✓ Veli ↔ Muhasebe</div>
-              <div>✓ Gerçek zamanlı + okundu bilgisi</div>
+          <div class="mesaj-konteyner">
+            <!-- SOL: Sohbet listesi -->
+            <div class="mesaj-liste-panel" id="mesajListePanel">
+              <div class="mesaj-liste-baslik">
+                <span>💬 Mesajlar</span>
+                <button class="mesaj-yeni-btn" onclick="mesajYeniSohbetAc()">+ Yeni</button>
+              </div>
+              <div class="mesaj-liste-ara">
+                <input type="text" id="mesajListeAra" placeholder="🔍 Ara..." oninput="mesajThreadleriListele()">
+              </div>
+              <div id="mesajThreadListesi" class="mesaj-thread-listesi">
+                <div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+              </div>
             </div>
-            <div class="icerik-placeholder-rozet">TUR 11-13'te aktif olacak</div>
-            <div class="icerik-placeholder-not">
-              ⚠️ Kullanıcı rolleri sistemi kurulacak (öğretmen, koordinatör, muhasebe hesapları)
+
+            <!-- SAĞ: Sohbet ekranı -->
+            <div class="mesaj-sohbet-panel" id="mesajSohbetPanel">
+              <div class="mesaj-sohbet-bos" id="mesajSohbetBos">
+                <div style="font-size:48px;">💬</div>
+                <h3>Bir sohbet seçin</h3>
+                <p>Sol taraftan bir sohbete tıklayın veya yeni mesaj başlatın.</p>
+              </div>
+              <div class="mesaj-sohbet-aktif" id="mesajSohbetAktif" style="display:none;">
+                <div class="mesaj-sohbet-header">
+                  <button class="mesaj-geri-btn" onclick="mesajSohbetKapat()">←</button>
+                  <div class="mesaj-sohbet-avatar" id="mesajSohbetAvatar">A</div>
+                  <div class="mesaj-sohbet-baslik">
+                    <div class="mesaj-sohbet-ad" id="mesajSohbetAd">—</div>
+                    <div class="mesaj-sohbet-alt" id="mesajSohbetAlt">—</div>
+                  </div>
+                </div>
+                <div class="mesaj-sohbet-govde" id="mesajSohbetGovde">
+                  <!-- Mesaj balonları -->
+                </div>
+                <div class="mesaj-sohbet-giris">
+                  <textarea id="mesajGirisInput" placeholder="Mesaj yazın..." rows="1" onkeydown="mesajGirisKeydown(event)"></textarea>
+                  <button class="mesaj-gonder-btn" onclick="mesajGonderTikla()">➤</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- YENİ SOHBET MODAL (personel) -->
+        <div class="modal-overlay" id="mesajYeniModal" onclick="if(event.target.id==='mesajYeniModal') mesajYeniSohbetKapat()">
+          <div class="modal" style="max-width:480px;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#fce7f3 0%,#fbcfe8 100%); border-bottom:1px solid #f9a8d4;">
+              <h3 style="color:#9d174d;">💬 Yeni Mesaj</h3>
+              <button class="close-btn" onclick="mesajYeniSohbetKapat()">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>Öğrenci Seçin</label>
+                <small class="form-ipucu" style="display:block; margin-bottom:6px;">Mesaj göndereceğiniz öğrencinin velisini seçmek için önce öğrenciyi seçin.</small>
+                <input type="text" id="mesajYeniOgrenciAra" placeholder="🔍 Öğrenci ara..." oninput="mesajYeniOgrencileriListele()" style="margin-bottom:8px;">
+                <div id="mesajYeniOgrenciListesi" class="mesaj-yeni-ogrenci-listesi">
+                  <!-- Öğrenci kartları -->
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -10447,7 +10639,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, limit, serverTimestamp, writeBatch
+  query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -11093,6 +11285,551 @@ window.personelSil = async function(email) {
     showToast("Silinemedi: " + e.message, "error");
   }
 };
+
+// ============================================================
+// ===== FAZ 3a: MESAJLAŞMA ALTYAPISI =====
+// ============================================================
+let mesajAktifThread = null;       // Açık olan sohbet thread'i
+let mesajThreadListesi = [];       // Kullanıcının tüm thread'leri
+let mesajThreadUnsub = null;       // Thread listesi dinleyici (unsubscribe)
+let mesajMesajUnsub = null;        // Açık sohbet mesaj dinleyicisi (unsubscribe)
+
+// İki e-postadan deterministik thread ID üret (sıra önemsiz, hep aynı sonuç)
+function mesajThreadIdUret(email1, email2) {
+  const e1 = (email1 || "").toLowerCase().trim();
+  const e2 = (email2 || "").toLowerCase().trim();
+  const sirali = [e1, e2].sort();
+  // Firestore doc ID'de geçersiz karakterleri temizle
+  return sirali.join("__").replace(/[^a-z0-9_@.\-]/g, "_");
+}
+
+// Gözetimci e-postalarını getir (Müdür + Kurucu Müdür) — CC için
+async function mesajGozetimcileriGetir() {
+  const gozetimciler = [];
+  try {
+    const snap = await getDocs(collection(db, "personeller"));
+    snap.forEach(d => {
+      const p = d.data();
+      if ((p.durum || "aktif") === "aktif" && YONETIM_ROLLERI.includes(p.rol)) {
+        gozetimciler.push((p.email || d.id).toLowerCase());
+      }
+    });
+  } catch (e) {
+    console.warn("Gözetimci getirme hatası:", e);
+  }
+  // Admin'i her zaman ekle (güvenlik ağı)
+  const adminLower = ADMIN_EMAIL.toLowerCase();
+  if (!gozetimciler.includes(adminLower)) gozetimciler.push(adminLower);
+  return gozetimciler;
+}
+
+// Bir thread'i getir veya yoksa oluştur
+// taraflar: { personel: {email, ad, rol}, veli: {email, ad}, ogrenci: {id, ad, sinif} }
+async function mesajThreadGetirVeyaOlustur(taraflar) {
+  const { personel, veli, ogrenci } = taraflar;
+  const threadId = mesajThreadIdUret(personel.email, veli.email);
+  const threadRef = doc(db, "mesajlar", threadId);
+
+  const mevcut = await getDoc(threadRef);
+  if (mevcut.exists()) {
+    return { id: threadId, ...mevcut.data() };
+  }
+
+  // Yeni thread oluştur
+  const gozetimciler = await mesajGozetimcileriGetir();
+  const yeniThread = {
+    katilimcilar: [personel.email.toLowerCase(), veli.email.toLowerCase()],
+    katilimciBilgi: {
+      [personel.email.toLowerCase()]: { ad: personel.ad || "", rol: personel.rol || "", tip: "personel" },
+      [veli.email.toLowerCase()]: { ad: veli.ad || "", rol: "veli", tip: "veli" }
+    },
+    ccGozetimciler: gozetimciler,
+    ogrenciId: ogrenci?.id || "",
+    ogrenciAd: ogrenci?.ad || "",
+    ogrenciSinif: ogrenci?.sinif || "",
+    sonMesaj: "",
+    sonMesajTarihi: serverTimestamp(),
+    sonMesajGonderen: "",
+    okunmamis: {
+      [personel.email.toLowerCase()]: 0,
+      [veli.email.toLowerCase()]: 0
+    },
+    olusturuldu: serverTimestamp()
+  };
+  await setDoc(threadRef, yeniThread);
+  return { id: threadId, ...yeniThread };
+}
+
+// Bir thread'e mesaj gönder
+async function mesajGonder(threadId, metin) {
+  const temizMetin = (metin || "").trim();
+  if (!temizMetin) return;
+  if (!currentUser) return;
+
+  const gonderen = currentUser.email.toLowerCase();
+  const threadRef = doc(db, "mesajlar", threadId);
+
+  // Thread bilgisini al (karşı tarafı belirlemek için)
+  const threadSnap = await getDoc(threadRef);
+  if (!threadSnap.exists()) {
+    showToast("Sohbet bulunamadı", "error");
+    return;
+  }
+  const thread = threadSnap.data();
+  const katilimcilar = thread.katilimcilar || [];
+  const karsiTaraf = katilimcilar.find(e => e !== gonderen);
+
+  // Mesajı alt koleksiyona ekle
+  await addDoc(collection(db, "mesajlar", threadId, "messages"), {
+    gonderen: gonderen,
+    metin: temizMetin,
+    tarih: serverTimestamp(),
+    okuyanlar: { [gonderen]: serverTimestamp() }
+  });
+
+  // Thread özetini güncelle (son mesaj + karşı tarafın okunmamış sayacı +1)
+  const guncelleme = {
+    sonMesaj: temizMetin.length > 80 ? temizMetin.slice(0, 80) + "…" : temizMetin,
+    sonMesajTarihi: serverTimestamp(),
+    sonMesajGonderen: gonderen
+  };
+  if (karsiTaraf) {
+    guncelleme[`okunmamis.${karsiTaraf}`] = increment(1);
+  }
+  await updateDoc(threadRef, guncelleme);
+}
+
+// Bir thread'i okundu işaretle (mevcut kullanıcı için sayacı sıfırla)
+async function mesajOkunduIsaretle(threadId) {
+  if (!currentUser) return;
+  const benim = currentUser.email.toLowerCase();
+  try {
+    await updateDoc(doc(db, "mesajlar", threadId), {
+      [`okunmamis.${benim}`]: 0
+    });
+  } catch (e) {
+    console.warn("Okundu işaretleme hatası:", e);
+  }
+}
+
+// Tarih formatla (mesaj listesi için): bugünse saat, değilse tarih
+function mesajTarihFormat(ts) {
+  if (!ts) return "";
+  let d;
+  if (ts.toDate) d = ts.toDate();
+  else if (ts.seconds) d = new Date(ts.seconds * 1000);
+  else d = new Date(ts);
+  if (isNaN(d.getTime())) return "";
+
+  const bugun = new Date();
+  const ayniGun = d.toDateString() === bugun.toDateString();
+  if (ayniGun) {
+    return d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  }
+  const dun = new Date(bugun); dun.setDate(dun.getDate() - 1);
+  if (d.toDateString() === dun.toDateString()) return "Dün";
+
+  return d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+}
+
+// Bu e-postaya ait öğrenci(ler)i bul (veli e-postasından) — gözetim ve görüntü için
+function mesajVeliOgrencileriBul(veliEmail) {
+  const lower = (veliEmail || "").toLowerCase();
+  return ogrenciList.filter(o => {
+    const e1 = (o.veli1Eposta || "").toLowerCase();
+    const e2 = (o.veli2Eposta || "").toLowerCase();
+    return e1 === lower || e2 === lower;
+  });
+}
+
+// ============================================================
+// ===== FAZ 3b: PERSONEL MESAJLAŞMA UI =====
+// ============================================================
+
+// Mesajlaşma sekmesi açıldığında çağrılır — thread'leri gerçek zamanlı dinle
+function mesajlasmaBaslat() {
+  if (!currentUser) return;
+  const benim = currentUser.email.toLowerCase();
+
+  // Önceki dinleyiciyi temizle
+  if (mesajThreadUnsub) { mesajThreadUnsub(); mesajThreadUnsub = null; }
+
+  // Bu kullanıcının dahil olduğu thread'leri dinle
+  // Yönetim (Müdür/K.Müdür/Admin) → CC gözetimci olduğu thread'ler dahil hepsini görür
+  let q;
+  if (isAdmin || YONETIM_ROLLERI.includes(aktifKullaniciRol)) {
+    // Yönetim: hem katılımcı hem gözetimci olduğu thread'ler — basitlik için tümünü çek
+    q = query(collection(db, "mesajlar"), orderBy("sonMesajTarihi", "desc"));
+  } else {
+    // Diğer personel: sadece katılımcı olduğu thread'ler
+    q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benim), orderBy("sonMesajTarihi", "desc"));
+  }
+
+  mesajThreadUnsub = onSnapshot(q, (snap) => {
+    mesajThreadListesi = [];
+    snap.forEach(d => mesajThreadListesi.push({ id: d.id, ...d.data() }));
+    mesajThreadleriListele();
+    mesajToplamOkunmamisGuncelle();
+  }, (err) => {
+    console.error("Thread dinleme hatası:", err);
+    const el = document.getElementById("mesajThreadListesi");
+    if (el) el.innerHTML = `<div style="padding:20px; text-align:center; color:#dc2626; font-size:13px;">Mesajlar yüklenemedi.</div>`;
+  });
+}
+
+// Mesajlaşma sekmesi kapanınca dinleyicileri temizle
+function mesajlasmaDurdur() {
+  if (mesajThreadUnsub) { mesajThreadUnsub(); mesajThreadUnsub = null; }
+  if (mesajMesajUnsub) { mesajMesajUnsub(); mesajMesajUnsub = null; }
+  mesajAktifThread = null;
+}
+
+// Thread listesini render et
+function mesajThreadleriListele() {
+  const el = document.getElementById("mesajThreadListesi");
+  if (!el) return;
+  const benim = currentUser.email.toLowerCase();
+  const arama = (document.getElementById("mesajListeAra")?.value || "").toLowerCase().trim();
+
+  let liste = [...mesajThreadListesi];
+
+  // Arama filtresi
+  if (arama) {
+    liste = liste.filter(t => {
+      const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
+      const karsiAd = (t.katilimciBilgi?.[karsi]?.ad || "").toLowerCase();
+      const ogr = (t.ogrenciAd || "").toLowerCase();
+      return karsiAd.includes(arama) || ogr.includes(arama) || karsi.includes(arama);
+    });
+  }
+
+  if (liste.length === 0) {
+    el.innerHTML = `<div style="padding:30px 16px; text-align:center; color:#9ca3af; font-size:13px;">
+      ${arama ? "Sonuç bulunamadı." : "Henüz mesaj yok.<br>+ Yeni ile sohbet başlatın."}
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = liste.map(t => {
+    const benimGozetimciMiyim = !((t.katilimcilar || []).includes(benim));
+    // Karşı taraf adı (gözetimci isem her iki tarafı da göster)
+    let adGoster, altGoster;
+    if (benimGozetimciMiyim) {
+      const k = t.katilimcilar || [];
+      const ad1 = t.katilimciBilgi?.[k[0]]?.ad || k[0] || "?";
+      const ad2 = t.katilimciBilgi?.[k[1]]?.ad || k[1] || "?";
+      adGoster = `${ad1} ↔ ${ad2}`;
+      altGoster = "👁️ Gözetim";
+    } else {
+      const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
+      adGoster = t.katilimciBilgi?.[karsi]?.ad || karsi || "?";
+      const rol = t.katilimciBilgi?.[karsi]?.rol;
+      altGoster = rol === "veli" ? "Veli" : (ROL_ETIKETLERI[rol] || "");
+    }
+    const initial = (adGoster || "?").charAt(0).toUpperCase();
+    const okunmamis = (t.okunmamis && t.okunmamis[benim]) || 0;
+    const aktifClass = (mesajAktifThread && mesajAktifThread.id === t.id) ? "aktif" : "";
+    const tarih = mesajTarihFormat(t.sonMesajTarihi);
+    const idEsc = t.id.replace(/'/g, "\\'");
+
+    return `
+      <div class="mesaj-thread-item ${aktifClass}" onclick="mesajThreadAc('${idEsc}')">
+        <div class="mesaj-thread-avatar">${escapeHtmlGelisim(initial)}</div>
+        <div class="mesaj-thread-bilgi">
+          <div class="mesaj-thread-ust">
+            <span class="mesaj-thread-ad">${escapeHtmlGelisim(adGoster)}</span>
+            <span class="mesaj-thread-tarih">${tarih}</span>
+          </div>
+          <div class="mesaj-thread-alt">
+            <span class="mesaj-thread-son">${escapeHtmlGelisim(t.sonMesaj || altGoster)}</span>
+            ${okunmamis > 0 ? `<span class="mesaj-okunmamis-rozet">${okunmamis}</span>` : ""}
+          </div>
+          ${t.ogrenciAd ? `<div class="mesaj-thread-ogrenci">👶 ${escapeHtmlGelisim(t.ogrenciAd)}${t.ogrenciSinif ? " · " + escapeHtmlGelisim(t.ogrenciSinif) : ""}</div>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// Bir sohbeti aç ve mesajları gerçek zamanlı dinle
+window.mesajThreadAc = async function(threadId) {
+  const thread = mesajThreadListesi.find(t => t.id === threadId);
+  if (!thread) return;
+  mesajAktifThread = thread;
+  const benim = currentUser.email.toLowerCase();
+  const benimGozetimciMiyim = !((thread.katilimcilar || []).includes(benim));
+
+  // UI: boş ekranı gizle, sohbeti göster
+  document.getElementById("mesajSohbetBos").style.display = "none";
+  document.getElementById("mesajSohbetAktif").style.display = "flex";
+  document.querySelector(".mesaj-konteyner")?.classList.add("sohbet-acik");
+
+  // Başlık
+  let adGoster, altGoster;
+  if (benimGozetimciMiyim) {
+    const k = thread.katilimcilar || [];
+    const ad1 = thread.katilimciBilgi?.[k[0]]?.ad || k[0] || "?";
+    const ad2 = thread.katilimciBilgi?.[k[1]]?.ad || k[1] || "?";
+    adGoster = `${ad1} ↔ ${ad2}`;
+    altGoster = "👁️ Gözetim modu" + (thread.ogrenciAd ? ` · ${thread.ogrenciAd}` : "");
+  } else {
+    const karsi = (thread.katilimcilar || []).find(e => e !== benim) || "";
+    adGoster = thread.katilimciBilgi?.[karsi]?.ad || karsi || "?";
+    const rol = thread.katilimciBilgi?.[karsi]?.rol;
+    altGoster = (rol === "veli" ? "Veli" : (ROL_ETIKETLERI[rol] || "")) + (thread.ogrenciAd ? ` · ${thread.ogrenciAd}` : "");
+  }
+  document.getElementById("mesajSohbetAd").textContent = adGoster;
+  document.getElementById("mesajSohbetAlt").textContent = altGoster;
+  document.getElementById("mesajSohbetAvatar").textContent = (adGoster || "?").charAt(0).toUpperCase();
+
+  // Gözetimci ise mesaj girişini gizle (sadece izler, yazamaz)
+  const girisAlani = document.querySelector(".mesaj-sohbet-giris");
+  if (girisAlani) girisAlani.style.display = benimGozetimciMiyim ? "none" : "flex";
+
+  // Listeyi yeniden render et (aktif vurgu için)
+  mesajThreadleriListele();
+
+  // Önceki mesaj dinleyiciyi temizle
+  if (mesajMesajUnsub) { mesajMesajUnsub(); mesajMesajUnsub = null; }
+
+  // Mesajları gerçek zamanlı dinle
+  const govde = document.getElementById("mesajSohbetGovde");
+  govde.innerHTML = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:20px;">Yükleniyor...</div>`;
+
+  const mq = query(collection(db, "mesajlar", threadId, "messages"), orderBy("tarih", "asc"));
+  mesajMesajUnsub = onSnapshot(mq, (snap) => {
+    const mesajlar = [];
+    snap.forEach(d => mesajlar.push({ id: d.id, ...d.data() }));
+    mesajBalonlariRender(mesajlar, benim, benimGozetimciMiyim);
+    // Açık sohbeti okundu işaretle (gözetimci değilsem)
+    if (!benimGozetimciMiyim) mesajOkunduIsaretle(threadId);
+  }, (err) => {
+    console.error("Mesaj dinleme hatası:", err);
+    govde.innerHTML = `<div style="text-align:center; color:#dc2626; font-size:13px; padding:20px;">Mesajlar yüklenemedi.</div>`;
+  });
+};
+
+// Mesaj balonlarını render et
+function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
+  const govde = document.getElementById("mesajSohbetGovde");
+  if (!govde) return;
+
+  if (mesajlar.length === 0) {
+    govde.innerHTML = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:30px;">Henüz mesaj yok. İlk mesajı gönderin! 👋</div>`;
+    return;
+  }
+
+  govde.innerHTML = mesajlar.map(m => {
+    const gonderenLower = (m.gonderen || "").toLowerCase();
+    const tarih = mesajTarihFormat(m.tarih);
+
+    if (gozetimciMiyim) {
+      // Gözetimci: tüm mesajları gönderen adıyla göster
+      const gonderenAd = mesajAktifThread?.katilimciBilgi?.[gonderenLower]?.ad || gonderenLower;
+      return `
+        <div class="mesaj-balon gelen" style="max-width:85%;">
+          <div class="mesaj-gonderen-etiket">${escapeHtmlGelisim(gonderenAd)}</div>
+          ${escapeHtmlGelisim(m.metin || "")}
+          <div class="mesaj-balon-meta">${tarih}</div>
+        </div>`;
+    }
+
+    const benMiGonderdim = gonderenLower === benim;
+    return `
+      <div class="mesaj-balon ${benMiGonderdim ? 'giden' : 'gelen'}">
+        ${escapeHtmlGelisim(m.metin || "")}
+        <div class="mesaj-balon-meta">${tarih}</div>
+      </div>`;
+  }).join("");
+
+  // En alta kaydır
+  setTimeout(() => { govde.scrollTop = govde.scrollHeight; }, 50);
+}
+
+// Mesaj gönder butonu
+window.mesajGonderTikla = async function() {
+  const input = document.getElementById("mesajGirisInput");
+  if (!input || !mesajAktifThread) return;
+  const metin = input.value.trim();
+  if (!metin) return;
+
+  input.value = "";
+  input.style.height = "auto";
+  try {
+    await mesajGonder(mesajAktifThread.id, metin);
+  } catch (e) {
+    console.error("Mesaj gönderme hatası:", e);
+    showToast("Mesaj gönderilemedi: " + e.message, "error");
+    input.value = metin; // Geri yükle
+  }
+};
+
+// Enter ile gönder (Shift+Enter = yeni satır)
+window.mesajGirisKeydown = function(event) {
+  // Otomatik yükseklik
+  const ta = event.target;
+  setTimeout(() => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 100) + "px"; }, 0);
+
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    mesajGonderTikla();
+  }
+};
+
+// Sohbeti kapat (mobilde listeye dön)
+window.mesajSohbetKapat = function() {
+  if (mesajMesajUnsub) { mesajMesajUnsub(); mesajMesajUnsub = null; }
+  mesajAktifThread = null;
+  document.getElementById("mesajSohbetAktif").style.display = "none";
+  document.getElementById("mesajSohbetBos").style.display = "flex";
+  document.querySelector(".mesaj-konteyner")?.classList.remove("sohbet-acik");
+  mesajThreadleriListele();
+};
+
+// === YENİ SOHBET (öğrenci → veli akışı) ===
+let mesajYeniSeciliOgrenci = null;
+
+window.mesajYeniSohbetAc = function() {
+  mesajYeniSeciliOgrenci = null;
+  document.getElementById("mesajYeniOgrenciAra").value = "";
+  document.getElementById("mesajYeniModal").classList.add("active");
+  mesajYeniOgrencileriListele();
+};
+
+window.mesajYeniSohbetKapat = function() {
+  document.getElementById("mesajYeniModal").classList.remove("active");
+};
+
+// Yeni sohbet: öğrencileri listele (öğretmen sadece kendi sınıfını görür - ogrenciList zaten filtreli)
+window.mesajYeniOgrencileriListele = function() {
+  const el = document.getElementById("mesajYeniOgrenciListesi");
+  if (!el) return;
+  const arama = (document.getElementById("mesajYeniOgrenciAra")?.value || "").toLowerCase().trim();
+
+  let liste = ogrenciList.filter(o => {
+    const ayar = ayarListesi[o.id];
+    const durum = getOgrenciDurum(o, ayar);
+    return durum === "aktif"; // Sadece aktif öğrenciler
+  });
+
+  if (arama) {
+    liste = liste.filter(o => (o.ogrenciAdSoyad || "").toLowerCase().includes(arama));
+  }
+
+  if (liste.length === 0) {
+    el.innerHTML = `<div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">${arama ? "Öğrenci bulunamadı." : "Aktif öğrenci yok."}</div>`;
+    return;
+  }
+
+  el.innerHTML = liste.slice(0, 30).map(o => {
+    const ayar = ayarListesi[o.id];
+    const sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "-";
+    const initial = (o.ogrenciAdSoyad || "?").charAt(0).toUpperCase();
+    const idEsc = o.id.replace(/'/g, "\\'");
+    return `
+      <div class="mesaj-yeni-ogrenci-kart" onclick="mesajYeniOgrenciSec('${idEsc}')">
+        <div class="mesaj-thread-avatar" style="width:36px; height:36px; font-size:14px;">${escapeHtmlGelisim(initial)}</div>
+        <div>
+          <div class="ad">${escapeHtmlGelisim(o.ogrenciAdSoyad || "—")}</div>
+          <div class="alt">${escapeHtmlGelisim(sinif)}</div>
+        </div>
+      </div>`;
+  }).join("");
+};
+
+// Öğrenci seçildi → velilerini göster
+window.mesajYeniOgrenciSec = function(ogrenciId) {
+  const o = ogrenciList.find(x => x.id === ogrenciId);
+  if (!o) return;
+  mesajYeniSeciliOgrenci = o;
+
+  // Velileri topla (anne + baba)
+  const veliler = [];
+  if (o.veli1Eposta) veliler.push({ email: o.veli1Eposta.toLowerCase(), ad: o.veli1AdSoyad || "Veli 1", rol: "Anne/Veli 1" });
+  if (o.veli2Eposta) veliler.push({ email: o.veli2Eposta.toLowerCase(), ad: o.veli2AdSoyad || "Veli 2", rol: "Baba/Veli 2" });
+
+  const el = document.getElementById("mesajYeniOgrenciListesi");
+  if (veliler.length === 0) {
+    el.innerHTML = `
+      <div style="padding:16px; text-align:center;">
+        <div style="font-size:13px; color:#dc2626; margin-bottom:10px;">⚠️ ${escapeHtmlGelisim(o.ogrenciAdSoyad)} için kayıtlı veli e-postası yok.</div>
+        <button class="btn-secondary" onclick="mesajYeniOgrencileriListele()">← Geri</button>
+      </div>`;
+    return;
+  }
+
+  const ayar = ayarListesi[o.id];
+  const sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "";
+  el.innerHTML = `
+    <div class="mesaj-yeni-veli-secim">
+      <div style="font-size:13px; color:#6b7280; margin-bottom:4px;">👶 <strong>${escapeHtmlGelisim(o.ogrenciAdSoyad)}</strong> · ${escapeHtmlGelisim(sinif)}</div>
+      <div style="font-size:12px; color:#9ca3af; margin-bottom:8px;">Mesaj göndereceğiniz veliyi seçin:</div>
+      ${veliler.map(v => {
+        const vEsc = v.email.replace(/'/g, "\\'");
+        const adEsc = (v.ad || "").replace(/'/g, "\\'");
+        return `<button class="mesaj-yeni-veli-btn" onclick="mesajYeniBaslat('${vEsc}','${adEsc}','${ogrenciId}')">
+          👤 <strong>${escapeHtmlGelisim(v.ad)}</strong> <span style="color:#9ca3af;">(${escapeHtmlGelisim(v.rol)})</span>
+        </button>`;
+      }).join("")}
+      <button class="btn-secondary" style="margin-top:10px;" onclick="mesajYeniOgrencileriListele()">← Başka öğrenci</button>
+    </div>`;
+};
+
+// Veli seçildi → thread oluştur/aç
+window.mesajYeniBaslat = async function(veliEmail, veliAd, ogrenciId) {
+  const o = ogrenciList.find(x => x.id === ogrenciId);
+  const ayar = o ? ayarListesi[o.id] : null;
+  const sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o?.sinif || "";
+
+  try {
+    const thread = await mesajThreadGetirVeyaOlustur({
+      personel: {
+        email: currentUser.email.toLowerCase(),
+        ad: aktifPersonel?.adSoyad || currentUser.displayName || currentUser.email,
+        rol: aktifKullaniciRol || "personel"
+      },
+      veli: { email: veliEmail.toLowerCase(), ad: veliAd },
+      ogrenci: { id: ogrenciId, ad: o?.ogrenciAdSoyad || "", sinif }
+    });
+
+    mesajYeniSohbetKapat();
+    // Thread listesine henüz gelmemişse ekle (onSnapshot yetişene kadar)
+    if (!mesajThreadListesi.find(t => t.id === thread.id)) {
+      mesajThreadListesi.unshift(thread);
+    }
+    mesajThreadAc(thread.id);
+  } catch (e) {
+    console.error("Yeni sohbet hatası:", e);
+    showToast("Sohbet başlatılamadı: " + e.message, "error");
+  }
+};
+
+// Toplam okunmamış mesaj sayısını hesapla (rozet için - Faz 3d'de kullanılacak)
+function mesajToplamOkunmamisGuncelle() {
+  if (!currentUser) return;
+  const benim = currentUser.email.toLowerCase();
+  let toplam = 0;
+  mesajThreadListesi.forEach(t => {
+    if ((t.katilimcilar || []).includes(benim)) {
+      toplam += (t.okunmamis && t.okunmamis[benim]) || 0;
+    }
+  });
+  // İçerik sekmesindeki mesajlaşma alt-butonuna rozet (varsa)
+  const btn = document.querySelector('[data-icerik-alt="mesajlasma"]');
+  if (btn) {
+    let rozet = btn.querySelector(".mesaj-alt-rozet");
+    if (toplam > 0) {
+      if (!rozet) {
+        rozet = document.createElement("span");
+        rozet.className = "mesaj-alt-rozet";
+        rozet.style.cssText = "background:#ec4899;color:white;font-size:10px;font-weight:700;border-radius:9px;padding:1px 6px;margin-left:4px;";
+        btn.appendChild(rozet);
+      }
+      rozet.textContent = toplam;
+    } else if (rozet) {
+      rozet.remove();
+    }
+  }
+}
 
 // Bu e-posta sistemde onaylı bir veli mi? (Whitelist kontrolü)
 async function isEmailWhitelisted(email) {
@@ -13905,7 +14642,12 @@ function renderIcerikAltSekme() {
   else if (aktifIcerikAlt === "etkinlik") renderEtkinlikler();
   else if (aktifIcerikAlt === "devamsizlik") renderDevamsizlik();
   else if (aktifIcerikAlt === "galeri") renderGaleri();
-  // Sonraki turlarda diğer alt sekmeler
+  else if (aktifIcerikAlt === "mesajlasma") { if (typeof mesajlasmaBaslat === "function") mesajlasmaBaslat(); }
+
+  // Mesajlaşma dışında bir sekmeye geçildiyse dinleyicileri durdur (Firestore maliyeti)
+  if (aktifIcerikAlt !== "mesajlasma" && typeof mesajlasmaDurdur === "function") {
+    mesajlasmaDurdur();
+  }
 }
 
 // ============ DUYURULAR SİSTEMİ (Tur 2) ============
