@@ -9016,12 +9016,63 @@ html, body {
 
       <!-- İLETİŞİM (Placeholder) -->
       <div class="veli-tab-panel" id="veliPanel-iletisim">
-        <div class="veli-card">
-          <div class="veli-placeholder">
-            <div class="ph-icon">💬</div>
-            <h3>İletişim</h3>
-            <p>Öğretmen ile mesajlaşma, yönetim ile iletişim ve randevu talebi burada yapılabilecek.</p>
-            <p style="font-size:12px; margin-top:8px;">Bu özellik yakında aktif olacak.</p>
+        <div class="veli-card" style="padding:0; overflow:hidden;">
+          <div class="mesaj-konteyner" id="veliMesajKonteyner">
+            <!-- SOL: Sohbet listesi -->
+            <div class="mesaj-liste-panel" id="veliMesajListePanel">
+              <div class="mesaj-liste-baslik">
+                <span>💬 Mesajlar</span>
+                <button class="mesaj-yeni-btn" onclick="veliMesajYeniSohbetAc()">+ Yeni</button>
+              </div>
+              <div class="mesaj-liste-ara">
+                <input type="text" id="veliMesajListeAra" placeholder="🔍 Ara..." oninput="veliMesajThreadleriListele()">
+              </div>
+              <div id="veliMesajThreadListesi" class="mesaj-thread-listesi">
+                <div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+              </div>
+            </div>
+
+            <!-- SAĞ: Sohbet ekranı -->
+            <div class="mesaj-sohbet-panel" id="veliMesajSohbetPanel">
+              <div class="mesaj-sohbet-bos" id="veliMesajSohbetBos">
+                <div style="font-size:48px;">💬</div>
+                <h3>Bir sohbet seçin</h3>
+                <p>Soldaki listeden seçin veya "+ Yeni" ile öğretmen/yönetimle iletişime geçin.</p>
+              </div>
+              <div class="mesaj-sohbet-aktif" id="veliMesajSohbetAktif" style="display:none;">
+                <div class="mesaj-sohbet-header">
+                  <button class="mesaj-geri-btn" onclick="veliMesajSohbetKapat()">←</button>
+                  <div class="mesaj-sohbet-avatar" id="veliMesajSohbetAvatar">A</div>
+                  <div class="mesaj-sohbet-baslik">
+                    <div class="mesaj-sohbet-ad" id="veliMesajSohbetAd">—</div>
+                    <div class="mesaj-sohbet-alt" id="veliMesajSohbetAlt">—</div>
+                  </div>
+                </div>
+                <div class="mesaj-sohbet-govde" id="veliMesajSohbetGovde">
+                  <!-- Mesaj balonları -->
+                </div>
+                <div class="mesaj-sohbet-giris">
+                  <textarea id="veliMesajGirisInput" placeholder="Mesaj yazın..." rows="1" onkeydown="veliMesajGirisKeydown(event)"></textarea>
+                  <button class="mesaj-gonder-btn" onclick="veliMesajGonderTikla()">➤</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- YENİ SOHBET MODAL (veli) -->
+        <div class="modal-overlay" id="veliMesajYeniModal" onclick="if(event.target.id==='veliMesajYeniModal') veliMesajYeniSohbetKapat()">
+          <div class="modal" style="max-width:460px;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#dcfce7 0%,#bbf7d0 100%); border-bottom:1px solid #86efac;">
+              <h3 style="color:#15803d;">💬 Yeni Mesaj</h3>
+              <button class="close-btn" onclick="veliMesajYeniSohbetKapat()">×</button>
+            </div>
+            <div class="modal-body">
+              <p style="font-size:13px; color:#6b7280; margin:0 0 12px;">Kiminle iletişime geçmek istersiniz?</p>
+              <div id="veliMesajYeniKisiListesi" class="mesaj-yeni-ogrenci-listesi">
+                <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -12488,8 +12539,326 @@ function veliRenderTab(tabName) {
   else if (tabName === "okul") veliRenderOkulHayati();
   else if (tabName === "galeri") veliRenderGaleri();
   else if (tabName === "raporlar") veliRenderRaporlar();
-  // Diğer sekmeler placeholder — henüz render gerekmez
+  else if (tabName === "iletisim") veliMesajlasmaBaslat();
+
+  // İletişim dışına çıkıldıysa dinleyicileri durdur
+  if (tabName !== "iletisim" && typeof veliMesajlasmaDurdur === "function") {
+    veliMesajlasmaDurdur();
+  }
 }
+
+// ============================================================
+// ===== FAZ 3c: VELİ MESAJLAŞMA UI =====
+// ============================================================
+let veliMesajAktifThread = null;
+let veliMesajThreadListesi = [];
+let veliMesajThreadUnsub = null;
+let veliMesajMesajUnsub = null;
+let veliMesajPersonelCache = null; // Aktif personel listesi (yeni sohbet için)
+
+// Veli'nin kendi e-postası
+function veliEpostam() {
+  return (currentUser?.email || "").toLowerCase();
+}
+
+// Veli mesajlaşma başlat — kendi thread'lerini dinle
+function veliMesajlasmaBaslat() {
+  if (!currentUser) return;
+  const benim = veliEpostam();
+
+  if (veliMesajThreadUnsub) { veliMesajThreadUnsub(); veliMesajThreadUnsub = null; }
+
+  const q = query(
+    collection(db, "mesajlar"),
+    where("katilimcilar", "array-contains", benim),
+    orderBy("sonMesajTarihi", "desc")
+  );
+
+  veliMesajThreadUnsub = onSnapshot(q, (snap) => {
+    veliMesajThreadListesi = [];
+    snap.forEach(d => veliMesajThreadListesi.push({ id: d.id, ...d.data() }));
+    veliMesajThreadleriListele();
+    veliMesajToplamOkunmamisGuncelle();
+  }, (err) => {
+    console.error("Veli thread dinleme hatası:", err);
+    const el = document.getElementById("veliMesajThreadListesi");
+    if (el) el.innerHTML = `<div style="padding:20px; text-align:center; color:#dc2626; font-size:13px;">Mesajlar yüklenemedi.</div>`;
+  });
+}
+
+function veliMesajlasmaDurdur() {
+  if (veliMesajThreadUnsub) { veliMesajThreadUnsub(); veliMesajThreadUnsub = null; }
+  if (veliMesajMesajUnsub) { veliMesajMesajUnsub(); veliMesajMesajUnsub = null; }
+  veliMesajAktifThread = null;
+}
+
+function veliMesajThreadleriListele() {
+  const el = document.getElementById("veliMesajThreadListesi");
+  if (!el) return;
+  const benim = veliEpostam();
+  const arama = (document.getElementById("veliMesajListeAra")?.value || "").toLowerCase().trim();
+
+  let liste = [...veliMesajThreadListesi];
+  if (arama) {
+    liste = liste.filter(t => {
+      const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
+      const karsiAd = (t.katilimciBilgi?.[karsi]?.ad || "").toLowerCase();
+      return karsiAd.includes(arama) || karsi.includes(arama);
+    });
+  }
+
+  if (liste.length === 0) {
+    el.innerHTML = `<div style="padding:30px 16px; text-align:center; color:#9ca3af; font-size:13px;">
+      ${arama ? "Sonuç bulunamadı." : "Henüz mesaj yok.<br>+ Yeni ile iletişime geçin."}
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = liste.map(t => {
+    const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
+    const adGoster = t.katilimciBilgi?.[karsi]?.ad || karsi || "?";
+    const rol = t.katilimciBilgi?.[karsi]?.rol;
+    const altGoster = ROL_ETIKETLERI[rol] || "Okul";
+    const initial = (adGoster || "?").charAt(0).toUpperCase();
+    const okunmamis = (t.okunmamis && t.okunmamis[benim]) || 0;
+    const aktifClass = (veliMesajAktifThread && veliMesajAktifThread.id === t.id) ? "aktif" : "";
+    const tarih = mesajTarihFormat(t.sonMesajTarihi);
+    const idEsc = t.id.replace(/'/g, "\\'");
+
+    return `
+      <div class="mesaj-thread-item ${aktifClass}" onclick="veliMesajThreadAc('${idEsc}')">
+        <div class="mesaj-thread-avatar">${escapeHtmlGelisim(initial)}</div>
+        <div class="mesaj-thread-bilgi">
+          <div class="mesaj-thread-ust">
+            <span class="mesaj-thread-ad">${escapeHtmlGelisim(adGoster)}</span>
+            <span class="mesaj-thread-tarih">${tarih}</span>
+          </div>
+          <div class="mesaj-thread-alt">
+            <span class="mesaj-thread-son">${escapeHtmlGelisim(t.sonMesaj || altGoster)}</span>
+            ${okunmamis > 0 ? `<span class="mesaj-okunmamis-rozet">${okunmamis}</span>` : ""}
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+window.veliMesajThreadAc = async function(threadId) {
+  const thread = veliMesajThreadListesi.find(t => t.id === threadId);
+  if (!thread) return;
+  veliMesajAktifThread = thread;
+  const benim = veliEpostam();
+  const karsi = (thread.katilimcilar || []).find(e => e !== benim) || "";
+  const adGoster = thread.katilimciBilgi?.[karsi]?.ad || karsi || "?";
+  const rol = thread.katilimciBilgi?.[karsi]?.rol;
+
+  document.getElementById("veliMesajSohbetBos").style.display = "none";
+  document.getElementById("veliMesajSohbetAktif").style.display = "flex";
+  document.getElementById("veliMesajKonteyner")?.classList.add("sohbet-acik");
+
+  document.getElementById("veliMesajSohbetAd").textContent = adGoster;
+  document.getElementById("veliMesajSohbetAlt").textContent = ROL_ETIKETLERI[rol] || "Okul";
+  document.getElementById("veliMesajSohbetAvatar").textContent = (adGoster || "?").charAt(0).toUpperCase();
+
+  veliMesajThreadleriListele();
+
+  if (veliMesajMesajUnsub) { veliMesajMesajUnsub(); veliMesajMesajUnsub = null; }
+
+  const govde = document.getElementById("veliMesajSohbetGovde");
+  govde.innerHTML = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:20px;">Yükleniyor...</div>`;
+
+  const mq = query(collection(db, "mesajlar", threadId, "messages"), orderBy("tarih", "asc"));
+  veliMesajMesajUnsub = onSnapshot(mq, (snap) => {
+    const mesajlar = [];
+    snap.forEach(d => mesajlar.push({ id: d.id, ...d.data() }));
+    veliMesajBalonlariRender(mesajlar, benim);
+    mesajOkunduIsaretle(threadId);
+  }, (err) => {
+    console.error("Veli mesaj dinleme hatası:", err);
+    govde.innerHTML = `<div style="text-align:center; color:#dc2626; font-size:13px; padding:20px;">Mesajlar yüklenemedi.</div>`;
+  });
+};
+
+function veliMesajBalonlariRender(mesajlar, benim) {
+  const govde = document.getElementById("veliMesajSohbetGovde");
+  if (!govde) return;
+
+  if (mesajlar.length === 0) {
+    govde.innerHTML = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:30px;">Henüz mesaj yok. İlk mesajı gönderin! 👋</div>`;
+    return;
+  }
+
+  govde.innerHTML = mesajlar.map(m => {
+    const gonderenLower = (m.gonderen || "").toLowerCase();
+    const benMiGonderdim = gonderenLower === benim;
+    const tarih = mesajTarihFormat(m.tarih);
+    return `
+      <div class="mesaj-balon ${benMiGonderdim ? 'giden' : 'gelen'}">
+        ${escapeHtmlGelisim(m.metin || "")}
+        <div class="mesaj-balon-meta">${tarih}</div>
+      </div>`;
+  }).join("");
+
+  setTimeout(() => { govde.scrollTop = govde.scrollHeight; }, 50);
+}
+
+window.veliMesajGonderTikla = async function() {
+  const input = document.getElementById("veliMesajGirisInput");
+  if (!input || !veliMesajAktifThread) return;
+  const metin = input.value.trim();
+  if (!metin) return;
+
+  input.value = "";
+  input.style.height = "auto";
+  try {
+    await mesajGonder(veliMesajAktifThread.id, metin);
+  } catch (e) {
+    console.error("Veli mesaj gönderme hatası:", e);
+    showToast("Mesaj gönderilemedi: " + e.message, "error");
+    input.value = metin;
+  }
+};
+
+window.veliMesajGirisKeydown = function(event) {
+  const ta = event.target;
+  setTimeout(() => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 100) + "px"; }, 0);
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    veliMesajGonderTikla();
+  }
+};
+
+window.veliMesajSohbetKapat = function() {
+  if (veliMesajMesajUnsub) { veliMesajMesajUnsub(); veliMesajMesajUnsub = null; }
+  veliMesajAktifThread = null;
+  document.getElementById("veliMesajSohbetAktif").style.display = "none";
+  document.getElementById("veliMesajSohbetBos").style.display = "flex";
+  document.getElementById("veliMesajKonteyner")?.classList.remove("sohbet-acik");
+  veliMesajThreadleriListele();
+};
+
+// === YENİ SOHBET (veli → personel) ===
+window.veliMesajYeniSohbetAc = async function() {
+  document.getElementById("veliMesajYeniModal").classList.add("active");
+  await veliMesajPersonelleriListele();
+};
+
+window.veliMesajYeniSohbetKapat = function() {
+  document.getElementById("veliMesajYeniModal").classList.remove("active");
+};
+
+// Velinin iletişime geçebileceği personelleri listele
+async function veliMesajPersonelleriListele() {
+  const el = document.getElementById("veliMesajYeniKisiListesi");
+  if (!el) return;
+  el.innerHTML = `<div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>`;
+
+  try {
+    // Aktif personelleri çek (cache'le)
+    if (!veliMesajPersonelCache) {
+      const snap = await getDocs(collection(db, "personeller"));
+      veliMesajPersonelCache = [];
+      snap.forEach(d => {
+        const p = { id: d.id, ...d.data() };
+        if ((p.durum || "aktif") === "aktif") veliMesajPersonelCache.push(p);
+      });
+    }
+
+    // Velinin çocuklarının sınıflarını bul
+    const cocukSiniflari = new Set();
+    for (const o of (veliOgrenciler || [])) {
+      const ayar = (typeof ayarListesi !== "undefined" && ayarListesi) ? ayarListesi[o.id] : null;
+      const sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || o._sinif || "";
+      if (sinif) cocukSiniflari.add(sinif);
+    }
+
+    // Personelleri rol önceliğine göre sırala
+    const rolSira = { kurucu_mudur: 0, mudur: 1, egitim_koordinator: 2, ogretmen: 3, muhasebe: 4 };
+    const liste = [...veliMesajPersonelCache].sort((a, b) => (rolSira[a.rol] ?? 9) - (rolSira[b.rol] ?? 9));
+
+    if (liste.length === 0) {
+      el.innerHTML = `<div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">İletişime geçilebilecek personel bulunamadı.</div>`;
+      return;
+    }
+
+    el.innerHTML = liste.map(p => {
+      const email = (p.email || p.id).toLowerCase();
+      const ad = p.adSoyad || email;
+      const initial = ad.charAt(0).toUpperCase();
+      const rolEtiket = ROL_ETIKETLERI[p.rol] || "Personel";
+      const emailEsc = email.replace(/'/g, "\\'");
+      const adEsc = ad.replace(/'/g, "\\'");
+      const rolEsc = (p.rol || "").replace(/'/g, "\\'");
+      // Öğretmense ve velinin çocuğunun sınıfıyla eşleşiyorsa rozet
+      let etiket = rolEtiket;
+      if (p.rol === "ogretmen" && p.unvan) etiket = escapeHtmlGelisim(p.unvan);
+      return `
+        <div class="mesaj-yeni-ogrenci-kart" onclick="veliMesajYeniBaslat('${emailEsc}','${adEsc}','${rolEsc}')">
+          <div class="mesaj-thread-avatar" style="width:36px; height:36px; font-size:14px;">${escapeHtmlGelisim(initial)}</div>
+          <div>
+            <div class="ad">${escapeHtmlGelisim(ad)}</div>
+            <div class="alt">${etiket}</div>
+          </div>
+        </div>`;
+    }).join("");
+  } catch (e) {
+    console.error("Veli personel listeleme hatası:", e);
+    el.innerHTML = `<div style="padding:20px; text-align:center; color:#dc2626; font-size:13px;">Personel listesi yüklenemedi.</div>`;
+  }
+}
+
+// Veli bir personel seçti → thread oluştur/aç
+window.veliMesajYeniBaslat = async function(personelEmail, personelAd, personelRol) {
+  // Veli kendi bilgisi
+  const benim = veliEpostam();
+  const veliAd = currentUser?.displayName || benim;
+  // İlk çocuğu referans öğrenci olarak ata (gözetim/bağlam için)
+  const ilkCocuk = (veliOgrenciler && veliOgrenciler[0]) || null;
+  const ayar = ilkCocuk ? (ayarListesi[ilkCocuk.id] || null) : null;
+  const sinif = ilkCocuk ? ((ayar && ayar.kayit && ayar.kayit.sinif) || ilkCocuk.sinif || ilkCocuk._sinif || "") : "";
+
+  try {
+    const thread = await mesajThreadGetirVeyaOlustur({
+      personel: { email: personelEmail.toLowerCase(), ad: personelAd, rol: personelRol },
+      veli: { email: benim, ad: veliAd },
+      ogrenci: { id: ilkCocuk?.id || "", ad: ilkCocuk?.ogrenciAdSoyad || "", sinif }
+    });
+
+    veliMesajYeniSohbetKapat();
+    if (!veliMesajThreadListesi.find(t => t.id === thread.id)) {
+      veliMesajThreadListesi.unshift(thread);
+    }
+    veliMesajThreadAc(thread.id);
+  } catch (e) {
+    console.error("Veli yeni sohbet hatası:", e);
+    showToast("Sohbet başlatılamadı: " + e.message, "error");
+  }
+};
+
+// Veli toplam okunmamış → menüye rozet
+function veliMesajToplamOkunmamisGuncelle() {
+  if (!currentUser) return;
+  const benim = veliEpostam();
+  let toplam = 0;
+  veliMesajThreadListesi.forEach(t => {
+    toplam += (t.okunmamis && t.okunmamis[benim]) || 0;
+  });
+  const btn = document.querySelector('.veli-menu-item[data-veli-tab="iletisim"]');
+  if (btn) {
+    let rozet = btn.querySelector(".veli-mesaj-rozet");
+    if (toplam > 0) {
+      if (!rozet) {
+        rozet = document.createElement("span");
+        rozet.className = "veli-mesaj-rozet";
+        rozet.style.cssText = "background:#ec4899;color:white;font-size:10px;font-weight:700;border-radius:9px;padding:1px 6px;margin-left:auto;";
+        btn.appendChild(rozet);
+      }
+      rozet.textContent = toplam;
+    } else if (rozet) {
+      rozet.remove();
+    }
+  }
+}
+
 
 async function veliRenderDashboard() {
   const el = document.getElementById("veliDashContent");
