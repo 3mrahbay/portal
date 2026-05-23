@@ -11546,6 +11546,29 @@ function mesajBildirimDurdur() {
   mesajBildirimToplam = 0;
 }
 
+// 🔧 DEBUG: Konsoldan bildirim durumunu kontrol et — window.bildirimDurum()
+window.bildirimDurum = function() {
+  console.log("=== BİLDİRİM DEBUG ===");
+  console.log("Giriş yapan:", currentUser?.email);
+  console.log("isAdmin:", isAdmin, "| Rol:", aktifKullaniciRol);
+  const veliMi = !(isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif"));
+  console.log("Veli mi:", veliMi);
+  console.log("Dinleyici aktif mi:", mesajBildirimUnsub ? "EVET" : "HAYIR");
+  console.log("Toplam okunmamış:", mesajBildirimToplam);
+  console.log("Thread listesi uzunluğu:", mesajThreadListesi.length);
+  // Hangi butonlar bulunuyor?
+  const veliBtn = document.querySelector('.veli-menu-item[data-veli-tab="iletisim"]');
+  const persAna = document.querySelector('.tab[data-tab="icerik"]');
+  const persAlt = document.querySelector('[data-icerik-alt="mesajlasma"]');
+  console.log("Veli iletişim butonu:", veliBtn ? "BULUNDU" : "YOK");
+  console.log("Personel içerik sekmesi:", persAna ? "BULUNDU" : "YOK");
+  console.log("Personel mesajlaşma alt-butonu:", persAlt ? "BULUNDU" : "YOK");
+  // Manuel dinleyici başlat
+  console.log("--- Dinleyici yeniden başlatılıyor ---");
+  mesajBildirimBaslat();
+  return "Debug tamamlandı. Yukarıdaki çıktıyı kopyala.";
+};
+
 // Rozeti ilgili menü/sekmeye yerleştir (personel veya veli)
 function mesajBildirimRozetGuncelle(toplam) {
   const veliMi = !(isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif"));
