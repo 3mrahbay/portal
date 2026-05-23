@@ -11344,6 +11344,9 @@ let mesajAktifThread = null;       // Açık olan sohbet thread'i
 let mesajThreadListesi = [];       // Kullanıcının tüm thread'leri
 let mesajThreadUnsub = null;       // Thread listesi dinleyici (unsubscribe)
 let mesajMesajUnsub = null;        // Açık sohbet mesaj dinleyicisi (unsubscribe)
+// FAZ 3d: Arka plan bildirim dinleyicisi (her sekmede çalışır)
+let mesajBildirimUnsub = null;     // Global okunmamış sayaç dinleyicisi
+let mesajBildirimToplam = 0;       // Toplam okunmamış mesaj sayısı
 
 // İki e-postadan deterministik thread ID üret (sıra önemsiz, hep aynı sonuç)
 function mesajThreadIdUret(email1, email2) {
@@ -11511,6 +11514,71 @@ function mesajVeliOgrencileriBul(veliEmail) {
 // ============================================================
 
 // Mesajlaşma sekmesi açıldığında çağrılır — thread'leri gerçek zamanlı dinle
+// ===== FAZ 3d: GLOBAL BİLDİRİM DİNLEYİCİSİ =====
+// Giriş anında başlar, kullanıcı hangi sekmede olursa olsun okunmamış mesajları takip eder.
+// Hem personel hem veli için çalışır.
+function mesajBildirimBaslat() {
+  if (!currentUser) return;
+  const benim = (currentUser.email || "").toLowerCase();
+  if (!benim) return;
+
+  // Önceki dinleyiciyi temizle
+  if (mesajBildirimUnsub) { mesajBildirimUnsub(); mesajBildirimUnsub = null; }
+
+  // Bu kullanıcının katılımcı olduğu thread'leri dinle (hafif — sadece sayaç için)
+  const q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benim));
+
+  mesajBildirimUnsub = onSnapshot(q, (snap) => {
+    let toplam = 0;
+    snap.forEach(d => {
+      const t = d.data();
+      toplam += (t.okunmamis && t.okunmamis[benim]) || 0;
+    });
+    mesajBildirimToplam = toplam;
+    mesajBildirimRozetGuncelle(toplam);
+  }, (err) => {
+    console.warn("Bildirim dinleme hatası:", err.code || err.message);
+  });
+}
+
+function mesajBildirimDurdur() {
+  if (mesajBildirimUnsub) { mesajBildirimUnsub(); mesajBildirimUnsub = null; }
+  mesajBildirimToplam = 0;
+}
+
+// Rozeti ilgili menü/sekmeye yerleştir (personel veya veli)
+function mesajBildirimRozetGuncelle(toplam) {
+  const veliMi = !(isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif"));
+
+  if (veliMi) {
+    // VELİ: yan menüdeki "İletişim" butonuna rozet
+    const btn = document.querySelector('.veli-menu-item[data-veli-tab="iletisim"]');
+    if (btn) rozetYerlestir(btn, toplam, "veli-mesaj-rozet", "margin-left:auto;");
+  } else {
+    // PERSONEL: ana sekmedeki "İçerik" butonuna + içerik alt "Mesajlaşma" butonuna rozet
+    const anaBtn = document.querySelector('.tab[data-tab="icerik"]');
+    if (anaBtn) rozetYerlestir(anaBtn, toplam, "icerik-mesaj-rozet", "");
+    const altBtn = document.querySelector('[data-icerik-alt="mesajlasma"]');
+    if (altBtn) rozetYerlestir(altBtn, toplam, "mesaj-alt-rozet", "");
+  }
+}
+
+// Yardımcı: bir butona rozet ekle/güncelle/kaldır
+function rozetYerlestir(btn, toplam, rozetClass, ekStil) {
+  let rozet = btn.querySelector("." + rozetClass);
+  if (toplam > 0) {
+    if (!rozet) {
+      rozet = document.createElement("span");
+      rozet.className = rozetClass;
+      rozet.style.cssText = `background:#ec4899;color:white;font-size:10px;font-weight:700;border-radius:9px;padding:1px 6px;min-width:16px;display:inline-flex;align-items:center;justify-content:center;${ekStil}`;
+      btn.appendChild(rozet);
+    }
+    rozet.textContent = toplam > 99 ? "99+" : toplam;
+  } else if (rozet) {
+    rozet.remove();
+  }
+}
+
 function mesajlasmaBaslat() {
   if (!currentUser) return;
   const benim = currentUser.email.toLowerCase();
@@ -11877,21 +11945,9 @@ function mesajToplamOkunmamisGuncelle() {
       toplam += (t.okunmamis && t.okunmamis[benim]) || 0;
     }
   });
-  // İçerik sekmesindeki mesajlaşma alt-butonuna rozet (varsa)
-  const btn = document.querySelector('[data-icerik-alt="mesajlasma"]');
-  if (btn) {
-    let rozet = btn.querySelector(".mesaj-alt-rozet");
-    if (toplam > 0) {
-      if (!rozet) {
-        rozet = document.createElement("span");
-        rozet.className = "mesaj-alt-rozet";
-        rozet.style.cssText = "background:#ec4899;color:white;font-size:10px;font-weight:700;border-radius:9px;padding:1px 6px;margin-left:4px;";
-        btn.appendChild(rozet);
-      }
-      rozet.textContent = toplam;
-    } else if (rozet) {
-      rozet.remove();
-    }
+  // Global rozet sistemine yönlendir (ana sekme + alt buton)
+  if (typeof mesajBildirimRozetGuncelle === "function") {
+    mesajBildirimRozetGuncelle(toplam);
   }
 }
 
@@ -12045,6 +12101,9 @@ onAuthStateChanged(auth, async (user) => {
       } catch (e) {
         console.warn("Talep kontrolü hatası:", e);
       }
+
+      // 🔔 FAZ 3d: Arka plan mesaj bildirim dinleyicisini başlat
+      try { if (typeof mesajBildirimBaslat === "function") setTimeout(() => mesajBildirimBaslat(), 1200); } catch(e) { console.warn(e); }
     } else {
       // ===== VELİ Panel =====
       document.getElementById("landing").style.display = "none";
@@ -12072,6 +12131,12 @@ onAuthStateChanged(auth, async (user) => {
     aktifPersonel = null;
     aktifKullaniciRol = null;
     aktifKullaniciSiniflari = [];
+    // 🔔 FAZ 3d: Çıkışta mesaj dinleyicilerini temizle
+    try {
+      if (typeof mesajBildirimDurdur === "function") mesajBildirimDurdur();
+      if (typeof mesajlasmaDurdur === "function") mesajlasmaDurdur();
+      if (typeof veliMesajlasmaDurdur === "function") veliMesajlasmaDurdur();
+    } catch(e) {}
     document.getElementById("landing").style.display = "block";
     document.getElementById("dashboard").classList.remove("active");
     document.getElementById("veliPanel").classList.remove("active");
@@ -12153,6 +12218,9 @@ async function loadVeliPanel(user) {
 
     // İlk öğrenciyi aktif yap
     await setAktifVeliOgrenci(bulunan[0]);
+
+    // 🔔 FAZ 3d: Veli için arka plan mesaj bildirim dinleyicisini başlat
+    try { if (typeof mesajBildirimBaslat === "function") setTimeout(() => mesajBildirimBaslat(), 1200); } catch(e) { console.warn(e); }
   } catch (e) {
     console.error("Veli paneli yüklenemedi:", e);
     showToast("Veriler yüklenemedi: " + e.message, "error");
@@ -12855,20 +12923,9 @@ function veliMesajToplamOkunmamisGuncelle() {
   veliMesajThreadListesi.forEach(t => {
     toplam += (t.okunmamis && t.okunmamis[benim]) || 0;
   });
-  const btn = document.querySelector('.veli-menu-item[data-veli-tab="iletisim"]');
-  if (btn) {
-    let rozet = btn.querySelector(".veli-mesaj-rozet");
-    if (toplam > 0) {
-      if (!rozet) {
-        rozet = document.createElement("span");
-        rozet.className = "veli-mesaj-rozet";
-        rozet.style.cssText = "background:#ec4899;color:white;font-size:10px;font-weight:700;border-radius:9px;padding:1px 6px;margin-left:auto;";
-        btn.appendChild(rozet);
-      }
-      rozet.textContent = toplam;
-    } else if (rozet) {
-      rozet.remove();
-    }
+  // Global rozet sistemine yönlendir
+  if (typeof mesajBildirimRozetGuncelle === "function") {
+    mesajBildirimRozetGuncelle(toplam);
   }
 }
 
