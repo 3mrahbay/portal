@@ -11381,28 +11381,24 @@ async function mesajThreadGetirVeyaOlustur(taraflar) {
   const threadId = mesajThreadIdUret(personel.email, veli.email);
   const threadRef = doc(db, "mesajlar", threadId);
 
-  console.log("[Mesaj] Thread ID:", threadId, "| Auth email:", currentUser?.email, "| Katılımcılar olacak:", [personel.email.toLowerCase(), veli.email.toLowerCase()]);
-
-  let mevcut;
+  // Thread var mı diye oku — yoksa veya izin yoksa (yeni thread) oluşturmaya geç
+  let mevcut = null;
   try {
     mevcut = await getDoc(threadRef);
-    console.log("[Mesaj] Thread okuma OK, var mı:", mevcut.exists());
+    if (mevcut.exists()) {
+      return { id: threadId, ...mevcut.data() };
+    }
   } catch (e) {
-    console.error("[Mesaj] ADIM 1 FAIL — thread okuma:", e.code, e.message);
-    throw e;
-  }
-  if (mevcut.exists()) {
-    return { id: threadId, ...mevcut.data() };
+    // permission-denied: thread henüz yok, oluşturmaya devam et (Rules resource==null'a izin vermiyorsa buraya düşer)
+    console.warn("[Mesaj] Thread okuma atlandı, oluşturulacak:", e.code);
   }
 
   // Yeni thread oluştur
   let gozetimciler = [];
   try {
     gozetimciler = await mesajGozetimcileriGetir();
-    console.log("[Mesaj] Gözetimci okuma OK:", gozetimciler);
   } catch (e) {
-    console.error("[Mesaj] ADIM 2 FAIL — gözetimci (personeller) okuma:", e.code, e.message);
-    throw e;
+    console.warn("[Mesaj] Gözetimci okunamadı:", e.code);
   }
 
   const yeniThread = {
@@ -11424,13 +11420,7 @@ async function mesajThreadGetirVeyaOlustur(taraflar) {
     },
     olusturuldu: serverTimestamp()
   };
-  try {
-    await setDoc(threadRef, yeniThread);
-    console.log("[Mesaj] Thread oluşturma OK");
-  } catch (e) {
-    console.error("[Mesaj] ADIM 3 FAIL — thread oluşturma (setDoc):", e.code, e.message);
-    throw e;
-  }
+  await setDoc(threadRef, yeniThread);
   return { id: threadId, ...yeniThread };
 }
 
