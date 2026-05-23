@@ -11446,6 +11446,8 @@ async function mesajGonder(threadId, metin) {
   const katilimcilar = thread.katilimcilar || [];
   const karsiTaraf = katilimcilar.find(e => e !== gonderen);
 
+  console.log("[Mesaj Gönder] Gönderen:", gonderen, "| Katılımcılar:", katilimcilar, "| Karşı taraf:", karsiTaraf);
+
   // Mesajı alt koleksiyona ekle
   await addDoc(collection(db, "mesajlar", threadId, "messages"), {
     gonderen: gonderen,
@@ -11463,7 +11465,13 @@ async function mesajGonder(threadId, metin) {
   if (karsiTaraf) {
     guncelleme[`okunmamis.${karsiTaraf}`] = increment(1);
   }
-  await updateDoc(threadRef, guncelleme);
+  try {
+    await updateDoc(threadRef, guncelleme);
+    console.log("[Mesaj Gönder] ✅ Thread güncellendi, okunmamış +1 →", karsiTaraf);
+  } catch (e) {
+    console.error("[Mesaj Gönder] ❌ Thread güncellenemedi (okunmamış artmadı):", e.code, e.message);
+    throw e;
+  }
 }
 
 // Bir thread'i okundu işaretle (mevcut kullanıcı için sayacı sıfırla)
@@ -11547,26 +11555,43 @@ function mesajBildirimDurdur() {
 }
 
 // 🔧 DEBUG: Konsoldan bildirim durumunu kontrol et — window.bildirimDurum()
-window.bildirimDurum = function() {
+window.bildirimDurum = async function() {
   console.log("=== BİLDİRİM DEBUG ===");
-  console.log("Giriş yapan:", currentUser?.email);
+  console.log("Giriş yapan (raw):", currentUser?.email);
+  const benimLower = (currentUser?.email || "").toLowerCase();
+  console.log("Lowercase:", benimLower);
   console.log("isAdmin:", isAdmin, "| Rol:", aktifKullaniciRol);
   const veliMi = !(isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif"));
   console.log("Veli mi:", veliMi);
   console.log("Dinleyici aktif mi:", mesajBildirimUnsub ? "EVET" : "HAYIR");
-  console.log("Toplam okunmamış:", mesajBildirimToplam);
-  console.log("Thread listesi uzunluğu:", mesajThreadListesi.length);
-  // Hangi butonlar bulunuyor?
-  const veliBtn = document.querySelector('.veli-menu-item[data-veli-tab="iletisim"]');
-  const persAna = document.querySelector('.tab[data-tab="icerik"]');
-  const persAlt = document.querySelector('[data-icerik-alt="mesajlasma"]');
-  console.log("Veli iletişim butonu:", veliBtn ? "BULUNDU" : "YOK");
-  console.log("Personel içerik sekmesi:", persAna ? "BULUNDU" : "YOK");
-  console.log("Personel mesajlaşma alt-butonu:", persAlt ? "BULUNDU" : "YOK");
-  // Manuel dinleyici başlat
+  console.log("Toplam okunmamış (cache):", mesajBildirimToplam);
+
+  // DB'den TÜM mesaj thread'lerini çek (admin gibi tara) ve eşleşmeyi göster
+  console.log("--- DB'deki thread'ler taranıyor ---");
+  try {
+    const snap = await getDocs(collection(db, "mesajlar"));
+    console.log("Toplam thread sayısı (DB):", snap.size);
+    let i = 0;
+    snap.forEach(d => {
+      i++;
+      const t = d.data();
+      const benKatilimciMiyim = (t.katilimcilar || []).includes(benimLower);
+      console.log(`Thread ${i}:`, {
+        id: d.id,
+        katilimcilar: t.katilimcilar,
+        benKatilimciMiyim: benKatilimciMiyim,
+        okunmamis: t.okunmamis,
+        benimOkunmamisim: t.okunmamis?.[benimLower],
+        sonMesaj: t.sonMesaj
+      });
+    });
+  } catch (e) {
+    console.error("DB tarama hatası:", e.code, e.message);
+  }
+
   console.log("--- Dinleyici yeniden başlatılıyor ---");
   mesajBildirimBaslat();
-  return "Debug tamamlandı. Yukarıdaki çıktıyı kopyala.";
+  return "Debug tamamlandı. Tüm çıktıyı kopyala.";
 };
 
 // Rozeti ilgili menü/sekmeye yerleştir (personel veya veli)
