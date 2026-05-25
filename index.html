@@ -7193,6 +7193,20 @@ html, body {
 }
 .mesaj-gonder-btn:hover { opacity: 0.9; }
 .mesaj-gonder-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.mesaj-atac-btn {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: #f3f4f6; color: #4b5563; border: none;
+  font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.mesaj-atac-btn:hover { background: #e5e7eb; }
+.mesaj-resim-onizleme-img {
+  max-height: 80px; border-radius: 8px; border: 1px solid #e5e7eb;
+}
+.mesaj-balon-resim {
+  max-width: 220px; max-height: 260px; border-radius: 10px; cursor: pointer;
+  display: block; margin-bottom: 4px;
+}
 
 .mesaj-yeni-ogrenci-listesi { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .mesaj-yeni-ogrenci-kart {
@@ -8213,7 +8227,10 @@ html, body {
                 <div class="mesaj-sohbet-govde" id="mesajSohbetGovde">
                   <!-- Mesaj balonları -->
                 </div>
+                <div id="mesajResimOnizleme" style="display:none; padding:8px 12px; border-top:1px solid #e5e7eb; background:#f9fafb;"></div>
                 <div class="mesaj-sohbet-giris">
+                  <input type="file" id="mesajResimInput" accept="image/*" style="display:none;" onchange="mesajResimSecildi(event)">
+                  <button class="mesaj-atac-btn" onclick="document.getElementById('mesajResimInput').click()" title="Resim ekle">📎</button>
                   <textarea id="mesajGirisInput" placeholder="Mesaj yazın..." rows="1" onkeydown="mesajGirisKeydown(event)"></textarea>
                   <button class="mesaj-gonder-btn" onclick="mesajGonderTikla()">➤</button>
                 </div>
@@ -9051,7 +9068,10 @@ html, body {
                 <div class="mesaj-sohbet-govde" id="veliMesajSohbetGovde">
                   <!-- Mesaj balonları -->
                 </div>
+                <div id="veliMesajResimOnizleme" style="display:none; padding:8px 12px; border-top:1px solid #e5e7eb; background:#f9fafb;"></div>
                 <div class="mesaj-sohbet-giris">
+                  <input type="file" id="veliMesajResimInput" accept="image/*" style="display:none;" onchange="veliMesajResimSecildi(event)">
+                  <button class="mesaj-atac-btn" onclick="document.getElementById('veliMesajResimInput').click()" title="Resim ekle">📎</button>
                   <textarea id="veliMesajGirisInput" placeholder="Mesaj yazın..." rows="1" onkeydown="veliMesajGirisKeydown(event)"></textarea>
                   <button class="mesaj-gonder-btn" onclick="veliMesajGonderTikla()">➤</button>
                 </div>
@@ -11451,6 +11471,22 @@ async function medyaCokluYukle(dosyalar, klasor, ilerlemeCb) {
   return sonuclar;
 }
 
+// Mesajdaki resmi tam ekran göster (lightbox) — mobil uyumlu
+window.mesajResimBuyut = function(url) {
+  let lb = document.getElementById("mesajResimLightbox");
+  if (!lb) {
+    lb = document.createElement("div");
+    lb.id = "mesajResimLightbox";
+    lb.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; cursor:zoom-out;";
+    lb.onclick = () => { lb.style.display = "none"; };
+    document.body.appendChild(lb);
+  }
+  lb.innerHTML = `
+    <img src="${url}" style="max-width:100%; max-height:100%; border-radius:8px; object-fit:contain;">
+    <button onclick="document.getElementById('mesajResimLightbox').style.display='none'" style="position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.2); color:white; border:none; width:40px; height:40px; border-radius:50%; font-size:22px; cursor:pointer;">×</button>`;
+  lb.style.display = "flex";
+};
+
 // ============================================================
 // ===== FAZ 3a: MESAJLAŞMA ALTYAPISI =====
 // ============================================================
@@ -11542,9 +11578,10 @@ async function mesajThreadGetirVeyaOlustur(taraflar) {
 }
 
 // Bir thread'e mesaj gönder
-async function mesajGonder(threadId, metin) {
+async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "") {
   const temizMetin = (metin || "").trim();
-  if (!temizMetin) return;
+  // Metin VEYA resim olmalı
+  if (!temizMetin && !resimUrl) return;
   if (!currentUser) return;
 
   const gonderen = currentUser.email.toLowerCase();
@@ -11560,17 +11597,29 @@ async function mesajGonder(threadId, metin) {
   const katilimcilar = thread.katilimcilar || [];
   const karsiTaraf = katilimcilar.find(e => e !== gonderen);
 
-  // Mesajı alt koleksiyona ekle
-  await addDoc(collection(db, "mesajlar", threadId, "messages"), {
+  // Mesaj nesnesi
+  const mesajVeri = {
     gonderen: gonderen,
     metin: temizMetin,
     tarih: serverTimestamp(),
     okuyanlar: { [gonderen]: serverTimestamp() }
-  });
+  };
+  if (resimUrl) {
+    mesajVeri.resimUrl = resimUrl;
+    mesajVeri.resimYol = resimYol; // silme için
+    mesajVeri.tip = "resim";
+  }
 
-  // Thread özetini güncelle (son mesaj + karşı tarafın okunmamış sayacı +1)
+  // Mesajı alt koleksiyona ekle
+  await addDoc(collection(db, "mesajlar", threadId, "messages"), mesajVeri);
+
+  // Thread özetinde gösterilecek son mesaj metni
+  const ozetMetin = temizMetin
+    ? (temizMetin.length > 80 ? temizMetin.slice(0, 80) + "…" : temizMetin)
+    : "📷 Fotoğraf";
+
   const guncelleme = {
-    sonMesaj: temizMetin.length > 80 ? temizMetin.slice(0, 80) + "…" : temizMetin,
+    sonMesaj: ozetMetin,
     sonMesajTarihi: serverTimestamp(),
     sonMesajGonderen: gonderen
   };
@@ -11867,6 +11916,11 @@ function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
   govde.innerHTML = mesajlar.map(m => {
     const gonderenLower = (m.gonderen || "").toLowerCase();
     const tarih = mesajTarihFormat(m.tarih);
+    // Resim varsa balon içeriği
+    const resimHtml = m.resimUrl
+      ? `<img src="${m.resimUrl}?width=400" class="mesaj-balon-resim" onclick="mesajResimBuyut('${m.resimUrl}')" loading="lazy">`
+      : "";
+    const metinHtml = m.metin ? escapeHtmlGelisim(m.metin) : "";
 
     if (gozetimciMiyim) {
       // Gözetimci: tüm mesajları gönderen adıyla göster
@@ -11874,7 +11928,8 @@ function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
       return `
         <div class="mesaj-balon gelen" style="max-width:85%;">
           <div class="mesaj-gonderen-etiket">${escapeHtmlGelisim(gonderenAd)}</div>
-          ${escapeHtmlGelisim(m.metin || "")}
+          ${resimHtml}
+          ${metinHtml}
           <div class="mesaj-balon-meta">${tarih}</div>
         </div>`;
     }
@@ -11882,7 +11937,8 @@ function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
     const benMiGonderdim = gonderenLower === benim;
     return `
       <div class="mesaj-balon ${benMiGonderdim ? 'giden' : 'gelen'}">
-        ${escapeHtmlGelisim(m.metin || "")}
+        ${resimHtml}
+        ${metinHtml}
         <div class="mesaj-balon-meta">${tarih}</div>
       </div>`;
   }).join("");
@@ -11892,20 +11948,69 @@ function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
 }
 
 // Mesaj gönder butonu
+// Personel: seçilen resim (gönderilmeyi bekleyen)
+let mesajSeciliResim = null;
+
+window.mesajResimSecildi = function(event) {
+  const dosya = event.target.files[0];
+  if (!dosya) return;
+  const dogrula = medyaDogrula(dosya, true);
+  if (!dogrula.gecerli) { showToast(dogrula.hata, "error"); event.target.value = ""; return; }
+  mesajSeciliResim = dosya;
+  // Önizleme göster
+  const onizleme = document.getElementById("mesajResimOnizleme");
+  const url = URL.createObjectURL(dosya);
+  onizleme.style.display = "flex";
+  onizleme.style.alignItems = "center";
+  onizleme.style.gap = "10px";
+  onizleme.innerHTML = `
+    <img src="${url}" class="mesaj-resim-onizleme-img">
+    <span style="font-size:12px; color:#6b7280; flex:1;">${escapeHtmlGelisim(dosya.name)}</span>
+    <button onclick="mesajResimIptal()" style="background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer;">İptal</button>`;
+  event.target.value = "";
+};
+
+window.mesajResimIptal = function() {
+  mesajSeciliResim = null;
+  const onizleme = document.getElementById("mesajResimOnizleme");
+  onizleme.style.display = "none";
+  onizleme.innerHTML = "";
+};
+
 window.mesajGonderTikla = async function() {
   const input = document.getElementById("mesajGirisInput");
   if (!input || !mesajAktifThread) return;
   const metin = input.value.trim();
-  if (!metin) return;
+  // Metin yoksa ve resim de yoksa çık
+  if (!metin && !mesajSeciliResim) return;
 
+  const gonderilecekResim = mesajSeciliResim;
+  const eskiMetin = metin;
+  const gonderBtn = document.querySelector("#mesajSohbetAktif .mesaj-gonder-btn");
+
+  // UI temizle (iyimser)
   input.value = "";
   input.style.height = "auto";
+  if (gonderBtn) gonderBtn.disabled = true;
+
   try {
-    await mesajGonder(mesajAktifThread.id, metin);
+    let resimUrl = "", resimYol = "";
+    if (gonderilecekResim) {
+      const onizleme = document.getElementById("mesajResimOnizleme");
+      if (onizleme) onizleme.innerHTML = `<span style="font-size:12px; color:#2563eb;">⏳ Resim yükleniyor...</span>`;
+      const sikistirilmis = await resimSikistir(gonderilecekResim, 1600, 0.85);
+      const sonuc = await medyaYukle(sikistirilmis, "mesaj/" + mesajAktifThread.id);
+      resimUrl = sonuc.url;
+      resimYol = sonuc.yol;
+      mesajResimIptal();
+    }
+    await mesajGonder(mesajAktifThread.id, eskiMetin, resimUrl, resimYol);
   } catch (e) {
     console.error("Mesaj gönderme hatası:", e);
     showToast("Mesaj gönderilemedi: " + e.message, "error");
-    input.value = metin; // Geri yükle
+    input.value = eskiMetin; // Geri yükle
+  } finally {
+    if (gonderBtn) gonderBtn.disabled = false;
   }
 };
 
@@ -12886,9 +12991,14 @@ function veliMesajBalonlariRender(mesajlar, benim) {
     const gonderenLower = (m.gonderen || "").toLowerCase();
     const benMiGonderdim = gonderenLower === benim;
     const tarih = mesajTarihFormat(m.tarih);
+    const resimHtml = m.resimUrl
+      ? `<img src="${m.resimUrl}?width=400" class="mesaj-balon-resim" onclick="mesajResimBuyut('${m.resimUrl}')" loading="lazy">`
+      : "";
+    const metinHtml = m.metin ? escapeHtmlGelisim(m.metin) : "";
     return `
       <div class="mesaj-balon ${benMiGonderdim ? 'giden' : 'gelen'}">
-        ${escapeHtmlGelisim(m.metin || "")}
+        ${resimHtml}
+        ${metinHtml}
         <div class="mesaj-balon-meta">${tarih}</div>
       </div>`;
   }).join("");
@@ -12896,20 +13006,66 @@ function veliMesajBalonlariRender(mesajlar, benim) {
   setTimeout(() => { govde.scrollTop = govde.scrollHeight; }, 50);
 }
 
+// Veli: seçilen resim (gönderilmeyi bekleyen)
+let veliMesajSeciliResim = null;
+
+window.veliMesajResimSecildi = function(event) {
+  const dosya = event.target.files[0];
+  if (!dosya) return;
+  const dogrula = medyaDogrula(dosya, true);
+  if (!dogrula.gecerli) { showToast(dogrula.hata, "error"); event.target.value = ""; return; }
+  veliMesajSeciliResim = dosya;
+  const onizleme = document.getElementById("veliMesajResimOnizleme");
+  const url = URL.createObjectURL(dosya);
+  onizleme.style.display = "flex";
+  onizleme.style.alignItems = "center";
+  onizleme.style.gap = "10px";
+  onizleme.innerHTML = `
+    <img src="${url}" class="mesaj-resim-onizleme-img">
+    <span style="font-size:12px; color:#6b7280; flex:1;">${escapeHtmlGelisim(dosya.name)}</span>
+    <button onclick="veliMesajResimIptal()" style="background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer;">İptal</button>`;
+  event.target.value = "";
+};
+
+window.veliMesajResimIptal = function() {
+  veliMesajSeciliResim = null;
+  const onizleme = document.getElementById("veliMesajResimOnizleme");
+  onizleme.style.display = "none";
+  onizleme.innerHTML = "";
+};
+
 window.veliMesajGonderTikla = async function() {
   const input = document.getElementById("veliMesajGirisInput");
   if (!input || !veliMesajAktifThread) return;
   const metin = input.value.trim();
-  if (!metin) return;
+  if (!metin && !veliMesajSeciliResim) return;
+
+  const gonderilecekResim = veliMesajSeciliResim;
+  const eskiMetin = metin;
+  const gonderBtn = document.querySelector("#veliMesajSohbetAktif .mesaj-gonder-btn");
 
   input.value = "";
   input.style.height = "auto";
+  if (gonderBtn) gonderBtn.disabled = true;
+
   try {
-    await mesajGonder(veliMesajAktifThread.id, metin);
+    let resimUrl = "", resimYol = "";
+    if (gonderilecekResim) {
+      const onizleme = document.getElementById("veliMesajResimOnizleme");
+      if (onizleme) onizleme.innerHTML = `<span style="font-size:12px; color:#2563eb;">⏳ Resim yükleniyor...</span>`;
+      const sikistirilmis = await resimSikistir(gonderilecekResim, 1600, 0.85);
+      const sonuc = await medyaYukle(sikistirilmis, "mesaj/" + veliMesajAktifThread.id);
+      resimUrl = sonuc.url;
+      resimYol = sonuc.yol;
+      veliMesajResimIptal();
+    }
+    await mesajGonder(veliMesajAktifThread.id, eskiMetin, resimUrl, resimYol);
   } catch (e) {
     console.error("Veli mesaj gönderme hatası:", e);
     showToast("Mesaj gönderilemedi: " + e.message, "error");
-    input.value = metin;
+    input.value = eskiMetin;
+  } finally {
+    if (gonderBtn) gonderBtn.disabled = false;
   }
 };
 
