@@ -8505,7 +8505,7 @@ html, body {
             <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#6b21a8; margin-bottom:6px;">Dosyaları Buraya Sürükleyin</div>
             <div style="font-size:13px; color:#7c3aed;">veya tıklayıp seçin</div>
             <div style="font-size:11px; color:#a855f7; margin-top:10px;">JPG, PNG, MP4, MOV desteklenir · Max 500MB/dosya</div>
-            <input type="file" id="galeriFileInput" multiple accept="image/*,video/*" style="display:none;" onchange="galeriDosyalarSecildi(event)">
+            <input type="file" id="galeriFileInput" multiple accept="image/*" style="display:none;" onchange="galeriDosyalarSecildi(event)">
           </div>
 
           <!-- Seçilen Dosya Listesi -->
@@ -8764,15 +8764,6 @@ html, body {
 
     <!-- ============ PERSONEL YÖNETİMİ TAB ============ -->
     <div class="tab-panel" id="tab-personel">
-
-      <!-- 🧪 GEÇİCİ MEDYA TEST (Faz 4a doğrulama — sonra silinecek) -->
-      <div style="background:#fef9c3; border:2px dashed #facc15; border-radius:12px; padding:16px; margin:16px 0;">
-        <div style="font-weight:700; color:#92400e; margin-bottom:8px;">🧪 Medya Yükleme Testi (geçici)</div>
-        <div style="font-size:13px; color:#78350f; margin-bottom:10px;">Bir resim seç → Bunny'ye yüklensin → CDN linki görünsün. Bu kutu test sonrası kaldırılacak.</div>
-        <input type="file" id="medyaTestInput" accept="image/*" style="margin-bottom:10px;">
-        <button class="btn-primary" onclick="medyaTestYukle()" style="background:#16a34a;">🚀 Test Yükle</button>
-        <div id="medyaTestSonuc" style="margin-top:12px; font-size:13px;"></div>
-      </div>
 
       <!-- HERO -->
       <div class="personel-hero">
@@ -11343,29 +11334,6 @@ window.personelSil = async function(email) {
   } catch (e) {
     console.error("personelSil hatası:", e);
     showToast("Silinemedi: " + e.message, "error");
-  }
-};
-
-// 🧪 GEÇİCİ TEST: Medya yüklemeyi dene (Faz 4a doğrulama)
-window.medyaTestYukle = async function() {
-  const input = document.getElementById("medyaTestInput");
-  const sonucEl = document.getElementById("medyaTestSonuc");
-  if (!input.files || input.files.length === 0) {
-    sonucEl.innerHTML = `<span style="color:#dc2626;">Önce bir resim seçin.</span>`;
-    return;
-  }
-  const dosya = input.files[0];
-  sonucEl.innerHTML = `<span style="color:#2563eb;">⏳ Yükleniyor... (${dosya.name})</span>`;
-  try {
-    const r = await medyaYukle(dosya, "test");
-    sonucEl.innerHTML = `
-      <div style="color:#15803d; font-weight:700;">✅ Başarılı!</div>
-      <div style="margin-top:6px;">CDN URL: <a href="${r.url}" target="_blank" style="color:#2563eb; word-break:break-all;">${r.url}</a></div>
-      <div style="margin-top:8px;"><img src="${r.url}" style="max-width:200px; border-radius:8px; border:1px solid #e5e7eb;"></div>
-      <div style="margin-top:6px; font-size:11px; color:#9ca3af;">Silme yolu: ${r.yol}</div>`;
-  } catch (e) {
-    sonucEl.innerHTML = `<div style="color:#dc2626; font-weight:700;">❌ Hata: ${e.message}</div>`;
-    console.error("Medya test hatası:", e);
   }
 };
 
@@ -19574,33 +19542,30 @@ window.galeriYukle = async function() {
       };
 
       if (f.type.startsWith("video/")) {
-        // VİDEO
-        document.getElementById("galeriYuklemeDurum").textContent = `${f.name} (video yükleniyor...)`;
-        const videoData = await bunnyUploadVideo(f, `${etkinlik}-${i+1}`, (prog) => {
-          const toplam = ((i + prog / 100) / galeriSecilenDosyalar.length) * 100;
-          document.getElementById("galeriYuklemeBar").style.width = `${toplam}%`;
-        });
-        oge.dosyaTipi = "video";
-        oge.bunnyVideoId = videoData.videoGuid;
-        oge.bunnyUrl = videoData.embedUrl;
-        oge.kucukResim = videoData.thumbnailUrl;
-        oge.playUrl = videoData.playUrl;
-        oge.mp4Url = videoData.mp4FallbackUrl;
+        // VİDEO - henüz aktif değil (sonraki fazda güvenli Stream proxy ile gelecek)
+        showToast("Video yükleme yakında eklenecek. Şimdilik sadece fotoğraf.", "warn");
+        hatali++;
+        continue;
       } else if (f.type.startsWith("image/")) {
-        // FOTOĞRAF - sıkıştır ve yükle
+        // FOTOĞRAF - sıkıştır ve GÜVENLİ proxy üzerinden yükle (medya.js)
         const sikistirilmis = await resimSikistir(f, 1920, 0.85);
-        const dosyaAdi = `${Date.now()}-${i+1}.jpg`;
-        const tamPath = `${klasorPath}/${dosyaAdi}`;
-        const cdnUrl = await bunnyUploadPhoto(sikistirilmis, tamPath);
+        // medyaYukle proxy'ye gönderir, API key tarayıcıda görünmez
+        const sonuc = await medyaYukle(sikistirilmis, klasorPath);
         oge.dosyaTipi = "foto";
-        oge.bunnyUrl = cdnUrl;
-        oge.kucukResim = cdnUrl; // fotoğraf için aynı
-        oge.bunnyPath = tamPath;
+        oge.bunnyUrl = sonuc.url;
+        oge.kucukResim = sonuc.url; // fotoğraf için aynı (thumbnail Bunny ?width ile)
+        oge.bunnyPath = sonuc.yol;
         oge.dosyaBoyutu = sikistirilmis.size;
       } else {
         hatali++;
         continue;
       }
+
+      // FAZ 4b: Medya onay sistemi — yüklenen her medya önce ONAY BEKLER
+      // Müdür/Kurucu Müdür onaylayana kadar veli göremez (çocuk fotoğrafı güvenliği)
+      oge.durum = "onayBekliyor";
+      oge.onaylayanEmail = "";
+      oge.onayTarihi = "";
 
       // Firestore'a metadata kaydet
       const ref = doc(collection(db, "galeri"));
