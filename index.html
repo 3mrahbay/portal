@@ -8765,6 +8765,15 @@ html, body {
     <!-- ============ PERSONEL YÖNETİMİ TAB ============ -->
     <div class="tab-panel" id="tab-personel">
 
+      <!-- 🧪 GEÇİCİ MEDYA TEST (Faz 4a doğrulama — sonra silinecek) -->
+      <div style="background:#fef9c3; border:2px dashed #facc15; border-radius:12px; padding:16px; margin:16px 0;">
+        <div style="font-weight:700; color:#92400e; margin-bottom:8px;">🧪 Medya Yükleme Testi (geçici)</div>
+        <div style="font-size:13px; color:#78350f; margin-bottom:10px;">Bir resim seç → Bunny'ye yüklensin → CDN linki görünsün. Bu kutu test sonrası kaldırılacak.</div>
+        <input type="file" id="medyaTestInput" accept="image/*" style="margin-bottom:10px;">
+        <button class="btn-primary" onclick="medyaTestYukle()" style="background:#16a34a;">🚀 Test Yükle</button>
+        <div id="medyaTestSonuc" style="margin-top:12px; font-size:13px;"></div>
+      </div>
+
       <!-- HERO -->
       <div class="personel-hero">
         <div class="personel-hero-ikon">🧑‍🏫</div>
@@ -11336,6 +11345,143 @@ window.personelSil = async function(email) {
     showToast("Silinemedi: " + e.message, "error");
   }
 };
+
+// 🧪 GEÇİCİ TEST: Medya yüklemeyi dene (Faz 4a doğrulama)
+window.medyaTestYukle = async function() {
+  const input = document.getElementById("medyaTestInput");
+  const sonucEl = document.getElementById("medyaTestSonuc");
+  if (!input.files || input.files.length === 0) {
+    sonucEl.innerHTML = `<span style="color:#dc2626;">Önce bir resim seçin.</span>`;
+    return;
+  }
+  const dosya = input.files[0];
+  sonucEl.innerHTML = `<span style="color:#2563eb;">⏳ Yükleniyor... (${dosya.name})</span>`;
+  try {
+    const r = await medyaYukle(dosya, "test");
+    sonucEl.innerHTML = `
+      <div style="color:#15803d; font-weight:700;">✅ Başarılı!</div>
+      <div style="margin-top:6px;">CDN URL: <a href="${r.url}" target="_blank" style="color:#2563eb; word-break:break-all;">${r.url}</a></div>
+      <div style="margin-top:8px;"><img src="${r.url}" style="max-width:200px; border-radius:8px; border:1px solid #e5e7eb;"></div>
+      <div style="margin-top:6px; font-size:11px; color:#9ca3af;">Silme yolu: ${r.yol}</div>`;
+  } catch (e) {
+    sonucEl.innerHTML = `<div style="color:#dc2626; font-weight:700;">❌ Hata: ${e.message}</div>`;
+    console.error("Medya test hatası:", e);
+  }
+};
+
+// ============================================================
+// ===== FAZ 4a: MEDYA SOYUTLAMA KATMANI (medya.js) =====
+// ============================================================
+// Tüm medya işlemleri (yükleme/silme) bu katmandan geçer.
+// Bunny.net detayı burada gizli — ileride başka servise geçilirse
+// sadece bu blok değişir, çağıran kodlar aynı kalır.
+//
+// GÜVENLİK: Bunny API key TARAYICIDA YOK. Yükleme Apps Script
+// proxy üzerinden yapılır (BCKA-Medya). API key sadece orada.
+
+const MEDYA_AYAR = {
+  // BCKA-Medya Apps Script proxy URL'si
+  PROXY_URL: "https://script.google.com/macros/s/AKfycbxEXHfPKjOdZUPSiyYB6W-n5y883sWFgBeIJC90GX1JZSiFFb2yYn7-nnwT0OOywD5F/exec",
+  // Apps Script'teki PAYLASIM_ANAHTARI ile AYNI olmalı
+  PAYLASIM_ANAHTARI: "bckMedya2026_g7Hk9pQ2xM",
+  // İzin verilen dosya türleri (resim — video sonraki fazda)
+  IZINLI_RESIM: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+  // Maksimum dosya boyutu (MB)
+  MAKS_BOYUT_MB: 10
+};
+
+// Bir dosyayı base64'e çevir (proxy'ye göndermek için)
+function medyaDosyaBase64(dosya) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // "data:image/jpeg;base64,XXXX" → sadece XXXX kısmını al
+      const sonuc = reader.result;
+      const base64 = sonuc.includes(",") ? sonuc.split(",")[1] : sonuc;
+      resolve(base64);
+    };
+    reader.onerror = () => reject(new Error("Dosya okunamadı"));
+    reader.readAsDataURL(dosya);
+  });
+}
+
+// Dosya doğrulama (tür + boyut)
+function medyaDogrula(dosya, sadeceResim = true) {
+  if (!dosya) return { gecerli: false, hata: "Dosya yok" };
+  if (sadeceResim && !MEDYA_AYAR.IZINLI_RESIM.includes(dosya.type)) {
+    return { gecerli: false, hata: "Sadece resim yüklenebilir (JPG, PNG, WEBP, GIF)" };
+  }
+  const boyutMB = dosya.size / (1024 * 1024);
+  if (boyutMB > MEDYA_AYAR.MAKS_BOYUT_MB) {
+    return { gecerli: false, hata: `Dosya çok büyük (${boyutMB.toFixed(1)} MB). En fazla ${MEDYA_AYAR.MAKS_BOYUT_MB} MB.` };
+  }
+  return { gecerli: true };
+}
+
+/**
+ * Medya yükle — proxy üzerinden Bunny'ye.
+ * @param {File} dosya - yüklenecek dosya
+ * @param {string} klasor - hedef klasör (örn: "galeri/2026-05", "mesaj")
+ * @returns {Promise<{url, yol}>} - CDN URL ve silme için yol
+ */
+async function medyaYukle(dosya, klasor = "genel") {
+  const dogrula = medyaDogrula(dosya, true);
+  if (!dogrula.gecerli) throw new Error(dogrula.hata);
+
+  const base64 = await medyaDosyaBase64(dosya);
+
+  const res = await fetch(MEDYA_AYAR.PROXY_URL, {
+    method: "POST",
+    // Apps Script CORS: basit istek için text/plain kullan (preflight'ı önler)
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      anahtar: MEDYA_AYAR.PAYLASIM_ANAHTARI,
+      islem: "yukle",
+      dosyaAdi: dosya.name,
+      klasor: klasor,
+      icerikBase64: base64
+    })
+  });
+
+  const sonuc = await res.json();
+  if (!sonuc.ok) throw new Error(sonuc.hata || "Yükleme başarısız");
+  return { url: sonuc.url, yol: sonuc.yol };
+}
+
+/**
+ * Medya sil — proxy üzerinden Bunny'den.
+ * @param {string} yol - yükleme sırasında dönen "yol" değeri
+ */
+async function medyaSil(yol) {
+  if (!yol) throw new Error("Silinecek yol belirtilmedi");
+  const res = await fetch(MEDYA_AYAR.PROXY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      anahtar: MEDYA_AYAR.PAYLASIM_ANAHTARI,
+      islem: "sil",
+      yol: yol
+    })
+  });
+  const sonuc = await res.json();
+  if (!sonuc.ok) throw new Error(sonuc.hata || "Silme başarısız");
+  return true;
+}
+
+// Birden fazla dosyayı sırayla yükle (ilerleme callback'i ile)
+async function medyaCokluYukle(dosyalar, klasor, ilerlemeCb) {
+  const sonuclar = [];
+  for (let i = 0; i < dosyalar.length; i++) {
+    if (ilerlemeCb) ilerlemeCb(i + 1, dosyalar.length, dosyalar[i].name);
+    try {
+      const r = await medyaYukle(dosyalar[i], klasor);
+      sonuclar.push({ basarili: true, ...r, dosyaAdi: dosyalar[i].name });
+    } catch (e) {
+      sonuclar.push({ basarili: false, hata: e.message, dosyaAdi: dosyalar[i].name });
+    }
+  }
+  return sonuclar;
+}
 
 // ============================================================
 // ===== FAZ 3a: MESAJLAŞMA ALTYAPISI =====
