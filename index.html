@@ -8100,7 +8100,7 @@ html, body {
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn-mini" data-galeri-filter="tumu" onclick="galeriFilter('tumu')" style="background:#9333ea; border:none; color:white;">📁 Tümü</button>
               <button class="btn-mini" data-galeri-filter="foto" onclick="galeriFilter('foto')">🖼 Fotoğraflar</button>
-              <button class="btn-mini" data-galeri-filter="video" onclick="galeriFilter('video')">🎥 Videolar</button>
+              <button class="btn-mini" data-galeri-filter="onayBekliyor" onclick="galeriFilter('onayBekliyor')" id="galeriOnayFiltreBtn" style="display:none;">⏳ Onay Bekleyenler <span id="galeriOnayBekleyenRozet" style="background:#f59e0b; color:white; border-radius:9px; padding:0 6px; font-size:11px; margin-left:2px; display:none;">0</span></button>
             </div>
             <button class="btn-primary" onclick="openGaleriYuklemeModal()" style="background:#9333ea; border:none; color:white;">+ Yükleme</button>
           </div>
@@ -19239,14 +19239,67 @@ async function loadGaleri() {
   }
 }
 
+// ===== FAZ 4b: GALERİ MEDYA ONAY (sadece Müdür/Kurucu Müdür) =====
+window.galeriOnayla = async function(id) {
+  const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
+  if (!yonetimMi) { showToast("Onay yetkiniz yok", "error"); return; }
+  try {
+    await updateDoc(doc(db, "galeri", id), {
+      durum: "onaylandi",
+      onaylayanEmail: currentUser.email,
+      onayTarihi: new Date().toISOString()
+    });
+    showToast("✓ Fotoğraf onaylandı, veliler görebilir");
+    await renderGaleri();
+  } catch (e) {
+    console.error("Onaylama hatası:", e);
+    showToast("Onaylanamadı: " + e.message, "error");
+  }
+};
+
+window.galeriReddet = async function(id) {
+  const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
+  if (!yonetimMi) { showToast("Yetkiniz yok", "error"); return; }
+  if (!confirm("Bu fotoğraf reddedilecek. Veliler göremeyecek. Onaylıyor musunuz?")) return;
+  try {
+    await updateDoc(doc(db, "galeri", id), {
+      durum: "reddedildi",
+      onaylayanEmail: currentUser.email,
+      onayTarihi: new Date().toISOString()
+    });
+    showToast("Fotoğraf reddedildi");
+    await renderGaleri();
+  } catch (e) {
+    console.error("Reddetme hatası:", e);
+    showToast("İşlem başarısız: " + e.message, "error");
+  }
+};
+
+// Onay bekleyen medya sayısı (rozet için)
+function galeriOnayBekleyenSayisi() {
+  return (galeriListesiVerisi || []).filter(g => (g.durum || "onaylandi") === "onayBekliyor").length;
+}
+
 async function renderGaleri() {
   const el = document.getElementById("galeriListesi");
   if (!el) return;
   await loadGaleri();
 
+  // Yönetim ise onay filtre butonunu + rozeti göster
+  const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
+  const onayBtn = document.getElementById("galeriOnayFiltreBtn");
+  if (onayBtn) onayBtn.style.display = yonetimMi ? "" : "none";
+  const bekleyenSayi = galeriOnayBekleyenSayisi();
+  const rozet = document.getElementById("galeriOnayBekleyenRozet");
+  if (rozet) {
+    rozet.textContent = bekleyenSayi;
+    rozet.style.display = bekleyenSayi > 0 ? "" : "none";
+  }
+
   let liste = [...galeriListesiVerisi];
   if (aktifGaleriFilter === "foto") liste = liste.filter(g => g.dosyaTipi === "foto");
   else if (aktifGaleriFilter === "video") liste = liste.filter(g => g.dosyaTipi === "video");
+  else if (aktifGaleriFilter === "onayBekliyor") liste = liste.filter(g => (g.durum || "onaylandi") === "onayBekliyor");
 
   // Etkinlik/album bazında grupla
   const gruplar = {};
@@ -19312,16 +19365,48 @@ async function renderGaleri() {
 
     for (const d of grup.dosyalar) {
       const previewUrl = d.dosyaTipi === "video" ? d.kucukResim : d.bunnyUrl;
+      // FAZ 4b: Onay durumu
+      const durum = d.durum || "onaylandi"; // eski kayıtlar onaylı sayılır
+      const onayliMi = durum === "onaylandi";
+      const reddedildiMi = durum === "reddedildi";
+      // Yönetim mi? (onaylama yetkisi)
+      const yonetimMi = (typeof isAdmin !== "undefined" && isAdmin) ||
+                        (typeof aktifKullaniciRol !== "undefined" && ["kurucu_mudur","mudur"].includes(aktifKullaniciRol));
+      // Küçük önizleme için Bunny resize (mobil veri tasarrufu)
+      const thumbUrl = (d.dosyaTipi === "foto" && d.bunnyUrl) ? d.bunnyUrl + "?width=400" : previewUrl;
+
+      // Durum rozeti (sadece onaylı değilse göster)
+      let durumRozet = "";
+      if (durum === "onayBekliyor") {
+        durumRozet = `<div style="position:absolute; top:6px; right:6px; background:#f59e0b; color:white; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700;">⏳ Onay Bekliyor</div>`;
+      } else if (reddedildiMi) {
+        durumRozet = `<div style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700;">✕ Reddedildi</div>`;
+      }
+
+      // Müdür onay butonları (sadece onay bekleyenlerde + yönetim görür)
+      let onayButonlari = "";
+      if (durum === "onayBekliyor" && yonetimMi) {
+        onayButonlari = `
+          <div style="position:absolute; bottom:0; left:0; right:0; display:flex; gap:4px; padding:6px; background:rgba(0,0,0,0.55);">
+            <button onclick="event.stopPropagation(); galeriOnayla('${d.id}')" style="flex:1; padding:8px; background:#16a34a; color:white; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">✓ Onayla</button>
+            <button onclick="event.stopPropagation(); galeriReddet('${d.id}')" style="flex:1; padding:8px; background:#dc2626; color:white; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">✕ Reddet</button>
+          </div>`;
+      }
+
+      // Onaylanmamışsa hafif soluk göster (personel görünümünde)
+      const opacity = onayliMi ? "1" : "0.92";
+
       html += `
-        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:10px; overflow:hidden; cursor:pointer;" onclick="acGaleriLightbox('${d.id}')">
+        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:10px; overflow:hidden; cursor:pointer; opacity:${opacity}; ${durum==='onayBekliyor'?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626;':''}" onclick="acGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video" ?
             `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
              <div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center; font-size:24px;">🎥</div>
-             <div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.6); color:white; padding:3px 8px; border-radius:6px; font-size:10px;">🎥 Video</div>
              <div style="position:absolute; inset:0; background:rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center;"><div style="background:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;">▶</div></div>`
             :
-            `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:cover;" loading="lazy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCBmaWxsPSIjZjNmNGY2IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+TuDwvdGV4dD48L3N2Zz4='">`
+            `<img src="${thumbUrl}" style="width:100%; height:100%; object-fit:cover;" loading="lazy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCBmaWxsPSIjZjNmNGY2IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+TuDwvdGV4dD48L3N2Zz4='">`
           }
+          ${durumRozet}
+          ${onayButonlari}
           <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:11px; opacity:0; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" class="galeri-sil-btn">🗑</button>
         </div>
       `;
@@ -20098,6 +20183,10 @@ async function veliRenderGaleri() {
 
     // Kendi erişebildiği galerileri filtrele
     veliGaleriVerisi = tumu.filter(g => {
+      // FAZ 4b: Veli SADECE onaylanmış medyayı görür (çocuk fotoğrafı güvenliği)
+      const durum = g.durum || "onaylandi"; // eski kayıtlar onaylı sayılır
+      if (durum !== "onaylandi") return false;
+      // Erişim: tüm okul / kendi sınıfı / kendi çocuğu
       if (g.hedefTur === "tumOkul") return true;
       if (g.hedefTur === "sinif" && veliSiniflari.has(g.hedefDeger)) return true;
       if (g.hedefTur === "ogrenci" && veliOgrenciIds.has(g.hedefDeger)) return true;
