@@ -7072,6 +7072,39 @@ html, body {
   .personel-durum-sekmeleri { justify-content: center; }
 }
 
+/* ===== ÖZELLİK YÖNETİMİ (Feature Flags) ===== */
+.ozellik-yonetim-kart {
+  background: white; border: 1px solid #e5e7eb; border-radius: 14px;
+  padding: 20px; margin-top: 24px;
+}
+.ozellik-yonetim-baslik { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.ozellik-yonetim-baslik h3 { margin: 0; font-size: 16px; color: #1f2937; }
+.ozellik-yonetim-baslik p { margin: 3px 0 0; font-size: 12.5px; color: #6b7280; line-height: 1.5; }
+.ozellik-listesi { display: flex; flex-direction: column; gap: 10px; }
+.ozellik-satir {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 14px 16px; background: #f9fafb; border: 1px solid #f1f5f9; border-radius: 12px;
+}
+.ozellik-satir-metin { flex: 1; min-width: 0; }
+.ozellik-satir-ad { font-size: 14px; font-weight: 600; color: #1f2937; }
+.ozellik-satir-aciklama { font-size: 12px; color: #6b7280; margin-top: 2px; line-height: 1.4; }
+/* Toggle switch — dokunmatik uyumlu */
+.ozellik-toggle {
+  position: relative; width: 52px; height: 30px; flex-shrink: 0;
+  background: #d1d5db; border-radius: 99px; cursor: pointer; transition: background 0.2s; border: none;
+}
+.ozellik-toggle.acik { background: #16a34a; }
+.ozellik-toggle::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 24px; height: 24px; background: white; border-radius: 50%;
+  transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.ozellik-toggle.acik::after { transform: translateX(22px); }
+.ozellik-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 640px) {
+  .ozellik-satir { padding: 12px; }
+}
+
 /* ============ MESAJLAŞMA ============ */
 .mesaj-konteyner {
   display: flex;
@@ -8808,6 +8841,20 @@ html, body {
       <!-- PERSONEL LİSTESİ -->
       <div id="personelListe" class="personel-liste">
         <div style="padding:40px; text-align:center; color:#9ca3af;">Yükleniyor...</div>
+      </div>
+
+      <!-- ÖZELLİK YÖNETİMİ (SaaS feature flags) -->
+      <div class="ozellik-yonetim-kart">
+        <div class="ozellik-yonetim-baslik">
+          <span style="font-size:22px;">⚙️</span>
+          <div>
+            <h3>Özellik Yönetimi</h3>
+            <p>Sistemdeki özellikleri açıp kapatın. Kapatılan özellikler tüm kullanıcılardan gizlenir.</p>
+          </div>
+        </div>
+        <div id="ozellikListesi" class="ozellik-listesi">
+          <!-- Özellik anahtarları JS ile gelir -->
+        </div>
       </div>
 
     </div>
@@ -10997,6 +11044,7 @@ async function loadPersoneller() {
     });
 
     personelListele();
+    ozellikYonetimRender(); // Özellik Yönetimi kartını da doldur
   } catch (e) {
     console.error("loadPersoneller hatası:", e);
     if (liste) liste.innerHTML = `<div style="padding:30px; text-align:center; color:#dc2626;">Personel verileri yüklenemedi: ${e.message}</div>`;
@@ -11354,6 +11402,114 @@ window.personelSil = async function(email) {
   } catch (e) {
     console.error("personelSil hatası:", e);
     showToast("Silinemedi: " + e.message, "error");
+  }
+};
+
+// ============================================================
+// ===== ÖZELLİK BAYRAKLARI (Feature Flags) — SaaS =====
+// ============================================================
+// Farklı okullar farklı özellik isteyebilir. Tüm açılıp-kapanabilir
+// özellikler burada toplanır. Kurucu Müdür/Müdür yönetir.
+// Firestore: config/ozellikBayraklari
+
+// Varsayılan değerler (Firestore'da kayıt yoksa bunlar geçerli)
+const OZELLIK_VARSAYILAN = {
+  mesajResimEkleme: true,   // Mesajlaşmada resim gönderme
+  galeriVideo: false        // Galeri video (henüz hazır değil)
+  // Gelecekte: okulZili, girisCikisOnay, anketModulu, vb.
+};
+
+// Özellik etiketleri (yönetim ekranında gösterilecek açıklamalar)
+const OZELLIK_ETIKETLERI = {
+  mesajResimEkleme: { ad: "Mesajda Resim Ekleme", aciklama: "Veli ve personel mesajlaşmada fotoğraf gönderebilir." },
+  galeriVideo: { ad: "Galeride Video", aciklama: "Galeriye video yükleme (yakında)." }
+};
+
+let ozellikBayraklari = { ...OZELLIK_VARSAYILAN };
+
+// Bayrakları Firestore'dan yükle (giriş anında çağrılır)
+async function ozellikBayraklariYukle() {
+  try {
+    const snap = await getDoc(doc(db, "config", "ozellikBayraklari"));
+    if (snap.exists()) {
+      // Varsayılanların üzerine Firestore değerlerini yaz
+      ozellikBayraklari = { ...OZELLIK_VARSAYILAN, ...snap.data() };
+    } else {
+      ozellikBayraklari = { ...OZELLIK_VARSAYILAN };
+    }
+  } catch (e) {
+    console.warn("Özellik bayrakları yüklenemedi, varsayılan kullanılıyor:", e.code || e.message);
+    ozellikBayraklari = { ...OZELLIK_VARSAYILAN };
+  }
+  return ozellikBayraklari;
+}
+
+// Bir özellik aktif mi? (her yerde kontrol için)
+function ozellikAktif(anahtar) {
+  return ozellikBayraklari[anahtar] === true;
+}
+
+// Bir özelliği aç/kapat (sadece yönetim) — Firestore'a yazar
+async function ozellikBayragiDegistir(anahtar, deger) {
+  const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
+  if (!yonetimMi) { showToast("Özellik yönetimi yetkiniz yok", "error"); return false; }
+  try {
+    await setDoc(doc(db, "config", "ozellikBayraklari"), { [anahtar]: deger }, { merge: true });
+    ozellikBayraklari[anahtar] = deger;
+    return true;
+  } catch (e) {
+    console.error("Özellik değiştirme hatası:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+    return false;
+  }
+}
+
+// Aktif özelliklere göre arayüzü güncelle (giriş sonrası + değişiklikte çağrılır)
+function ozellikleriArayuzeUygula() {
+  // Mesaj resim ekleme butonları (personel + veli)
+  const goster = ozellikAktif("mesajResimEkleme");
+  document.querySelectorAll(".mesaj-atac-btn").forEach(btn => {
+    btn.style.display = goster ? "" : "none";
+  });
+}
+
+// Özellik Yönetimi ekranını render et (Personel sekmesinde)
+function ozellikYonetimRender() {
+  const el = document.getElementById("ozellikListesi");
+  if (!el) return;
+  const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
+  if (!yonetimMi) { el.innerHTML = ""; return; }
+
+  // Yönetilebilir özellikler (galeriVideo henüz hazır değil — şimdilik gizli)
+  const yonetilebilir = ["mesajResimEkleme"];
+
+  el.innerHTML = yonetilebilir.map(anahtar => {
+    const bilgi = OZELLIK_ETIKETLERI[anahtar] || { ad: anahtar, aciklama: "" };
+    const acik = ozellikAktif(anahtar);
+    return `
+      <div class="ozellik-satir">
+        <div class="ozellik-satir-metin">
+          <div class="ozellik-satir-ad">${escapeHtmlGelisim(bilgi.ad)}</div>
+          <div class="ozellik-satir-aciklama">${escapeHtmlGelisim(bilgi.aciklama)}</div>
+        </div>
+        <button class="ozellik-toggle ${acik ? 'acik' : ''}" data-ozellik="${anahtar}" onclick="ozellikToggle('${anahtar}')" title="${acik ? 'Açık' : 'Kapalı'}"></button>
+      </div>`;
+  }).join("");
+}
+
+// Toggle tıklandı — özelliği aç/kapat
+window.ozellikToggle = async function(anahtar) {
+  const btn = document.querySelector(`.ozellik-toggle[data-ozellik="${anahtar}"]`);
+  if (!btn) return;
+  const yeniDeger = !ozellikAktif(anahtar);
+  btn.disabled = true;
+  const basarili = await ozellikBayragiDegistir(anahtar, yeniDeger);
+  btn.disabled = false;
+  if (basarili) {
+    btn.classList.toggle("acik", yeniDeger);
+    btn.title = yeniDeger ? "Açık" : "Kapalı";
+    ozellikleriArayuzeUygula(); // arayüzü anında güncelle
+    showToast(yeniDeger ? "✓ Özellik açıldı" : "Özellik kapatıldı");
   }
 };
 
@@ -11880,6 +12036,9 @@ window.mesajThreadAc = async function(threadId) {
   const girisAlani = document.querySelector(".mesaj-sohbet-giris");
   if (girisAlani) girisAlani.style.display = benimGozetimciMiyim ? "none" : "flex";
 
+  // Özellik bayrağına göre ataç butonu görünürlüğü
+  if (typeof ozellikleriArayuzeUygula === "function") ozellikleriArayuzeUygula();
+
   // Listeyi yeniden render et (aktif vurgu için)
   mesajThreadleriListele();
 
@@ -12298,6 +12457,9 @@ onAuthStateChanged(auth, async (user) => {
       // Sekmeleri role göre göster/gizle (Faz 1c)
       try { sekmeleriRoleGoreAyarla(); } catch(e) { console.warn(e); }
 
+      // Özellik bayraklarını yükle ve arayüze uygula (SaaS feature flags)
+      try { await ozellikBayraklariYukle(); ozellikleriArayuzeUygula(); } catch(e) { console.warn(e); }
+
       // Verileri yükle
       try {
         await loadOgrenciler();
@@ -12440,6 +12602,9 @@ async function loadVeliPanel(user) {
 
     // 🔔 FAZ 3d: Veli için arka plan mesaj bildirim dinleyicisini başlat
     try { if (typeof mesajBildirimBaslat === "function") setTimeout(() => mesajBildirimBaslat(), 1200); } catch(e) { console.warn(e); }
+
+    // Özellik bayraklarını yükle ve arayüze uygula (SaaS feature flags)
+    try { await ozellikBayraklariYukle(); ozellikleriArayuzeUygula(); } catch(e) { console.warn(e); }
   } catch (e) {
     console.error("Veli paneli yüklenemedi:", e);
     showToast("Veriler yüklenemedi: " + e.message, "error");
