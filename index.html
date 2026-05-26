@@ -17842,51 +17842,39 @@ window.fotoSecildi = function(event) {
       if (aksiyonAlani) {
         yuklemeRozeti = document.createElement("div");
         yuklemeRozeti.style.cssText = "width:100%; padding:10px; font-size:12px; color:#6b7280; text-align:center;";
-        yuklemeRozeti.textContent = "📤 Bunny.net'e yükleniyor...";
+        yuklemeRozeti.textContent = "📤 Yükleniyor...";
         aksiyonAlani.parentElement.insertBefore(yuklemeRozeti, aksiyonAlani);
       }
 
       try {
-        // Bunny.net'e yükle: ogrenci-fotolari/{ogrId}_{timestamp}.jpg
+        // Blob'u File'a çevir ve GÜVENLİ proxy (medya.js) üzerinden yükle
         const dosyaAdi = `${aktifFotoOgrId}_${Date.now()}.jpg`;
-        const path = `ogrenci-fotolari/${dosyaAdi}`;
-
-        // Blob'u File'a çevir (bunnyUploadPhoto File bekliyor)
         const fileObj = new File([blob], dosyaAdi, { type: "image/jpeg" });
-
-        const cdnUrl = await bunnyUploadPhoto(fileObj, path);
+        const sonuc = await medyaYukle(fileObj, "ogrenci-fotolari");
+        const cdnUrl = sonuc.url;
+        const yeniYol = sonuc.yol;
 
         // Eski fotoyu sil (varsa)
         const ogr = ogrenciList.find(o => o.id === aktifFotoOgrId);
-        const eskiFotoUrl = ogr?.fotoUrl;
+        const eskiFotoYol = ogr?.fotoYol;
 
         // Firestore'a SADECE URL kaydet (resim verisini değil!)
         await updateDoc(doc(db, "ogrenciler", aktifFotoOgrId), {
           fotoUrl: cdnUrl,
-          fotoYol: path,  // silmek için path'i de saklayalım
+          fotoYol: yeniYol,  // silmek için yol'u da saklayalım
           fotoGuncelleme: serverTimestamp()
         });
 
         // Cache'i güncelle
         if (ogr) {
           ogr.fotoUrl = cdnUrl;
-          ogr.fotoYol = path;
+          ogr.fotoYol = yeniYol;
         }
 
-        // Eski fotoyu Bunny'den sil (varsa ve farklıysa)
-        if (eskiFotoUrl && eskiFotoUrl !== cdnUrl) {
+        // Eski fotoyu güvenli proxy ile sil (varsa)
+        if (eskiFotoYol && eskiFotoYol !== yeniYol) {
           try {
-            // Eski yol varsa onu kullan, yoksa URL'den çıkarmaya çalış
-            const eskiPath = ogr?._eskiFotoYol || (eskiFotoUrl.startsWith("data:") ? null : eskiFotoUrl.replace(/^https?:\/\/[^/]+\//,""));
-            if (eskiPath && !eskiPath.startsWith("data:")) {
-              const cfg = await loadBunnyConfig();
-              if (cfg) {
-                await fetch(`${cfg.storageEndpoint}/${eskiPath}`, {
-                  method: "DELETE",
-                  headers: { "AccessKey": cfg.storagePassword }
-                }).catch(() => {});
-              }
-            }
+            await medyaSil(eskiFotoYol);
           } catch(e) { console.warn("Eski foto silinemedi:", e); }
         }
 
@@ -17901,7 +17889,7 @@ window.fotoSecildi = function(event) {
       } catch(err) {
         if (yuklemeRozeti) yuklemeRozeti.remove();
         console.error("Foto yükleme hatası:", err);
-        alert("Fotoğraf Bunny.net'e yüklenemedi:\n" + err.message + "\n\nLütfen internet bağlantınızı kontrol edin.");
+        alert("Fotoğraf yüklenemedi:\n" + err.message + "\n\nLütfen internet bağlantınızı kontrol edin.");
       }
     };
     img.onerror = () => alert("Resim yüklenemedi. Dosya bozuk olabilir.");
@@ -17917,16 +17905,10 @@ window.fotoSil = async function() {
     const ogr = ogrenciList.find(o => o.id === aktifFotoOgrId);
     const eskiPath = ogr?.fotoYol;
 
-    // Önce Bunny'den sil
+    // Önce güvenli proxy ile Bunny'den sil
     if (eskiPath) {
       try {
-        const cfg = await loadBunnyConfig();
-        if (cfg) {
-          await fetch(`${cfg.storageEndpoint}/${eskiPath}`, {
-            method: "DELETE",
-            headers: { "AccessKey": cfg.storagePassword }
-          }).catch(() => {});
-        }
+        await medyaSil(eskiPath);
       } catch(e) { console.warn("Bunny silme hatası:", e); }
     }
 
@@ -19370,129 +19352,9 @@ window.adminEgitimExcelIndir = function() {
 };
 
 
-// ============ BUNNY.NET HELPER (Tur 5A) ============
-let bunnyConfig = null;
-
-async function loadBunnyConfig() {
-  if (bunnyConfig) return bunnyConfig;
-  try {
-    const snap = await getDoc(doc(db, "config", "bunny"));
-    if (!snap.exists()) {
-      console.error("Bunny config bulunamadı! Firestore'da config/bunny dokümanı var mı?");
-      return null;
-    }
-    bunnyConfig = snap.data();
-    return bunnyConfig;
-  } catch (e) {
-    console.error("Bunny config yüklenemedi:", e);
-    return null;
-  }
-}
-
-// Fotoğraf yükle (Storage API)
-async function bunnyUploadPhoto(file, path) {
-  const cfg = await loadBunnyConfig();
-  if (!cfg) throw new Error("Bunny config yüklenemedi");
-
-  // Path: galeri/tumOkul/2026-04-23-etkinlik/foto_001.jpg
-  const url = `${cfg.storageEndpoint}/${path}`;
-
-  const response = await fetch(url, {
-    method: "PUT",
-    headers: {
-      "AccessKey": cfg.storagePassword,
-      "Content-Type": file.type || "application/octet-stream"
-    },
-    body: file
-  });
-
-  if (!response.ok) {
-    const txt = await response.text().catch(() => "");
-    throw new Error(`Upload hatası (${response.status}): ${txt}`);
-  }
-
-  // CDN URL'i döndür
-  const cdnUrl = `${cfg.cdnUrl}/${path}`;
-  return cdnUrl;
-}
-
-// Video yükle (Stream API - 2 adımlı: create + upload)
-async function bunnyUploadVideo(file, title, onProgress) {
-  const cfg = await loadBunnyConfig();
-  if (!cfg) throw new Error("Bunny config yüklenemedi");
-
-  // Adım 1: Video oluştur (metadata)
-  const createResp = await fetch(`https://video.bunnycdn.com/library/${cfg.streamLibraryId}/videos`, {
-    method: "POST",
-    headers: {
-      "AccessKey": cfg.streamApiKey,
-      "Content-Type": "application/json",
-      "accept": "application/json"
-    },
-    body: JSON.stringify({ title: title || file.name })
-  });
-
-  if (!createResp.ok) {
-    const txt = await createResp.text().catch(() => "");
-    throw new Error(`Video oluşturulamadı (${createResp.status}): ${txt}`);
-  }
-
-  const videoData = await createResp.json();
-  const videoGuid = videoData.guid;
-
-  // Adım 2: Video dosyasını yükle (PUT)
-  const uploadResp = await new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", `https://video.bunnycdn.com/library/${cfg.streamLibraryId}/videos/${videoGuid}`);
-    xhr.setRequestHeader("AccessKey", cfg.streamApiKey);
-    xhr.setRequestHeader("accept", "application/json");
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress((e.loaded / e.total) * 100);
-      }
-    };
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
-      else reject(new Error(`Upload hatası (${xhr.status}): ${xhr.responseText}`));
-    };
-    xhr.onerror = () => reject(new Error("Network hatası"));
-    xhr.send(file);
-  });
-
-  return {
-    videoGuid,
-    embedUrl: `https://iframe.mediadelivery.net/embed/${cfg.streamLibraryId}/${videoGuid}`,
-    thumbnailUrl: `https://${cfg.streamCdnHost}/${videoGuid}/thumbnail.jpg`,
-    playUrl: `https://${cfg.streamCdnHost}/${videoGuid}/playlist.m3u8`,
-    mp4FallbackUrl: `https://${cfg.streamCdnHost}/${videoGuid}/play_720p.mp4`
-  };
-}
-
-// Storage'dan dosya sil
-async function bunnyDeleteFile(path) {
-  const cfg = await loadBunnyConfig();
-  if (!cfg) throw new Error("Bunny config yüklenemedi");
-
-  const resp = await fetch(`${cfg.storageEndpoint}/${path}`, {
-    method: "DELETE",
-    headers: { "AccessKey": cfg.storagePassword }
-  });
-  return resp.ok;
-}
-
-// Video sil (Stream)
-async function bunnyDeleteVideo(videoGuid) {
-  const cfg = await loadBunnyConfig();
-  if (!cfg) throw new Error("Bunny config yüklenemedi");
-
-  const resp = await fetch(`https://video.bunnycdn.com/library/${cfg.streamLibraryId}/videos/${videoGuid}`, {
-    method: "DELETE",
-    headers: { "AccessKey": cfg.streamApiKey, "accept": "application/json" }
-  });
-  return resp.ok;
-}
+// ============ ESKİ BUNNY HELPER KALDIRILDI (güvenlik) ============
+// loadBunnyConfig/bunnyUploadPhoto/bunnyUploadVideo/bunnyDeleteFile/bunnyDeleteVideo
+// güvenli medya.js proxy katmanına taşındı (API key artık tarayıcıda yok).
 
 // Fotoğrafları sıkıştır (tarayıcıda, Canvas ile)
 async function resimSikistir(file, maxBoyut = 1920, kalite = 0.85) {
