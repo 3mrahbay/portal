@@ -1,0 +1,246 @@
+rules_version = '2';
+
+// ============================================================
+//  BİR ÇİÇEK KOLEJİ — PORTAL FIRESTORE GÜVENLİK KURALLARI
+//  --------------------------------------------------------
+//  AMAÇ: Şu an yalnızca tarayıcıda (client-side) yapılan
+//  admin / personel / veli yetki kontrollerini SUNUCU tarafında
+//  zorlamak. Client kodu herkese açıktır; gerçek güvenlik
+//  BURADADIR.
+//
+//  ⚠️ ÖNEMLİ — DEPLOY ETMEDEN ÖNCE OKU:
+//  1) Bu bir TASLAKtır. Firebase Console'daki MEVCUT kurallarınla
+//     karşılaştır. Yanlış kural uygulamayı kilitleyebilir.
+//  2) Önce Firebase Console > Firestore > Rules > "Rules Playground"
+//     ile veya bir test projesinde dene.
+//  3) Varsayım: personeller/{id} ve veliler/{id} döküman ID'leri
+//     KÜÇÜK HARF e-postadır (client login bunu lowercase yapıyor).
+//     Eğer bazı dökümanlar büyük harf içeriyorsa eşleşme bozulur —
+//     önce verideki ID'leri normalize et.
+//  4) Bazı koleksiyonlarda "veli kendi çocuğunu okusun" kuralı,
+//     ogrenci dökümanındaki veli e-postalarının DÜZ METİN dizi
+//     (string array) olarak tutulmasını gerektirir. Aşağıda
+//     ilgili yerde TODO olarak işaretledim.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Yardımcı fonksiyonlar ----------
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+    function userEmail() {
+      // E-postayı küçük harfe çevir (doc ID'leri lowercase tutuluyor)
+      return request.auth.token.email.lower();
+    }
+    function isAdmin() {
+      return signedIn() && userEmail() == 'emrahby@gmail.com';
+    }
+    function staffPath() {
+      return /databases/$(database)/documents/personeller/$(userEmail());
+    }
+    function isStaff() {
+      return signedIn() && exists(staffPath());
+    }
+    function staffDoc() {
+      return get(staffPath()).data;
+    }
+    function isStaffActive() {
+      return isStaff() && staffDoc().durum == 'aktif';
+    }
+    function staffRole() {
+      return isStaff() ? staffDoc().rol : '';
+    }
+    function hasRole(roles) {
+      return isAdmin() || (isStaffActive() && (staffRole() in roles));
+    }
+    // Üst yönetim (tam yetki)
+    function isManagement() {
+      return hasRole(['kurucu_mudur', 'mudur']);
+    }
+    // İçerik üretebilen roller (duyuru/galeri/etkinlik/gelişim)
+    function isContentStaff() {
+      return hasRole(['kurucu_mudur', 'mudur', 'egitim_koordinator', 'ogretmen']);
+    }
+    // Finans/muhasebe yetkisi
+    function isFinance() {
+      return hasRole(['kurucu_mudur', 'mudur', 'muhasebe']);
+    }
+
+    // ============================================================
+    //  PERSONEL
+    //  - Kendi dökümanını okuyabilir (login'de rol yüklemek için)
+    //  - Tüm personel listesini aktif personel/yönetim okuyabilir
+    //    (mesajlaşmada öğretmen seçimi vb.)
+    //  - Yalnızca yönetim yazabilir
+    // ============================================================
+    match /personeller/{pid} {
+      allow read:  if isManagement() || (signedIn() && pid == userEmail()) || isStaffActive();
+      allow write: if isManagement();
+    }
+
+    // ============================================================
+    //  VELİLER
+    //  - Veli kendi dökümanını okur/günceller
+    //  - Personel/yönetim hepsini okur, yönetim yazar
+    // ============================================================
+    match /veliler/{vid} {
+      allow read:   if isStaffActive() || (signedIn() && vid == userEmail());
+      allow create, update: if isManagement() || (signedIn() && vid == userEmail());
+      allow delete: if isManagement();
+    }
+
+    // ============================================================
+    //  ÖĞRENCİLER
+    //  - Personel okur/yazar (rol bazlı)
+    //  - TODO(veli erişimi): Veli kendi çocuğunu okuyabilsin diye
+    //    ogrenci dökümanına DÜZ METİN dizi olarak `veliEmails`
+    //    eklenmeli; sonra alttaki satırı aç:
+    //    || (signedIn() && userEmail() in resource.data.veliEmails)
+    // ============================================================
+    match /ogrenciler/{oid} {
+      allow read:  if isStaffActive();
+      allow write: if isContentStaff() || isManagement();
+    }
+
+    // ============================================================
+    //  ÖĞRENCİ GELİŞİM / DEVAMSIZLIK
+    //  - Personel okur/yazar. Veli erişimi için yine veliEmails TODO.
+    // ============================================================
+    match /ogrenciGelisim/{doc} {
+      allow read:  if isStaffActive();
+      allow write: if isContentStaff();
+    }
+    match /devamsizlik/{doc} {
+      allow read:  if isStaffActive();
+      allow write: if isContentStaff();
+    }
+
+    // ============================================================
+    //  SINIF ATAMALARI / MÜFREDAT
+    // ============================================================
+    match /sinifAtamalari/{doc} {
+      allow read:  if isStaffActive();
+      allow write: if isContentStaff() || isManagement();
+    }
+    match /mufredatlar/{doc} {
+      allow read:  if signedIn();              // veliler de program içeriğini görebilir
+      allow write: if isContentStaff() || isManagement();
+    }
+
+    // ============================================================
+    //  İÇERİK: DUYURULAR / ETKİNLİKLER / GALERİ / YEMEK MENÜSÜ
+    //  - Giriş yapan herkes (veli dahil) okur
+    //  - İçerik personeli yazar
+    // ============================================================
+    match /duyurular/{doc} {
+      allow read:  if signedIn();
+      allow write: if isContentStaff();
+    }
+    match /etkinlikler/{doc} {
+      allow read:  if signedIn();
+      allow write: if isContentStaff();
+    }
+    match /galeri/{doc} {
+      allow read:  if signedIn();
+      allow write: if isContentStaff();
+    }
+    match /yemekMenuleri/{doc} {
+      allow read:  if signedIn();
+      allow write: if isContentStaff() || isManagement();
+    }
+
+    // ============================================================
+    //  MESAJLAR
+    //  - Yalnızca katılımcılar okur/yazar
+    //  - `katilimcilar` alanı, sohbete dahil e-postaların düz metin
+    //    dizisi olmalıdır.
+    // ============================================================
+    match /mesajlar/{mid} {
+      allow read:   if isManagement()
+                    || (signedIn() && userEmail() in resource.data.katilimcilar);
+      allow create: if signedIn() && userEmail() in request.resource.data.katilimcilar;
+      allow update: if signedIn() && userEmail() in resource.data.katilimcilar;
+      allow delete: if isManagement();
+
+      // Alt koleksiyon (sohbet mesajları) varsa:
+      match /{altYol=**} {
+        allow read, write: if isManagement()
+          || (signedIn() && userEmail() in get(/databases/$(database)/documents/mesajlar/$(mid)).data.katilimcilar);
+      }
+    }
+
+    // ============================================================
+    //  KREDİ KARTI ÖDEME TALEPLERİ
+    //  - Veli kendi talebini oluşturur ve okur
+    //  - Finans/yönetim hepsini okur ve günceller
+    //  - `veliEposta` alanı talebi oluşturanın e-postası olmalı
+    // ============================================================
+    match /krediKartiTalepleri/{tid} {
+      allow create: if signedIn()
+                    && request.resource.data.veliEposta.lower() == userEmail();
+      allow read:   if isFinance()
+                    || (signedIn() && resource.data.veliEposta.lower() == userEmail());
+      allow update, delete: if isFinance();
+    }
+
+    // ============================================================
+    //  GİDERLER (FİNANS) — yalnızca finans/yönetim
+    // ============================================================
+    match /giderler/{doc} {
+      allow read, write: if isFinance();
+    }
+
+    // ============================================================
+    //  BAŞVURULAR / YENİ KAYIT / KAYIT YENİLEME
+    //  ⚠️ Bu formlar başka sitelerden (yenikayit, kayityenileme)
+    //  giriş YAPMADAN da gönderiliyor olabilir. O yüzden create
+    //  herkese açık bırakıldı. Spam riski için Firebase App Check
+    //  veya bir Cloud Function doğrulaması ÖNERİLİR.
+    //  Okuma/güncelleme yalnızca yönetimde.
+    // ============================================================
+    match /basvurular/{doc} {
+      allow create: if true;                 // herkese açık form
+      allow read, update, delete: if isManagement();
+    }
+    match /yenikayit/{doc} {
+      allow create: if true;
+      allow read, update, delete: if isManagement();
+    }
+    match /kayitYenileme/{doc} {
+      allow create: if true;
+      allow read, update, delete: if isManagement();
+    }
+
+    // ============================================================
+    //  AYAR / ŞABLON / SİSTEM
+    // ============================================================
+    match /config/{doc} {
+      allow read:  if signedIn();
+      allow write: if isManagement();
+    }
+    match /sozlesme_sablonu/{doc} {
+      allow read:  if signedIn();
+      allow write: if isManagement();
+    }
+    match /mailLoglari/{doc} {
+      allow read:   if isManagement();
+      allow create: if signedIn();            // uygulama mail gönderince log atar
+      allow update, delete: if isManagement();
+    }
+    match /users/{uid} {
+      allow read, write: if signedIn() && uid == userEmail();
+      allow read: if isManagement();
+    }
+
+    // ============================================================
+    //  VARSAYILAN: REDDET
+    //  Yukarıda eşleşmeyen her şey kapalı. Yeni koleksiyon
+    //  eklediğinde buraya ALTINA kuralını yazmayı unutma.
+    // ============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
