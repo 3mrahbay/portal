@@ -8,6 +8,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Yeni tasarım dili (Bir Çiçek mobil app prototipi) — Quicksand + DM Sans -->
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- PWA: kurulabilir mobil app -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2d6a4f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Bir Çiçek">
+<link rel="apple-touch-icon" href="okul_logo.png">
 <style>
 :root {
   --green-deep: #1a4d2e;
@@ -7272,6 +7281,133 @@ html, body {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- ============================================================
+     YENİ TASARIM SİSTEMİ — "Bir Çiçek" mobil app dili
+     İzole namespace: tüm kurallar .cicek-app altında. Portalın
+     mevcut :root değişkenlerini ve stillerini ASLA ezmez.
+     Kaynak: claude.ai design prototipi (Quicksand + DM Sans,
+     parlak yeşil + pastel aksanlar).
+     ============================================================ -->
+<style id="cicek-app-theme">
+.cicek-app {
+  /* Renkler */
+  --c-green:        #3A8E42;
+  --c-green-deep:   #1E7A3F;
+  --c-green-light:  #4BA651;
+  --c-pink-soft:    #FFD4DC;  --c-pink-deep:   #F8A6B4;
+  --c-yellow-soft:  #FFF0B0;  --c-yellow-deep: #FFD66B;
+  --c-blue-soft:    #CDE7F5;  --c-blue-deep:   #8FC8E5;
+  --c-purple-soft:  #E2D7F8;  --c-purple-deep: #B8A0E8;
+  --c-peach-soft:   #FFD9C2;  --c-peach-deep:  #F7B591;
+  /* Metin */
+  --c-ink:    #1A2E1F;   /* koyu başlık */
+  --c-body:   #3F5746;   /* gövde */
+  --c-muted:  #5C6F60;   /* soluk */
+  /* Yüzeyler */
+  --c-surface: #FFFFFF;
+  --c-tint:    #FBF9F4;  /* açık krem kart zemini */
+  --c-border:  #E8EFE9;
+  --c-bg:      #F0EEE9;
+  /* Form */
+  --c-radius:  20px;
+  --c-radius-sm: 12px;
+  --c-shadow:  0 12px 28px rgba(26,46,31,0.10), 0 4px 10px rgba(26,46,31,0.06);
+  --c-shadow-lg: 0 24px 50px rgba(26,46,31,0.14);
+  --c-font-head: "Quicksand", "DM Sans", system-ui, sans-serif;
+  --c-font-body: "DM Sans", system-ui, sans-serif;
+
+  font-family: var(--c-font-body);
+  color: var(--c-body);
+}
+.cicek-app * { box-sizing: border-box; }
+
+/* Başlıklar */
+.cicek-app h1, .cicek-app h2, .cicek-app h3, .cicek-app .ca-head {
+  font-family: var(--c-font-head);
+  color: var(--c-ink);
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Kart */
+.cicek-app .ca-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--c-radius);
+  box-shadow: var(--c-shadow);
+  padding: 18px;
+}
+.cicek-app .ca-card.tint { background: var(--c-tint); }
+
+/* Gradient/aksan kartlar */
+.cicek-app .ca-card-green {
+  background: linear-gradient(135deg, var(--c-green-light), var(--c-green));
+  color: #fff; border: none; border-radius: var(--c-radius);
+  box-shadow: var(--c-shadow); padding: 18px;
+}
+.cicek-app .ca-card-green h1, .cicek-app .ca-card-green h2,
+.cicek-app .ca-card-green h3 { color: #fff; }
+
+/* Aksan rozetleri / küçük etiketler */
+.cicek-app .ca-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; font-family: var(--c-font-head);
+  color: var(--c-ink);
+}
+.cicek-app .ca-pill.pink   { background: var(--c-pink-soft); }
+.cicek-app .ca-pill.yellow { background: var(--c-yellow-soft); }
+.cicek-app .ca-pill.blue   { background: var(--c-blue-soft); }
+.cicek-app .ca-pill.purple { background: var(--c-purple-soft); }
+.cicek-app .ca-pill.peach  { background: var(--c-peach-soft); }
+.cicek-app .ca-pill.green  { background: var(--c-green); color:#fff; }
+
+/* Hızlı erişim ikon kartı */
+.cicek-app .ca-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding: 16px; border-radius: var(--c-radius-sm);
+  border: 1px solid var(--c-border); background: var(--c-surface);
+  cursor: pointer; transition: transform .15s ease, box-shadow .15s ease;
+  text-align: left; width: 100%;
+}
+.cicek-app .ca-tile:hover { transform: translateY(-2px); box-shadow: var(--c-shadow); }
+.cicek-app .ca-tile-icon {
+  width: 46px; height: 46px; border-radius: 14px;
+  display: grid; place-items: center; font-size: 22px;
+}
+.cicek-app .ca-tile-title { font-family: var(--c-font-head); font-weight: 700; color: var(--c-ink); font-size: 14px; }
+.cicek-app .ca-tile-sub   { font-size: 12px; color: var(--c-muted); }
+
+/* Buton */
+.cicek-app .ca-btn {
+  font-family: var(--c-font-head); font-weight: 700; font-size: 14px;
+  border: none; border-radius: 14px; padding: 12px 18px; cursor: pointer;
+  background: var(--c-green); color: #fff; transition: filter .15s ease;
+}
+.cicek-app .ca-btn:hover { filter: brightness(1.05); }
+.cicek-app .ca-btn.ghost { background: var(--c-tint); color: var(--c-ink); border: 1px solid var(--c-border); }
+
+/* Grid yardımcıları */
+.cicek-app .ca-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cicek-app .ca-stack { display: flex; flex-direction: column; gap: 14px; }
+.cicek-app .ca-row { display: flex; align-items: center; gap: 12px; }
+
+/* Avatar */
+.cicek-app .ca-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--c-green-light); color:#fff;
+  display: grid; place-items: center; font-size: 22px;
+  font-family: var(--c-font-head); font-weight: 700; flex: none;
+}
+
+/* Pilot/taslak şeridi */
+.cicek-app .ca-draft-banner {
+  background: var(--c-yellow-soft); color: #6b5b16;
+  border: 1px dashed var(--c-yellow-deep); border-radius: var(--c-radius-sm);
+  padding: 10px 14px; font-size: 12px; font-weight: 600; margin-bottom: 14px;
+}
+</style>
 </head>
 <body>
 
@@ -8961,6 +9097,9 @@ html, body {
       <button type="button" class="veli-menu-item" data-veli-tab="bildirimler" onclick="veliSwitchTab('bildirimler')">
         <span class="veli-menu-icon">🔔</span><span>Bildirimler</span>
       </button>
+      <button type="button" class="veli-menu-item" data-veli-tab="yeniapp" onclick="veliSwitchTab('yeniapp')">
+        <span class="veli-menu-icon">✨</span><span>Yeni Tasarım</span>
+      </button>
 
       <div class="veli-menu-spacer"></div>
 
@@ -9216,6 +9355,13 @@ html, body {
             📧 <strong>eposta@bircicekkoleji.com</strong><br>
             📱 <strong>Okul İletişim Hattı</strong>
           </div>
+        </div>
+      </div>
+
+      <!-- ============ YENİ TASARIM (PİLOT) SEKMESİ ============ -->
+      <div class="veli-tab-panel" id="veliPanel-yeniapp">
+        <div class="cicek-app" id="cicekAppRoot">
+          <div style="padding:24px; text-align:center; color:var(--c-muted);">Yükleniyor…</div>
         </div>
       </div>
 
@@ -11638,7 +11784,7 @@ window.mesajResimBuyut = function(url) {
     document.body.appendChild(lb);
   }
   lb.innerHTML = `
-    <img src="${url}" style="max-width:100%; max-height:100%; border-radius:8px; object-fit:contain;">
+    <img src="${escapeHtml(url)}" style="max-width:100%; max-height:100%; border-radius:8px; object-fit:contain;">
     <button onclick="document.getElementById('mesajResimLightbox').style.display='none'" style="position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.2); color:white; border:none; width:40px; height:40px; border-radius:50%; font-size:22px; cursor:pointer;">×</button>`;
   lb.style.display = "flex";
 };
@@ -12077,7 +12223,7 @@ function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
     const tarih = mesajTarihFormat(m.tarih);
     // Resim varsa balon içeriği
     const resimHtml = m.resimUrl
-      ? `<img src="${m.resimUrl}?width=400" class="mesaj-balon-resim" onclick="mesajResimBuyut('${m.resimUrl}')" loading="lazy">`
+      ? `<img src="${escapeHtml(m.resimUrl)}?width=400" class="mesaj-balon-resim" onclick="mesajResimBuyut(${escapeHtml(JSON.stringify(m.resimUrl))})" loading="lazy">`
       : "";
     const metinHtml = m.metin ? escapeHtmlGelisim(m.metin) : "";
 
@@ -13005,11 +13151,92 @@ function veliRenderTab(tabName) {
   else if (tabName === "galeri") veliRenderGaleri();
   else if (tabName === "raporlar") veliRenderRaporlar();
   else if (tabName === "iletisim") veliMesajlasmaBaslat();
+  else if (tabName === "yeniapp") veliRenderYeniApp();
 
   // İletişim dışına çıkıldıysa dinleyicileri durdur
   if (tabName !== "iletisim" && typeof veliMesajlasmaDurdur === "function") {
     veliMesajlasmaDurdur();
   }
+}
+
+// ============================================================
+// ===== YENİ TASARIM (PİLOT) — "Bir Çiçek" mobil app dili =====
+// Faz 1: statik taslak ana sayfa. Veri bağlama Faz 2'de yapılacak.
+// İçerik, gönderilecek ekran görüntüsüne göre birebir güncellenecek.
+// ============================================================
+function veliRenderYeniApp() {
+  const root = document.getElementById("cicekAppRoot");
+  if (!root) return;
+  root.innerHTML = `
+    <div class="ca-draft-banner">
+      ✨ Pilot / taslak — yeni tasarım dili. İçerik henüz statik; gönderdiğin ana sayfa görüntüsüne göre birebir eşitlenecek.
+    </div>
+
+    <div class="ca-stack">
+      <!-- Karşılama -->
+      <div class="ca-card-green">
+        <div class="ca-row">
+          <div class="ca-avatar" style="background:rgba(255,255,255,.22);">E</div>
+          <div>
+            <div style="font-size:13px; opacity:.9;">İyi günler 🌸</div>
+            <h2 style="font-size:20px;">Elif'in Günü</h2>
+            <div style="font-size:12px; opacity:.9; margin-top:2px;">Montessori 3 • Tam Gün</div>
+          </div>
+        </div>
+        <div class="ca-row" style="gap:8px; margin-top:14px; flex-wrap:wrap;">
+          <span class="ca-pill" style="background:rgba(255,255,255,.22); color:#fff;">😊 Mutlu</span>
+          <span class="ca-pill" style="background:rgba(255,255,255,.22); color:#fff;">🍽 İyi yedi</span>
+          <span class="ca-pill" style="background:rgba(255,255,255,.22); color:#fff;">😴 Uyudu</span>
+        </div>
+      </div>
+
+      <!-- Hızlı erişim -->
+      <div>
+        <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı Erişim</h3>
+        <div class="ca-grid-2">
+          <button class="ca-tile" onclick="veliSwitchTab('raporlar')">
+            <span class="ca-tile-icon" style="background:var(--c-pink-soft);">📔</span>
+            <span class="ca-tile-title">Günlük Rapor</span>
+            <span class="ca-tile-sub">Bugünün özeti</span>
+          </button>
+          <button class="ca-tile" onclick="veliSwitchTab('galeri')">
+            <span class="ca-tile-icon" style="background:var(--c-blue-soft);">🖼️</span>
+            <span class="ca-tile-title">Galeri</span>
+            <span class="ca-tile-sub">Yeni fotoğraflar</span>
+          </button>
+          <button class="ca-tile" onclick="veliSwitchTab('iletisim')">
+            <span class="ca-tile-icon" style="background:var(--c-yellow-soft);">💬</span>
+            <span class="ca-tile-title">Mesajlar</span>
+            <span class="ca-tile-sub">Öğretmenle iletişim</span>
+          </button>
+          <button class="ca-tile" onclick="veliSwitchTab('odemeler')">
+            <span class="ca-tile-icon" style="background:var(--c-purple-soft);">💳</span>
+            <span class="ca-tile-title">Ödemeler</span>
+            <span class="ca-tile-sub">Aidat ve fatura</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bugün -->
+      <div class="ca-card">
+        <div class="ca-row" style="justify-content:space-between;">
+          <h3 class="ca-head" style="font-size:15px;">Bugün</h3>
+          <span class="ca-pill green">📅 1 Haziran</span>
+        </div>
+        <div class="ca-stack" style="gap:10px; margin-top:12px;">
+          <div class="ca-row"><span style="font-size:18px;">🍽</span><div><div style="font-weight:600; color:var(--c-ink);">Öğle: Mercimek çorbası, köfte, pilav</div><div class="ca-tile-sub">Yemek menüsü</div></div></div>
+          <div class="ca-row"><span style="font-size:18px;">🌿</span><div><div style="font-weight:600; color:var(--c-ink);">Orman Okulu etkinliği</div><div class="ca-tile-sub">14:00 • Bahçe</div></div></div>
+        </div>
+      </div>
+
+      <!-- Duyuru -->
+      <div class="ca-card tint">
+        <span class="ca-pill yellow">📣 Duyuru</span>
+        <div style="font-weight:600; color:var(--c-ink); margin-top:10px;">Yıl sonu şenliğimiz 15 Haziran'da!</div>
+        <div class="ca-tile-sub" style="margin-top:4px;">Detaylar için Duyurular sekmesine göz atın.</div>
+      </div>
+    </div>
+  `;
 }
 
 // ============================================================
@@ -13157,7 +13384,7 @@ function veliMesajBalonlariRender(mesajlar, benim) {
     const benMiGonderdim = gonderenLower === benim;
     const tarih = mesajTarihFormat(m.tarih);
     const resimHtml = m.resimUrl
-      ? `<img src="${m.resimUrl}?width=400" class="mesaj-balon-resim" onclick="mesajResimBuyut('${m.resimUrl}')" loading="lazy">`
+      ? `<img src="${escapeHtml(m.resimUrl)}?width=400" class="mesaj-balon-resim" onclick="mesajResimBuyut(${escapeHtml(JSON.stringify(m.resimUrl))})" loading="lazy">`
       : "";
     const metinHtml = m.metin ? escapeHtmlGelisim(m.metin) : "";
     return `
@@ -13391,7 +13618,7 @@ async function veliRenderDashboard() {
     <!-- HERO -->
     <div class="veli-dash-hero">
       <div class="veli-dash-hero-icerik">
-        <div class="veli-dash-hero-foto" style="${fotoUrl ? `background-image:url('${fotoUrl}');` : ''}">${fotoUrl ? '' : ilkHarf}</div>
+        <div class="veli-dash-hero-foto" style="${fotoUrl ? `background-image:url('${escapeHtmlGelisim(fotoUrl)}');` : ''}">${fotoUrl ? '' : ilkHarf}</div>
         <div class="veli-dash-hero-bilgi">
           <h2 class="veli-dash-hero-adi">${escapeHtmlGelisim(ad)}</h2>
           <div class="veli-dash-hero-sinif">
@@ -14619,12 +14846,12 @@ function renderTable() {
           <div class="ogrenci-name">
             <div class="ogrenci-avatar">${initial}</div>
             <div class="ogrenci-info">
-              ${o.ogrenciAdSoyad}
-              <small>${o.veli1AdSoyad || o.veli2AdSoyad || "—"}</small>
+              ${escapeHtml(o.ogrenciAdSoyad)}
+              <small>${escapeHtml(o.veli1AdSoyad || o.veli2AdSoyad || "—")}</small>
             </div>
           </div>
         </td>
-        <td class="hide-mobile"><span class="badge ${sinifClass}">${sinif}</span></td>
+        <td class="hide-mobile"><span class="badge ${sinifClass}">${escapeHtml(sinif)}</span></td>
         <td class="hide-mobile"><span class="badge ${programClass}">${program}</span></td>
         <td><strong>${aidatTxt}</strong></td>
         <td>${odemeHucre}</td>
@@ -19582,11 +19809,11 @@ async function renderGaleri() {
       html += `
         <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:10px; overflow:hidden; cursor:pointer; opacity:${opacity}; ${durum==='onayBekliyor'?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626;':''}" onclick="acGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video" ?
-            `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            `<img src="${escapeHtml(previewUrl)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
              <div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center; font-size:24px;">🎥</div>
              <div style="position:absolute; inset:0; background:rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center;"><div style="background:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;">▶</div></div>`
             :
-            `<img src="${thumbUrl}" style="width:100%; height:100%; object-fit:cover;" loading="lazy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCBmaWxsPSIjZjNmNGY2IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+TuDwvdGV4dD48L3N2Zz4='">`
+            `<img src="${escapeHtml(thumbUrl)}" style="width:100%; height:100%; object-fit:cover;" loading="lazy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCBmaWxsPSIjZjNmNGY2IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+TuDwvdGV4dD48L3N2Zz4='">`
           }
           ${durumRozet}
           ${onayButonlari}
@@ -19902,9 +20129,9 @@ window.acGaleriLightbox = function(id) {
 
   const icerik = document.getElementById("galeriLightboxIcerik");
   if (oge.dosyaTipi === "video") {
-    icerik.innerHTML = `<iframe src="${oge.bunnyUrl}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
+    icerik.innerHTML = `<iframe src="${escapeHtml(oge.bunnyUrl)}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
   } else {
-    icerik.innerHTML = `<img src="${oge.bunnyUrl}" style="max-width:95vw; max-height:90vh; object-fit:contain;">`;
+    icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:90vh; object-fit:contain;">`;
   }
 };
 
@@ -20522,12 +20749,12 @@ function renderVeliGaleri() {
       html += `
         <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:10px; overflow:hidden; cursor:pointer;" onclick="veliAcGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video" ?
-            `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            `<img src="${escapeHtml(previewUrl)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
              <div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center; font-size:24px;">🎥</div>
              <div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.6); color:white; padding:3px 8px; border-radius:6px; font-size:10px;">🎥</div>
              <div style="position:absolute; inset:0; background:rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center;"><div style="background:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;">▶</div></div>`
             :
-            `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">`
+            `<img src="${escapeHtml(previewUrl)}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">`
           }
         </div>
       `;
@@ -20560,9 +20787,9 @@ function renderVeliLightbox() {
 
   const icerik = document.getElementById("galeriLightboxIcerik");
   if (oge.dosyaTipi === "video") {
-    icerik.innerHTML = `<iframe src="${oge.bunnyUrl}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
+    icerik.innerHTML = `<iframe src="${escapeHtml(oge.bunnyUrl)}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
   } else {
-    icerik.innerHTML = `<img src="${oge.bunnyUrl}" style="max-width:95vw; max-height:85vh; object-fit:contain;">`;
+    icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:85vh; object-fit:contain;">`;
   }
 }
 
@@ -22379,7 +22606,7 @@ async function veliRenderBildirimler() {
               </div>
               <span style="font-size:11px; color:${stil.text}; opacity:0.8;">${olusturuldu}</span>
             </div>
-            <div style="font-size:13px; color:${stil.text}; line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(b.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1" target="_blank" style="color:inherit; font-weight:600;">$2</a>')}</div>
+            <div style="font-size:13px; color:${stil.text}; line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(b.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, (m, href, text) => /^(https?:|mailto:)/i.test(href) ? `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color:inherit; font-weight:600;">${text}</a>` : text)}</div>
           </div>
         `;
 
@@ -24479,7 +24706,7 @@ function detectKardesler(o) {
     kart.className = "kardes-tespit";
     let html = `<strong>✨ Otomatik tespit:</strong> Okulda kayıtlı ${kardesler.length} kardeş bulundu:<br>`;
     kardesler.forEach(k => {
-      html += `&nbsp;&nbsp;• <strong>${k.ad}</strong> ${k.sinif ? `(${k.sinif})` : ""} <small style="opacity:0.7">— ${k.gerekce}</small><br>`;
+      html += `&nbsp;&nbsp;• <strong>${escapeHtml(k.ad)}</strong> ${k.sinif ? `(${escapeHtml(k.sinif)})` : ""} <small style="opacity:0.7">— ${escapeHtml(k.gerekce)}</small><br>`;
     });
     html += `<small style="opacity:0.7; margin-top:6px; display:block;">Kardeş indirimi düşünülebilir.</small>`;
     kart.innerHTML = html;
@@ -25238,7 +25465,7 @@ function renderCiktiOzet() {
     }
   }
 
-  const val = (v) => v || '<span class="eksik">(boş)</span>';
+  const val = (v) => v ? escapeHtml(v) : '<span class="eksik">(boş)</span>';
   let html = "";
 
   html += `<div class="cikti-ozet-baslik">Öğrenci</div>`;
@@ -28130,5 +28357,15 @@ window.showBulkUpload = async function() {
 <script src="pdf-sayfa-bolunmesi.js"></script>
 <script src="pdf-estetik-duzeltme.js"></script>  
 <script src="pdf-ust-baslik-fix-v2.js"></script>
+
+<!-- PWA: Service Worker kaydı (yalnızca güvenli bağlamda; localhost/https) -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js")
+        .catch((err) => console.warn("Service worker kaydı başarısız:", err));
+    });
+  }
+</script>
 </body>
 </html>

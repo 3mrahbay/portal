@@ -1,0 +1,27 @@
+{
+  "name": "Bir Çiçek Koleji — Veli Portalı",
+  "short_name": "Bir Çiçek",
+  "description": "Bir Çiçek Koleji okul-aile portalı: günlük rapor, ödemeler, mesajlar, galeri ve daha fazlası.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf7f2",
+  "theme_color": "#2d6a4f",
+  "lang": "tr",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "okul_logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "okul_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
