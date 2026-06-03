@@ -14066,9 +14066,125 @@ window.adminGotoTab = function(name) {
 function renderAdminHome() {
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
+  // Faz 1b: admin iç-navigasyon (eğitim takibi gerçek veri)
+  if (caAdminEkran === "egitim") {
+    root.innerHTML = `<div class="ca-page ca-stack"><div class="ca-draft-banner">📚 Sınıf eğitim verileri yükleniyor…</div></div>`;
+    if (typeof caTemaUygula === "function") caTemaUygula();
+    caAdminEgitimYukle();
+    return;
+  }
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
   const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
   root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
+  if (typeof caTemaUygula === "function") caTemaUygula();
+}
+
+// Faz 1b — Admin/öğretmen Eğitim Takibi (gerçek veri)
+let caAdminEkran = "home";
+let caAdminSinif = null;
+window.caAdminGo = function(ekran, sinif) {
+  caAdminEkran = ekran || "home";
+  caAdminSinif = sinif || null;
+  renderAdminHome();
+};
+function caAdminOverall(gel, mufler) {
+  let top = 0, cal = 0, uzm = 0;
+  ["montessori", "ingilizce", "degerler"].forEach(d => {
+    const k = (gel && gel[d] && gel[d].kayitlar) || {};
+    const g = disiplinGenelIlerleme(k, mufler[d]);
+    top += g.toplam; cal += g.calisilan; uzm += g.uzmanlasti;
+  });
+  return { yuzde: top ? Math.round(cal / top * 100) : 0, uzm };
+}
+async function caAdminEgitimYukle() {
+  const root = document.getElementById("adminHomeRoot");
+  if (!root) return;
+  try {
+    const mufler = {
+      montessori: await mufredatYukle("montessori"),
+      ingilizce: await mufredatYukle("ingilizce"),
+      degerler: await mufredatYukle("degerler")
+    };
+    const tumGel = await tumGelisimYukle();
+    const ogrenciler = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => (o.durum || "aktif") !== "pasif");
+    // Öğretmen ise kendi sınıfları, değilse tümü
+    const sinifFiltre = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari.length)
+      ? aktifKullaniciSiniflari : null;
+    const gorunen = sinifFiltre ? ogrenciler.filter(o => sinifFiltre.includes(o.sinif)) : ogrenciler;
+    root.innerHTML = caAdminSinif
+      ? caAdminSinifHTML(caAdminSinif, gorunen.filter(o => o.sinif === caAdminSinif), tumGel, mufler)
+      : caAdminEgitimHTML(gorunen, tumGel, mufler);
+    if (typeof caTemaUygula === "function") caTemaUygula();
+  } catch (e) {
+    console.warn("caAdminEgitimYukle:", e?.message);
+    root.innerHTML = `<div class="ca-page ca-stack"><div class="ca-topbar"><div class="ca-row"><button class="ca-back" onclick="caAdminGo('home')">←</button><h2 style="font-size:18px;">Eğitim Takibi</h2></div></div><div class="ca-card">Yüklenemedi: ${escapeHtml(e?.message || "")}</div></div>`;
+  }
+}
+function caAdminEgitimHTML(ogrenciler, tumGel, mufler) {
+  // Sınıflara grupla
+  const siniflar = {};
+  ogrenciler.forEach(o => {
+    const s = o.sinif || "Atanmamış";
+    if (!siniflar[s]) siniflar[s] = [];
+    siniflar[s].push(o);
+  });
+  const sinifKeys = Object.keys(siniflar).sort();
+  const kartlar = sinifKeys.map(s => {
+    const list = siniflar[s];
+    let topY = 0;
+    list.forEach(o => { topY += caAdminOverall(tumGel[o.id], mufler).yuzde; });
+    const ort = list.length ? Math.round(topY / list.length) : 0;
+    return `<div class="ca-card" style="cursor:pointer;" onclick="caAdminGo('egitim', ${escapeHtml(JSON.stringify(s))})">
+      <div class="ca-row" style="justify-content:space-between;">
+        <div><div class="ca-head" style="font-size:15px;">${escapeHtml(s)}</div><div class="ca-tile-sub">${list.length} öğrenci</div></div>
+        <div class="ca-ring-circle" style="background:conic-gradient(var(--c-green) ${ort}%, var(--c-border) 0);"><div class="ca-ring-inner">%${ort}</div></div>
+      </div>
+    </div>`;
+  }).join("");
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row"><button class="ca-back" onclick="caAdminGo('home')" title="Geri">←</button>
+          <div><div class="ca-tile-sub">EĞİTİM TAKİBİ</div><h2 style="font-size:19px;">Sınıflar</h2></div>
+        </div>
+        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Gözlem girişi">✎ Gözlem Gir</button>
+      </div>
+      <div class="ca-card-green">
+        <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">GENEL</div>
+        <h2 style="font-size:22px;">${ogrenciler.length} öğrenci · ${sinifKeys.length} sınıf</h2>
+        <div style="font-size:12px; opacity:.9;">Montessori · İngilizce · Değerler — canlı ilerleme</div>
+      </div>
+      <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıf İlerlemesi</h3></div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px;">${kartlar || '<div class="ca-card"><div class="ca-tile-sub">Sınıf/öğrenci bulunamadı.</div></div>'}</div>
+    </div>`;
+}
+function caAdminSinifHTML(sinif, ogrenciler, tumGel, mufler) {
+  const rows = ogrenciler.map(o => {
+    const ov = caAdminOverall(tumGel[o.id], mufler);
+    const renk = ov.yuzde >= 80 ? "var(--c-green-light)" : ov.yuzde >= 50 ? "var(--c-yellow-deep)" : "#cdd6cf";
+    const harf = ((o.ogrenciAdSoyad || "?")[0] || "?").toUpperCase();
+    return `<div class="ca-card" style="padding:12px 14px;">
+      <div class="ca-row">
+        <div class="ca-conv-av" style="background:var(--c-pink-soft);">${harf}</div>
+        <div style="flex:1; min-width:0;">
+          <div class="ca-head" style="font-size:14px;">${escapeHtml(o.ogrenciAdSoyad || "Öğrenci")}</div>
+          <div class="ca-edurow" style="margin:6px 0 0;"><span class="track"><span class="fill" style="width:${ov.yuzde}%; background:${renk};"></span></span><span class="pct">%${ov.yuzde}</span></div>
+        </div>
+        <span class="ca-pill" style="background:var(--c-gsoft, var(--c-tint)); color:var(--c-green);">${ov.uzm} ✓</span>
+      </div>
+    </div>`;
+  }).join("");
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row"><button class="ca-back" onclick="caAdminGo('egitim')" title="Geri">←</button>
+          <div><div class="ca-tile-sub">SINIF</div><h2 style="font-size:19px;">${escapeHtml(sinif)}</h2></div>
+        </div>
+        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Gözlem girişi">✎ Gözlem Gir</button>
+      </div>
+      <div class="ca-tile-sub">${ogrenciler.length} öğrenci · genel ilerleme (Montessori+İngilizce+Değerler)</div>
+      <div class="ca-stack">${rows || '<div class="ca-card"><div class="ca-tile-sub">Öğrenci yok.</div></div>'}</div>
+    </div>`;
 }
 
 function yonetimHomeHTML(ad) {
@@ -14116,7 +14232,7 @@ function yonetimHomeHTML(ad) {
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:10px; max-width:640px;">
           <button class="ca-qbtn" onclick="adminGotoTab('ogrenciler')"><span class="ca-qicon" style="background:var(--c-pink-soft);">👧</span><span class="ca-qlabel">Öğrenci</span></button>
           <button class="ca-qbtn" onclick="adminGotoTab('finans')"><span class="ca-qicon" style="background:var(--c-purple-soft);">💼</span><span class="ca-qlabel">Finans</span></button>
-          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-blue-soft);">📚</span><span class="ca-qlabel">Eğitim</span></button>
+          <button class="ca-qbtn" onclick="caAdminGo('egitim')"><span class="ca-qicon" style="background:var(--c-blue-soft);">📚</span><span class="ca-qlabel">Eğitim</span></button>
           <button class="ca-qbtn" onclick="adminGotoTab('icerik')"><span class="ca-qicon" style="background:var(--c-yellow-soft);">🌸</span><span class="ca-qlabel">İçerik</span></button>
           <button class="ca-qbtn" onclick="adminGotoTab('personel')"><span class="ca-qicon" style="background:#Dff4e3;">🧑‍🏫</span><span class="ca-qlabel">Personel</span></button>
           <button class="ca-qbtn" onclick="adminGotoTab('raporlar')"><span class="ca-qicon" style="background:var(--c-peach-soft);">📊</span><span class="ca-qlabel">Raporlar</span></button>
@@ -14209,7 +14325,7 @@ function ogretmenHomeHTML(ad) {
           <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-blue-soft);">📔</span><span class="ca-qlabel">Sınıf Günlüğü</span></button>
           <button class="ca-qbtn" onclick="adminGotoTab('icerik')"><span class="ca-qicon" style="background:var(--c-pink-soft);">💬</span><span class="ca-qlabel">Veli Mesajı</span></button>
           <button class="ca-qbtn" onclick="adminGotoTab('icerik')"><span class="ca-qicon" style="background:var(--c-purple-soft);">📷</span><span class="ca-qlabel">Galeri Yükle</span></button>
-          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-peach-soft);">📚</span><span class="ca-qlabel">Eğitim Takip</span></button>
+          <button class="ca-qbtn" onclick="caAdminGo('egitim')"><span class="ca-qicon" style="background:var(--c-peach-soft);">📚</span><span class="ca-qlabel">Eğitim Takip</span></button>
         </div>
       </div>
 
@@ -14223,7 +14339,7 @@ function ogretmenHomeHTML(ad) {
         </div>
 
         <div>
-          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıf Eğitim İlerlemesi</h3><button class="ca-link" onclick="adminGotoTab('egitim')">Detay →</button></div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıf Eğitim İlerlemesi</h3><button class="ca-link" onclick="caAdminGo('egitim')">Detay →</button></div>
           <div class="ca-card">
             <div class="ca-edurow"><span class="lbl">Montessori</span><span class="track"><span class="fill" style="width:84%; background:var(--c-green-light);"></span></span><span class="pct">84</span></div>
             <div class="ca-edurow"><span class="lbl">Orman</span><span class="track"><span class="fill" style="width:76%; background:var(--c-blue-deep);"></span></span><span class="pct">76</span></div>
