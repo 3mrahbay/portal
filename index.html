@@ -7549,6 +7549,14 @@ html, body {
 .cicek-app .ca-brand-name { font-family:var(--c-font-head); font-weight:800; font-size:19px; letter-spacing:.06em; color:var(--c-green-deep); line-height:1; }
 .cicek-app .ca-brand-sub { font-size:10.5px; color:var(--c-muted); font-weight:600; margin-top:2px; }
 
+/* ---- Gözlem Girişi (form) ---- */
+.cicek-app .ca-select { width:100%; border:1px solid var(--c-border); border-radius:12px; padding:11px 12px; font-family:var(--c-font-body); font-size:14px; color:var(--c-ink); background:var(--c-surface); }
+.cicek-app .ca-sevgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.cicek-app .ca-sev { border:1.5px solid var(--c-border); border-radius:14px; padding:13px 8px; cursor:pointer; font-family:var(--c-font-head); font-weight:700; text-align:center; background:var(--c-surface); color:var(--c-body); transition:all .15s ease; }
+.cicek-app .ca-sev.on { border-color:var(--c-green); background:#eef7f0; color:var(--c-green); }
+.cicek-app .ca-formlbl { font-size:12px; font-weight:700; font-family:var(--c-font-head); color:var(--c-muted); letter-spacing:.05em; margin:2px 0; }
+.cicek-app textarea.ca-area { width:100%; border:1px solid var(--c-border); border-radius:12px; padding:12px; font-family:var(--c-font-body); font-size:13.5px; color:var(--c-ink); background:var(--c-tint); resize:vertical; }
+
 /* ---- Web düzeni: geniş & responsive (telefon değil) ---- */
 .cicek-app .ca-page { max-width: 1120px; margin: 0 auto; width: 100%; }
 .cicek-app .ca-hero-row { display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; align-items:stretch; }
@@ -14073,6 +14081,7 @@ function renderAdminHome() {
     caAdminEgitimYukle();
     return;
   }
+  if (caAdminEkran === "gozlem") { caGozlemRender(); return; }
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
   const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
   root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
@@ -14163,11 +14172,11 @@ function caAdminSinifHTML(sinif, ogrenciler, tumGel, mufler) {
     const ov = caAdminOverall(tumGel[o.id], mufler);
     const renk = ov.yuzde >= 80 ? "var(--c-green-light)" : ov.yuzde >= 50 ? "var(--c-yellow-deep)" : "#cdd6cf";
     const harf = ((o.ogrenciAdSoyad || "?")[0] || "?").toUpperCase();
-    return `<div class="ca-card" style="padding:12px 14px;">
+    return `<div class="ca-card" style="padding:12px 14px; cursor:pointer;" title="Gözlem ekle" onclick="caGozlemAc('${o.id}', ${escapeHtml(JSON.stringify(o.ogrenciAdSoyad || "Öğrenci"))}, ${escapeHtml(JSON.stringify(sinif))})">
       <div class="ca-row">
         <div class="ca-conv-av" style="background:var(--c-pink-soft);">${harf}</div>
         <div style="flex:1; min-width:0;">
-          <div class="ca-head" style="font-size:14px;">${escapeHtml(o.ogrenciAdSoyad || "Öğrenci")}</div>
+          <div class="ca-head" style="font-size:14px;">${escapeHtml(o.ogrenciAdSoyad || "Öğrenci")} <span style="color:var(--c-muted); font-weight:400;">✎</span></div>
           <div class="ca-edurow" style="margin:6px 0 0;"><span class="track"><span class="fill" style="width:${ov.yuzde}%; background:${renk};"></span></span><span class="pct">%${ov.yuzde}</span></div>
         </div>
         <span class="ca-pill" style="background:var(--c-gsoft, var(--c-tint)); color:var(--c-green);">${ov.uzm} ✓</span>
@@ -14186,6 +14195,91 @@ function caAdminSinifHTML(sinif, ogrenciler, tumGel, mufler) {
       <div class="ca-stack">${rows || '<div class="ca-card"><div class="ca-tile-sub">Öğrenci yok.</div></div>'}</div>
     </div>`;
 }
+
+// ===== Faz 1b+: Gözlem Girişi (yeni tasarım → gerçek yazma) =====
+let caGozlemState = null;
+window.caGozlemAc = function(ogrId, ogrAd, sinif) {
+  caGozlemState = { ogrId, ogrAd: ogrAd || "Öğrenci", sinif: sinif || null, disiplin: "montessori", alanIdx: 0, grupIdx: 0, dersIdx: 0, seviye: null, not: "" };
+  caAdminEkran = "gozlem";
+  renderAdminHome();
+};
+window.caGozlemSet = function(field, val) {
+  const st = caGozlemState; if (!st) return;
+  if (field === "disiplin") { st.disiplin = val; st.alanIdx = 0; st.grupIdx = 0; st.dersIdx = 0; renderAdminHome(); }
+  else if (field === "alanIdx") { st.alanIdx = +val; st.grupIdx = 0; st.dersIdx = 0; renderAdminHome(); }
+  else if (field === "grupIdx") { st.grupIdx = +val; st.dersIdx = 0; renderAdminHome(); }
+  else if (field === "dersIdx") { st.dersIdx = +val; }
+  else if (field === "not") { st.not = val; }
+};
+window.caGozlemSeviye = function(s) {
+  if (!caGozlemState) return;
+  caGozlemState.seviye = s;
+  document.querySelectorAll("#adminHomeRoot .ca-sev").forEach(b => b.classList.toggle("on", b.dataset.s === s));
+};
+async function caGozlemRender() {
+  const root = document.getElementById("adminHomeRoot");
+  if (!root || !caGozlemState) { caAdminGo("home"); return; }
+  const st = caGozlemState;
+  const muf = await mufredatYukle(st.disiplin);
+  const alan = muf[st.alanIdx] || muf[0];
+  const grup = (alan && (alan.gruplar[st.grupIdx] || alan.gruplar[0])) || null;
+  const dersler = (grup && grup.dersler) || [];
+  root.innerHTML = caGozlemHTML(st, muf, alan, grup, dersler);
+  if (typeof caTemaUygula === "function") caTemaUygula();
+}
+function caGozlemHTML(st, muf, alan, grup, dersler) {
+  const disChips = [["montessori","Montessori"],["ingilizce","İngilizce"],["degerler","Değerler"]]
+    .map(([id, ad]) => `<button class="ca-chip ${st.disiplin === id ? "on" : ""}" onclick="caGozlemSet('disiplin','${id}')">${ad}</button>`).join("");
+  const alanOpts = muf.map((a, i) => `<option value="${i}" ${i === st.alanIdx ? "selected" : ""}>${escapeHtml(a.ad)}</option>`).join("");
+  const grupOpts = ((alan && alan.gruplar) || []).map((g, i) => `<option value="${i}" ${i === st.grupIdx ? "selected" : ""}>${escapeHtml(g.ad)}</option>`).join("");
+  const dersOpts = dersler.map((d, i) => `<option value="${i}" ${i === st.dersIdx ? "selected" : ""}>${escapeHtml(d)}</option>`).join("");
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row"><button class="ca-back" onclick="caAdminGo('egitim', ${escapeHtml(JSON.stringify(st.sinif))})" title="Geri">←</button>
+          <div><div class="ca-tile-sub">YENİ GÖZLEM</div><h2 style="font-size:19px;">${escapeHtml(st.ogrAd)}</h2></div>
+        </div>
+        <button class="ca-btn" onclick="caGozlemKaydet()">Kaydet</button>
+      </div>
+      <div class="ca-card ca-stack" style="gap:10px;">
+        <div class="ca-formlbl">PROGRAM</div>
+        <div class="ca-chips">${disChips}</div>
+        <div class="ca-formlbl">ALAN</div>
+        <select class="ca-select" onchange="caGozlemSet('alanIdx', this.value)">${alanOpts}</select>
+        <div class="ca-formlbl">GRUP</div>
+        <select class="ca-select" onchange="caGozlemSet('grupIdx', this.value)">${grupOpts}</select>
+        <div class="ca-formlbl">KAZANIM</div>
+        <select class="ca-select" onchange="caGozlemSet('dersIdx', this.value)">${dersOpts}</select>
+        <div class="ca-formlbl">SEVİYE</div>
+        <div class="ca-sevgrid">
+          <div class="ca-sev ${st.seviye === "S" ? "on" : ""}" data-s="S" onclick="caGozlemSeviye('S')">🌱 Sunuldu</div>
+          <div class="ca-sev ${st.seviye === "T" ? "on" : ""}" data-s="T" onclick="caGozlemSeviye('T')">🌿 Tekrar</div>
+          <div class="ca-sev ${st.seviye === "U" ? "on" : ""}" data-s="U" onclick="caGozlemSeviye('U')">🌳 Uzmanlaştı</div>
+        </div>
+        <div class="ca-formlbl">ÖĞRETMEN NOTU (opsiyonel)</div>
+        <textarea id="caGozlemNot" class="ca-area" rows="4" placeholder="Gözleminizi yazın…" oninput="caGozlemSet('not', this.value)">${escapeHtml(st.not || "")}</textarea>
+      </div>
+      <div class="ca-tile-sub" style="text-align:center;">Kaydedince veli ve sınıf görünümüne anında yansır.</div>
+    </div>`;
+}
+window.caGozlemKaydet = async function() {
+  const st = caGozlemState; if (!st) return;
+  if (!st.seviye) { if (typeof showToast === "function") showToast("Önce seviye seçin", "error"); return; }
+  const muf = await mufredatYukle(st.disiplin);
+  const alan = muf[st.alanIdx];
+  const grup = alan && alan.gruplar[st.grupIdx];
+  const ders = grup && grup.dersler[st.dersIdx];
+  if (!ders) { if (typeof showToast === "function") showToast("Kazanım seçin", "error"); return; }
+  const notEl = document.getElementById("caGozlemNot");
+  const notMetin = notEl ? notEl.value.trim() : (st.not || "").trim();
+  const ok = await gelisimDersGuncelle(st.ogrId, st.disiplin, alan.id, grup.ad, ders, st.seviye);
+  if (ok && notMetin) { try { await gelisimNotEkle(st.ogrId, st.disiplin, notMetin); } catch(e) {} }
+  if (ok) {
+    if (typeof showToast === "function") showToast("✓ Gözlem kaydedildi");
+    try { zekiDenetim("gozlem_kayit", { ogr: st.ogrId, disiplin: st.disiplin, ders }); } catch(e) {}
+    caAdminGo("egitim", st.sinif);
+  } else if (typeof showToast === "function") showToast("Kaydedilemedi", "error");
+};
 
 function yonetimHomeHTML(ad) {
   return `
