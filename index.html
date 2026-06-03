@@ -7292,9 +7292,10 @@ html, body {
 <style id="cicek-app-theme">
 .cicek-app {
   /* Renkler */
-  --c-green:        #3A8E42;
-  --c-green-deep:   #1E7A3F;
+  --c-green:        #1F5F33;  /* ZEKY marka yeşili */
+  --c-green-deep:   #143F22;
   --c-green-light:  #4BA651;
+  --c-green-mid:    #2E7D46;  /* hero gradient üst tonu */
   --c-pink-soft:    #FFD4DC;  --c-pink-deep:   #F8A6B4;
   --c-yellow-soft:  #FFF0B0;  --c-yellow-deep: #FFD66B;
   --c-blue-soft:    #CDE7F5;  --c-blue-deep:   #8FC8E5;
@@ -7342,7 +7343,7 @@ html, body {
 
 /* Gradient/aksan kartlar */
 .cicek-app .ca-card-green {
-  background: linear-gradient(135deg, var(--c-green-light), var(--c-green));
+  background: linear-gradient(135deg, var(--c-green-mid), var(--c-green-deep));
   color: #fff; border: none; border-radius: var(--c-radius);
   box-shadow: var(--c-shadow); padding: 18px;
 }
@@ -7406,6 +7407,159 @@ html, body {
   background: var(--c-yellow-soft); color: #6b5b16;
   border: 1px dashed var(--c-yellow-deep); border-radius: var(--c-radius-sm);
   padding: 10px 14px; font-size: 12px; font-weight: 600; margin-bottom: 14px;
+}
+
+/* ---- Yeni Tasarım · Ana Sayfa bileşenleri ---- */
+.cicek-app .ca-phone { max-width: 460px; margin: 0 auto; }
+
+.cicek-app .ca-topbar { display:flex; align-items:center; justify-content:space-between; }
+.cicek-app .ca-bell {
+  position:relative; width:42px; height:42px; border-radius:14px; border:1px solid var(--c-border);
+  background:var(--c-surface); font-size:18px; cursor:pointer; display:grid; place-items:center;
+}
+.cicek-app .ca-bell-dot { position:absolute; top:9px; right:9px; width:9px; height:9px; border-radius:50%; background:var(--c-pink-deep); border:2px solid var(--c-surface); }
+
+.cicek-app .ca-status {
+  margin-top:14px; background:rgba(255,255,255,.20); color:#fff;
+  border-radius:12px; padding:9px 12px; font-size:12.5px; font-weight:600;
+}
+
+.cicek-app .ca-sectionhead { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.cicek-app .ca-link { font-family:var(--c-font-head); font-weight:700; font-size:12.5px; color:var(--c-green); background:none; border:none; cursor:pointer; padding:0; }
+
+.cicek-app .ca-quick { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.cicek-app .ca-qbtn { background:none; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:7px; }
+.cicek-app .ca-qicon { width:54px; height:54px; border-radius:18px; display:grid; place-items:center; font-size:22px; transition:transform .15s ease; }
+.cicek-app .ca-qbtn:hover .ca-qicon { transform:translateY(-2px); }
+.cicek-app .ca-qlabel { font-size:11.5px; color:var(--c-body); font-weight:600; }
+
+.cicek-app .ca-statpills { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+.cicek-app .ca-statpill { border-radius:14px; padding:10px 6px; text-align:center; }
+.cicek-app .ca-statpill .v { font-family:var(--c-font-head); font-weight:700; color:var(--c-ink); font-size:15px; }
+.cicek-app .ca-statpill .l { font-size:10.5px; color:var(--c-muted); margin-top:2px; }
+
+.cicek-app .ca-pay { background:linear-gradient(135deg, var(--c-purple-soft), #EFE7FB); border:none; }
+
+.cicek-app .ca-mini-grid { display:grid; grid-template-columns:1.35fr 1fr; gap:12px; align-items:stretch; }
+.cicek-app .ca-announce {
+  color:#fff; border-radius:var(--c-radius); padding:14px; min-height:160px;
+  display:flex; flex-direction:column; justify-content:flex-end; gap:4px;
+  background:linear-gradient(135deg, var(--c-pink-deep), #E86A8A); cursor:pointer;
+}
+.cicek-app .ca-thumb {
+  aspect-ratio:16/9; border-radius:var(--c-radius-sm); position:relative; overflow:hidden;
+  background:repeating-linear-gradient(45deg, var(--c-pink-soft), var(--c-pink-soft) 12px, #ffe2e8 12px, #ffe2e8 24px);
+}
+.cicek-app .ca-thumb-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.cicek-app .ca-thumb.sm { aspect-ratio:1; border-radius:10px; }
+
+.cicek-app .ca-msgitem { display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid var(--c-border); }
+.cicek-app .ca-msgitem:first-child { border-top:none; }
+.cicek-app .ca-msgmini { width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font-family:var(--c-font-head); font-weight:700; font-size:14px; color:var(--c-ink); flex:none; }
+.cicek-app .ca-unread { margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--c-green); color:#fff; font-size:11px; font-weight:700; display:grid; place-items:center; flex:none; }
+
+.cicek-app .ca-edurow { display:flex; align-items:center; gap:10px; margin:9px 0; }
+.cicek-app .ca-edurow .lbl { font-size:12.5px; color:var(--c-body); width:74px; flex:none; }
+.cicek-app .ca-edurow .track { flex:1; height:8px; border-radius:6px; background:var(--c-border); overflow:hidden; }
+.cicek-app .ca-edurow .fill { height:100%; border-radius:6px; }
+.cicek-app .ca-edurow .pct { font-family:var(--c-font-head); font-weight:700; font-size:12.5px; color:var(--c-ink); width:34px; text-align:right; flex:none; }
+
+/* ---- Menü (Tüm Modüller) ekranı ---- */
+.cicek-app .ca-back { width:38px; height:38px; border-radius:12px; border:1px solid var(--c-border); background:var(--c-surface); cursor:pointer; font-size:16px; display:grid; place-items:center; flex:none; }
+.cicek-app .ca-search { display:flex; align-items:center; gap:10px; background:var(--c-surface); border:1px solid var(--c-border); border-radius:14px; padding:11px 14px; }
+.cicek-app .ca-search input { border:none; outline:none; flex:1; font-family:var(--c-font-body); font-size:14px; color:var(--c-ink); background:none; }
+.cicek-app .ca-modgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:12px; }
+.cicek-app .ca-modtile { position:relative; background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--c-radius-sm); padding:16px 12px; display:flex; flex-direction:column; align-items:center; gap:9px; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; text-align:center; }
+.cicek-app .ca-modtile:hover { transform:translateY(-2px); box-shadow:var(--c-shadow); }
+.cicek-app .ca-modtile.fav { border-color:var(--c-green); }
+.cicek-app .ca-modicon { width:48px; height:48px; border-radius:16px; display:grid; place-items:center; font-size:22px; }
+.cicek-app .ca-modlabel { font-family:var(--c-font-head); font-weight:700; font-size:12.5px; color:var(--c-ink); line-height:1.25; }
+.cicek-app .ca-modstar { position:absolute; top:7px; right:7px; font-size:13px; background:none; border:none; cursor:pointer; opacity:.35; padding:2px; }
+.cicek-app .ca-modstar.on { opacity:1; }
+.cicek-app .ca-modlock { position:absolute; top:7px; left:7px; font-size:11px; opacity:.55; }
+
+/* ---- Çocuk Profili ekranı ---- */
+.cicek-app .ca-profilbadge { position:absolute; bottom:2px; right:2px; width:26px; height:26px; border-radius:50%; background:var(--c-green); color:#fff; display:grid; place-items:center; border:3px solid var(--c-surface); font-size:13px; }
+.cicek-app .ca-rings { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.cicek-app .ca-ring { display:flex; align-items:center; gap:12px; }
+.cicek-app .ca-ring-circle { width:56px; height:56px; border-radius:50%; display:grid; place-items:center; flex:none; }
+.cicek-app .ca-ring-inner { width:42px; height:42px; border-radius:50%; background:var(--c-surface); display:grid; place-items:center; font-family:var(--c-font-head); font-weight:700; font-size:13px; color:var(--c-ink); }
+
+/* ---- Günlük Rapor ekranı ---- */
+.cicek-app .ca-mealrow { display:flex; align-items:center; gap:12px; padding:11px 0; border-top:1px solid var(--c-border); }
+.cicek-app .ca-mealrow:first-child { border-top:none; }
+.cicek-app .ca-statbox { display:flex; align-items:center; gap:10px; }
+
+/* ---- Galeri ekranı ---- */
+.cicek-app .ca-chips { display:flex; gap:8px; flex-wrap:wrap; }
+.cicek-app .ca-chip { padding:8px 15px; border-radius:999px; border:1px solid var(--c-border); background:var(--c-surface); font-family:var(--c-font-head); font-weight:700; font-size:12.5px; color:var(--c-body); cursor:pointer; transition:all .15s ease; }
+.cicek-app .ca-chip:hover { border-color:var(--c-green-light); }
+.cicek-app .ca-chip.active { background:var(--c-green); color:#fff; border-color:var(--c-green); }
+.cicek-app .ca-feat { position:relative; border-radius:var(--c-radius); overflow:hidden; min-height:210px; display:flex; flex-direction:column; justify-content:flex-end; padding:16px; color:#fff; cursor:pointer; box-shadow:var(--c-shadow); }
+.cicek-app .ca-feat::after { content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(20,30,22,.55), rgba(20,30,22,.05) 55%); z-index:0; }
+.cicek-app .ca-feat > * { position:relative; z-index:1; }
+.cicek-app .ca-feat-badge { position:absolute; top:12px; left:12px; z-index:1; }
+.cicek-app .ca-photogrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(108px,1fr)); gap:8px; }
+.cicek-app .ca-photo { position:relative; aspect-ratio:1; border-radius:14px; overflow:hidden; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; }
+.cicek-app .ca-photo:hover { transform:scale(1.04); box-shadow:var(--c-shadow); z-index:2; }
+.cicek-app .ca-photo .ca-play { position:absolute; inset:0; display:grid; place-items:center; }
+.cicek-app .ca-photo .ca-play span { width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.92); display:grid; place-items:center; font-size:14px; box-shadow:0 4px 10px rgba(0,0,0,.2); }
+.cicek-app .ca-photo .ca-vbadge { position:absolute; top:6px; right:6px; background:rgba(0,0,0,.55); color:#fff; font-size:10px; padding:2px 7px; border-radius:8px; }
+
+/* ---- Galeri: albümler + masonry + indirme ---- */
+.cicek-app .ca-albumgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+.cicek-app .ca-album { border-radius:var(--c-radius-sm); overflow:hidden; position:relative; cursor:pointer; box-shadow:var(--c-shadow); background:var(--c-surface); transition:transform .15s ease; }
+.cicek-app .ca-album:hover { transform:translateY(-2px); }
+.cicek-app .ca-album-cover { height:104px; position:relative; }
+.cicek-app .ca-album-cover::after { content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(20,30,22,.38), transparent 60%); }
+.cicek-app .ca-album-info { padding:9px 11px; display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.cicek-app .ca-album-name { font-family:var(--c-font-head); font-weight:700; font-size:13px; color:var(--c-ink); }
+.cicek-app .ca-iconbtn { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.92); display:grid; place-items:center; font-size:13px; border:none; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.18); flex:none; }
+.cicek-app .ca-album-dl { position:absolute; top:8px; right:8px; z-index:2; }
+.cicek-app .ca-album-count { position:absolute; bottom:8px; left:10px; z-index:1; color:#fff; font-size:11px; font-weight:700; font-family:var(--c-font-head); }
+.cicek-app .ca-masonry { column-count:3; column-gap:8px; }
+.cicek-app .ca-masonry > .ca-gphoto { break-inside:avoid; -webkit-column-break-inside:avoid; margin-bottom:8px; position:relative; border-radius:14px; overflow:hidden; cursor:pointer; }
+.cicek-app .ca-gphoto:hover .ca-gdl { opacity:1; }
+.cicek-app .ca-gphoto:hover { box-shadow:var(--c-shadow); }
+.cicek-app .ca-gdl { position:absolute; top:6px; right:6px; opacity:0; transition:opacity .15s ease; z-index:2; }
+@media (max-width:680px){ .cicek-app .ca-masonry { column-count:2; } }
+/* Albüm yatay kaydırma (parmakla swipe) */
+.cicek-app .ca-albumrow { display:flex; gap:12px; overflow-x:auto; padding:2px 2px 10px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+.cicek-app .ca-albumrow > .ca-album { flex:0 0 162px; scroll-snap-align:start; }
+.cicek-app .ca-albumrow::-webkit-scrollbar { height:7px; }
+.cicek-app .ca-albumrow::-webkit-scrollbar-thumb { background:var(--c-border); border-radius:4px; }
+/* Haftalık/Aylık segment */
+.cicek-app .ca-seg { display:inline-flex; background:var(--c-tint); border:1px solid var(--c-border); border-radius:999px; padding:3px; }
+.cicek-app .ca-seg button { border:none; background:none; padding:6px 15px; border-radius:999px; font-family:var(--c-font-head); font-weight:700; font-size:12px; color:var(--c-muted); cursor:pointer; transition:all .15s ease; }
+.cicek-app .ca-seg button.active { background:var(--c-green); color:#fff; }
+
+/* ---- Mesajlar ekranı ---- */
+.cicek-app .ca-convrow { display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:14px; cursor:pointer; transition:background .15s ease; }
+.cicek-app .ca-convrow:hover { background:var(--c-tint); }
+.cicek-app .ca-conv-av { width:48px; height:48px; border-radius:50%; display:grid; place-items:center; font-family:var(--c-font-head); font-weight:700; font-size:18px; color:var(--c-ink); flex:none; }
+.cicek-app .ca-conv-body { flex:1; min-width:0; }
+.cicek-app .ca-conv-name { font-weight:700; color:var(--c-ink); font-size:14px; }
+.cicek-app .ca-conv-prev { font-size:12.5px; color:var(--c-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cicek-app .ca-conv-meta { display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex:none; }
+.cicek-app .ca-conv-time { font-size:11px; color:var(--c-muted); }
+
+/* ---- ZEKY marka şeridi ---- */
+.cicek-app .ca-brand { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.cicek-app .ca-brand-logo { width:36px; height:36px; border-radius:11px; background:var(--c-green-deep); display:grid; place-items:center; flex:none; }
+.cicek-app .ca-brand-name { font-family:var(--c-font-head); font-weight:800; font-size:19px; letter-spacing:.06em; color:var(--c-green-deep); line-height:1; }
+.cicek-app .ca-brand-sub { font-size:10.5px; color:var(--c-muted); font-weight:600; margin-top:2px; }
+
+/* ---- Web düzeni: geniş & responsive (telefon değil) ---- */
+.cicek-app .ca-page { max-width: 1120px; margin: 0 auto; width: 100%; }
+.cicek-app .ca-hero-row { display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; align-items:stretch; }
+.cicek-app .ca-hero-row > * { margin:0; }
+/* Dashboard: değişen yükseklikli kartları boşluksuz dizen masonry */
+.cicek-app .ca-dash { column-count: 2; column-gap: 14px; }
+.cicek-app .ca-dash > * { break-inside: avoid; -webkit-column-break-inside: avoid; margin-bottom: 14px; width: 100%; }
+@media (max-width: 1024px) { .cicek-app .ca-dash { column-count: 2; } }
+@media (max-width: 820px) {
+  .cicek-app .ca-hero-row { grid-template-columns: 1fr; }
+  .cicek-app .ca-dash { column-count: 1; }
 }
 </style>
 </head>
@@ -7744,7 +7898,8 @@ html, body {
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab active" data-tab="ogrenciler">👥 Öğrenci Ayarları</button>
+      <button class="tab active" data-tab="anasayfa">✨ Ana Sayfa</button>
+      <button class="tab" data-tab="ogrenciler">👥 Öğrenci Ayarları</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Onay Bekleyenler <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans">💼 Finansal Yönetim</button>
       <button class="tab" data-tab="egitim">📚 Eğitim</button>
@@ -7752,8 +7907,15 @@ html, body {
       <button class="tab" data-tab="personel" id="tab-personel-btn" style="display:none;">🧑‍🏫 Personel Yönetimi</button>
     </div>
 
+    <!-- YENİ TASARIM · ANA SAYFA TAB (rol bazlı: yönetim/öğretmen) -->
+    <div class="tab-panel active" id="tab-anasayfa">
+      <div class="cicek-app" id="adminHomeRoot">
+        <div style="padding:24px; text-align:center; color:#5C6F60;">Yükleniyor…</div>
+      </div>
+    </div>
+
     <!-- ÖĞRENCILER TAB -->
-    <div class="tab-panel active" id="tab-ogrenciler">
+    <div class="tab-panel" id="tab-ogrenciler">
 
       <!-- DURUM SEKMELERİ -->
       <div class="durum-sekmeleri">
@@ -10921,6 +11083,39 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 const ADMIN_EMAIL = "emrahby@gmail.com";
+
+// ============================================================
+// ZEKY · Faz 0 — Güvenlik temeli
+// Denetim kaydı (append-only audit): hassas işlemleri loglar.
+// firestore.rules: denetimKayitlari create-only, yalnız yönetim okur.
+// ============================================================
+window.zekiDenetim = async function(eylem, detay) {
+  try {
+    await addDoc(collection(db, "denetimKayitlari"), {
+      eylem: eylem || "",
+      detay: detay || null,
+      eposta: (auth.currentUser?.email || "").toLowerCase(),
+      uid: auth.currentUser?.uid || null,
+      zaman: serverTimestamp(),
+      kaynak: "web"
+    });
+  } catch (e) {
+    console.warn("zekiDenetim yazılamadı:", e?.message);
+  }
+};
+
+// Fotoğraf/video izni kapısı (galeri gizlilik) — çocuk bazlı.
+// fotoIzinleri/{cocukId} dökümanında { izin: true/false }.
+// İzin yoksa o çocuğun medyası yayınlanmaz / yüz blur uygulanır (Faz sonrası).
+window.zekiFotoIzniVar = async function(cocukId) {
+  try {
+    const snap = await getDoc(doc(db, "fotoIzinleri", String(cocukId)));
+    return snap.exists() ? (snap.data().izin === true) : false; // varsayılan: izin YOK (güvenli taraf)
+  } catch (e) {
+    console.warn("zekiFotoIzniVar:", e?.message);
+    return false;
+  }
+};
 let AKTIF_DONEM = "2025-2026";  // Dropdown'dan değiştirilebilir
 
 // Türkçe ay isimleri (early definition - TDZ önlemek için)
@@ -12603,6 +12798,12 @@ onAuthStateChanged(auth, async (user) => {
       // Sekmeleri role göre göster/gizle (Faz 1c)
       try { sekmeleriRoleGoreAyarla(); } catch(e) { console.warn(e); }
 
+      // Yeni Tasarım ana sayfasını (rol bazlı) render et — varsayılan açılış sekmesi
+      try { renderAdminHome(); } catch(e) { console.warn("renderAdminHome:", e); }
+
+      // ZEKY denetim kaydı: personel/yönetim girişi
+      try { zekiDenetim("personel_giris", { rol: aktifKullaniciRol }); } catch(e) {}
+
       // Özellik bayraklarını yükle ve arayüze uygula (SaaS feature flags)
       try { await ozellikBayraklariYukle(); ozellikleriArayuzeUygula(); } catch(e) { console.warn(e); }
 
@@ -13164,76 +13365,881 @@ function veliRenderTab(tabName) {
 // Faz 1: statik taslak ana sayfa. Veri bağlama Faz 2'de yapılacak.
 // İçerik, gönderilecek ekran görüntüsüne göre birebir güncellenecek.
 // ============================================================
+let caEkran = "home";  // Yeni Tasarım iç-navigasyon: "home" | "menu" | ...
+let caGalKat = "tumu";   // Galeri kategori filtresi
+let caGalPeriyot = "ay"; // Galeri medya periyodu: "hafta" | "ay"
+
 function veliRenderYeniApp() {
   const root = document.getElementById("cicekAppRoot");
   if (!root) return;
-  root.innerHTML = `
-    <div class="ca-draft-banner">
-      ✨ Pilot / taslak — yeni tasarım dili. İçerik henüz statik; gönderdiğin ana sayfa görüntüsüne göre birebir eşitlenecek.
-    </div>
+  // Eğitim: gerçek veri (async) — önce iskelet, sonra doldur
+  if (caEkran === "egitim") { root.innerHTML = caEgitimLoading(); caTemaUygula(); caEgitimYukle(); return; }
+  root.innerHTML = (caEkran === "menu") ? caMenuHTML()
+                 : (caEkran === "profil") ? caProfilHTML()
+                 : (caEkran === "gunluk") ? caGunlukHTML()
+                 : (caEkran === "galeri") ? caGaleriHTML()
+                 : (caEkran === "mesajlar") ? caMesajlarHTML()
+                 : caHomeHTML();
+  if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
+}
 
-    <div class="ca-stack">
-      <!-- Karşılama -->
+// ===== Faz 1: Eğitim Takibi — GERÇEK VERİ (ogrenciGelisim + mufredatlar) =====
+function caEgitimLoading() {
+  const box = 'background:#eef1ee;border-radius:16px;';
+  return `<div class="ca-page ca-stack"><div class="ca-draft-banner">📊 Eğitim gelişimi yükleniyor…</div>
+    <div style="height:120px;${box}"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;"><div style="height:120px;${box}"></div><div style="height:120px;${box}"></div><div style="height:120px;${box}"></div></div></div>`;
+}
+function caEgitimBos(msg) {
+  return `<div class="ca-page ca-stack">
+    <div class="ca-topbar"><div class="ca-row"><button class="ca-back" onclick="caGo('home')">←</button><div><div class="ca-tile-sub">EĞİTİM</div><h2 style="font-size:18px;">Gelişim</h2></div></div></div>
+    <div class="ca-card" style="text-align:center; padding:30px;"><div style="font-size:34px;">🌱</div><div style="margin-top:8px; color:var(--c-body);">${msg || "Henüz gelişim verisi yok."}</div>
+    <button class="ca-btn" style="margin-top:14px;" onclick="veliSwitchTab('raporlar')">Detaylı raporlar</button></div></div>`;
+}
+async function caEgitimYukle() {
+  const root = document.getElementById("cicekAppRoot");
+  if (!root) return;
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]);
+  if (!ogr || !ogr.id) { root.innerHTML = caEgitimBos("Önce bir çocuk seçilmeli."); caTemaUygula(); return; }
+  try {
+    const snap = await getDoc(doc(db, "ogrenciGelisim", ogr.id));
+    const gel = snap.exists() ? snap.data() : {};
+    const dlist = [
+      { id:"montessori", ad:"Montessori",       renk:"var(--c-green)" },
+      { id:"ingilizce",  ad:"İngilizce",        renk:"var(--c-blue-deep)" },
+      { id:"degerler",   ad:"Değerler Eğitimi", renk:"var(--c-purple-deep)" }
+    ];
+    const veriler = [];
+    for (const d of dlist) {
+      const muf = await mufredatYukle(d.id);
+      const kayit = (gel[d.id] && gel[d.id].kayitlar) || {};
+      veriler.push({ ...d, gen: disiplinGenelIlerleme(kayit, muf), istat: gelisimIstatistik(kayit, muf) });
+    }
+    const yorumlar = ((gel.ogretmenYorumlari) || []).filter(y => y && y.paylas !== false).slice(-3).reverse();
+    root.innerHTML = caEgitimHTML(ogr, veriler, yorumlar);
+    caTemaUygula();
+  } catch (e) {
+    console.warn("caEgitimYukle:", e?.message);
+    root.innerHTML = caEgitimBos("Yüklenemedi: " + (e?.message || ""));
+    caTemaUygula();
+  }
+}
+function caEgitimRenk(g){ return g >= 80 ? "var(--c-green-light)" : g >= 50 ? "var(--c-yellow-deep)" : "#cdd6cf"; }
+function caEgitimHTML(ogr, veriler, yorumlar) {
+  const ad = (ogr.ogrenciAdSoyad || "Çocuk");
+  const adKisa = ad.split(" ")[0];
+  const harf = (ad[0] || "?").toUpperCase();
+  // Özet: ağırlıklı genel yüzde + toplam uzmanlaşılan
+  let topToplam = 0, topCalisilan = 0, topUzman = 0;
+  veriler.forEach(v => { topToplam += v.gen.toplam; topCalisilan += v.gen.calisilan; topUzman += v.gen.uzmanlasti; });
+  const genelYuzde = topToplam ? Math.round((topCalisilan / topToplam) * 100) : 0;
+  const ringCards = veriler.map(v => `
+    <div class="ca-card" style="text-align:center;">
+      <div style="display:flex; justify-content:center;">
+        <div class="ca-ring-circle" style="background:conic-gradient(${v.renk} ${v.gen.yuzde}%, var(--c-border) 0);"><div class="ca-ring-inner">%${v.gen.yuzde}</div></div>
+      </div>
+      <div class="ca-head" style="font-size:14px; margin-top:10px;">${v.ad}</div>
+      <div class="ca-tile-sub">${v.gen.uzmanlasti} kazanım uzmanlaştı</div>
+    </div>`).join("");
+  const alanBloklari = veriler.map(v => {
+    const rows = v.istat.map(a => `
+      <div class="ca-edurow"><span class="lbl" style="width:120px;">${escapeHtmlGelisim(a.ad)}</span>
+        <span class="track"><span class="fill" style="width:${a.yuzde}%; background:${caEgitimRenk(a.yuzde)};"></span></span>
+        <span class="pct">%${a.yuzde}</span></div>`).join("");
+    return `<div>
+      <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:14px;"><span style="color:${v.renk};">●</span> ${v.ad}</h3><span class="ca-tile-sub">%${v.gen.yuzde}</span></div>
+      <div class="ca-card">${rows || '<div class="ca-tile-sub">Henüz kayıt yok.</div>'}</div>
+    </div>`;
+  }).join("");
+  const yorumHtml = yorumlar.length ? yorumlar.map(y => `
+    <div class="ca-card" style="padding:14px;">
+      <div class="ca-row" style="justify-content:space-between;"><div class="ca-head" style="font-size:13.5px;">${escapeHtmlGelisim(y.baslik || "Öğretmen notu")}</div><span class="ca-tile-sub">${escapeHtmlGelisim(y.tarih || "")}</span></div>
+      <div style="margin-top:6px; font-size:13.5px; color:var(--c-body); line-height:1.6;">${escapeHtmlGelisim(y.metin || "")}</div>
+      ${y.yazar ? `<div class="ca-tile-sub" style="margin-top:6px;">— ${escapeHtmlGelisim(y.yazar)}</div>` : ""}
+    </div>`).join("") : `<div class="ca-card"><div class="ca-tile-sub">Henüz paylaşılan öğretmen notu yok.</div></div>`;
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row"><button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div><div class="ca-tile-sub">EĞİTİM GELİŞİMİ</div><h2 style="font-size:19px;">${escapeHtmlGelisim(adKisa)}'in Gelişimi</h2></div>
+        </div>
+        <button class="ca-btn ghost" onclick="veliSwitchTab('raporlar')" title="Detaylı rapor">📄 Rapor</button>
+      </div>
+
       <div class="ca-card-green">
         <div class="ca-row">
-          <div class="ca-avatar" style="background:rgba(255,255,255,.22);">E</div>
+          <div class="ca-avatar" style="background:#fff; color:var(--c-green);">${harf}</div>
           <div>
-            <div style="font-size:13px; opacity:.9;">İyi günler 🌸</div>
-            <h2 style="font-size:20px;">Elif'in Günü</h2>
-            <div style="font-size:12px; opacity:.9; margin-top:2px;">Montessori 3 • Tam Gün</div>
+            <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">GENEL İLERLEME</div>
+            <h2 style="font-size:24px;">%${genelYuzde}</h2>
+            <div style="font-size:12px; opacity:.9;">${escapeHtmlGelisim(ogr.sinif || "")} · ${topUzman} kazanım uzmanlaştı</div>
           </div>
         </div>
-        <div class="ca-row" style="gap:8px; margin-top:14px; flex-wrap:wrap;">
-          <span class="ca-pill" style="background:rgba(255,255,255,.22); color:#fff;">😊 Mutlu</span>
-          <span class="ca-pill" style="background:rgba(255,255,255,.22); color:#fff;">🍽 İyi yedi</span>
-          <span class="ca-pill" style="background:rgba(255,255,255,.22); color:#fff;">😴 Uyudu</span>
-        </div>
       </div>
 
-      <!-- Hızlı erişim -->
       <div>
-        <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı Erişim</h3>
-        <div class="ca-grid-2">
-          <button class="ca-tile" onclick="veliSwitchTab('raporlar')">
-            <span class="ca-tile-icon" style="background:var(--c-pink-soft);">📔</span>
-            <span class="ca-tile-title">Günlük Rapor</span>
-            <span class="ca-tile-sub">Bugünün özeti</span>
+        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Programlar</h3></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;">${ringCards}</div>
+      </div>
+
+      <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Alan İlerlemeleri</h3></div>
+      <div class="ca-stack">${alanBloklari}</div>
+
+      <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Öğretmen Notları</h3></div>
+      ${yorumHtml}
+
+      <div class="ca-tile-sub" style="text-align:center; margin-top:4px;">Veriler canlı: gözlem işlendikçe güncellenir.</div>
+    </div>`;
+}
+
+// Yeni Tasarım iç ekran geçişi
+window.caGo = function(ekran) {
+  caEkran = ekran || "home";
+  veliRenderYeniApp();
+  const m = document.querySelector(".veli-main");
+  if (m) m.scrollTop = 0;
+};
+
+// Menü favorileri (localStorage)
+function caFavGetir() {
+  try { return new Set(JSON.parse(localStorage.getItem("caFav") || "[]")); }
+  catch(e) { return new Set(); }
+}
+window.caFavToggle = function(key, ev) {
+  if (ev) ev.stopPropagation();
+  const s = caFavGetir();
+  if (s.has(key)) s.delete(key); else s.add(key);
+  localStorage.setItem("caFav", JSON.stringify([...s]));
+  if (caEkran === "menu") veliRenderYeniApp();
+};
+// Menü canlı arama (yeniden render etmeden filtreler)
+window.caMenuFiltre = function(q) {
+  const norm = (s) => (s || "").toLocaleLowerCase("tr").replace(/i̇/g, "i");
+  const aranan = norm(q);
+  document.querySelectorAll("#cicekAppRoot .ca-modtile").forEach(t => {
+    t.style.display = norm(t.dataset.ad).includes(aranan) ? "" : "none";
+  });
+};
+
+function caHomeHTML() {
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-brand">
+        <span class="ca-brand-logo">
+          <svg width="24" height="24" viewBox="0 0 200 200" aria-hidden="true"><g transform="translate(100 100)"><g fill="#FFD4DC"><ellipse cx="0" cy="-34" rx="16" ry="30"/><ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(72)"/><ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(144)"/><ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(216)"/><ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(288)"/></g><circle r="18" fill="#F5C84B"/></g></svg>
+        </span>
+        <div><div class="ca-brand-name">ZEKY</div><div class="ca-brand-sub">Bir Çiçek Koleji · Okul-Aile</div></div>
+      </div>
+      <div class="ca-draft-banner">
+        ✨ Pilot / taslak — yeni tasarım dili (web düzeni). Veriler şimdilik örnek; Faz 2'de canlı Firebase verisine bağlanacak.
+      </div>
+
+      <!-- Üst bar -->
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <div class="ca-avatar" style="background:var(--c-pink-soft); color:var(--c-ink);">A</div>
+          <div>
+            <div class="ca-tile-sub">Günaydın</div>
+            <h2 style="font-size:18px;">Ayşe Hanım 🌿</h2>
+          </div>
+        </div>
+        <div class="ca-row" style="gap:8px;">
+          <button class="ca-bell" onclick="caGo('menu')" title="Tüm modüller">▦</button>
+          <button class="ca-bell" onclick="veliSwitchTab('bildirimler')" title="Bildirimler">🔔<span class="ca-bell-dot"></span></button>
+        </div>
+      </div>
+
+      <!-- Hero: Çocuk kartı + Ödeme yan yana (geniş ekran) -->
+      <div class="ca-hero-row">
+        <div class="ca-card-green" style="cursor:pointer;" onclick="caGo('profil')">
+          <div class="ca-row" style="justify-content:space-between;">
+            <div class="ca-row">
+              <div class="ca-avatar" style="background:#fff; color:var(--c-green);">D</div>
+              <div>
+                <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">ÇOCUĞUM</div>
+                <h2 style="font-size:19px;">Defne Demir</h2>
+                <div style="font-size:12px; opacity:.9; margin-top:2px;">Papatya Sınıfı · 5 yaş</div>
+              </div>
+            </div>
+            <span style="opacity:.85; font-size:18px;">⌄</span>
+          </div>
+          <div class="ca-status">🟢 Bugün okulda · 09:12'de giriş yaptı</div>
+        </div>
+
+        <div class="ca-card ca-pay">
+          <div class="ca-row" style="justify-content:space-between;">
+            <span class="ca-pill" style="background:var(--c-purple-deep); color:#fff;">💳 Bu ay ödemesi</span>
+            <span class="ca-pill" style="background:#fff; color:var(--c-purple-deep);">Bekliyor</span>
+          </div>
+          <div class="ca-row" style="justify-content:space-between; margin-top:12px; align-items:flex-end;">
+            <div>
+              <div class="ca-head" style="font-size:22px;">₺4.500</div>
+              <div class="ca-tile-sub">Nisan 2026 · Son ödeme 25 Nisan</div>
+            </div>
+            <button class="ca-btn" style="background:var(--c-purple-deep);" onclick="veliSwitchTab('odemeler')">Ödeme Bildir</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hızlı işlemler -->
+      <div>
+        <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
+        <div class="ca-quick">
+          <button class="ca-qbtn" onclick="veliSwitchTab('okul')">
+            <span class="ca-qicon" style="background:var(--c-pink-soft);">🍽️</span>
+            <span class="ca-qlabel">Menü</span>
           </button>
-          <button class="ca-tile" onclick="veliSwitchTab('galeri')">
-            <span class="ca-tile-icon" style="background:var(--c-blue-soft);">🖼️</span>
-            <span class="ca-tile-title">Galeri</span>
-            <span class="ca-tile-sub">Yeni fotoğraflar</span>
+          <button class="ca-qbtn" onclick="caGo('egitim')">
+            <span class="ca-qicon" style="background:var(--c-yellow-soft);">📊</span>
+            <span class="ca-qlabel">Gelişim</span>
           </button>
-          <button class="ca-tile" onclick="veliSwitchTab('iletisim')">
-            <span class="ca-tile-icon" style="background:var(--c-yellow-soft);">💬</span>
-            <span class="ca-tile-title">Mesajlar</span>
-            <span class="ca-tile-sub">Öğretmenle iletişim</span>
+          <button class="ca-qbtn" onclick="caGo('galeri')">
+            <span class="ca-qicon" style="background:var(--c-blue-soft);">📷</span>
+            <span class="ca-qlabel">Galeri</span>
           </button>
-          <button class="ca-tile" onclick="veliSwitchTab('odemeler')">
-            <span class="ca-tile-icon" style="background:var(--c-purple-soft);">💳</span>
-            <span class="ca-tile-title">Ödemeler</span>
-            <span class="ca-tile-sub">Aidat ve fatura</span>
+          <button class="ca-qbtn" onclick="veliSwitchTab('odemeler')">
+            <span class="ca-qicon" style="background:var(--c-purple-soft);">💳</span>
+            <span class="ca-qlabel">Ödeme</span>
           </button>
         </div>
       </div>
 
-      <!-- Bugün -->
+      <!-- Dashboard: değişen yükseklikli kartlar (masonry) -->
+      <div class="ca-dash">
+
+        <!-- Bugünün günlüğü -->
+        <div>
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">Bugünün günlüğü</h3>
+            <button class="ca-link" onclick="caGo('gunluk')">Tümü →</button>
+          </div>
+          <div class="ca-card">
+            <div class="ca-row">
+              <span class="ca-qicon" style="background:var(--c-yellow-soft); width:42px; height:42px; font-size:18px;">☀️</span>
+              <div>
+                <div style="font-weight:700; color:var(--c-ink);">Çarşamba, 22 Nisan</div>
+                <div class="ca-tile-sub">Öğretmen: Esra Yıldırım</div>
+              </div>
+            </div>
+            <div class="ca-statpills">
+              <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v">%85</div><div class="l">Yemek</div></div>
+              <div class="ca-statpill" style="background:var(--c-purple-soft);"><div class="v">1s 20dk</div><div class="l">Uyku</div></div>
+              <div class="ca-statpill" style="background:#Dff4e3;"><div class="v">Mutlu</div><div class="l">Mood</div></div>
+            </div>
+            <div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">
+              Bugün bahçede yapraklarla matematik etkinliği yaptık. Defne çok ilgiliydi ve arkadaşlarına da yardım etti 🌿
+            </div>
+          </div>
+        </div>
+
+        <!-- Duyuru (görselli) -->
+        <div>
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">Duyurular</h3>
+            <button class="ca-link" onclick="veliSwitchTab('bildirimler')">Tümü →</button>
+          </div>
+          <div class="ca-announce" onclick="veliSwitchTab('bildirimler')">
+            <span class="ca-pill" style="background:rgba(255,255,255,.25); color:#fff; align-self:flex-start;">⭐ Özel Etkinlik</span>
+            <div style="flex:1;"></div>
+            <div style="font-family:var(--c-font-head); font-weight:700; font-size:17px;">23 Nisan Çocuk Şenliği</div>
+            <div style="font-size:12px; opacity:.92;">Yarın · 10:00 — 14:00 · Bahçe</div>
+          </div>
+        </div>
+
+        <!-- Mesajlar -->
+        <div>
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">Mesajlar</h3>
+            <button class="ca-link" onclick="caGo('mesajlar')">Tümü →</button>
+          </div>
+          <div class="ca-card" style="padding:12px 16px;">
+            <div class="ca-msgitem">
+              <div class="ca-msgmini" style="background:var(--c-green-light); color:#fff;">E</div>
+              <div style="min-width:0;">
+                <div style="font-weight:600; color:var(--c-ink); font-size:13px;">Esra Öğretmen</div>
+                <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Defne bugün çok keyifliydi 🌸</div>
+              </div>
+              <span class="ca-unread">2</span>
+            </div>
+            <div class="ca-msgitem">
+              <div class="ca-msgmini" style="background:var(--c-yellow-soft);">P</div>
+              <div style="min-width:0;">
+                <div style="font-weight:600; color:var(--c-ink); font-size:13px;">Papatya Sınıfı</div>
+                <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">23 Nisan için kostüm…</div>
+              </div>
+              <span class="ca-unread">5</span>
+            </div>
+            <div class="ca-msgitem">
+              <div class="ca-msgmini" style="background:var(--c-blue-soft);">M</div>
+              <div style="min-width:0;">
+                <div style="font-weight:600; color:var(--c-ink); font-size:13px;">Müdür Murat Bey</div>
+                <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Veli toplantısı için tarih…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Son eklenen galeri -->
+        <div>
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">Anılarımız</h3>
+            <button class="ca-link" onclick="caGo('galeri')">Tümü →</button>
+          </div>
+          <div class="ca-card" style="padding:12px;" onclick="caGo('galeri')">
+            <div class="ca-thumb">
+              <span class="ca-pill pink" style="position:absolute; top:8px; left:8px;">🆕 Yeni · 8 fotoğraf</span>
+            </div>
+            <div style="margin-top:10px;" class="ca-row">
+              <span style="font-weight:700; color:var(--c-ink); font-size:13.5px;">Bahçe Etkinliği</span>
+              <span class="ca-tile-sub" style="margin-left:auto;">22 Nisan · Papatya Sınıfı</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Eğitim gelişim özeti + rapor bildirimi -->
+        <div>
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">Eğitim Gelişimi</h3>
+            <button class="ca-link" onclick="caGo('egitim')">Detay →</button>
+          </div>
+          <div class="ca-card">
+            <div class="ca-edurow"><span class="lbl">Sosyal</span><span class="track"><span class="fill" style="width:90%; background:var(--c-green-light);"></span></span><span class="pct">90</span></div>
+            <div class="ca-edurow"><span class="lbl">Dil</span><span class="track"><span class="fill" style="width:85%; background:var(--c-yellow-deep);"></span></span><span class="pct">85</span></div>
+            <div class="ca-edurow"><span class="lbl">Motor</span><span class="track"><span class="fill" style="width:78%; background:var(--c-blue-deep);"></span></span><span class="pct">78</span></div>
+            <div class="ca-edurow"><span class="lbl">Bilişsel</span><span class="track"><span class="fill" style="width:82%; background:var(--c-purple-deep);"></span></span><span class="pct">82</span></div>
+            <div class="ca-card tint" style="margin-top:12px; padding:12px; display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="veliSwitchTab('raporlar')">
+              <span style="font-size:20px;">📄</span>
+              <div>
+                <div style="font-weight:700; color:var(--c-ink); font-size:13px;">Nisan ayı gelişim raporu hazır</div>
+                <div class="ca-tile-sub">Montessori · Orman · İngilizce · Değerler</div>
+              </div>
+              <span class="ca-link" style="margin-left:auto;">Aç →</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
+
+// ===== Menü (Tüm Modüller) ekranı =====
+function caMenuHTML() {
+  const fav = caFavGetir();
+  const moduller = [
+    { k:"home",      ad:"Ana Sayfa",         ikon:"🏠", renk:"var(--c-green-light)", git:"caGo('home')" },
+    { k:"cocugum",   ad:"Çocuğum",           ikon:"👧", renk:"var(--c-pink-soft)",   git:"caGo('profil')" },
+    { k:"gunluk",    ad:"Günlük Rapor",      ikon:"📔", renk:"var(--c-pink-soft)",   git:"caGo('gunluk')" },
+    { k:"gelisim",   ad:"Gelişim Raporları", ikon:"📊", renk:"var(--c-yellow-soft)", git:"caGo('egitim')" },
+    { k:"galeri",    ad:"Galeri",            ikon:"📷", renk:"var(--c-blue-soft)",   git:"caGo('galeri')" },
+    { k:"mesajlar",  ad:"Mesajlar",          ikon:"💬", renk:"var(--c-yellow-soft)", git:"caGo('mesajlar')" },
+    { k:"duyurular", ad:"Duyurular",         ikon:"🔔", renk:"var(--c-peach-soft)",  git:"veliSwitchTab('bildirimler')" },
+    { k:"odemeler",  ad:"Ödemeler",          ikon:"💳", renk:"var(--c-purple-soft)", git:"veliSwitchTab('odemeler')" },
+    { k:"sozlesme",  ad:"Sözleşme",          ikon:"📄", renk:"var(--c-blue-soft)",   git:"veliSwitchTab('sozlesme')" },
+    { k:"okul",      ad:"Okul Hayatı",       ikon:"🌸", renk:"#Dff4e3",              git:"veliSwitchTab('okul')" },
+    { k:"yemek",     ad:"Yemek Menüsü",      ikon:"🍽️", renk:"var(--c-pink-soft)",   git:"veliSwitchTab('okul')" },
+    { k:"ayarlar",   ad:"Ayarlar",           ikon:"⚙️", renk:"var(--c-tint)",        git:"veliSwitchTab('ayarlar')" }
+  ];
+  const tiles = moduller.map(m => {
+    const aktif = fav.has(m.k);
+    return `
+      <button class="ca-modtile ${aktif ? "fav" : ""}" data-ad="${m.ad}" onclick="${m.git}">
+        <span class="ca-modstar ${aktif ? "on" : ""}" onclick="caFavToggle('${m.k}', event)" title="Favori">${aktif ? "⭐" : "☆"}</span>
+        <span class="ca-modicon" style="background:${m.renk};">${m.ikon}</span>
+        <span class="ca-modlabel">${m.ad}</span>
+      </button>`;
+  }).join("");
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-draft-banner">✨ Pilot — Tüm Modüller. Yıldıza dokunarak favorilere ekle (cihazında saklanır).</div>
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div>
+            <div class="ca-tile-sub">TÜM MODÜLLER</div>
+            <h2 style="font-size:18px;">Menü</h2>
+          </div>
+        </div>
+      </div>
+      <div class="ca-search">
+        <span>🔍</span>
+        <input id="caMenuSearch" type="text" placeholder="Modül ara…" oninput="caMenuFiltre(this.value)">
+      </div>
+      <div class="ca-card tint" style="display:flex; align-items:center; gap:10px; padding:12px 14px;">
+        <span class="ca-qicon" style="width:38px; height:38px; font-size:16px; background:var(--c-yellow-soft);">⚡</span>
+        <div><div style="font-weight:700; color:var(--c-ink); font-size:13px;">Favoriler (${fav.size})</div><div class="ca-tile-sub">Yıldıza dokunup en çok kullandıklarını işaretle</div></div>
+      </div>
+      <div class="ca-modgrid">${tiles}</div>
+    </div>
+  `;
+}
+
+// Galeri filtre çipleri (görsel)
+window.caChipSec = function(el) {
+  const p = el.parentElement;
+  if (!p) return;
+  p.querySelectorAll(".ca-chip").forEach(c => c.classList.remove("active"));
+  el.classList.add("active");
+};
+
+// Medya indir (Faz 2: bunny.net URL'inden indirir)
+window.caIndir = function(ev, ad) {
+  if (ev) ev.stopPropagation();
+  if (typeof showToast === "function") showToast("⬇ " + (ad || "Medya") + " indiriliyor… (bunny.net)");
+};
+// Galeri kategori / periyot filtreleri
+window.caGalKatSec = function(k) { caGalKat = k; veliRenderYeniApp(); };
+window.caGalPeriyotSec = function(p) { caGalPeriyot = p; veliRenderYeniApp(); };
+
+// Genel liste canlı arama (data-ad'a göre filtreler)
+window.caListeFiltre = function(q, selector) {
+  const norm = (s) => (s || "").toLocaleLowerCase("tr").replace(/i̇/g, "i");
+  const aranan = norm(q);
+  document.querySelectorAll("#cicekAppRoot " + selector).forEach(el => {
+    el.style.display = norm(el.dataset.ad).includes(aranan) ? "" : "none";
+  });
+};
+
+// ===== Mesajlar ekranı =====
+function caMesajlarHTML() {
+  const sohbetler = [
+    ["Esra Öğretmen", "var(--c-green-light)", "#fff", "Defne bugün çok keyifliydi 🌸", "14:32", 2],
+    ["Selin Yardımcı", "var(--c-pink-soft)", "var(--c-ink)", "Yarın bahçe ayakkabısı getirin", "12:10", 0],
+    ["Papatya Sınıfı", "var(--c-yellow-soft)", "var(--c-ink)", "Mehmet: 23 Nisan için kostüm", "Dün", 5],
+    ["Müdür Murat Bey", "var(--c-purple-soft)", "var(--c-ink)", "Veli toplantısı için tarih belirlendi", "Dün", 0],
+    ["Mutfak (Yemekhane)", "var(--c-blue-soft)", "var(--c-ink)", "Haftalık menü gönderildi", "Pzt", 0],
+    ["PDR Rehberlik", "#Dff4e3", "var(--c-ink)", "Görüşme talebiniz onaylandı", "Pzt", 0]
+  ];
+  const rows = sohbetler.map(([ad, avBg, avColor, prev, zaman, unread]) => `
+    <div class="ca-convrow" data-ad="${ad}" onclick="veliSwitchTab('iletisim')">
+      <div class="ca-conv-av" style="background:${avBg}; color:${avColor};">${ad.charAt(0)}</div>
+      <div class="ca-conv-body">
+        <div class="ca-conv-name">${ad}</div>
+        <div class="ca-conv-prev">${prev}</div>
+      </div>
+      <div class="ca-conv-meta">
+        <span class="ca-conv-time">${zaman}</span>
+        ${unread ? `<span class="ca-unread">${unread}</span>` : ""}
+      </div>
+    </div>`).join("");
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-draft-banner">✨ Pilot — Mesajlar. Bir sohbete dokununca gerçek mesajlaşma açılır.</div>
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div><div class="ca-tile-sub">MESAJLAR</div><h2 style="font-size:18px;">Sohbetler</h2></div>
+        </div>
+        <button class="ca-bell" style="background:var(--c-green); color:#fff; border-color:var(--c-green);" onclick="veliSwitchTab('iletisim')" title="Yeni mesaj">＋</button>
+      </div>
+      <div class="ca-search"><span>🔍</span><input type="text" placeholder="Sohbet ara…" oninput="caListeFiltre(this.value, '.ca-convrow')"></div>
+      <div class="ca-card" style="display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--c-yellow-soft); border-color:var(--c-yellow-deep);">
+        <span style="font-size:16px;">📍</span>
+        <div style="font-size:12.5px; color:#6b5b16; font-weight:600;">Acil iletişim için müdüriyet hattı: <strong>0212 555 0001</strong></div>
+      </div>
+      <div class="ca-card" style="padding:6px;">${rows}</div>
+      <button class="ca-btn" style="width:100%;" onclick="veliSwitchTab('iletisim')">💬 Tüm mesajlar</button>
+    </div>
+  `;
+}
+
+// ===== Galeri ekranı =====
+function caGaleriHTML() {
+  const kategoriler = [["tumu","Tümü"],["etkinlik","Etkinlikler"],["orman","Orman"],["sanat","Sanat"],["oyun","Oyun"]];
+  // Albümler: [ad, kapak, sayı, kategori]
+  const albumler = [
+    ["Bahçe Etkinliği", "linear-gradient(135deg,#F8A6B4,#E86A8A)", "24 medya", "etkinlik"],
+    ["Orman Okulu", "linear-gradient(135deg,#9FE0B0,#4BA651)", "18 fotoğraf", "orman"],
+    ["23 Nisan Şenliği", "linear-gradient(135deg,#FFD66B,#F7B591)", "32 medya", "etkinlik"],
+    ["Sanat Atölyesi", "linear-gradient(135deg,#C9B6F0,#B8A0E8)", "12 fotoğraf", "sanat"],
+    ["Doğa Yürüyüşü", "linear-gradient(135deg,#9CD0EC,#8FC8E5)", "20 medya", "orman"],
+    ["Müzik Saati", "linear-gradient(135deg,#FFC2CE,#F8A6B4)", "9 fotoğraf", "sanat"],
+    ["Bilim Deneyleri", "linear-gradient(135deg,#BFE0F2,#8FC8E5)", "15 medya", "etkinlik"],
+    ["Bahçıvanlık", "linear-gradient(135deg,#C9EFD3,#9FE0B0)", "11 fotoğraf", "orman"],
+    ["Resim Sergisi", "linear-gradient(135deg,#DCC9F5,#C9B6F0)", "27 medya", "sanat"],
+    ["Oyun Bahçesi", "linear-gradient(135deg,#FFD9C2,#F7B591)", "14 fotoğraf", "oyun"]
+  ];
+  const gorunenAlbumler = albumler.filter(a => caGalKat === "tumu" || a[3] === caGalKat);
+  const katChips = kategoriler.map(([k, ad]) =>
+    `<button class="ca-chip ${caGalKat === k ? "active" : ""}" onclick="caGalKatSec('${k}')">${ad}</button>`).join("");
+  const albumCards = gorunenAlbumler.map(([ad, g, sayi]) => `
+    <div class="ca-album" onclick="veliSwitchTab('galeri')">
+      <div class="ca-album-cover" style="background:${g};">
+        <button class="ca-iconbtn ca-album-dl" onclick="caIndir(event, '${ad} albümü')" title="Albümü indir">⬇</button>
+        <span class="ca-album-count">${sayi}</span>
+      </div>
+      <div class="ca-album-info"><span class="ca-album-name">${ad}</span><span class="ca-tile-sub">›</span></div>
+    </div>`).join("");
+  const albumBos = gorunenAlbumler.length === 0
+    ? '<div class="ca-tile-sub" style="padding:12px;">Bu kategoride albüm yok.</div>' : "";
+
+  // Medya: [kapak, yükseklik, video?, buHafta?]
+  const medyaTum = [
+    ["linear-gradient(135deg,#FFD4DC,#FFB7C5)", 180, false, true],
+    ["linear-gradient(135deg,#FFF0B0,#FFD66B)", 120, true, true],
+    ["linear-gradient(135deg,#CDE7F5,#9CD0EC)", 150, false, true],
+    ["linear-gradient(135deg,#C9EFD3,#9FE0B0)", 220, false, true],
+    ["linear-gradient(135deg,#E2D7F8,#C9B6F0)", 130, false, true],
+    ["linear-gradient(135deg,#FFD9C2,#F7B591)", 170, false, false],
+    ["linear-gradient(135deg,#FFE0E6,#FFC2CE)", 140, true, false],
+    ["linear-gradient(135deg,#D9EEF9,#BFE0F2)", 205, false, false],
+    ["linear-gradient(135deg,#EDE3FB,#DCC9F5)", 120, false, false],
+    ["linear-gradient(135deg,#C9EFD3,#9FE0B0)", 160, false, false],
+    ["linear-gradient(135deg,#FFF0B0,#FFD66B)", 190, false, false],
+    ["linear-gradient(135deg,#FFD4DC,#FFB7C5)", 135, false, false]
+  ];
+  const gorunenMedya = medyaTum.filter(m => caGalPeriyot === "ay" || m[3]);
+  const fotolar = gorunenMedya.map(([g, h, video]) => `
+    <div class="ca-gphoto" style="background:${g}; height:${h}px;" onclick="veliSwitchTab('galeri')">
+      <button class="ca-iconbtn ca-gdl" onclick="caIndir(event, 'Medya')" title="İndir">⬇</button>
+      ${video ? '<div class="ca-vbadge">0:18</div><div class="ca-play"><span>▶</span></div>' : ""}
+    </div>`).join("");
+
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-draft-banner">✨ Pilot — Galeri (kategorili albümler + toplu medya). Medya bunny.net'te saklanır ve indirilebilir.</div>
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div><div class="ca-tile-sub">GALERİ</div><h2 style="font-size:18px;">Anılarımız</h2></div>
+        </div>
+        <button class="ca-bell" onclick="veliSwitchTab('galeri')" title="Ara">🔍</button>
+      </div>
+
+      <div class="ca-chips">${katChips}</div>
+
+      <div>
+        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Albümler</h3><span class="ca-tile-sub">← kaydır →</span></div>
+        <div class="ca-albumrow">${albumCards}${albumBos}</div>
+      </div>
+
+      <div>
+        <div class="ca-sectionhead">
+          <h3 class="ca-head" style="font-size:15px;">Medya</h3>
+          <div class="ca-seg">
+            <button class="${caGalPeriyot === "hafta" ? "active" : ""}" onclick="caGalPeriyotSec('hafta')">Haftalık</button>
+            <button class="${caGalPeriyot === "ay" ? "active" : ""}" onclick="caGalPeriyotSec('ay')">Aylık</button>
+          </div>
+        </div>
+        <div class="ca-masonry">${fotolar}</div>
+      </div>
+
+      <button class="ca-btn" style="width:100%;" onclick="veliSwitchTab('galeri')">📷 Tüm fotoğraflar ve videolar</button>
+    </div>
+  `;
+}
+
+// ===== Günlük Rapor ekranı =====
+function caGunlukHTML() {
+  const ogunler = [
+    ["Kahvaltı", "☀️", "#Dff4e3", "Tam buğday tost, peynir, salatalık, süt", "Tamamı", "#Dff4e3", "var(--c-green-deep)"],
+    ["Öğle", "🍱", "var(--c-yellow-soft)", "Mercimek çorbası, köfte, pilav, salata", "Yarısı", "var(--c-yellow-soft)", "#8a6d1a"],
+    ["İkindi", "🍎", "#Dff4e3", "Meyve tabağı, süt", "Tamamı", "#Dff4e3", "var(--c-green-deep)"]
+  ];
+  const ogunRows = ogunler.map(([ad, ikon, bg, items, durum, dBg, dText]) => `
+    <div class="ca-mealrow">
+      <span class="ca-qicon" style="width:42px; height:42px; font-size:18px; background:${bg};">${ikon}</span>
+      <div style="flex:1; min-width:0;"><div style="font-weight:700; color:var(--c-ink);">${ad}</div><div class="ca-tile-sub">${items}</div></div>
+      <span class="ca-pill" style="background:${dBg}; color:${dText};">${durum}</span>
+    </div>`).join("");
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-draft-banner">✨ Pilot — Günlük Rapor. Veriler örnek; Faz 2'de canlı Firebase verisine bağlanacak.</div>
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div><div class="ca-tile-sub">GÜNLÜK RAPOR</div><h2 style="font-size:18px;">22 Nisan, Çarşamba</h2></div>
+        </div>
+      </div>
+
       <div class="ca-card">
         <div class="ca-row" style="justify-content:space-between;">
-          <h3 class="ca-head" style="font-size:15px;">Bugün</h3>
-          <span class="ca-pill green">📅 1 Haziran</span>
+          <div class="ca-row">
+            <div class="ca-avatar" style="width:46px; height:46px; font-size:18px; background:var(--c-pink-soft); color:var(--c-ink);">D</div>
+            <div>
+              <div style="font-weight:700; color:var(--c-ink);">Defne'nin günü</div>
+              <div class="ca-tile-sub">09:12 → 16:30 · 7s 18dk</div>
+            </div>
+          </div>
+          <span class="ca-pill green">⭐ HARİKA</span>
         </div>
-        <div class="ca-stack" style="gap:10px; margin-top:12px;">
-          <div class="ca-row"><span style="font-size:18px;">🍽</span><div><div style="font-weight:600; color:var(--c-ink);">Öğle: Mercimek çorbası, köfte, pilav</div><div class="ca-tile-sub">Yemek menüsü</div></div></div>
-          <div class="ca-row"><span style="font-size:18px;">🌿</span><div><div style="font-weight:600; color:var(--c-ink);">Orman Okulu etkinliği</div><div class="ca-tile-sub">14:00 • Bahçe</div></div></div>
+        <div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">
+          Bugün bahçede yapraklarla matematik etkinliği yaptık. Defne çok ilgiliydi ve arkadaşlarına da yardım etti 🌿
         </div>
       </div>
 
-      <!-- Duyuru -->
-      <div class="ca-card tint">
-        <span class="ca-pill yellow">📣 Duyuru</span>
-        <div style="font-weight:600; color:var(--c-ink); margin-top:10px;">Yıl sonu şenliğimiz 15 Haziran'da!</div>
-        <div class="ca-tile-sub" style="margin-top:4px;">Detaylar için Duyurular sekmesine göz atın.</div>
+      <div>
+        <h3 class="ca-head" style="font-size:13px; letter-spacing:.06em; color:var(--c-muted); margin-bottom:8px;">YEMEKLER</h3>
+        <div class="ca-card">${ogunRows}</div>
+      </div>
+
+      <div class="ca-grid-2">
+        <div class="ca-card" style="background:var(--c-purple-soft); border:none;">
+          <div class="ca-statbox">
+            <span style="font-size:22px;">🌙</span>
+            <div><div class="ca-head" style="font-size:18px;">1s 20dk</div><div class="ca-tile-sub">Öğle uykusu</div></div>
+          </div>
+        </div>
+        <div class="ca-card" style="background:var(--c-blue-soft); border:none;">
+          <div class="ca-statbox">
+            <span style="font-size:22px;">✅</span>
+            <div><div class="ca-head" style="font-size:18px;">4 kez</div><div class="ca-tile-sub">Tuvalet</div></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="ca-btn ghost" style="width:100%;" onclick="veliSwitchTab('raporlar')">📄 Geçmiş günlük raporlar</button>
+    </div>
+  `;
+}
+
+// ===== Çocuk Profili ekranı =====
+function caProfilHTML() {
+  const alanlar = [
+    ["Sosyal", 90, "var(--c-green-light)"],
+    ["Motor", 78, "var(--c-purple-deep)"],
+    ["Dil", 85, "var(--c-yellow-deep)"],
+    ["Yaratıcılık", 95, "var(--c-pink-deep)"],
+    ["Bilişsel", 82, "var(--c-blue-deep)"],
+    ["Öz-bakım", 88, "var(--c-green)"]
+  ];
+  const rings = alanlar.map(([ad, p, c]) => `
+    <div class="ca-ring">
+      <div class="ca-ring-circle" style="background:conic-gradient(${c} ${p}%, var(--c-border) 0);"><div class="ca-ring-inner">${p}</div></div>
+      <div><div style="font-weight:700; color:var(--c-ink); font-size:13px;">${ad}</div><div class="ca-tile-sub">%${p}</div></div>
+    </div>`).join("");
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-draft-banner">✨ Pilot — Çocuk Profili. Veriler örnek; Faz 2'de canlı Firebase verisine bağlanacak.</div>
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div><div class="ca-tile-sub">PROFİL</div><h2 style="font-size:18px;">Çocuk Profili</h2></div>
+        </div>
+      </div>
+
+      <div class="ca-card" style="text-align:center;">
+        <div style="position:relative; width:96px; height:96px; margin:4px auto 12px;">
+          <div class="ca-avatar" style="width:96px; height:96px; font-size:38px; background:var(--c-pink-soft); color:var(--c-ink);">D</div>
+          <span class="ca-profilbadge">✓</span>
+        </div>
+        <h2 style="font-size:22px;">Defne Demir</h2>
+        <div class="ca-tile-sub" style="margin-top:2px;">Papatya Sınıfı · 5 yaş 3 ay</div>
+        <div class="ca-row" style="justify-content:center; gap:8px; margin-top:10px;">
+          <span class="ca-pill" style="background:#Dff4e3;">🟢 Okulda · 09:12</span>
+          <span class="ca-pill yellow">%86 ortalama</span>
+        </div>
+      </div>
+
+      <div class="ca-quick">
+        <button class="ca-qbtn" onclick="caGo('gunluk')"><span class="ca-qicon" style="background:var(--c-yellow-soft);">📔</span><span class="ca-qlabel">Günlük</span></button>
+        <button class="ca-qbtn" onclick="caGo('galeri')"><span class="ca-qicon" style="background:var(--c-pink-soft);">📷</span><span class="ca-qlabel">Galeri</span></button>
+        <button class="ca-qbtn" onclick="caGo('mesajlar')"><span class="ca-qicon" style="background:var(--c-blue-soft);">💬</span><span class="ca-qlabel">Mesaj</span></button>
+        <button class="ca-qbtn" onclick="caGo('egitim')"><span class="ca-qicon" style="background:var(--c-purple-soft);">📊</span><span class="ca-qlabel">Rapor</span></button>
+      </div>
+
+      <div class="ca-statpills">
+        <div class="ca-statpill" style="background:#Dff4e3;"><div class="v">124</div><div class="l">Okul günü</div></div>
+        <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v">12</div><div class="l">Devamsızlık</div></div>
+        <div class="ca-statpill" style="background:var(--c-yellow-soft);"><div class="v">%96</div><div class="l">Mutluluk</div></div>
+      </div>
+
+      <div>
+        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Eğitim Gelişimi</h3><button class="ca-link" onclick="caGo('egitim')">Detay →</button></div>
+        <div class="ca-card">
+          <div class="ca-rings">${rings}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// ===== YENİ TASARIM · ADMIN/PERSONEL ANA SAYFA (rol bazlı) =====
+// Yönetim ve Öğretmen için ayrı dashboard. Statik (Faz 2'de canlıya bağlanacak).
+// ============================================================
+window.adminGotoTab = function(name) {
+  const t = document.querySelector('.tab[data-tab="' + name + '"]');
+  if (t) t.click();
+};
+
+function renderAdminHome() {
+  const root = document.getElementById("adminHomeRoot");
+  if (!root) return;
+  const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
+  const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
+  root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
+}
+
+function yonetimHomeHTML(ad) {
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-draft-banner">✨ Pilot / taslak — Yönetim ana sayfası. Veriler örnek; Faz 2'de canlı Firebase verisine bağlanacak.</div>
+
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <div class="ca-avatar" style="background:var(--c-green-light);">${ad.charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="ca-tile-sub">İyi çalışmalar</div>
+            <h2 style="font-size:18px;">${ad}</h2>
+          </div>
+        </div>
+        <span class="ca-pill green">🔐 Yönetim Paneli</span>
+      </div>
+
+      <div class="ca-hero-row">
+        <div class="ca-card-green">
+          <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">GENEL BAKIŞ · NİSAN 2026</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">128</div><div style="font-size:11px; opacity:.9;">👧 Öğrenci</div></div>
+            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">6</div><div style="font-size:11px; opacity:.9;">🏫 Sınıf</div></div>
+            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">₺512K</div><div style="font-size:11px; opacity:.9;">💰 Bu ay tahsilat</div></div>
+            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">%86</div><div style="font-size:11px; opacity:.9;">📈 Doluluk</div></div>
+          </div>
+        </div>
+
+        <div class="ca-card" style="background:linear-gradient(135deg,var(--c-yellow-soft),#FFF7D6); border:none;">
+          <div class="ca-row" style="justify-content:space-between;">
+            <span class="ca-pill yellow">📦 Onay Kuyruğu</span>
+            <span class="ca-pill" style="background:var(--c-pink-deep); color:#fff;">5 bekliyor</span>
+          </div>
+          <div class="ca-stack" style="gap:8px; margin-top:12px;">
+            <div class="ca-row"><span>💳</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">3 kredi kartı ödeme talebi</div></div>
+            <div class="ca-row"><span>📝</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">2 yeni kayıt başvurusu</div></div>
+          </div>
+          <button class="ca-btn" style="margin-top:12px; width:100%;" onclick="adminGotoTab('onay')">Onayları İncele</button>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:10px; max-width:640px;">
+          <button class="ca-qbtn" onclick="adminGotoTab('ogrenciler')"><span class="ca-qicon" style="background:var(--c-pink-soft);">👧</span><span class="ca-qlabel">Öğrenci</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('finans')"><span class="ca-qicon" style="background:var(--c-purple-soft);">💼</span><span class="ca-qlabel">Finans</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-blue-soft);">📚</span><span class="ca-qlabel">Eğitim</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('icerik')"><span class="ca-qicon" style="background:var(--c-yellow-soft);">🌸</span><span class="ca-qlabel">İçerik</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('personel')"><span class="ca-qicon" style="background:#Dff4e3;">🧑‍🏫</span><span class="ca-qlabel">Personel</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('raporlar')"><span class="ca-qicon" style="background:var(--c-peach-soft);">📊</span><span class="ca-qlabel">Raporlar</span></button>
+        </div>
+      </div>
+
+      <div class="ca-dash">
+        <div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Finans Özeti</h3><button class="ca-link" onclick="adminGotoTab('finans')">Detay →</button></div>
+          <div class="ca-card">
+            <div class="ca-edurow"><span class="lbl">Gelir</span><span class="track"><span class="fill" style="width:88%; background:var(--c-green-light);"></span></span><span class="pct" style="width:64px;">₺512K</span></div>
+            <div class="ca-edurow"><span class="lbl">Gider</span><span class="track"><span class="fill" style="width:61%; background:var(--c-pink-deep);"></span></span><span class="pct" style="width:64px;">₺356K</span></div>
+            <div class="ca-card tint" style="margin-top:12px; padding:12px;"><div style="font-weight:700; color:var(--c-ink); font-size:13px;">📈 Net: ₺156.000 · Başabaş aşıldı</div><div class="ca-tile-sub">Hedefin %122'si</div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Tahsilat Durumu</h3><button class="ca-link" onclick="adminGotoTab('ogrenciler')">Tümü →</button></div>
+          <div class="ca-card">
+            <div class="ca-statpills">
+              <div class="ca-statpill" style="background:#Dff4e3;"><div class="v">92</div><div class="l">Ödeyen</div></div>
+              <div class="ca-statpill" style="background:var(--c-yellow-soft);"><div class="v">24</div><div class="l">Bekleyen</div></div>
+              <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v">12</div><div class="l">Geciken</div></div>
+            </div>
+            <button class="ca-btn ghost" style="margin-top:12px; width:100%;" onclick="adminGotoTab('ogrenciler')">✉ Toplu hatırlatma gönder</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Son Başvurular</h3><button class="ca-link" onclick="adminGotoTab('onay')">Tümü →</button></div>
+          <div class="ca-card" style="padding:12px 16px;">
+            <div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-pink-soft);">A</div><div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Ada Yılmaz · 4 yaş</div><div class="ca-tile-sub">Yeni kayıt · bugün</div></div></div>
+            <div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-blue-soft);">K</div><div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Kerem Demir · 5 yaş</div><div class="ca-tile-sub">Kayıt yenileme · dün</div></div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Personel</h3><button class="ca-link" onclick="adminGotoTab('personel')">Yönet →</button></div>
+          <div class="ca-card">
+            <div class="ca-row" style="justify-content:space-between;"><span style="color:var(--c-body); font-size:13px;">Aktif personel</span><span class="ca-head" style="font-size:16px;">18</span></div>
+            <div class="ca-row" style="justify-content:space-between; margin-top:8px;"><span style="color:var(--c-body); font-size:13px;">Bugün izinli</span><span class="ca-head" style="font-size:16px;">2</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function ogretmenHomeHTML(ad) {
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-draft-banner">✨ Pilot / taslak — Öğretmen ana sayfası. Veriler örnek; Faz 2'de canlı Firebase verisine bağlanacak.</div>
+
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <div class="ca-avatar" style="background:var(--c-blue-soft); color:var(--c-ink);">${ad.charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="ca-tile-sub">Günaydın</div>
+            <h2 style="font-size:18px;">${ad}</h2>
+          </div>
+        </div>
+        <span class="ca-pill blue">🌼 Papatya Sınıfı</span>
+      </div>
+
+      <div class="ca-hero-row">
+        <div class="ca-card-green">
+          <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">BUGÜN · YOKLAMA</div>
+          <div class="ca-row" style="margin-top:10px; gap:18px;">
+            <div><div style="font-family:var(--c-font-head); font-weight:700; font-size:30px;">22<span style="font-size:16px; opacity:.8;">/24</span></div><div style="font-size:12px; opacity:.9;">çocuk geldi</div></div>
+            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:10px 14px;"><div style="font-weight:700;">2</div><div style="font-size:11px; opacity:.9;">gelmedi</div></div>
+          </div>
+          <button class="ca-btn ghost" style="margin-top:14px; width:100%;" onclick="adminGotoTab('egitim')">Yoklamayı düzenle</button>
+        </div>
+
+        <div class="ca-card">
+          <div class="ca-sectionhead"><span class="ca-head" style="font-size:14px;">Günün Planı</span><span class="ca-pill" style="background:var(--c-tint);">Çarşamba</span></div>
+          <div class="ca-stack" style="gap:8px; margin-top:6px;">
+            <div class="ca-row"><span>🌿</span><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Orman etkinliği</div><div class="ca-tile-sub">09:30 · Bahçe</div></div></div>
+            <div class="ca-row"><span>🔢</span><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Matematik · yapraklarla sayma</div><div class="ca-tile-sub">11:00 · Sınıf</div></div></div>
+            <div class="ca-row"><span>🎨</span><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Sanat atölyesi</div><div class="ca-tile-sub">14:00 · Atölye</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:10px; max-width:640px;">
+          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-green-light); color:#fff;">✓</span><span class="ca-qlabel">Yoklama</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-yellow-soft);">👀</span><span class="ca-qlabel">Gözlem</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-blue-soft);">📔</span><span class="ca-qlabel">Sınıf Günlüğü</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('icerik')"><span class="ca-qicon" style="background:var(--c-pink-soft);">💬</span><span class="ca-qlabel">Veli Mesajı</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('icerik')"><span class="ca-qicon" style="background:var(--c-purple-soft);">📷</span><span class="ca-qlabel">Galeri Yükle</span></button>
+          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-peach-soft);">📚</span><span class="ca-qlabel">Eğitim Takip</span></button>
+        </div>
+      </div>
+
+      <div class="ca-dash">
+        <div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Bekleyen Veli Mesajları</h3><button class="ca-link" onclick="adminGotoTab('icerik')">Tümü →</button></div>
+          <div class="ca-card" style="padding:12px 16px;">
+            <div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-pink-soft);">A</div><div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Ayşe Hanım (Defne)</div><div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Yarın geç bırakabilir miyim?</div></div><span class="ca-unread">1</span></div>
+            <div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-blue-soft);">M</div><div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Mehmet Bey (Kerem)</div><div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Kostüm hakkında…</div></div><span class="ca-unread">2</span></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıf Eğitim İlerlemesi</h3><button class="ca-link" onclick="adminGotoTab('egitim')">Detay →</button></div>
+          <div class="ca-card">
+            <div class="ca-edurow"><span class="lbl">Montessori</span><span class="track"><span class="fill" style="width:84%; background:var(--c-green-light);"></span></span><span class="pct">84</span></div>
+            <div class="ca-edurow"><span class="lbl">Orman</span><span class="track"><span class="fill" style="width:76%; background:var(--c-blue-deep);"></span></span><span class="pct">76</span></div>
+            <div class="ca-edurow"><span class="lbl">İngilizce</span><span class="track"><span class="fill" style="width:69%; background:var(--c-yellow-deep);"></span></span><span class="pct">69</span></div>
+            <div class="ca-edurow"><span class="lbl">Değerler</span><span class="track"><span class="fill" style="width:91%; background:var(--c-purple-deep);"></span></span><span class="pct">91</span></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Bugün Yapılacaklar</h3></div>
+          <div class="ca-card" style="padding:12px 16px;">
+            <div class="ca-msgitem"><span style="font-size:16px;">📝</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Günlük raporları gir (22 çocuk)</div></div>
+            <div class="ca-msgitem"><span style="font-size:16px;">👀</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Gözlem girişi · 5 bekliyor</div></div>
+            <div class="ca-msgitem"><span style="font-size:16px;">📷</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Bahçe etkinliği fotoğrafları yükle</div></div>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -24329,6 +25335,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     const panel = document.getElementById(`tab-${tab.dataset.tab}`);
     if (panel) panel.classList.add("active");
 
+    // Yeni Tasarım ana sayfasına geçildiyse rol bazlı render et
+    if (tab.dataset.tab === "anasayfa") {
+      setTimeout(() => { if (typeof renderAdminHome === "function") renderAdminHome(); }, 30);
+    }
+
     // Raporlar sekmesine geçildiyse render et
     if (tab.dataset.tab === "raporlar") {
       setTimeout(() => renderRaporlar(), 50);
@@ -28362,7 +29373,7 @@ window.showBulkUpload = async function() {
 <script>
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("service-worker.js")
+      navigator.serviceWorker.register("serviceworker.js")
         .catch((err) => console.warn("Service worker kaydı başarısız:", err));
     });
   }
