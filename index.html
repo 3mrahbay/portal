@@ -7585,6 +7585,57 @@ html, body {
   .cicek-app .ca-hero-row { grid-template-columns: 1fr; }
   .cicek-app .ca-dash { column-count: 1; }
 }
+
+/* ============================================================
+   VELİ PANELİ — ZEKY TAM EKRAN MODU
+   Veli için tek temiz arayüz: ZEKY tasarımı (caHome).
+   Eski yan menü ve üst başlıklar gizli; ZEKY'den eski sekmelere
+   geçince (Ödemeler, Sözleşme, Raporlar) üstte küçük "Ana Sayfa"
+   geri butonu görünür. Eski kod silinmedi → SaaS'ta klasik tema
+   isteyen okul için ileride feature flag ile geri açılabilir.
+   ============================================================ */
+#veliPanel .veli-sidebar         { display: none !important; }
+#veliPanel .veli-layout          { grid-template-columns: 1fr !important; }
+#veliPanel .veli-main-header     { display: none !important; }
+#veliPanel .veli-ogrenci-secici  { display: none !important; }
+#veliPanel .veli-student-hero    { display: none !important; }
+#veliPanel .veli-main {
+  padding: 0 !important;
+  background: var(--cream, #f8f5ee);
+  min-height: 100vh;
+}
+#veliPanel .veli-tab-panel { padding: 0; }
+#veliPanel .veli-tab-panel:not(.active) { display: none; }
+#veliPanel .veli-tab-panel.active { display: block; }
+
+/* ZEKY ana sayfasında (yeniapp) hiçbir ekstra padding yok — ZEKY kendi padding'ini yönetir */
+#veliPanel-yeniapp { padding: 0 !important; }
+
+/* Eski sekme aktifken (ZEKY dışı) üstte "Ana Sayfaya Dön" sticky butonu */
+.zeky-geri-bar {
+  position: sticky; top: 0; z-index: 50;
+  background: #1F5F33; color: white;
+  padding: 10px 16px; display: flex; align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.zeky-geri-bar button {
+  background: rgba(255,255,255,0.15); color: white; border: none;
+  padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s;
+  min-height: 40px; /* dokunmatik için yeterli alan */
+}
+.zeky-geri-bar button:hover { background: rgba(255,255,255,0.25); }
+.zeky-geri-bar .zeky-geri-baslik { flex: 1; opacity: 0.9; font-size: 13px; font-weight: 500; }
+
+/* Eski sekme içeriği için pad ver (yeniapp dışı) */
+#veliPanel .veli-tab-panel:not(#veliPanel-yeniapp) {
+  padding: 16px;
+}
+@media (max-width: 640px) {
+  #veliPanel .veli-tab-panel:not(#veliPanel-yeniapp) { padding: 12px; }
+}
 </style>
 </head>
 <body>
@@ -13367,6 +13418,25 @@ window.veliSwitchTab = function(tabName) {
 
   // Sekmeyi render et
   veliRenderTab(tabName);
+
+  // ZEKY TAM EKRAN MODU: yeniapp dışı sekmelerde "← Ana Sayfaya Dön" sticky butonu ekle
+  if (tabName !== "yeniapp") {
+    const panel = document.getElementById(`veliPanel-${tabName}`);
+    if (panel && !panel.querySelector(".zeky-geri-bar")) {
+      const baslikMap = {
+        odemeler: "Ödemeler", sozlesme: "Sözleşme", ogrenci: "Öğrenci Bilgileri",
+        okul: "Okul Hayatı", iletisim: "İletişim", galeri: "Galeri",
+        raporlar: "Raporlar", bildirimler: "Duyurular", ayarlar: "Ayarlar"
+      };
+      const baslik = baslikMap[tabName] || tabName;
+      const bar = document.createElement("div");
+      bar.className = "zeky-geri-bar";
+      bar.innerHTML = `
+        <button onclick="veliSwitchTab('yeniapp')" title="Ana sayfaya dön">← Ana Sayfa</button>
+        <span class="zeky-geri-baslik">${baslik}</span>`;
+      panel.insertBefore(bar, panel.firstChild);
+    }
+  }
 };
 
 function veliRenderTab(tabName) {
