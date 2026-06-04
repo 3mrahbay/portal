@@ -15379,6 +15379,17 @@ function dashYorumlariDoldur(ogrId) {
 }
 
 
+// ZEKY ödeme filtre çipleri
+window.caOdemeFiltre = function(btn, kat) {
+  if (btn && btn.parentElement) {
+    btn.parentElement.querySelectorAll(".ca-chip").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+  }
+  document.querySelectorAll("#caOdemeListe .ca-odeme-karti").forEach(c => {
+    c.style.display = (kat === "tum" || c.dataset.durum === kat) ? "" : "none";
+  });
+};
+
 function veliRenderOdemeler() {
   const el = document.getElementById("veliOdemelerContent");
   if (!el) return;
@@ -15430,152 +15441,121 @@ function veliRenderOdemeler() {
   const ilerlemeYuzde = toplamBeklenen > 0 ? Math.round((toplamOdenen / toplamBeklenen) * 100) : 0;
   const kalan = Math.max(0, toplamBeklenen - toplamOdenen);
 
-  let html = `
-    <!-- İLERLEME ÖZETİ -->
-    <div style="background:linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 100%); border-radius:16px; padding:20px 24px; margin-bottom:20px;">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
-        <div>
-          <div style="font-size:12px; color:#1a4d2e; font-weight:600; letter-spacing:1px;">ÖDEME İLERLEMEN</div>
-          <div style="font-size:28px; font-weight:700; color:#1a4d2e; margin-top:6px; font-family:var(--font-display);">%${ilerlemeYuzde}</div>
-          <div style="font-size:13px; color:#2d6a4f; margin-top:2px;">
-            ${toplamOdenen.toLocaleString("tr-TR")} / ${toplamBeklenen.toLocaleString("tr-TR")} TL
-          </div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:11px; color:#166534; letter-spacing:1px; font-weight:600;">KALAN BAKİYE</div>
-          <div style="font-size:22px; font-weight:600; color:#166534; margin-top:4px;">
-            ${kalan.toLocaleString("tr-TR")} TL
-          </div>
-        </div>
+  const ogrId = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci.id : "";
+  const ibanNo = "TR26 0020 5000 0969 5703 5000 02";
+  const onPill = onOdendi
+    ? `<span class="ca-pill" style="background:#DFF4E3; color:var(--c-green-deep);">✓ Ödendi</span>`
+    : `<span class="ca-pill" style="background:var(--c-yellow-soft); color:#8a6d1a;">⏱ Beklemede</span>`;
+  const onCard = (onOdemeTutari > 0) ? `
+    <div class="ca-card ca-odeme-karti" data-durum="${onOdendi ? "odendi" : "bekliyor"}" style="padding:13px 16px;">
+      <div class="ca-row" style="justify-content:space-between;">
+        <div><div class="ca-head" style="font-size:14px;">🎫 Ön Ödeme (kayıt)</div>
+          <div class="ca-tile-sub">${onOdemeTutari.toLocaleString("tr-TR")} ₺${onOdenenTutar > 0 ? " · ödenen " + Math.round(onOdenenTutar).toLocaleString("tr-TR") + " ₺" : ""}${onOdemeTarihi ? " · " + formatTarih(onOdemeTarihi) : ""}</div>
+        </div>${onPill}
       </div>
+    </div>` : "";
 
-      <!-- Progress Bar -->
-      <div style="margin-top:14px; background:rgba(255,255,255,0.5); border-radius:20px; height:10px; overflow:hidden;">
-        <div style="background:#2d6a4f; height:100%; width:${ilerlemeYuzde}%; transition:width 0.5s; border-radius:20px;"></div>
-      </div>
-    </div>
-
-    <!-- AYLIK KARŞILAŞTIRMA GRAFİĞİ -->
-    <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px; margin-bottom:20px;">
-      <div style="font-weight:600; color:var(--gray-800); margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <span>📊 Aylık Ödeme Grafiği</span>
-        <div style="display:flex; gap:10px; font-size:11px;">
-          <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; background:#2d6a4f; border-radius:2px;"></span>Ödenen</span>
-          <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; background:#fde68a; border-radius:2px;"></span>Beklenen</span>
-          <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; background:#fecaca; border-radius:2px;"></span>Geciken</span>
-        </div>
-      </div>
-      <div style="display:flex; gap:6px; height:140px; align-items:flex-end; overflow-x:auto; padding:6px 0;">`;
-
-  // Grafik çubukları
-  const maxTutar = Math.max(iDonemAylik, iiDonemAylik, 1);
-  for (const ay of ayListesi) {
+  const ayKartlari = ayListesi.map(ay => {
     const ayNum = parseInt(ay.ayKod.split("-")[1], 10);
     const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
     const od = aylikOdemeler[ay.ayKod] || {};
-    const odenen = (od.odendi || od.odenenTutar) ? (parseFloat(od.odenenTutar) || beklenen) : 0;
-    const durum = getOdemeDurumu(ay, od, beklenen);
-
-    const barYuksek = Math.max(4, (beklenen / maxTutar) * 100);
-    const odemeYuksek = odenen > 0 ? Math.max(4, (odenen / maxTutar) * 100) : 0;
-    const renk = durum === "odendi" ? "#2d6a4f"
-               : durum === "kismi" ? "#f59e0b"
-               : durum === "gecikmis" ? "#ef4444"
-               : "#fde68a";
-
-    const ayKisa = ay.kisa || ay.tam?.substring(0, 3) || "";
-    html += `
-      <div style="flex:1; min-width:32px; display:flex; flex-direction:column; align-items:center;" title="${ay.tam}: ${odenen.toLocaleString("tr-TR")} / ${beklenen.toLocaleString("tr-TR")} TL">
-        <div style="width:100%; height:100px; background:#f3f4f6; border-radius:4px; position:relative; overflow:hidden; display:flex; align-items:flex-end;">
-          <div style="width:100%; height:${barYuksek}%; background:#fde68a; position:absolute; bottom:0; border-radius:4px 4px 0 0;"></div>
-          ${odemeYuksek > 0 ? `<div style="width:100%; height:${odemeYuksek}%; background:${renk}; position:absolute; bottom:0; border-radius:4px 4px 0 0; z-index:2;"></div>` : ''}
-        </div>
-        <div style="font-size:10px; color:var(--gray-500); margin-top:4px; white-space:nowrap;">${escapeHtml(ayKisa)}</div>
-      </div>
-    `;
-  }
-
-  html += `
-      </div>
-    </div>
-
-    <!-- AYLIK KARTLAR -->
-    <div style="font-weight:600; color:var(--gray-800); margin-bottom:12px; font-size:14px;">📅 Detaylı Aylık Görünüm</div>
-
-    ${onOdemeTutari > 0 ? `
-    <!-- Ön Ödeme Kartı (özel) -->
-    <div class="aylik-karti ${onOdendi ? 'odendi' : 'bekliyor'}" style="padding:14px; margin-bottom:10px; background:${onOdendi ? '#f0fdf4' : '#fef9c3'}; border:2px solid ${onOdendi ? '#86efac' : '#fde68a'}; border-radius:12px;">
-      <div class="aylik-ay-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <div>
-          <div style="font-size:11px; color:#6b7280; letter-spacing:0.5px;">🎫 KAYIT ANINDA</div>
-          <div class="aylik-ay-isim" style="font-size:15px; font-weight:600; color:#1a4d2e;">Ön Ödeme</div>
-        </div>
-        <span class="aylik-ay-rozet ${onOdendi ? 'odendi' : 'bekliyor'}">${onOdendi ? '✓ Ödendi' : '⏱ Beklemede'}</span>
-      </div>
-      <div style="margin-top:8px; font-size:13px;">
-        <div><strong>Beklenen:</strong> ${onOdemeTutari.toLocaleString("tr-TR")} TL</div>
-        ${onOdenenTutar > 0 ? `<div><strong>Ödenen:</strong> ${Math.round(onOdenenTutar).toLocaleString("tr-TR")} TL</div>` : ''}
-        ${onOdemeTarihi ? `<div style="font-size:11px; color:var(--gray-500); margin-top:4px;">Tarih: ${formatTarih(onOdemeTarihi)}</div>` : ''}
-      </div>
-    </div>
-    ` : ''}
-
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">`;
-
-  for (const ay of ayListesi) {
-    const ayNum = parseInt(ay.ayKod.split("-")[1], 10);
-    const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-    const od = aylikOdemeler[ay.ayKod] || {};
-    const durum = v.aidatAyarlari?.pesinOdeme ? "odendi" : getOdemeDurumu(ay, od, beklenen);
-    const odenenTutar = parseFloat(od.odenenTutar) || (v.aidatAyarlari?.pesinOdeme ? beklenen : 0);
+    const durum = v.aidatAyarlari && v.aidatAyarlari.pesinOdeme ? "odendi" : getOdemeDurumu(ay, od, beklenen);
+    const odenenTutar = parseFloat(od.odenenTutar) || (v.aidatAyarlari && v.aidatAyarlari.pesinOdeme ? beklenen : 0);
     const odemeTarihi = od.odemeTarihi || "";
-
-    const rozetMetni = {
-      odendi: "✓ Ödendi",
-      kismi: "◐ Kısmi",
-      bekliyor: "⏱ Bekliyor",
-      gecikmis: "⚠ Gecikmiş"
-    }[durum];
-
-    const fark = odenenTutar - beklenen;
-    const farkMetni = fark > 0 ? `+${fark.toLocaleString("tr-TR")} fazla`
-                    : fark < 0 && odenenTutar > 0 ? `${Math.abs(fark).toLocaleString("tr-TR")} eksik`
-                    : "";
-
-    html += `
-      <div class="aylik-karti ${durum}" style="padding:12px;">
-        <div class="aylik-ay-header">
-          <div class="aylik-ay-isim">${ay.tam}</div>
-          <span class="aylik-ay-rozet ${durum}">${rozetMetni}</span>
+    const filtreKat = (durum === "odendi" || durum === "kismi") ? "odendi" : "bekliyor";
+    const pmap = {
+      odendi:   ["#DFF4E3", "var(--c-green-deep)", "✓ Ödendi"],
+      kismi:    ["var(--c-yellow-soft)", "#8a6d1a", "◐ Kısmi"],
+      bekliyor: ["var(--c-yellow-soft)", "#8a6d1a", "⏱ Bekliyor"],
+      gecikmis: ["#FFE3E9", "var(--c-pink-deep)", "⚠ Gecikmiş"]
+    };
+    const p = pmap[durum] || ["var(--c-tint)", "var(--c-muted)", durum];
+    return `<div class="ca-card ca-odeme-karti" data-durum="${filtreKat}" style="padding:13px 16px;">
+      <div class="ca-row" style="justify-content:space-between;">
+        <div><div class="ca-head" style="font-size:14px;">${escapeHtml(ay.tam)}</div>
+          <div class="ca-tile-sub">${beklenen.toLocaleString("tr-TR")} ₺${odenenTutar > 0 ? " · ödenen " + Math.round(odenenTutar).toLocaleString("tr-TR") + " ₺" : ""}${odemeTarihi ? " · " + formatTarih(odemeTarihi) : ""}</div>
         </div>
-        <div style="margin-top:8px; font-size:13px;">
-          <div><strong>Beklenen:</strong> ${beklenen.toLocaleString("tr-TR")} TL</div>
-          ${odenenTutar > 0 ? `<div><strong>Ödenen:</strong> ${Math.round(odenenTutar).toLocaleString("tr-TR")} TL</div>` : ''}
-          ${farkMetni ? `<div style="font-size:11px; color:${fark > 0 ? '#16a34a' : '#dc2626'}; margin-top:2px;">${farkMetni}</div>` : ''}
-          ${odemeTarihi ? `<div style="font-size:11px; color:var(--gray-500); margin-top:4px;">Tarih: ${formatTarih(odemeTarihi)}</div>` : ''}
+        <span class="ca-pill" style="background:${p[0]}; color:${p[1]};">${p[2]}</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  // Ek ödemeler (kırtasiye/eğitim materyali, kıyafet, servis...) — aidat dışında ayrı
+  const dLabels = { egitimMateryali:["✏️","Eğitim Materyali / Kırtasiye"], okulKiyafeti:["👕","Okul Kıyafeti"], ormanKiyafeti:["🌲","Orman Okulu Kıyafeti"], servis1:["🚌","Servis · I. Dönem"], servis2:["🚌","Servis · II. Dönem"], yemek:["🍽️","Yemek Ücreti"], kirtasiye:["✏️","Kırtasiye"], kiyafet:["👕","Kıyafet"] };
+  const dOdeme = v.digerOdemeler || (v.aidatAyarlari && v.aidatAyarlari.digerOdemeler) || {};
+  const ekKalemler = Object.keys(dOdeme).map(k => {
+    const d = dOdeme[k] || {}; const tutar = Number(d.tutar) || 0;
+    if (tutar <= 0) return "";
+    const meta = dLabels[k] || ["💠", k];
+    const odendi = !!d.odendi;
+    const pp = odendi ? ["#DFF4E3", "var(--c-green-deep)", "✓ Ödendi"] : ["var(--c-yellow-soft)", "#8a6d1a", "⏱ Bekliyor"];
+    return `<div class="ca-card" style="padding:13px 16px;">
+      <div class="ca-row" style="justify-content:space-between;">
+        <div class="ca-row" style="gap:10px;"><span style="font-size:20px;">${meta[0]}</span>
+          <div><div class="ca-head" style="font-size:14px;">${escapeHtml(meta[1])}</div>
+            <div class="ca-tile-sub">${tutar.toLocaleString("tr-TR")} ₺${d.sonOdemeTarihi ? " · son " + formatTarih(d.sonOdemeTarihi) : ""}${d.not ? " · " + escapeHtml(d.not) : ""}</div></div>
         </div>
+        <span class="ca-pill" style="background:${pp[0]}; color:${pp[1]};">${pp[2]}</span>
       </div>
-    `;
-  }
-  html += `</div>`;
+    </div>`;
+  }).join("");
+  const ekBolum = ekKalemler.trim() ? `
+        <div class="ca-sectionhead" style="margin-top:8px;"><h3 class="ca-head" style="font-size:15px;">Ek Ödemeler</h3><span class="ca-tile-sub">aidat dışında</span></div>
+        <div class="ca-stack">${ekKalemler}</div>` : "";
 
-  // Bildirim butonu
-  html += `
-    <div style="margin-top:20px; padding:16px; background:#fef9c3; border:1px solid #fde68a; border-radius:12px;">
-      <div style="font-weight:500; font-size:14px; color:#422006; margin-bottom:8px;">💳 Ödeme Bildirimi</div>
-      <div style="font-size:13px; color:var(--gray-700); margin-bottom:10px;">
-        Ödeme yaptıysanız okul yönetimine bildirim gönderebilirsiniz.
-      </div>
-      <button class="veli-btn-primary" onclick="veliOdemeBildir()">✉️ Ödeme Bildir</button>
-    </div>
+  // Dönem ödeme planı kartı (1. / 2. dönem kolaylığı)
+  const donemPlanCard = `
+        <div class="ca-card">
+          <div class="ca-head" style="font-size:14px;">📋 Dönem Ödeme Planı</div>
+          <div class="ca-statpills" style="margin-top:10px;">
+            <div class="ca-statpill" style="background:#DFF4E3;"><div class="v">${(iDonemAylik || 0).toLocaleString("tr-TR")} ₺</div><div class="l">I. Dönem / ay</div></div>
+            <div class="ca-statpill" style="background:var(--c-blue-soft);"><div class="v">${(iiDonemAylik || 0).toLocaleString("tr-TR")} ₺</div><div class="l">II. Dönem / ay</div></div>
+            <div class="ca-statpill" style="background:var(--c-tint);"><div class="v">${taksit}</div><div class="l">Taksit</div></div>
+          </div>
+          ${onOdemeTutari > 0 ? `<div class="ca-tile-sub" style="margin-top:8px;">🎫 Kayıt ön ödemesi: ${onOdemeTutari.toLocaleString("tr-TR")} ₺ ${onOdendi ? "· ödendi ✓" : "· bekliyor"}</div>` : ""}
+        </div>`;
 
-    <div style="margin-top:14px; padding:16px; background:white; border:1px solid var(--gray-300); border-radius:12px;">
-      <div style="font-weight:500; font-size:14px; margin-bottom:10px;">🏦 Banka Hesap Bilgileri</div>
-      <div style="font-size:13px; line-height:1.8;">
-        <strong>Kuveyt Türk</strong><br>
-        Hesap Sahibi: EMRAH BAY<br>
-        IBAN: <code style="background:var(--gray-100); padding:2px 6px; border-radius:4px;">TR26 0020 5000 0969 5703 5000 02</code>
-        <button class="veli-btn-secondary" style="padding:4px 10px; font-size:11px; margin-left:6px;" onclick="veliKopyaIBAN('TR26 0020 5000 0969 5703 5000 02')">Kopyala</button>
+  const html = `
+    <div class="cicek-app">
+      <div class="ca-page ca-stack" style="padding-top:4px;">
+        <div class="ca-card" style="background:linear-gradient(135deg, var(--c-purple-soft), #EFE7FB); border:none;">
+          <div class="ca-row" style="justify-content:space-between;">
+            <span class="ca-pill" style="background:var(--c-purple-deep); color:#fff;">💳 Ödemeler</span>
+            <span class="ca-pill" style="background:#fff; color:var(--c-purple-deep);">%${ilerlemeYuzde} ödendi</span>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="ca-tile-sub">KALAN BAKİYE</div>
+            <div class="ca-head" style="font-size:30px;">${kalan.toLocaleString("tr-TR")} ₺</div>
+            <div class="ca-tile-sub">${toplamOdenen.toLocaleString("tr-TR")} / ${toplamBeklenen.toLocaleString("tr-TR")} ₺ ödendi</div>
+          </div>
+          <div class="ca-edurow" style="margin-top:10px;"><span class="track"><span class="fill" style="width:${ilerlemeYuzde}%; background:var(--c-green);"></span></span></div>
+          <div class="ca-row" style="gap:10px; margin-top:14px; flex-wrap:wrap;">
+            <button class="ca-btn" style="background:var(--c-purple-deep); flex:1; min-width:160px;" onclick="veliKartTalepAc('${ogrId}')">💳 Kredi kartı ile öde</button>
+            <button class="ca-btn ghost" style="flex:1; min-width:140px;" onclick="veliOdemeBildir()">✉️ Ödeme Bildir</button>
+          </div>
+        </div>
+
+        ${donemPlanCard}
+
+        <div class="ca-sectionhead" style="margin-top:4px;"><h3 class="ca-head" style="font-size:15px;">Aidat Taksitleri</h3></div>
+        <div class="ca-chips">
+          <button class="ca-chip active" onclick="caOdemeFiltre(this,'tum')">Tümü</button>
+          <button class="ca-chip" onclick="caOdemeFiltre(this,'bekliyor')">Bekleyen</button>
+          <button class="ca-chip" onclick="caOdemeFiltre(this,'odendi')">Ödenen</button>
+        </div>
+
+        <div class="ca-stack" id="caOdemeListe">${onCard}${ayKartlari}</div>
+
+        ${ekBolum}
+
+        <div class="ca-card">
+          <div class="ca-head" style="font-size:14px;">🏦 Banka Hesabı</div>
+          <div style="margin-top:8px; font-size:13px; color:var(--c-body); line-height:1.8;">
+            <strong>Kuveyt Türk</strong> · EMRAH BAY<br>
+            <code style="background:var(--c-tint); padding:3px 7px; border-radius:6px;">${ibanNo}</code>
+            <button class="ca-btn ghost" style="padding:5px 11px; font-size:11px; margin-left:6px;" onclick="veliKopyaIBAN('${ibanNo}')">Kopyala</button>
+          </div>
+        </div>
       </div>
     </div>
   `;
