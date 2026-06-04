@@ -7543,6 +7543,22 @@ html, body {
 .cicek-app .ca-conv-meta { display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex:none; }
 .cicek-app .ca-conv-time { font-size:11px; color:var(--c-muted); }
 
+/* ---- ZEKY sohbet (chat) ---- */
+.cicek-app .ca-chathead { display:flex; align-items:center; gap:11px; padding:10px 4px 12px; }
+.cicek-app .ca-chathead .ca-conv-av { width:42px; height:42px; font-size:16px; }
+.cicek-app .ca-chatgovde { display:flex; flex-direction:column; gap:9px; padding:6px 2px; min-height:300px; max-height:54vh; overflow-y:auto; }
+.cicek-app .ca-bub { max-width:78%; padding:9px 13px; border-radius:16px; font-size:13.5px; line-height:1.5; color:var(--c-body); word-wrap:break-word; box-shadow:0 1px 2px rgba(20,63,34,.05); }
+.cicek-app .ca-bub.gelen { align-self:flex-start; background:#fff; border:1px solid var(--c-line); border-bottom-left-radius:5px; }
+.cicek-app .ca-bub.giden { align-self:flex-end; background:linear-gradient(135deg,var(--c-green-light),var(--c-green-mid)); color:#fff; border-bottom-right-radius:5px; }
+.cicek-app .ca-bub-meta { font-size:10.5px; opacity:.7; margin-top:4px; text-align:right; }
+.cicek-app .ca-bub-img { display:block; max-width:100%; border-radius:11px; margin-bottom:5px; cursor:pointer; }
+.cicek-app .ca-chatbar { display:flex; align-items:flex-end; gap:8px; padding:9px; background:#fff; border:1px solid var(--c-line); border-radius:18px; }
+.cicek-app .ca-chatbar textarea { flex:1; border:none; outline:none; resize:none; font-family:var(--c-font-body); font-size:13.5px; color:var(--c-ink); background:transparent; max-height:110px; line-height:1.5; padding:6px 2px; }
+.cicek-app .ca-chaticon { flex:none; width:38px; height:38px; border-radius:50%; border:none; cursor:pointer; display:grid; place-items:center; font-size:16px; }
+.cicek-app .ca-chaticon.atac { background:var(--c-tint); color:var(--c-green-deep); }
+.cicek-app .ca-chaticon.send { background:var(--c-green); color:#fff; }
+.cicek-app .ca-chaticon.send:disabled { opacity:.5; cursor:default; }
+
 /* ---- ZEKY marka şeridi ---- */
 .cicek-app .ca-brand { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
 .cicek-app .ca-brand-logo { width:36px; height:36px; border-radius:11px; background:var(--c-green-deep); display:grid; place-items:center; flex:none; }
@@ -13369,6 +13385,10 @@ function veliRenderTab(tabName) {
   if (tabName !== "iletisim" && typeof veliMesajlasmaDurdur === "function") {
     veliMesajlasmaDurdur();
   }
+  // ZEKY app dışına çıkıldıysa ZEKY mesaj dinleyicisini durdur
+  if (tabName !== "yeniapp" && typeof caMsgDurdur === "function") {
+    caMsgDurdur();
+  }
 }
 
 // ============================================================
@@ -13385,6 +13405,10 @@ function veliRenderYeniApp() {
   if (!root) return;
   // Eğitim: gerçek veri (async) — önce iskelet, sonra doldur
   if (caEkran === "egitim") { root.innerHTML = caEgitimLoading(); caTemaUygula(); caEgitimYukle(); return; }
+  // Mesajlar: gerçek veri (canlı dinleyici) — ZEKY tasarımı, mevcut mesaj fonksiyonları
+  if (caEkran === "mesajlar") { root.innerHTML = caMesajlarHTML(); caTemaUygula(); caMsgBaslat(); return; }
+  // Başka ekrana geçildiyse mesaj dinleyicilerini durdur
+  if (typeof caMsgDurdur === "function") caMsgDurdur();
   root.innerHTML = (caEkran === "menu") ? caMenuHTML()
                  : (caEkran === "profil") ? caProfilHTML()
                  : (caEkran === "gunluk") ? caGunlukHTML()
@@ -13830,48 +13854,349 @@ window.caListeFiltre = function(q, selector) {
   });
 };
 
-// ===== Mesajlar ekranı =====
+// ===== Mesajlar ekranı (ZEKY tasarımı · GERÇEK VERİ) =====
+// Mevcut mesajlaşma alt-yapısını (mesajGonder, mesajThreadGetirVeyaOlustur,
+// mesajOkunduIsaretle, onSnapshot) yeniden kullanır; yalnız render + ID'ler
+// ZEKY'ye özgüdür (eski veliPanel-iletisim ID'leriyle çakışmaması için ayrı).
+let caMsgThreadUnsub = null, caMsgMsgUnsub = null;
+let caMsgThreads = [], caMsgAktif = null, caMsgSeciliResim = null;
+let caMsgPersonelCache = null;
+
 function caMesajlarHTML() {
-  const sohbetler = [
-    ["Esra Öğretmen", "var(--c-green-light)", "#fff", "Defne bugün çok keyifliydi 🌸", "14:32", 2],
-    ["Selin Yardımcı", "var(--c-pink-soft)", "var(--c-ink)", "Yarın bahçe ayakkabısı getirin", "12:10", 0],
-    ["Papatya Sınıfı", "var(--c-yellow-soft)", "var(--c-ink)", "Mehmet: 23 Nisan için kostüm", "Dün", 5],
-    ["Müdür Murat Bey", "var(--c-purple-soft)", "var(--c-ink)", "Veli toplantısı için tarih belirlendi", "Dün", 0],
-    ["Mutfak (Yemekhane)", "var(--c-blue-soft)", "var(--c-ink)", "Haftalık menü gönderildi", "Pzt", 0],
-    ["PDR Rehberlik", "#Dff4e3", "var(--c-ink)", "Görüşme talebiniz onaylandı", "Pzt", 0]
-  ];
-  const rows = sohbetler.map(([ad, avBg, avColor, prev, zaman, unread]) => `
-    <div class="ca-convrow" data-ad="${ad}" onclick="veliSwitchTab('iletisim')">
-      <div class="ca-conv-av" style="background:${avBg}; color:${avColor};">${ad.charAt(0)}</div>
-      <div class="ca-conv-body">
-        <div class="ca-conv-name">${ad}</div>
-        <div class="ca-conv-prev">${prev}</div>
-      </div>
-      <div class="ca-conv-meta">
-        <span class="ca-conv-time">${zaman}</span>
-        ${unread ? `<span class="ca-unread">${unread}</span>` : ""}
-      </div>
-    </div>`).join("");
   return `
     <div class="ca-page ca-stack">
-      <div class="ca-draft-banner">✨ Pilot — Mesajlar. Bir sohbete dokununca gerçek mesajlaşma açılır.</div>
       <div class="ca-topbar">
         <div class="ca-row">
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
           <div><div class="ca-tile-sub">MESAJLAR</div><h2 style="font-size:18px;">Sohbetler</h2></div>
         </div>
-        <button class="ca-bell" style="background:var(--c-green); color:#fff; border-color:var(--c-green);" onclick="veliSwitchTab('iletisim')" title="Yeni mesaj">＋</button>
+        <button class="ca-bell" style="background:var(--c-green); color:#fff; border-color:var(--c-green);" onclick="caMsgYeniAc()" title="Yeni mesaj">＋</button>
       </div>
-      <div class="ca-search"><span>🔍</span><input type="text" placeholder="Sohbet ara…" oninput="caListeFiltre(this.value, '.ca-convrow')"></div>
-      <div class="ca-card" style="display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--c-yellow-soft); border-color:var(--c-yellow-deep);">
-        <span style="font-size:16px;">📍</span>
-        <div style="font-size:12.5px; color:#6b5b16; font-weight:600;">Acil iletişim için müdüriyet hattı: <strong>0212 555 0001</strong></div>
+
+      <!-- LİSTE GÖRÜNÜMÜ -->
+      <div id="caMsgListeGorunum">
+        <div class="ca-search"><span>🔍</span><input type="text" id="caMsgAra" placeholder="Sohbet ara…" oninput="caMsgListele()"></div>
+        <div class="ca-card" style="display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--c-yellow-soft); border-color:var(--c-yellow-deep); margin-top:10px;">
+          <span style="font-size:16px;">🔒</span>
+          <div style="font-size:12px; color:#6b5b16; font-weight:600; line-height:1.5;">Mesajlar yalnız sizinle okul personeli arasındadır. Aileler birbirini göremez.</div>
+        </div>
+        <div class="ca-card" style="padding:6px; margin-top:10px;">
+          <div id="caMsgThreadListesi">
+            <div style="padding:30px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+          </div>
+        </div>
       </div>
-      <div class="ca-card" style="padding:6px;">${rows}</div>
-      <button class="ca-btn" style="width:100%;" onclick="veliSwitchTab('iletisim')">💬 Tüm mesajlar</button>
+
+      <!-- SOHBET GÖRÜNÜMÜ -->
+      <div id="caMsgSohbetGorunum" style="display:none;">
+        <div class="ca-card" style="padding:10px 14px;">
+          <div class="ca-chathead">
+            <button class="ca-back" onclick="caMsgKapat()" title="Geri">←</button>
+            <div class="ca-conv-av" id="caMsgSohbetAvatar" style="background:var(--c-green-light); color:#fff;">A</div>
+            <div style="flex:1; min-width:0;">
+              <div class="ca-conv-name" id="caMsgSohbetAd">—</div>
+              <div class="ca-tile-sub" id="caMsgSohbetAlt">—</div>
+            </div>
+          </div>
+          <div class="ca-chatgovde" id="caMsgGovde"></div>
+          <div id="caMsgResimOnizleme" style="display:none; margin:8px 0;"></div>
+          <div class="ca-chatbar" style="margin-top:8px;">
+            <input type="file" id="caMsgResimInput" accept="image/*" style="display:none;" onchange="caMsgResimSecildi(event)">
+            <button class="ca-chaticon atac" onclick="document.getElementById('caMsgResimInput').click()" title="Fotoğraf ekle">📎</button>
+            <textarea id="caMsgGirisInput" placeholder="Mesaj yazın…" rows="1" onkeydown="caMsgGirisKeydown(event)"></textarea>
+            <button class="ca-chaticon send" id="caMsgGonderBtn" onclick="caMsgGonder()" title="Gönder">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- YENİ SOHBET PANELİ -->
+      <div id="caMsgYeniGorunum" style="display:none;">
+        <div class="ca-card">
+          <div class="ca-row" style="justify-content:space-between; margin-bottom:10px;">
+            <div class="ca-head" style="font-size:15px;">💬 Yeni Mesaj</div>
+            <button class="ca-back" onclick="caMsgYeniKapat()" title="Kapat">←</button>
+          </div>
+          <div class="ca-tile-sub" style="margin-bottom:10px;">Kiminle iletişime geçmek istersiniz?</div>
+          <div id="caMsgYeniKisiListesi">
+            <div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
+
+// Canlı thread dinleyicisini başlat
+function caMsgBaslat() {
+  if (typeof currentUser === "undefined" || !currentUser) return;
+  if (typeof db === "undefined") return;
+  const benim = veliEpostam();
+  caMsgAktif = null; caMsgSeciliResim = null;
+  if (caMsgThreadUnsub) { caMsgThreadUnsub(); caMsgThreadUnsub = null; }
+  try {
+    const q = query(
+      collection(db, "mesajlar"),
+      where("katilimcilar", "array-contains", benim),
+      orderBy("sonMesajTarihi", "desc")
+    );
+    caMsgThreadUnsub = onSnapshot(q, (snap) => {
+      caMsgThreads = [];
+      snap.forEach(d => caMsgThreads.push({ id: d.id, ...d.data() }));
+      caMsgListele();
+    }, (err) => {
+      console.error("ZEKY mesaj dinleme hatası:", err);
+      const el = document.getElementById("caMsgThreadListesi");
+      if (el) el.innerHTML = `<div style="padding:24px; text-align:center; color:var(--c-pink-deep); font-size:13px;">Mesajlar yüklenemedi.</div>`;
+    });
+  } catch (e) { console.error(e); }
+}
+
+function caMsgDurdur() {
+  if (caMsgThreadUnsub) { caMsgThreadUnsub(); caMsgThreadUnsub = null; }
+  if (caMsgMsgUnsub) { caMsgMsgUnsub(); caMsgMsgUnsub = null; }
+  caMsgAktif = null;
+}
+
+function caMsgListele() {
+  const el = document.getElementById("caMsgThreadListesi");
+  if (!el) return;
+  const benim = veliEpostam();
+  const arama = (document.getElementById("caMsgAra")?.value || "").toLowerCase().trim();
+  let liste = [...caMsgThreads];
+  if (arama) {
+    liste = liste.filter(t => {
+      const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
+      const karsiAd = (t.katilimciBilgi?.[karsi]?.ad || "").toLowerCase();
+      return karsiAd.includes(arama) || karsi.includes(arama);
+    });
+  }
+  if (liste.length === 0) {
+    el.innerHTML = `<div style="padding:28px 16px; text-align:center; color:var(--c-muted); font-size:13px;">
+      ${arama ? "Sonuç bulunamadı." : "Henüz mesaj yok.<br>＋ ile öğretmen veya yönetimle iletişime geçin."}
+    </div>`;
+    return;
+  }
+  const avRenk = ["var(--c-green-light)","var(--c-pink-soft)","var(--c-yellow-soft)","var(--c-purple-soft)","var(--c-blue-soft)"];
+  el.innerHTML = liste.map((t, i) => {
+    const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
+    const adGoster = t.katilimciBilgi?.[karsi]?.ad || karsi || "?";
+    const rol = t.katilimciBilgi?.[karsi]?.rol;
+    const altGoster = ROL_ETIKETLERI[rol] || "Okul";
+    const initial = (adGoster || "?").charAt(0).toUpperCase();
+    const okunmamis = (t.okunmamis && t.okunmamis[benim]) || 0;
+    const tarih = mesajTarihFormat(t.sonMesajTarihi);
+    const bg = avRenk[i % avRenk.length];
+    return `
+      <div class="ca-convrow" onclick="caMsgAc(${escapeHtml(JSON.stringify(t.id))})">
+        <div class="ca-conv-av" style="background:${bg};">${escapeHtmlGelisim(initial)}</div>
+        <div class="ca-conv-body">
+          <div class="ca-conv-name">${escapeHtmlGelisim(adGoster)}</div>
+          <div class="ca-conv-prev">${escapeHtmlGelisim(t.sonMesaj || altGoster)}</div>
+        </div>
+        <div class="ca-conv-meta">
+          <span class="ca-conv-time">${tarih}</span>
+          ${okunmamis > 0 ? `<span class="ca-unread">${okunmamis}</span>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+window.caMsgAc = async function(threadId) {
+  const thread = caMsgThreads.find(t => t.id === threadId);
+  if (!thread) return;
+  caMsgAktif = thread;
+  const benim = veliEpostam();
+  const karsi = (thread.katilimcilar || []).find(e => e !== benim) || "";
+  const adGoster = thread.katilimciBilgi?.[karsi]?.ad || karsi || "?";
+  const rol = thread.katilimciBilgi?.[karsi]?.rol;
+
+  document.getElementById("caMsgListeGorunum").style.display = "none";
+  document.getElementById("caMsgYeniGorunum").style.display = "none";
+  document.getElementById("caMsgSohbetGorunum").style.display = "block";
+  document.getElementById("caMsgSohbetAd").textContent = adGoster;
+  document.getElementById("caMsgSohbetAlt").textContent = ROL_ETIKETLERI[rol] || "Okul";
+  document.getElementById("caMsgSohbetAvatar").textContent = (adGoster || "?").charAt(0).toUpperCase();
+
+  if (caMsgMsgUnsub) { caMsgMsgUnsub(); caMsgMsgUnsub = null; }
+  const govde = document.getElementById("caMsgGovde");
+  govde.innerHTML = `<div style="text-align:center; color:var(--c-muted); font-size:13px; padding:20px;">Yükleniyor…</div>`;
+
+  const mq = query(collection(db, "mesajlar", threadId, "messages"), orderBy("tarih", "asc"));
+  caMsgMsgUnsub = onSnapshot(mq, (snap) => {
+    const mesajlar = [];
+    snap.forEach(d => mesajlar.push({ id: d.id, ...d.data() }));
+    caMsgBalonlar(mesajlar, benim);
+    mesajOkunduIsaretle(threadId);
+  }, (err) => {
+    console.error("ZEKY mesaj balon hatası:", err);
+    govde.innerHTML = `<div style="text-align:center; color:var(--c-pink-deep); font-size:13px; padding:20px;">Mesajlar yüklenemedi.</div>`;
+  });
+};
+
+function caMsgBalonlar(mesajlar, benim) {
+  const govde = document.getElementById("caMsgGovde");
+  if (!govde) return;
+  if (mesajlar.length === 0) {
+    govde.innerHTML = `<div style="text-align:center; color:var(--c-muted); font-size:13px; padding:30px;">Henüz mesaj yok. İlk mesajı gönderin! 👋</div>`;
+    return;
+  }
+  govde.innerHTML = mesajlar.map(m => {
+    const gonderenLower = (m.gonderen || "").toLowerCase();
+    const benMi = gonderenLower === benim;
+    const tarih = mesajTarihFormat(m.tarih);
+    const resimHtml = m.resimUrl
+      ? `<img src="${escapeHtml(m.resimUrl)}?width=400" class="ca-bub-img" onclick="mesajResimBuyut(${escapeHtml(JSON.stringify(m.resimUrl))})" loading="lazy">`
+      : "";
+    const metinHtml = m.metin ? escapeHtmlGelisim(m.metin) : "";
+    return `<div class="ca-bub ${benMi ? "giden" : "gelen"}">${resimHtml}${metinHtml}<div class="ca-bub-meta">${tarih}</div></div>`;
+  }).join("");
+  setTimeout(() => { govde.scrollTop = govde.scrollHeight; }, 50);
+}
+
+window.caMsgResimSecildi = function(event) {
+  const dosya = event.target.files[0];
+  if (!dosya) return;
+  const dogrula = medyaDogrula(dosya, true);
+  if (!dogrula.gecerli) { showToast(dogrula.hata, "error"); event.target.value = ""; return; }
+  caMsgSeciliResim = dosya;
+  const onizleme = document.getElementById("caMsgResimOnizleme");
+  const url = URL.createObjectURL(dosya);
+  onizleme.style.display = "flex";
+  onizleme.style.alignItems = "center";
+  onizleme.style.gap = "10px";
+  onizleme.innerHTML = `
+    <img src="${url}" style="width:46px; height:46px; object-fit:cover; border-radius:8px;">
+    <span style="font-size:12px; color:var(--c-muted); flex:1;">${escapeHtmlGelisim(dosya.name)}</span>
+    <button class="ca-btn ghost" style="padding:4px 10px; font-size:11px;" onclick="caMsgResimIptal()">İptal</button>`;
+  event.target.value = "";
+};
+
+window.caMsgResimIptal = function() {
+  caMsgSeciliResim = null;
+  const onizleme = document.getElementById("caMsgResimOnizleme");
+  if (onizleme) { onizleme.style.display = "none"; onizleme.innerHTML = ""; }
+};
+
+window.caMsgGonder = async function() {
+  const input = document.getElementById("caMsgGirisInput");
+  if (!input || !caMsgAktif) return;
+  const metin = input.value.trim();
+  if (!metin && !caMsgSeciliResim) return;
+  const gonderilecekResim = caMsgSeciliResim;
+  const eskiMetin = metin;
+  const btn = document.getElementById("caMsgGonderBtn");
+  input.value = ""; input.style.height = "auto";
+  if (btn) btn.disabled = true;
+  try {
+    let resimUrl = "", resimYol = "";
+    if (gonderilecekResim) {
+      const onizleme = document.getElementById("caMsgResimOnizleme");
+      if (onizleme) onizleme.innerHTML = `<span style="font-size:12px; color:var(--c-green-deep);">⏳ Resim yükleniyor…</span>`;
+      const sikistirilmis = await resimSikistir(gonderilecekResim, 1600, 0.85);
+      const sonuc = await medyaYukle(sikistirilmis, "mesaj/" + caMsgAktif.id);
+      resimUrl = sonuc.url; resimYol = sonuc.yol;
+      caMsgResimIptal();
+    }
+    await mesajGonder(caMsgAktif.id, eskiMetin, resimUrl, resimYol);
+  } catch (e) {
+    console.error("ZEKY mesaj gönderme hatası:", e);
+    showToast("Mesaj gönderilemedi: " + e.message, "error");
+    input.value = eskiMetin;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+window.caMsgGirisKeydown = function(event) {
+  const ta = event.target;
+  setTimeout(() => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 110) + "px"; }, 0);
+  if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); caMsgGonder(); }
+};
+
+window.caMsgKapat = function() {
+  if (caMsgMsgUnsub) { caMsgMsgUnsub(); caMsgMsgUnsub = null; }
+  caMsgAktif = null;
+  const sg = document.getElementById("caMsgSohbetGorunum"); if (sg) sg.style.display = "none";
+  const lg = document.getElementById("caMsgListeGorunum"); if (lg) lg.style.display = "block";
+  caMsgListele();
+};
+
+// ---- Yeni sohbet (veli → personel) ----
+window.caMsgYeniAc = async function() {
+  document.getElementById("caMsgListeGorunum").style.display = "none";
+  document.getElementById("caMsgSohbetGorunum").style.display = "none";
+  document.getElementById("caMsgYeniGorunum").style.display = "block";
+  await caMsgPersonelListe();
+};
+
+window.caMsgYeniKapat = function() {
+  document.getElementById("caMsgYeniGorunum").style.display = "none";
+  document.getElementById("caMsgListeGorunum").style.display = "block";
+};
+
+async function caMsgPersonelListe() {
+  const el = document.getElementById("caMsgYeniKisiListesi");
+  if (!el) return;
+  el.innerHTML = `<div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>`;
+  try {
+    if (!caMsgPersonelCache) {
+      const snap = await getDocs(collection(db, "personeller"));
+      caMsgPersonelCache = [];
+      snap.forEach(d => {
+        const p = { id: d.id, ...d.data() };
+        if ((p.durum || "aktif") === "aktif") caMsgPersonelCache.push(p);
+      });
+    }
+    const rolSira = { kurucu_mudur: 0, mudur: 1, egitim_koordinator: 2, ogretmen: 3, muhasebe: 4 };
+    const liste = [...caMsgPersonelCache].sort((a, b) => (rolSira[a.rol] ?? 9) - (rolSira[b.rol] ?? 9));
+    if (liste.length === 0) {
+      el.innerHTML = `<div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">İletişime geçilebilecek personel bulunamadı.</div>`;
+      return;
+    }
+    const avRenk = ["var(--c-green-light)","var(--c-pink-soft)","var(--c-yellow-soft)","var(--c-purple-soft)","var(--c-blue-soft)"];
+    el.innerHTML = liste.map((p, i) => {
+      const email = (p.email || p.id).toLowerCase();
+      const ad = p.adSoyad || email;
+      const initial = ad.charAt(0).toUpperCase();
+      let etiket = ROL_ETIKETLERI[p.rol] || "Personel";
+      if (p.rol === "ogretmen" && p.unvan) etiket = p.unvan;
+      const bg = avRenk[i % avRenk.length];
+      return `
+        <div class="ca-convrow" onclick="caMsgYeniBaslat(${escapeHtml(JSON.stringify(email))},${escapeHtml(JSON.stringify(ad))},${escapeHtml(JSON.stringify(p.rol || ""))})">
+          <div class="ca-conv-av" style="background:${bg}; width:42px; height:42px; font-size:16px;">${escapeHtmlGelisim(initial)}</div>
+          <div class="ca-conv-body">
+            <div class="ca-conv-name">${escapeHtmlGelisim(ad)}</div>
+            <div class="ca-conv-prev">${escapeHtmlGelisim(etiket)}</div>
+          </div>
+          <span class="ca-tile-sub">›</span>
+        </div>`;
+    }).join("");
+  } catch (e) {
+    console.error("ZEKY personel listeleme hatası:", e);
+    el.innerHTML = `<div style="padding:20px; text-align:center; color:var(--c-pink-deep); font-size:13px;">Personel listesi yüklenemedi.</div>`;
+  }
+}
+
+window.caMsgYeniBaslat = async function(personelEmail, personelAd, personelRol) {
+  const benim = veliEpostam();
+  const veliAd = currentUser?.displayName || benim;
+  const ilkCocuk = (typeof veliOgrenciler !== "undefined" && veliOgrenciler && veliOgrenciler[0]) || null;
+  const ayar = ilkCocuk && typeof ayarListesi !== "undefined" ? (ayarListesi[ilkCocuk.id] || null) : null;
+  const sinif = ilkCocuk ? ((ayar && ayar.kayit && ayar.kayit.sinif) || ilkCocuk.sinif || ilkCocuk._sinif || "") : "";
+  try {
+    const thread = await mesajThreadGetirVeyaOlustur({
+      personel: { email: personelEmail.toLowerCase(), ad: personelAd, rol: personelRol },
+      veli: { email: benim, ad: veliAd },
+      ogrenci: { id: ilkCocuk?.id || "", ad: ilkCocuk?.ogrenciAdSoyad || "", sinif }
+    });
+    if (!caMsgThreads.find(t => t.id === thread.id)) caMsgThreads.unshift(thread);
+    document.getElementById("caMsgYeniGorunum").style.display = "none";
+    caMsgAc(thread.id);
+  } catch (e) {
+    console.error("ZEKY yeni sohbet hatası:", e);
+    showToast("Sohbet başlatılamadı: " + e.message, "error");
+  }
+};
 
 // ===== Galeri ekranı =====
 function caGaleriHTML() {
