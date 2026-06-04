@@ -9390,17 +9390,35 @@ html, body {
 
       <!-- ÖDEMELER SEKMESİ -->
       <div class="veli-tab-panel" id="veliPanel-odemeler">
-        <div class="veli-card">
-          <div class="veli-card-title">💰 Ödeme Takibi</div>
-          <div id="veliOdemelerContent">Yükleniyor...</div>
+        <div class="ca-page ca-stack" style="padding:14px;">
+          <div class="ca-topbar">
+            <div class="ca-row">
+              <div>
+                <div class="ca-tile-sub">ÖDEMELER</div>
+                <h2 style="font-size:18px;">Ödeme Takibi</h2>
+              </div>
+            </div>
+          </div>
+          <div id="veliOdemelerContent">
+            <div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted);">Yükleniyor...</div>
+          </div>
         </div>
       </div>
 
       <!-- SÖZLEŞME SEKMESİ -->
       <div class="veli-tab-panel" id="veliPanel-sozlesme">
-        <div class="veli-card">
-          <div class="veli-card-title">📄 MEB Kayıt Sözleşmeniz</div>
-          <div id="veliSozlesmeContent">Yükleniyor...</div>
+        <div class="ca-page ca-stack" style="padding:14px;">
+          <div class="ca-topbar">
+            <div class="ca-row">
+              <div>
+                <div class="ca-tile-sub">SÖZLEŞME</div>
+                <h2 style="font-size:18px;">MEB Kayıt Sözleşmesi</h2>
+              </div>
+            </div>
+          </div>
+          <div id="veliSozlesmeContent">
+            <div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted);">Yükleniyor...</div>
+          </div>
         </div>
       </div>
 
@@ -9548,8 +9566,18 @@ html, body {
 
       <!-- RAPORLAR (Placeholder) -->
       <div class="veli-tab-panel" id="veliPanel-raporlar">
-        <div id="veliRaporlarContent">
-          <div style="padding:40px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+        <div class="ca-page ca-stack" style="padding:14px;">
+          <div class="ca-topbar">
+            <div class="ca-row">
+              <div>
+                <div class="ca-tile-sub">RAPORLAR</div>
+                <h2 style="font-size:18px;">Gelişim Raporları</h2>
+              </div>
+            </div>
+          </div>
+          <div id="veliRaporlarContent">
+            <div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted);">Yükleniyor...</div>
+          </div>
         </div>
       </div>
 
@@ -15973,23 +16001,41 @@ function veliRenderSozlesme() {
   if (!el) return;
 
   if (!veliAktifDonemVeri) {
-    el.innerHTML = '<div style="padding:20px; color:var(--gray-500);">Sözleşme bilgisi yükleniyor...</div>';
+    el.innerHTML = '<div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted);">Sözleşme bilgisi yükleniyor...</div>';
     return;
   }
 
+  const ogrAd = escapeHtml(veliAktifOgrenci?.ogrenciAdSoyad || 'Öğrenci');
   el.innerHTML = `
-    <div style="padding:16px; background:var(--gray-100); border-radius:10px; margin-bottom:14px;">
-      <div style="font-size:13px; color:var(--gray-700); line-height:1.8;">
-        <strong>${escapeHtml(veliAktifOgrenci?.ogrenciAdSoyad || 'Öğrenci')}</strong> adına düzenlenmiş
-        <strong>${AKTIF_DONEM}</strong> Eğitim Öğretim Yılı MEB Kayıt Sözleşmesi.
+    <div class="ca-card" style="padding:16px;">
+      <div class="ca-row" style="gap:12px; align-items:flex-start;">
+        <div style="width:44px; height:44px; border-radius:12px; background:var(--c-blue-soft); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;">📄</div>
+        <div style="flex:1; min-width:0;">
+          <div class="ca-head" style="font-size:15px; margin-bottom:4px;">${ogrAd}</div>
+          <div class="ca-tile-sub" style="line-height:1.6;">${AKTIF_DONEM} Eğitim Öğretim Yılı MEB Kayıt Sözleşmesi</div>
+        </div>
       </div>
     </div>
-    <div class="veli-btn-row">
-      <button class="veli-btn-primary" onclick="veliSozlesmeIndirPDF()">📄 PDF İndir</button>
-      <button class="veli-btn-secondary" onclick="veliSozlesmeIndirDOCX()">📝 Word (DOCX) İndir</button>
+
+    <div class="ca-card" style="padding:14px;">
+      <div class="ca-head" style="font-size:14px; margin-bottom:10px;">Sözleşmeyi İndir</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button onclick="veliSozlesmeIndirPDF()" style="background:var(--c-green); color:white; border:none; padding:14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px;">
+          📄 PDF Olarak İndir
+        </button>
+        <button onclick="veliSozlesmeIndirDOCX()" style="background:white; color:var(--c-green); border:1.5px solid var(--c-green); padding:14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px;">
+          📝 Word (DOCX) Olarak İndir
+        </button>
+      </div>
     </div>
-    <div style="margin-top:14px; padding:12px; background:#fef3c7; border:1px solid #fde68a; border-radius:10px; font-size:12px; color:#78350f;">
-      💡 Sözleşmeyi PDF olarak indirin, imzalayın ve okul yönetimine iletiniz. Ayrıca dijital imza süreci için yönetim sizinle iletişime geçecektir.
+
+    <div class="ca-card" style="padding:14px; background:var(--c-yellow-soft); border-color:var(--c-yellow-deep);">
+      <div class="ca-row" style="gap:10px; align-items:flex-start;">
+        <span style="font-size:18px;">💡</span>
+        <div class="ca-tile-sub" style="color:#78350f; line-height:1.6;">
+          Sözleşmeyi PDF olarak indirin, imzalayın ve okul yönetimine iletin. Dijital imza süreci için yönetim sizinle iletişime geçecektir.
+        </div>
+      </div>
     </div>
   `;
 }
@@ -20296,17 +20342,15 @@ async function veliRenderRaporlar() {
 
   if (!veliAktifOgrenci || !veliAktifOgrenci.id) {
     el.innerHTML = `
-      <div class="veli-card">
-        <div class="veli-placeholder">
-          <div class="ph-icon">📊</div>
-          <h3>Öğrenci bilgisi bulunamadı</h3>
-          <p>Lütfen önce Dashboard sekmesinden çocuğunuzu seçin.</p>
-        </div>
+      <div class="ca-card" style="padding:30px; text-align:center;">
+        <div style="font-size:42px; margin-bottom:10px;">📊</div>
+        <div class="ca-head" style="font-size:15px; margin-bottom:6px;">Öğrenci bilgisi bulunamadı</div>
+        <div class="ca-tile-sub">Lütfen önce ana sayfadan çocuğunuzu seçin.</div>
       </div>`;
     return;
   }
 
-  el.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af; font-size:13px;">Eğitim raporları yükleniyor...</div>`;
+  el.innerHTML = `<div class="ca-card" style="padding:30px; text-align:center; color:var(--c-muted);">Eğitim raporları yükleniyor...</div>`;
 
   try {
     await tumMufredatlariYukle();
@@ -20333,7 +20377,12 @@ async function veliRenderRaporlar() {
     }
   } catch(e) {
     console.error("Veli raporlar hata:", e);
-    el.innerHTML = `<div class="veli-card"><div class="veli-placeholder"><div class="ph-icon">⚠️</div><h3>Rapor yüklenemedi</h3><p>${escapeHtmlGelisim(e.message || "Bir hata oluştu")}</p></div></div>`;
+    el.innerHTML = `
+      <div class="ca-card" style="padding:30px; text-align:center;">
+        <div style="font-size:42px; margin-bottom:10px;">⚠️</div>
+        <div class="ca-head" style="font-size:15px; margin-bottom:6px;">Rapor yüklenemedi</div>
+        <div class="ca-tile-sub">${escapeHtmlGelisim(e.message || "Bir hata oluştu")}</div>
+      </div>`;
   }
 }
 
