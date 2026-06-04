@@ -9240,8 +9240,8 @@ html, body {
         <div class="veli-sidebar-logo-text">Bir Çiçek Koleji<br>Veli Portalı</div>
       </div>
 
-      <button type="button" class="veli-menu-item active" data-veli-tab="dashboard" onclick="veliSwitchTab('dashboard')">
-        <span class="veli-menu-icon">🏠</span><span>Dashboard</span>
+      <button type="button" class="veli-menu-item active" data-veli-tab="yeniapp" onclick="veliSwitchTab('yeniapp')">
+        <span class="veli-menu-icon">🏠</span><span>Ana Sayfa</span>
       </button>
       <button type="button" class="veli-menu-item" data-veli-tab="odemeler" onclick="veliSwitchTab('odemeler')">
         <span class="veli-menu-icon">💰</span><span>Ödemeler</span>
@@ -9267,8 +9267,8 @@ html, body {
       <button type="button" class="veli-menu-item" data-veli-tab="bildirimler" onclick="veliSwitchTab('bildirimler')">
         <span class="veli-menu-icon">🔔</span><span>Bildirimler</span>
       </button>
-      <button type="button" class="veli-menu-item" data-veli-tab="yeniapp" onclick="veliSwitchTab('yeniapp')">
-        <span class="veli-menu-icon">✨</span><span>Yeni Tasarım</span>
+      <button type="button" class="veli-menu-item" data-veli-tab="yeniapp" onclick="veliSwitchTab('yeniapp')" style="display:none;">
+        <span class="veli-menu-icon">✨</span><span>Ana Sayfa</span>
       </button>
 
       <div class="veli-menu-spacer"></div>
@@ -9314,7 +9314,7 @@ html, body {
       </div>
 
       <!-- DASHBOARD SEKMESİ -->
-      <div class="veli-tab-panel active" id="veliPanel-dashboard">
+      <div class="veli-tab-panel" id="veliPanel-dashboard">
         <!-- TÜM DASHBOARD JS ile dolduruluyor -->
         <div id="veliDashContent">
           <div style="padding:40px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>
@@ -9529,7 +9529,7 @@ html, body {
       </div>
 
       <!-- ============ YENİ TASARIM (PİLOT) SEKMESİ ============ -->
-      <div class="veli-tab-panel" id="veliPanel-yeniapp">
+      <div class="veli-tab-panel active" id="veliPanel-yeniapp">
         <div class="cicek-app" id="cicekAppRoot">
           <div style="padding:24px; text-align:center; color:var(--c-muted);">Yükleniyor…</div>
         </div>
@@ -12955,6 +12955,9 @@ async function loadVeliPanel(user) {
     // İlk öğrenciyi aktif yap
     await setAktifVeliOgrenci(bulunan[0]);
 
+    // ZEKY: yeni ana sayfayı varsayılan göster (gerçek çocuk verisiyle)
+    try { veliSwitchTab("yeniapp"); } catch(e) { console.warn(e); }
+
     // 🔔 FAZ 3d: Veli için arka plan mesaj bildirim dinleyicisini başlat
     try { if (typeof mesajBildirimBaslat === "function") setTimeout(() => mesajBildirimBaslat(), 1200); } catch(e) { console.warn(e); }
 
@@ -13508,6 +13511,14 @@ window.caGo = function(ekran) {
   if (m) m.scrollTop = 0;
 };
 
+// Çocuk (kardeş) değiştirici — aktif çocuğu değiştirir, ana sayfayı tazeler
+window.caCocukDegistir = async function(idx) {
+  if (typeof veliOgrenciler === "undefined" || !veliOgrenciler[idx]) return;
+  try { if (typeof setAktifVeliOgrenci === "function") await setAktifVeliOgrenci(veliOgrenciler[idx]); } catch(e) { console.warn(e); }
+  caEkran = "home";
+  veliRenderYeniApp();
+};
+
 // Menü favorileri (localStorage)
 function caFavGetir() {
   try { return new Set(JSON.parse(localStorage.getItem("caFav") || "[]")); }
@@ -13530,6 +13541,15 @@ window.caMenuFiltre = function(q) {
 };
 
 function caHomeHTML() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || null;
+  const cocukAd = ogr ? (ogr.ogrenciAdSoyad || "Çocuğum") : "Çocuğum";
+  const cocukHarf = (cocukAd[0] || "?").toUpperCase();
+  const cocukSinif = ogr ? (ogr.sinif || "—") : "—";
+  const cocukYas = (ogr && typeof hesaplaYas === "function") ? (hesaplaYas(ogr.dogumTarihi) || "") : "";
+  const veliAd = (typeof currentUser !== "undefined" && currentUser && currentUser.displayName) ? currentUser.displayName.split(" ")[0] : "Veli";
+  const veliHarf = (veliAd[0] || "V").toUpperCase();
+  const cocukSwitcher = (typeof veliOgrenciler !== "undefined" && veliOgrenciler.length > 1)
+    ? `<div class="ca-chips">${veliOgrenciler.map((o, i) => `<button class="ca-chip ${(ogr && o.id === ogr.id) ? "active" : ""}" onclick="caCocukDegistir(${i})">${escapeHtmlGelisim((o.ogrenciAdSoyad || "Çocuk").split(" ")[0])}</button>`).join("")}</div>` : "";
   return `
     <div class="ca-page ca-stack">
       <div class="ca-brand">
@@ -13539,16 +13559,16 @@ function caHomeHTML() {
         <div><div class="ca-brand-name">ZEKY</div><div class="ca-brand-sub">Bir Çiçek Koleji · Okul-Aile</div></div>
       </div>
       <div class="ca-draft-banner">
-        ✨ Pilot / taslak — yeni tasarım dili (web düzeni). Veriler şimdilik örnek; Faz 2'de canlı Firebase verisine bağlanacak.
+        🌿 ZEKY yeni arayüz — çocuk & eğitim verileri canlı. Ödeme/mesaj kartları kademeli bağlanıyor.
       </div>
 
       <!-- Üst bar -->
       <div class="ca-topbar">
         <div class="ca-row">
-          <div class="ca-avatar" style="background:var(--c-pink-soft); color:var(--c-ink);">A</div>
+          <div class="ca-avatar" style="background:var(--c-pink-soft); color:var(--c-ink);">${veliHarf}</div>
           <div>
-            <div class="ca-tile-sub">Günaydın</div>
-            <h2 style="font-size:18px;">Ayşe Hanım 🌿</h2>
+            <div class="ca-tile-sub">Hoş geldiniz</div>
+            <h2 style="font-size:18px;">${escapeHtmlGelisim(veliAd)} 🌿</h2>
           </div>
         </div>
         <div class="ca-row" style="gap:8px;">
@@ -13557,21 +13577,23 @@ function caHomeHTML() {
         </div>
       </div>
 
+      ${cocukSwitcher}
+
       <!-- Hero: Çocuk kartı + Ödeme yan yana (geniş ekran) -->
       <div class="ca-hero-row">
         <div class="ca-card-green" style="cursor:pointer;" onclick="caGo('profil')">
           <div class="ca-row" style="justify-content:space-between;">
             <div class="ca-row">
-              <div class="ca-avatar" style="background:#fff; color:var(--c-green);">D</div>
+              <div class="ca-avatar" style="background:#fff; color:var(--c-green);">${cocukHarf}</div>
               <div>
                 <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">ÇOCUĞUM</div>
-                <h2 style="font-size:19px;">Defne Demir</h2>
-                <div style="font-size:12px; opacity:.9; margin-top:2px;">Papatya Sınıfı · 5 yaş</div>
+                <h2 style="font-size:19px;">${escapeHtmlGelisim(cocukAd)}</h2>
+                <div style="font-size:12px; opacity:.9; margin-top:2px;">${escapeHtmlGelisim(cocukSinif)}${cocukYas ? " · " + escapeHtmlGelisim(cocukYas) : ""}</div>
               </div>
             </div>
-            <span style="opacity:.85; font-size:18px;">⌄</span>
+            <span style="opacity:.85; font-size:18px;">›</span>
           </div>
-          <div class="ca-status">🟢 Bugün okulda · 09:12'de giriş yaptı</div>
+          <div class="ca-status">🌿 Profili ve eğitim gelişimini görmek için dokun</div>
         </div>
 
         <div class="ca-card ca-pay">
@@ -14229,7 +14251,7 @@ async function caGozlemRender() {
 }
 function caGozlemHTML(st, muf, alan, grup, dersler) {
   const disChips = [["montessori","Montessori"],["ingilizce","İngilizce"],["degerler","Değerler"]]
-    .map(([id, ad]) => `<button class="ca-chip ${st.disiplin === id ? "on" : ""}" onclick="caGozlemSet('disiplin','${id}')">${ad}</button>`).join("");
+    .map(([id, ad]) => `<button class="ca-chip ${st.disiplin === id ? "active" : ""}" onclick="caGozlemSet('disiplin','${id}')">${ad}</button>`).join("");
   const alanOpts = muf.map((a, i) => `<option value="${i}" ${i === st.alanIdx ? "selected" : ""}>${escapeHtml(a.ad)}</option>`).join("");
   const grupOpts = ((alan && alan.gruplar) || []).map((g, i) => `<option value="${i}" ${i === st.grupIdx ? "selected" : ""}>${escapeHtml(g.ad)}</option>`).join("");
   const dersOpts = dersler.map((d, i) => `<option value="${i}" ${i === st.dersIdx ? "selected" : ""}>${escapeHtml(d)}</option>`).join("");
