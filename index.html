@@ -12268,7 +12268,15 @@ function mesajVeliOgrencileriBul(veliEmail) {
   return ogrenciList.filter(o => {
     const e1 = (o.veli1Eposta || "").toLowerCase();
     const e2 = (o.veli2Eposta || "").toLowerCase();
-    return e1 === lower || e2 === lower;
+    if (e1 !== lower && e2 !== lower) return false;
+    // FAZ 6: Arşivli öğrencileri eleme (yeni mesaj başlatılamasın)
+    if (typeof ogrenciArsivliMi === "function") {
+      const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+      if (ogrenciArsivliMi(o, ayar)) return false;
+    } else if (o.durum === "arsiv") {
+      return false;
+    }
+    return true;
   });
 }
 
@@ -13170,7 +13178,27 @@ async function findOgrenciForVeli(user) {
     console.error("findOgrenciForVeli hatası:", e);
   }
 
-  return bulunan;
+  // FAZ 6: Arşivli öğrencileri veliden gizle
+  // Veli sadece aktif öğrencilerine erişebilir. Hepsi arşivse, veli yetkisiz kabul edilir.
+  // Dönem ayarı arşivse o öğrenci elenmeli — bunun için her öğrencinin dönem dokümanını kontrol et.
+  const aktifOgrenciler = [];
+  for (const ogr of bulunan) {
+    try {
+      // Önce ana doküman üzerindeki durum
+      if (ogr.durum === "arsiv") continue;
+      // Sonra aktif dönemdeki durum (ogrenci.durum'u override edebilir)
+      const donemSnap = await getDoc(doc(db, "ogrenciler", ogr.id, "donemler", AKTIF_DONEM));
+      if (donemSnap.exists() && donemSnap.data().durum === "arsiv") continue;
+      aktifOgrenciler.push(ogr);
+    } catch (e) {
+      // Dönem dokümanı okunamadıysa öğrenciyi dahil et (güvenli taraf)
+      console.warn(`Dönem durumu okunamadı, öğrenci dahil ediliyor: ${ogr.id}`, e);
+      aktifOgrenciler.push(ogr);
+    }
+  }
+
+  console.log(`[findOgrenciForVeli] ${bulunan.length} öğrenci bulundu, ${aktifOgrenciler.length} aktif`);
+  return aktifOgrenciler;
 }
 
 // ============ ADMIN: VELİ DAVET ============
@@ -16231,6 +16259,162 @@ function getOgrenciDurum(o, ayar) {
   return "aktif";
 }
 
+// ============================================================
+// ===== FAZ 6: ÖĞRENCİ ARŞİVLEME SİSTEMİ =====
+// ============================================================
+// Mevcut durum: "aktif" sistemi kullanılıyor.
+// Arşivli öğrenciler:
+//  - Aktif görünümlerde (eğitim matrisi, raporlar, mesajlaşma) gizlenir
+//  - Veli arşivli öğrencisine erişemez
+//  - Hiç aktif öğrencisi kalmayan veli login'de yetkisiz görür
+//  - Sadece Kurucu Müdür/Müdür arşivde okuyabilir ve geri alabilir
+
+const ARSIV_SEBEPLERI = {
+  mezun: "🎓 Mezun (eğitim tamamlandı)",
+  transfer: "🚌 Transfer (başka okula)",
+  veli_istegi: "👨‍👩‍👧 Veli isteği (kayıt çekildi)",
+  diger: "📝 Diğer"
+};
+
+// Bir öğrenci arşivli mi? (her yerde tek noktadan kontrol)
+function ogrenciArsivliMi(o, ayar) {
+  return getOgrenciDurum(o, ayar) === "arsiv";
+}
+
+// Arşivleme yetkisi var mı?
+function arsivYetkisiVar() {
+  return isAdmin || ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol);
+}
+
+// Öğrenciyi arşivle (mevcut ogrenciDurumuDegistir paterniyle uyumlu)
+// Dönem dokümanına yazar, ek olarak arsivBilgi metadata'sı tutar
+window.ogrenciArsivle = async function(ogrenciId, sebep, aciklama) {
+  if (!arsivYetkisiVar()) { showToast("Arşivleme yetkiniz yok", "error"); return false; }
+  if (!ogrenciId || !sebep) { showToast("Eksik bilgi", "error"); return false; }
+  try {
+    const ogr = ogrenciList.find(o => o.id === ogrenciId);
+    const ogrAd = ogr?.ogrenciAdSoyad || "Öğrenci";
+    const arsivBilgi = {
+      sebep: sebep,
+      aciklama: aciklama || "",
+      arsivleyenEmail: (currentUser?.email || "").toLowerCase(),
+      arsivlemeTarihi: new Date().toISOString()
+    };
+    // Mevcut paterne uyumlu: dönem dokümanına yaz
+    const ref = doc(db, "ogrenciler", ogrenciId, "donemler", AKTIF_DONEM);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      await updateDoc(ref, {
+        durum: "arsiv",
+        arsivBilgi: arsivBilgi,
+        durumGuncellendi: new Date().toISOString(),
+        durumGuncelleyen: currentUser.email
+      });
+    } else {
+      await setDoc(ref, {
+        donemYili: AKTIF_DONEM,
+        aktif: true,
+        durum: "arsiv",
+        arsivBilgi: arsivBilgi,
+        durumGuncellendi: new Date().toISOString(),
+        durumGuncelleyen: currentUser.email,
+        olusturuldu: new Date().toISOString(),
+        olusturan: currentUser.email
+      });
+    }
+    // Lokal state güncelle
+    if (!ayarListesi[ogrenciId]) ayarListesi[ogrenciId] = {};
+    ayarListesi[ogrenciId].durum = "arsiv";
+    ayarListesi[ogrenciId].arsivBilgi = arsivBilgi;
+    showToast(`✓ ${ogrAd} arşive taşındı`);
+    return true;
+  } catch (e) {
+    console.error("ogrenciArsivle hatası:", e);
+    showToast("Arşivlenemedi: " + e.message, "error");
+    return false;
+  }
+};
+
+// Öğrenciyi arşivden geri al (mevcut paterne uyumlu)
+window.ogrenciGeriDon = async function(ogrenciId) {
+  if (!arsivYetkisiVar()) { showToast("Yetkiniz yok", "error"); return false; }
+  if (!confirm("Bu öğrenciyi arşivden geri almak istediğinizden emin misiniz?\n\nÖğrenci tekrar aktif listede görünecek.")) return false;
+  try {
+    const ogr = ogrenciList.find(o => o.id === ogrenciId);
+    const ogrAd = ogr?.ogrenciAdSoyad || "Öğrenci";
+    const ref = doc(db, "ogrenciler", ogrenciId, "donemler", AKTIF_DONEM);
+    await updateDoc(ref, {
+      durum: "aktif",
+      arsivBilgi: null,
+      durumGuncellendi: new Date().toISOString(),
+      durumGuncelleyen: currentUser.email
+    });
+    if (!ayarListesi[ogrenciId]) ayarListesi[ogrenciId] = {};
+    ayarListesi[ogrenciId].durum = "aktif";
+    ayarListesi[ogrenciId].arsivBilgi = null;
+    showToast(`✓ ${ogrAd} aktif listeye alındı`);
+    if (typeof renderTable === "function") renderTable();
+    if (typeof updateDurumSayaclari === "function") updateDurumSayaclari();
+    return true;
+  } catch (e) {
+    console.error("ogrenciGeriDon hatası:", e);
+    showToast("İşlem başarısız: " + e.message, "error");
+    return false;
+  }
+};
+
+// Arşivleme modalını aç
+window.ogrenciArsivModalAc = function(ogrenciId) {
+  if (!arsivYetkisiVar()) { showToast("Yetkiniz yok", "error"); return; }
+  const ogr = ogrenciList.find(o => o.id === ogrenciId);
+  if (!ogr) { showToast("Öğrenci bulunamadı", "error"); return; }
+  const ogrAd = ogr.ogrenciAdSoyad || "Öğrenci";
+
+  const sebepOptions = Object.entries(ARSIV_SEBEPLERI)
+    .map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+
+  const html = `
+    <div id="arsivModalOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;">
+      <div style="background:white; border-radius:14px; padding:20px; max-width:440px; width:100%; max-height:90vh; overflow-y:auto;">
+        <h3 style="margin:0 0 6px; font-size:17px; color:#1f2937;">🗄️ Öğrenciyi Arşive Taşı</h3>
+        <p style="margin:0 0 16px; font-size:13px; color:#6b7280; line-height:1.5;">
+          <strong>${escapeHtml(ogrAd)}</strong> arşive taşınacak. Öğrenci aktif listede ve veli panelinde görünmez olacak.
+          İstediğinizde geri alabilirsiniz.
+        </p>
+        <label style="display:block; margin-bottom:12px;">
+          <div style="font-size:12px; color:#374151; font-weight:600; margin-bottom:6px;">Arşiv Sebebi *</div>
+          <select id="arsivSebep" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
+            ${sebepOptions}
+          </select>
+        </label>
+        <label style="display:block; margin-bottom:16px;">
+          <div style="font-size:12px; color:#374151; font-weight:600; margin-bottom:6px;">Açıklama (opsiyonel)</div>
+          <textarea id="arsivAciklama" rows="2" placeholder="Örn: Aile başka şehre taşındı..." style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; resize:vertical; font-family:inherit;"></textarea>
+        </label>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button onclick="document.getElementById('arsivModalOverlay').remove()" style="padding:10px 16px; background:#f3f4f6; color:#374151; border:none; border-radius:8px; font-size:14px; font-weight:500; cursor:pointer;">İptal</button>
+          <button id="arsivOnayBtn" style="padding:10px 16px; background:#dc2626; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">🗄️ Arşivle</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML("beforeend", html);
+  document.getElementById("arsivOnayBtn").onclick = async () => {
+    const sebep = document.getElementById("arsivSebep").value;
+    const aciklama = document.getElementById("arsivAciklama").value.trim();
+    const btn = document.getElementById("arsivOnayBtn");
+    btn.disabled = true; btn.textContent = "Arşivleniyor...";
+    const ok = await ogrenciArsivle(ogrenciId, sebep, aciklama);
+    if (ok) {
+      document.getElementById("arsivModalOverlay").remove();
+      if (typeof renderTable === "function") renderTable();
+      if (typeof updateDurumSayaclari === "function") updateDurumSayaclari();
+    } else {
+      btn.disabled = false; btn.textContent = "🗄️ Arşivle";
+    }
+  };
+};
+// ===== /FAZ 6 =====
+
 function getOgrenciKaynak(o, ayar) {
   if (ayar && ayar.kaynak) return ayar.kaynak;
   if (o.kaynak) return o.kaynak;
@@ -16479,9 +16663,13 @@ function renderTable() {
     }
 
     // Durum rozeti + kaynak + değiştirme menüsü
+    const arsivSebepEtiketi = (durum === "arsiv" && ayar?.arsivBilgi?.sebep && ARSIV_SEBEPLERI[ayar.arsivBilgi.sebep])
+      ? `<span style="font-size:10px; color:var(--gray-500); margin-top:2px;">${ARSIV_SEBEPLERI[ayar.arsivBilgi.sebep].replace(/^[^\s]+\s/, '')}</span>`
+      : "";
     const durumHucre = `
       <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
         <span class="ogr-durum-rozet" data-durum="${durum}">${getDurumLabel(durum)}</span>
+        ${arsivSebepEtiketi}
         <span class="ogr-kaynak-rozet" title="Kaynak: ${getKaynakLabel(kaynak)}">${getKaynakLabel(kaynak)}</span>
         ${odemeBadge}
       </div>
@@ -16491,10 +16679,11 @@ function renderTable() {
       <div class="durum-menu-wrap" onclick="event.stopPropagation();">
         <button class="madde-action-btn" onclick="toggleDurumMenu('${o.id}', event)" title="Durumu değiştir">⋮</button>
         <div class="durum-menu" data-ogrenci-id="${o.id}">
-          ${durum !== "aktif" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'aktif')">✓ Aktif olarak işaretle</button>` : ""}
-          ${durum !== "basvuru" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'basvuru')">📝 Başvuru Bekliyor</button>` : ""}
-          ${durum !== "yenileme" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'yenileme')">🔄 Yenileme Bekliyor</button>` : ""}
-          ${durum !== "arsiv" ? `<button class="durum-menu-item danger" onclick="ogrenciDurumuDegistir('${o.id}', 'arsiv')">📦 Arşive Taşı</button>` : ""}
+          ${durum !== "aktif" && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'aktif')">✓ Aktif olarak işaretle</button>` : ""}
+          ${durum !== "basvuru" && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'basvuru')">📝 Başvuru Bekliyor</button>` : ""}
+          ${durum !== "yenileme" && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'yenileme')">🔄 Yenileme Bekliyor</button>` : ""}
+          ${durum !== "arsiv" && arsivYetkisiVar() ? `<button class="durum-menu-item danger" onclick="ogrenciArsivModalAc('${o.id}')">🗄️ Arşive Taşı...</button>` : ""}
+          ${durum === "arsiv" && arsivYetkisiVar() ? `<button class="durum-menu-item" onclick="ogrenciGeriDon('${o.id}')">↩️ Arşivden Geri Al</button>` : ""}
         </div>
       </div>
     `;
