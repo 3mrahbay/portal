@@ -12269,13 +12269,10 @@ function mesajVeliOgrencileriBul(veliEmail) {
     const e1 = (o.veli1Eposta || "").toLowerCase();
     const e2 = (o.veli2Eposta || "").toLowerCase();
     if (e1 !== lower && e2 !== lower) return false;
-    // FAZ 6: Arşivli öğrencileri eleme (yeni mesaj başlatılamasın)
-    if (typeof ogrenciArsivliMi === "function") {
-      const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
-      if (ogrenciArsivliMi(o, ayar)) return false;
-    } else if (o.durum === "arsiv") {
-      return false;
-    }
+    // FAZ 6: Sadece aktif dönemde arşivli olanları eleme
+    // (Master 'durum' alanı legacy/güvenilmez, dönem ayarına bak)
+    const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+    if (ayar && ayar.durum === "arsiv") return false;
     return true;
   });
 }
@@ -13180,15 +13177,17 @@ async function findOgrenciForVeli(user) {
 
   // FAZ 6: Arşivli öğrencileri veliden gizle
   // Veli sadece aktif öğrencilerine erişebilir. Hepsi arşivse, veli yetkisiz kabul edilir.
-  // Dönem ayarı arşivse o öğrenci elenmeli — bunun için her öğrencinin dönem dokümanını kontrol et.
+  // ÖNEMLİ: Faz 6 arşivleme AKTIF_DONEM dönem dokümanına yazar. Master dokümandaki
+  // eski "durum" alanı legacy/güvenilmez olabilir (yıl-içi başka anlamlar taşıyor),
+  // bu yüzden sadece dönem dokümanını kontrol ediyoruz.
   const aktifOgrenciler = [];
   for (const ogr of bulunan) {
     try {
-      // Önce ana doküman üzerindeki durum
-      if (ogr.durum === "arsiv") continue;
-      // Sonra aktif dönemdeki durum (ogrenci.durum'u override edebilir)
       const donemSnap = await getDoc(doc(db, "ogrenciler", ogr.id, "donemler", AKTIF_DONEM));
-      if (donemSnap.exists() && donemSnap.data().durum === "arsiv") continue;
+      if (donemSnap.exists() && donemSnap.data().durum === "arsiv") {
+        console.log(`[findOgrenciForVeli] ${ogr.ogrenciAdSoyad || ogr.id}: aktif dönemde arşivli, elendi`);
+        continue;
+      }
       aktifOgrenciler.push(ogr);
     } catch (e) {
       // Dönem dokümanı okunamadıysa öğrenciyi dahil et (güvenli taraf)
