@@ -1312,8 +1312,7 @@ html, body {
 }
 
 /* Mavi - Etkinlik */
-.icerik-altsekme-btn[data-renk="mavi"] { color: #1e40af; border-color: #dbeafe; }
-.icerik-altsekme-btn[data-renk="mavi"]:hover { background: #eff6ff; border-color: #bfdbfe; }
+.icerik-altsekme-btn[data-renk="mavi"] { color: #1e40af; border-color: #dbeafe; }.icerik-altsekme-btn[data-renk="mavi"]:hover { background: #eff6ff; border-color: #bfdbfe; }
 .icerik-altsekme-btn[data-renk="mavi"].active {
   background: #3b82f6; color: white; border-color: #3b82f6;
   box-shadow: 0 4px 12px rgba(59,130,246,0.3);
@@ -7636,6 +7635,167 @@ html, body {
 @media (max-width: 640px) {
   #veliPanel .veli-tab-panel:not(#veliPanel-yeniapp) { padding: 12px; }
 }
+
+/* ============================================================
+   TAKVİM (FAZ A) — Yönetim + Veli ortak stilleri
+   ============================================================ */
+
+/* Yönetim tarafı — etkinlik listesi */
+.takvim-yonetim-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.takvim-yonetim-bar h3 { margin: 0; font-size: 17px; color: #166534; }
+.takvim-yeni-btn {
+  background: #16a34a; color: white; border: none; padding: 10px 18px;
+  border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.takvim-yeni-btn:hover { background: #15803d; }
+.takvim-etkinlik-listesi { display: flex; flex-direction: column; gap: 10px; }
+.takvim-etkinlik-kart {
+  background: white; border: 1px solid #e5e7eb; border-left: 4px solid #16a34a;
+  border-radius: 12px; padding: 14px 18px; display: flex; gap: 14px;
+  align-items: flex-start; justify-content: space-between;
+}
+.takvim-etkinlik-kart[data-tip="tatil"]    { border-left-color: #dc2626; }
+.takvim-etkinlik-kart[data-tip="toplanti"] { border-left-color: #9333ea; }
+.takvim-etkinlik-kart[data-tip="gezi"]     { border-left-color: #ea580c; }
+.takvim-etkinlik-kart[data-tip="duyuru"]   { border-left-color: #2563eb; }
+.takvim-etkinlik-kart[data-tip="randevu"]  { border-left-color: #0891b2; }
+.takvim-etkinlik-kart.gecmis { opacity: 0.55; }
+.takvim-etkinlik-baslik { font-weight: 700; font-size: 15px; color: #1f2937; margin-bottom: 4px; }
+.takvim-etkinlik-meta {
+  display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: #6b7280; margin-top: 4px;
+}
+.takvim-etkinlik-meta span {
+  background: #f3f4f6; padding: 3px 8px; border-radius: 6px;
+}
+.takvim-aksiyon-btn {
+  background: white; border: 1px solid #e5e7eb; color: #374151;
+  padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+}
+.takvim-aksiyon-btn:hover { background: #f9fafb; }
+.takvim-aksiyon-btn.danger { color: #991b1b; border-color: #fecaca; }
+.takvim-aksiyon-btn.danger:hover { background: #fef2f2; }
+
+/* AY GRID (ortak — hem yönetim hem veli) */
+.takvim-ay-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: white; border: 1px solid #e5e7eb; border-radius: 12px;
+  padding: 8px 12px; margin-bottom: 10px;
+}
+.takvim-ay-baslik { font-size: 16px; font-weight: 700; color: #1f2937; }
+.takvim-ay-nav { display: flex; gap: 6px; }
+.takvim-ay-nav button {
+  background: #f3f4f6; border: none; width: 36px; height: 36px;
+  border-radius: 8px; font-size: 14px; cursor: pointer; color: #374151;
+}
+.takvim-ay-nav button:hover { background: #e5e7eb; }
+.takvim-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  background: white; border: 1px solid #e5e7eb; border-radius: 12px;
+  padding: 8px;
+}
+.takvim-gun-basligi {
+  text-align: center; font-size: 11px; font-weight: 700; color: #6b7280;
+  padding: 6px 0; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.takvim-hucre {
+  min-height: 70px; border-radius: 8px; padding: 6px;
+  background: #f9fafb; border: 1px solid transparent;
+  display: flex; flex-direction: column; gap: 2px; cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+.takvim-hucre:hover { background: #f3f4f6; }
+.takvim-hucre.bugun { background: #ecfdf5; border-color: #6ee7b7; }
+.takvim-hucre.disayd { opacity: 0.4; }
+.takvim-hucre.haftasonu { background: #fafafa; }
+.takvim-gun-num { font-size: 12px; font-weight: 600; color: #1f2937; }
+.takvim-hucre.bugun .takvim-gun-num { color: #047857; font-weight: 800; }
+.takvim-etkinlik-nokta {
+  display: flex; gap: 3px; align-items: center; margin-top: auto;
+  flex-wrap: wrap;
+}
+.takvim-etkinlik-nokta-item {
+  font-size: 9px; line-height: 1.2; padding: 2px 4px; border-radius: 4px;
+  color: white; background: #16a34a; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 600;
+}
+.takvim-etkinlik-nokta-item[data-tip="tatil"]    { background: #dc2626; }
+.takvim-etkinlik-nokta-item[data-tip="toplanti"] { background: #9333ea; }
+.takvim-etkinlik-nokta-item[data-tip="gezi"]     { background: #ea580c; }
+.takvim-etkinlik-nokta-item[data-tip="duyuru"]   { background: #2563eb; }
+.takvim-etkinlik-nokta-item[data-tip="randevu"]  { background: #0891b2; }
+.takvim-etkinlik-fazla { font-size: 9px; color: #6b7280; font-weight: 600; }
+
+/* Etkinlik olan günler için arka plan ipucu */
+.takvim-hucre.var-etkinlik {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.takvim-hucre.var-etkinlik[data-baskin-tip="tatil"]    { background: #fef2f2; border-color: #fecaca; }
+.takvim-hucre.var-etkinlik[data-baskin-tip="toplanti"] { background: #faf5ff; border-color: #e9d5ff; }
+.takvim-hucre.var-etkinlik[data-baskin-tip="gezi"]     { background: #fff7ed; border-color: #fed7aa; }
+.takvim-hucre.var-etkinlik[data-baskin-tip="duyuru"]   { background: #eff6ff; border-color: #bfdbfe; }
+.takvim-hucre.var-etkinlik[data-baskin-tip="randevu"]  { background: #ecfeff; border-color: #a5f3fc; }
+.takvim-hucre.var-etkinlik.bugun { box-shadow: inset 0 0 0 2px #047857; }
+
+/* Tip rozet renkleri (detay popup) */
+.takvim-detay-tip-rozet[data-tip="randevu"]  { background: #0891b2; }
+
+/* Etkinlik detay popup (ortak) */
+.takvim-detay-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.takvim-detay-kart {
+  background: white; border-radius: 16px; max-width: 460px; width: 100%;
+  max-height: 90vh; overflow-y: auto; padding: 22px;
+}
+.takvim-detay-baslik { font-size: 19px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
+.takvim-detay-tip-rozet {
+  display: inline-block; padding: 4px 10px; border-radius: 8px;
+  font-size: 11px; font-weight: 700; color: white; background: #16a34a;
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+}
+.takvim-detay-tip-rozet[data-tip="tatil"]   { background: #dc2626; }
+.takvim-detay-tip-rozet[data-tip="toplanti"] { background: #9333ea; }
+.takvim-detay-tip-rozet[data-tip="gezi"]     { background: #ea580c; }
+.takvim-detay-tip-rozet[data-tip="duyuru"]   { background: #2563eb; }
+.takvim-detay-meta { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #4b5563; margin: 10px 0; }
+.takvim-detay-meta strong { color: #1f2937; min-width: 80px; display: inline-block; }
+.takvim-detay-aciklama {
+  background: #f9fafb; border-radius: 10px; padding: 12px 14px;
+  font-size: 13px; color: #374151; line-height: 1.6; white-space: pre-wrap;
+  margin: 10px 0;
+}
+.takvim-detay-butonlar { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.takvim-detay-btn {
+  flex: 1; min-width: 120px; padding: 12px; border-radius: 10px;
+  border: none; font-size: 13px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px;
+}
+.takvim-detay-btn.primary { background: #1F5F33; color: white; }
+.takvim-detay-btn.primary:hover { background: #154d27; }
+.takvim-detay-btn.ics { background: #4285f4; color: white; }
+.takvim-detay-btn.ics:hover { background: #3367d6; }
+.takvim-detay-btn.kapat { background: #f3f4f6; color: #374151; }
+.takvim-detay-btn.kapat:hover { background: #e5e7eb; }
+
+/* Mobil uyum */
+@media (max-width: 640px) {
+  .takvim-hucre { min-height: 54px; padding: 4px; }
+  .takvim-gun-num { font-size: 11px; }
+  .takvim-etkinlik-nokta-item { font-size: 8px; padding: 1px 3px; }
+  .takvim-gun-basligi { font-size: 10px; padding: 4px 0; }
+  .takvim-etkinlik-kart { flex-direction: column; gap: 8px; }
+  .takvim-detay-baslik { font-size: 16px; }
+}
 </style>
 </head>
 <body>
@@ -8404,6 +8564,9 @@ html, body {
         <button class="icerik-altsekme-btn" data-icerik-alt="etkinlik" data-renk="mavi" onclick="icerikSwitchAlt('etkinlik')">
           <span>📅</span> Etkinlikler
         </button>
+        <button class="icerik-altsekme-btn" data-icerik-alt="takvim" data-renk="yesil" onclick="icerikSwitchAlt('takvim')">
+          <span>🗓️</span> Takvim
+        </button>
         <button class="icerik-altsekme-btn" data-icerik-alt="devamsizlik" data-renk="kirmizi" onclick="icerikSwitchAlt('devamsizlik')">
           <span>📋</span> Devamsızlık
         </button>
@@ -8485,6 +8648,33 @@ html, body {
           <!-- Liste -->
           <div id="etkinlikListesi">
             <div class="loading"><div class="spinner"></div><p>Etkinlikler yükleniyor...</p></div>
+          </div>
+        </div>
+
+        <!-- TAKVİM (Faz A) -->
+        <div id="icerikAlt-takvim" class="icerik-alt-panel" style="display:none;">
+          <div class="takvim-yonetim-bar">
+            <h3>🗓️ Okul Takvimi</h3>
+            <button class="takvim-yeni-btn" onclick="takvimEtkinlikModalAc()">+ Yeni Etkinlik</button>
+          </div>
+
+          <!-- AY GRID -->
+          <div class="takvim-ay-bar">
+            <div class="takvim-ay-baslik" id="takvimAyBaslik">—</div>
+            <div class="takvim-ay-nav">
+              <button onclick="takvimAyGec(-1)" title="Önceki ay">‹</button>
+              <button onclick="takvimBugune()" title="Bugün" style="width:auto; padding:0 12px;">Bugün</button>
+              <button onclick="takvimAyGec(1)" title="Sonraki ay">›</button>
+            </div>
+          </div>
+          <div id="takvimGrid" class="takvim-grid">
+            <!-- JS ile doldurulur -->
+          </div>
+
+          <!-- YAKLAŞAN ETKİNLİKLER (liste) -->
+          <h3 style="margin:18px 0 10px; font-size:15px; color:#166534;">Yaklaşan Etkinlikler</h3>
+          <div id="takvimYaklasanListe" class="takvim-etkinlik-listesi">
+            <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
           </div>
         </div>
 
@@ -8737,6 +8927,16 @@ html, body {
           <div class="form-grid full">
             <div class="form-group">
               <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox" id="duyuruSimsek" style="width:18px; height:18px;">
+                <span>⚡ Şimşek Duyuru — Veli portalında popup olarak göster</span>
+              </label>
+              <div class="field-hint" style="margin-left:28px;">İşaretliyse, hedef veliler portala/ZEKY uygulamasına girdiğinde bu duyuru özel popup olarak ekrana gelir. Veli "Anladım" deyince popup kapanır ve bir daha gösterilmez, ama duyuru listede kalır.</div>
+            </div>
+          </div>
+
+          <div class="form-grid full">
+            <div class="form-group">
+              <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
                 <input type="checkbox" id="duyuruMailGonder" style="width:18px; height:18px;" checked>
                 <span>📧 Velilere e-posta ile de gönder</span>
               </label>
@@ -8748,6 +8948,99 @@ html, body {
           <button class="btn-secondary" onclick="closeDuyuruModal()">İptal</button>
           <button class="btn-primary" onclick="kaydetDuyuru()" style="background:#eab308; border:none;">💾 Yayınla</button>
           <button class="btn-secondary" id="duyuruSilBtn" onclick="silDuyuru()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAKVİM ETKİNLİK MODAL (Faz A) -->
+    <div class="modal-overlay" id="takvimModal">
+      <div class="modal" style="max-width:540px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom:1px solid #bbf7d0;">
+          <h3 id="takvimModalBaslik" style="color:#166534;">🗓️ Yeni Etkinlik</h3>
+          <button class="close-btn" onclick="takvimModalKapat()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="takvimDuzenleId" value="">
+
+          <div class="form-group">
+            <label>Başlık *</label>
+            <input type="text" id="takvimBaslik" placeholder="Örn: Veli Toplantısı, Bahar Şenliği..." maxlength="120">
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tip</label>
+              <select id="takvimTip">
+                <option value="etkinlik">🎉 Etkinlik</option>
+                <option value="toplanti">👥 Toplantı</option>
+                <option value="randevu">📞 Randevu</option>
+                <option value="gezi">🚌 Gezi</option>
+                <option value="duyuru">📢 Duyuru</option>
+                <option value="tatil">🏖️ Tatil</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tarih *</label>
+              <input type="date" id="takvimTarih">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+              <input type="checkbox" id="takvimTumGun" style="width:18px; height:18px;" onchange="takvimTumGunToggle()">
+              <span>📅 Tüm gün</span>
+            </label>
+          </div>
+
+          <div class="form-grid" id="takvimSaatWrap">
+            <div class="form-group">
+              <label>Başlangıç Saati</label>
+              <input type="time" id="takvimBaslangic" value="14:00">
+            </div>
+            <div class="form-group">
+              <label>Bitiş Saati</label>
+              <input type="time" id="takvimBitis" value="15:00">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Konum (opsiyonel)</label>
+            <input type="text" id="takvimKonum" placeholder="Örn: Okul bahçesi, Aktivite salonu...">
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Hedef</label>
+              <select id="takvimHedefTur" onchange="takvimHedefDegisti()">
+                <option value="tumOkul">🏫 Tüm Okul</option>
+                <option value="sinif">🏷️ Bir Sınıf</option>
+                <option value="ogrenci">👤 Bir Öğrenci</option>
+              </select>
+            </div>
+            <div class="form-group" id="takvimHedefSinifWrap" style="display:none;">
+              <label>Sınıf</label>
+              <select id="takvimHedefSinif">
+                <option value="">— Sınıf Seçin —</option>
+                <option value="Papatyalar (Toddler)">Papatyalar (Toddler)</option>
+                <option value="Kardelen Çiçekleri">Kardelen Çiçekleri</option>
+                <option value="Nar Çiçekleri">Nar Çiçekleri</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" id="takvimHedefOgrenciWrap" style="display:none;">
+            <label>Öğrenci</label>
+            <select id="takvimHedefOgrenci"><option value="">— Öğrenci Seçin —</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>Açıklama (opsiyonel)</label>
+            <textarea id="takvimAciklama" rows="4" placeholder="Etkinlikle ilgili detaylar, getirilmesi gerekenler, vb..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="takvimModalKapat()">İptal</button>
+          <button class="btn-primary" onclick="takvimEtkinlikKaydet()" style="background:#16a34a; border:none;">💾 Kaydet</button>
+          <button class="btn-secondary" id="takvimSilBtn" onclick="takvimEtkinlikSil()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
         </div>
       </div>
     </div>
@@ -13063,6 +13356,10 @@ async function loadVeliPanel(user) {
 
     // Özellik bayraklarını yükle ve arayüze uygula (SaaS feature flags)
     try { await ozellikBayraklariYukle(); ozellikleriArayuzeUygula(); } catch(e) { console.warn(e); }
+
+    // ⚡ Şimşek duyuru/hatırlatma kontrolü
+    // Aktif şimşek duyurular varsa ve veli kapatmadıysa popup göster
+    try { setTimeout(() => simsekDuyuruKontrolEt(), 800); } catch(e) { console.warn(e); }
   } catch (e) {
     console.error("Veli paneli yüklenemedi:", e);
     showToast("Veriler yüklenemedi: " + e.message, "error");
@@ -13539,8 +13836,11 @@ function veliRenderYeniApp() {
                  : (caEkran === "gunluk") ? caGunlukHTML()
                  : (caEkran === "galeri") ? caGaleriHTML()
                  : (caEkran === "mesajlar") ? caMesajlarHTML()
+                 : (caEkran === "takvim") ? caTakvimHTML()
                  : caHomeHTML();
   if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
+  if (caEkran === "takvim") { try { veliTakvimRender(); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => caHomeTakvimOnizlemeRender(), 100); } catch(e) { console.warn(e); } }
 }
 
 // ===== Faz 1: Eğitim Takibi — GERÇEK VERİ (ogrenciGelisim + mufredatlar) =====
@@ -13701,15 +14001,6 @@ function caHomeHTML() {
     ? `<div class="ca-chips">${veliOgrenciler.map((o, i) => `<button class="ca-chip ${(ogr && o.id === ogr.id) ? "active" : ""}" onclick="caCocukDegistir(${i})">${escapeHtmlGelisim((o.ogrenciAdSoyad || "Çocuk").split(" ")[0])}</button>`).join("")}</div>` : "";
   return `
     <div class="ca-page ca-stack">
-      <div class="ca-brand">
-        <span class="ca-brand-logo">
-          <svg width="24" height="24" viewBox="0 0 200 200" aria-hidden="true"><g transform="translate(100 100)"><g fill="#FFD4DC"><ellipse cx="0" cy="-34" rx="16" ry="30"/><ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(72)"/><ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(144)"/><ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(216)"/><ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(288)"/></g><circle r="18" fill="#F5C84B"/></g></svg>
-        </span>
-        <div><div class="ca-brand-name">ZEKY</div><div class="ca-brand-sub">Bir Çiçek Koleji · Okul-Aile</div></div>
-      </div>
-      <div class="ca-draft-banner">
-        🌿 ZEKY yeni arayüz — çocuk & eğitim verileri canlı. Ödeme/mesaj kartları kademeli bağlanıyor.
-      </div>
 
       <!-- Üst bar -->
       <div class="ca-topbar">
@@ -13898,9 +14189,74 @@ function caHomeHTML() {
           </div>
         </div>
 
+        <!-- 🗓️ TAKVİM KARTI - ana sayfada yaklaşan etkinlikler -->
+        <div style="margin-top:6px;">
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">🗓️ Takvim</h3>
+            <button class="ca-link" onclick="caGo('takvim')">Tümü →</button>
+          </div>
+          <div id="caHomeTakvimOnizleme" class="ca-card" style="padding:0; overflow:hidden;">
+            <div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
+          </div>
+        </div>
+
       </div>
     </div>
   `;
+}
+
+// Ana sayfa takvim önizlemesi - yaklaşan 3 etkinlik
+async function caHomeTakvimOnizlemeRender() {
+  const el = document.getElementById("caHomeTakvimOnizleme");
+  if (!el) return;
+  try {
+    await takvimEtkinlikleriYukle();
+    const tum = takvimTumEtkinlikler().filter(e => takvimVeliyeUygunMu(e));
+    const bugun = new Date();
+    const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+    const yaklasan = tum.filter(e => e.tarih >= bugunStr).slice(0, 3);
+
+    if (yaklasan.length === 0) {
+      el.innerHTML = `<div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yaklaşan etkinlik yok</div>`;
+      return;
+    }
+
+    const aylar = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+    const tipRenkleri = {
+      etkinlik: "#16a34a", toplanti: "#9333ea", gezi: "#ea580c",
+      duyuru: "#2563eb", tatil: "#dc2626", randevu: "#0891b2"
+    };
+
+    el.innerHTML = yaklasan.map((e, i) => {
+      const tarih = new Date(e.tarih);
+      const renk = tipRenkleri[e.tip] || "#16a34a";
+      const tarihStr = `${tarih.getDate()} ${aylar[tarih.getMonth()]}`;
+      const saatStr = e.tumGun ? "Tüm gün" : (e.baslangicSaat || "");
+      const tipLabel = (TAKVIM_TIP_LABEL[e.tip] || "").replace(/^\S+\s/, ''); // emojiyi at, sadece kelime
+
+      return `
+        <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; ${i > 0 ? 'border-top:1px solid var(--c-border);' : ''} cursor:pointer;"
+             onclick="veliTakvimEtkinlikDetay('${e.id}')">
+          <div style="width:46px; flex-shrink:0; text-align:center; background:${renk}; color:white; padding:8px 4px; border-radius:8px;">
+            <div style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; opacity:0.9;">${aylar[tarih.getMonth()]}</div>
+            <div style="font-size:18px; font-weight:800; line-height:1;">${tarih.getDate()}</div>
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; color:var(--c-ink); font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlGelisim(e.baslik)}</div>
+            <div class="ca-tile-sub" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <span style="color:${renk}; font-weight:600;">${tipLabel}</span>
+              ${saatStr ? `<span>· ${saatStr}</span>` : ''}
+              ${e.konum ? `<span>· 📍 ${escapeHtmlGelisim(e.konum)}</span>` : ''}
+            </div>
+          </div>
+          <span style="color:var(--c-muted); font-size:14px; flex-shrink:0;">›</span>
+        </div>
+      `;
+    }).join("");
+  } catch (err) {
+    console.warn("caHomeTakvimOnizlemeRender hatası:", err);
+    el.innerHTML = `<div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Takvim yüklenemedi</div>`;
+  }
 }
 
 // ===== Menü (Tüm Modüller) ekranı =====
@@ -13917,6 +14273,7 @@ function caMenuHTML() {
     { k:"odemeler",  ad:"Ödemeler",          ikon:"💳", renk:"var(--c-purple-soft)", git:"veliSwitchTab('odemeler')" },
     { k:"sozlesme",  ad:"Sözleşme",          ikon:"📄", renk:"var(--c-blue-soft)",   git:"veliSwitchTab('sozlesme')" },
     { k:"okul",      ad:"Okul Hayatı",       ikon:"🌸", renk:"#Dff4e3",              git:"veliSwitchTab('okul')" },
+    { k:"takvim",    ad:"Takvim",            ikon:"🗓️", renk:"var(--c-green-light)", git:"caGo('takvim')" },
     { k:"yemek",     ad:"Yemek Menüsü",      ikon:"🍽️", renk:"var(--c-pink-soft)",   git:"veliSwitchTab('okul')" },
     { k:"ayarlar",   ad:"Ayarlar",           ikon:"⚙️", renk:"var(--c-tint)",        git:"veliSwitchTab('ayarlar')" }
   ];
@@ -13931,7 +14288,6 @@ function caMenuHTML() {
   }).join("");
   return `
     <div class="ca-page ca-stack">
-      <div class="ca-draft-banner">✨ Pilot — Tüm Modüller. Yıldıza dokunarak favorilere ekle (cihazında saklanır).</div>
       <div class="ca-topbar">
         <div class="ca-row">
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
@@ -14385,7 +14741,6 @@ function caGaleriHTML() {
 
   return `
     <div class="ca-page ca-stack">
-      <div class="ca-draft-banner">✨ Pilot — Galeri (kategorili albümler + toplu medya). Medya bunny.net'te saklanır ve indirilebilir.</div>
       <div class="ca-topbar">
         <div class="ca-row">
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
@@ -14432,7 +14787,6 @@ function caGunlukHTML() {
     </div>`).join("");
   return `
     <div class="ca-page ca-stack">
-      <div class="ca-draft-banner">✨ Pilot — Günlük Rapor. Veriler örnek; Faz 2'de canlı Firebase verisine bağlanacak.</div>
       <div class="ca-topbar">
         <div class="ca-row">
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
@@ -14498,7 +14852,6 @@ function caProfilHTML() {
     </div>`).join("");
   return `
     <div class="ca-page ca-stack">
-      <div class="ca-draft-banner">✨ Pilot — Çocuk Profili. Veriler örnek; Faz 2'de canlı Firebase verisine bağlanacak.</div>
       <div class="ca-topbar">
         <div class="ca-row">
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
@@ -16429,6 +16782,720 @@ window.ogrenciArsivModalAc = function(ogrenciId) {
 };
 // ===== /FAZ 6 =====
 
+// ============================================================
+// ===== ŞİMŞEK DUYURU SİSTEMİ (POPUP) =====
+// ============================================================
+// Personel "Şimşek Duyuru" işaretliyse, hedef veli portala girdiğinde
+// estetik bir popup ile gösterilir. "Anladım" deyince popupKapatanVeliler
+// listesine eklenir ve bir daha gösterilmez. Duyuru "Duyurular" sekmesinde
+// sabit olarak kalır.
+
+async function simsekDuyuruKontrolEt() {
+  if (!currentUser?.email) return;
+  const veliEmail = currentUser.email.toLowerCase();
+
+  // Aktif veli öğrencileri (veliOgrenciler) ile hedef eşleşmesi
+  if (typeof veliOgrenciler === "undefined" || !veliOgrenciler || veliOgrenciler.length === 0) return;
+
+  try {
+    const snap = await getDocs(collection(db, "duyurular"));
+    const bekleyen = [];
+    snap.forEach(d => {
+      const data = d.data();
+      if (!data.simsek || data.arsiv) return;
+      const kapatanlar = data.popupKapatanVeliler || [];
+      if (kapatanlar.includes(veliEmail)) return;
+      if (!simsekHedefUygun(data)) return;
+      bekleyen.push({ id: d.id, ...data });
+    });
+
+    if (bekleyen.length === 0) return;
+
+    // En yeni olanı önce göster (sıraya koy)
+    bekleyen.sort((a, b) => new Date(b.olusturuldu || 0) - new Date(a.olusturuldu || 0));
+    simsekPopupGoster(bekleyen, 0);
+  } catch (e) {
+    console.warn("Şimşek duyuru kontrolü başarısız:", e);
+  }
+}
+
+// Bu duyurunun hedefi bu veliyi içeriyor mu?
+function simsekHedefUygun(d) {
+  if (d.hedefTur === "tumOkul" || !d.hedefTur) return true;
+  if (d.hedefTur === "sinif") {
+    return veliOgrenciler.some(o => {
+      const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+      const sinif = (ayar?.kayit?.sinif) || o.sinif || "";
+      return sinif === d.hedefDeger;
+    });
+  }
+  if (d.hedefTur === "ogrenci") {
+    return veliOgrenciler.some(o => o.id === d.hedefDeger);
+  }
+  return false;
+}
+
+// Popup'ı göster (kuyruktan)
+function simsekPopupGoster(kuyruk, idx) {
+  if (idx >= kuyruk.length) return;
+  const d = kuyruk[idx];
+  const aciliyetRenk = d.aciliyet === "yuksek"
+    ? { bg: "#FEE2E2", bord: "#FCA5A5", ikon: "🚨", baslik: "Önemli Duyuru" }
+    : { bg: "#FEF3C7", bord: "#FDE68A", ikon: "⚡", baslik: "Şimşek Duyuru" };
+
+  // İçeriği güvenli HTML'e çevir
+  const icerikSafe = (d.icerik || "")
+    .split(/\n+/)
+    .map(p => `<p style="margin:0 0 8px;">${escapeHtmlGelisim(p)}</p>`)
+    .join("");
+
+  const html = `
+    <div id="simsekOverlay" style="position:fixed; inset:0; background:rgba(31,95,51,0.4); backdrop-filter:blur(4px); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px; animation:simsekFadeIn 0.25s ease-out;">
+      <div style="background:white; border-radius:20px; max-width:440px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 24px 48px rgba(0,0,0,0.18); position:relative; animation:simsekSlideUp 0.3s ease-out;">
+
+        <!-- DEKORATİF ÇİÇEK MOTİFİ -->
+        <div style="position:absolute; top:-22px; left:50%; transform:translateX(-50%); width:60px; height:60px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+          <svg width="36" height="36" viewBox="0 0 200 200" aria-hidden="true">
+            <g transform="translate(100 100)">
+              <g fill="#FFD4DC">
+                <ellipse cx="0" cy="-34" rx="16" ry="30"/>
+                <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(72)"/>
+                <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(144)"/>
+                <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(216)"/>
+                <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(288)"/>
+              </g>
+              <circle r="18" fill="#F5C84B"/>
+            </g>
+          </svg>
+        </div>
+
+        <div style="padding:38px 24px 20px;">
+          <div style="display:flex; align-items:center; gap:8px; justify-content:center; margin-bottom:8px;">
+            <span style="font-size:22px;">${aciliyetRenk.ikon}</span>
+            <div style="font-size:12px; font-weight:700; color:#1F5F33; text-transform:uppercase; letter-spacing:0.5px;">${aciliyetRenk.baslik}</div>
+          </div>
+          <h2 style="margin:0 0 14px; font-size:19px; color:#1f2937; text-align:center; line-height:1.3; font-weight:700;">${escapeHtmlGelisim(d.baslik)}</h2>
+          <div style="background:${aciliyetRenk.bg}; border:1px solid ${aciliyetRenk.bord}; border-radius:12px; padding:14px 16px; font-size:14px; color:#374151; line-height:1.6;">
+            ${icerikSafe}
+          </div>
+          <div style="display:flex; gap:8px; margin-top:18px;">
+            ${kuyruk.length > 1 ? `<div style="flex:1; text-align:center; align-self:center; font-size:11px; color:#9ca3af;">${idx + 1} / ${kuyruk.length}</div>` : ''}
+            <button id="simsekAnladim" style="flex:${kuyruk.length > 1 ? '2' : '1'}; background:#1F5F33; color:white; border:none; padding:14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; min-height:48px;">
+              ✓ Anladım
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <style>
+      @keyframes simsekFadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes simsekSlideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+  `;
+  document.body.insertAdjacentHTML("beforeend", html);
+
+  document.getElementById("simsekAnladim").onclick = async () => {
+    const btn = document.getElementById("simsekAnladim");
+    btn.disabled = true; btn.textContent = "Kaydediliyor...";
+    await simsekKapat(d.id);
+    document.getElementById("simsekOverlay")?.remove();
+    setTimeout(() => simsekPopupGoster(kuyruk, idx + 1), 200);
+  };
+}
+
+// Popup kapatıldı: Firestore'da popupKapatanVeliler array'ine ekle
+async function simsekKapat(duyuruId) {
+  if (!currentUser?.email) return;
+  const veliEmail = currentUser.email.toLowerCase();
+  try {
+    await updateDoc(doc(db, "duyurular", duyuruId), {
+      popupKapatanVeliler: arrayUnion(veliEmail)
+    });
+  } catch (e) {
+    console.warn("Şimşek kapatma kaydedilemedi:", e);
+  }
+}
+// ===== /ŞİMŞEK =====
+
+// ============================================================
+// ===== TAKVİM SİSTEMİ (FAZ A) =====
+// ============================================================
+// Veri yapısı: takvim/{etkinlikId}
+// { baslik, aciklama, tarih (YYYY-MM-DD), baslangicSaat, bitisSaat,
+//   tumGun, konum, tip, hedefTur, hedefDeger, hedefOgrenciAd, arsiv,
+//   olusturan, olusturuldu, guncellendi }
+
+// TR Resmi Tatiller (2026-2027)
+const RESMI_TATILLER = [
+  // 2026
+  { tarih: "2026-01-01", baslik: "Yılbaşı", aciklama: "Resmi tatil" },
+  { tarih: "2026-03-20", baslik: "Ramazan Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
+  { tarih: "2026-03-21", baslik: "Ramazan Bayramı 1. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-03-22", baslik: "Ramazan Bayramı 2. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-03-23", baslik: "Ramazan Bayramı 3. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-04-23", baslik: "Ulusal Egemenlik ve Çocuk Bayramı", aciklama: "Resmi tatil" },
+  { tarih: "2026-05-01", baslik: "Emek ve Dayanışma Günü", aciklama: "Resmi tatil" },
+  { tarih: "2026-05-19", baslik: "Atatürk'ü Anma, Gençlik ve Spor Bayramı", aciklama: "Resmi tatil" },
+  { tarih: "2026-05-26", baslik: "Kurban Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
+  { tarih: "2026-05-27", baslik: "Kurban Bayramı 1. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-05-28", baslik: "Kurban Bayramı 2. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-05-29", baslik: "Kurban Bayramı 3. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-05-30", baslik: "Kurban Bayramı 4. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-07-15", baslik: "Demokrasi ve Milli Birlik Günü", aciklama: "Resmi tatil" },
+  { tarih: "2026-08-30", baslik: "Zafer Bayramı", aciklama: "Resmi tatil" },
+  { tarih: "2026-10-28", baslik: "Cumhuriyet Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
+  { tarih: "2026-10-29", baslik: "Cumhuriyet Bayramı", aciklama: "Resmi tatil" },
+  // 2027
+  { tarih: "2027-01-01", baslik: "Yılbaşı", aciklama: "Resmi tatil" },
+  { tarih: "2027-03-10", baslik: "Ramazan Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
+  { tarih: "2027-03-11", baslik: "Ramazan Bayramı 1. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-03-12", baslik: "Ramazan Bayramı 2. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-03-13", baslik: "Ramazan Bayramı 3. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-04-23", baslik: "Ulusal Egemenlik ve Çocuk Bayramı", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-01", baslik: "Emek ve Dayanışma Günü", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-16", baslik: "Kurban Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-17", baslik: "Kurban Bayramı 1. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-18", baslik: "Kurban Bayramı 2. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-19", baslik: "Atatürk'ü Anma, Gençlik ve Spor Bayramı + Kurban Bayramı 3. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-20", baslik: "Kurban Bayramı 4. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-07-15", baslik: "Demokrasi ve Milli Birlik Günü", aciklama: "Resmi tatil" },
+  { tarih: "2027-08-30", baslik: "Zafer Bayramı", aciklama: "Resmi tatil" },
+  { tarih: "2027-10-29", baslik: "Cumhuriyet Bayramı", aciklama: "Resmi tatil" }
+];
+
+const TAKVIM_TIP_LABEL = {
+  etkinlik: "🎉 Etkinlik",
+  toplanti: "👥 Toplantı",
+  randevu: "📞 Randevu",
+  gezi: "🚌 Gezi",
+  duyuru: "📢 Duyuru",
+  tatil: "🏖️ Tatil"
+};
+
+let takvimEtkinlikler = [];
+let takvimAktifAy = new Date();
+
+async function takvimEtkinlikleriYukle(force = false) {
+  if (takvimEtkinlikler.length > 0 && !force) return takvimEtkinlikler;
+  try {
+    const snap = await getDocs(collection(db, "takvim"));
+    const liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    takvimEtkinlikler = liste;
+    return liste;
+  } catch (e) {
+    console.error("Takvim yüklenemedi:", e);
+    return [];
+  }
+}
+
+function takvimTumEtkinlikler() {
+  const tatiller = RESMI_TATILLER.map((t, i) => ({
+    id: `tatil_${i}`,
+    baslik: t.baslik,
+    aciklama: t.aciklama || "",
+    tarih: t.tarih,
+    tumGun: true,
+    tip: "tatil",
+    hedefTur: "tumOkul",
+    sabit: true
+  }));
+  const aktifFirestore = takvimEtkinlikler.filter(e => !e.arsiv);
+  return [...tatiller, ...aktifFirestore].sort((a, b) => {
+    const t1 = a.tarih + (a.baslangicSaat || "00:00");
+    const t2 = b.tarih + (b.baslangicSaat || "00:00");
+    return t1.localeCompare(t2);
+  });
+}
+
+function takvimAyGridRender(containerId, ay, etkinlikler, tiklamaFn) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const yil = ay.getFullYear();
+  const ayNum = ay.getMonth();
+  const ilkGun = new Date(yil, ayNum, 1);
+  const sonGun = new Date(yil, ayNum + 1, 0);
+  const ofset = (ilkGun.getDay() + 6) % 7; // Pazartesi başlangıç
+  const toplamHucre = Math.ceil((ofset + sonGun.getDate()) / 7) * 7;
+
+  const bugun = new Date();
+  const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+
+  let html = `
+    <div class="takvim-gun-basligi">Pzt</div>
+    <div class="takvim-gun-basligi">Sal</div>
+    <div class="takvim-gun-basligi">Çar</div>
+    <div class="takvim-gun-basligi">Per</div>
+    <div class="takvim-gun-basligi">Cum</div>
+    <div class="takvim-gun-basligi">Cmt</div>
+    <div class="takvim-gun-basligi">Paz</div>
+  `;
+
+  for (let i = 0; i < toplamHucre; i++) {
+    const gunOfset = i - ofset;
+    const tarih = new Date(yil, ayNum, gunOfset + 1);
+    const disAyMi = (tarih.getMonth() !== ayNum);
+    const tarihStr = `${tarih.getFullYear()}-${String(tarih.getMonth()+1).padStart(2,"0")}-${String(tarih.getDate()).padStart(2,"0")}`;
+    const bugunMi = (tarihStr === bugunStr);
+    const haftaSonu = (tarih.getDay() === 0 || tarih.getDay() === 6);
+
+    const gunEtkinlikleri = etkinlikler.filter(e => e.tarih === tarihStr);
+
+    // Baskın tip belirle (rozet rengini günün arka planına yansıtmak için)
+    // Öncelik: tatil > toplanti > randevu > gezi > duyuru > etkinlik
+    const tipOncelik = ["tatil", "toplanti", "randevu", "gezi", "duyuru", "etkinlik"];
+    let baskinTip = "";
+    if (gunEtkinlikleri.length > 0) {
+      for (const t of tipOncelik) {
+        if (gunEtkinlikleri.some(e => e.tip === t)) { baskinTip = t; break; }
+      }
+      if (!baskinTip) baskinTip = gunEtkinlikleri[0].tip || "etkinlik";
+    }
+
+    const nokta = gunEtkinlikleri.slice(0, 3).map(e => `
+      <div class="takvim-etkinlik-nokta-item" data-tip="${e.tip || 'etkinlik'}" title="${escapeHtml(e.baslik)}">${escapeHtml(e.baslik)}</div>
+    `).join("");
+    const fazla = gunEtkinlikleri.length > 3 ? `<div class="takvim-etkinlik-fazla">+${gunEtkinlikleri.length - 3} daha</div>` : "";
+
+    const varEtkinlikClass = gunEtkinlikleri.length > 0 ? "var-etkinlik" : "";
+    const baskinAttr = baskinTip ? `data-baskin-tip="${baskinTip}"` : "";
+
+    html += `
+      <div class="takvim-hucre ${disAyMi ? 'disayd' : ''} ${bugunMi ? 'bugun' : ''} ${haftaSonu ? 'haftasonu' : ''} ${varEtkinlikClass}"
+           ${baskinAttr}
+           onclick="${tiklamaFn}('${tarihStr}')">
+        <div class="takvim-gun-num">${tarih.getDate()}</div>
+        <div class="takvim-etkinlik-nokta">${nokta}</div>
+        ${fazla}
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+window.takvimAyGec = function(dir) {
+  takvimAktifAy.setMonth(takvimAktifAy.getMonth() + dir);
+  takvimYonetimRender();
+};
+window.takvimBugune = function() {
+  takvimAktifAy = new Date();
+  takvimYonetimRender();
+};
+
+function takvimAyBasligiYaz(elId) {
+  const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const el = document.getElementById(elId);
+  if (el) el.textContent = `${aylar[takvimAktifAy.getMonth()]} ${takvimAktifAy.getFullYear()}`;
+}
+
+async function takvimYonetimRender() {
+  await takvimEtkinlikleriYukle();
+  takvimAyBasligiYaz("takvimAyBaslik");
+  const tum = takvimTumEtkinlikler();
+  takvimAyGridRender("takvimGrid", takvimAktifAy, tum, "takvimGunTikla");
+
+  const bugun = new Date();
+  const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+  const yaklasan = tum.filter(e => e.tarih >= bugunStr).slice(0, 10);
+
+  const listeEl = document.getElementById("takvimYaklasanListe");
+  if (!listeEl) return;
+  if (yaklasan.length === 0) {
+    listeEl.innerHTML = `<div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yaklaşan etkinlik yok. + Yeni Etkinlik ile ekleyebilirsiniz.</div>`;
+    return;
+  }
+  listeEl.innerHTML = yaklasan.map(e => takvimEtkinlikKartHTML(e, true)).join("");
+}
+
+function takvimEtkinlikKartHTML(e, gosterAksiyon) {
+  const tarih = new Date(e.tarih);
+  const aylar = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+  const tarihStr = `${tarih.getDate()} ${aylar[tarih.getMonth()]} ${tarih.getFullYear()}`;
+  const saatStr = e.tumGun ? "Tüm gün" : (e.baslangicSaat ? `${e.baslangicSaat}${e.bitisSaat ? ' - ' + e.bitisSaat : ''}` : "");
+  const hedef = e.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
+              : e.hedefTur === "sinif" ? `🏷️ ${escapeHtml(e.hedefDeger || "")}`
+              : e.hedefTur === "ogrenci" ? `👤 ${escapeHtml(e.hedefOgrenciAd || "")}` : "";
+
+  const aksiyon = gosterAksiyon && !e.sabit ? `
+    <div style="display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap;">
+      <button class="takvim-aksiyon-btn" onclick="takvimEtkinlikModalAc('${e.id}')">✏️ Düzenle</button>
+      <button class="takvim-aksiyon-btn" onclick="takvimICSIndir('${e.id}')">📅 Takvime Ekle</button>
+    </div>` : (e.sabit ? `<span style="font-size:11px; color:#9ca3af; flex-shrink:0;">Sabit (resmi)</span>` : "");
+
+  return `
+    <div class="takvim-etkinlik-kart" data-tip="${e.tip || 'etkinlik'}">
+      <div style="flex:1; min-width:0;">
+        <div class="takvim-etkinlik-baslik">${escapeHtml(e.baslik)}</div>
+        <div class="takvim-etkinlik-meta">
+          <span>${TAKVIM_TIP_LABEL[e.tip] || e.tip}</span>
+          <span>📆 ${tarihStr}</span>
+          ${saatStr ? `<span>⏰ ${saatStr}</span>` : ''}
+          ${e.konum ? `<span>📍 ${escapeHtml(e.konum)}</span>` : ''}
+          ${hedef ? `<span>${hedef}</span>` : ''}
+        </div>
+        ${e.aciklama ? `<div style="font-size:12px; color:#6b7280; margin-top:6px;">${escapeHtml(e.aciklama).substring(0, 120)}${e.aciklama.length > 120 ? '...' : ''}</div>` : ''}
+      </div>
+      ${aksiyon}
+    </div>
+  `;
+}
+
+window.takvimGunTikla = function(tarihStr) {
+  const tum = takvimTumEtkinlikler();
+  const gunEtkinlikleri = tum.filter(e => e.tarih === tarihStr);
+  if (gunEtkinlikleri.length > 0) {
+    takvimEtkinlikDetayAc(gunEtkinlikleri[0]);
+  } else {
+    takvimEtkinlikModalAc(null, tarihStr);
+  }
+};
+
+window.takvimEtkinlikModalAc = function(id, varsayilanTarih) {
+  document.getElementById("takvimModal").classList.add("active");
+  document.getElementById("takvimDuzenleId").value = id || "";
+
+  if (id) {
+    const e = takvimEtkinlikler.find(x => x.id === id);
+    if (!e) { showToast("Etkinlik bulunamadı", "error"); return; }
+    document.getElementById("takvimModalBaslik").textContent = "🗓️ Etkinliği Düzenle";
+    document.getElementById("takvimBaslik").value = e.baslik || "";
+    document.getElementById("takvimTip").value = e.tip || "etkinlik";
+    document.getElementById("takvimTarih").value = e.tarih || "";
+    document.getElementById("takvimTumGun").checked = !!e.tumGun;
+    document.getElementById("takvimBaslangic").value = e.baslangicSaat || "14:00";
+    document.getElementById("takvimBitis").value = e.bitisSaat || "15:00";
+    document.getElementById("takvimKonum").value = e.konum || "";
+    document.getElementById("takvimAciklama").value = e.aciklama || "";
+    document.getElementById("takvimHedefTur").value = e.hedefTur || "tumOkul";
+    if (e.hedefTur === "sinif") document.getElementById("takvimHedefSinif").value = e.hedefDeger || "";
+    if (e.hedefTur === "ogrenci") document.getElementById("takvimHedefOgrenci").value = e.hedefDeger || "";
+    document.getElementById("takvimSilBtn").style.display = "inline-block";
+  } else {
+    document.getElementById("takvimModalBaslik").textContent = "🗓️ Yeni Etkinlik";
+    document.getElementById("takvimBaslik").value = "";
+    document.getElementById("takvimTip").value = "etkinlik";
+    document.getElementById("takvimTarih").value = varsayilanTarih || new Date().toISOString().slice(0,10);
+    document.getElementById("takvimTumGun").checked = false;
+    document.getElementById("takvimBaslangic").value = "14:00";
+    document.getElementById("takvimBitis").value = "15:00";
+    document.getElementById("takvimKonum").value = "";
+    document.getElementById("takvimAciklama").value = "";
+    document.getElementById("takvimHedefTur").value = "tumOkul";
+    document.getElementById("takvimSilBtn").style.display = "none";
+  }
+
+  takvimHedefDegisti();
+  takvimTumGunToggle();
+  takvimOgrenciSeciciDoldur();
+};
+
+window.takvimModalKapat = function() {
+  document.getElementById("takvimModal").classList.remove("active");
+};
+
+window.takvimTumGunToggle = function() {
+  const tumGun = document.getElementById("takvimTumGun").checked;
+  document.getElementById("takvimSaatWrap").style.display = tumGun ? "none" : "grid";
+};
+
+window.takvimHedefDegisti = function() {
+  const hedef = document.getElementById("takvimHedefTur").value;
+  document.getElementById("takvimHedefSinifWrap").style.display = hedef === "sinif" ? "block" : "none";
+  document.getElementById("takvimHedefOgrenciWrap").style.display = hedef === "ogrenci" ? "block" : "none";
+};
+
+function takvimOgrenciSeciciDoldur() {
+  const sel = document.getElementById("takvimHedefOgrenci");
+  if (!sel) return;
+  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  aktif.sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || ""));
+  sel.innerHTML = '<option value="">— Öğrenci Seçin —</option>';
+  for (const o of aktif) {
+    const sinif = (ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "";
+    const opt = document.createElement("option");
+    opt.value = o.id;
+    opt.textContent = `${o.ogrenciAdSoyad || ""}${sinif ? ` (${sinif})` : ""}`;
+    opt.dataset.ad = o.ogrenciAdSoyad || "";
+    sel.appendChild(opt);
+  }
+}
+
+window.takvimEtkinlikKaydet = async function() {
+  const id = document.getElementById("takvimDuzenleId").value;
+  const baslik = document.getElementById("takvimBaslik").value.trim();
+  const tip = document.getElementById("takvimTip").value;
+  const tarih = document.getElementById("takvimTarih").value;
+  const tumGun = document.getElementById("takvimTumGun").checked;
+  const baslangicSaat = tumGun ? "" : document.getElementById("takvimBaslangic").value;
+  const bitisSaat = tumGun ? "" : document.getElementById("takvimBitis").value;
+  const konum = document.getElementById("takvimKonum").value.trim();
+  const aciklama = document.getElementById("takvimAciklama").value.trim();
+  const hedefTur = document.getElementById("takvimHedefTur").value;
+  let hedefDeger = "", hedefOgrenciAd = "";
+  if (hedefTur === "sinif") {
+    hedefDeger = document.getElementById("takvimHedefSinif").value;
+    if (!hedefDeger) return showToast("Sınıf seçin", "error");
+  } else if (hedefTur === "ogrenci") {
+    const sel = document.getElementById("takvimHedefOgrenci");
+    hedefDeger = sel.value;
+    if (!hedefDeger) return showToast("Öğrenci seçin", "error");
+    hedefOgrenciAd = sel.options[sel.selectedIndex]?.dataset?.ad || "";
+  }
+
+  if (!baslik) return showToast("Başlık zorunlu", "error");
+  if (!tarih) return showToast("Tarih zorunlu", "error");
+
+  const data = {
+    baslik, aciklama, tarih, baslangicSaat, bitisSaat, tumGun, konum,
+    tip, hedefTur, hedefDeger, hedefOgrenciAd,
+    arsiv: false,
+    guncellendi: new Date().toISOString()
+  };
+
+  try {
+    if (id) {
+      await updateDoc(doc(db, "takvim", id), data);
+      showToast("✓ Etkinlik güncellendi");
+    } else {
+      data.olusturan = currentUser.email;
+      data.olusturuldu = new Date().toISOString();
+      const ref = doc(collection(db, "takvim"));
+      await setDoc(ref, data);
+      showToast("✓ Etkinlik eklendi");
+    }
+    takvimModalKapat();
+    await takvimEtkinlikleriYukle(true);
+    takvimYonetimRender();
+  } catch (e) {
+    console.error(e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+window.takvimEtkinlikSil = async function() {
+  const id = document.getElementById("takvimDuzenleId").value;
+  if (!id) return;
+  if (!confirm("Bu etkinliği silmek istediğinize emin misiniz?")) return;
+  try {
+    await deleteDoc(doc(db, "takvim", id));
+    showToast("✓ Etkinlik silindi");
+    takvimModalKapat();
+    await takvimEtkinlikleriYukle(true);
+    takvimYonetimRender();
+  } catch (e) {
+    showToast("Silinemedi: " + e.message, "error");
+  }
+};
+
+window.takvimEtkinlikDetayAc = function(e) {
+  const tarih = new Date(e.tarih);
+  const aylar = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+  const tarihStr = `${tarih.getDate()} ${aylar[tarih.getMonth()]} ${tarih.getFullYear()}`;
+  const saatStr = e.tumGun ? "Tüm gün" : (e.baslangicSaat ? `${e.baslangicSaat}${e.bitisSaat ? ' - ' + e.bitisSaat : ''}` : "");
+  const hedef = e.hedefTur === "tumOkul" ? "Tüm Okul"
+              : e.hedefTur === "sinif" ? escapeHtml(e.hedefDeger || "")
+              : e.hedefTur === "ogrenci" ? escapeHtml(e.hedefOgrenciAd || "") : "";
+
+  const aciklamaSafe = (e.aciklama || "").replace(/\n/g, "<br>");
+
+  const html = `
+    <div id="takvimDetayOverlay" class="takvim-detay-overlay" onclick="if(event.target===this) takvimDetayKapat()">
+      <div class="takvim-detay-kart">
+        <span class="takvim-detay-tip-rozet" data-tip="${e.tip || 'etkinlik'}">${TAKVIM_TIP_LABEL[e.tip] || e.tip}</span>
+        <div class="takvim-detay-baslik">${escapeHtml(e.baslik)}</div>
+        <div class="takvim-detay-meta">
+          <div><strong>📆 Tarih:</strong> ${tarihStr}</div>
+          ${saatStr ? `<div><strong>⏰ Saat:</strong> ${saatStr}</div>` : ''}
+          ${e.konum ? `<div><strong>📍 Konum:</strong> ${escapeHtml(e.konum)}</div>` : ''}
+          ${hedef ? `<div><strong>👥 Hedef:</strong> ${hedef}</div>` : ''}
+        </div>
+        ${e.aciklama ? `<div class="takvim-detay-aciklama">${aciklamaSafe}</div>` : ''}
+        <div class="takvim-detay-butonlar">
+          ${!e.sabit ? `<button class="takvim-detay-btn ics" onclick="takvimICSIndir('${e.id}')">📅 Takvime Ekle</button>` : ''}
+          <button class="takvim-detay-btn kapat" onclick="takvimDetayKapat()">Kapat</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.body.insertAdjacentHTML("beforeend", html);
+};
+
+window.takvimDetayKapat = function() {
+  document.getElementById("takvimDetayOverlay")?.remove();
+};
+
+// ICS EXPORT — Google/Apple/Outlook hepsi destekler
+window.takvimICSIndir = function(id) {
+  const e = takvimEtkinlikler.find(x => x.id === id) || takvimTumEtkinlikler().find(x => x.id === id);
+  if (!e) return;
+
+  const tarihParts = e.tarih.split("-");
+  const tarihKodu = tarihParts.join("");
+
+  let dtStart, dtEnd;
+  if (e.tumGun || !e.baslangicSaat) {
+    const sonrakiTarih = new Date(parseInt(tarihParts[0]), parseInt(tarihParts[1])-1, parseInt(tarihParts[2]) + 1);
+    const sonrakiKod = `${sonrakiTarih.getFullYear()}${String(sonrakiTarih.getMonth()+1).padStart(2,"0")}${String(sonrakiTarih.getDate()).padStart(2,"0")}`;
+    dtStart = `DTSTART;VALUE=DATE:${tarihKodu}`;
+    dtEnd = `DTEND;VALUE=DATE:${sonrakiKod}`;
+  } else {
+    const bsSaat = (e.baslangicSaat || "00:00").replace(":", "") + "00";
+    const btSaat = (e.bitisSaat || e.baslangicSaat || "00:00").replace(":", "") + "00";
+    dtStart = `DTSTART;TZID=Europe/Istanbul:${tarihKodu}T${bsSaat}`;
+    dtEnd = `DTEND;TZID=Europe/Istanbul:${tarihKodu}T${btSaat}`;
+  }
+
+  const esc = (s) => (s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  const uid = `${id}@bircicekkoleji.com`;
+  const dtStamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Bir Çiçek Koleji//Takvim//TR",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${dtStamp}`,
+    dtStart,
+    dtEnd,
+    `SUMMARY:${esc(e.baslik)}`,
+    e.aciklama ? `DESCRIPTION:${esc(e.aciklama)}` : "",
+    e.konum ? `LOCATION:${esc(e.konum)}` : "",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].filter(Boolean).join("\r\n");
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${(e.baslik || "etkinlik").replace(/[^a-zA-Z0-9ğüşöçıİĞÜŞÖÇ]/g, "_").substring(0, 50)}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("✓ Takvim dosyası indirildi");
+};
+
+// ============================================================
+// VELİ TARAFI — ZEKY ekran
+// ============================================================
+function caTakvimHTML() {
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div>
+            <div class="ca-tile-sub">OKUL</div>
+            <h2 style="font-size:18px;">Takvim</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="takvim-ay-bar">
+        <div class="takvim-ay-baslik" id="veliTakvimAyBaslik">—</div>
+        <div class="takvim-ay-nav">
+          <button onclick="veliTakvimAyGec(-1)">‹</button>
+          <button onclick="veliTakvimBugune()" style="width:auto; padding:0 12px; font-size:12px;">Bugün</button>
+          <button onclick="veliTakvimAyGec(1)">›</button>
+        </div>
+      </div>
+      <div id="veliTakvimGrid" class="takvim-grid"></div>
+
+      <h3 class="ca-head" style="font-size:15px; margin-top:14px;">Yaklaşan Etkinlikler</h3>
+      <div id="veliTakvimYaklasanListe" class="takvim-etkinlik-listesi">
+        <div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted);">Yükleniyor...</div>
+      </div>
+    </div>
+  `;
+}
+
+window.veliTakvimAyGec = function(dir) {
+  takvimAktifAy.setMonth(takvimAktifAy.getMonth() + dir);
+  veliTakvimRender();
+};
+window.veliTakvimBugune = function() {
+  takvimAktifAy = new Date();
+  veliTakvimRender();
+};
+
+async function veliTakvimRender() {
+  await takvimEtkinlikleriYukle();
+  const veliEtkinlikler = takvimTumEtkinlikler().filter(e => takvimVeliyeUygunMu(e));
+
+  const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const el = document.getElementById("veliTakvimAyBaslik");
+  if (el) el.textContent = `${aylar[takvimAktifAy.getMonth()]} ${takvimAktifAy.getFullYear()}`;
+
+  takvimAyGridRender("veliTakvimGrid", takvimAktifAy, veliEtkinlikler, "veliTakvimGunTikla");
+
+  const bugun = new Date();
+  const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+  const yaklasan = veliEtkinlikler.filter(e => e.tarih >= bugunStr).slice(0, 10);
+
+  const listeEl = document.getElementById("veliTakvimYaklasanListe");
+  if (!listeEl) return;
+  if (yaklasan.length === 0) {
+    listeEl.innerHTML = `<div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yaklaşan etkinlik yok.</div>`;
+    return;
+  }
+  listeEl.innerHTML = yaklasan.map(e => {
+    const tarih = new Date(e.tarih);
+    const aylarKisa = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+    const tarihStr = `${tarih.getDate()} ${aylarKisa[tarih.getMonth()]}`;
+    const saatStr = e.tumGun ? "Tüm gün" : (e.baslangicSaat ? `${e.baslangicSaat}` : "");
+    return `
+      <div class="takvim-etkinlik-kart" data-tip="${e.tip || 'etkinlik'}" style="cursor:pointer;" onclick="veliTakvimEtkinlikDetay('${e.id}')">
+        <div style="flex:1; min-width:0;">
+          <div class="takvim-etkinlik-baslik">${escapeHtml(e.baslik)}</div>
+          <div class="takvim-etkinlik-meta">
+            <span>${TAKVIM_TIP_LABEL[e.tip] || e.tip}</span>
+            <span>📆 ${tarihStr}</span>
+            ${saatStr ? `<span>⏰ ${saatStr}</span>` : ''}
+            ${e.konum ? `<span>📍 ${escapeHtml(e.konum)}</span>` : ''}
+          </div>
+        </div>
+        <button class="takvim-aksiyon-btn" onclick="event.stopPropagation(); takvimICSIndir('${e.id}')" style="flex-shrink:0;">📅 Ekle</button>
+      </div>
+    `;
+  }).join("");
+}
+
+function takvimVeliyeUygunMu(e) {
+  if (!e.hedefTur || e.hedefTur === "tumOkul") return true;
+  if (typeof veliOgrenciler === "undefined" || !veliOgrenciler) return false;
+  if (e.hedefTur === "sinif") {
+    return veliOgrenciler.some(o => {
+      const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+      const sinif = (ayar?.kayit?.sinif) || o.sinif || "";
+      return sinif === e.hedefDeger;
+    });
+  }
+  if (e.hedefTur === "ogrenci") {
+    return veliOgrenciler.some(o => o.id === e.hedefDeger);
+  }
+  return false;
+}
+
+window.veliTakvimGunTikla = function(tarihStr) {
+  const veliEtkinlikler = takvimTumEtkinlikler().filter(e => takvimVeliyeUygunMu(e));
+  const gunEtkinlikleri = veliEtkinlikler.filter(e => e.tarih === tarihStr);
+  if (gunEtkinlikleri.length === 0) return;
+  takvimEtkinlikDetayAc(gunEtkinlikleri[0]);
+};
+
+window.veliTakvimEtkinlikDetay = function(id) {
+  const e = takvimTumEtkinlikler().find(x => x.id === id);
+  if (e) takvimEtkinlikDetayAc(e);
+};
+// ===== /TAKVİM =====
+
+
 function getOgrenciKaynak(o, ayar) {
   if (ayar && ayar.kaynak) return ayar.kaynak;
   if (o.kaynak) return o.kaynak;
@@ -17603,6 +18670,7 @@ function renderIcerikAltSekme() {
   if (aktifIcerikAlt === "duyurular") renderDuyurular();
   else if (aktifIcerikAlt === "yemek") renderYemekMenusu();
   else if (aktifIcerikAlt === "etkinlik") renderEtkinlikler();
+  else if (aktifIcerikAlt === "takvim") takvimYonetimRender();
   else if (aktifIcerikAlt === "devamsizlik") renderDevamsizlik();
   else if (aktifIcerikAlt === "galeri") renderGaleri();
   else if (aktifIcerikAlt === "mesajlasma") { if (typeof mesajlasmaBaslat === "function") mesajlasmaBaslat(); }
@@ -17678,6 +18746,9 @@ async function renderDuyurular() {
     const tarih = d.olusturuldu ? new Date(d.olusturuldu).toLocaleString("tr-TR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
     const okunmaSayisi = (d.okuyanVeliler || []).length;
     const mailIkon = d.mailGonder ? '<span title="E-posta gönderildi" style="font-size:13px;">📧</span>' : '';
+    const simsekRozet = d.simsek ? '<span title="Şimşek Duyuru - velilere popup olarak gösteriliyor" style="background:#fef3c7; border:1px solid #fde68a; color:#92400e; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700;">⚡ Şimşek</span>' : '';
+    const popupKapatanSayi = (d.popupKapatanVeliler || []).length;
+    const simsekDurum = d.simsek && popupKapatanSayi > 0 ? `<span title="${popupKapatanSayi} veli popup'ı kapattı" style="font-size:11px; color:#92400e;">⚡ ${popupKapatanSayi} kapadı</span>` : '';
 
     html += `
       <div style="background:white; border:1px solid ${st.border}; border-left:4px solid ${st.text}; border-radius:12px; padding:16px 20px; ${d.arsiv ? 'opacity:0.65;' : ''}">
@@ -17686,6 +18757,7 @@ async function renderDuyurular() {
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
               <span style="background:${st.bg}; border:1px solid ${st.border}; color:${st.text}; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700;">${st.ikon} ${st.label}</span>
               <span style="background:#f3f4f6; color:var(--gray-700); padding:3px 10px; border-radius:8px; font-size:11px; font-weight:600;">${hedefLabel}</span>
+              ${simsekRozet}
               ${mailIkon}
               ${d.arsiv ? '<span style="background:#f3f4f6; color:var(--gray-500); padding:3px 10px; border-radius:8px; font-size:11px; font-weight:600;">📦 Arşiv</span>' : ''}
             </div>
@@ -17694,6 +18766,7 @@ async function renderDuyurular() {
           <div style="text-align:right; font-size:11px; color:var(--gray-500);">
             ${tarih}<br>
             <span title="${okunmaSayisi} veli okudu" style="color:#2d6a4f;">👁 ${okunmaSayisi}</span>
+            ${simsekDurum ? '<br>' + simsekDurum : ''}
           </div>
         </div>
         <div style="font-size:13px; color:var(--gray-700); line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(d.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1" target="_blank" style="color:#2d6a4f;">$2</a>')}</div>
@@ -17721,6 +18794,7 @@ window.openDuyuruModal = function() {
   document.getElementById("duyuruHedefTur").value = "tumOkul";
   document.getElementById("duyuruHedefSinif").value = "";
   document.getElementById("duyuruMailGonder").checked = true;
+  document.getElementById("duyuruSimsek").checked = false;
   document.getElementById("duyuruSilBtn").style.display = "none";
   duyuruHedefDegisti();
   doldurOgrenciSecici();
@@ -17768,6 +18842,7 @@ window.duzenleDuyuru = function(id) {
   if (d.hedefTur === "sinif") document.getElementById("duyuruHedefSinif").value = d.hedefDeger || "";
   if (d.hedefTur === "ogrenci") document.getElementById("duyuruHedefOgrenci").value = d.hedefDeger || "";
   document.getElementById("duyuruMailGonder").checked = false; // Düzenlemede mail yeniden gönderilmez
+  document.getElementById("duyuruSimsek").checked = !!d.simsek;
   document.getElementById("duyuruSilBtn").style.display = "inline-block";
   duyuruHedefDegisti();
 };
@@ -17780,6 +18855,7 @@ window.kaydetDuyuru = async function() {
   const aciliyet = document.getElementById("duyuruAciliyet").value;
   const hedefTur = document.getElementById("duyuruHedefTur").value;
   const mailGonder = document.getElementById("duyuruMailGonder").checked;
+  const simsek = document.getElementById("duyuruSimsek").checked;
 
   if (!baslik) return showToast("Başlık zorunlu", "error");
   if (!icerik) return showToast("İçerik zorunlu", "error");
@@ -17799,6 +18875,7 @@ window.kaydetDuyuru = async function() {
   const data = {
     baslik, icerik, aciliyet, hedefTur, hedefDeger, hedefOgrenciAd,
     mailGonder,
+    simsek: !!simsek,
     arsiv: false,
     olusturan: currentUser.email,
     guncellendi: new Date().toISOString()
@@ -17811,6 +18888,7 @@ window.kaydetDuyuru = async function() {
     } else {
       data.olusturuldu = new Date().toISOString();
       data.okuyanVeliler = [];
+      data.popupKapatanVeliler = [];
       const ref = doc(collection(db, "duyurular"));
       await setDoc(ref, data);
 
