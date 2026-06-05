@@ -13724,6 +13724,7 @@ function caHomeHTML() {
         <div class="ca-row" style="gap:8px;">
           <button class="ca-bell" onclick="caGo('menu')" title="Tüm modüller">▦</button>
           <button class="ca-bell" onclick="veliSwitchTab('bildirimler')" title="Bildirimler">🔔<span class="ca-bell-dot"></span></button>
+          <button class="ca-bell" onclick="signOut()" title="Çıkış Yap" style="color:#dc2626;">🚪</button>
         </div>
       </div>
 
@@ -13950,6 +13951,13 @@ function caMenuHTML() {
         <div><div style="font-weight:700; color:var(--c-ink); font-size:13px;">Favoriler (${fav.size})</div><div class="ca-tile-sub">Yıldıza dokunup en çok kullandıklarını işaretle</div></div>
       </div>
       <div class="ca-modgrid">${tiles}</div>
+
+      <!-- ÇIKIŞ YAP - kalıcı görünür buton -->
+      <div style="margin-top:8px;">
+        <button onclick="signOut()" style="width:100%; background:white; color:#dc2626; border:1.5px solid #fecaca; padding:14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px;">
+          🚪 Çıkış Yap
+        </button>
+      </div>
     </div>
   `;
 }
@@ -14530,6 +14538,13 @@ function caProfilHTML() {
         <div class="ca-card">
           <div class="ca-rings">${rings}</div>
         </div>
+      </div>
+
+      <!-- ÇIKIŞ YAP -->
+      <div style="margin-top:8px;">
+        <button onclick="signOut()" style="width:100%; background:white; color:#dc2626; border:1.5px solid #fecaca; padding:14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px;">
+          🚪 Çıkış Yap
+        </button>
       </div>
     </div>
   `;
