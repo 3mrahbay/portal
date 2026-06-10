@@ -7796,6 +7796,126 @@ html, body {
   .takvim-etkinlik-kart { flex-direction: column; gap: 8px; }
   .takvim-detay-baslik { font-size: 16px; }
 }
+
+/* ============================================================
+   FAZ B — RANDEVU SLOT SİSTEMİ
+   ============================================================ */
+
+/* Yönetim slot bar */
+.randevu-yonetim-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+  border: 1px solid #a5f3fc; border-radius: 12px; padding: 14px 18px;
+}
+.randevu-yonetim-bar h3 { margin: 0; font-size: 17px; color: #0e7490; }
+.randevu-yeni-btn-grup { display: flex; gap: 8px; flex-wrap: wrap; }
+.randevu-yeni-btn {
+  background: #0891b2; color: white; border: none; padding: 10px 16px;
+  border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.randevu-yeni-btn:hover { background: #0e7490; }
+.randevu-yeni-btn.toplu { background: #0e7490; }
+.randevu-yeni-btn.toplu:hover { background: #155e75; }
+
+/* Slot grubu (tarih başlığı altında slotlar) */
+.randevu-tarih-grubu {
+  background: white; border: 1px solid #e5e7eb; border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 12px;
+}
+.randevu-tarih-baslik {
+  font-size: 14px; font-weight: 700; color: #0e7490;
+  padding-bottom: 8px; margin-bottom: 10px;
+  border-bottom: 1px dashed #e5e7eb;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.randevu-tarih-baslik .sayac {
+  font-size: 11px; color: #6b7280; font-weight: 600;
+}
+
+/* Tek slot satırı */
+.randevu-slot {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 10px;
+  background: #f9fafb; border: 1px solid transparent;
+  margin-bottom: 6px;
+}
+.randevu-slot.musait { background: #ecfeff; border-color: #a5f3fc; }
+.randevu-slot.dolu   { background: #fef3c7; border-color: #fde68a; }
+.randevu-slot.gecmis { opacity: 0.5; }
+
+.randevu-slot-saat {
+  font-weight: 700; color: #0e7490; font-size: 14px;
+  min-width: 96px; flex-shrink: 0;
+}
+.randevu-slot.dolu .randevu-slot-saat { color: #92400e; }
+
+.randevu-slot-detay {
+  flex: 1; min-width: 0; font-size: 12px; color: #4b5563;
+}
+.randevu-slot-detay .ust {
+  display: flex; gap: 6px; flex-wrap: wrap; font-size: 11px; margin-bottom: 2px;
+}
+.randevu-slot-detay .ust span {
+  background: white; padding: 2px 8px; border-radius: 6px; border: 1px solid #e5e7eb;
+}
+.randevu-slot-detay .alt {
+  font-size: 12px; color: #374151;
+}
+
+.randevu-slot-aksiyon {
+  display: flex; gap: 6px; flex-shrink: 0;
+}
+.randevu-slot-aksiyon button {
+  background: white; border: 1px solid #d1d5db; color: #374151;
+  padding: 5px 10px; border-radius: 7px; font-size: 11px; font-weight: 600;
+  cursor: pointer;
+}
+.randevu-slot-aksiyon button:hover { background: #f3f4f6; }
+.randevu-slot-aksiyon button.danger { color: #991b1b; border-color: #fecaca; }
+.randevu-slot-aksiyon button.danger:hover { background: #fef2f2; }
+
+/* Rozet — durum */
+.randevu-durum-rozet {
+  display: inline-block; padding: 2px 8px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.randevu-durum-rozet.musait { background: #cffafe; color: #155e75; }
+.randevu-durum-rozet.dolu   { background: #fde68a; color: #92400e; }
+
+/* Tip rozeti — slot içinde */
+.randevu-tip-rozet {
+  display: inline-block; padding: 2px 8px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; color: white; background: #0891b2;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.randevu-tip-rozet[data-tip="ogretmen_veli"]   { background: #0891b2; }
+.randevu-tip-rozet[data-tip="pdr"]             { background: #7c3aed; }
+.randevu-tip-rozet[data-tip="idare"]           { background: #059669; }
+.randevu-tip-rozet[data-tip="meslek_sunumu"]   { background: #db2777; }
+.randevu-tip-rozet[data-tip="diger"]           { background: #6b7280; }
+
+/* Modal — toplu slot */
+.toplu-slot-preview {
+  background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;
+  padding: 10px 12px; margin-top: 8px;
+  font-size: 12px; color: #075985;
+  max-height: 140px; overflow-y: auto;
+}
+.toplu-slot-preview .slot-onizleme {
+  display: inline-block; background: white; padding: 3px 8px; border-radius: 6px;
+  margin: 3px; font-size: 11px; font-weight: 600; color: #0e7490;
+  border: 1px solid #bae6fd;
+}
+
+/* Mobil uyum */
+@media (max-width: 640px) {
+  .randevu-slot { flex-direction: column; align-items: flex-start; }
+  .randevu-slot-saat { min-width: auto; }
+  .randevu-slot-aksiyon { width: 100%; justify-content: flex-end; }
+}
 </style>
 </head>
 <body>
@@ -8676,6 +8796,47 @@ html, body {
           <div id="takvimYaklasanListe" class="takvim-etkinlik-listesi">
             <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
           </div>
+
+          <!-- 📞 RANDEVU SLOT SİSTEMİ (FAZ B) -->
+          <div class="randevu-yonetim-bar" style="margin-top:24px;">
+            <div>
+              <h3>📞 Randevu Slot'ları</h3>
+              <div style="font-size:12px; color:#0e7490; margin-top:4px;">Velilere randevu açın. Veliler müsait slotlardan birini seçer.</div>
+            </div>
+            <div class="randevu-yeni-btn-grup">
+              <button class="randevu-yeni-btn" onclick="randevuSlotModalAc()">+ Tek Slot</button>
+              <button class="randevu-yeni-btn toplu" onclick="randevuTopluModalAc()">⚡ Toplu Slot Oluştur</button>
+            </div>
+          </div>
+
+          <!-- Filtre çubuğu -->
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; padding:10px 14px; background:white; border:1px solid #e5e7eb; border-radius:10px;">
+            <span style="font-size:12px; color:#6b7280; font-weight:600;">FİLTRE:</span>
+            <select id="randevuFiltreTip" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
+              <option value="">Tüm Tipler</option>
+              <option value="ogretmen_veli">👨‍🏫 Öğretmen-Veli</option>
+              <option value="pdr">🧠 PDR</option>
+              <option value="idare">🏢 İdare</option>
+              <option value="meslek_sunumu">💼 Meslek Sunumu</option>
+              <option value="diger">📌 Diğer</option>
+            </select>
+            <select id="randevuFiltreDurum" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
+              <option value="">Tüm Durumlar</option>
+              <option value="musait">🟢 Sadece Müsait</option>
+              <option value="dolu">🟡 Sadece Dolu</option>
+            </select>
+            <select id="randevuFiltreZaman" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
+              <option value="gelecek">📅 Yaklaşan</option>
+              <option value="tum">📂 Tümü</option>
+              <option value="gecmis">📜 Geçmiş</option>
+            </select>
+            <span style="margin-left:auto; font-size:11px; color:#6b7280;" id="randevuSayac">—</span>
+          </div>
+
+          <!-- Slot listesi -->
+          <div id="randevuListesi">
+            <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+          </div>
         </div>
 
         <!-- DEVAMSIZLIK -->
@@ -9041,6 +9202,171 @@ html, body {
           <button class="btn-secondary" onclick="takvimModalKapat()">İptal</button>
           <button class="btn-primary" onclick="takvimEtkinlikKaydet()" style="background:#16a34a; border:none;">💾 Kaydet</button>
           <button class="btn-secondary" id="takvimSilBtn" onclick="takvimEtkinlikSil()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📞 RANDEVU SLOT MODAL (TEK) -->
+    <div class="modal-overlay" id="randevuSlotModal">
+      <div class="modal" style="max-width:560px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #ecfeff 0%, #cffafe 100%); border-bottom:1px solid #a5f3fc;">
+          <h3 id="randevuSlotModalBaslik" style="color:#0e7490;">📞 Yeni Randevu Slot</h3>
+          <button class="close-btn" onclick="randevuSlotModalKapat()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="randevuSlotDuzenleId" value="">
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tip *</label>
+              <select id="randevuSlotTip" onchange="randevuSlotTipDegisti()">
+                <option value="ogretmen_veli">👨‍🏫 Öğretmen-Veli Görüşmesi</option>
+                <option value="pdr">🧠 PDR Görüşmesi</option>
+                <option value="idare">🏢 İdare Görüşmesi</option>
+                <option value="meslek_sunumu">💼 Meslek Sunumu</option>
+                <option value="diger">📌 Diğer</option>
+              </select>
+            </div>
+            <div class="form-group" id="randevuSlotDigerWrap" style="display:none;">
+              <label>Tip Açıklaması</label>
+              <input type="text" id="randevuSlotDigerAd" placeholder="Örn: Sağlık Taraması, Servis Bilgilendirme...">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tarih *</label>
+              <input type="date" id="randevuSlotTarih">
+            </div>
+            <div class="form-group">
+              <label>Konum</label>
+              <input type="text" id="randevuSlotKonum" placeholder="Örn: 1. Sınıf, Müdür Odası">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Başlangıç Saati *</label>
+              <input type="time" id="randevuSlotBaslangic" value="14:00">
+            </div>
+            <div class="form-group">
+              <label>Bitiş Saati *</label>
+              <input type="time" id="randevuSlotBitis" value="15:00">
+            </div>
+          </div>
+
+          <div class="form-grid" id="randevuSlotOgretmenWrap">
+            <div class="form-group">
+              <label>Öğretmen / Personel</label>
+              <select id="randevuSlotOgretmen">
+                <option value="">— Genel / Yönetim —</option>
+              </select>
+              <div class="field-hint">Sınıf öğretmeni seçerseniz, slot sadece o sınıfın velilerine görünür.</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Yönetim Notu (opsiyonel)</label>
+            <textarea id="randevuSlotNot" rows="2" placeholder="Veli rezervasyon sırasında bu notu görür..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="randevuSlotModalKapat()">İptal</button>
+          <button class="btn-primary" onclick="randevuSlotKaydet()" style="background:#0891b2; border:none;">💾 Kaydet</button>
+          <button class="btn-secondary" id="randevuSlotSilBtn" onclick="randevuSlotSil()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📞 TOPLU RANDEVU SLOT MODAL -->
+    <div class="modal-overlay" id="randevuTopluModal">
+      <div class="modal" style="max-width:620px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-bottom:1px solid #bae6fd;">
+          <h3 style="color:#075985;">⚡ Toplu Slot Oluştur</h3>
+          <button class="close-btn" onclick="randevuTopluModalKapat()">×</button>
+        </div>
+        <div class="modal-body">
+          <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:12px; color:#78350f;">
+            💡 Bir gün için belirlediğiniz saat aralığını otomatik olarak <strong>60 dakikalık slotlara</strong> böler. Slot süresini de değiştirebilirsiniz.
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tip *</label>
+              <select id="randevuTopluTip" onchange="randevuTopluTipDegisti(); randevuTopluOnizle()">
+                <option value="ogretmen_veli">👨‍🏫 Öğretmen-Veli Görüşmesi</option>
+                <option value="pdr">🧠 PDR Görüşmesi</option>
+                <option value="idare">🏢 İdare Görüşmesi</option>
+                <option value="meslek_sunumu">💼 Meslek Sunumu</option>
+                <option value="diger">📌 Diğer</option>
+              </select>
+            </div>
+            <div class="form-group" id="randevuTopluDigerWrap" style="display:none;">
+              <label>Tip Açıklaması</label>
+              <input type="text" id="randevuTopluDigerAd" placeholder="Örn: Sağlık Taraması...">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tarih *</label>
+              <input type="date" id="randevuTopluTarih" onchange="randevuTopluOnizle()">
+            </div>
+            <div class="form-group">
+              <label>Slot Süresi (dakika) *</label>
+              <select id="randevuTopluSure" onchange="randevuTopluOnizle()">
+                <option value="15">15 dakika</option>
+                <option value="20">20 dakika</option>
+                <option value="30">30 dakika</option>
+                <option value="45">45 dakika</option>
+                <option value="60" selected>60 dakika (varsayılan)</option>
+                <option value="90">90 dakika</option>
+                <option value="120">120 dakika</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Başlangıç Saati *</label>
+              <input type="time" id="randevuTopluBaslangic" value="14:00" onchange="randevuTopluOnizle()">
+            </div>
+            <div class="form-group">
+              <label>Bitiş Saati *</label>
+              <input type="time" id="randevuTopluBitis" value="17:00" onchange="randevuTopluOnizle()">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Öğretmen / Personel</label>
+              <select id="randevuTopluOgretmen">
+                <option value="">— Genel / Yönetim —</option>
+              </select>
+              <div class="field-hint">Sınıf öğretmeni seçerseniz slotlar sadece o sınıfın velilerine görünür.</div>
+            </div>
+            <div class="form-group">
+              <label>Konum</label>
+              <input type="text" id="randevuTopluKonum" placeholder="Örn: 1. Sınıf, Müdür Odası">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Yönetim Notu (opsiyonel)</label>
+            <textarea id="randevuTopluNot" rows="2" placeholder="Tüm slotlarda gösterilecek not..."></textarea>
+          </div>
+
+          <!-- Önizleme -->
+          <div style="margin-top:10px;">
+            <label style="font-size:12px; color:#374151; font-weight:600;">Oluşturulacak Slotlar:</label>
+            <div id="randevuTopluOnizleme" class="toplu-slot-preview">
+              <span style="color:#6b7280;">Tarih ve saat aralığı seçin, önizleme burada görünecek.</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="randevuTopluModalKapat()">İptal</button>
+          <button class="btn-primary" onclick="randevuTopluKaydet()" style="background:#0891b2; border:none;">⚡ <span id="randevuTopluKaydetSayi">0</span> Slot Oluştur</button>
         </div>
       </div>
     </div>
@@ -17107,6 +17433,9 @@ async function takvimYonetimRender() {
     return;
   }
   listeEl.innerHTML = yaklasan.map(e => takvimEtkinlikKartHTML(e, true)).join("");
+
+  // FAZ B: Randevu slot listesi de yenile
+  try { randevuListesiRender(); } catch(e) { console.warn("randevuListesiRender:", e); }
 }
 
 function takvimEtkinlikKartHTML(e, gosterAksiyon) {
@@ -17494,6 +17823,475 @@ window.veliTakvimEtkinlikDetay = function(id) {
   if (e) takvimEtkinlikDetayAc(e);
 };
 // ===== /TAKVİM =====
+
+// ============================================================
+// ===== FAZ B: RANDEVU SLOT SİSTEMİ (YÖNETİM) =====
+// ============================================================
+// Veri yapısı: randevuSlotlari/{slotId}
+// { tarih, baslangicSaat, bitisSaat, tip, tipAciklama (diger için),
+//   ogretmenEmail, ogretmenAd, hedefSinif, konum, yonetimNotu,
+//   durum (musait/dolu), veliEmail, veliAd, ogrenciId, ogrenciAd,
+//   veliNotu, rezervasyonTarihi, meslekAdi, meslekAciklama,
+//   arsiv, olusturan, olusturuldu, guncellendi }
+
+const RANDEVU_TIP_LABEL = {
+  ogretmen_veli: "👨‍🏫 Öğretmen-Veli",
+  pdr: "🧠 PDR",
+  idare: "🏢 İdare",
+  meslek_sunumu: "💼 Meslek Sunumu",
+  diger: "📌 Diğer"
+};
+
+let randevuSlotlari = [];
+
+async function randevuSlotlariYukle(force = false) {
+  if (randevuSlotlari.length > 0 && !force) return randevuSlotlari;
+  try {
+    const snap = await getDocs(collection(db, "randevuSlotlari"));
+    const liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    randevuSlotlari = liste;
+    return liste;
+  } catch (e) {
+    console.error("Randevu slotları yüklenemedi:", e);
+    return [];
+  }
+}
+
+// Öğretmen dropdown'larını doldur (modal açılınca)
+function randevuOgretmenDropdownDoldur() {
+  const dropdowns = [
+    document.getElementById("randevuSlotOgretmen"),
+    document.getElementById("randevuTopluOgretmen")
+  ].filter(Boolean);
+
+  if (typeof personelListesi === "undefined" || !personelListesi) return;
+
+  // Sadece öğretmen ve yönetim rollerini al
+  const seciliRoller = ["ogretmen", "kurucu_mudur", "mudur", "egitim_koordinator", "pdr"];
+  const personeller = personelListesi.filter(p =>
+    seciliRoller.includes(p.rol) && p.aktif !== false
+  );
+
+  for (const sel of dropdowns) {
+    // Mevcut "Genel" seçeneği koru, yenilerini ekle
+    sel.innerHTML = '<option value="">— Genel / Yönetim —</option>';
+    for (const p of personeller) {
+      const opt = document.createElement("option");
+      opt.value = p.id || p.email || "";
+      const sinifBilgisi = p.siniflar && p.siniflar.length > 0 ? ` (${p.siniflar.join(", ")})` : "";
+      opt.textContent = `${p.adSoyad || p.email}${sinifBilgisi}`;
+      opt.dataset.email = p.email || "";
+      opt.dataset.ad = p.adSoyad || p.email || "";
+      opt.dataset.sinif = (p.siniflar && p.siniflar.length === 1) ? p.siniflar[0] : "";
+      sel.appendChild(opt);
+    }
+  }
+}
+
+// ===== ANA RENDER =====
+async function randevuListesiRender() {
+  const liste = document.getElementById("randevuListesi");
+  if (!liste) return;
+
+  await randevuSlotlariYukle();
+
+  // Filtreler
+  const filtreTip = document.getElementById("randevuFiltreTip")?.value || "";
+  const filtreDurum = document.getElementById("randevuFiltreDurum")?.value || "";
+  const filtreZaman = document.getElementById("randevuFiltreZaman")?.value || "gelecek";
+
+  const bugun = new Date();
+  const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+
+  let filtreli = randevuSlotlari.filter(s => !s.arsiv);
+  if (filtreTip) filtreli = filtreli.filter(s => s.tip === filtreTip);
+  if (filtreDurum) filtreli = filtreli.filter(s => (s.durum || "musait") === filtreDurum);
+  if (filtreZaman === "gelecek") filtreli = filtreli.filter(s => s.tarih >= bugunStr);
+  else if (filtreZaman === "gecmis") filtreli = filtreli.filter(s => s.tarih < bugunStr);
+
+  // Sayaç
+  const sayacEl = document.getElementById("randevuSayac");
+  if (sayacEl) {
+    const musait = filtreli.filter(s => (s.durum || "musait") === "musait").length;
+    const dolu = filtreli.filter(s => s.durum === "dolu").length;
+    sayacEl.textContent = `Toplam ${filtreli.length}  ·  🟢 ${musait} müsait  ·  🟡 ${dolu} dolu`;
+  }
+
+  if (filtreli.length === 0) {
+    liste.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px; background:white; border:1px dashed #e5e7eb; border-radius:12px;">
+      Slot yok. <strong>+ Tek Slot</strong> veya <strong>⚡ Toplu Slot Oluştur</strong> ile ekleyebilirsiniz.
+    </div>`;
+    return;
+  }
+
+  // Tarih bazında gruplandır
+  const tarihGruplari = {};
+  for (const s of filtreli) {
+    if (!tarihGruplari[s.tarih]) tarihGruplari[s.tarih] = [];
+    tarihGruplari[s.tarih].push(s);
+  }
+
+  const tarihler = Object.keys(tarihGruplari).sort();
+  const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const gunler = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+
+  let html = "";
+  for (const tarih of tarihler) {
+    const slotlar = tarihGruplari[tarih].sort((a, b) => (a.baslangicSaat || "").localeCompare(b.baslangicSaat || ""));
+    const d = new Date(tarih);
+    const tarihYazi = `${d.getDate()} ${aylar[d.getMonth()]} ${d.getFullYear()} · ${gunler[d.getDay()]}`;
+    const musait = slotlar.filter(s => (s.durum || "musait") === "musait").length;
+    const dolu = slotlar.filter(s => s.durum === "dolu").length;
+
+    html += `
+      <div class="randevu-tarih-grubu">
+        <div class="randevu-tarih-baslik">
+          <span>📅 ${tarihYazi}</span>
+          <span class="sayac">${slotlar.length} slot · 🟢 ${musait} · 🟡 ${dolu}</span>
+        </div>
+        ${slotlar.map(s => randevuSlotSatirHTML(s, tarih < bugunStr)).join("")}
+      </div>
+    `;
+  }
+
+  liste.innerHTML = html;
+}
+
+function randevuSlotSatirHTML(s, gecmis) {
+  const durum = s.durum || "musait";
+  const tip = s.tip || "diger";
+  const tipLabel = (tip === "diger" && s.tipAciklama) ? `📌 ${escapeHtml(s.tipAciklama)}` : RANDEVU_TIP_LABEL[tip] || "📌 Slot";
+  const saat = `${s.baslangicSaat || "—"} - ${s.bitisSaat || "—"}`;
+
+  const ogretmenInfo = s.ogretmenAd ? `<span>👤 ${escapeHtml(s.ogretmenAd)}</span>` : "";
+  const sinifInfo = s.hedefSinif ? `<span>🏷️ ${escapeHtml(s.hedefSinif)}</span>` : "";
+  const konumInfo = s.konum ? `<span>📍 ${escapeHtml(s.konum)}</span>` : "";
+
+  const veliInfo = durum === "dolu" ? `
+    <div class="alt" style="margin-top:4px;">
+      <strong>${escapeHtml(s.veliAd || "Veli")}</strong>
+      ${s.ogrenciAd ? ` · ${escapeHtml(s.ogrenciAd)} için` : ""}
+      ${s.veliNotu ? `<div style="font-size:11px; color:#6b7280; margin-top:2px; font-style:italic;">"${escapeHtml(s.veliNotu)}"</div>` : ""}
+    </div>` : "";
+
+  return `
+    <div class="randevu-slot ${durum} ${gecmis ? 'gecmis' : ''}">
+      <div class="randevu-slot-saat">⏰ ${saat}</div>
+      <div class="randevu-slot-detay">
+        <div class="ust">
+          <span class="randevu-tip-rozet" data-tip="${tip}">${tipLabel.replace(/^[^\s]+\s/, '')}</span>
+          <span class="randevu-durum-rozet ${durum}">${durum === "dolu" ? "Dolu" : "Müsait"}</span>
+          ${ogretmenInfo}
+          ${sinifInfo}
+          ${konumInfo}
+        </div>
+        ${veliInfo}
+      </div>
+      <div class="randevu-slot-aksiyon">
+        ${!gecmis ? `<button onclick="randevuSlotModalAc('${s.id}')">✏️ Düzenle</button>` : ""}
+        ${durum === "dolu" ? `<button onclick="randevuSlotIptal('${s.id}')" class="danger" title="Veli rezervasyonunu iptal et">🔓 Rez. İptal</button>` : ""}
+        <button onclick="randevuSlotSilDirekt('${s.id}')" class="danger">🗑</button>
+      </div>
+    </div>
+  `;
+}
+
+// ===== TEK SLOT MODAL =====
+window.randevuSlotModalAc = function(slotId) {
+  document.getElementById("randevuSlotModal").classList.add("active");
+  document.getElementById("randevuSlotDuzenleId").value = slotId || "";
+
+  randevuOgretmenDropdownDoldur();
+
+  if (slotId) {
+    const s = randevuSlotlari.find(x => x.id === slotId);
+    if (!s) { showToast("Slot bulunamadı", "error"); return; }
+    document.getElementById("randevuSlotModalBaslik").textContent = "📞 Randevu Slot — Düzenle";
+    document.getElementById("randevuSlotTip").value = s.tip || "ogretmen_veli";
+    document.getElementById("randevuSlotDigerAd").value = s.tipAciklama || "";
+    document.getElementById("randevuSlotTarih").value = s.tarih || "";
+    document.getElementById("randevuSlotBaslangic").value = s.baslangicSaat || "14:00";
+    document.getElementById("randevuSlotBitis").value = s.bitisSaat || "15:00";
+    document.getElementById("randevuSlotKonum").value = s.konum || "";
+    document.getElementById("randevuSlotNot").value = s.yonetimNotu || "";
+    if (s.ogretmenEmail) {
+      const sel = document.getElementById("randevuSlotOgretmen");
+      for (const opt of sel.options) {
+        if (opt.dataset.email === s.ogretmenEmail) { sel.value = opt.value; break; }
+      }
+    }
+    document.getElementById("randevuSlotSilBtn").style.display = "inline-block";
+  } else {
+    document.getElementById("randevuSlotModalBaslik").textContent = "📞 Yeni Randevu Slot";
+    document.getElementById("randevuSlotTip").value = "ogretmen_veli";
+    document.getElementById("randevuSlotDigerAd").value = "";
+    document.getElementById("randevuSlotTarih").value = new Date().toISOString().slice(0,10);
+    document.getElementById("randevuSlotBaslangic").value = "14:00";
+    document.getElementById("randevuSlotBitis").value = "15:00";
+    document.getElementById("randevuSlotKonum").value = "";
+    document.getElementById("randevuSlotNot").value = "";
+    document.getElementById("randevuSlotOgretmen").value = "";
+    document.getElementById("randevuSlotSilBtn").style.display = "none";
+  }
+
+  randevuSlotTipDegisti();
+};
+
+window.randevuSlotModalKapat = function() {
+  document.getElementById("randevuSlotModal").classList.remove("active");
+};
+
+window.randevuSlotTipDegisti = function() {
+  const tip = document.getElementById("randevuSlotTip").value;
+  document.getElementById("randevuSlotDigerWrap").style.display = tip === "diger" ? "block" : "none";
+};
+
+window.randevuSlotKaydet = async function() {
+  const id = document.getElementById("randevuSlotDuzenleId").value;
+  const tip = document.getElementById("randevuSlotTip").value;
+  const tipAciklama = tip === "diger" ? document.getElementById("randevuSlotDigerAd").value.trim() : "";
+  const tarih = document.getElementById("randevuSlotTarih").value;
+  const baslangicSaat = document.getElementById("randevuSlotBaslangic").value;
+  const bitisSaat = document.getElementById("randevuSlotBitis").value;
+  const konum = document.getElementById("randevuSlotKonum").value.trim();
+  const yonetimNotu = document.getElementById("randevuSlotNot").value.trim();
+
+  const ogretmenSel = document.getElementById("randevuSlotOgretmen");
+  const ogretmenEmail = ogretmenSel.options[ogretmenSel.selectedIndex]?.dataset?.email || "";
+  const ogretmenAd = ogretmenSel.options[ogretmenSel.selectedIndex]?.dataset?.ad || "";
+  const hedefSinif = ogretmenSel.options[ogretmenSel.selectedIndex]?.dataset?.sinif || "";
+
+  if (!tarih) return showToast("Tarih zorunlu", "error");
+  if (!baslangicSaat || !bitisSaat) return showToast("Saat zorunlu", "error");
+  if (baslangicSaat >= bitisSaat) return showToast("Bitiş saati başlangıçtan sonra olmalı", "error");
+  if (tip === "diger" && !tipAciklama) return showToast("Diğer tip için açıklama girin", "error");
+
+  const data = {
+    tip, tipAciklama,
+    tarih, baslangicSaat, bitisSaat,
+    konum, yonetimNotu,
+    ogretmenEmail, ogretmenAd, hedefSinif,
+    arsiv: false,
+    guncellendi: new Date().toISOString()
+  };
+
+  try {
+    if (id) {
+      // Mevcut durumu/veli bilgisini koruyarak güncelle
+      await updateDoc(doc(db, "randevuSlotlari", id), data);
+      showToast("✓ Slot güncellendi");
+    } else {
+      data.durum = "musait";
+      data.veliEmail = "";
+      data.veliAd = "";
+      data.ogrenciId = "";
+      data.ogrenciAd = "";
+      data.veliNotu = "";
+      data.rezervasyonTarihi = "";
+      data.olusturan = currentUser.email;
+      data.olusturuldu = new Date().toISOString();
+      const ref = doc(collection(db, "randevuSlotlari"));
+      await setDoc(ref, data);
+      showToast("✓ Slot oluşturuldu");
+    }
+    randevuSlotModalKapat();
+    await randevuSlotlariYukle(true);
+    randevuListesiRender();
+  } catch (e) {
+    console.error(e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+window.randevuSlotSil = async function() {
+  const id = document.getElementById("randevuSlotDuzenleId").value;
+  if (!id) return;
+  if (!confirm("Bu slot silinecek. Emin misiniz?\n\nEğer slot doluysa veli rezervasyonu da silinmiş olacak.")) return;
+  try {
+    await deleteDoc(doc(db, "randevuSlotlari", id));
+    showToast("✓ Slot silindi");
+    randevuSlotModalKapat();
+    await randevuSlotlariYukle(true);
+    randevuListesiRender();
+  } catch (e) {
+    showToast("Silinemedi: " + e.message, "error");
+  }
+};
+
+window.randevuSlotSilDirekt = async function(id) {
+  const s = randevuSlotlari.find(x => x.id === id);
+  if (!s) return;
+  const uyari = s.durum === "dolu"
+    ? `Bu slot DOLU (${s.veliAd || "veli"} rezerve etti). Yine de silmek istiyor musunuz?\n\nVeli artık rezervasyonu göremeyecek.`
+    : "Bu slot silinecek. Emin misiniz?";
+  if (!confirm(uyari)) return;
+  try {
+    await deleteDoc(doc(db, "randevuSlotlari", id));
+    showToast("✓ Slot silindi");
+    await randevuSlotlariYukle(true);
+    randevuListesiRender();
+  } catch (e) {
+    showToast("Silinemedi: " + e.message, "error");
+  }
+};
+
+window.randevuSlotIptal = async function(id) {
+  const s = randevuSlotlari.find(x => x.id === id);
+  if (!s) return;
+  if (!confirm(`${s.veliAd || "Veli"}'nin rezervasyonu iptal edilecek ve slot tekrar müsait olacak. Emin misiniz?`)) return;
+  try {
+    await updateDoc(doc(db, "randevuSlotlari", id), {
+      durum: "musait",
+      veliEmail: "",
+      veliAd: "",
+      ogrenciId: "",
+      ogrenciAd: "",
+      veliNotu: "",
+      rezervasyonTarihi: "",
+      iptalEden: currentUser.email,
+      iptalTarihi: new Date().toISOString()
+    });
+    showToast("✓ Rezervasyon iptal edildi");
+    await randevuSlotlariYukle(true);
+    randevuListesiRender();
+  } catch (e) {
+    showToast("İptal edilemedi: " + e.message, "error");
+  }
+};
+
+// ===== TOPLU SLOT MODAL =====
+window.randevuTopluModalAc = function() {
+  document.getElementById("randevuTopluModal").classList.add("active");
+  randevuOgretmenDropdownDoldur();
+  // Varsayılan değerler
+  document.getElementById("randevuTopluTip").value = "ogretmen_veli";
+  document.getElementById("randevuTopluDigerAd").value = "";
+  document.getElementById("randevuTopluTarih").value = new Date().toISOString().slice(0,10);
+  document.getElementById("randevuTopluSure").value = "60";
+  document.getElementById("randevuTopluBaslangic").value = "14:00";
+  document.getElementById("randevuTopluBitis").value = "17:00";
+  document.getElementById("randevuTopluKonum").value = "";
+  document.getElementById("randevuTopluNot").value = "";
+  document.getElementById("randevuTopluOgretmen").value = "";
+  randevuTopluTipDegisti();
+  randevuTopluOnizle();
+};
+
+window.randevuTopluModalKapat = function() {
+  document.getElementById("randevuTopluModal").classList.remove("active");
+};
+
+window.randevuTopluTipDegisti = function() {
+  const tip = document.getElementById("randevuTopluTip").value;
+  document.getElementById("randevuTopluDigerWrap").style.display = tip === "diger" ? "block" : "none";
+};
+
+// Toplu slot önizleme (canlı)
+function randevuTopluHesapla() {
+  const tarih = document.getElementById("randevuTopluTarih").value;
+  const baslangic = document.getElementById("randevuTopluBaslangic").value;
+  const bitis = document.getElementById("randevuTopluBitis").value;
+  const sure = parseInt(document.getElementById("randevuTopluSure").value, 10) || 60;
+
+  if (!tarih || !baslangic || !bitis) return [];
+  if (baslangic >= bitis) return [];
+
+  const [bs1, bs2] = baslangic.split(":").map(Number);
+  const [bt1, bt2] = bitis.split(":").map(Number);
+  const baslangicDk = bs1 * 60 + bs2;
+  const bitisDk = bt1 * 60 + bt2;
+
+  const slotlar = [];
+  let cur = baslangicDk;
+  while (cur + sure <= bitisDk) {
+    const slotEnd = cur + sure;
+    const formatHHMM = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    slotlar.push({
+      tarih,
+      baslangicSaat: formatHHMM(cur),
+      bitisSaat: formatHHMM(slotEnd)
+    });
+    cur = slotEnd;
+  }
+  return slotlar;
+}
+
+window.randevuTopluOnizle = function() {
+  const slotlar = randevuTopluHesapla();
+  const onizleme = document.getElementById("randevuTopluOnizleme");
+  const sayac = document.getElementById("randevuTopluKaydetSayi");
+  if (sayac) sayac.textContent = slotlar.length;
+
+  if (slotlar.length === 0) {
+    onizleme.innerHTML = `<span style="color:#dc2626;">⚠️ Geçerli saat aralığı ve süre seçin.</span>`;
+    return;
+  }
+  onizleme.innerHTML = slotlar.map(s =>
+    `<span class="slot-onizleme">${s.baslangicSaat}-${s.bitisSaat}</span>`
+  ).join("");
+};
+
+// Toplu kayıt
+window.randevuTopluKaydet = async function() {
+  const slotlar = randevuTopluHesapla();
+  if (slotlar.length === 0) return showToast("Önce geçerli saat aralığı seçin", "error");
+
+  const tip = document.getElementById("randevuTopluTip").value;
+  const tipAciklama = tip === "diger" ? document.getElementById("randevuTopluDigerAd").value.trim() : "";
+  const konum = document.getElementById("randevuTopluKonum").value.trim();
+  const yonetimNotu = document.getElementById("randevuTopluNot").value.trim();
+
+  const ogretmenSel = document.getElementById("randevuTopluOgretmen");
+  const ogretmenEmail = ogretmenSel.options[ogretmenSel.selectedIndex]?.dataset?.email || "";
+  const ogretmenAd = ogretmenSel.options[ogretmenSel.selectedIndex]?.dataset?.ad || "";
+  const hedefSinif = ogretmenSel.options[ogretmenSel.selectedIndex]?.dataset?.sinif || "";
+
+  if (tip === "diger" && !tipAciklama) return showToast("Diğer tip için açıklama girin", "error");
+
+  if (!confirm(`${slotlar.length} adet slot oluşturulacak. Devam edilsin mi?`)) return;
+
+  showToast(`⏳ ${slotlar.length} slot kaydediliyor...`);
+
+  let basarili = 0;
+  let hata = 0;
+  for (const slot of slotlar) {
+    try {
+      const data = {
+        tip, tipAciklama,
+        tarih: slot.tarih,
+        baslangicSaat: slot.baslangicSaat,
+        bitisSaat: slot.bitisSaat,
+        konum, yonetimNotu,
+        ogretmenEmail, ogretmenAd, hedefSinif,
+        durum: "musait",
+        veliEmail: "", veliAd: "", ogrenciId: "", ogrenciAd: "",
+        veliNotu: "", rezervasyonTarihi: "",
+        arsiv: false,
+        olusturan: currentUser.email,
+        olusturuldu: new Date().toISOString(),
+        guncellendi: new Date().toISOString()
+      };
+      const ref = doc(collection(db, "randevuSlotlari"));
+      await setDoc(ref, data);
+      basarili++;
+    } catch (e) {
+      console.error("Slot kaydedilemedi:", e);
+      hata++;
+    }
+  }
+
+  if (hata === 0) {
+    showToast(`✓ ${basarili} slot oluşturuldu`);
+  } else {
+    showToast(`⚠️ ${basarili} başarılı, ${hata} hata`, "error");
+  }
+  randevuTopluModalKapat();
+  await randevuSlotlariYukle(true);
+  randevuListesiRender();
+};
+// ===== /FAZ B - RANDEVU SLOT =====
+
 
 
 function getOgrenciKaynak(o, ayar) {
