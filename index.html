@@ -18135,8 +18135,18 @@ window.basvuruDetayGoster = function(basvuruId) {
 };
 
 window.basvuruOnayla = async function(basvuruId) {
-  const b = basvuruListesi.find(x => x.id === basvuruId);
-  if (!b) return showToast("Başvuru bulunamadı", "error");
+  let b = basvuruListesi.find(x => x.id === basvuruId);
+
+  // FALLBACK: Liste boşalmışsa veya başvuru kayıpsa, Firestore'dan tekrar yükle
+  if (!b) {
+    console.log(`[basvuruOnayla] Liste'de bulunamadı (${basvuruId}), yeniden yükleniyor...`);
+    try {
+      await loadOnayBekleyenler();
+      b = basvuruListesi.find(x => x.id === basvuruId);
+    } catch(e) { console.warn("Liste yenileme hatası:", e); }
+  }
+
+  if (!b) return showToast("Başvuru bulunamadı. Sayfayı yenileyip tekrar deneyin.", "error");
 
   if (!confirm(`${b.ogrenci?.adSoyad || "Bu öğrenciyi"} sisteme ekliyorsunuz. Emin misiniz?\n\n• Öğrenci: ogrenciler koleksiyonuna yazılacak\n• Anne/Baba e-postaları otomatik onaylı veli olarak eklenecek\n• Veli Google ile portal.bircicekkoleji.com/#veli'ye giriş yapabilecek`)) return;
 
@@ -18419,8 +18429,16 @@ function hosgeldinMailIcerigi(veliAdi, ogrenciAdi, veliEmail, basvuru) {
 }
 
 window.basvuruReddet = async function(basvuruId) {
-  const b = basvuruListesi.find(x => x.id === basvuruId);
-  if (!b) return;
+  let b = basvuruListesi.find(x => x.id === basvuruId);
+
+  // FALLBACK: Liste boşalmışsa Firestore'dan tekrar yükle
+  if (!b) {
+    try {
+      await loadOnayBekleyenler();
+      b = basvuruListesi.find(x => x.id === basvuruId);
+    } catch(e) { console.warn(e); }
+  }
+  if (!b) return showToast("Başvuru bulunamadı. Sayfayı yenileyip tekrar deneyin.", "error");
 
   const neden = prompt(`${b.ogrenci?.adSoyad || "Bu başvuruyu"} reddetmek istediğinize emin misiniz?\n\nRet nedeni (opsiyonel):`);
   if (neden === null) return; // İptal
@@ -18458,8 +18476,8 @@ async function initOnayBekleyenler() {
         if ((data.durum || "beklemede") === "beklemede") sayac++;
       }
     }
-    // basvuruListesi'ni geçici doldur (detaylı liste loadOnayBekleyenler'de)
-    basvuruListesi = [];
+    // NOT: basvuruListesi'ni BURADA SIFIRLAMA — loadOnayBekleyenler kendi doldurur.
+    // Aksi takdirde Onayla butonu "Başvuru bulunamadı" hatası verir.
     const rozet = document.getElementById("onaySayacRozet");
     if (rozet) {
       if (sayac > 0) {
