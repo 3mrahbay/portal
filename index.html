@@ -7916,6 +7916,180 @@ html, body {
   .randevu-slot-saat { min-width: auto; }
   .randevu-slot-aksiyon { width: 100%; justify-content: flex-end; }
 }
+
+/* ============================================================
+   VELİ TAKVİM SEKMELERİ (Oturum 2)
+   ============================================================ */
+.veli-takvim-tabs {
+  display: flex; gap: 6px; margin-bottom: 14px;
+  background: white; border: 1px solid var(--c-border, #e5e7eb);
+  border-radius: 12px; padding: 4px;
+  overflow-x: auto;
+}
+.veli-takvim-tab {
+  flex: 1; min-width: 0;
+  background: transparent; border: none;
+  padding: 10px 12px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; color: var(--c-muted, #6b7280);
+  cursor: pointer; white-space: nowrap;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  transition: all 0.15s;
+}
+.veli-takvim-tab:hover { background: #f9fafb; color: var(--c-ink, #1f2937); }
+.veli-takvim-tab.active {
+  background: var(--c-green-light, #ecfdf5);
+  color: var(--c-green-deep, #166534);
+  font-weight: 700;
+}
+
+/* Müsait randevu kartı (veli görünümü) */
+.veli-randevu-kart {
+  background: white;
+  border: 1px solid #a5f3fc;
+  border-left: 4px solid #0891b2;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.veli-randevu-kart:hover {
+  background: #f0fdfa;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.12);
+}
+.veli-randevu-kart[data-tip="pdr"]            { border-left-color: #7c3aed; }
+.veli-randevu-kart[data-tip="idare"]          { border-left-color: #059669; }
+.veli-randevu-kart[data-tip="meslek_sunumu"]  { border-left-color: #db2777; }
+.veli-randevu-kart[data-tip="diger"]          { border-left-color: #6b7280; }
+.veli-randevu-kart.benim {
+  border-left-color: #16a34a;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.veli-randevu-tarih-kutu {
+  width: 56px; flex-shrink: 0;
+  background: #ecfeff; border: 1px solid #a5f3fc;
+  border-radius: 10px;
+  text-align: center;
+  padding: 8px 4px;
+}
+.veli-randevu-tarih-kutu .ay {
+  font-size: 10px; font-weight: 700; color: #0e7490;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.veli-randevu-tarih-kutu .gun {
+  font-size: 20px; font-weight: 800; color: #0e7490; line-height: 1;
+  margin-top: 2px;
+}
+.veli-randevu-kart.benim .veli-randevu-tarih-kutu {
+  background: #dcfce7; border-color: #86efac;
+}
+.veli-randevu-kart.benim .veli-randevu-tarih-kutu .ay,
+.veli-randevu-kart.benim .veli-randevu-tarih-kutu .gun { color: #166534; }
+
+.veli-randevu-icerik { flex: 1; min-width: 0; }
+.veli-randevu-baslik {
+  font-weight: 700; color: var(--c-ink, #1f2937); font-size: 14px;
+  margin-bottom: 4px;
+}
+.veli-randevu-meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  font-size: 11px; color: #475569;
+}
+.veli-randevu-meta span {
+  background: #f1f5f9; padding: 2px 8px; border-radius: 6px;
+}
+
+/* Rezervasyon modal */
+.rezervasyon-overlay {
+  position: fixed; inset: 0; background: rgba(31,95,51,0.4);
+  backdrop-filter: blur(4px); z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  animation: rezervFadeIn 0.25s ease-out;
+}
+.rezervasyon-kart {
+  background: white; border-radius: 20px;
+  max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.18);
+  position: relative;
+  animation: rezervSlideUp 0.3s ease-out;
+}
+.rezervasyon-kart-head {
+  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+  padding: 24px 24px 18px;
+  border-radius: 20px 20px 0 0;
+  position: relative;
+  border-bottom: 1px solid #a5f3fc;
+}
+.rezervasyon-kart-head[data-tip="pdr"]           { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border-color: #c4b5fd; }
+.rezervasyon-kart-head[data-tip="idare"]         { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-color: #86efac; }
+.rezervasyon-kart-head[data-tip="meslek_sunumu"] { background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%); border-color: #f9a8d4; }
+.rezervasyon-kart-head[data-tip="diger"]         { background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-color: #d1d5db; }
+
+.rezervasyon-cicek {
+  position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+  width: 60px; height: 60px; background: white; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.rezervasyon-body { padding: 20px 24px; }
+.rezervasyon-meta {
+  background: #f9fafb; border-radius: 12px; padding: 14px 16px;
+  font-size: 13px; color: #374151;
+  margin-bottom: 14px;
+}
+.rezervasyon-meta-satir {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 4px 0;
+}
+.rezervasyon-meta-satir strong { min-width: 90px; color: #1f2937; }
+
+.rezervasyon-form-group { margin-bottom: 14px; }
+.rezervasyon-form-group label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: #374151; margin-bottom: 6px;
+}
+.rezervasyon-form-group select,
+.rezervasyon-form-group textarea {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid #d1d5db; border-radius: 8px;
+  font-size: 13px; font-family: inherit;
+  background: white;
+}
+.rezervasyon-form-group textarea { resize: vertical; }
+
+.rezervasyon-butonlar {
+  display: flex; gap: 8px; padding: 0 24px 22px;
+}
+.rezervasyon-btn {
+  flex: 1; padding: 14px; border-radius: 12px;
+  border: none; font-size: 14px; font-weight: 600;
+  cursor: pointer; min-height: 48px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.rezervasyon-btn.primary { background: #0891b2; color: white; }
+.rezervasyon-btn.primary:hover { background: #0e7490; }
+.rezervasyon-btn.primary:disabled { background: #94a3b8; cursor: not-allowed; }
+.rezervasyon-btn.iptal { background: white; color: #991b1b; border: 1px solid #fecaca; }
+.rezervasyon-btn.iptal:hover { background: #fef2f2; }
+.rezervasyon-btn.kapat { background: #f3f4f6; color: #374151; }
+
+@keyframes rezervFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rezervSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Mobil uyum */
+@media (max-width: 640px) {
+  .veli-randevu-kart { flex-direction: row; }
+  .rezervasyon-meta-satir { flex-direction: column; gap: 2px; }
+  .rezervasyon-meta-satir strong { min-width: auto; }
+}
 </style>
 </head>
 <body>
@@ -11787,7 +11961,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment
+  query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -14165,7 +14339,7 @@ function veliRenderYeniApp() {
                  : (caEkran === "takvim") ? caTakvimHTML()
                  : caHomeHTML();
   if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
-  if (caEkran === "takvim") { try { veliTakvimRender(); } catch(e) { console.warn(e); } }
+  if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "home" || !caEkran) { try { setTimeout(() => caHomeTakvimOnizlemeRender(), 100); } catch(e) { console.warn(e); } }
 }
 
@@ -14537,13 +14711,39 @@ async function caHomeTakvimOnizlemeRender() {
   if (!el) return;
   try {
     await takvimEtkinlikleriYukle();
-    const tum = takvimTumEtkinlikler().filter(e => takvimVeliyeUygunMu(e));
+    // FAZ B Oturum 2: Veli'nin kendi randevularını da yükle
+    try { await randevuSlotlariYukle(); } catch(e) { console.warn(e); }
+
     const bugun = new Date();
     const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
-    const yaklasan = tum.filter(e => e.tarih >= bugunStr).slice(0, 3);
+
+    // Etkinlikler + tatiller (uygun olanlar)
+    const etkinlikler = takvimTumEtkinlikler().filter(e => takvimVeliyeUygunMu(e) && e.tarih >= bugunStr);
+
+    // Veli'nin kendi randevuları (slot tipi)
+    const benimRandevular = (typeof veliBenimSlotlar === "function" ? veliBenimSlotlar() : []).map(s => ({
+      id: s.id,
+      _isRandevu: true,
+      baslik: (s.tip === "diger" && s.tipAciklama) ? s.tipAciklama : (RANDEVU_TIP_LABEL[s.tip] || "Randevu").replace(/^[^\s]+\s/, ''),
+      tarih: s.tarih,
+      baslangicSaat: s.baslangicSaat,
+      bitisSaat: s.bitisSaat,
+      konum: s.konum,
+      tip: "randevu",
+      slotData: s
+    }));
+
+    // Hepsini birleştir, tarihe göre sırala
+    const tum = [...etkinlikler, ...benimRandevular].sort((a, b) => {
+      const t1 = a.tarih + (a.baslangicSaat || "00:00");
+      const t2 = b.tarih + (b.baslangicSaat || "00:00");
+      return t1.localeCompare(t2);
+    });
+
+    const yaklasan = tum.slice(0, 3);
 
     if (yaklasan.length === 0) {
-      el.innerHTML = `<div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yaklaşan etkinlik yok</div>`;
+      el.innerHTML = `<div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yaklaşan etkinlik veya randevu yok</div>`;
       return;
     }
 
@@ -14556,19 +14756,22 @@ async function caHomeTakvimOnizlemeRender() {
     el.innerHTML = yaklasan.map((e, i) => {
       const tarih = new Date(e.tarih);
       const renk = tipRenkleri[e.tip] || "#16a34a";
-      const tarihStr = `${tarih.getDate()} ${aylar[tarih.getMonth()]}`;
       const saatStr = e.tumGun ? "Tüm gün" : (e.baslangicSaat || "");
-      const tipLabel = (TAKVIM_TIP_LABEL[e.tip] || "").replace(/^\S+\s/, ''); // emojiyi at, sadece kelime
+      const tipLabel = e._isRandevu ? "Randevum" : ((TAKVIM_TIP_LABEL[e.tip] || "").replace(/^\S+\s/, ''));
+
+      const onclick = e._isRandevu
+        ? `veliRandevuDetayAc('${e.id}', true)`
+        : `veliTakvimEtkinlikDetay('${e.id}')`;
 
       return `
         <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; ${i > 0 ? 'border-top:1px solid var(--c-border);' : ''} cursor:pointer;"
-             onclick="veliTakvimEtkinlikDetay('${e.id}')">
+             onclick="${onclick}">
           <div style="width:46px; flex-shrink:0; text-align:center; background:${renk}; color:white; padding:8px 4px; border-radius:8px;">
             <div style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; opacity:0.9;">${aylar[tarih.getMonth()]}</div>
             <div style="font-size:18px; font-weight:800; line-height:1;">${tarih.getDate()}</div>
           </div>
           <div style="flex:1; min-width:0;">
-            <div style="font-weight:700; color:var(--c-ink); font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlGelisim(e.baslik)}</div>
+            <div style="font-weight:700; color:var(--c-ink); font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${e._isRandevu ? '⭐ ' : ''}${escapeHtmlGelisim(e.baslik)}</div>
             <div class="ca-tile-sub" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
               <span style="color:${renk}; font-weight:600;">${tipLabel}</span>
               ${saatStr ? `<span>· ${saatStr}</span>` : ''}
@@ -17726,23 +17929,71 @@ function caTakvimHTML() {
         </div>
       </div>
 
-      <div class="takvim-ay-bar">
-        <div class="takvim-ay-baslik" id="veliTakvimAyBaslik">—</div>
-        <div class="takvim-ay-nav">
-          <button onclick="veliTakvimAyGec(-1)">‹</button>
-          <button onclick="veliTakvimBugune()" style="width:auto; padding:0 12px; font-size:12px;">Bugün</button>
-          <button onclick="veliTakvimAyGec(1)">›</button>
+      <!-- VELİ TAKVİM SEKMELERİ -->
+      <div class="veli-takvim-tabs">
+        <button class="veli-takvim-tab active" data-tab="aylik" onclick="veliTakvimSekmeDegistir('aylik')">📅 Aylık</button>
+        <button class="veli-takvim-tab" data-tab="randevular" onclick="veliTakvimSekmeDegistir('randevular')">📞 Randevular <span id="veliMusaitSayac" style="background:#0891b2;color:white;padding:1px 7px;border-radius:99px;font-size:10px;margin-left:4px;display:none;">0</span></button>
+        <button class="veli-takvim-tab" data-tab="benim" onclick="veliTakvimSekmeDegistir('benim')">⭐ Randevularım <span id="veliBenimSayac" style="background:#16a34a;color:white;padding:1px 7px;border-radius:99px;font-size:10px;margin-left:4px;display:none;">0</span></button>
+      </div>
+
+      <!-- AYLIK SEKMESİ -->
+      <div id="veliTakvimPanel-aylik" class="veli-takvim-panel">
+        <div class="takvim-ay-bar">
+          <div class="takvim-ay-baslik" id="veliTakvimAyBaslik">—</div>
+          <div class="takvim-ay-nav">
+            <button onclick="veliTakvimAyGec(-1)">‹</button>
+            <button onclick="veliTakvimBugune()" style="width:auto; padding:0 12px; font-size:12px;">Bugün</button>
+            <button onclick="veliTakvimAyGec(1)">›</button>
+          </div>
+        </div>
+        <div id="veliTakvimGrid" class="takvim-grid"></div>
+
+        <h3 class="ca-head" style="font-size:15px; margin-top:14px;">Yaklaşan Etkinlikler</h3>
+        <div id="veliTakvimYaklasanListe" class="takvim-etkinlik-listesi">
+          <div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted);">Yükleniyor...</div>
         </div>
       </div>
-      <div id="veliTakvimGrid" class="takvim-grid"></div>
 
-      <h3 class="ca-head" style="font-size:15px; margin-top:14px;">Yaklaşan Etkinlikler</h3>
-      <div id="veliTakvimYaklasanListe" class="takvim-etkinlik-listesi">
-        <div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted);">Yükleniyor...</div>
+      <!-- MÜSAİT RANDEVULAR SEKMESİ -->
+      <div id="veliTakvimPanel-randevular" class="veli-takvim-panel" style="display:none;">
+        <div class="ca-card tint" style="padding:14px 16px; margin-bottom:12px; border-left:4px solid #0891b2;">
+          <div style="font-weight:700; color:#0e7490; font-size:14px;">📞 Müsait Randevular</div>
+          <div style="font-size:12px; color:#475569; margin-top:4px;">Aşağıdaki müsait slotlardan size uygun olanı seçip randevu alabilirsiniz. Tek bir slot bir veliyi rezerve eder; biri rezervasyon yaparsa diğer veliler o slotu artık göremez.</div>
+        </div>
+        <div id="veliMusaitListesi">
+          <div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <!-- RANDEVULARIM SEKMESİ -->
+      <div id="veliTakvimPanel-benim" class="veli-takvim-panel" style="display:none;">
+        <div class="ca-card tint" style="padding:14px 16px; margin-bottom:12px; border-left:4px solid #16a34a;">
+          <div style="font-weight:700; color:#166534; font-size:14px;">⭐ Randevularım</div>
+          <div style="font-size:12px; color:#475569; margin-top:4px;">Aldığınız randevular burada listelenir. İstediğiniz zaman iptal edip slot'u tekrar diğer velilere açabilirsiniz.</div>
+        </div>
+        <div id="veliBenimRandevuListesi">
+          <div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
+        </div>
       </div>
     </div>
   `;
 }
+
+// VELİ SEKME DEĞİŞTİRME
+window.veliTakvimSekmeDegistir = function(sekme) {
+  // Tabs
+  document.querySelectorAll(".veli-takvim-tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.tab === sekme);
+  });
+  // Panels
+  document.querySelectorAll(".veli-takvim-panel").forEach(p => {
+    p.style.display = p.id === `veliTakvimPanel-${sekme}` ? "block" : "none";
+  });
+  // Render
+  if (sekme === "aylik") veliTakvimRender();
+  else if (sekme === "randevular") veliMusaitRandevularRender();
+  else if (sekme === "benim") veliBenimRandevularRender();
+};
 
 window.veliTakvimAyGec = function(dir) {
   takvimAktifAy.setMonth(takvimAktifAy.getMonth() + dir);
@@ -18291,6 +18542,560 @@ window.randevuTopluKaydet = async function() {
   randevuListesiRender();
 };
 // ===== /FAZ B - RANDEVU SLOT =====
+
+// ============================================================
+// ===== FAZ B Oturum 2: VELİ REZERVASYON SİSTEMİ =====
+// ============================================================
+// Veli müsait slotlardan birini seçer, Firestore TRANSACTION ile
+// rezervasyon yapar (eşzamanlılık koruması — iki veli aynı slotu alamaz).
+// İptal edebilir → slot tekrar açılır.
+
+// Bu veli/öğrenci hangi sınıfta? Slot hedef sınıfla eşleşiyor mu?
+function randevuVeliyeUygunMu(s) {
+  if (!s.hedefSinif) return true; // Genel slot, herkes görür
+  if (typeof veliOgrenciler === "undefined" || !veliOgrenciler) return false;
+  return veliOgrenciler.some(o => {
+    const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+    const sinif = (ayar?.kayit?.sinif) || o.sinif || "";
+    return sinif === s.hedefSinif;
+  });
+}
+
+// Geçmiş tarih mi?
+function randevuGecmisMi(s) {
+  const bugun = new Date();
+  const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+  return s.tarih < bugunStr;
+}
+
+// Veli için tüm müsait slotları al
+function veliMusaitSlotlar() {
+  return randevuSlotlari.filter(s =>
+    !s.arsiv &&
+    (s.durum || "musait") === "musait" &&
+    !randevuGecmisMi(s) &&
+    randevuVeliyeUygunMu(s)
+  ).sort((a, b) => {
+    const t1 = a.tarih + (a.baslangicSaat || "00:00");
+    const t2 = b.tarih + (b.baslangicSaat || "00:00");
+    return t1.localeCompare(t2);
+  });
+}
+
+// Veli'nin kendi rezervasyonları
+function veliBenimSlotlar() {
+  if (!currentUser?.email) return [];
+  const veliEmail = currentUser.email.toLowerCase();
+  return randevuSlotlari.filter(s =>
+    !s.arsiv &&
+    s.durum === "dolu" &&
+    (s.veliEmail || "").toLowerCase() === veliEmail
+  ).sort((a, b) => {
+    const t1 = a.tarih + (a.baslangicSaat || "00:00");
+    const t2 = b.tarih + (b.baslangicSaat || "00:00");
+    return t1.localeCompare(t2);
+  });
+}
+
+// Sayaçları güncelle (sekme rozetleri)
+function veliRandevuSayaclariniGuncelle() {
+  const musait = veliMusaitSlotlar().length;
+  const benim = veliBenimSlotlar().length;
+  const musaitEl = document.getElementById("veliMusaitSayac");
+  const benimEl = document.getElementById("veliBenimSayac");
+  if (musaitEl) {
+    musaitEl.textContent = musait;
+    musaitEl.style.display = musait > 0 ? "inline-block" : "none";
+  }
+  if (benimEl) {
+    benimEl.textContent = benim;
+    benimEl.style.display = benim > 0 ? "inline-block" : "none";
+  }
+}
+
+// MÜSAİT RANDEVULAR LİSTESİ
+async function veliMusaitRandevularRender() {
+  const el = document.getElementById("veliMusaitListesi");
+  if (!el) return;
+
+  await randevuSlotlariYukle();
+  veliRandevuSayaclariniGuncelle();
+
+  const slotlar = veliMusaitSlotlar();
+  if (slotlar.length === 0) {
+    el.innerHTML = `<div class="ca-card" style="padding:30px; text-align:center; color:var(--c-muted); font-size:13px;">
+      📭 Şu an müsait randevu yok.<br>
+      <span style="font-size:11px; color:#9ca3af;">Yönetim slot oluşturduğunda burada görünecek.</span>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = slotlar.map(s => veliRandevuKartHTML(s, false)).join("");
+}
+
+// VELİ KENDİ RANDEVULARI LİSTESİ
+async function veliBenimRandevularRender() {
+  const el = document.getElementById("veliBenimRandevuListesi");
+  if (!el) return;
+
+  await randevuSlotlariYukle();
+  veliRandevuSayaclariniGuncelle();
+
+  const slotlar = veliBenimSlotlar();
+  if (slotlar.length === 0) {
+    el.innerHTML = `<div class="ca-card" style="padding:30px; text-align:center; color:var(--c-muted); font-size:13px;">
+      ⭐ Henüz randevunuz yok.<br>
+      <span style="font-size:11px; color:#9ca3af;">"Randevular" sekmesinden müsait bir slot seçerek randevu alabilirsiniz.</span>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = slotlar.map(s => veliRandevuKartHTML(s, true)).join("");
+}
+
+// Veli randevu kart HTML üretimi
+function veliRandevuKartHTML(s, benim) {
+  const tarih = new Date(s.tarih);
+  const aylarKisa = ["OCA","ŞUB","MAR","NİS","MAY","HAZ","TEM","AĞU","EYL","EKİ","KAS","ARA"];
+  const ayKisa = aylarKisa[tarih.getMonth()];
+  const gunNum = tarih.getDate();
+
+  const tip = s.tip || "diger";
+  const tipLabel = (tip === "diger" && s.tipAciklama)
+    ? `📌 ${escapeHtmlGelisim(s.tipAciklama)}`
+    : RANDEVU_TIP_LABEL[tip] || "📌 Slot";
+
+  const ogretmenInfo = s.ogretmenAd ? `<span>👤 ${escapeHtmlGelisim(s.ogretmenAd)}</span>` : "";
+  const konumInfo = s.konum ? `<span>📍 ${escapeHtmlGelisim(s.konum)}</span>` : "";
+
+  const ogrenciBilgi = benim && s.ogrenciAd
+    ? `<span style="background:#dcfce7; color:#166534;">👶 ${escapeHtmlGelisim(s.ogrenciAd)} için</span>`
+    : "";
+
+  const onclick = benim
+    ? `veliRandevuDetayAc('${s.id}', true)`
+    : `veliSlotRezerveModalAc('${s.id}')`;
+
+  return `
+    <div class="veli-randevu-kart ${benim ? 'benim' : ''}" data-tip="${tip}" onclick="${onclick}">
+      <div class="veli-randevu-tarih-kutu">
+        <div class="ay">${ayKisa}</div>
+        <div class="gun">${gunNum}</div>
+      </div>
+      <div class="veli-randevu-icerik">
+        <div class="veli-randevu-baslik">${tipLabel.replace(/^[^\s]+\s/, '')}</div>
+        <div class="veli-randevu-meta">
+          <span>⏰ ${s.baslangicSaat || ""}-${s.bitisSaat || ""}</span>
+          ${ogretmenInfo}
+          ${konumInfo}
+          ${ogrenciBilgi}
+        </div>
+      </div>
+      <span style="color:#94a3b8; font-size:18px; flex-shrink:0;">›</span>
+    </div>
+  `;
+}
+
+// SLOT REZERVE MODAL — Veli müsait bir slot tıkladığında açılır
+window.veliSlotRezerveModalAc = function(slotId) {
+  const s = randevuSlotlari.find(x => x.id === slotId);
+  if (!s) { showToast("Slot bulunamadı", "error"); return; }
+  if ((s.durum || "musait") !== "musait") {
+    showToast("Bu slot artık dolu — başkası rezerve etti", "error");
+    veliMusaitRandevularRender();
+    return;
+  }
+
+  const tip = s.tip || "diger";
+  const tipLabel = (tip === "diger" && s.tipAciklama)
+    ? `📌 ${escapeHtmlGelisim(s.tipAciklama)}`
+    : RANDEVU_TIP_LABEL[tip] || "📌 Slot";
+
+  // Tarih güzel format
+  const tarih = new Date(s.tarih);
+  const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const gunler = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+  const tarihStr = `${tarih.getDate()} ${aylar[tarih.getMonth()]} ${tarih.getFullYear()} · ${gunler[tarih.getDay()]}`;
+
+  // Çocuk seçici (birden fazla varsa)
+  let cocukSeciciHTML = "";
+  if (veliOgrenciler && veliOgrenciler.length > 0) {
+    if (veliOgrenciler.length === 1) {
+      // Tek çocuk → otomatik
+      cocukSeciciHTML = `
+        <input type="hidden" id="rezervOgrenciId" value="${veliOgrenciler[0].id}">
+        <input type="hidden" id="rezervOgrenciAd" value="${escapeHtmlGelisim(veliOgrenciler[0].ogrenciAdSoyad || "")}">
+      `;
+    } else {
+      // Birden fazla → dropdown
+      const options = veliOgrenciler.map(o =>
+        `<option value="${o.id}" data-ad="${escapeHtmlGelisim(o.ogrenciAdSoyad || "")}">${escapeHtmlGelisim(o.ogrenciAdSoyad || "")}</option>`
+      ).join("");
+      cocukSeciciHTML = `
+        <div class="rezervasyon-form-group">
+          <label>Çocuğunuz</label>
+          <select id="rezervOgrenciSec" required>
+            <option value="">— Çocuk seçin —</option>
+            ${options}
+          </select>
+          <input type="hidden" id="rezervOgrenciId" value="">
+          <input type="hidden" id="rezervOgrenciAd" value="">
+        </div>
+      `;
+    }
+  }
+
+  // Meslek sunumu özel alanları (Faz C için hazır — şimdilik basit)
+  const meslekHTML = (tip === "meslek_sunumu") ? `
+    <div class="rezervasyon-form-group">
+      <label>Tanıtacağınız Meslek *</label>
+      <input type="text" id="rezervMeslekAd" placeholder="Örn: Diş Hekimi, Pilot, Bilim İnsanı..."
+             style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:13px;">
+    </div>
+    <div class="rezervasyon-form-group">
+      <label>Kısa Açıklama *</label>
+      <textarea id="rezervMeslekAciklama" rows="3" placeholder="Neyi nasıl anlatacaksınız? Maket, görsel veya materyal getirecek misiniz?"></textarea>
+    </div>
+  ` : "";
+
+  const cicekSvg = `
+    <svg width="36" height="36" viewBox="0 0 200 200" aria-hidden="true">
+      <g transform="translate(100 100)">
+        <g fill="#FFD4DC">
+          <ellipse cx="0" cy="-34" rx="16" ry="30"/>
+          <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(72)"/>
+          <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(144)"/>
+          <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(216)"/>
+          <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(288)"/>
+        </g>
+        <circle r="18" fill="#F5C84B"/>
+      </g>
+    </svg>
+  `;
+
+  const html = `
+    <div id="rezervasyonOverlay" class="rezervasyon-overlay" onclick="if(event.target===this) rezervasyonModalKapat()">
+      <div class="rezervasyon-kart">
+        <div class="rezervasyon-kart-head" data-tip="${tip}">
+          <div class="rezervasyon-cicek">${cicekSvg}</div>
+          <div style="text-align:center; margin-top:10px;">
+            <div style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px;">
+              ${tipLabel.replace(/^[^\s]+\s/, '')}
+            </div>
+            <h2 style="margin:6px 0 0; font-size:18px; color:#1f2937; font-weight:700;">Randevu Detayları</h2>
+          </div>
+        </div>
+        <div class="rezervasyon-body">
+          <div class="rezervasyon-meta">
+            <div class="rezervasyon-meta-satir"><strong>📆 Tarih:</strong><span>${tarihStr}</span></div>
+            <div class="rezervasyon-meta-satir"><strong>⏰ Saat:</strong><span>${s.baslangicSaat} - ${s.bitisSaat}</span></div>
+            ${s.ogretmenAd ? `<div class="rezervasyon-meta-satir"><strong>👤 Görüşülecek:</strong><span>${escapeHtmlGelisim(s.ogretmenAd)}</span></div>` : ''}
+            ${s.konum ? `<div class="rezervasyon-meta-satir"><strong>📍 Konum:</strong><span>${escapeHtmlGelisim(s.konum)}</span></div>` : ''}
+            ${s.hedefSinif ? `<div class="rezervasyon-meta-satir"><strong>🏷️ Sınıf:</strong><span>${escapeHtmlGelisim(s.hedefSinif)}</span></div>` : ''}
+          </div>
+
+          ${s.yonetimNotu ? `<div style="background:#fef3c7; border:1px solid #fde68a; color:#78350f; padding:10px 14px; border-radius:10px; font-size:12px; margin-bottom:14px;">
+            <strong>💡 Yönetim notu:</strong><br>${escapeHtmlGelisim(s.yonetimNotu).replace(/\n/g, '<br>')}
+          </div>` : ''}
+
+          ${cocukSeciciHTML}
+
+          ${meslekHTML}
+
+          <div class="rezervasyon-form-group">
+            <label>Notunuz (opsiyonel)</label>
+            <textarea id="rezervVeliNot" rows="2" placeholder="Konuyla ilgili ekstra söyleyeceğiniz bir şey var mı?"></textarea>
+          </div>
+        </div>
+        <div class="rezervasyon-butonlar">
+          <button class="rezervasyon-btn kapat" onclick="rezervasyonModalKapat()">Kapat</button>
+          <button class="rezervasyon-btn primary" id="rezervOnayBtn" onclick="veliSlotRezerveEt('${slotId}')">📞 Randevu Al</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", html);
+
+  // Çocuk seçici değişince hidden alanları güncelle
+  const cocukSec = document.getElementById("rezervOgrenciSec");
+  if (cocukSec) {
+    cocukSec.onchange = () => {
+      const opt = cocukSec.options[cocukSec.selectedIndex];
+      document.getElementById("rezervOgrenciId").value = opt.value;
+      document.getElementById("rezervOgrenciAd").value = opt.dataset.ad || "";
+    };
+  }
+};
+
+window.rezervasyonModalKapat = function() {
+  document.getElementById("rezervasyonOverlay")?.remove();
+};
+
+// FIRESTORE TRANSACTION ile rezervasyon — eşzamanlılık koruması
+window.veliSlotRezerveEt = async function(slotId) {
+  const btn = document.getElementById("rezervOnayBtn");
+  if (!btn) return;
+
+  // Validasyon
+  const ogrenciId = document.getElementById("rezervOgrenciId")?.value || "";
+  const ogrenciAd = document.getElementById("rezervOgrenciAd")?.value || "";
+
+  if (veliOgrenciler && veliOgrenciler.length > 0 && !ogrenciId) {
+    return showToast("Lütfen çocuğunuzu seçin", "error");
+  }
+
+  // Meslek sunumu özel alanlar
+  const meslekAdEl = document.getElementById("rezervMeslekAd");
+  const meslekAciklamaEl = document.getElementById("rezervMeslekAciklama");
+  const meslekAdi = meslekAdEl?.value?.trim() || "";
+  const meslekAciklama = meslekAciklamaEl?.value?.trim() || "";
+
+  if (meslekAdEl && !meslekAdi) return showToast("Tanıtacağınız mesleği yazın", "error");
+  if (meslekAciklamaEl && !meslekAciklama) return showToast("Kısa açıklama yazın", "error");
+
+  const veliNotu = document.getElementById("rezervVeliNot")?.value?.trim() || "";
+  const veliEmail = currentUser.email.toLowerCase();
+  const veliAd = currentUser.displayName || veliEmail.split("@")[0];
+
+  btn.disabled = true;
+  btn.innerHTML = "⏳ Rezervasyon yapılıyor...";
+
+  try {
+    // TRANSACTION — atomik rezervasyon
+    await runTransaction(db, async (tx) => {
+      const slotRef = doc(db, "randevuSlotlari", slotId);
+      const snap = await tx.get(slotRef);
+      if (!snap.exists()) throw new Error("Slot artık mevcut değil");
+      const data = snap.data();
+      if (data.arsiv) throw new Error("Slot arşivlenmiş");
+      if ((data.durum || "musait") === "dolu") {
+        throw new Error("Bu slot artık dolu — başkası rezerve etti");
+      }
+      // Rezervasyon
+      const guncelle = {
+        durum: "dolu",
+        veliEmail,
+        veliAd,
+        ogrenciId,
+        ogrenciAd,
+        veliNotu,
+        rezervasyonTarihi: new Date().toISOString(),
+        guncellendi: new Date().toISOString()
+      };
+      if (data.tip === "meslek_sunumu") {
+        guncelle.meslekAdi = meslekAdi;
+        guncelle.meslekAciklama = meslekAciklama;
+      }
+      tx.update(slotRef, guncelle);
+    });
+
+    showToast("✓ Randevunuz alındı!");
+    rezervasyonModalKapat();
+    await randevuSlotlariYukle(true);
+    veliMusaitRandevularRender();
+    veliBenimRandevularRender();
+    veliRandevuSayaclariniGuncelle();
+  } catch (e) {
+    console.error("Rezervasyon hatası:", e);
+    btn.disabled = false;
+    btn.innerHTML = "📞 Randevu Al";
+    showToast(e.message || "Rezervasyon başarısız", "error");
+    // Sayfayı yenile ki güncel durumu görsün
+    if (e.message && e.message.includes("dolu")) {
+      await randevuSlotlariYukle(true);
+      rezervasyonModalKapat();
+      veliMusaitRandevularRender();
+    }
+  }
+};
+
+// VELİ RANDEVUSUNUN DETAYI (kendi rezervasyonu) - iptal butonu ile
+window.veliRandevuDetayAc = function(slotId, benim) {
+  const s = randevuSlotlari.find(x => x.id === slotId);
+  if (!s) return;
+
+  const tip = s.tip || "diger";
+  const tipLabel = (tip === "diger" && s.tipAciklama)
+    ? `📌 ${escapeHtmlGelisim(s.tipAciklama)}`
+    : RANDEVU_TIP_LABEL[tip] || "📌 Slot";
+
+  const tarih = new Date(s.tarih);
+  const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const gunler = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+  const tarihStr = `${tarih.getDate()} ${aylar[tarih.getMonth()]} ${tarih.getFullYear()} · ${gunler[tarih.getDay()]}`;
+
+  const meslekHTML = (s.tip === "meslek_sunumu" && (s.meslekAdi || s.meslekAciklama)) ? `
+    <div class="rezervasyon-meta" style="background:#fdf2f8; border:1px solid #f9a8d4; margin-top:10px;">
+      <div class="rezervasyon-meta-satir"><strong>💼 Meslek:</strong><span>${escapeHtmlGelisim(s.meslekAdi || "—")}</span></div>
+      ${s.meslekAciklama ? `<div class="rezervasyon-meta-satir" style="flex-direction:column;"><strong>📝 Açıklama:</strong><span>${escapeHtmlGelisim(s.meslekAciklama).replace(/\n/g,'<br>')}</span></div>` : ""}
+    </div>
+  ` : "";
+
+  const cicekSvg = `
+    <svg width="36" height="36" viewBox="0 0 200 200" aria-hidden="true">
+      <g transform="translate(100 100)">
+        <g fill="#FFD4DC">
+          <ellipse cx="0" cy="-34" rx="16" ry="30"/>
+          <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(72)"/>
+          <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(144)"/>
+          <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(216)"/>
+          <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(288)"/>
+        </g>
+        <circle r="18" fill="#F5C84B"/>
+      </g>
+    </svg>
+  `;
+
+  const html = `
+    <div id="rezervasyonOverlay" class="rezervasyon-overlay" onclick="if(event.target===this) rezervasyonModalKapat()">
+      <div class="rezervasyon-kart">
+        <div class="rezervasyon-kart-head" data-tip="${tip}">
+          <div class="rezervasyon-cicek">${cicekSvg}</div>
+          <div style="text-align:center; margin-top:10px;">
+            <div style="font-size:11px; font-weight:700; color:#166534; text-transform:uppercase; letter-spacing:0.5px;">
+              ⭐ Randevunuz Onaylandı
+            </div>
+            <h2 style="margin:6px 0 0; font-size:18px; color:#1f2937; font-weight:700;">${tipLabel.replace(/^[^\s]+\s/, '')}</h2>
+          </div>
+        </div>
+        <div class="rezervasyon-body">
+          <div class="rezervasyon-meta">
+            <div class="rezervasyon-meta-satir"><strong>📆 Tarih:</strong><span>${tarihStr}</span></div>
+            <div class="rezervasyon-meta-satir"><strong>⏰ Saat:</strong><span>${s.baslangicSaat} - ${s.bitisSaat}</span></div>
+            ${s.ogretmenAd ? `<div class="rezervasyon-meta-satir"><strong>👤 Görüşülecek:</strong><span>${escapeHtmlGelisim(s.ogretmenAd)}</span></div>` : ''}
+            ${s.konum ? `<div class="rezervasyon-meta-satir"><strong>📍 Konum:</strong><span>${escapeHtmlGelisim(s.konum)}</span></div>` : ''}
+            ${s.ogrenciAd ? `<div class="rezervasyon-meta-satir"><strong>👶 Çocuğunuz:</strong><span>${escapeHtmlGelisim(s.ogrenciAd)}</span></div>` : ''}
+          </div>
+
+          ${meslekHTML}
+
+          ${s.yonetimNotu ? `<div style="background:#fef3c7; border:1px solid #fde68a; color:#78350f; padding:10px 14px; border-radius:10px; font-size:12px; margin-bottom:10px;">
+            <strong>💡 Yönetim notu:</strong><br>${escapeHtmlGelisim(s.yonetimNotu).replace(/\n/g, '<br>')}
+          </div>` : ''}
+
+          ${s.veliNotu ? `<div style="background:#ecfeff; border:1px solid #a5f3fc; color:#075985; padding:10px 14px; border-radius:10px; font-size:12px;">
+            <strong>📝 Notunuz:</strong><br>${escapeHtmlGelisim(s.veliNotu).replace(/\n/g, '<br>')}
+          </div>` : ''}
+        </div>
+        <div class="rezervasyon-butonlar" style="flex-direction:column; gap:8px;">
+          <button class="rezervasyon-btn primary" onclick="veliRandevuICSIndir('${s.id}')" style="background:#4285f4;">
+            📅 Google/Apple Takvime Ekle
+          </button>
+          <div style="display:flex; gap:8px; width:100%;">
+            <button class="rezervasyon-btn iptal" onclick="veliRandevuIptal('${s.id}')">❌ Randevuyu İptal Et</button>
+            <button class="rezervasyon-btn kapat" onclick="rezervasyonModalKapat()">Kapat</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", html);
+};
+
+// VELİ RANDEVUSUNU İPTAL ET — slot tekrar müsait olur
+window.veliRandevuIptal = async function(slotId) {
+  if (!confirm("Bu randevuyu iptal etmek istediğinize emin misiniz?\n\nSlot tekrar müsait olarak diğer velilere açılacak.")) return;
+
+  try {
+    const veliEmail = currentUser.email.toLowerCase();
+    await runTransaction(db, async (tx) => {
+      const slotRef = doc(db, "randevuSlotlari", slotId);
+      const snap = await tx.get(slotRef);
+      if (!snap.exists()) throw new Error("Slot bulunamadı");
+      const data = snap.data();
+      // Güvenlik: sadece kendi rezervasyonunu iptal edebilir
+      if ((data.veliEmail || "").toLowerCase() !== veliEmail) {
+        throw new Error("Bu randevu size ait değil");
+      }
+      tx.update(slotRef, {
+        durum: "musait",
+        veliEmail: "",
+        veliAd: "",
+        ogrenciId: "",
+        ogrenciAd: "",
+        veliNotu: "",
+        rezervasyonTarihi: "",
+        meslekAdi: "",
+        meslekAciklama: "",
+        guncellendi: new Date().toISOString()
+      });
+    });
+
+    showToast("✓ Randevu iptal edildi");
+    rezervasyonModalKapat();
+    await randevuSlotlariYukle(true);
+    veliMusaitRandevularRender();
+    veliBenimRandevularRender();
+    veliRandevuSayaclariniGuncelle();
+  } catch (e) {
+    console.error("İptal hatası:", e);
+    showToast(e.message || "İptal başarısız", "error");
+  }
+};
+
+// VELİ İÇİN ICS EXPORT — Google/Apple Calendar
+window.veliRandevuICSIndir = function(slotId) {
+  const s = randevuSlotlari.find(x => x.id === slotId);
+  if (!s) return;
+
+  const tarihParts = s.tarih.split("-");
+  const tarihKodu = tarihParts.join("");
+  const bsSaat = (s.baslangicSaat || "00:00").replace(":", "") + "00";
+  const btSaat = (s.bitisSaat || s.baslangicSaat || "00:00").replace(":", "") + "00";
+
+  const esc = (str) => (str || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+
+  const tipLabel = (s.tip === "diger" && s.tipAciklama) ? s.tipAciklama : (RANDEVU_TIP_LABEL[s.tip] || "Randevu").replace(/^[^\s]+\s/, '');
+  const baslik = `📞 ${tipLabel}${s.ogretmenAd ? ' - ' + s.ogretmenAd : ''}`;
+
+  let aciklama = "";
+  if (s.ogrenciAd) aciklama += `Çocuk: ${s.ogrenciAd}\n`;
+  if (s.veliNotu) aciklama += `Notunuz: ${s.veliNotu}\n`;
+  if (s.yonetimNotu) aciklama += `Yönetim notu: ${s.yonetimNotu}\n`;
+  if (s.tip === "meslek_sunumu" && s.meslekAdi) aciklama += `Meslek: ${s.meslekAdi}\n`;
+  aciklama += `\nBir Çiçek Koleji - Veli Portalı`;
+
+  const dtStart = `DTSTART;TZID=Europe/Istanbul:${tarihKodu}T${bsSaat}`;
+  const dtEnd = `DTEND;TZID=Europe/Istanbul:${tarihKodu}T${btSaat}`;
+  const uid = `randevu_${slotId}@bircicekkoleji.com`;
+  const dtStamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Bir Çiçek Koleji//Randevu//TR",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${dtStamp}`,
+    dtStart,
+    dtEnd,
+    `SUMMARY:${esc(baslik)}`,
+    `DESCRIPTION:${esc(aciklama)}`,
+    s.konum ? `LOCATION:${esc(s.konum)}` : "",
+    "BEGIN:VALARM",
+    "TRIGGER:-PT5H",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${esc(baslik + ' - 5 saat sonra')}`,
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].filter(Boolean).join("\r\n");
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `randevu_${s.tarih}_${s.baslangicSaat || '00-00'}.ics`.replace(/:/g, "-");
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("✓ Takvim dosyası indirildi (5 saat önce hatırlatma dahil)");
+};
+// ===== /FAZ B Oturum 2 =====
+
 
 
 
