@@ -18219,12 +18219,24 @@ function randevuSlotSatirHTML(s, gecmis) {
   const sinifInfo = s.hedefSinif ? `<span>🏷️ ${escapeHtml(s.hedefSinif)}</span>` : "";
   const konumInfo = s.konum ? `<span>📍 ${escapeHtml(s.konum)}</span>` : "";
 
+  // Meslek sunumu bilgisi (sadece tip === "meslek_sunumu" ve dolu ise)
+  const meslekInfo = (durum === "dolu" && s.tip === "meslek_sunumu" && (s.meslekAdi || s.meslekAciklama)) ? `
+    <div style="margin-top:6px; padding:8px 10px; background:#fdf2f8; border:1px solid #f9a8d4; border-radius:8px; font-size:11px;">
+      <div style="color:#9d174d; font-weight:700; margin-bottom:2px;">💼 Sunulacak Meslek: ${escapeHtml(s.meslekAdi || "—")}</div>
+      ${s.meslekAciklama ? `<div style="color:#6b7280; font-style:italic;">"${escapeHtml(s.meslekAciklama)}"</div>` : ""}
+    </div>` : "";
+
   const veliInfo = durum === "dolu" ? `
     <div class="alt" style="margin-top:4px;">
       <strong>${escapeHtml(s.veliAd || "Veli")}</strong>
       ${s.ogrenciAd ? ` · ${escapeHtml(s.ogrenciAd)} için` : ""}
       ${s.veliNotu ? `<div style="font-size:11px; color:#6b7280; margin-top:2px; font-style:italic;">"${escapeHtml(s.veliNotu)}"</div>` : ""}
-    </div>` : "";
+    </div>
+    ${meslekInfo}` : "";
+
+  // Mesajlaşma butonu (dolu ise — yönetim veli ile mesajlaşabilir)
+  const mesajBtn = (durum === "dolu" && s.veliEmail) ? `
+    <button onclick="randevuYonetimMesajlas('${s.id}')" title="Bu veliyle mesajlaş" style="background:#dbeafe; border-color:#93c5fd; color:#1e40af;">💬</button>` : "";
 
   return `
     <div class="randevu-slot ${durum} ${gecmis ? 'gecmis' : ''}">
@@ -18240,6 +18252,7 @@ function randevuSlotSatirHTML(s, gecmis) {
         ${veliInfo}
       </div>
       <div class="randevu-slot-aksiyon">
+        ${mesajBtn}
         ${!gecmis ? `<button onclick="randevuSlotModalAc('${s.id}')">✏️ Düzenle</button>` : ""}
         ${durum === "dolu" ? `<button onclick="randevuSlotIptal('${s.id}')" class="danger" title="Veli rezervasyonunu iptal et">🔓 Rez. İptal</button>` : ""}
         <button onclick="randevuSlotSilDirekt('${s.id}')" class="danger">🗑</button>
@@ -18247,6 +18260,49 @@ function randevuSlotSatirHTML(s, gecmis) {
     </div>
   `;
 }
+
+// Yönetim → Veli mesajlaşma (slot üzerinden)
+window.randevuYonetimMesajlas = async function(slotId) {
+  const s = randevuSlotlari.find(x => x.id === slotId);
+  if (!s || !s.veliEmail) return showToast("Veli bilgisi bulunamadı", "error");
+
+  try {
+    // Mevcut mesajlaşma sistemi ile thread oluştur/bul
+    const thread = await mesajThreadGetirVeyaOlustur({
+      personel: {
+        email: currentUser.email,
+        ad: currentUser.displayName || currentUser.email.split("@")[0],
+        rol: aktifKullaniciRol || "yonetim"
+      },
+      veli: {
+        email: s.veliEmail,
+        ad: s.veliAd || ""
+      },
+      ogrenci: {
+        id: s.ogrenciId || "",
+        ad: s.ogrenciAd || "",
+        sinif: s.hedefSinif || ""
+      }
+    });
+
+    // Otomatik bir başlangıç mesajı önerisi (gönderilmez, sadece pano açma)
+    const baslamaIpucu = `📞 Randevu: ${s.tarih} ${s.baslangicSaat}-${s.bitisSaat}\n${s.tip === "meslek_sunumu" ? "Konu: Meslek Sunumu" : ""}`;
+    showToast("Mesajlaşma açılıyor...");
+
+    // Mesaj sekmesine geç (yönetim için tab değişimi)
+    if (typeof veliSwitchTab === "function") {
+      // Yönetim mesajlaşma sekmesini aç
+      if (typeof icerikSwitchAlt === "function") {
+        const mesajSekmesi = document.querySelector('[data-icerik-alt="mesajlasma"]');
+        if (mesajSekmesi) mesajSekmesi.click();
+      }
+    }
+    console.log(`[Yönetim Mesaj] Thread açıldı: ${thread.id}, başlama ipucu: ${baslamaIpucu}`);
+  } catch (e) {
+    console.error("Mesajlaşma açılamadı:", e);
+    showToast("Mesajlaşma açılamadı: " + e.message, "error");
+  }
+};
 
 // ===== TEK SLOT MODAL =====
 window.randevuSlotModalAc = function(slotId) {
@@ -18550,15 +18606,36 @@ window.randevuTopluKaydet = async function() {
 // rezervasyon yapar (eşzamanlılık koruması — iki veli aynı slotu alamaz).
 // İptal edebilir → slot tekrar açılır.
 
+// Sınıf adlarını normalize et (eşleştirme için)
+// "Papatyalar (Toddler)" → "papatyalar", "Nar Çiçekleri" → "narcicekleri"
+function normalizeSinif(s) {
+  if (!s) return "";
+  return String(s)
+    .toLocaleLowerCase("tr-TR")
+    .replace(/\([^)]*\)/g, "")  // parantez içini kaldır
+    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i")
+    .replace(/ö/g, "o").replace(/ş/g, "s").replace(/ü/g, "u")
+    .replace(/[^a-z0-9]/g, "")  // boşluk, tire, vs. kaldır
+    .trim();
+}
+
 // Bu veli/öğrenci hangi sınıfta? Slot hedef sınıfla eşleşiyor mu?
 function randevuVeliyeUygunMu(s) {
   if (!s.hedefSinif) return true; // Genel slot, herkes görür
-  if (typeof veliOgrenciler === "undefined" || !veliOgrenciler) return false;
-  return veliOgrenciler.some(o => {
+  if (typeof veliOgrenciler === "undefined" || !veliOgrenciler || veliOgrenciler.length === 0) {
+    console.warn("[randevuVeliyeUygunMu] veliOgrenciler henüz yüklenmedi");
+    return false;
+  }
+  const hedefNorm = normalizeSinif(s.hedefSinif);
+  const eslesti = veliOgrenciler.some(o => {
     const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
-    const sinif = (ayar?.kayit?.sinif) || o.sinif || "";
-    return sinif === s.hedefSinif;
+    const sinifHam = (ayar?.kayit?.sinif) || o.sinif || "";
+    const sinifNorm = normalizeSinif(sinifHam);
+    const ok = sinifNorm === hedefNorm;
+    if (!ok) console.log(`[randevuVeliyeUygunMu] '${o.ogrenciAdSoyad || o.id}' sınıfı '${sinifHam}' (norm: '${sinifNorm}') ile slot hedefi '${s.hedefSinif}' (norm: '${hedefNorm}') eşleşmedi`);
+    return ok;
   });
+  return eslesti;
 }
 
 // Geçmiş tarih mi?
@@ -18618,14 +18695,31 @@ async function veliMusaitRandevularRender() {
   const el = document.getElementById("veliMusaitListesi");
   if (!el) return;
 
-  await randevuSlotlariYukle();
+  // Force=true ile her seferinde Firestore'dan taze veri çek
+  await randevuSlotlariYukle(true);
   veliRandevuSayaclariniGuncelle();
 
   const slotlar = veliMusaitSlotlar();
+
+  // Debug
+  const tum = randevuSlotlari.filter(s => !s.arsiv && (s.durum || "musait") === "musait" && !randevuGecmisMi(s));
+  console.log(`[Müsait Randevular] Toplam ${tum.length} aktif slot var, veliye uygun ${slotlar.length} tanesi.`);
+  if (tum.length > 0 && slotlar.length === 0) {
+    console.log("[Müsait Randevular] Hiçbir slot bu veliye uygun değil. Slotların hedefSinif değerleri:", tum.map(s => ({ baslik: s.tip, hedefSinif: s.hedefSinif })));
+    console.log("[Müsait Randevular] Velinin öğrencileri:", veliOgrenciler?.map(o => ({ ad: o.ogrenciAdSoyad, sinif: (ayarListesi?.[o.id]?.kayit?.sinif) || o.sinif })));
+  }
+
   if (slotlar.length === 0) {
+    const ipucu = tum.length > 0
+      ? `<div style="margin-top:10px; padding:10px 12px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; font-size:11px; color:#9a3412; text-align:left;">
+          💡 ${tum.length} slot mevcut ama sınıfınıza/öğrencinize uygun değil.<br>
+          F12 → Console'da hangi sınıf eşleşmediğini görebilirsiniz.
+         </div>`
+      : "";
     el.innerHTML = `<div class="ca-card" style="padding:30px; text-align:center; color:var(--c-muted); font-size:13px;">
       📭 Şu an müsait randevu yok.<br>
       <span style="font-size:11px; color:#9ca3af;">Yönetim slot oluşturduğunda burada görünecek.</span>
+      ${ipucu}
     </div>`;
     return;
   }
@@ -18973,9 +19067,35 @@ window.veliRandevuDetayAc = function(slotId, benim) {
             <strong>💡 Yönetim notu:</strong><br>${escapeHtmlGelisim(s.yonetimNotu).replace(/\n/g, '<br>')}
           </div>` : ''}
 
-          ${s.veliNotu ? `<div style="background:#ecfeff; border:1px solid #a5f3fc; color:#075985; padding:10px 14px; border-radius:10px; font-size:12px;">
+          ${s.veliNotu ? `<div style="background:#ecfeff; border:1px solid #a5f3fc; color:#075985; padding:10px 14px; border-radius:10px; font-size:12px; margin-bottom:10px;">
             <strong>📝 Notunuz:</strong><br>${escapeHtmlGelisim(s.veliNotu).replace(/\n/g, '<br>')}
           </div>` : ''}
+
+          <!-- MESAJLAŞMA SEÇENEKLERİ -->
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px; margin-top:6px;">
+            <div style="font-size:12px; font-weight:700; color:#166534; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+              💬 İletişim
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${s.ogretmenEmail ? `
+                <button onclick="veliRandevuMesajlas('${s.id}', 'ogretmen')" style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:white; border:1px solid #d1d5db; border-radius:8px; font-size:12px; color:#374151; cursor:pointer; text-align:left; width:100%;">
+                  <span style="font-size:16px;">👤</span>
+                  <div>
+                    <div style="font-weight:600;">${escapeHtmlGelisim(s.ogretmenAd || 'Öğretmen')} ile Mesajlaş</div>
+                    <div style="font-size:10px; color:#6b7280;">Randevu öncesi soru sorabilir, bilgi alabilirsiniz</div>
+                  </div>
+                  <span style="margin-left:auto; color:#9ca3af;">›</span>
+                </button>` : ''}
+              <button onclick="veliRandevuMesajlas('${s.id}', 'yonetim')" style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:white; border:1px solid #d1d5db; border-radius:8px; font-size:12px; color:#374151; cursor:pointer; text-align:left; width:100%;">
+                <span style="font-size:16px;">🏢</span>
+                <div>
+                  <div style="font-weight:600;">Yönetim ile Mesajlaş</div>
+                  <div style="font-size:10px; color:#6b7280;">Genel sorular, organizasyon bilgisi</div>
+                </div>
+                <span style="margin-left:auto; color:#9ca3af;">›</span>
+              </button>
+            </div>
+          </div>
         </div>
         <div class="rezervasyon-butonlar" style="flex-direction:column; gap:8px;">
           <button class="rezervasyon-btn primary" onclick="veliRandevuICSIndir('${s.id}')" style="background:#4285f4;">
@@ -18990,6 +19110,66 @@ window.veliRandevuDetayAc = function(slotId, benim) {
     </div>
   `;
   document.body.insertAdjacentHTML("beforeend", html);
+};
+
+// VELİ → ÖĞRETMEN veya YÖNETİM mesajlaşma (randevu detayından açılır)
+window.veliRandevuMesajlas = async function(slotId, hedef) {
+  const s = randevuSlotlari.find(x => x.id === slotId);
+  if (!s) return;
+
+  let personelEmail = "";
+  let personelAd = "";
+  let personelRol = "";
+
+  if (hedef === "ogretmen" && s.ogretmenEmail) {
+    personelEmail = s.ogretmenEmail;
+    personelAd = s.ogretmenAd || "Öğretmen";
+    personelRol = "ogretmen";
+  } else {
+    // Yönetim → kurucu müdür / müdür
+    // Email ayarlardan veya sabit
+    personelEmail = (typeof OKUL_MAIL !== "undefined" ? OKUL_MAIL : "eposta@bircicekkoleji.com").toLowerCase();
+    personelAd = "Bir Çiçek Koleji Yönetim";
+    personelRol = "yonetim";
+  }
+
+  try {
+    const veliEmail = currentUser.email.toLowerCase();
+    const veliAd = currentUser.displayName || veliEmail.split("@")[0];
+
+    // Öğrenci bilgisi
+    let ogrenciId = s.ogrenciId || "";
+    let ogrenciAd = s.ogrenciAd || "";
+    let ogrenciSinif = s.hedefSinif || "";
+
+    // Eğer slot'ta yoksa veliOgrenciler[0]'dan al
+    if (!ogrenciId && veliOgrenciler && veliOgrenciler.length > 0) {
+      ogrenciId = veliOgrenciler[0].id;
+      ogrenciAd = veliOgrenciler[0].ogrenciAdSoyad || "";
+      const ayar = ayarListesi?.[ogrenciId];
+      ogrenciSinif = ayar?.kayit?.sinif || veliOgrenciler[0].sinif || "";
+    }
+
+    const thread = await mesajThreadGetirVeyaOlustur({
+      personel: { email: personelEmail, ad: personelAd, rol: personelRol },
+      veli: { email: veliEmail, ad: veliAd },
+      ogrenci: { id: ogrenciId, ad: ogrenciAd, sinif: ogrenciSinif }
+    });
+
+    // Modal'ı kapat ve mesajlaşma ekranına geç
+    rezervasyonModalKapat();
+    if (typeof caGo === "function") {
+      // Aktif thread'i set et ki açıldığında bu konuşma seçili gelsin
+      if (typeof caMsgAktifThreadId !== "undefined") {
+        window.caMsgAktifThreadId = thread.id;
+      }
+      caGo("mesajlar");
+    }
+    showToast(`✓ ${personelAd} ile mesajlaşma açıldı`);
+  } catch (e) {
+    console.error("Mesajlaşma açılamadı:", e);
+    showToast("Mesajlaşma açılamadı: " + e.message, "error");
+  }
 };
 
 // VELİ RANDEVUSUNU İPTAL ET — slot tekrar müsait olur
