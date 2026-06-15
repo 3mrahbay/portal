@@ -7429,11 +7429,22 @@ html, body {
 .cicek-app .ca-sectionhead { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .cicek-app .ca-link { font-family:var(--c-font-head); font-weight:700; font-size:12.5px; color:var(--c-green); background:none; border:none; cursor:pointer; padding:0; }
 
-.cicek-app .ca-quick { display:grid; grid-template-columns:repeat(4,1fr); gap:14px 8px; }
-.cicek-app .ca-qbtn { background:none; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:7px; }
-.cicek-app .ca-qicon { width:54px; height:54px; border-radius:18px; display:grid; place-items:center; font-size:22px; transition:transform .15s ease; }
+.cicek-app .ca-quick { display:grid; grid-template-columns:repeat(7,1fr); gap:10px 4px; }
+.cicek-app .ca-qbtn { background:none; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; padding:0; }
+.cicek-app .ca-qicon { width:46px; height:46px; border-radius:15px; display:grid; place-items:center; font-size:19px; transition:transform .15s ease; }
 .cicek-app .ca-qbtn:hover .ca-qicon { transform:translateY(-2px); }
-.cicek-app .ca-qlabel { font-size:11.5px; color:var(--c-body); font-weight:600; }
+.cicek-app .ca-qlabel { font-size:10.5px; color:var(--c-body); font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Mobilde 7 öğe dar ekrana sığmazsa yatay kaydırma */
+@media (max-width: 480px) {
+  .cicek-app .ca-quick {
+    display:flex; gap:12px; overflow-x:auto; padding-bottom:6px;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  }
+  .cicek-app .ca-quick::-webkit-scrollbar { display:none; }
+  .cicek-app .ca-qbtn { flex:0 0 auto; width:58px; }
+  .cicek-app .ca-qicon { width:50px; height:50px; font-size:21px; }
+  .cicek-app .ca-qlabel { font-size:11px; }
+}
 
 .cicek-app .ca-statpills { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
 .cicek-app .ca-statpill { border-radius:14px; padding:10px 6px; text-align:center; }
@@ -14509,9 +14520,11 @@ function caHizliIslemlerHTML() {
     // Favori varsa ama hepsi home ise, varsayılana düş
     if (secili.length === 0) secili = CA_MODULLER.filter(m => CA_VARSAYILAN_HIZLI.includes(m.k));
   } else {
-    // Favori yok → varsayılan 6
+    // Favori yok → varsayılan 7
     secili = CA_VARSAYILAN_HIZLI.map(k => CA_MODULLER.find(m => m.k === k)).filter(Boolean);
   }
+  // Tek satırda 7 öğe sığar; fazlası varsa ilk 7'yi göster (menüden hepsine ulaşılır)
+  secili = secili.slice(0, 7);
   return secili.map(m => `
     <button class="ca-qbtn" onclick="${m.git}">
       <span class="ca-qicon" style="background:${m.renk};">${m.ikon}</span>
@@ -14868,7 +14881,7 @@ const CA_MODULLER = [
 ];
 
 // Hızlı işlemler için varsayılan 6 (favori yoksa gösterilir)
-const CA_VARSAYILAN_HIZLI = ["gunluk", "gelisim", "galeri", "mesajlar", "takvim", "odemeler"];
+const CA_VARSAYILAN_HIZLI = ["gunluk", "gelisim", "galeri", "mesajlar", "takvim", "odemeler", "cocugum"];
 
 function caMenuHTML() {
   const fav = caFavGetir();
