@@ -14452,6 +14452,13 @@ function caEgitimHTML(ogr, veriler, yorumlar) {
     </div>`;
 }
 
+// Yardımcı: caTemaUygula stub — bazı yerlerde guardsız çağrılıyor,
+// fonksiyon tanımlı değilse ReferenceError önler. İleride tema sistemi
+// eklenirse bu stub gerçek tanımla değiştirilebilir.
+if (typeof window.caTemaUygula === "undefined") {
+  window.caTemaUygula = function() { /* no-op */ };
+}
+
 // Yeni Tasarım iç ekran geçişi
 window.caGo = function(ekran) {
   caEkran = ekran || "home";
