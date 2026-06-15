@@ -7573,6 +7573,40 @@ html, body {
 .cicek-app .ca-chaticon.send:disabled { opacity:.5; cursor:default; }
 
 /* ============================================================
+   MESAJLAŞMA — İKİ PANELLİ DÜZEN (WhatsApp Web tarzı)
+   Geniş ekran: solda liste + sağda sohbet yan yana
+   Mobil: tek ekran (liste VEYA sohbet)
+   ============================================================ */
+/* Varsayılan (mobil) — eski davranış */
+.cicek-app .ca-msg-split { display:block; }
+.cicek-app .ca-msg-sol { display:block; }
+
+/* Geniş ekran (masaüstü/tablet yatay) — iki panel yan yana */
+@media (min-width: 820px) {
+  .cicek-app .ca-msg-split {
+    display:flex; gap:0;
+    height:calc(100vh - 150px); min-height:480px;
+    border:1px solid var(--c-line); border-radius:16px; overflow:hidden;
+    background:#fff;
+  }
+  .cicek-app .ca-msg-sol {
+    width:340px; flex-shrink:0; display:flex !important; flex-direction:column;
+    border-right:1px solid var(--c-line);
+    overflow-y:auto; padding:10px; background:var(--c-surface, #fafafa);
+  }
+  .cicek-app .ca-msg-sag {
+    flex:1; min-width:0; display:flex !important; flex-direction:column;
+  }
+  .cicek-app .ca-msg-sag .wa-sohbet {
+    position:relative; inset:auto; height:100%; border-radius:0;
+  }
+  .cicek-app .ca-msg-sag .wa-head-back { display:none; }
+  .cicek-app .ca-msg-sol .ca-search { margin-top:0; }
+  /* Geniş ekranda aktif sohbet satırı vurgusu */
+  .cicek-app .ca-convrow.aktif { background:var(--c-tint, #eef5ee); border-radius:10px; }
+}
+
+/* ============================================================
    WHATSAPP TARZI SOHBET EKRANI (wa-)
    ============================================================ */
 .cicek-app .wa-sohbet {
@@ -15111,8 +15145,8 @@ let caMsgPersonelCache = null;
 
 function caMesajlarHTML() {
   return `
-    <div class="ca-page ca-stack">
-      <div class="ca-topbar">
+    <div class="ca-page ca-stack ca-msg-sayfa">
+      <div class="ca-topbar ca-msg-topbar">
         <div class="ca-row">
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
           <div><div class="ca-tile-sub">MESAJLAR</div><h2 style="font-size:18px;">Sohbetler</h2></div>
@@ -15120,8 +15154,11 @@ function caMesajlarHTML() {
         <button class="ca-bell" style="background:var(--c-green); color:#fff; border-color:var(--c-green);" onclick="caMsgYeniAc()" title="Yeni mesaj">＋</button>
       </div>
 
-      <!-- LİSTE GÖRÜNÜMÜ -->
-      <div id="caMsgListeGorunum">
+      <!-- İKİ PANELLİ KAPSAYICI (geniş ekran: yan yana, mobil: tek ekran) -->
+      <div class="ca-msg-split">
+
+      <!-- LİSTE GÖRÜNÜMÜ (sol panel) -->
+      <div id="caMsgListeGorunum" class="ca-msg-sol">
         <div class="ca-search"><span>🔍</span><input type="text" id="caMsgAra" placeholder="Sohbet ara…" oninput="caMsgListele()"></div>
         <div class="ca-card" style="display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--c-yellow-soft); border-color:var(--c-yellow-deep); margin-top:10px;">
           <span style="font-size:16px;">🔒</span>
@@ -15134,8 +15171,8 @@ function caMesajlarHTML() {
         </div>
       </div>
 
-      <!-- SOHBET GÖRÜNÜMÜ (WhatsApp tarzı tam ekran) -->
-      <div id="caMsgSohbetGorunum" style="display:none;">
+      <!-- SOHBET GÖRÜNÜMÜ (sağ panel · WhatsApp tarzı) -->
+      <div id="caMsgSohbetGorunum" class="ca-msg-sag" style="display:none;">
         <div class="wa-sohbet">
           <!-- Üst başlık -->
           <div class="wa-head">
@@ -15176,6 +15213,8 @@ function caMesajlarHTML() {
         </div>
       </div>
 
+      </div><!-- /ca-msg-split -->
+
       <!-- YENİ SOHBET PANELİ -->
       <div id="caMsgYeniGorunum" style="display:none;">
         <div class="ca-card">
@@ -15199,6 +15238,14 @@ function caMsgBaslat() {
   if (typeof db === "undefined") return;
   const benim = veliEpostam();
   caMsgAktif = null; caMsgSeciliResim = null;
+
+  // Geniş ekran: sağ paneli başlangıçta "sohbet seçin" placeholder ile aç
+  const genisEkran = window.matchMedia("(min-width: 820px)").matches;
+  if (genisEkran) {
+    const sg = document.getElementById("caMsgSohbetGorunum");
+    if (sg) { sg.style.display = "block"; sg.classList.add("bos"); }
+  }
+
   if (caMsgThreadUnsub) { caMsgThreadUnsub(); caMsgThreadUnsub = null; }
   try {
     const q = query(
@@ -15254,7 +15301,7 @@ function caMsgListele() {
     const tarih = mesajTarihFormat(t.sonMesajTarihi);
     const bg = avRenk[i % avRenk.length];
     return `
-      <div class="ca-convrow" onclick="caMsgAc(${escapeHtml(JSON.stringify(t.id))})">
+      <div class="ca-convrow" data-thread="${escapeHtml(t.id)}" onclick="caMsgAc(${escapeHtml(JSON.stringify(t.id))})">
         <div class="ca-conv-av" style="background:${bg};">${escapeHtmlGelisim(initial)}</div>
         <div class="ca-conv-body">
           <div class="ca-conv-name">${escapeHtmlGelisim(adGoster)}</div>
@@ -15277,9 +15324,19 @@ window.caMsgAc = async function(threadId) {
   const adGoster = thread.katilimciBilgi?.[karsi]?.ad || karsi || "?";
   const rol = thread.katilimciBilgi?.[karsi]?.rol;
 
-  document.getElementById("caMsgListeGorunum").style.display = "none";
+  const genisEkran = window.matchMedia("(min-width: 820px)").matches;
+  // Mobilde listeyi gizle (tek ekran); geniş ekranda liste görünür kalsın
+  if (!genisEkran) {
+    document.getElementById("caMsgListeGorunum").style.display = "none";
+  }
   document.getElementById("caMsgYeniGorunum").style.display = "none";
   document.getElementById("caMsgSohbetGorunum").style.display = "block";
+  // Geniş ekranda "sohbet seçin" placeholder'ını kaldır + aktif satırı vurgula
+  const sagPanel = document.getElementById("caMsgSohbetGorunum");
+  if (sagPanel) sagPanel.classList.remove("bos");
+  document.querySelectorAll(".ca-convrow").forEach(r => r.classList.remove("aktif"));
+  const aktifSatir = document.querySelector(`.ca-convrow[data-thread="${threadId}"]`);
+  if (aktifSatir) aktifSatir.classList.add("aktif");
   document.getElementById("caMsgSohbetAd").textContent = adGoster;
   document.getElementById("caMsgSohbetAlt").textContent = ROL_ETIKETLERI[rol] || "Okul";
   document.getElementById("caMsgSohbetAvatar").textContent = (adGoster || "?").charAt(0).toUpperCase();
@@ -15499,8 +15556,20 @@ window.caMsgGirisKeydown = function(event) {
 window.caMsgKapat = function() {
   if (caMsgMsgUnsub) { caMsgMsgUnsub(); caMsgMsgUnsub = null; }
   caMsgAktif = null;
-  const sg = document.getElementById("caMsgSohbetGorunum"); if (sg) sg.style.display = "none";
-  const lg = document.getElementById("caMsgListeGorunum"); if (lg) lg.style.display = "block";
+  caMsgAtacKapat();
+  const genisEkran = window.matchMedia("(min-width: 820px)").matches;
+  const sg = document.getElementById("caMsgSohbetGorunum");
+  const lg = document.getElementById("caMsgListeGorunum");
+  if (genisEkran) {
+    // Geniş ekran: sohbeti kapat ama panel görünür kalsın (placeholder göster)
+    if (sg) { sg.style.display = "block"; sg.classList.add("bos"); }
+    if (lg) lg.style.display = "block";
+    document.querySelectorAll(".ca-convrow").forEach(r => r.classList.remove("aktif"));
+  } else {
+    // Mobil: sohbeti gizle, listeye dön
+    if (sg) sg.style.display = "none";
+    if (lg) lg.style.display = "block";
+  }
   caMsgListele();
 };
 
