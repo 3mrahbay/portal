@@ -18463,6 +18463,7 @@ window.randevuSlotIptal = async function(id) {
       ogrenciAd: "",
       veliNotu: "",
       rezervasyonTarihi: "",
+      hatirlatmaGonderildi: false,
       iptalEden: currentUser.email,
       iptalTarihi: new Date().toISOString()
     });
@@ -18981,6 +18982,7 @@ window.veliSlotRezerveEt = async function(slotId) {
         ogrenciAd,
         veliNotu,
         rezervasyonTarihi: new Date().toISOString(),
+        hatirlatmaGonderildi: false,
         guncellendi: new Date().toISOString()
       };
       if (data.tip === "meslek_sunumu") {
@@ -19204,6 +19206,7 @@ window.veliRandevuIptal = async function(slotId) {
         rezervasyonTarihi: "",
         meslekAdi: "",
         meslekAciklama: "",
+        hatirlatmaGonderildi: false,
         guncellendi: new Date().toISOString()
       });
     });
