@@ -7429,13 +7429,13 @@ html, body {
 .cicek-app .ca-sectionhead { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .cicek-app .ca-link { font-family:var(--c-font-head); font-weight:700; font-size:12.5px; color:var(--c-green); background:none; border:none; cursor:pointer; padding:0; }
 
-.cicek-app .ca-quick { display:grid; grid-template-columns:repeat(7,1fr); gap:10px 4px; }
+.cicek-app .ca-quick { display:grid; grid-template-columns:repeat(8,1fr); gap:10px 3px; }
 .cicek-app .ca-qbtn { background:none; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; padding:0; }
-.cicek-app .ca-qicon { width:46px; height:46px; border-radius:15px; display:grid; place-items:center; font-size:19px; transition:transform .15s ease; }
+.cicek-app .ca-qicon { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; font-size:18px; transition:transform .15s ease; }
 .cicek-app .ca-qbtn:hover .ca-qicon { transform:translateY(-2px); }
-.cicek-app .ca-qlabel { font-size:10.5px; color:var(--c-body); font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-/* Mobilde 7 öğe dar ekrana sığmazsa yatay kaydırma */
-@media (max-width: 480px) {
+.cicek-app .ca-qlabel { font-size:10px; color:var(--c-body); font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Mobilde 8 öğe dar ekrana sığmazsa yatay kaydırma */
+@media (max-width: 560px) {
   .cicek-app .ca-quick {
     display:flex; gap:12px; overflow-x:auto; padding-bottom:6px;
     -webkit-overflow-scrolling:touch; scrollbar-width:none;
@@ -14523,8 +14523,8 @@ function caHizliIslemlerHTML() {
     // Favori yok → varsayılan 7
     secili = CA_VARSAYILAN_HIZLI.map(k => CA_MODULLER.find(m => m.k === k)).filter(Boolean);
   }
-  // Tek satırda 7 öğe sığar; fazlası varsa ilk 7'yi göster (menüden hepsine ulaşılır)
-  secili = secili.slice(0, 7);
+  // Tek satırda 8 öğe sığar; fazlası varsa ilk 8'i göster (menüden hepsine ulaşılır)
+  secili = secili.slice(0, 8);
   return secili.map(m => `
     <button class="ca-qbtn" onclick="${m.git}">
       <span class="ca-qicon" style="background:${m.renk};">${m.ikon}</span>
@@ -14881,7 +14881,7 @@ const CA_MODULLER = [
 ];
 
 // Hızlı işlemler için varsayılan 6 (favori yoksa gösterilir)
-const CA_VARSAYILAN_HIZLI = ["gunluk", "gelisim", "galeri", "mesajlar", "takvim", "odemeler", "cocugum"];
+const CA_VARSAYILAN_HIZLI = ["gunluk", "gelisim", "galeri", "mesajlar", "takvim", "odemeler", "cocugum", "duyurular"];
 
 function caMenuHTML() {
   const fav = caFavGetir();
@@ -16915,30 +16915,49 @@ function veliRenderOdemeler() {
   }).join("");
 
   // Ek ödemeler (kırtasiye/eğitim materyali, kıyafet, servis...) — aidat dışında ayrı
+  // Standart kalemler HER ZAMAN gösterilir; tutar girilmemişse "belirlenecek" yazılır.
   const dLabels = { egitimMateryali:["✏️","Eğitim Materyali / Kırtasiye"], okulKiyafeti:["👕","Okul Kıyafeti"], ormanKiyafeti:["🌲","Orman Okulu Kıyafeti"], servis1:["🚌","Orman Okulu Servisi · I. Dönem"], servis2:["🚌","Orman Okulu Servisi · II. Dönem"], yemek:["🍽️","Yemek Ücreti"], kirtasiye:["✏️","Kırtasiye"], kiyafet:["👕","Kıyafet"] };
   const dOdeme = v.digerOdemeler || (v.aidatAyarlari && v.aidatAyarlari.digerOdemeler) || {};
-  const ekKalemler = Object.keys(dOdeme).map(k => {
-    const d = dOdeme[k] || {}; const tutar = Number(d.tutar) || 0;
-    if (tutar <= 0) return "";
+
+  // Her zaman gösterilecek standart kalem sırası
+  const STANDART_KALEMLER = ["egitimMateryali", "okulKiyafeti", "ormanKiyafeti", "servis1", "servis2"];
+  // Kayıtta olan ama standart listede olmayan ekstra kalemler de eklensin
+  const tumKalemAnahtarlari = [...new Set([...STANDART_KALEMLER, ...Object.keys(dOdeme)])];
+
+  const ekKalemler = tumKalemAnahtarlari.map(k => {
+    const d = dOdeme[k] || {};
+    const tutar = Number(d.tutar) || 0;
     const meta = dLabels[k] || ["💠", k];
     const odendi = !!d.odendi;
-    const pp = odendi ? ["#DFF4E3", "var(--c-green-deep)", "✓ Ödendi"] : ["var(--c-yellow-soft)", "#8a6d1a", "⏱ Bekliyor"];
-    const bildirBtn = odendi ? "" : `
+    const belirlenmedi = (tutar <= 0);
+
+    let pp;
+    if (odendi) pp = ["#DFF4E3", "var(--c-green-deep)", "✓ Ödendi"];
+    else if (belirlenmedi) pp = ["var(--c-tint)", "var(--c-muted)", "Belirlenecek"];
+    else pp = ["var(--c-yellow-soft)", "#8a6d1a", "⏱ Bekliyor"];
+
+    // Tutar belirlenmemişse bildir butonu gösterme (henüz ödenecek bir şey yok)
+    const bildirBtn = (odendi || belirlenmedi) ? "" : `
         <button class="ca-btn ghost" style="padding:7px 12px; font-size:11px; margin-top:10px; width:100%;" onclick="veliOdemeBildirAc('diger-${k}', '${escapeHtml(meta[1])}', ${tutar})">✉️ Bu Ödemeyi Bildir</button>`;
-    return `<div class="ca-card" style="padding:13px 16px;">
+
+    const tutarYazi = belirlenmedi
+      ? `<span style="color:var(--c-muted);">Tutar daha sonra belirlenecek</span>`
+      : `${tutar.toLocaleString("tr-TR")} ₺${d.sonOdemeTarihi ? " · son " + formatTarih(d.sonOdemeTarihi) : ""}${d.not ? " · " + escapeHtml(d.not) : ""}`;
+
+    return `<div class="ca-card" style="padding:13px 16px; ${belirlenmedi ? "opacity:0.72;" : ""}">
       <div class="ca-row" style="justify-content:space-between;">
         <div class="ca-row" style="gap:10px;"><span style="font-size:20px;">${meta[0]}</span>
           <div><div class="ca-head" style="font-size:14px;">${escapeHtml(meta[1])}</div>
-            <div class="ca-tile-sub">${tutar.toLocaleString("tr-TR")} ₺${d.sonOdemeTarihi ? " · son " + formatTarih(d.sonOdemeTarihi) : ""}${d.not ? " · " + escapeHtml(d.not) : ""}</div></div>
+            <div class="ca-tile-sub">${tutarYazi}</div></div>
         </div>
         <span class="ca-pill" style="background:${pp[0]}; color:${pp[1]};">${pp[2]}</span>
       </div>
       ${bildirBtn}
     </div>`;
   }).join("");
-  const ekBolum = ekKalemler.trim() ? `
-        <div class="ca-sectionhead" style="margin-top:8px;"><h3 class="ca-head" style="font-size:15px;">Ek Ödemeler</h3><span class="ca-tile-sub">aidat dışında</span></div>
-        <div class="ca-stack">${ekKalemler}</div>` : "";
+  const ekBolum = `
+        <div class="ca-sectionhead" style="margin-top:8px;"><h3 class="ca-head" style="font-size:15px;">Diğer Ödemeler</h3><span class="ca-tile-sub">aidat dışında</span></div>
+        <div class="ca-stack">${ekKalemler}</div>`;
 
   // Dönem ödeme planı kartı (1. / 2. dönem kolaylığı)
   const donemPlanCard = `
