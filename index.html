@@ -7413,10 +7413,13 @@ html, body {
 
 .cicek-app .ca-topbar { display:flex; align-items:center; justify-content:space-between; }
 .cicek-app .ca-bell {
-  position:relative; width:42px; height:42px; border-radius:14px; border:1px solid var(--c-border);
+  position:relative; width:44px; height:44px; border-radius:14px; border:1px solid var(--c-border);
   background:var(--c-surface); font-size:18px; cursor:pointer; display:grid; place-items:center;
+  color:var(--c-ink); transition:transform .15s ease, background .15s ease;
 }
-.cicek-app .ca-bell-dot { position:absolute; top:9px; right:9px; width:9px; height:9px; border-radius:50%; background:var(--c-pink-deep); border:2px solid var(--c-surface); }
+.cicek-app .ca-bell:hover { transform:translateY(-1px); background:var(--c-tint); }
+.cicek-app .ca-bell svg { width:21px; height:21px; }
+.cicek-app .ca-bell-dot { position:absolute; top:8px; right:8px; width:9px; height:9px; border-radius:50%; background:var(--c-pink-deep); border:2px solid var(--c-surface); }
 
 .cicek-app .ca-status {
   margin-top:14px; background:rgba(255,255,255,.20); color:#fff;
@@ -7426,7 +7429,7 @@ html, body {
 .cicek-app .ca-sectionhead { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .cicek-app .ca-link { font-family:var(--c-font-head); font-weight:700; font-size:12.5px; color:var(--c-green); background:none; border:none; cursor:pointer; padding:0; }
 
-.cicek-app .ca-quick { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.cicek-app .ca-quick { display:grid; grid-template-columns:repeat(4,1fr); gap:14px 8px; }
 .cicek-app .ca-qbtn { background:none; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:7px; }
 .cicek-app .ca-qicon { width:54px; height:54px; border-radius:18px; display:grid; place-items:center; font-size:22px; transition:transform .15s ease; }
 .cicek-app .ca-qbtn:hover .ca-qicon { transform:translateY(-2px); }
@@ -14340,7 +14343,7 @@ function veliRenderYeniApp() {
                  : caHomeHTML();
   if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => caHomeTakvimOnizlemeRender(), 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); }, 100); } catch(e) { console.warn(e); } }
 }
 
 // ===== Faz 1: Eğitim Takibi — GERÇEK VERİ (ogrenciGelisim + mufredatlar) =====
@@ -14496,6 +14499,27 @@ window.caMenuFiltre = function(q) {
   });
 };
 
+// Hızlı işlemler: favoriler varsa onları, yoksa varsayılan 6'yı göster
+function caHizliIslemlerHTML() {
+  const fav = caFavGetir();
+  let secili;
+  if (fav.size > 0) {
+    // Favorilenenler (home hariç — zaten ana sayfadayız), modül sırasına göre
+    secili = CA_MODULLER.filter(m => fav.has(m.k) && m.k !== "home");
+    // Favori varsa ama hepsi home ise, varsayılana düş
+    if (secili.length === 0) secili = CA_MODULLER.filter(m => CA_VARSAYILAN_HIZLI.includes(m.k));
+  } else {
+    // Favori yok → varsayılan 6
+    secili = CA_VARSAYILAN_HIZLI.map(k => CA_MODULLER.find(m => m.k === k)).filter(Boolean);
+  }
+  return secili.map(m => `
+    <button class="ca-qbtn" onclick="${m.git}">
+      <span class="ca-qicon" style="background:${m.renk};">${m.ikon}</span>
+      <span class="ca-qlabel">${m.ad.split(" ")[0]}</span>
+    </button>
+  `).join("");
+}
+
 function caHomeHTML() {
   const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || null;
   const cocukAd = ogr ? (ogr.ogrenciAdSoyad || "Çocuğum") : "Çocuğum";
@@ -14519,9 +14543,16 @@ function caHomeHTML() {
           </div>
         </div>
         <div class="ca-row" style="gap:8px;">
-          <button class="ca-bell" onclick="caGo('menu')" title="Tüm modüller">▦</button>
-          <button class="ca-bell" onclick="veliSwitchTab('bildirimler')" title="Bildirimler">🔔<span class="ca-bell-dot"></span></button>
-          <button class="ca-bell" onclick="signOut()" title="Çıkış Yap" style="color:#dc2626;">🚪</button>
+          <button class="ca-bell" onclick="caGo('menu')" title="Tüm modüller" aria-label="Tüm modüller">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          </button>
+          <button class="ca-bell" onclick="veliSwitchTab('bildirimler')" title="Bildirimler" aria-label="Bildirimler">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <span class="ca-bell-dot"></span>
+          </button>
+          <button class="ca-bell" onclick="signOut()" title="Çıkış Yap" aria-label="Çıkış Yap" style="color:#dc2626;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
         </div>
       </div>
 
@@ -14563,22 +14594,7 @@ function caHomeHTML() {
       <div>
         <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
         <div class="ca-quick">
-          <button class="ca-qbtn" onclick="veliSwitchTab('okul')">
-            <span class="ca-qicon" style="background:var(--c-pink-soft);">🍽️</span>
-            <span class="ca-qlabel">Menü</span>
-          </button>
-          <button class="ca-qbtn" onclick="caGo('egitim')">
-            <span class="ca-qicon" style="background:var(--c-yellow-soft);">📊</span>
-            <span class="ca-qlabel">Gelişim</span>
-          </button>
-          <button class="ca-qbtn" onclick="caGo('galeri')">
-            <span class="ca-qicon" style="background:var(--c-blue-soft);">📷</span>
-            <span class="ca-qlabel">Galeri</span>
-          </button>
-          <button class="ca-qbtn" onclick="veliSwitchTab('odemeler')">
-            <span class="ca-qicon" style="background:var(--c-purple-soft);">💳</span>
-            <span class="ca-qlabel">Ödeme</span>
-          </button>
+          ${caHizliIslemlerHTML()}
         </div>
       </div>
 
@@ -14621,6 +14637,17 @@ function caHomeHTML() {
             <div style="flex:1;"></div>
             <div style="font-family:var(--c-font-head); font-weight:700; font-size:17px;">23 Nisan Çocuk Şenliği</div>
             <div style="font-size:12px; opacity:.92;">Yarın · 10:00 — 14:00 · Bahçe</div>
+          </div>
+        </div>
+
+        <!-- 🗓️ TAKVİM KARTI - duyuruların hemen altında -->
+        <div>
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">🗓️ Takvim</h3>
+            <button class="ca-link" onclick="caGo('takvim')">Tümü →</button>
+          </div>
+          <div id="caHomeTakvimOnizleme" class="ca-card" style="padding:0; overflow:hidden;">
+            <div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
           </div>
         </div>
 
@@ -14681,35 +14708,62 @@ function caHomeHTML() {
             <button class="ca-link" onclick="caGo('egitim')">Detay →</button>
           </div>
           <div class="ca-card">
-            <div class="ca-edurow"><span class="lbl">Sosyal</span><span class="track"><span class="fill" style="width:90%; background:var(--c-green-light);"></span></span><span class="pct">90</span></div>
-            <div class="ca-edurow"><span class="lbl">Dil</span><span class="track"><span class="fill" style="width:85%; background:var(--c-yellow-deep);"></span></span><span class="pct">85</span></div>
-            <div class="ca-edurow"><span class="lbl">Motor</span><span class="track"><span class="fill" style="width:78%; background:var(--c-blue-deep);"></span></span><span class="pct">78</span></div>
-            <div class="ca-edurow"><span class="lbl">Bilişsel</span><span class="track"><span class="fill" style="width:82%; background:var(--c-purple-deep);"></span></span><span class="pct">82</span></div>
-            <div class="ca-card tint" style="margin-top:12px; padding:12px; display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="veliSwitchTab('raporlar')">
+            <div id="caHomeEgitimOzet">
+              <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
+            </div>
+            <div class="ca-card tint" style="margin-top:12px; padding:12px; display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="caGo('egitim')">
               <span style="font-size:20px;">📄</span>
               <div>
-                <div style="font-weight:700; color:var(--c-ink); font-size:13px;">Nisan ayı gelişim raporu hazır</div>
-                <div class="ca-tile-sub">Montessori · Orman · İngilizce · Değerler</div>
+                <div style="font-weight:700; color:var(--c-ink); font-size:13px;">Gelişim raporlarını görüntüle</div>
+                <div class="ca-tile-sub">Montessori · İngilizce · Değerler · Orman</div>
               </div>
               <span class="ca-link" style="margin-left:auto;">Aç →</span>
             </div>
           </div>
         </div>
 
-        <!-- 🗓️ TAKVİM KARTI - ana sayfada yaklaşan etkinlikler -->
-        <div style="margin-top:6px;">
-          <div class="ca-sectionhead">
-            <h3 class="ca-head" style="font-size:15px;">🗓️ Takvim</h3>
-            <button class="ca-link" onclick="caGo('takvim')">Tümü →</button>
-          </div>
-          <div id="caHomeTakvimOnizleme" class="ca-card" style="padding:0; overflow:hidden;">
-            <div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
-          </div>
-        </div>
-
       </div>
     </div>
   `;
+}
+
+// Ana sayfa eğitim gelişim özeti — GERÇEK veri (Montessori/İngilizce/Değerler + Orman yakında)
+async function caHomeEgitimOzetRender() {
+  const el = document.getElementById("caHomeEgitimOzet");
+  if (!el) return;
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]);
+  if (!ogr || !ogr.id) {
+    el.innerHTML = `<div style="padding:14px; text-align:center; color:var(--c-muted); font-size:13px;">Önce bir çocuk seçilmeli</div>`;
+    return;
+  }
+
+  try {
+    const snap = await getDoc(doc(db, "ogrenciGelisim", ogr.id));
+    const gel = snap.exists() ? snap.data() : {};
+
+    // 3 gerçek disiplin
+    const dlist = [
+      { id:"montessori", ad:"Montessori",  renk:"var(--c-green-light)" },
+      { id:"ingilizce",  ad:"İngilizce",   renk:"var(--c-blue-deep)" },
+      { id:"degerler",   ad:"Değerler",    renk:"var(--c-purple-deep)" }
+    ];
+
+    let satirlar = "";
+    for (const d of dlist) {
+      const muf = await mufredatYukle(d.id);
+      const kayit = (gel[d.id] && gel[d.id].kayitlar) || {};
+      const gen = disiplinGenelIlerleme(kayit, muf);
+      satirlar += `<div class="ca-edurow"><span class="lbl">${d.ad}</span><span class="track"><span class="fill" style="width:${gen.yuzde}%; background:${d.renk};"></span></span><span class="pct">${gen.yuzde}</span></div>`;
+    }
+
+    // Orman Okulu — henüz veri sistemi yok, "yakında" satırı
+    satirlar += `<div class="ca-edurow" style="opacity:0.55;"><span class="lbl">🌳 Orman</span><span class="track"><span class="fill" style="width:0%; background:#5C8B5A;"></span></span><span class="pct" style="font-size:10px;">yakında</span></div>`;
+
+    el.innerHTML = satirlar;
+  } catch (e) {
+    console.warn("caHomeEgitimOzetRender:", e?.message);
+    el.innerHTML = `<div style="padding:14px; text-align:center; color:var(--c-muted); font-size:12px;">Gelişim verisi yüklenemedi</div>`;
+  }
 }
 
 // Ana sayfa takvim önizlemesi - yaklaşan 3 etkinlik
@@ -14796,23 +14850,29 @@ async function caHomeTakvimOnizlemeRender() {
 }
 
 // ===== Menü (Tüm Modüller) ekranı =====
+// ZEKY veli modül listesi (caMenu + hızlı işlemler ortak kullanır)
+const CA_MODULLER = [
+  { k:"home",      ad:"Ana Sayfa",         ikon:"🏠", renk:"var(--c-green-light)", git:"caGo('home')" },
+  { k:"cocugum",   ad:"Çocuğum",           ikon:"👧", renk:"var(--c-pink-soft)",   git:"caGo('profil')" },
+  { k:"gunluk",    ad:"Günlük Rapor",      ikon:"📔", renk:"var(--c-pink-soft)",   git:"caGo('gunluk')" },
+  { k:"gelisim",   ad:"Gelişim Raporları", ikon:"📊", renk:"var(--c-yellow-soft)", git:"caGo('egitim')" },
+  { k:"galeri",    ad:"Galeri",            ikon:"📷", renk:"var(--c-blue-soft)",   git:"caGo('galeri')" },
+  { k:"mesajlar",  ad:"Mesajlar",          ikon:"💬", renk:"var(--c-yellow-soft)", git:"caGo('mesajlar')" },
+  { k:"duyurular", ad:"Duyurular",         ikon:"🔔", renk:"var(--c-peach-soft)",  git:"veliSwitchTab('bildirimler')" },
+  { k:"odemeler",  ad:"Ödemeler",          ikon:"💳", renk:"var(--c-purple-soft)", git:"veliSwitchTab('odemeler')" },
+  { k:"sozlesme",  ad:"Sözleşme",          ikon:"📄", renk:"var(--c-blue-soft)",   git:"veliSwitchTab('sozlesme')" },
+  { k:"okul",      ad:"Okul Hayatı",       ikon:"🌸", renk:"#Dff4e3",              git:"veliSwitchTab('okul')" },
+  { k:"takvim",    ad:"Takvim",            ikon:"🗓️", renk:"var(--c-green-light)", git:"caGo('takvim')" },
+  { k:"yemek",     ad:"Yemek Menüsü",      ikon:"🍽️", renk:"var(--c-pink-soft)",   git:"veliSwitchTab('okul')" },
+  { k:"ayarlar",   ad:"Ayarlar",           ikon:"⚙️", renk:"var(--c-tint)",        git:"veliSwitchTab('ayarlar')" }
+];
+
+// Hızlı işlemler için varsayılan 6 (favori yoksa gösterilir)
+const CA_VARSAYILAN_HIZLI = ["gunluk", "gelisim", "galeri", "mesajlar", "takvim", "odemeler"];
+
 function caMenuHTML() {
   const fav = caFavGetir();
-  const moduller = [
-    { k:"home",      ad:"Ana Sayfa",         ikon:"🏠", renk:"var(--c-green-light)", git:"caGo('home')" },
-    { k:"cocugum",   ad:"Çocuğum",           ikon:"👧", renk:"var(--c-pink-soft)",   git:"caGo('profil')" },
-    { k:"gunluk",    ad:"Günlük Rapor",      ikon:"📔", renk:"var(--c-pink-soft)",   git:"caGo('gunluk')" },
-    { k:"gelisim",   ad:"Gelişim Raporları", ikon:"📊", renk:"var(--c-yellow-soft)", git:"caGo('egitim')" },
-    { k:"galeri",    ad:"Galeri",            ikon:"📷", renk:"var(--c-blue-soft)",   git:"caGo('galeri')" },
-    { k:"mesajlar",  ad:"Mesajlar",          ikon:"💬", renk:"var(--c-yellow-soft)", git:"caGo('mesajlar')" },
-    { k:"duyurular", ad:"Duyurular",         ikon:"🔔", renk:"var(--c-peach-soft)",  git:"veliSwitchTab('bildirimler')" },
-    { k:"odemeler",  ad:"Ödemeler",          ikon:"💳", renk:"var(--c-purple-soft)", git:"veliSwitchTab('odemeler')" },
-    { k:"sozlesme",  ad:"Sözleşme",          ikon:"📄", renk:"var(--c-blue-soft)",   git:"veliSwitchTab('sozlesme')" },
-    { k:"okul",      ad:"Okul Hayatı",       ikon:"🌸", renk:"#Dff4e3",              git:"veliSwitchTab('okul')" },
-    { k:"takvim",    ad:"Takvim",            ikon:"🗓️", renk:"var(--c-green-light)", git:"caGo('takvim')" },
-    { k:"yemek",     ad:"Yemek Menüsü",      ikon:"🍽️", renk:"var(--c-pink-soft)",   git:"veliSwitchTab('okul')" },
-    { k:"ayarlar",   ad:"Ayarlar",           ikon:"⚙️", renk:"var(--c-tint)",        git:"veliSwitchTab('ayarlar')" }
-  ];
+  const moduller = CA_MODULLER;
   const tiles = moduller.map(m => {
     const aktif = fav.has(m.k);
     return `
@@ -16824,6 +16884,11 @@ function veliRenderOdemeler() {
       gecikmis: ["#FFE3E9", "var(--c-pink-deep)", "⚠ Gecikmiş"]
     };
     const p = pmap[durum] || ["var(--c-tint)", "var(--c-muted)", durum];
+    const odenmisMi = (durum === "odendi");
+    const bildirBtn = odenmisMi ? "" : `
+        <button class="ca-btn ghost" style="padding:7px 12px; font-size:11px; margin-top:10px; width:100%;" onclick="veliOdemeBildirAc('aidat-${ay.ayKod}', '${escapeHtml(ay.tam)} Aidatı', ${beklenen})">✉️ Bu Ödemeyi Bildir</button>`;
+    const gecikmeUyari = (durum === "gecikmis") ? `
+        <div style="background:#FFE3E9; border:1px solid #f9a8d4; border-radius:8px; padding:7px 10px; margin-top:8px; font-size:11px; color:#9d174d;">⚠ Bu ödemede gecikme var. Ödediyseniz lütfen bildirin.</div>` : "";
     return `<div class="ca-card ca-odeme-karti" data-durum="${filtreKat}" style="padding:13px 16px;">
       <div class="ca-row" style="justify-content:space-between;">
         <div><div class="ca-head" style="font-size:14px;">${escapeHtml(ay.tam)}</div>
@@ -16831,11 +16896,13 @@ function veliRenderOdemeler() {
         </div>
         <span class="ca-pill" style="background:${p[0]}; color:${p[1]};">${p[2]}</span>
       </div>
+      ${gecikmeUyari}
+      ${bildirBtn}
     </div>`;
   }).join("");
 
   // Ek ödemeler (kırtasiye/eğitim materyali, kıyafet, servis...) — aidat dışında ayrı
-  const dLabels = { egitimMateryali:["✏️","Eğitim Materyali / Kırtasiye"], okulKiyafeti:["👕","Okul Kıyafeti"], ormanKiyafeti:["🌲","Orman Okulu Kıyafeti"], servis1:["🚌","Servis · I. Dönem"], servis2:["🚌","Servis · II. Dönem"], yemek:["🍽️","Yemek Ücreti"], kirtasiye:["✏️","Kırtasiye"], kiyafet:["👕","Kıyafet"] };
+  const dLabels = { egitimMateryali:["✏️","Eğitim Materyali / Kırtasiye"], okulKiyafeti:["👕","Okul Kıyafeti"], ormanKiyafeti:["🌲","Orman Okulu Kıyafeti"], servis1:["🚌","Orman Okulu Servisi · I. Dönem"], servis2:["🚌","Orman Okulu Servisi · II. Dönem"], yemek:["🍽️","Yemek Ücreti"], kirtasiye:["✏️","Kırtasiye"], kiyafet:["👕","Kıyafet"] };
   const dOdeme = v.digerOdemeler || (v.aidatAyarlari && v.aidatAyarlari.digerOdemeler) || {};
   const ekKalemler = Object.keys(dOdeme).map(k => {
     const d = dOdeme[k] || {}; const tutar = Number(d.tutar) || 0;
@@ -16843,6 +16910,8 @@ function veliRenderOdemeler() {
     const meta = dLabels[k] || ["💠", k];
     const odendi = !!d.odendi;
     const pp = odendi ? ["#DFF4E3", "var(--c-green-deep)", "✓ Ödendi"] : ["var(--c-yellow-soft)", "#8a6d1a", "⏱ Bekliyor"];
+    const bildirBtn = odendi ? "" : `
+        <button class="ca-btn ghost" style="padding:7px 12px; font-size:11px; margin-top:10px; width:100%;" onclick="veliOdemeBildirAc('diger-${k}', '${escapeHtml(meta[1])}', ${tutar})">✉️ Bu Ödemeyi Bildir</button>`;
     return `<div class="ca-card" style="padding:13px 16px;">
       <div class="ca-row" style="justify-content:space-between;">
         <div class="ca-row" style="gap:10px;"><span style="font-size:20px;">${meta[0]}</span>
@@ -16851,6 +16920,7 @@ function veliRenderOdemeler() {
         </div>
         <span class="ca-pill" style="background:${pp[0]}; color:${pp[1]};">${pp[2]}</span>
       </div>
+      ${bildirBtn}
     </div>`;
   }).join("");
   const ekBolum = ekKalemler.trim() ? `
@@ -16902,12 +16972,17 @@ function veliRenderOdemeler() {
 
         ${ekBolum}
 
-        <div class="ca-card">
-          <div class="ca-head" style="font-size:14px;">🏦 Banka Hesabı</div>
-          <div style="margin-top:8px; font-size:13px; color:var(--c-body); line-height:1.8;">
-            <strong>Kuveyt Türk</strong> · EMRAH BAY<br>
-            <code style="background:var(--c-tint); padding:3px 7px; border-radius:6px;">${ibanNo}</code>
-            <button class="ca-btn ghost" style="padding:5px 11px; font-size:11px; margin-left:6px;" onclick="veliKopyaIBAN('${ibanNo}')">Kopyala</button>
+        <div class="ca-card" style="background:linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%); border:1px solid #a5f3fc;">
+          <div class="ca-head" style="font-size:14px; color:#0e7490;">🏦 Ödeme Hesabı</div>
+          <div style="margin-top:10px;">
+            <div class="ca-tile-sub" style="font-size:11px;">BANKA / HESAP SAHİBİ</div>
+            <div style="font-size:14px; font-weight:600; color:var(--c-ink); margin-bottom:10px;">Kuveyt Türk · EMRAH BAY</div>
+            <div class="ca-tile-sub" style="font-size:11px;">IBAN</div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+              <code style="flex:1; background:white; padding:11px 12px; border-radius:10px; border:1px solid #a5f3fc; font-size:13px; letter-spacing:0.5px; color:#0f172a; word-break:break-all;">${ibanNo}</code>
+              <button class="ca-btn" style="background:#0891b2; padding:11px 16px; font-size:13px; flex-shrink:0; min-height:44px;" onclick="veliKopyaIBAN('${ibanNo}')">📋 Kopyala</button>
+            </div>
+            <div class="ca-tile-sub" style="font-size:11px; margin-top:10px; color:#0e7490;">💡 Açıklamaya çocuğunuzun adını yazmayı unutmayın.</div>
           </div>
         </div>
       </div>
@@ -16922,9 +16997,157 @@ window.veliKopyaIBAN = function(iban) {
   showToast("✓ IBAN kopyalandı");
 };
 
+// ===== ÖDEME BİLDİRİM SİSTEMİ =====
+// Veli bir ödeme kalemini "ödedim" diye bildirir → Firestore'a yazılır + yönetime mail
+// Kalem tipleri: aidat-{ayKod}, onOdeme, diger-{anahtar}
+
+window.veliOdemeBildirAc = function(kalemTipi, kalemAd, tutar) {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || null;
+  if (!ogr) { showToast("Önce çocuk seçilmeli", "error"); return; }
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  const tutarStr = tutar ? Number(tutar).toLocaleString("tr-TR") + " ₺" : "";
+
+  const html = `
+    <div id="odemeBildirOverlay" class="rezervasyon-overlay" onclick="if(event.target===this) odemeBildirKapat()">
+      <div class="rezervasyon-kart" style="max-width:440px;">
+        <div class="rezervasyon-kart-head" style="background:linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border-color:#c4b5fd;">
+          <div class="rezervasyon-cicek">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </div>
+          <div style="text-align:center; margin-top:10px;">
+            <div style="font-size:11px; font-weight:700; color:#6d28d9; text-transform:uppercase; letter-spacing:0.5px;">Ödeme Bildirimi</div>
+            <h2 style="margin:6px 0 0; font-size:17px; color:#1f2937; font-weight:700;">${escapeHtml(kalemAd)}</h2>
+            ${tutarStr ? `<div style="font-size:14px; color:#6d28d9; font-weight:600; margin-top:4px;">${tutarStr}</div>` : ""}
+          </div>
+        </div>
+        <div class="rezervasyon-body">
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px; margin-bottom:14px; font-size:12px; color:#166534;">
+            💡 Ödemeyi yaptıktan sonra bu formu doldurun. Yönetim ödemenizi kontrol edip onaylayacaktır.
+          </div>
+
+          <input type="hidden" id="odemeBildirKalemTipi" value="${kalemTipi}">
+          <input type="hidden" id="odemeBildirKalemAd" value="${escapeHtml(kalemAd)}">
+          <input type="hidden" id="odemeBildirBeklenenTutar" value="${tutar || 0}">
+
+          <div class="rezervasyon-form-group">
+            <label>Ödediğiniz Tutar (₺) *</label>
+            <input type="number" id="odemeBildirTutar" value="${tutar || ''}" placeholder="Örn: 37000"
+                   style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
+          </div>
+
+          <div class="rezervasyon-form-group">
+            <label>Ödeme Tarihi *</label>
+            <input type="date" id="odemeBildirTarih" value="${bugun}"
+                   style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
+          </div>
+
+          <div class="rezervasyon-form-group">
+            <label>Ödeme Yöntemi</label>
+            <select id="odemeBildirYontem" style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
+              <option value="havale">Havale / EFT</option>
+              <option value="elden">Elden / Nakit</option>
+              <option value="diger">Diğer</option>
+            </select>
+          </div>
+
+          <div class="rezervasyon-form-group">
+            <label>Açıklama / Not (opsiyonel)</label>
+            <textarea id="odemeBildirNot" rows="2" placeholder="Örn: Eşimin hesabından gönderdim, dekont adı farklı olabilir..."></textarea>
+          </div>
+        </div>
+        <div class="rezervasyon-butonlar">
+          <button class="rezervasyon-btn kapat" onclick="odemeBildirKapat()">İptal</button>
+          <button class="rezervasyon-btn primary" id="odemeBildirGonderBtn" onclick="odemeBildirGonder()" style="background:#7c3aed;">✉️ Bildirimi Gönder</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", html);
+};
+
+window.odemeBildirKapat = function() {
+  document.getElementById("odemeBildirOverlay")?.remove();
+};
+
+window.odemeBildirGonder = async function() {
+  const btn = document.getElementById("odemeBildirGonderBtn");
+  if (!btn) return;
+
+  const kalemTipi = document.getElementById("odemeBildirKalemTipi").value;
+  const kalemAd = document.getElementById("odemeBildirKalemAd").value;
+  const tutar = parseFloat(document.getElementById("odemeBildirTutar").value) || 0;
+  const tarih = document.getElementById("odemeBildirTarih").value;
+  const yontem = document.getElementById("odemeBildirYontem").value;
+  const not = document.getElementById("odemeBildirNot").value.trim();
+
+  if (tutar <= 0) return showToast("Geçerli bir tutar girin", "error");
+  if (!tarih) return showToast("Ödeme tarihini seçin", "error");
+
+  const ogr = veliAktifOgrenci;
+  const veliEmail = currentUser.email.toLowerCase();
+  const veliAd = currentUser.displayName || veliEmail.split("@")[0];
+
+  btn.disabled = true;
+  btn.innerHTML = "⏳ Gönderiliyor...";
+
+  const yontemAd = { havale: "Havale/EFT", elden: "Elden/Nakit", diger: "Diğer" }[yontem] || yontem;
+
+  try {
+    // Firestore'a bildirim yaz
+    const bildirim = {
+      ogrenciId: ogr.id,
+      ogrenciAd: ogr.ogrenciAdSoyad || "",
+      sinif: ogr.sinif || "",
+      veliEmail,
+      veliAd,
+      kalemTipi,
+      kalemAd,
+      bildirilenTutar: tutar,
+      odemeTarihi: tarih,
+      odemeYontemi: yontem,
+      not,
+      durum: "beklemede",  // beklemede | onaylandi | reddedildi
+      donem: (typeof AKTIF_DONEM !== "undefined" ? AKTIF_DONEM : ""),
+      olusturuldu: new Date().toISOString()
+    };
+    await addDoc(collection(db, "odemeBildirimleri"), bildirim);
+
+    // Yönetime mail gönder
+    const mailIcerik = portalMailSablon(
+      "💳 Yeni Ödeme Bildirimi",
+      `<strong>${escapeHtml(veliAd)}</strong> bir ödeme bildirdi:<br><br>
+       <table style="width:100%; border-collapse:collapse; font-size:14px;">
+         <tr><td style="padding:6px 0; color:#666;">Öğrenci:</td><td style="padding:6px 0;"><strong>${escapeHtml(ogr.ogrenciAdSoyad || "")}</strong> (${escapeHtml(ogr.sinif || "—")})</td></tr>
+         <tr><td style="padding:6px 0; color:#666;">Ödeme kalemi:</td><td style="padding:6px 0;"><strong>${escapeHtml(kalemAd)}</strong></td></tr>
+         <tr><td style="padding:6px 0; color:#666;">Tutar:</td><td style="padding:6px 0;"><strong>${tutar.toLocaleString("tr-TR")} ₺</strong></td></tr>
+         <tr><td style="padding:6px 0; color:#666;">Tarih:</td><td style="padding:6px 0;">${formatTarih(tarih)}</td></tr>
+         <tr><td style="padding:6px 0; color:#666;">Yöntem:</td><td style="padding:6px 0;">${yontemAd}</td></tr>
+         ${not ? `<tr><td style="padding:6px 0; color:#666;">Not:</td><td style="padding:6px 0;">${escapeHtml(not)}</td></tr>` : ""}
+       </table>`,
+      "Lütfen ödemeyi kontrol edip portal üzerinden onaylayın."
+    );
+    await brevoMail({
+      to: SCHOOL_EMAIL,
+      toName: "Bir Çiçek Koleji",
+      subject: `💳 Ödeme Bildirimi · ${ogr.ogrenciAdSoyad || ""} · ${kalemAd}`,
+      htmlContent: mailIcerik,
+      replyTo: veliEmail
+    });
+
+    showToast("✓ Ödeme bildiriminiz iletildi");
+    odemeBildirKapat();
+  } catch (e) {
+    console.error("Ödeme bildirim hatası:", e);
+    btn.disabled = false;
+    btn.innerHTML = "✉️ Bildirimi Gönder";
+    showToast("Bildirim gönderilemedi: " + e.message, "error");
+  }
+};
+
+// Genel ödeme bildir (üst buton) — kalem seçimsiz, genel
 window.veliOdemeBildir = function() {
-  showToast("Ödeme bildirim özelliği yakında aktif olacak", "warn");
-  // TODO: Bu, Aşama 2'de tamamlanacak - Firestore'a bildirim yaz + e-posta gönder
+  veliOdemeBildirAc("genel", "Genel Ödeme Bildirimi", 0);
 };
 
 function veliRenderSozlesme() {
