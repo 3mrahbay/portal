@@ -11541,6 +11541,20 @@ html, body {
         </div>
       </div>
 
+      <!-- Peşinat (Ön Ödeme) -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label>🎫 Peşinat / Ön Ödeme (TL)</label>
+          <input type="number" id="ayarOnOdeme" placeholder="0" min="0" step="100" oninput="onOdemeElleDegisti()">
+          <small style="display:block; margin-top:4px; color:#78716c; font-size:11px;" id="onOdemeIpucu">Erken kayıtta (Mayıs–Ağustos) önerilir. Eylül ve sonrası genelde 0.</small>
+        </div>
+        <div class="form-group" style="display:flex; align-items:flex-end;">
+          <div style="font-size:11px; color:#78716c; line-height:1.4;">
+            ℹ️ Peşinat girilip kayıt ayı Eylül öncesiyse kalan <strong>çift dönemli</strong> hesaplanır. Eylül ve sonrası <strong>eşit aylık</strong> olur. Tümü <strong>elle düzeltilebilir</strong>.
+          </div>
+        </div>
+      </div>
+
       <div class="form-grid full">
         <div class="form-group">
           <label>İndirim Nedeni (Opsiyonel)</label>
@@ -30399,6 +30413,8 @@ window.openAyarModal = async function(ogrenciId) {
     document.getElementById("ayarBaslangic").value = a.baslangicAyi || getDefaultBaslangic();
     document.getElementById("ayarIndirim").value = a.indirimOrani || 0;
     document.getElementById("ayarIndirimNedeni").value = a.indirimNedeni || "";
+    const onOdemeEl = document.getElementById("ayarOnOdeme");
+    if (onOdemeEl) onOdemeEl.value = a.onOdeme || "";
     document.getElementById("ayarPesin").checked = !!a.pesinOdeme;
     document.getElementById("ayarYazOkulu").checked = !!a.yazOkulu;
     document.getElementById("ayarNotlar").value = a.notlar || "";
@@ -30425,6 +30441,8 @@ window.openAyarModal = async function(ogrenciId) {
     document.getElementById("ayarBaslangic").value = getDefaultBaslangic();
     document.getElementById("ayarIndirim").value = 0;
     document.getElementById("ayarIndirimNedeni").value = "";
+    const onOdemeElYeni = document.getElementById("ayarOnOdeme");
+    if (onOdemeElYeni) onOdemeElYeni.value = "";
     document.getElementById("ayarPesin").checked = false;
     document.getElementById("ayarYazOkulu").checked = false;
     document.getElementById("ayarNotlar").value = "";
@@ -32582,6 +32600,7 @@ function renderAylikOdeme() {
   const taksit = parseInt(document.getElementById("ayarTaksit").value) || 12;
   const baslangic = document.getElementById("ayarBaslangic").value;
   const pesin = document.getElementById("ayarPesin").checked;
+  const onOdeme = parseFloat(document.getElementById("ayarOnOdeme")?.value) || 0;
 
   if (!baslangic || taksit <= 0) {
     grid.innerHTML = '<div class="ozel-madde-empty">Aidat ve dönem başlangıcı girildikten sonra aylık ödeme takibi burada görünecek.</div>';
@@ -32598,17 +32617,78 @@ function renderAylikOdeme() {
   const ayListesi = getAyListesi(baslangic, taksit);
   const mevcutOdemeler = (currentOgrenci && ayarListesi[currentOgrenci.id] &&
                          ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
+  // Dönem aylıkları (saveAyarlar/hesapla ile bellekte tutulur)
+  const mevcutA = (currentOgrenci && ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aidatAyarlari) || {};
+  const iDonemAylik = mevcutA.iDonemAylik || aidat;
+  const iiDonemAylik = mevcutA.iiDonemAylik || aidat;
+
+  // Bir ayın beklenen tutarını belirle: manuel girilmişse o, yoksa dönem aylığı
+  function ayBeklenen(ay, odeme) {
+    if (odeme && odeme.beklenenTutar !== undefined && odeme.beklenenTutar !== null && odeme.beklenenTutar !== "") {
+      return parseFloat(odeme.beklenenTutar);
+    }
+    // I. dönem: Eylül-Ocak (ay>=9 veya ay<=1), II. dönem: Şubat-Haziran
+    return (ay.ay >= 9 || ay.ay <= 1) ? iDonemAylik : iiDonemAylik;
+  }
 
   let html = "";
   let toplamOdenen = 0;
   let toplamBeklenen = 0;
   let gecikmiSayisi = 0;
 
+  // ===== PEŞİNAT KARTI (varsa, en başta) =====
+  if (onOdeme > 0) {
+    const onOd = mevcutOdemeler["__onOdeme"] || {};
+    const onOdendi = !!onOd.odendi;
+    const onOdenenTutar = parseFloat(onOd.odenenTutar) || (onOdendi ? onOdeme : 0);
+    const onTarih = onOd.odemeTarihi || "";
+    const onSekil = onOd.odemeSekli || "";
+    const onDurum = onOdendi ? "odendi" : "bekliyor";
+    toplamBeklenen += onOdeme;
+    toplamOdenen += onOdenenTutar;
+    html += `
+      <div class="aylik-karti ${onDurum}" data-ay-kod="__onOdeme" style="border:2px solid #d97706;">
+        <div class="aylik-ay-header">
+          <div class="aylik-ay-isim">🎫 Peşinat / Ön Ödeme</div>
+          <span class="aylik-ay-rozet ${onDurum}">${onOdendi ? "✓ Ödendi" : "⏱ Bekliyor"}</span>
+        </div>
+        <div class="aylik-tutar-row">
+          <span>Beklenen:</span>
+          <input type="number" value="${onOdeme}" min="0" step="100" data-alan="beklenenTutar" data-ay="__onOdeme"
+                 onchange="aylikDegisti('__onOdeme', 'beklenenTutar', this.value)"
+                 style="width:110px; padding:4px 8px; border:1px solid #fde68a; border-radius:6px; text-align:right; font-weight:600;">
+        </div>
+        <div class="aylik-input-row">
+          <input type="number" placeholder="Ödenen" value="${onOdenenTutar || ""}"
+                 min="0" step="100" data-alan="odenenTutar" data-ay="__onOdeme"
+                 onchange="aylikDegisti('__onOdeme', 'odenenTutar', this.value)">
+          <input type="date" value="${onTarih}" data-alan="odemeTarihi" data-ay="__onOdeme"
+                 onchange="aylikDegisti('__onOdeme', 'odemeTarihi', this.value)">
+        </div>
+        <div class="aylik-input-row">
+          <select data-alan="odemeSekli" data-ay="__onOdeme" onchange="aylikDegisti('__onOdeme', 'odemeSekli', this.value)">
+            <option value="">Ödeme Şekli</option>
+            <option value="Havale/EFT" ${onSekil === "Havale/EFT" ? "selected" : ""}>Havale/EFT</option>
+            <option value="Kredi Kartı" ${onSekil === "Kredi Kartı" ? "selected" : ""}>Kredi Kartı</option>
+            <option value="Nakit" ${onSekil === "Nakit" ? "selected" : ""}>Nakit</option>
+            <option value="Çek/Senet" ${onSekil === "Çek/Senet" ? "selected" : ""}>Çek/Senet</option>
+          </select>
+        </div>
+        <div class="aylik-aksiyon-row">
+          <button class="aylik-aksiyon-btn ${onDurum === "odendi" ? "active" : ""}" type="button"
+                  onclick="aylikOdendiIsaretle('__onOdeme')">✓ Ödendi</button>
+          <button class="aylik-aksiyon-btn danger" type="button"
+                  onclick="aylikSifirla('__onOdeme')">✕ Sıfırla</button>
+        </div>
+      </div>
+    `;
+  }
+
   for (const ay of ayListesi) {
     const odeme = mevcutOdemeler[ay.ayKod] || {};
-    const durum = pesin ? "odendi" : getOdemeDurumu(ay, odeme, aidat);
-    const odenenTutar = parseFloat(odeme.odenenTutar) || (pesin ? aidat : 0);
-    const beklenenTutar = parseFloat(odeme.beklenenTutar) || aidat;
+    const beklenenTutar = ayBeklenen(ay, odeme);
+    const durum = pesin ? "odendi" : getOdemeDurumu(ay, odeme, beklenenTutar);
+    const odenenTutar = parseFloat(odeme.odenenTutar) || (pesin ? beklenenTutar : 0);
     const odemeTarihi = odeme.odemeTarihi || "";
     const odemeSekli = odeme.odemeSekli || "";
 
@@ -32623,15 +32703,21 @@ function renderAylikOdeme() {
       gecikmis: "⚠ Gecikmiş"
     }[durum];
 
+    // Dönem etiketi
+    const donemEtiket = (ay.ay >= 9 || ay.ay <= 1) ? "I. Dönem" : "II. Dönem";
+
     html += `
       <div class="aylik-karti ${durum}" data-ay-kod="${ay.ayKod}">
         <div class="aylik-ay-header">
-          <div class="aylik-ay-isim">${ay.tam}</div>
+          <div class="aylik-ay-isim">${ay.tam} <span style="font-size:10px; color:#9ca3af; font-weight:400;">${donemEtiket}</span></div>
           <span class="aylik-ay-rozet ${durum}">${rozetMetni}</span>
         </div>
         <div class="aylik-tutar-row">
           <span>Beklenen:</span>
-          <strong>${beklenenTutar.toLocaleString("tr-TR")} TL</strong>
+          <input type="number" value="${beklenenTutar}" min="0" step="100" data-alan="beklenenTutar" data-ay="${ay.ayKod}"
+                 onchange="aylikDegisti('${ay.ayKod}', 'beklenenTutar', this.value)"
+                 title="Bu ayın beklenen tutarını elle değiştirebilirsiniz"
+                 style="width:110px; padding:4px 8px; border:1px solid #e5e7eb; border-radius:6px; text-align:right; font-weight:600;">
         </div>
         <div class="aylik-input-row">
           <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
@@ -32705,23 +32791,58 @@ window.donemFarkiHesaplaOtomatik = function() {
     return;
   }
 
-  // BCK Formülü - kayıtyenileme ile birebir aynı
-  const yillikToplam = aylik * 10;
-  const onOdeme = aylik;
-  const kalan = yillikToplam - onOdeme;  // = aylik × 9
+  // Kayıt ayını oku → erken kayıt mı? (Mayıs-Ağustos = 5,6,7,8)
+  const baslangic = document.getElementById("ayarBaslangic").value; // "2026-09"
+  const taksit = parseInt(document.getElementById("ayarTaksit").value) || 10;
+  const kayitAyNum = baslangic ? parseInt(baslangic.split("-")[1], 10) : 9;
+  const erkenKayit = [5, 6, 7, 8].includes(kayitAyNum);
 
-  // %48.8 / %51.2 dağılımı + 100'e yuvarlama
-  const iDonemAylik = Math.round((kalan * 0.488) / 5 / 100) * 100;
-  const iiDonemAylik = Math.round((kalan - iDonemAylik * 5) / 5);
-  const iDonemToplam = iDonemAylik * 5;
-  const iiDonemToplam = iiDonemAylik * 5;
+  // Peşinat: erken kayıtta öneri (1 aylık), kullanıcı elle değiştirebilir
+  const onOdemeInput = document.getElementById("ayarOnOdeme");
+  let onOdeme = parseFloat(onOdemeInput.value) || 0;
+  // Erken kayıt + peşinat hiç girilmemişse 1 aylık öner
+  if (erkenKayit && onOdeme === 0) {
+    onOdeme = aylik;
+    onOdemeInput.value = onOdeme;
+  }
+
+  const yillikToplam = aylik * taksit;
+  const kalan = yillikToplam - onOdeme;
+
+  // Ay listesini al, I. dönem (Eylül-Ocak) ve II. dönem (Şubat-Haziran) aylarını say
+  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, taksit) : [];
+  const iDonemAylar = ayListesi.filter(a => a.ay >= 9 || a.ay <= 1);
+  const iiDonemAylar = ayListesi.filter(a => a.ay >= 2 && a.ay <= 8);
+  const iDonemSayi = iDonemAylar.length || 5;
+  const iiDonemSayi = iiDonemAylar.length || 5;
+
+  let iDonemAylik, iiDonemAylik, hesapTuru;
+
+  if (erkenKayit) {
+    // ERKEN KAYIT → çift dönemli (%48,8 / %51,2)
+    hesapTuru = "Çift dönemli (erken kayıt)";
+    iDonemAylik = iDonemSayi > 0 ? Math.round((kalan * 0.488) / iDonemSayi / 100) * 100 : 0;
+    iiDonemAylik = iiDonemSayi > 0 ? Math.round((kalan - iDonemAylik * iDonemSayi) / iiDonemSayi) : 0;
+  } else {
+    // EYLÜL VE SONRASI → eşit böl
+    hesapTuru = "Eşit aylık (Eylül ve sonrası)";
+    const toplamAy = iDonemSayi + iiDonemSayi;
+    const esitAylik = toplamAy > 0 ? Math.round(kalan / toplamAy / 100) * 100 : 0;
+    iDonemAylik = esitAylik;
+    iiDonemAylik = toplamAy > 0 ? Math.round((kalan - esitAylik * iDonemSayi) / (iiDonemSayi || 1)) : 0;
+    // Eşit bölünce iki dönem de neredeyse aynı olur; küçük yuvarlama farkı II. döneme yansır
+  }
+
+  const iDonemToplam = iDonemAylik * iDonemSayi;
+  const iiDonemToplam = iiDonemAylik * iiDonemSayi;
 
   // MEB sözleşme eğitim/yemek dağılımı (yıllık toplam üzerinden)
   const egitimKismi = Math.round(yillikToplam * 0.60);
-  const yemekKismi = yillikToplam - egitimKismi;  // Kalan
+  const yemekKismi = yillikToplam - egitimKismi;
 
   // Değerleri belleğe yaz
-  if (currentOgrenci && ayarListesi[currentOgrenci.id]) {
+  if (currentOgrenci && ayarListesi[currentOgrenci.id] !== undefined) {
+    if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
     if (!ayarListesi[currentOgrenci.id].aidatAyarlari) {
       ayarListesi[currentOgrenci.id].aidatAyarlari = {};
     }
@@ -32733,24 +32854,27 @@ window.donemFarkiHesaplaOtomatik = function() {
     a.yillikToplam = yillikToplam;
     a.egitimUcreti = egitimKismi;
     a.yemekUcreti = yemekKismi;
+    a.hesapTuru = erkenKayit ? "cift_donem" : "esit";
   }
 
   // Kullanıcıya göster
   const toplam = onOdeme + iDonemToplam + iiDonemToplam;
   const mesaj = `🧮 HESAPLAMA SONUCU
+Yöntem: ${hesapTuru}
 
-Aylık Ortalama: ${aylik.toLocaleString("tr-TR")} TL
+Aylık Aidat: ${aylik.toLocaleString("tr-TR")} TL
+Dönem uzunluğu: ${taksit} ay
 Yıllık Toplam: ${yillikToplam.toLocaleString("tr-TR")} TL
 
 ─────────────────────────
-📌 ÖN ÖDEME (Kayıt Anında)
-  ${onOdeme.toLocaleString("tr-TR")} TL
+🎫 PEŞİNAT / ÖN ÖDEME
+  ${onOdeme.toLocaleString("tr-TR")} TL ${erkenKayit ? "(erken kayıt)" : "(Eylül+ genelde 0)"}
 
-📌 I. DÖNEM (Eylül-Ocak, 5 ay) - %48,8
+📌 I. DÖNEM (${iDonemSayi} ay)
   Aylık: ${iDonemAylik.toLocaleString("tr-TR")} TL
   Toplam: ${iDonemToplam.toLocaleString("tr-TR")} TL
 
-📌 II. DÖNEM (Şubat-Haziran, 5 ay) - %51,2
+📌 II. DÖNEM (${iiDonemSayi} ay)
   Aylık: ${iiDonemAylik.toLocaleString("tr-TR")} TL
   Toplam: ${iiDonemToplam.toLocaleString("tr-TR")} TL
 
@@ -32762,11 +32886,23 @@ Yıllık Toplam: ${yillikToplam.toLocaleString("tr-TR")} TL
   Eğitim Ücreti (%60): ${egitimKismi.toLocaleString("tr-TR")} TL
   Yemek Ücreti (%40): ${yemekKismi.toLocaleString("tr-TR")} TL
 
-ℹ️ Diğer ödemeler (kıyafet, servis vb.) bu hesabın dışında.
-
+ℹ️ Tüm tutarları aylık ödeme kartlarında elle düzeltebilirsiniz.
 ⚠️ "Ayarları Kaydet" butonuna basmayı unutmayın.`;
   alert(mesaj);
-  showToast("✓ Dönem hesaplaması yapıldı. Kaydet'e basın.");
+  showToast(`✓ ${hesapTuru} hesaplandı. Kaydet'e basın.`);
+};
+
+// Peşinat elle değiştirildiğinde ipucu güncelle
+window.onOdemeElleDegisti = function() {
+  const ipucu = document.getElementById("onOdemeIpucu");
+  const baslangic = document.getElementById("ayarBaslangic")?.value;
+  const kayitAyNum = baslangic ? parseInt(baslangic.split("-")[1], 10) : 9;
+  const erkenKayit = [5, 6, 7, 8].includes(kayitAyNum);
+  if (ipucu) {
+    ipucu.textContent = erkenKayit
+      ? "Erken kayıt: peşinat sonrası kalan çift dönemli hesaplanır."
+      : "Eylül+ kayıt: peşinat genelde 0, ödemeler eşit bölünür.";
+  }
 };
 
 // Öğrenci için 5 standart diğer ödeme kalemini varsayılan değerlerle oluşturur
@@ -33013,6 +33149,25 @@ window.digerToplu = function(tip) {
   }
 };
 
+// Bir ay kodu için beklenen tutarı hesapla (manuel > dönem aylığı > aidat)
+function ayBeklenenTutar(ayKod) {
+  if (!currentOgrenci) return 0;
+  const a = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aidatAyarlari) || {};
+  const aidat = parseFloat(document.getElementById("ayarAidat").value) || a.aylikAidat || 0;
+  // Manuel girilmiş beklenen var mı?
+  const od = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aylikOdemeler && ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod]) || {};
+  if (od.beklenenTutar !== undefined && od.beklenenTutar !== null && od.beklenenTutar !== "") {
+    return parseFloat(od.beklenenTutar);
+  }
+  // Peşinat kartı
+  if (ayKod === "__onOdeme") return parseFloat(document.getElementById("ayarOnOdeme")?.value) || a.onOdeme || 0;
+  // Dönem aylığı: ayKod "2026-09" → ay numarası
+  const ayNum = parseInt(ayKod.split("-")[1], 10);
+  const iDonemAylik = a.iDonemAylik || aidat;
+  const iiDonemAylik = a.iiDonemAylik || aidat;
+  return (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
+}
+
 window.aylikDegisti = function(ayKod, alan, deger) {
   if (!currentOgrenci) return;
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
@@ -33021,12 +33176,15 @@ window.aylikDegisti = function(ayKod, alan, deger) {
 
   ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod][alan] = deger;
 
-  // Otomatik "odendi" işaretle eğer ödenen >= beklenen ise
+  // Otomatik "odendi" işaretle eğer ödenen >= beklenen ise (dönem aylığına göre)
   if (alan === "odenenTutar") {
-    const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
+    const beklenen = ayBeklenenTutar(ayKod);
     const odenen = parseFloat(deger) || 0;
-    ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod].odendi = odenen >= aidat;
-    ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod].beklenenTutar = aidat;
+    ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod].odendi = odenen >= beklenen && beklenen > 0;
+    // beklenenTutar manuel girilmemişse dönem aylığını yaz
+    if (ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod].beklenenTutar === undefined) {
+      ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod].beklenenTutar = beklenen;
+    }
   }
 
   // Yeniden render et (özet ve renkler için)
@@ -33035,9 +33193,9 @@ window.aylikDegisti = function(ayKod, alan, deger) {
 
 window.aylikOdendiIsaretle = function(ayKod) {
   if (!currentOgrenci) return;
-  const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
-  if (aidat <= 0) {
-    showToast("Önce aylık aidat girilmelidir", "error");
+  const beklenen = ayBeklenenTutar(ayKod);
+  if (beklenen <= 0) {
+    showToast("Önce aylık aidat / peşinat girilmelidir", "error");
     return;
   }
 
@@ -33048,8 +33206,8 @@ window.aylikOdendiIsaretle = function(ayKod) {
   ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] = {
     ...mevcut,
     odendi: true,
-    odenenTutar: aidat,
-    beklenenTutar: aidat,
+    odenenTutar: beklenen,
+    beklenenTutar: beklenen,
     odemeTarihi: mevcut.odemeTarihi || new Date().toISOString().substring(0, 10)
   };
 
@@ -33324,9 +33482,12 @@ function populateBaslangicDropdown() {
 }
 
 // Anlık toplam hesaplama
-["ayarAidat", "ayarTaksit", "ayarBaslangic", "ayarIndirim", "ayarPesin"].forEach(id => {
-  document.getElementById(id).addEventListener("change", recalcTotals);
-  document.getElementById(id).addEventListener("input", recalcTotals);
+["ayarAidat", "ayarTaksit", "ayarBaslangic", "ayarIndirim", "ayarPesin", "ayarOnOdeme"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener("change", recalcTotals);
+    el.addEventListener("input", recalcTotals);
+  }
 });
 
 // Diğer Ücretler inputları için de canlı hesap
@@ -33630,9 +33791,43 @@ window.saveAyarlar = async function() {
   }
   const yillikToplam = aidatNet + digerToplam;
 
+  // ===== PEŞİNAT (ÖN ÖDEME) + DÖNEM AYLIK HESABI =====
+  const onOdeme = parseFloat(document.getElementById("ayarOnOdeme")?.value) || 0;
+  const kayitAyNum = baslangic ? parseInt(baslangic.split("-")[1], 10) : 9;
+  const erkenKayit = [5, 6, 7, 8].includes(kayitAyNum);
+
+  // Bellekte hesaplanmış değer varsa onu kullan (kullanıcı "Dönem Farkını Hesapla" demiş olabilir),
+  // yoksa burada hesapla
+  const mevcutA = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aidatAyarlari) || {};
+  let iDonemAylik = mevcutA.iDonemAylik || 0;
+  let iiDonemAylik = mevcutA.iiDonemAylik || 0;
+
+  // Ay listesinden dönem ay sayıları
+  const _ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, gercekAy) : [];
+  const _iDonemSayi = _ayListesi.filter(a => a.ay >= 9 || a.ay <= 1).length || 5;
+  const _iiDonemSayi = _ayListesi.filter(a => a.ay >= 2 && a.ay <= 8).length || 5;
+
+  // Eğer dönem aylıkları hiç hesaplanmamışsa otomatik hesapla
+  if (!iDonemAylik && !iiDonemAylik && aidat > 0) {
+    const _kalan = (aidat * gercekAy) - onOdeme;
+    if (erkenKayit) {
+      iDonemAylik = _iDonemSayi > 0 ? Math.round((_kalan * 0.488) / _iDonemSayi / 100) * 100 : 0;
+      iiDonemAylik = _iiDonemSayi > 0 ? Math.round((_kalan - iDonemAylik * _iDonemSayi) / _iiDonemSayi) : 0;
+    } else {
+      const _toplamAy = _iDonemSayi + _iiDonemSayi;
+      const _esit = _toplamAy > 0 ? Math.round(_kalan / _toplamAy / 100) * 100 : 0;
+      iDonemAylik = _esit;
+      iiDonemAylik = _toplamAy > 0 ? Math.round((_kalan - _esit * _iDonemSayi) / (_iiDonemSayi || 1)) : 0;
+    }
+  }
+
   const aidatAyarlari = {
     programTuru: program,
     aylikAidat: aidat,
+    onOdeme: onOdeme,
+    iDonemAylik: iDonemAylik,
+    iiDonemAylik: iiDonemAylik,
+    hesapTuru: erkenKayit ? "cift_donem" : "esit",
     taksitSayisi: taksit,
     gercekAySayisi: gercekAy,
     baslangicAyi: baslangic,
