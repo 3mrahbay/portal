@@ -8563,44 +8563,15 @@ html, body {
   </header>
 
   <div class="dash-container">
-    <div class="dash-title-row">
-      <div class="dash-title">
-        <h1>Ödeme Takibi</h1>
-        <p>2025-2026 eğitim yılı öğrenci aidatları ve ek ücretler</p>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <button class="btn-csv-yukle" onclick="openCsvYukleModal()" title="CSV dosyasından öğrenci listesi yükle">
-          <span>📥</span> CSV'den Yükle
-        </button>
-        <select class="donem-selector" id="donemSelector">
-          <option value="2025-2026">2025-2026 Dönemi</option>
-          <option value="2026-2027">2026-2027 Dönemi</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Stats -->
-    <div class="stats-grid" id="statsGrid">
-      <div class="stat-card">
-        <div class="stat-label">Toplam Öğrenci</div>
-        <div class="stat-value" id="statOgrenci">-</div>
-        <div class="stat-sub">Kayıtlı veli</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Ayarlı</div>
-        <div class="stat-value success" id="statAyarli">-</div>
-        <div class="stat-sub">Aidat ayarları tamam</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Eksik Ayar</div>
-        <div class="stat-value warning" id="statEksik">-</div>
-        <div class="stat-sub">Ayar yapılmalı</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Toplam Beklenen</div>
-        <div class="stat-value" id="statToplam">-</div>
-        <div class="stat-sub">TL (Aidatlar)</div>
-      </div>
+    <!-- Üst kontrol çubuğu: CSV yükleme + Dönem seçici (sadece finans yetkili roller) -->
+    <div class="dash-ust-kontrol" id="dashUstKontrol" style="display:none; justify-content:flex-end; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+      <button class="btn-csv-yukle" onclick="openCsvYukleModal()" title="CSV dosyasından öğrenci listesi yükle">
+        <span>📥</span> CSV'den Yükle
+      </button>
+      <select class="donem-selector" id="donemSelector">
+        <option value="2025-2026">2025-2026 Dönemi</option>
+        <option value="2026-2027">2026-2027 Dönemi</option>
+      </select>
     </div>
 
     <!-- Tabs -->
@@ -12416,6 +12387,13 @@ function sekmeleriRoleGoreAyarla() {
   // Aktif sekme gizlendiyse, ilk görünür sekmeye geç
   if (aktifGizlendi && ilkGorunur) {
     ilkGorunur.click();
+  }
+
+  // Üst kontrol çubuğu (CSV yükleme + Dönem seçici) sadece finans yetkili rollere
+  const ustKontrol = document.getElementById("dashUstKontrol");
+  if (ustKontrol) {
+    const finansYetkisi = isAdmin || ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
+    ustKontrol.style.display = finansYetkisi ? "flex" : "none";
   }
 }
 
@@ -26417,6 +26395,14 @@ function renderFinansalOzet() {
   const toplamGecikenBorc = gecikenlerFull.reduce((s, g) => s + g.toplamBorc, 0);
 
   const aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+
+  // Aidat ayarı eksik aktif öğrenciler (aylık aidat girilmemiş)
+  const aidatEksikOgrenciler = aktifOgrenciler.filter(o => {
+    const a = ayarListesi[o.id];
+    return !(a && a.aidatAyarlari && a.aidatAyarlari.aylikAidat > 0);
+  });
+  const aidatEksikSayi = aidatEksikOgrenciler.length;
+
   const m2Sayi = aktifOgrenciler.filter(o => {
     const sinif = ((ayarListesi[o.id] && ayarListesi[o.id].kayit && ayarListesi[o.id].kayit.sinif) || o.sinif || "").toLowerCase();
     return sinif.includes("2");
@@ -26477,6 +26463,21 @@ function renderFinansalOzet() {
     <div style="background:${basabasDurum.bg}; border-radius:12px; padding:14px 18px; margin-bottom:20px; font-size:14px; color:${basabasDurum.renk}; font-weight:600; display:flex; align-items:center; gap:10px;">
       <span style="font-size:20px;">🎯</span> ${basabasDurum.metin}
     </div>
+
+    ${aidatEksikSayi > 0 ? `
+    <div onclick="aidatEksiklereGit()" style="background:#fef3c7; border:1px solid #fcd34d; border-radius:12px; padding:14px 18px; margin-bottom:20px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:space-between; gap:12px;" onmouseover="this.style.background='#fde68a';" onmouseout="this.style.background='#fef3c7';">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:24px;">⚠️</span>
+        <div>
+          <div style="font-size:14px; font-weight:700; color:#92400e;">${aidatEksikSayi} aktif öğrencinin aidat ayarı eksik</div>
+          <div style="font-size:12px; color:#a16207; margin-top:2px;">Aylık aidat girilmemiş — bu öğrenciler tahsilat ve gelir hesabına dahil edilemiyor.</div>
+        </div>
+      </div>
+      <div style="background:#92400e; color:white; padding:6px 14px; border-radius:8px; font-size:12px; font-weight:600; white-space:nowrap;">Ayarla →</div>
+    </div>` : `
+    <div style="background:#d8f3dc; border:1px solid #95d5b2; border-radius:12px; padding:12px 18px; margin-bottom:20px; font-size:13px; color:#2d6a4f; font-weight:600; display:flex; align-items:center; gap:10px;">
+      <span style="font-size:18px;">✓</span> Tüm aktif öğrencilerin aidat ayarı tamam.
+    </div>`}
 
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-bottom:20px;">
       <div style="background:white; border:1px solid var(--gray-300); border-radius:16px; padding:20px;">
@@ -29678,6 +29679,16 @@ window.raporGecikenFiltrele = function() {
   }, 100);
 };
 
+window.aidatEksiklereGit = function() {
+  // Öğrenci Ayarları sekmesine geç ve "eksik" filtresini uygula
+  const tab = document.querySelector('.tab[data-tab="ogrenciler"]');
+  if (tab) tab.click();
+  setTimeout(() => {
+    const chip = document.querySelector('.filter-chip[data-filter="eksik"]');
+    if (chip) chip.click();
+  }, 100);
+};
+
 window.raporExcelTumu = async function() {
   await raporExcelOdemeDetay();
 };
@@ -29804,6 +29815,10 @@ async function loadSheetJS() {
 }
 
 function updateStats() {
+  // KPI kartları üst bardan kaldırıldı; elementler yoksa sessizce çık
+  const elOgrenci = document.getElementById("statOgrenci");
+  if (!elOgrenci) return;
+
   const total = ogrenciList.length;
   const ayarli = ogrenciList.filter(o => {
     const a = ayarListesi[o.id];
@@ -29815,11 +29830,14 @@ function updateStats() {
     if (a && a.aidatAyarlari) return sum + (a.aidatAyarlari.toplamBeklenen || 0);
     return sum;
   }, 0);
-  
-  document.getElementById("statOgrenci").textContent = total;
-  document.getElementById("statAyarli").textContent = ayarli;
-  document.getElementById("statEksik").textContent = eksik;
-  document.getElementById("statToplam").textContent = toplam.toLocaleString("tr-TR");
+
+  elOgrenci.textContent = total;
+  const elAyarli = document.getElementById("statAyarli");
+  const elEksik = document.getElementById("statEksik");
+  const elToplam = document.getElementById("statToplam");
+  if (elAyarli) elAyarli.textContent = ayarli;
+  if (elEksik) elEksik.textContent = eksik;
+  if (elToplam) elToplam.textContent = toplam.toLocaleString("tr-TR");
 }
 
 // ============ SEARCH & FILTER ============
