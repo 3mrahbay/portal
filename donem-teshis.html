@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bir Çiçek Koleji — Dönem Teşhis Aracı</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", sans-serif; background: #faf7f2; color: #1a1a1a; max-width: 1100px; margin: 0 auto; padding: 24px; line-height: 1.5; }
+  h1 { color: #1a4d2e; font-size: 22px; }
+  .uyari { background: #fef9c3; border: 1px solid #fde68a; color: #78350f; padding: 14px 18px; border-radius: 10px; font-size: 14px; margin-bottom: 20px; }
+  .btn { background: #2d6a4f; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .btn:hover { background: #1a4d2e; }
+  .btn:disabled { opacity: 0.5; cursor: wait; }
+  #durum { margin: 16px 0; font-size: 14px; color: #6b7280; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  th { background: #d8f3dc; color: #1a4d2e; text-align: left; padding: 10px 12px; font-size: 12px; text-transform: uppercase; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f3f4f6; }
+  tr:hover td { background: #fdfcf7; }
+  .rozet { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+  .var { background: #d8f3dc; color: #1a4d2e; }
+  .yok { background: #f3f4f6; color: #9ca3af; }
+  .ozet { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+  .ozet-kart { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; min-width: 160px; }
+  .ozet-sayi { font-size: 28px; font-weight: 700; color: #2d6a4f; }
+  .ozet-label { font-size: 12px; color: #6b7280; }
+</style>
+</head>
+<body>
+  <h1>🔍 Dönem Teşhis Aracı</h1>
+  <div class="uyari">
+    <strong>Bu araç hiçbir veriyi değiştirmez.</strong> Sadece Firestore'daki öğrencileri ve her birinin hangi dönem(ler)de verisi olduğunu okuyup listeler.
+    Önce portala normal giriş yapıp yetkili olduğunuzdan emin olun, sonra bu dosyayı açıp "Tara" deyin.
+  </div>
+
+  <button class="btn" id="taraBtn" onclick="tara()">📊 Firestore'u Tara</button>
+  <div id="durum"></div>
+  <div class="ozet" id="ozet"></div>
+  <div id="sonuc"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
+  authDomain: "bcka-site.firebaseapp.com",
+  projectId: "bcka-site",
+  storageBucket: "bcka-site.firebasestorage.app",
+  messagingSenderId: "736581475783",
+  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const durum = document.getElementById("durum");
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    durum.textContent = `✓ Giriş yapılmış: ${user.email}`;
+  } else {
+    durum.innerHTML = `⚠️ Giriş yapılmamış. Önce <a href="https://portal.bircicekkoleji.com" target="_blank">portala giriş yapın</a>, sonra bu sayfaya dönün.`;
+  }
+});
+
+window.tara = async function() {
+  const btn = document.getElementById("taraBtn");
+  btn.disabled = true;
+  durum.textContent = "Taranıyor… (öğrenciler ve dönemler okunuyor)";
+
+  try {
+    // 1. Tüm öğrenciler
+    const ogrSnap = await getDocs(collection(db, "ogrenciler"));
+    const ogrenciler = [];
+    ogrSnap.forEach(d => ogrenciler.push({ id: d.id, ...d.data() }));
+
+    // 2. Her öğrencinin dönem alt koleksiyonu
+    const tumDonemler = new Set();
+    for (const o of ogrenciler) {
+      const donSnap = await getDocs(collection(db, "ogrenciler", o.id, "donemler"));
+      o._donemler = {};
+      donSnap.forEach(dd => {
+        o._donemler[dd.id] = dd.data();
+        tumDonemler.add(dd.id);
+      });
+    }
+
+    // 3. Onay bekleyen başvurular
+    let basvuruSayi = 0, kayitYenilemeSayi = 0;
+    try {
+      const bSnap = await getDocs(collection(db, "basvurular"));
+      bSnap.forEach(b => { if ((b.data().durum || "beklemede") === "beklemede") basvuruSayi++; });
+    } catch(e) { console.warn("basvurular okunamadı", e); }
+    try {
+      const kSnap = await getDocs(collection(db, "kayitYenileme"));
+      kSnap.forEach(k => { if ((k.data().durum || "beklemede") === "beklemede") kayitYenilemeSayi++; });
+    } catch(e) { /* koleksiyon olmayabilir */ }
+
+    const donemListesi = Array.from(tumDonemler).sort();
+
+    // Özet kartları
+    const ozet = document.getElementById("ozet");
+    ozet.innerHTML = `
+      <div class="ozet-kart"><div class="ozet-sayi">${ogrenciler.length}</div><div class="ozet-label">Toplam öğrenci</div></div>
+      <div class="ozet-kart"><div class="ozet-sayi">${donemListesi.length}</div><div class="ozet-label">Farklı dönem</div></div>
+      <div class="ozet-kart"><div class="ozet-sayi">${basvuruSayi}</div><div class="ozet-label">Onay bekleyen başvuru</div></div>
+      ${kayitYenilemeSayi ? `<div class="ozet-kart"><div class="ozet-sayi">${kayitYenilemeSayi}</div><div class="ozet-label">Kayıt yenileme beklemede</div></div>` : ""}
+    `;
+
+    // Tablo
+    let html = `<table><thead><tr><th>Öğrenci</th><th>Ana durum</th><th>Aylık aidat (ana)</th>`;
+    for (const d of donemListesi) html += `<th>${d}</th>`;
+    html += `</tr></thead><tbody>`;
+
+    // İsme göre sırala
+    ogrenciler.sort((a,b) => (a.ogrenciAdSoyad||"").localeCompare(b.ogrenciAdSoyad||"", "tr"));
+
+    for (const o of ogrenciler) {
+      html += `<tr>`;
+      html += `<td><strong>${o.ogrenciAdSoyad || "(isimsiz)"}</strong></td>`;
+      html += `<td>${o.durum || "—"}</td>`;
+      html += `<td>${o.aylikAidat ? Number(o.aylikAidat).toLocaleString("tr-TR")+" TL" : "—"}</td>`;
+      for (const d of donemListesi) {
+        const v = o._donemler[d];
+        if (v) {
+          const aidat = v.aidatAyarlari?.aylikAidat ? Number(v.aidatAyarlari.aylikAidat).toLocaleString("tr-TR")+" TL" : "?";
+          html += `<td><span class="rozet var">var · ${aidat}</span></td>`;
+        } else {
+          html += `<td><span class="rozet yok">yok</span></td>`;
+        }
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody></table>`;
+    document.getElementById("sonuc").innerHTML = html;
+    durum.textContent = `✓ Tarama tamam. ${ogrenciler.length} öğrenci, ${donemListesi.length} dönem bulundu.`;
+  } catch (e) {
+    durum.textContent = "❌ Hata: " + e.message;
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
+};
+</script>
+</body>
+</html>
