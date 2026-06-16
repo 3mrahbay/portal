@@ -8693,8 +8693,8 @@ html, body {
         <!-- Dönem seçici + CSV yükleme + Öğrenci Ekle (sağa hizalı, tek satır) -->
         <div class="ogrenci-arac-grubu" id="ogrenciAracGrubu" style="margin-left:auto; display:flex; gap:8px; align-items:center;">
           <select class="donem-selector" id="donemSelector">
-            <option value="2025-2026">2025-2026 Dönemi</option>
-            <option value="2026-2027">2026-2027 Dönemi</option>
+            <option value="2026-2027">2026-2027 Dönemi (Aktif)</option>
+            <option value="2025-2026">2025-2026 Dönemi (Arşiv)</option>
           </select>
           <button class="btn-csv-yukle" onclick="openCsvYukleModal()" title="CSV dosyasından öğrenci listesi yükle">
             <span>📥</span> CSV'den Yükle
@@ -12339,7 +12339,7 @@ window.zekiFotoIzniVar = async function(cocukId) {
     return false;
   }
 };
-let AKTIF_DONEM = "2025-2026";  // Dropdown'dan değiştirilebilir
+let AKTIF_DONEM = "2026-2027";  // Aktif dönem. Dropdown'dan geçmiş dönemlere bakılabilir.
 
 // Türkçe ay isimleri (early definition - TDZ önlemek için)
 const AY_ISIMLERI = [
@@ -34245,6 +34245,7 @@ window.showBulkUpload = async function() {
 };
 
 </script>
+<script type="module" src="ogrenci-ekle.js"></script>
 <script src="aidat-donem-genislet.js"></script>
 <script src="pdf-sayfa-bolunmesi.js"></script>
 <script src="pdf-estetik-duzeltme.js"></script>  
