@@ -1737,6 +1737,29 @@ html, body {
   line-height: 1;
 }
 
+/* Toplu Yenile butonu (amber/turuncu - geçmiş dönemde görünür) */
+.btn-toplu-yenile {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #b45309, #d97706);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(180,83,9,0.25);
+}
+.btn-toplu-yenile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(180,83,9,0.35);
+}
+.btn-toplu-yenile span { font-size: 17px; line-height: 1; }
+
 /* Yeni Öğrenci modal form alanları */
 .yo-label {
   display: block;
@@ -1773,6 +1796,38 @@ html, body {
 @media (max-width: 560px) {
   .yo-grid2 { grid-template-columns: 1fr; }
 }
+
+/* Yenileme radyo butonları */
+.yenile-radyo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+.yenile-radyo:has(input:checked) {
+  border-color: var(--green-medium);
+  background: #f0f9f4;
+  font-weight: 600;
+  color: var(--green-deep);
+}
+.yenile-satir {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.yenile-satir:last-child { border-bottom: none; }
+.yenile-satir input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; }
+.yenile-satir .y-ad { flex: 1; font-weight: 600; font-size: 14px; }
+.yenile-satir .y-eski { font-size: 12px; color: #6b7280; min-width: 90px; text-align: right; }
+.yenile-satir .y-yeni-input { width: 110px; padding: 6px 10px; border: 1.5px solid var(--gray-300); border-radius: 8px; font-size: 13px; }
+.yenile-satir .y-ok { font-size: 12px; color: #2d6a4f; min-width: 90px; text-align: right; font-weight: 600; }
 
 /* ============ CSV YÜKLEME MODALI ============ */
 .csv-upload-area {
@@ -8699,6 +8754,9 @@ html, body {
           <button class="btn-csv-yukle" onclick="openCsvYukleModal()" title="CSV dosyasından öğrenci listesi yükle">
             <span>📥</span> CSV'den Yükle
           </button>
+          <button class="btn-toplu-yenile" id="btnTopluYenile" onclick="topluYenileAc()" title="Seçili öğrencileri gelecek döneme taşı" style="display:none;">
+            <span>↻</span> Toplu Yenile
+          </button>
           <button class="btn-yeni-ogrenci" onclick="yeniOgrenciAc()" title="Manuel öğrenci kaydı oluştur">
             <span>＋</span> Öğrenci Ekle
           </button>
@@ -12066,6 +12124,86 @@ html, body {
 
 <!-- ============ CSV TOPLU YÜKLEME MODALI ============ -->
 <!-- ============ YENİ ÖĞRENCİ EKLE MODALI ============ -->
+<!-- ============ TEK ÖĞRENCİ YENİLEME MODALI ============ -->
+<div id="tekYenileModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-row">
+        <div>
+          <h2>↻ Gelecek Döneme Yenile</h2>
+          <p id="tekYenileAltBaslik">Öğrenciyi yeni döneme taşı</p>
+        </div>
+        <button class="btn-close" onclick="tekYenileKapat()">×</button>
+      </div>
+    </div>
+    <div style="padding:12px 0 20px;">
+      <div style="background:#f0f9f4; border:1px solid #d8f3dc; border-radius:10px; padding:14px; margin-bottom:18px; font-size:13px; color:#1a4d2e;">
+        <strong id="tekYenileOgrenciAd"></strong><br>
+        <span id="tekYenileBilgi" style="color:#52796f;"></span>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="yo-label">YENİ DÖNEM AYLIK AİDATI (₺) <span style="color:#dc2626;">*</span></label>
+        <input type="number" id="tekYenileAidat" class="yo-input" placeholder="Örn: 42000">
+        <div style="font-size:12px; color:#6b7280; margin-top:6px;" id="tekYenileEskiBilgi"></div>
+      </div>
+      <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; font-size:12px; color:#78350f;">
+        ℹ️ Veli bilgileri, sınıf, program ve izinler eski dönemden taşınır. Ödeme geçmişi yeni dönemde sıfırdan başlar. Sınıfı sonra elle değiştirebilirsiniz.
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn-secondary" onclick="tekYenileKapat()">İptal</button>
+      <button class="btn-primary" id="tekYenileBtn" onclick="tekYenileKaydet()">↻ Yeni Döneme Taşı</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOPLU YENİLEME MODALI ============ -->
+<div id="topluYenileModal" class="modal-overlay">
+  <div class="modal modal-large">
+    <div class="modal-header">
+      <div class="modal-header-row">
+        <div>
+          <h2>↻ Toplu Dönem Yenileme</h2>
+          <p id="topluYenileAltBaslik">Birden fazla öğrenciyi yeni döneme taşı</p>
+        </div>
+        <button class="btn-close" onclick="topluYenileKapat()">×</button>
+      </div>
+    </div>
+    <div style="padding:8px 0 20px;">
+      <!-- Ücret yöntemi seçimi -->
+      <div style="margin-bottom:16px;">
+        <label class="yo-label">YENİ DÖNEM ÜCRETİ NASIL BELİRLENSİN?</label>
+        <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
+          <label class="yenile-radyo">
+            <input type="radio" name="topluUcretYontem" value="zam" checked onchange="topluUcretYontemDegisti()">
+            <span>Toplu % zam uygula</span>
+          </label>
+          <label class="yenile-radyo">
+            <input type="radio" name="topluUcretYontem" value="elle" onchange="topluUcretYontemDegisti()">
+            <span>Her birini elle gireceğim</span>
+          </label>
+        </div>
+      </div>
+      <!-- Zam oranı (zam seçiliyken) -->
+      <div id="topluZamAlani" style="margin-bottom:16px;">
+        <label class="yo-label">ZAM ORANI (%)</label>
+        <input type="number" id="topluZamOrani" class="yo-input" placeholder="Örn: 30" value="30" oninput="topluListeyiTazele()" style="max-width:180px;">
+        <div style="font-size:12px; color:#6b7280; margin-top:6px;">Her öğrencinin eski ücretine bu oran eklenir, 100'e yuvarlanır.</div>
+      </div>
+      <!-- Öğrenci listesi -->
+      <div style="font-size:13px; color:#6b7280; margin-bottom:8px;">Taşınacak öğrencileri seçin (gelecek dönemde kaydı olmayanlar listelenir):</div>
+      <div id="topluYenileListe" style="max-height:340px; overflow-y:auto; border:1px solid #e5e7eb; border-radius:10px;"></div>
+    </div>
+    <div class="modal-footer" style="display:flex; gap:10px; justify-content:space-between; align-items:center;">
+      <span id="topluYenileSayac" style="font-size:13px; color:#6b7280;"></span>
+      <div style="display:flex; gap:10px;">
+        <button class="btn-secondary" onclick="topluYenileKapat()">İptal</button>
+        <button class="btn-primary" id="topluYenileBtn" onclick="topluYenileKaydet()">↻ Seçilenleri Taşı</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="yeniOgrenciModal" class="modal-overlay">
   <div class="modal modal-large">
     <div class="modal-header">
@@ -12467,6 +12605,7 @@ const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator"];
 const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
 let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
 let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
+let gelecekDonemKayitlari = {}; // {ogrenciId: true} → gelecek dönemde kaydı olanlar (yenileme butonu kontrolü)
 let filteredList = [];     // Filtrelenmiş liste (tablo için)
 let activeFilter = "tumu";
 let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
@@ -17899,6 +18038,7 @@ async function loadOgrenciler() {
     renderTable();
     updateStats();
     updateDurumSayaclari();
+    if (typeof topluYenileButonGorunurluk === "function") topluYenileButonGorunurluk();
   } catch (e) {
     console.error(e);
     wrap.innerHTML = `<div class="empty"><h3>Hata oluştu</h3><p>${e.message}</p></div>`;
@@ -17907,7 +18047,9 @@ async function loadOgrenciler() {
 
 async function loadAyarlar() {
   ayarListesi = {};
-  // Her öğrencinin donem/2025-2026 subcollection'ını çek
+  gelecekDonemKayitlari = {}; // öğrencinin gelecek dönemde kaydı var mı?
+  const gelDonem = gelecekDonem(AKTIF_DONEM);
+  // Her öğrencinin donem/AKTIF_DONEM subcollection'ını çek
   for (const o of ogrenciList) {
     try {
       const ref = doc(db, "ogrenciler", o.id, "donemler", AKTIF_DONEM);
@@ -17915,10 +18057,23 @@ async function loadAyarlar() {
       if (snap.exists()) {
         ayarListesi[o.id] = snap.data();
       }
+      // Gelecek dönemde kaydı var mı? (yenileme butonu için)
+      if (gelDonem) {
+        const gelRef = doc(db, "ogrenciler", o.id, "donemler", gelDonem);
+        const gelSnap = await getDoc(gelRef);
+        if (gelSnap.exists()) gelecekDonemKayitlari[o.id] = true;
+      }
     } catch (e) {
       console.warn(`Ayar yüklenemedi: ${o.id}`);
     }
   }
+}
+
+// Bir dönemin gelecek dönemini hesapla: "2025-2026" → "2026-2027"
+function gelecekDonem(donem) {
+  if (!donem || !donem.includes("-")) return null;
+  const [bas, son] = donem.split("-").map(Number);
+  return `${bas + 1}-${son + 1}`;
 }
 
 // ============ DURUM SİSTEMİ ============
@@ -17954,6 +18109,11 @@ function ogrenciArsivliMi(o, ayar) {
 // Arşivleme yetkisi var mı?
 function arsivYetkisiVar() {
   return isAdmin || ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol);
+}
+
+// Gelecek döneme yenileme yetkisi (finans yetkilileri)
+function finansYenilemeYetkisi() {
+  return isAdmin || ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
 }
 
 // Öğrenciyi arşivle (mevcut ogrenciDurumuDegistir paterniyle uyumlu)
@@ -20498,8 +20658,10 @@ function renderTable() {
 
     const durumMenu = `
       <div class="durum-menu-wrap" onclick="event.stopPropagation();">
-        <button class="madde-action-btn" onclick="toggleDurumMenu('${o.id}', event)" title="Durumu değiştir">⋮</button>
+        <button class="madde-action-btn" onclick="toggleDurumMenu('${o.id}', event)" title="İşlemler">⋮</button>
         <div class="durum-menu" data-ogrenci-id="${o.id}">
+          ${gelecekDonem(AKTIF_DONEM) && !gelecekDonemKayitlari[o.id] && finansYenilemeYetkisi() ? `<button class="durum-menu-item" style="color:var(--green-deep);font-weight:600;" onclick="tekOgrenciYenileAc('${o.id}')">↻ ${gelecekDonem(AKTIF_DONEM)} Dönemine Yenile</button>` : ""}
+          ${gelecekDonem(AKTIF_DONEM) && gelecekDonemKayitlari[o.id] ? `<span class="durum-menu-item" style="color:var(--gray-500);cursor:default;">✓ ${gelecekDonem(AKTIF_DONEM)} dönemine taşındı</span>` : ""}
           ${durum !== "aktif" && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'aktif')">✓ Aktif olarak işaretle</button>` : ""}
           ${durum !== "basvuru" && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'basvuru')">📝 Başvuru Bekliyor</button>` : ""}
           ${durum !== "yenileme" && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'yenileme')">🔄 Yenileme Bekliyor</button>` : ""}
@@ -30139,6 +30301,7 @@ const donemSelectorEl = document.getElementById("donemSelector");
 if (donemSelectorEl) {
   // Sayfa yüklenince dropdown'ı AKTIF_DONEM ile senkronize et
   donemSelectorEl.value = AKTIF_DONEM;
+  topluYenileButonGorunurluk();
 
   donemSelectorEl.addEventListener("change", async (e) => {
     const yeniDonem = e.target.value;
@@ -30157,11 +30320,23 @@ if (donemSelectorEl) {
     renderTable();
     updateStats();
     updateDurumSayaclari();
+    topluYenileButonGorunurluk();
 
     // Dashboard başlığındaki yıl metni güncellensin
     const dashSubTitle = document.querySelector(".dash-title p");
     if (dashSubTitle) dashSubTitle.textContent = `${AKTIF_DONEM} eğitim yılı öğrenci aidatları ve ek ücretler`;
   });
+}
+
+// "Toplu Yenile" butonu: sadece bu dönemde yenilenebilecek (gelecek dönemde kaydı olmayan)
+// öğrenci varsa ve finans yetkisi varsa görünür.
+function topluYenileButonGorunurluk() {
+  const btn = document.getElementById("btnTopluYenile");
+  if (!btn) return;
+  const gelDonem = gelecekDonem(AKTIF_DONEM);
+  const yenilenebilir = gelDonem && finansYenilemeYetkisi() &&
+    ogrenciList.some(o => ayarListesi[o.id] && !gelecekDonemKayitlari[o.id]);
+  btn.style.display = yenilenebilir ? "inline-flex" : "none";
 }
 
 // ============ AYAR MODAL ============
@@ -33801,6 +33976,261 @@ window.yeniOgrenciKaydet = async function() {
     btn.disabled = false;
     btn.textContent = eskiMetin;
   }
+};
+
+// ============================================================
+// ===== GELECEK DÖNEME YENİLEME SİSTEMİ =====
+// ============================================================
+
+// BCK aidat formülü — tek noktadan hesaplama (basvuruOnayla ile birebir)
+function bckAidatHesapla(aylikAidat, programTuru) {
+  const yillikToplam = aylikAidat * 10;
+  const onOdeme = aylikAidat;
+  const kalan = yillikToplam - onOdeme;
+  const iDonemAylik = Math.round((kalan * 0.488) / 5 / 100) * 100;
+  const iiDonemAylik = Math.round((kalan - iDonemAylik * 5) / 5);
+  const egitimUcreti = Math.round(yillikToplam * 0.60);
+  const yemekUcreti = yillikToplam - egitimUcreti;
+  return {
+    aylikAidat, iDonemAylik, iiDonemAylik, onOdeme, yillikToplam,
+    egitimUcreti, yemekUcreti, taksitSayisi: 10,
+    programTuru: programTuru || "Tam Gün", pesinOdeme: false, indirimOrani: 0
+  };
+}
+
+// Yeni dönem için standart diğer ödemeler (yıl bazlı tarihlerle)
+function yeniDonemDigerOdemeler(donemYili) {
+  const [basYil] = donemYili.split("-").map(Number);
+  const sonYil = basYil + 1;
+  return {
+    egitimMateryali: { tutar: 0, odendi: false, sonOdemeTarihi: `${basYil}-07-05`, not: "Yıllık eğitim materyalleri ve kırtasiye" },
+    okulKiyafeti:    { tutar: 0, odendi: false, sonOdemeTarihi: `${basYil}-08-05`, not: "Bir Çiçek Koleji Okul Kıyafeti" },
+    ormanKiyafeti:   { tutar: 0, odendi: false, sonOdemeTarihi: `${basYil}-09-05`, not: "Orman Okulu Kıyafeti" },
+    servis1:         { tutar: 0, odendi: false, sonOdemeTarihi: `${basYil}-10-05`, not: "I. Dönem Servis" },
+    servis2:         { tutar: 0, odendi: false, sonOdemeTarihi: `${sonYil}-02-05`, not: "II. Dönem Servis" }
+  };
+}
+
+// ÇEKİRDEK: Bir öğrenciyi mevcut dönemden gelecek döneme taşı
+// eskiAyar = o.id'nin AKTIF_DONEM verisi (ayarListesi[id]), yeniAidat = yeni dönem aylık aidatı
+async function ogrenciyiDonemeTasi(ogrenciId, eskiAyar, yeniAidat) {
+  const gelDonem = gelecekDonem(AKTIF_DONEM);
+  if (!gelDonem) throw new Error("Gelecek dönem hesaplanamadı");
+
+  const program = (eskiAyar?.aidatAyarlari?.programTuru) || (eskiAyar?.kayit?.program) || "Tam Gün";
+  const sinif = (eskiAyar?.kayit?.sinif) || "";
+  const yeniAidatAyarlari = bckAidatHesapla(yeniAidat, program);
+
+  const donemData = {
+    donemYili: gelDonem,
+    aktif: true,
+    durum: "aktif",
+    aidatAyarlari: yeniAidatAyarlari,
+    // Eski dönemden taşınan bilgiler:
+    ogrenci: eskiAyar?.ogrenci || {},
+    saglik: eskiAyar?.saglik || {},
+    acilDurum: eskiAyar?.acilDurum || {},
+    anne: eskiAyar?.anne || {},
+    baba: eskiAyar?.baba || {},
+    vasi: eskiAyar?.vasi || {},
+    kayit: { sinif: sinif, program: program },
+    izinler: eskiAyar?.izinler || { medya: true, gezi: true, acilMudahale: true, saglikTarama: true },
+    // Yeni dönemde sıfırdan başlayanlar:
+    ilanUcretleri: {},
+    sozlesme: {},
+    sozlesmedeGoster: {},
+    aylikOdemeler: {},
+    digerOdemeler: yeniDonemDigerOdemeler(gelDonem),
+    notlar: "",
+    kaynakBasvuruId: "yenileme",
+    yenilemeKaynagi: AKTIF_DONEM, // hangi dönemden yenilendi
+    olusturuldu: new Date().toISOString(),
+    olusturan: currentUser.email
+  };
+
+  await setDoc(doc(db, "ogrenciler", ogrenciId, "donemler", gelDonem), donemData);
+}
+
+// ---- TEK ÖĞRENCİ YENİLEME ----
+let tekYenileAktifId = null;
+
+window.tekOgrenciYenileAc = function(ogrenciId) {
+  const o = ogrenciList.find(x => x.id === ogrenciId);
+  const ayar = ayarListesi[ogrenciId];
+  if (!o) return;
+  tekYenileAktifId = ogrenciId;
+
+  const gelDonem = gelecekDonem(AKTIF_DONEM);
+  const eskiAidat = ayar?.aidatAyarlari?.aylikAidat || 0;
+  const sinif = (ayar?.kayit?.sinif) || o.sinif || "—";
+  const program = (ayar?.aidatAyarlari?.programTuru) || o.programTuru || "—";
+
+  document.getElementById("tekYenileAltBaslik").textContent = `${AKTIF_DONEM} → ${gelDonem}`;
+  document.getElementById("tekYenileOgrenciAd").textContent = o.ogrenciAdSoyad || "Öğrenci";
+  document.getElementById("tekYenileBilgi").textContent = `Sınıf: ${sinif} · Program: ${program}`;
+  document.getElementById("tekYenileAidat").value = eskiAidat || "";
+  document.getElementById("tekYenileEskiBilgi").textContent = eskiAidat
+    ? `Eski dönem (${AKTIF_DONEM}) aidatı: ${eskiAidat.toLocaleString("tr-TR")} TL — istediğiniz gibi değiştirin.`
+    : "Bu öğrencinin eski dönem aidatı tanımlı değil.";
+  document.getElementById("tekYenileModal").classList.add("active");
+};
+
+window.tekYenileKapat = function() {
+  document.getElementById("tekYenileModal").classList.remove("active");
+  tekYenileAktifId = null;
+};
+
+window.tekYenileKaydet = async function() {
+  if (!tekYenileAktifId) return;
+  const yeniAidat = Number(document.getElementById("tekYenileAidat").value) || 0;
+  if (yeniAidat <= 0) { showToast("Geçerli bir aidat girin", "error"); return; }
+
+  const btn = document.getElementById("tekYenileBtn");
+  btn.disabled = true; const em = btn.textContent; btn.textContent = "⏳ Taşınıyor...";
+  try {
+    const eskiAyar = ayarListesi[tekYenileAktifId];
+    await ogrenciyiDonemeTasi(tekYenileAktifId, eskiAyar, yeniAidat);
+    gelecekDonemKayitlari[tekYenileAktifId] = true;
+    const o = ogrenciList.find(x => x.id === tekYenileAktifId);
+    showToast(`✓ ${o?.ogrenciAdSoyad || "Öğrenci"} ${gelecekDonem(AKTIF_DONEM)} dönemine taşındı`);
+    tekYenileKapat();
+    renderTable();
+  } catch (e) {
+    console.error("Yenileme hatası:", e);
+    showToast("Taşıma hatası: " + e.message, "error");
+  } finally {
+    btn.disabled = false; btn.textContent = em;
+  }
+};
+
+// ---- TOPLU YENİLEME ----
+window.topluYenileAc = function() {
+  const gelDonem = gelecekDonem(AKTIF_DONEM);
+  if (!gelDonem) { showToast("Bu dönemden yenileme yapılamaz", "error"); return; }
+  document.getElementById("topluYenileAltBaslik").textContent = `${AKTIF_DONEM} → ${gelDonem}`;
+  document.querySelector('input[name="topluUcretYontem"][value="zam"]').checked = true;
+  topluUcretYontemDegisti();
+  topluListeyiTazele();
+  document.getElementById("topluYenileModal").classList.add("active");
+};
+
+window.topluYenileKapat = function() {
+  document.getElementById("topluYenileModal").classList.remove("active");
+};
+
+window.topluUcretYontemDegisti = function() {
+  const yontem = document.querySelector('input[name="topluUcretYontem"]:checked').value;
+  document.getElementById("topluZamAlani").style.display = (yontem === "zam") ? "block" : "none";
+  topluListeyiTazele();
+};
+
+function topluYenilenebilirOgrenciler() {
+  // AKTIF_DONEM'de verisi olan + gelecek dönemde kaydı olmayan öğrenciler
+  return ogrenciList.filter(o => ayarListesi[o.id] && !gelecekDonemKayitlari[o.id]);
+}
+
+window.topluListeyiTazele = function() {
+  const yontem = document.querySelector('input[name="topluUcretYontem"]:checked')?.value || "zam";
+  const zamOrani = Number(document.getElementById("topluZamOrani").value) || 0;
+  const liste = topluYenilenebilirOgrenciler();
+  const wrap = document.getElementById("topluYenileListe");
+
+  if (liste.length === 0) {
+    wrap.innerHTML = '<div style="padding:24px; text-align:center; color:#6b7280;">Taşınabilecek öğrenci yok (hepsi zaten gelecek dönemde kayıtlı).</div>';
+    document.getElementById("topluYenileSayac").textContent = "";
+    return;
+  }
+
+  // Önceki seçimleri koru
+  const oncekiSecim = {};
+  wrap.querySelectorAll('input[type=checkbox]:checked').forEach(c => oncekiSecim[c.dataset.id] = true);
+  const oncekiElleDeger = {};
+  wrap.querySelectorAll('.y-yeni-input').forEach(i => { if (i.value) oncekiElleDeger[i.dataset.id] = i.value; });
+
+  let html = "";
+  for (const o of liste) {
+    const ayar = ayarListesi[o.id];
+    const eskiAidat = ayar?.aidatAyarlari?.aylikAidat || 0;
+    const secili = oncekiSecim[o.id] !== undefined ? oncekiSecim[o.id] : true; // varsayılan seçili
+
+    let sagTaraf;
+    if (yontem === "zam") {
+      const yeni = eskiAidat ? Math.round(eskiAidat * (1 + zamOrani/100) / 100) * 100 : 0;
+      sagTaraf = `<span class="y-eski">${eskiAidat ? eskiAidat.toLocaleString("tr-TR") : "—"} TL</span><span class="y-ok">→ ${yeni ? yeni.toLocaleString("tr-TR") : "—"} TL</span>`;
+    } else {
+      const deger = oncekiElleDeger[o.id] || eskiAidat || "";
+      sagTaraf = `<span class="y-eski">${eskiAidat ? eskiAidat.toLocaleString("tr-TR") : "—"} TL</span><input type="number" class="y-yeni-input" data-id="${o.id}" value="${deger}" placeholder="yeni ₺">`;
+    }
+
+    html += `
+      <div class="yenile-satir">
+        <input type="checkbox" data-id="${o.id}" ${secili ? "checked" : ""} onchange="topluSayacGuncelle()">
+        <span class="y-ad">${escapeHtml(o.ogrenciAdSoyad || "—")}</span>
+        ${sagTaraf}
+      </div>`;
+  }
+  wrap.innerHTML = html;
+  topluSayacGuncelle();
+};
+
+window.topluSayacGuncelle = function() {
+  const secili = document.querySelectorAll('#topluYenileListe input[type=checkbox]:checked').length;
+  document.getElementById("topluYenileSayac").textContent = `${secili} öğrenci seçili`;
+};
+
+window.topluYenileKaydet = async function() {
+  const yontem = document.querySelector('input[name="topluUcretYontem"]:checked').value;
+  const zamOrani = Number(document.getElementById("topluZamOrani").value) || 0;
+  const seciliCheckbox = Array.from(document.querySelectorAll('#topluYenileListe input[type=checkbox]:checked'));
+
+  if (seciliCheckbox.length === 0) { showToast("Hiç öğrenci seçilmedi", "error"); return; }
+
+  // Her seçili öğrenci için yeni aidatı hesapla
+  const islemler = [];
+  for (const cb of seciliCheckbox) {
+    const id = cb.dataset.id;
+    const ayar = ayarListesi[id];
+    const eskiAidat = ayar?.aidatAyarlari?.aylikAidat || 0;
+    let yeniAidat = 0;
+    if (yontem === "zam") {
+      yeniAidat = eskiAidat ? Math.round(eskiAidat * (1 + zamOrani/100) / 100) * 100 : 0;
+    } else {
+      const input = document.querySelector(`.y-yeni-input[data-id="${id}"]`);
+      yeniAidat = Number(input?.value) || 0;
+    }
+    if (yeniAidat <= 0) {
+      const o = ogrenciList.find(x => x.id === id);
+      showToast(`${o?.ogrenciAdSoyad || "Bir öğrenci"} için geçerli aidat yok, atlanıyor`, "error");
+      continue;
+    }
+    islemler.push({ id, ayar, yeniAidat });
+  }
+
+  if (islemler.length === 0) { showToast("Geçerli işlem yok", "error"); return; }
+
+  const gelDonem = gelecekDonem(AKTIF_DONEM);
+  if (!confirm(`${islemler.length} öğrenci ${gelDonem} dönemine taşınacak. Devam edilsin mi?`)) return;
+
+  const btn = document.getElementById("topluYenileBtn");
+  btn.disabled = true; const em = btn.textContent;
+  let basarili = 0, hatali = 0;
+
+  for (const is of islemler) {
+    try {
+      btn.textContent = `⏳ ${basarili+1}/${islemler.length}`;
+      await ogrenciyiDonemeTasi(is.id, is.ayar, is.yeniAidat);
+      gelecekDonemKayitlari[is.id] = true;
+      basarili++;
+    } catch (e) {
+      console.error("Toplu yenileme hatası:", is.id, e);
+      hatali++;
+    }
+  }
+
+  showToast(`✓ ${basarili} öğrenci ${gelDonem} dönemine taşındı` + (hatali ? `, ${hatali} hata` : ""));
+  btn.disabled = false; btn.textContent = em;
+  topluListeyiTazele();
+  renderTable();
 };
 
 
