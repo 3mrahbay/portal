@@ -20245,6 +20245,8 @@ function updateDurumSayaclari() {
 
   for (const o of ogrenciList) {
     const ayar = ayarListesi[o.id];
+    // Sadece seçili dönemde (AKTIF_DONEM) verisi olan öğrenciler sayılır
+    if (!ayar) continue;
     const durum = getOgrenciDurum(o, ayar);
     if (sayac[durum] !== undefined) sayac[durum]++;
     sayac.tumu++;
@@ -20330,6 +20332,12 @@ function renderTable() {
   
   // Filtre uygula
   filteredList = ogrenciList.filter(o => {
+    // ===== DÖNEM FİLTRESİ (en önemli) =====
+    // Sadece seçili dönemde (AKTIF_DONEM) dönem dokümanı olan öğrenciler görünür.
+    // Öğrenci yeni döneme "Gelecek Döneme Yenile" ile taşınınca o dönemde belirir.
+    const donemVerisi = ayarListesi[o.id];
+    if (!donemVerisi) return false;
+
     // Arama
     if (searchVal) {
       const ad = (o.ogrenciAdSoyad || "").toLowerCase();
@@ -20373,6 +20381,20 @@ function renderTable() {
   });
   
   if (filteredList.length === 0) {
+    // Seçili dönemde hiç öğrenci yoksa açıklayıcı mesaj
+    const bosDonemMi = ogrenciList.every(o => !ayarListesi[o.id]);
+    if (bosDonemMi && !searchVal && activeDurum === "tumu" && activeFilter === "tumu") {
+      wrap.innerHTML = `
+        <div class="empty">
+          <h3>📂 ${AKTIF_DONEM} dönemi için henüz öğrenci yok</h3>
+          <p>Bu döneme öğrenci eklemek için:</p>
+          <p style="margin-top:8px;">• Geçmiş dönemden (dropdown'dan <strong>2025-2026 (Arşiv)</strong> seçin) öğrencileri <strong>"↻ Gelecek Döneme Yenile"</strong> ile taşıyın<br>
+          • Ya da <strong>"＋ Öğrenci Ekle"</strong> ile yeni öğrenci girin<br>
+          • Onay bekleyen başvuruları onaylayın</p>
+        </div>
+      `;
+      return;
+    }
     wrap.innerHTML = '<div class="empty"><h3>Sonuç bulunamadı</h3><p>Arama veya filtreleri değiştirmeyi deneyin.</p></div>';
     return;
   }
@@ -34245,7 +34267,6 @@ window.showBulkUpload = async function() {
 };
 
 </script>
-<script type="module" src="ogrenci-ekle.js"></script>
 <script src="aidat-donem-genislet.js"></script>
 <script src="pdf-sayfa-bolunmesi.js"></script>
 <script src="pdf-estetik-duzeltme.js"></script>  
