@@ -16396,9 +16396,110 @@ window.caGozlemKaydet = async function() {
 };
 
 function yonetimHomeHTML(ad) {
+  // ===== GERÇEK VERİ HESABI (AKTIF_DONEM = 2026-2027) =====
+  const donem = (typeof AKTIF_DONEM !== "undefined") ? AKTIF_DONEM : "2026-2027";
+  // Sadece aktif dönemde dönem dokümanı/aidat ayarı olan öğrenciler sayılır
+  const aktifOgrenciler = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => {
+    const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+    return ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.aylikAidat > 0;
+  });
+  const ogrenciSayisi = aktifOgrenciler.length;
+
+  // Sınıf sayısı (benzersiz sınıf)
+  const sinifSet = new Set();
+  aktifOgrenciler.forEach(o => { if (o.sinif) sinifSet.add(o.sinif); });
+  const sinifSayisi = sinifSet.size || 3;
+
+  // Bu ay tahsilatı + toplam beklenen/ödenen
+  const buAyKod = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  let buAyTahsilat = 0;
+  let toplamBeklenenYil = 0;
+  let toplamOdenenYil = 0;
+  let odeyenSayisi = 0, bekleyenSayisi = 0, gecikenSayisi = 0;
+
+  aktifOgrenciler.forEach(o => {
+    const ayar = ayarListesi[o.id];
+    const aylikOd = (ayar && ayar.aylikOdemeler) || {};
+    const a = ayar.aidatAyarlari || {};
+    const aidat = a.aylikAidat || 0;
+    const iDonem = a.iDonemAylik || aidat;
+    const iiDonem = a.iiDonemAylik || aidat;
+    const onOdeme = a.onOdeme || 0;
+
+    // Bu ay ödendi mi?
+    const buAyKayit = aylikOd[buAyKod];
+    if (buAyKayit && (buAyKayit.odendi || buAyKayit.odenenTutar)) {
+      buAyTahsilat += parseFloat(buAyKayit.odenenTutar) || 0;
+    }
+
+    // Öğrenci bazında toplam ödenen/beklenen (kabaca tahsilat durumu için)
+    let ogrBeklenen = onOdeme;
+    let ogrOdenen = 0;
+    // Peşinat ödendi mi
+    const onKayit = aylikOd["__onOdeme"];
+    if (onKayit && (onKayit.odendi || onKayit.odenenTutar)) {
+      ogrOdenen += parseFloat(onKayit.odenenTutar) || onOdeme;
+    }
+    // Tüm aylar
+    Object.keys(aylikOd).forEach(k => {
+      if (k === "__onOdeme") return;
+      const ayNum = parseInt((k.split("-")[1] || "0"), 10);
+      const beklenen = (aylikOd[k].beklenenTutar !== undefined && aylikOd[k].beklenenTutar !== "")
+        ? parseFloat(aylikOd[k].beklenenTutar)
+        : ((ayNum >= 9 || ayNum <= 1) ? iDonem : iiDonem);
+      ogrBeklenen += beklenen;
+      if (aylikOd[k].odendi || aylikOd[k].odenenTutar) {
+        ogrOdenen += parseFloat(aylikOd[k].odenenTutar) || beklenen;
+      }
+    });
+    toplamBeklenenYil += ogrBeklenen;
+    toplamOdenenYil += ogrOdenen;
+
+    // Tahsilat durumu sınıflandırması (basit): bu ay ödedi mi?
+    if (buAyKayit && (buAyKayit.odendi)) odeyenSayisi++;
+    else {
+      // gecikmiş mi? (bu aydan önceki en yakın ödenmemiş ay varsa)
+      const buAyNum = parseInt(buAyKod.split("-")[1], 10);
+      const buYil = parseInt(buAyKod.split("-")[0], 10);
+      let gecikme = false;
+      Object.keys(aylikOd).forEach(k => {
+        if (k === "__onOdeme") return;
+        if (k < buAyKod && !(aylikOd[k].odendi)) gecikme = true;
+      });
+      if (gecikme) gecikenSayisi++;
+      else bekleyenSayisi++;
+    }
+  });
+
+  // Doluluk: 3 sınıf, her sınıf ~25 kapasite varsayımı (toplam ~75)
+  const kapasiteToplam = 75;
+  const dolulukYuzde = kapasiteToplam > 0 ? Math.round((ogrenciSayisi / kapasiteToplam) * 100) : 0;
+
+  // Tahsilat yüzdesi (yıllık)
+  const tahsilatYuzde = toplamBeklenenYil > 0 ? Math.round((toplamOdenenYil / toplamBeklenenYil) * 100) : 0;
+
+  // Para formatı: 512000 → "512K", 1250000 → "1.25M"
+  function paraKisa(n) {
+    n = Math.round(n);
+    if (n >= 1000000) return "₺" + (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + "M";
+    if (n >= 1000) return "₺" + Math.round(n / 1000) + "K";
+    return "₺" + n.toLocaleString("tr-TR");
+  }
+  const buAyTahsilatStr = paraKisa(buAyTahsilat);
+  const toplamOdenenStr = paraKisa(toplamOdenenYil);
+
+  // Onay kuyruğu sayısı (medya onay + varsa) — şimdilik 0/dinamik değilse gizlenir
+  const ayNoIsim = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const buAyIsim = ayNoIsim[new Date().getMonth()] + " " + new Date().getFullYear();
+
+  // Personel sayısı
+  const personelSayisi = (typeof personelListesi !== "undefined" ? personelListesi : []).filter(p => !p.durum || p.durum === "aktif").length;
+
   return `
     <div class="ca-page ca-stack">
-      <div class="ca-draft-banner">✨ Pilot / taslak — Yönetim ana sayfası. Veriler örnek; Faz 2'de canlı Firebase verisine bağlanacak.</div>
 
       <div class="ca-topbar">
         <div class="ca-row">
@@ -16413,23 +16514,23 @@ function yonetimHomeHTML(ad) {
 
       <div class="ca-hero-row">
         <div class="ca-card-green">
-          <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">GENEL BAKIŞ · NİSAN 2026</div>
+          <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">GENEL BAKIŞ · ${donem} · ${buAyIsim.toUpperCase()}</div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
-            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">128</div><div style="font-size:11px; opacity:.9;">👧 Öğrenci</div></div>
-            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">6</div><div style="font-size:11px; opacity:.9;">🏫 Sınıf</div></div>
-            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">₺512K</div><div style="font-size:11px; opacity:.9;">💰 Bu ay tahsilat</div></div>
-            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">%86</div><div style="font-size:11px; opacity:.9;">📈 Doluluk</div></div>
+            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">${ogrenciSayisi}</div><div style="font-size:11px; opacity:.9;">👧 Öğrenci</div></div>
+            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">${sinifSayisi}</div><div style="font-size:11px; opacity:.9;">🏫 Sınıf</div></div>
+            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">${buAyTahsilatStr}</div><div style="font-size:11px; opacity:.9;">💰 Bu ay tahsilat</div></div>
+            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:12px;"><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">%${dolulukYuzde}</div><div style="font-size:11px; opacity:.9;">📈 Doluluk</div></div>
           </div>
         </div>
 
         <div class="ca-card" style="background:linear-gradient(135deg,var(--c-yellow-soft),#FFF7D6); border:none;">
           <div class="ca-row" style="justify-content:space-between;">
             <span class="ca-pill yellow">📦 Onay Kuyruğu</span>
-            <span class="ca-pill" style="background:var(--c-pink-deep); color:#fff;">5 bekliyor</span>
           </div>
           <div class="ca-stack" style="gap:8px; margin-top:12px;">
-            <div class="ca-row"><span>💳</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">3 kredi kartı ödeme talebi</div></div>
-            <div class="ca-row"><span>📝</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">2 yeni kayıt başvurusu</div></div>
+            <div class="ca-row"><span>💳</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Kredi kartı ödeme talepleri</div></div>
+            <div class="ca-row"><span>📝</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Yeni kayıt & yenileme başvuruları</div></div>
+            <div class="ca-row"><span>🖼️</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Medya onay kuyruğu</div></div>
           </div>
           <button class="ca-btn" style="margin-top:12px; width:100%;" onclick="adminGotoTab('onay')">Onayları İncele</button>
         </div>
@@ -16451,9 +16552,8 @@ function yonetimHomeHTML(ad) {
         <div>
           <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Finans Özeti</h3><button class="ca-link" onclick="adminGotoTab('finans')">Detay →</button></div>
           <div class="ca-card">
-            <div class="ca-edurow"><span class="lbl">Gelir</span><span class="track"><span class="fill" style="width:88%; background:var(--c-green-light);"></span></span><span class="pct" style="width:64px;">₺512K</span></div>
-            <div class="ca-edurow"><span class="lbl">Gider</span><span class="track"><span class="fill" style="width:61%; background:var(--c-pink-deep);"></span></span><span class="pct" style="width:64px;">₺356K</span></div>
-            <div class="ca-card tint" style="margin-top:12px; padding:12px;"><div style="font-weight:700; color:var(--c-ink); font-size:13px;">📈 Net: ₺156.000 · Başabaş aşıldı</div><div class="ca-tile-sub">Hedefin %122'si</div></div>
+            <div class="ca-edurow"><span class="lbl">Tahsilat</span><span class="track"><span class="fill" style="width:${tahsilatYuzde}%; background:var(--c-green-light);"></span></span><span class="pct" style="width:64px;">${toplamOdenenStr}</span></div>
+            <div class="ca-card tint" style="margin-top:12px; padding:12px;"><div style="font-weight:700; color:var(--c-ink); font-size:13px;">📊 Yıllık tahsilat: %${tahsilatYuzde}</div><div class="ca-tile-sub">${donem} dönemi · ${ogrenciSayisi} öğrenci</div></div>
           </div>
         </div>
 
@@ -16461,9 +16561,9 @@ function yonetimHomeHTML(ad) {
           <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Tahsilat Durumu</h3><button class="ca-link" onclick="adminGotoTab('ogrenciler')">Tümü →</button></div>
           <div class="ca-card">
             <div class="ca-statpills">
-              <div class="ca-statpill" style="background:#Dff4e3;"><div class="v">92</div><div class="l">Ödeyen</div></div>
-              <div class="ca-statpill" style="background:var(--c-yellow-soft);"><div class="v">24</div><div class="l">Bekleyen</div></div>
-              <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v">12</div><div class="l">Geciken</div></div>
+              <div class="ca-statpill" style="background:#Dff4e3;"><div class="v">${odeyenSayisi}</div><div class="l">Ödeyen</div></div>
+              <div class="ca-statpill" style="background:var(--c-yellow-soft);"><div class="v">${bekleyenSayisi}</div><div class="l">Bekleyen</div></div>
+              <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v">${gecikenSayisi}</div><div class="l">Geciken</div></div>
             </div>
             <button class="ca-btn ghost" style="margin-top:12px; width:100%;" onclick="adminGotoTab('ogrenciler')">✉ Toplu hatırlatma gönder</button>
           </div>
@@ -16471,17 +16571,17 @@ function yonetimHomeHTML(ad) {
 
         <div>
           <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Son Başvurular</h3><button class="ca-link" onclick="adminGotoTab('onay')">Tümü →</button></div>
-          <div class="ca-card" style="padding:12px 16px;">
-            <div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-pink-soft);">A</div><div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Ada Yılmaz · 4 yaş</div><div class="ca-tile-sub">Yeni kayıt · bugün</div></div></div>
-            <div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-blue-soft);">K</div><div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Kerem Demir · 5 yaş</div><div class="ca-tile-sub">Kayıt yenileme · dün</div></div></div>
+          <div class="ca-card" style="padding:16px;">
+            <div class="ca-tile-sub" style="text-align:center; padding:8px 0;">Yeni kayıt ve yenileme başvuruları Onay sekmesinde listelenir.</div>
+            <button class="ca-btn ghost" style="margin-top:8px; width:100%;" onclick="adminGotoTab('onay')">Başvuruları görüntüle →</button>
           </div>
         </div>
 
         <div>
           <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Personel</h3><button class="ca-link" onclick="adminGotoTab('personel')">Yönet →</button></div>
           <div class="ca-card">
-            <div class="ca-row" style="justify-content:space-between;"><span style="color:var(--c-body); font-size:13px;">Aktif personel</span><span class="ca-head" style="font-size:16px;">18</span></div>
-            <div class="ca-row" style="justify-content:space-between; margin-top:8px;"><span style="color:var(--c-body); font-size:13px;">Bugün izinli</span><span class="ca-head" style="font-size:16px;">2</span></div>
+            <div class="ca-row" style="justify-content:space-between;"><span style="color:var(--c-body); font-size:13px;">Aktif personel</span><span class="ca-head" style="font-size:16px;">${personelSayisi}</span></div>
+            <button class="ca-btn ghost" style="margin-top:10px; width:100%;" onclick="adminGotoTab('personel')">Personeli yönet →</button>
           </div>
         </div>
       </div>
