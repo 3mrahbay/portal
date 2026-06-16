@@ -8563,17 +8563,6 @@ html, body {
   </header>
 
   <div class="dash-container">
-    <!-- Üst kontrol çubuğu: CSV yükleme + Dönem seçici (sadece finans yetkili roller) -->
-    <div class="dash-ust-kontrol" id="dashUstKontrol" style="display:none; justify-content:flex-end; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
-      <button class="btn-csv-yukle" onclick="openCsvYukleModal()" title="CSV dosyasından öğrenci listesi yükle">
-        <span>📥</span> CSV'den Yükle
-      </button>
-      <select class="donem-selector" id="donemSelector">
-        <option value="2025-2026">2025-2026 Dönemi</option>
-        <option value="2026-2027">2026-2027 Dönemi</option>
-      </select>
-    </div>
-
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" data-tab="anasayfa">✨ Ana Sayfa</button>
@@ -8636,6 +8625,16 @@ html, body {
         <button class="filter-chip" data-filter="tamgun">Tam Gün</button>
         <button class="filter-chip" data-filter="yarimgun">Yarım Gün</button>
         <button class="filter-chip" data-filter="gecikmis" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;">💰 Gecikmiş</button>
+        <!-- Dönem seçici + CSV yükleme (sağa hizalı) -->
+        <div class="ogrenci-arac-grubu" id="ogrenciAracGrubu" style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+          <select class="donem-selector" id="donemSelector">
+            <option value="2025-2026">2025-2026 Dönemi</option>
+            <option value="2026-2027">2026-2027 Dönemi</option>
+          </select>
+          <button class="btn-csv-yukle" onclick="openCsvYukleModal()" title="CSV dosyasından öğrenci listesi yükle">
+            <span>📥</span> CSV'den Yükle
+          </button>
+        </div>
       </div>
 
       <div class="ogrenci-table" id="ogrenciTableWrap">
@@ -12389,11 +12388,11 @@ function sekmeleriRoleGoreAyarla() {
     ilkGorunur.click();
   }
 
-  // Üst kontrol çubuğu (CSV yükleme + Dönem seçici) sadece finans yetkili rollere
-  const ustKontrol = document.getElementById("dashUstKontrol");
-  if (ustKontrol) {
+  // Öğrenci Ayarları araç grubu (CSV yükleme + Dönem seçici) sadece finans yetkili rollere
+  const aracGrubu = document.getElementById("ogrenciAracGrubu");
+  if (aracGrubu) {
     const finansYetkisi = isAdmin || ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
-    ustKontrol.style.display = finansYetkisi ? "flex" : "none";
+    aracGrubu.style.display = finansYetkisi ? "flex" : "none";
   }
 }
 
