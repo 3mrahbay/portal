@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bir Çiçek Koleji — Test Kaydı Temizleme</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", sans-serif; background: #faf7f2; color: #1a1a1a; max-width: 900px; margin: 0 auto; padding: 24px; line-height: 1.5; }
+  h1 { color: #1a4d2e; font-size: 22px; }
+  .uyari { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 14px 18px; border-radius: 10px; font-size: 14px; margin-bottom: 16px; }
+  .bilgi { background: #dbeafe; border: 1px solid #93c5fd; color: #1e40af; padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; }
+  .btn { background: #2d6a4f; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-right: 8px; }
+  .btn:hover { background: #1a4d2e; }
+  .btn:disabled { opacity: 0.5; cursor: wait; }
+  .btn-sil { background: #dc2626; }
+  .btn-sil:hover { background: #991b1b; }
+  #durum { margin: 14px 0; font-size: 14px; color: #6b7280; }
+  .liste { margin-top: 16px; }
+  .satir { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 6px; }
+  .satir.secili { background: #fef2f2; border-color: #fca5a5; }
+  .satir input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; }
+  .satir .ad { font-weight: 600; flex: 1; }
+  .satir .detay { font-size: 12px; color: #6b7280; }
+  .rozet { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .rozet.test { background: #fee2e2; color: #991b1b; }
+  .rozet.gercek { background: #d8f3dc; color: #1a4d2e; }
+  .sonuc { margin-top: 16px; padding: 14px; border-radius: 10px; font-size: 14px; }
+  .sonuc.ok { background: #d8f3dc; color: #1a4d2e; }
+  .sonuc.hata { background: #fef2f2; color: #991b1b; }
+  .secim-arac { margin: 12px 0; font-size: 13px; }
+  .secim-arac a { color: #2d6a4f; cursor: pointer; margin-right: 12px; text-decoration: underline; }
+</style>
+</head>
+<body>
+  <h1>🧹 Test Kaydı Temizleme</h1>
+  <div class="uyari">
+    <strong>⚠️ Bu araç öğrenci SİLER — geri alınamaz!</strong><br>
+    Önce listeyi tarar, silinmesini önerdiklerini işaretli getirir. Listeyi dikkatle kontrol edin, sadece gerçekten silmek istediklerinizi işaretli bırakın, sonra silin.
+  </div>
+  <div class="bilgi">
+    Otomatik test olarak işaretlenenler: <strong>(isimsiz), DENEME ÇOCUK, Maria Montessori, TRADING TR, EMRAH BAY, Ahmet SELİM BAY</strong>.
+    <br>Serra Bay <strong>test olarak işaretlenmedi</strong> (siz korumak istediniz). Gerçek öğrenciler işaretsiz gelir.
+  </div>
+
+  <button class="btn" id="taraBtn" onclick="tara()">📋 Listeyi Tara</button>
+  <div id="durum"></div>
+
+  <div class="secim-arac" id="secimArac" style="display:none;">
+    <a onclick="hepsiniSec(true)">Tümünü seç</a>
+    <a onclick="hepsiniSec(false)">Seçimi temizle</a>
+    <a onclick="sadeceTestSec()">Sadece önerilenleri seç</a>
+  </div>
+
+  <div class="liste" id="liste"></div>
+
+  <div id="silAlani" style="display:none; margin-top:20px;">
+    <button class="btn btn-sil" id="silBtn" onclick="silOnay()">🗑️ Seçili kayıtları sil</button>
+    <span id="silSayac" style="margin-left:12px; font-weight:600;"></span>
+  </div>
+
+  <div id="sonuc"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
+  authDomain: "bcka-site.firebaseapp.com",
+  projectId: "bcka-site",
+  storageBucket: "bcka-site.firebasestorage.app",
+  messagingSenderId: "736581475783",
+  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const durum = document.getElementById("durum");
+
+// Test olarak işaretlenecek isimler (küçük harfe çevrilmiş, tam eşleşme)
+const TEST_ISIMLERI = [
+  "", "deneme çocuk", "maria montessori", "trading tr", "emrah bay", "ahmet selim bay"
+];
+
+let ogrenciler = [];
+
+onAuthStateChanged(auth, (user) => {
+  if (user) durum.textContent = `✓ Giriş yapılmış: ${user.email}`;
+  else durum.innerHTML = `⚠️ Önce <a href="https://portal.bircicekkoleji.com" target="_blank">portala giriş yapın</a>, sonra bu sayfaya dönün.`;
+});
+
+window.tara = async function() {
+  const btn = document.getElementById("taraBtn");
+  btn.disabled = true;
+  durum.textContent = "Taranıyor…";
+  try {
+    const snap = await getDocs(collection(db, "ogrenciler"));
+    ogrenciler = [];
+    snap.forEach(d => ogrenciler.push({ id: d.id, ...d.data() }));
+    ogrenciler.sort((a,b) => (a.ogrenciAdSoyad||"").localeCompare(b.ogrenciAdSoyad||"", "tr"));
+
+    const liste = document.getElementById("liste");
+    liste.innerHTML = "";
+    for (const o of ogrenciler) {
+      const ad = (o.ogrenciAdSoyad || "").trim();
+      const testMi = TEST_ISIMLERI.includes(ad.toLowerCase());
+      const aidat = o.aylikAidat ? Number(o.aylikAidat).toLocaleString("tr-TR")+" TL" : "—";
+      const div = document.createElement("div");
+      div.className = "satir" + (testMi ? " secili" : "");
+      div.innerHTML = `
+        <input type="checkbox" data-id="${o.id}" ${testMi ? "checked" : ""} onchange="guncelleSayac()">
+        <span class="ad">${ad || "(isimsiz)"}</span>
+        <span class="detay">aidat: ${aidat} · durum: ${o.durum || "—"}</span>
+        <span class="rozet ${testMi ? 'test' : 'gercek'}">${testMi ? 'TEST (önerilen)' : 'gerçek'}</span>
+      `;
+      liste.appendChild(div);
+    }
+    document.getElementById("secimArac").style.display = "block";
+    document.getElementById("silAlani").style.display = "block";
+    durum.textContent = `✓ ${ogrenciler.length} öğrenci listelendi.`;
+    guncelleSayac();
+  } catch (e) {
+    durum.textContent = "❌ Hata: " + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+window.hepsiniSec = function(deger) {
+  document.querySelectorAll('#liste input[type=checkbox]').forEach(c => {
+    c.checked = deger;
+    c.closest(".satir").classList.toggle("secili", deger);
+  });
+  guncelleSayac();
+};
+
+window.sadeceTestSec = function() {
+  document.querySelectorAll('#liste input[type=checkbox]').forEach(c => {
+    const rozet = c.closest(".satir").querySelector(".rozet");
+    const testMi = rozet.classList.contains("test");
+    c.checked = testMi;
+    c.closest(".satir").classList.toggle("secili", testMi);
+  });
+  guncelleSayac();
+};
+
+window.guncelleSayac = function() {
+  const secili = document.querySelectorAll('#liste input[type=checkbox]:checked').length;
+  document.getElementById("silSayac").textContent = `${secili} kayıt seçili`;
+  document.querySelectorAll('#liste input[type=checkbox]').forEach(c => {
+    c.closest(".satir").classList.toggle("secili", c.checked);
+  });
+};
+
+window.silOnay = async function() {
+  const seciliIds = Array.from(document.querySelectorAll('#liste input[type=checkbox]:checked')).map(c => c.dataset.id);
+  if (seciliIds.length === 0) { alert("Hiç kayıt seçilmedi."); return; }
+
+  const isimler = seciliIds.map(id => {
+    const o = ogrenciler.find(x => x.id === id);
+    return "• " + (o?.ogrenciAdSoyad || "(isimsiz)");
+  }).join("\n");
+
+  if (!confirm(`${seciliIds.length} öğrenci KALICI olarak silinecek:\n\n${isimler}\n\nDevam edilsin mi?`)) return;
+  if (!confirm(`SON UYARI: Bu işlem GERİ ALINAMAZ.\n${seciliIds.length} öğrenci ve tüm dönem verileri silinecek.\n\nEmin misiniz?`)) return;
+
+  const btn = document.getElementById("silBtn");
+  btn.disabled = true;
+  let basarili = 0, hatali = 0;
+
+  for (const id of seciliIds) {
+    try {
+      // Önce dönem alt koleksiyonunu sil
+      const donSnap = await getDocs(collection(db, "ogrenciler", id, "donemler"));
+      for (const dd of donSnap.docs) {
+        await deleteDoc(doc(db, "ogrenciler", id, "donemler", dd.id));
+      }
+      // Sonra ana dokümanı sil
+      await deleteDoc(doc(db, "ogrenciler", id));
+      basarili++;
+      durum.textContent = `Siliniyor… ${basarili}/${seciliIds.length}`;
+    } catch (e) {
+      console.error("Silme hatası:", id, e);
+      hatali++;
+    }
+  }
+
+  const sonuc = document.getElementById("sonuc");
+  sonuc.className = "sonuc " + (hatali === 0 ? "ok" : "hata");
+  sonuc.textContent = `✓ ${basarili} kayıt silindi.` + (hatali ? ` ${hatali} kayıt silinemedi (konsola bakın).` : "");
+  btn.disabled = false;
+  // Listeyi tazele
+  setTimeout(() => window.tara(), 1500);
+};
+</script>
+</body>
+</html>
