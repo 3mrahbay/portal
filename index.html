@@ -1709,6 +1709,71 @@ html, body {
   font-size: 16px;
 }
 
+/* ============ ÖĞRENCİ EKLE BUTONU ============ */
+.btn-yeni-ogrenci {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #2d6a4f, #40916c);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(45,106,79,0.25);
+}
+
+.btn-yeni-ogrenci:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(45,106,79,0.35);
+}
+
+.btn-yeni-ogrenci span {
+  font-size: 17px;
+  line-height: 1;
+}
+
+/* Yeni Öğrenci modal form alanları */
+.yo-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--green-deep);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.yo-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.yo-input:focus {
+  outline: none;
+  border-color: var(--green-medium);
+}
+
+.yo-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 560px) {
+  .yo-grid2 { grid-template-columns: 1fr; }
+}
+
 /* ============ CSV YÜKLEME MODALI ============ */
 .csv-upload-area {
   border: 2.5px dashed var(--gray-300);
@@ -8625,7 +8690,7 @@ html, body {
         <button class="filter-chip" data-filter="tamgun">Tam Gün</button>
         <button class="filter-chip" data-filter="yarimgun">Yarım Gün</button>
         <button class="filter-chip" data-filter="gecikmis" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;">💰 Gecikmiş</button>
-        <!-- Dönem seçici + CSV yükleme (sağa hizalı) -->
+        <!-- Dönem seçici + CSV yükleme + Öğrenci Ekle (sağa hizalı, tek satır) -->
         <div class="ogrenci-arac-grubu" id="ogrenciAracGrubu" style="margin-left:auto; display:flex; gap:8px; align-items:center;">
           <select class="donem-selector" id="donemSelector">
             <option value="2025-2026">2025-2026 Dönemi</option>
@@ -8633,6 +8698,9 @@ html, body {
           </select>
           <button class="btn-csv-yukle" onclick="openCsvYukleModal()" title="CSV dosyasından öğrenci listesi yükle">
             <span>📥</span> CSV'den Yükle
+          </button>
+          <button class="btn-yeni-ogrenci" onclick="yeniOgrenciAc()" title="Manuel öğrenci kaydı oluştur">
+            <span>＋</span> Öğrenci Ekle
           </button>
         </div>
       </div>
@@ -11997,6 +12065,117 @@ html, body {
 </div>
 
 <!-- ============ CSV TOPLU YÜKLEME MODALI ============ -->
+<!-- ============ YENİ ÖĞRENCİ EKLE MODALI ============ -->
+<div id="yeniOgrenciModal" class="modal-overlay">
+  <div class="modal modal-large">
+    <div class="modal-header">
+      <div class="modal-header-row">
+        <div>
+          <h2>＋ Yeni Öğrenci Ekle</h2>
+          <p>Manuel öğrenci kaydı oluşturun</p>
+        </div>
+        <button class="btn-close" onclick="yeniOgrenciKapat()">×</button>
+      </div>
+    </div>
+
+    <div style="padding:8px 0 20px;">
+      <!-- Öğrenci Bilgileri -->
+      <div style="font-family:var(--font-display); font-size:18px; font-weight:600; color:var(--green-deep); margin:14px 0 4px;">👧 Öğrenci Bilgileri</div>
+      <div style="font-size:13px; color:var(--gray-500); margin-bottom:14px;">Temel bilgiler</div>
+
+      <div style="margin-bottom:14px;">
+        <label class="yo-label">AD SOYAD <span style="color:#dc2626;">*</span></label>
+        <input type="text" id="yoAdSoyad" class="yo-input" placeholder="Örn: Ahmet Selim Bay">
+      </div>
+
+      <div class="yo-grid2">
+        <div>
+          <label class="yo-label">DOĞUM TARİHİ <span style="color:#dc2626;">*</span></label>
+          <input type="date" id="yoDogumTarihi" class="yo-input">
+        </div>
+        <div>
+          <label class="yo-label">CİNSİYET <span style="color:#dc2626;">*</span></label>
+          <select id="yoCinsiyet" class="yo-input">
+            <option value="">Seçiniz</option>
+            <option value="Kız">Kız</option>
+            <option value="Erkek">Erkek</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin:14px 0;">
+        <label class="yo-label">TC KİMLİK NO</label>
+        <input type="text" id="yoTcKimlik" class="yo-input" placeholder="11 haneli (opsiyonel)" maxlength="11">
+      </div>
+
+      <div class="yo-grid2">
+        <div>
+          <label class="yo-label">SINIF <span style="color:#dc2626;">*</span></label>
+          <select id="yoSinif" class="yo-input">
+            <option value="">Seçiniz</option>
+            <option value="Papatyalar (Toddler)">Papatyalar (Toddler)</option>
+            <option value="Kardelen Çiçekleri">Kardelen Çiçekleri</option>
+            <option value="Nar Çiçekleri">Nar Çiçekleri</option>
+          </select>
+        </div>
+        <div>
+          <label class="yo-label">PROGRAM TÜRÜ <span style="color:#dc2626;">*</span></label>
+          <select id="yoProgram" class="yo-input">
+            <option value="">Seçiniz</option>
+            <option value="Tam Gün">Tam Gün</option>
+            <option value="Yarım Gün">Yarım Gün</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin:14px 0;">
+        <label class="yo-label">AYLIK AİDAT (₺) <span style="color:#dc2626;">*</span></label>
+        <input type="number" id="yoAylikAidat" class="yo-input" placeholder="Örn: 37000">
+        <div style="font-size:11px; color:var(--gray-500); margin-top:4px;">Yıllık ve dönemsel taksitler bu tutardan BCK formülüyle otomatik hesaplanır.</div>
+      </div>
+
+      <!-- Veli Bilgileri -->
+      <div style="font-family:var(--font-display); font-size:18px; font-weight:600; color:var(--green-deep); margin:24px 0 4px;">👪 Veli Bilgileri</div>
+      <div style="font-size:13px; color:var(--gray-500); margin-bottom:14px;">En az bir veli e-postası girilmesi önerilir (portal girişi için)</div>
+
+      <div class="yo-grid2">
+        <div>
+          <label class="yo-label">ANNE AD SOYAD</label>
+          <input type="text" id="yoAnneAd" class="yo-input" placeholder="Örn: Merve Bay">
+        </div>
+        <div>
+          <label class="yo-label">ANNE TELEFON</label>
+          <input type="text" id="yoAnneTel" class="yo-input" placeholder="05XX XXX XX XX">
+        </div>
+      </div>
+      <div style="margin:14px 0;">
+        <label class="yo-label">ANNE E-POSTA</label>
+        <input type="email" id="yoAnneEposta" class="yo-input" placeholder="anne@ornek.com">
+      </div>
+
+      <div class="yo-grid2">
+        <div>
+          <label class="yo-label">BABA AD SOYAD</label>
+          <input type="text" id="yoBabaAd" class="yo-input" placeholder="Örn: Emrah Bay">
+        </div>
+        <div>
+          <label class="yo-label">BABA TELEFON</label>
+          <input type="text" id="yoBabaTel" class="yo-input" placeholder="05XX XXX XX XX">
+        </div>
+      </div>
+      <div style="margin:14px 0;">
+        <label class="yo-label">BABA E-POSTA</label>
+        <input type="email" id="yoBabaEposta" class="yo-input" placeholder="baba@ornek.com">
+      </div>
+    </div>
+
+    <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn-secondary" onclick="yeniOgrenciKapat()">İptal</button>
+      <button class="btn-primary" id="yoKaydetBtn" onclick="yeniOgrenciKaydet()">💾 Öğrenciyi Kaydet</button>
+    </div>
+  </div>
+</div>
+
 <div id="csvYukleModal" class="modal-overlay">
   <div class="modal modal-large">
     <div class="modal-header">
@@ -33437,6 +33616,171 @@ window.openCsvYukleModal = function() {
   document.getElementById("csvFileInput").value = "";
   csvParsedOgrenciler = [];
 };
+
+// ============ YENİ ÖĞRENCİ EKLE (manuel) ============
+window.yeniOgrenciAc = function() {
+  // Formu temizle
+  ["yoAdSoyad","yoDogumTarihi","yoCinsiyet","yoTcKimlik","yoSinif","yoProgram","yoAylikAidat",
+   "yoAnneAd","yoAnneTel","yoAnneEposta","yoBabaAd","yoBabaTel","yoBabaEposta"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  document.getElementById("yeniOgrenciModal").classList.add("active");
+};
+
+window.yeniOgrenciKapat = function() {
+  document.getElementById("yeniOgrenciModal").classList.remove("active");
+};
+
+window.yeniOgrenciKaydet = async function() {
+  const v = id => (document.getElementById(id)?.value || "").trim();
+
+  const adSoyad = v("yoAdSoyad");
+  const dogumTarihi = v("yoDogumTarihi");
+  const cinsiyet = v("yoCinsiyet");
+  const tcKimlik = v("yoTcKimlik");
+  const sinif = v("yoSinif");
+  const program = v("yoProgram");
+  const aylikAidat = Number(v("yoAylikAidat")) || 0;
+
+  // Zorunlu alan kontrolü
+  if (!adSoyad) { showToast("Öğrenci adı soyadı zorunlu", "error"); return; }
+  if (!dogumTarihi) { showToast("Doğum tarihi zorunlu", "error"); return; }
+  if (!cinsiyet) { showToast("Cinsiyet seçiniz", "error"); return; }
+  if (!sinif) { showToast("Sınıf seçiniz", "error"); return; }
+  if (!program) { showToast("Program türü seçiniz", "error"); return; }
+  if (aylikAidat <= 0) { showToast("Geçerli bir aylık aidat giriniz", "error"); return; }
+
+  const anne = { adSoyad: v("yoAnneAd"), cepTel: v("yoAnneTel"), eposta: v("yoAnneEposta") };
+  const baba = { adSoyad: v("yoBabaAd"), cepTel: v("yoBabaTel"), eposta: v("yoBabaEposta") };
+
+  const btn = document.getElementById("yoKaydetBtn");
+  const eskiMetin = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "⏳ Kaydediliyor...";
+
+  try {
+    // 1. Öğrenci ana dokümanı
+    const ogrenciAnaData = {
+      ogrenciAdSoyad: adSoyad,
+      tcKimlik: tcKimlik,
+      cinsiyet: cinsiyet,
+      dogumTarihi: dogumTarihi,
+      sinif: sinif,
+      programTuru: program,
+      aylikAidat: aylikAidat,
+      veli1AdSoyad: anne.adSoyad,
+      veli1Telefon: anne.cepTel,
+      veli1Eposta: anne.eposta,
+      veli2AdSoyad: baba.adSoyad,
+      veli2Telefon: baba.cepTel,
+      veli2Eposta: baba.eposta,
+      durum: "aktif",
+      durumGuncelleyen: currentUser.email,
+      kaynakBasvuruId: "manuel",
+      olusturuldu: new Date().toISOString(),
+      olusturan: currentUser.email,
+      guncellendi: new Date().toISOString()
+    };
+
+    const yeniRef = doc(collection(db, "ogrenciler"));
+    await setDoc(yeniRef, ogrenciAnaData);
+    const yeniOgrenciId = yeniRef.id;
+
+    // 2. BCK aidat formülü (basvuruOnayla ile birebir aynı)
+    const yillikToplam = aylikAidat * 10;
+    const onOdeme = aylikAidat;
+    const kalan = yillikToplam - onOdeme;
+    const iDonemAylik = Math.round((kalan * 0.488) / 5 / 100) * 100;
+    const iiDonemAylik = Math.round((kalan - iDonemAylik * 5) / 5);
+    const egitimUcreti = Math.round(yillikToplam * 0.60);
+    const yemekUcreti = yillikToplam - egitimUcreti;
+
+    const zenginAidatAyarlari = {
+      aylikAidat: aylikAidat,
+      iDonemAylik: iDonemAylik,
+      iiDonemAylik: iiDonemAylik,
+      onOdeme: onOdeme,
+      yillikToplam: yillikToplam,
+      egitimUcreti: egitimUcreti,
+      yemekUcreti: yemekUcreti,
+      taksitSayisi: 10,
+      programTuru: program,
+      pesinOdeme: false,
+      indirimOrani: 0
+    };
+
+    // 3. Diğer ödemeler - 5 standart kalem (0 TL, sonradan girilir)
+    const digerOdemelerVarsayilan = {
+      egitimMateryali: { tutar: 0, odendi: false, sonOdemeTarihi: "2026-07-05", not: "Yıllık eğitim materyalleri ve kırtasiye" },
+      okulKiyafeti:    { tutar: 0, odendi: false, sonOdemeTarihi: "2026-08-05", not: "Bir Çiçek Koleji Okul Kıyafeti" },
+      ormanKiyafeti:   { tutar: 0, odendi: false, sonOdemeTarihi: "2026-09-05", not: "Orman Okulu Kıyafeti (Eylül başında ilan edilir)" },
+      servis1:         { tutar: 0, odendi: false, sonOdemeTarihi: "2026-10-05", not: "I. Dönem Servis (Ekim başında ilan edilir)" },
+      servis2:         { tutar: 0, odendi: false, sonOdemeTarihi: "2027-02-05", not: "II. Dönem Servis (Şubat başında ilan edilir)" }
+    };
+
+    // 4. Dönem dokümanı
+    const donemData = {
+      donemYili: AKTIF_DONEM,
+      aktif: true,
+      aidatAyarlari: zenginAidatAyarlari,
+      ogrenci: { adSoyad: adSoyad, tcKimlik: tcKimlik, cinsiyet: cinsiyet, dogumTarihi: dogumTarihi },
+      saglik: {},
+      acilDurum: {},
+      anne: anne,
+      baba: baba,
+      vasi: {},
+      kayit: { sinif: sinif, program: program },
+      izinler: { medya: true, gezi: true, acilMudahale: true, saglikTarama: true },
+      ilanUcretleri: {},
+      sozlesme: {},
+      sozlesmedeGoster: {},
+      aylikOdemeler: {},
+      digerOdemeler: digerOdemelerVarsayilan,
+      notlar: "",
+      kaynakBasvuruId: "manuel",
+      olusturuldu: new Date().toISOString(),
+      olusturan: currentUser.email
+    };
+    await setDoc(doc(db, "ogrenciler", yeniOgrenciId, "donemler", AKTIF_DONEM), donemData);
+
+    // 5. Veli e-postalarını onaylı listeye ekle (portal girişi için)
+    const veliEpostalari = [];
+    if (anne.eposta) veliEpostalari.push({ email: anne.eposta.toLowerCase(), rol: "anne" });
+    if (baba.eposta) veliEpostalari.push({ email: baba.eposta.toLowerCase(), rol: "baba" });
+
+    for (const ve of veliEpostalari) {
+      if (!ve.email || !ve.email.includes("@")) continue;
+      const veliRef = doc(db, "veliler", ve.email);
+      const mevcut = await getDoc(veliRef);
+      let ogrenciIds = [yeniOgrenciId];
+      if (mevcut.exists()) {
+        const eski = mevcut.data().ogrenciIds || [];
+        ogrenciIds = Array.from(new Set([...eski, yeniOgrenciId]));
+      }
+      await setDoc(veliRef, {
+        email: ve.email,
+        ogrenciIds: ogrenciIds,
+        rol: ve.rol,
+        onaylandi: true,
+        onaylayan: currentUser.email,
+        onayTarihi: new Date().toISOString(),
+        kaynakBasvuruId: "manuel"
+      }, { merge: true });
+    }
+
+    showToast(`✓ ${adSoyad} başarıyla eklendi`);
+    yeniOgrenciKapat();
+    await loadOgrenciler();
+  } catch (e) {
+    console.error("Yeni öğrenci kayıt hatası:", e);
+    showToast("Kayıt sırasında hata: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = eskiMetin;
+  }
+};
+
 
 window.closeCsvYukleModal = function() {
   document.getElementById("csvYukleModal").classList.remove("active");
