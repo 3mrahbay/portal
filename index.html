@@ -14534,9 +14534,11 @@ function veliRenderYeniApp() {
                  : (caEkran === "galeri") ? caGaleriHTML()
                  : (caEkran === "mesajlar") ? caMesajlarHTML()
                  : (caEkran === "takvim") ? caTakvimHTML()
+                 : (caEkran === "yemek") ? caYemekHTML()
                  : caHomeHTML();
   if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
+  if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); }, 100); } catch(e) { console.warn(e); } }
 }
 
@@ -15059,7 +15061,7 @@ const CA_MODULLER = [
   { k:"sozlesme",  ad:"Sözleşme",          ikon:"📄", renk:"var(--c-blue-soft)",   git:"veliSwitchTab('sozlesme')" },
   { k:"okul",      ad:"Okul Hayatı",       ikon:"🌸", renk:"#Dff4e3",              git:"veliSwitchTab('okul')" },
   { k:"takvim",    ad:"Takvim",            ikon:"🗓️", renk:"var(--c-green-light)", git:"caGo('takvim')" },
-  { k:"yemek",     ad:"Yemek Menüsü",      ikon:"🍽️", renk:"var(--c-pink-soft)",   git:"veliSwitchTab('okul')" },
+  { k:"yemek",     ad:"Yemek Menüsü",      ikon:"🍽️", renk:"var(--c-pink-soft)",   git:"caGo('yemek')" },
   { k:"ayarlar",   ad:"Ayarlar",           ikon:"⚙️", renk:"var(--c-tint)",        git:"veliSwitchTab('ayarlar')" }
 ];
 
@@ -18532,6 +18534,164 @@ window.takvimICSIndir = function(id) {
 // ============================================================
 // VELİ TARAFI — ZEKY ekran
 // ============================================================
+
+// ===== YEMEK MENÜSÜ EKRANI (sadece yemek, mevsimsel tasarım) =====
+// Mevsime göre tema: yaz (Haz-Ağu) turuncu-yeşil taze, sonbahar, kış, ilkbahar
+function caYemekMevsim() {
+  const ay = new Date().getMonth(); // 0-11
+  if (ay >= 5 && ay <= 7) return { ad:"Yaz", ikon:"☀️", renk1:"#fb923c", renk2:"#34d399", arka:"#fff7ed", vurgu:"#ea580c", emoji:"🍉🍅🥒" };
+  if (ay >= 8 && ay <= 10) return { ad:"Sonbahar", ikon:"🍂", renk1:"#d97706", renk2:"#b45309", arka:"#fffbeb", vurgu:"#b45309", emoji:"🍂🎃🌰" };
+  if (ay === 11 || ay <= 1) return { ad:"Kış", ikon:"❄️", renk1:"#0891b2", renk2:"#0e7490", arka:"#ecfeff", vurgu:"#0e7490", emoji:"❄️🍵🍲" };
+  return { ad:"İlkbahar", ikon:"🌸", renk1:"#16a34a", renk2:"#65a30d", arka:"#f0fdf4", vurgu:"#16a34a", emoji:"🌸🥬🍓" };
+}
+
+function caYemekHTML() {
+  const m = caYemekMevsim();
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div>
+            <div class="ca-tile-sub">OKUL MUTFAĞI</div>
+            <h2 style="font-size:18px;">Yemek Menüsü</h2>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mevsim başlık kartı -->
+      <div class="ca-card" style="background:linear-gradient(135deg, ${m.renk1}, ${m.renk2}); border:none; color:#fff; padding:18px 20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:12px; opacity:0.9; font-weight:600; letter-spacing:0.5px;">${m.ikon} ${m.ad.toUpperCase()} MENÜSÜ</div>
+            <div style="font-family:var(--c-font-head); font-weight:700; font-size:20px; margin-top:2px;">Sağlıklı Mutfak</div>
+          </div>
+          <div style="font-size:30px;">${m.emoji}</div>
+        </div>
+        <div style="font-size:12px; opacity:0.92; margin-top:10px; line-height:1.5;">
+          Şekersiz · katkısız · ev yapımı. Mevsiminde, taze ve dengeli beslenme.
+        </div>
+      </div>
+
+      <!-- Mutfak ilkeleri rozet şeridi -->
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:2px;">
+        <span class="ca-pill" style="background:#dcfce7; color:#166534; font-size:11px;">🚫 Şeker yok</span>
+        <span class="ca-pill" style="background:#dcfce7; color:#166534; font-size:11px;">🌿 Hurma & elma özü</span>
+        <span class="ca-pill" style="background:#dcfce7; color:#166534; font-size:11px;">🚫 Kızartma yok</span>
+        <span class="ca-pill" style="background:#dcfce7; color:#166534; font-size:11px;">🚫 Margarin yok</span>
+        <span class="ca-pill" style="background:#dcfce7; color:#166534; font-size:11px;">🚫 Paketli gıda yok</span>
+      </div>
+
+      <!-- Hafta navigasyonu -->
+      <div class="ca-card" style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; margin-top:4px;">
+        <button class="ca-bell" style="width:36px; height:36px; font-size:18px;" onclick="caYemekHaftaGec(-1)">‹</button>
+        <div style="text-align:center;">
+          <div id="caYemekHaftaEtiket" style="font-weight:700; color:var(--c-ink); font-size:14px;">—</div>
+          <button class="ca-link" style="font-size:11px;" onclick="caYemekBuHafta()">Bu haftaya dön</button>
+        </div>
+        <button class="ca-bell" style="width:36px; height:36px; font-size:18px;" onclick="caYemekHaftaGec(1)">›</button>
+      </div>
+
+      <!-- Günlük menü kartları -->
+      <div id="caYemekGunler">
+        <div class="ca-card" style="padding:30px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+      </div>
+
+      <!-- İçecekler bilgi kartı -->
+      <div class="ca-card" style="background:${m.arka}; border-color:${m.renk1}33;">
+        <div class="ca-head" style="font-size:14px; color:${m.vurgu};">🥤 İçeceklerimiz</div>
+        <div style="font-size:12.5px; color:var(--c-body); margin-top:6px; line-height:1.7;">
+          Ihlamur · meyve çayı · siyah çay · ayran. Kışın kahvaltıya sıcak çorba eklenir. Şekerli/gazlı içecek bulunmaz.
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+let caYemekHaftaBas = null;
+
+window.caYemekHaftaGec = function(yon) {
+  const d = new Date(caYemekHaftaBas || new Date());
+  d.setDate(d.getDate() + (yon * 7));
+  caYemekHaftaBas = haftaBaslangic(d);
+  caYemekYukle();
+};
+window.caYemekBuHafta = function() {
+  caYemekHaftaBas = haftaBaslangic(new Date());
+  caYemekYukle();
+};
+
+async function caYemekYukle() {
+  const el = document.getElementById("caYemekGunler");
+  if (!el) return;
+  if (!caYemekHaftaBas) caYemekHaftaBas = haftaBaslangic(new Date());
+
+  const etiket = document.getElementById("caYemekHaftaEtiket");
+  if (etiket) etiket.textContent = haftaEtiketi(caYemekHaftaBas);
+
+  const kod = haftaKodu(caYemekHaftaBas);
+  let veri = null;
+  try {
+    const snap = await getDoc(doc(db, "yemekMenuleri", kod));
+    veri = snap.exists() ? snap.data() : null;
+  } catch (e) { console.warn("Yemek menü yüklenemedi:", e); }
+
+  const pzt = caYemekHaftaBas;
+  const m = caYemekMevsim();
+
+  if (!veri) {
+    el.innerHTML = `
+      <div class="ca-card" style="padding:36px 20px; text-align:center;">
+        <div style="font-size:42px; margin-bottom:10px;">🍽️</div>
+        <div style="font-size:14px; color:var(--c-ink); font-weight:600;">Bu hafta için menü henüz eklenmemiş</div>
+        <div style="font-size:12px; color:var(--c-muted); margin-top:6px;">Okul mutfağı menüyü yakında yayınlayacak 🌿</div>
+      </div>`;
+    return;
+  }
+
+  let html = `<div style="display:grid; gap:10px;">`;
+  for (let gunIdx = 0; gunIdx < 5; gunIdx++) {
+    const t = new Date(pzt);
+    t.setDate(pzt.getDate() + gunIdx);
+    const bugunMu = isoTarih(t) === isoTarih(new Date());
+    const gunData = veri.gunler?.[gunIdx] || {};
+    const doluMu = YEMEK_OGUNLER.some(o => (gunData[o.key]?.yemek || "").trim() !== "");
+
+    html += `
+      <div class="ca-card" style="padding:0; overflow:hidden; ${bugunMu ? `border:2px solid ${m.renk1};` : ''}">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:${bugunMu ? m.renk1 : 'var(--c-tint)'}; ${bugunMu ? 'color:#fff;' : ''}">
+          <div style="font-family:var(--c-font-head); font-weight:700; font-size:15px;">
+            ${YEMEK_GUNLER[gunIdx]}
+            ${bugunMu ? '<span style="font-size:10px; background:rgba(255,255,255,0.3); padding:2px 8px; border-radius:6px; margin-left:6px;">BUGÜN</span>' : ''}
+          </div>
+          <div style="font-size:12px; ${bugunMu ? 'opacity:0.9;' : 'color:var(--c-muted);'}">${t.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })}</div>
+        </div>`;
+
+    if (!doluMu) {
+      html += `<div style="padding:18px; text-align:center; color:var(--c-muted); font-size:12px; font-style:italic;">— menü girilmemiş —</div>`;
+    } else {
+      html += `<div style="padding:8px 14px 12px;">`;
+      for (const ogun of YEMEK_OGUNLER) {
+        const od = gunData[ogun.key] || {};
+        if (!(od.yemek || "").trim()) continue;
+        html += `
+          <div style="padding:10px 0; border-bottom:1px dotted var(--c-line);">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+              <span style="font-size:12px; font-weight:700; color:var(--c-green-deep);">${ogun.label}</span>
+              ${od.kalori ? `<span style="font-size:11px; color:${m.vurgu}; font-weight:600; background:${m.arka}; padding:2px 8px; border-radius:6px;">🔥 ~${escapeHtmlGelisim(String(od.kalori))} kcal</span>` : ''}
+            </div>
+            <div style="font-size:13.5px; color:var(--c-ink); line-height:1.6; white-space:pre-line;">${escapeHtmlGelisim(od.yemek)}</div>
+            ${od.alerjen ? `<div style="font-size:11px; color:#991b1b; margin-top:4px;">⚠ Alerjen: ${escapeHtmlGelisim(od.alerjen)}</div>` : ''}
+          </div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
 function caTakvimHTML() {
   return `
     <div class="ca-page ca-stack">
@@ -21466,7 +21626,11 @@ function haftaBaslangic(tarih) {
 }
 
 function isoTarih(d) {
-  return d.toISOString().substring(0, 10);
+  // Yerel saat dilimine göre YYYY-MM-DD üret (toISOString UTC'ye çevirip gün kaydırıyordu)
+  const yil = d.getFullYear();
+  const ay = String(d.getMonth() + 1).padStart(2, "0");
+  const gun = String(d.getDate()).padStart(2, "0");
+  return `${yil}-${ay}-${gun}`;
 }
 
 function haftaKodu(d) {
