@@ -14831,6 +14831,8 @@ let caGalPeriyot = "ay"; // Galeri medya periyodu: "hafta" | "ay"
 function veliRenderYeniApp() {
   const root = document.getElementById("cicekAppRoot");
   if (!root) return;
+  // Favori senkron başlat (bir kez) — Firestore'dan yükle + canlı dinle (app ile ortak)
+  if (!window._caFavBaslatildi && currentUser) { window._caFavBaslatildi = true; caFavBaslat(); }
   // Eğitim: gerçek veri (async) — önce iskelet, sonra doldur
   if (caEkran === "egitim") { root.innerHTML = caEgitimLoading(); caTemaUygula(); caEgitimYukle(); return; }
   // Mesajlar: gerçek veri (canlı dinleyici) — ZEKY tasarımı, mevcut mesaj fonksiyonları
@@ -14984,16 +14986,62 @@ window.caCocukDegistir = async function(idx) {
 };
 
 // Menü favorileri (localStorage)
+// ═══════════════════════════════════════════════════════════════
+// MENÜ FAVORİLERİ — Firestore senkron (ZEKY app ile ORTAK)
+// kullaniciTercihleri/{email} → favoriMenuler dizisi.
+// Veli portalda yıldızlar → app'te (telefon) görünür; app'te yıldızlar → burada görünür.
+// localStorage yedek olarak tutulur (offline/hızlı ilk açılış). Anahtarlar CA_MODULLER 'k' ile aynı.
+// ═══════════════════════════════════════════════════════════════
+let caFavCache = null;        // Set — bellekte (render senkron kalsın diye)
+let caFavListener = null;     // onSnapshot aboneliği
+
+// Senkron getir (cache; ilk açılışta localStorage'dan seed)
 function caFavGetir() {
-  try { return new Set(JSON.parse(localStorage.getItem("caFav") || "[]")); }
-  catch(e) { return new Set(); }
+  if (caFavCache) return caFavCache;
+  try { caFavCache = new Set(JSON.parse(localStorage.getItem("caFav") || "[]")); }
+  catch(e) { caFavCache = new Set(); }
+  return caFavCache;
 }
-window.caFavToggle = function(key, ev) {
+
+// Firestore'dan favorileri yükle + canlı dinle (giriş sonrası çağrılır)
+async function caFavBaslat() {
+  const email = (currentUser && currentUser.email) ? currentUser.email.toLowerCase() : null;
+  if (!email) return;
+  // Önce bir kez oku (hızlı)
+  try {
+    const snap = await getDoc(doc(db, "kullaniciTercihleri", email));
+    if (snap.exists() && Array.isArray(snap.data().favoriMenuler)) {
+      caFavCache = new Set(snap.data().favoriMenuler);
+      localStorage.setItem("caFav", JSON.stringify([...caFavCache]));
+      if (typeof caEkran !== "undefined" && caEkran === "menu" && typeof veliRenderYeniApp === "function") veliRenderYeniApp();
+    }
+  } catch(e) { console.log("favori yüklenemedi", e); }
+  // Canlı dinle (app'te değişince portal anında güncellensin)
+  if (caFavListener) caFavListener();
+  caFavListener = onSnapshot(doc(db, "kullaniciTercihleri", email), (snap) => {
+    const fav = (snap.exists() && Array.isArray(snap.data().favoriMenuler)) ? snap.data().favoriMenuler : [];
+    caFavCache = new Set(fav);
+    localStorage.setItem("caFav", JSON.stringify(fav));
+    if (typeof caEkran !== "undefined" && caEkran === "menu" && typeof veliRenderYeniApp === "function") veliRenderYeniApp();
+  }, (err) => console.log("favori dinleme hatası", err));
+}
+
+// Yıldız ekle/çıkar — cache'i anında günceller (UI hızlı), Firestore'a yazar (app senkron)
+window.caFavToggle = async function(key, ev) {
   if (ev) ev.stopPropagation();
   const s = caFavGetir();
   if (s.has(key)) s.delete(key); else s.add(key);
-  localStorage.setItem("caFav", JSON.stringify([...s]));
+  const yeni = [...s];
+  localStorage.setItem("caFav", JSON.stringify(yeni));
   if (caEkran === "menu") veliRenderYeniApp();
+  // Firestore'a yaz (onSnapshot ile app + portal senkron olur)
+  const email = (currentUser && currentUser.email) ? currentUser.email.toLowerCase() : null;
+  if (email) {
+    try {
+      await setDoc(doc(db, "kullaniciTercihleri", email),
+        { favoriMenuler: yeni, guncellendi: new Date().toISOString() }, { merge: true });
+    } catch(e) { console.log("favori kaydedilemedi", e); }
+  }
 };
 // Menü canlı arama (yeniden render etmeden filtreler)
 window.caMenuFiltre = function(q) {
