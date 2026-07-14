@@ -13517,14 +13517,18 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
     ? (temizMetin.length > 80 ? temizMetin.slice(0, 80) + "…" : temizMetin)
     : (belgeUrl ? "📄 Belge" : "📷 Fotoğraf");
 
+  // okunmamis: email anahtarindaki nokta Firestore'da alt-alan sanildigi icin
+  // dot-path yerine map'i komple guncelliyoruz (nokta bug fix — app+portal ortak).
+  const mevcutOkunmamis = Object.assign({}, thread.okunmamis || {});
+  if (karsiTaraf) {
+    mevcutOkunmamis[karsiTaraf] = (mevcutOkunmamis[karsiTaraf] || 0) + 1;
+  }
   const guncelleme = {
     sonMesaj: ozetMetin,
     sonMesajTarihi: serverTimestamp(),
-    sonMesajGonderen: gonderen
+    sonMesajGonderen: gonderen,
+    okunmamis: mevcutOkunmamis
   };
-  if (karsiTaraf) {
-    guncelleme[`okunmamis.${karsiTaraf}`] = increment(1);
-  }
   await updateDoc(threadRef, guncelleme);
 }
 
@@ -13533,9 +13537,11 @@ async function mesajOkunduIsaretle(threadId) {
   if (!currentUser) return;
   const benim = currentUser.email.toLowerCase();
   try {
-    await updateDoc(doc(db, "mesajlar", threadId), {
-      [`okunmamis.${benim}`]: 0
-    });
+    const snap = await getDoc(doc(db, "mesajlar", threadId));
+    if (!snap.exists()) return;
+    const okunmamis = Object.assign({}, snap.data().okunmamis || {});
+    okunmamis[benim] = 0;
+    await updateDoc(doc(db, "mesajlar", threadId), { okunmamis });
   } catch (e) {
     console.warn("Okundu işaretleme hatası:", e);
   }
