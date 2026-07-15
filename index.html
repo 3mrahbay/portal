@@ -1080,6 +1080,63 @@ html, body {
 }
 
 /* Tabs */
+/* ============ FAZ A: 7 MODÜLLÜ ANA NAVİGASYON ============ */
+.modul-bar {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: linear-gradient(135deg, #1f4d33, #2D5E3E 60%, #37704a);
+  border-radius: 18px;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 18px rgba(29, 77, 51, 0.28);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.modul-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 18px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 13px;
+  font-family: var(--font-display, 'Quicksand', sans-serif);
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: .01em;
+  color: rgba(255,255,255,0.85);
+  cursor: pointer;
+  transition: all .18s ease;
+  white-space: nowrap;
+  position: relative;
+}
+.modul-btn:hover {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.modul-btn.active {
+  background: #fff;
+  color: #1f4d33;
+  border-color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+.modul-btn .modul-ikon { font-size: 16px; line-height: 1; }
+.modul-btn .modul-rozet {
+  background: #E11D48; color: #fff;
+  font-size: 10.5px; font-weight: 800;
+  border-radius: 999px; padding: 1px 7px;
+  margin-left: 2px;
+}
+/* Alt sekme barı modül altında daha yumuşak görünür */
+.tabs { border-top-left-radius: 6px; border-top-right-radius: 6px; }
+.tabs.tek-sekmeli { display: none; }
+@media (max-width: 640px) {
+  .modul-btn { padding: 9px 13px; font-size: 12.5px; }
+  .modul-btn .modul-ad { display: none; }        /* mobilde sadece ikon */
+  .modul-btn.active .modul-ad { display: inline; } /* aktifte ad görünür */
+}
+
 .tabs {
   display: flex;
   gap: 4px;
@@ -8683,11 +8740,22 @@ html, body {
   </header>
 
   <div class="dash-container">
-    <!-- Tabs -->
+    <!-- FAZ A: 7 MODÜLLÜ ANA NAVİGASYON -->
+    <div class="modul-bar" id="modulBar">
+      <button class="modul-btn active" data-modul="ozet"     onclick="modulSec('ozet')"><span class="modul-ikon">✨</span><span class="modul-ad">Özet</span></button>
+      <button class="modul-btn" data-modul="ogrenci"  onclick="modulSec('ogrenci')"><span class="modul-ikon">👥</span><span class="modul-ad">Öğrenci &amp; Okul</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
+      <button class="modul-btn" data-modul="personel" onclick="modulSec('personel')"><span class="modul-ikon">🧑‍🏫</span><span class="modul-ad">Personel</span></button>
+      <button class="modul-btn" data-modul="egitim"   onclick="modulSec('egitim')"><span class="modul-ikon">📚</span><span class="modul-ad">Eğitim</span></button>
+      <button class="modul-btn" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="modul-ikon">💼</span><span class="modul-ad">Muhasebe</span></button>
+      <button class="modul-btn" data-modul="isleyis"  onclick="modulSec('isleyis')"><span class="modul-ikon">🌸</span><span class="modul-ad">Okul İşleyişi</span></button>
+      <button class="modul-btn" data-modul="mesaj"    onclick="modulSec('mesaj')"><span class="modul-ikon">💬</span><span class="modul-ad">Mesajlaşma</span></button>
+    </div>
+
+    <!-- Tabs (modülün alt sekmeleri) -->
     <div class="tabs">
       <button class="tab active" data-tab="anasayfa">✨ Ana Sayfa</button>
-      <button class="tab" data-tab="ogrenciler">👥 Öğrenci Ayarları</button>
-      <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Onay Bekleyenler <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
+      <button class="tab" data-tab="ogrenciler">👥 Öğrenci Listesi</button>
+      <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Başvuru Havuzu <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans">💼 Finansal Yönetim</button>
       <button class="tab" data-tab="egitim">📚 Eğitim</button>
       <button class="tab" data-tab="icerik">🌸 Okul-Aile İçerik Yönetimi</button>
@@ -12726,6 +12794,9 @@ function sekmeleriRoleGoreAyarla() {
     const finansYetkisi = isAdmin || ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
     aracGrubu.style.display = finansYetkisi ? "flex" : "none";
   }
+
+  // Faz A: modül barını da role göre yenile
+  if (typeof modulBarYenile === "function") setTimeout(modulBarYenile, 30);
 }
 
 // (Geriye uyumluluk) Personel sekmesinin görünürlüğü artık sekmeleriRoleGoreAyarla içinde
@@ -16235,6 +16306,8 @@ function caProfilHTML() {
 // Yönetim ve Öğretmen için ayrı dashboard. Statik (Faz 2'de canlıya bağlanacak).
 // ============================================================
 window.adminGotoTab = function(name) {
+  // Faz A: hedef sekme hangi modüldeyse önce o modülü aç (görünürlük için)
+  if (typeof modulVurgula === "function") modulVurgula(name);
   const t = document.querySelector('.tab[data-tab="' + name + '"]');
   if (t) t.click();
 };
@@ -21069,6 +21142,12 @@ function updateOnaySayac() {
       rozet.style.display = "none";
     }
   }
+  // Faz A: modül barındaki rozeti senkronla
+  const mRozet = document.getElementById("modulOnayRozet");
+  if (mRozet) {
+    mRozet.textContent = bekleyen;
+    mRozet.style.display = bekleyen > 0 ? "inline-flex" : "none";
+  }
 }
 
 window.onayFilter = function(filter) {
@@ -21556,6 +21635,12 @@ async function initOnayBekleyenler() {
       } else {
         rozet.style.display = "none";
       }
+    }
+    // Faz A: modül barındaki rozeti senkronla
+    const mRozet2 = document.getElementById("modulOnayRozet");
+    if (mRozet2) {
+      mRozet2.textContent = sayac;
+      mRozet2.style.display = sayac > 0 ? "inline-flex" : "none";
     }
   } catch (e) {
     // Sessiz geç
@@ -30391,6 +30476,87 @@ document.querySelectorAll(".durum-sekme").forEach(btn => {
   });
 });
 
+/* ============ FAZ A: MODÜL NAVİGASYON MANTIĞI ============ */
+// Her modülün kapsadığı alt sekmeler + varsayılan sekme + özel aksiyon
+const MODUL_HARITASI = {
+  ozet:     { tablar: ["anasayfa"],          varsayilan: "anasayfa" },
+  ogrenci:  { tablar: ["ogrenciler","onay"], varsayilan: "ogrenciler" },
+  personel: { tablar: ["personel"],          varsayilan: "personel" },
+  egitim:   { tablar: ["egitim"],            varsayilan: "egitim" },
+  muhasebe: { tablar: ["finans"],            varsayilan: "finans" },
+  isleyis:  { tablar: ["icerik"],            varsayilan: "icerik" },
+  mesaj:    { tablar: ["icerik"],            varsayilan: "icerik", icerikAlt: "mesajlasma" }
+};
+let aktifModul = "ozet";
+
+// Modül seç: alt sekmeleri filtrele + varsayılan sekmeye geç
+window.modulSec = function(modulKey, tabTikla = true) {
+  const tanim = MODUL_HARITASI[modulKey];
+  if (!tanim) return;
+  aktifModul = modulKey;
+
+  // Modül butonlarının aktifliği
+  document.querySelectorAll(".modul-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.modul === modulKey);
+  });
+
+  // Alt sekmeleri filtrele: sadece bu modülün + erişilebilir sekmeleri göster
+  const tabsBar = document.querySelector(".tabs");
+  let gorunurSayisi = 0;
+  document.querySelectorAll(".tabs .tab").forEach(tab => {
+    const ad = tab.dataset.tab;
+    const modulde = tanim.tablar.includes(ad);
+    const erisim = (typeof sekmeyeErisim === "function") ? sekmeyeErisim(ad) : true;
+    const goster = modulde && erisim;
+    tab.style.display = goster ? "" : "none";
+    if (goster) gorunurSayisi++;
+  });
+  // Tek sekmeli modülde alt bar gizle (temiz görünüm)
+  if (tabsBar) tabsBar.classList.toggle("tek-sekmeli", gorunurSayisi <= 1);
+
+  // Varsayılan sekmeye programatik geç (mevcut listener tetiklenir)
+  if (tabTikla) {
+    const hedef = document.querySelector(`.tab[data-tab="${tanim.varsayilan}"]`);
+    if (hedef && hedef.style.display !== "none") hedef.click();
+  }
+
+  // Mesajlaşma modülü: içerik sekmesinde mesajlaşma alt sekmesine atla
+  if (tanim.icerikAlt && typeof icerikSwitchAlt === "function") {
+    setTimeout(() => icerikSwitchAlt(tanim.icerikAlt), 120);
+  }
+};
+
+// Bir sekme adına göre modül vurgusunu güncelle (adminGotoTab köprüsü)
+window.modulVurgula = function(tabAdi) {
+  for (const [k, t] of Object.entries(MODUL_HARITASI)) {
+    if (t.tablar.includes(tabAdi) && !t.icerikAlt) {
+      if (aktifModul !== k) modulSec(k, false);
+      return;
+    }
+  }
+};
+
+// Rol yüklenince modül görünürlüğünü ayarla (erişilemeyen modül gizlenir)
+window.modulBarYenile = function() {
+  document.querySelectorAll(".modul-btn").forEach(btn => {
+    const tanim = MODUL_HARITASI[btn.dataset.modul];
+    if (!tanim) return;
+    const erisebilir = tanim.tablar.some(t =>
+      (typeof sekmeyeErisim === "function") ? sekmeyeErisim(t) : true
+    );
+    btn.style.display = erisebilir ? "" : "none";
+  });
+  // Onay rozeti senkronu: mevcut onaySayacRozet ile aynı değeri modül rozetine yaz
+  const kaynak = document.getElementById("onaySayacRozet");
+  const hedef = document.getElementById("modulOnayRozet");
+  if (kaynak && hedef) {
+    hedef.textContent = kaynak.textContent;
+    hedef.style.display = kaynak.style.display;
+  }
+  // Aktif modül görünümünü tazele (tab görünürlükleri rol sonrası değişmiş olabilir)
+  modulSec(aktifModul, false);
+};
+
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
     // Faz 1c: Yetkisiz sekmeye geçişi engelle (konsol bypass koruması)
@@ -30454,6 +30620,9 @@ document.querySelectorAll(".tab").forEach(tab => {
     }
   });
 });
+
+// Faz A: sayfa açılışında Özet modülü filtresini uygula (tıklama yok, sadece görünürlük)
+modulSec("ozet", false);
 
 // ============ DÖNEM SEÇİCİ ============
 // Modal sekmelerinin click handler'ı
