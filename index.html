@@ -1080,62 +1080,40 @@ html, body {
 }
 
 /* Tabs */
-/* ============ FAZ A: 7 MODÜLLÜ ANA NAVİGASYON ============ */
-.modul-bar {
+/* ============ HUB MODELİ: İNCE ÜST ŞERİT ============ */
+.ust-serit {
   display: flex;
-  gap: 6px;
-  padding: 6px;
-  background: linear-gradient(135deg, #1f4d33, #2D5E3E 60%, #37704a);
-  border-radius: 18px;
-  margin-bottom: 12px;
-  box-shadow: 0 6px 18px rgba(29, 77, 51, 0.28);
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-.modul-btn {
-  display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 11px 18px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 13px;
-  font-family: var(--font-display, 'Quicksand', sans-serif);
-  font-weight: 700;
-  font-size: 13.5px;
-  letter-spacing: .01em;
-  color: rgba(255,255,255,0.85);
-  cursor: pointer;
-  transition: all .18s ease;
+  gap: 16px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(26,77,46,0.08);
+  border-radius: 16px;
+  margin-bottom: 14px;
+}
+.ust-serit-home {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px;
+  background: linear-gradient(135deg, #1f4d33, #2D5E3E);
+  color: #fff; border: none; border-radius: 12px;
+  font-family: var(--font-body); font-weight: 700; font-size: 13px;
+  cursor: pointer; transition: all .15s ease;
   white-space: nowrap;
-  position: relative;
 }
-.modul-btn:hover {
-  background: rgba(255,255,255,0.18);
-  color: #fff;
-  transform: translateY(-1px);
+.ust-serit-home:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(29,77,51,0.25); }
+.ust-serit-baslik {
+  flex: 1;
+  font-size: 19px; color: var(--green-deep);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.modul-btn.active {
-  background: #fff;
-  color: #1f4d33;
-  border-color: #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
-}
-.modul-btn .modul-ikon { font-size: 16px; line-height: 1; }
-.modul-btn .modul-rozet {
+.modul-rozet {
   background: #E11D48; color: #fff;
-  font-size: 10.5px; font-weight: 800;
-  border-radius: 999px; padding: 1px 7px;
-  margin-left: 2px;
+  font-size: 11px; font-weight: 800;
+  border-radius: 999px; padding: 3px 10px;
 }
-/* Alt sekme barı modül altında daha yumuşak görünür */
-.tabs { border-top-left-radius: 6px; border-top-right-radius: 6px; }
+/* Alt sekme barı yumuşak görünüm */
 .tabs.tek-sekmeli { display: none; }
-@media (max-width: 640px) {
-  .modul-btn { padding: 9px 13px; font-size: 12.5px; }
-  .modul-btn .modul-ad { display: none; }        /* mobilde sadece ikon */
-  .modul-btn.active .modul-ad { display: inline; } /* aktifte ad görünür */
-}
 
 .tabs {
   display: flex;
@@ -8834,15 +8812,11 @@ html, body {
   </header>
 
   <div class="dash-container">
-    <!-- FAZ A: 7 MODÜLLÜ ANA NAVİGASYON -->
-    <div class="modul-bar" id="modulBar">
-      <button class="modul-btn active" data-modul="ozet"     onclick="modulSec('ozet')"><span class="modul-ikon">✨</span><span class="modul-ad">Özet</span></button>
-      <button class="modul-btn" data-modul="ogrenci"  onclick="modulSec('ogrenci')"><span class="modul-ikon">👥</span><span class="modul-ad">Öğrenci &amp; Okul</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
-      <button class="modul-btn" data-modul="personel" onclick="modulSec('personel')"><span class="modul-ikon">🧑‍🏫</span><span class="modul-ad">Personel</span></button>
-      <button class="modul-btn" data-modul="egitim"   onclick="modulSec('egitim')"><span class="modul-ikon">📚</span><span class="modul-ad">Eğitim</span></button>
-      <button class="modul-btn" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="modul-ikon">💼</span><span class="modul-ad">Muhasebe</span></button>
-      <button class="modul-btn" data-modul="isleyis"  onclick="modulSec('isleyis')"><span class="modul-ikon">🌸</span><span class="modul-ad">Okul İşleyişi</span></button>
-      <button class="modul-btn" data-modul="mesaj"    onclick="modulSec('mesaj')"><span class="modul-ikon">💬</span><span class="modul-ad">Mesajlaşma</span></button>
+    <!-- HUB MODELİ: Ana Sayfa merkez, iç sayfalarda ince dönüş şeridi -->
+    <div class="ust-serit" id="ustSerit" style="display:none;">
+      <button class="ust-serit-home" onclick="modulSec('ozet')"><span>🏠</span> Ana Sayfa</button>
+      <div class="ust-serit-baslik ca-serif" id="ustSeritBaslik"></div>
+      <span class="modul-rozet" id="modulOnayRozet" style="display:none; cursor:pointer;" onclick="adminGotoTab('onay')" title="Bekleyen başvurular">0</span>
     </div>
 
     <!-- Tabs (modülün alt sekmeleri) -->
@@ -16437,6 +16411,81 @@ function renderAdminHome() {
   const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
   root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
   if (typeof caTemaUygula === "function") caTemaUygula();
+  // HUB: hızlı bakış widget'larını async doldur (duyurular + eğitim)
+  if (!ogretmenMi) {
+    setTimeout(hbDuyurulariDoldur, 60);
+    setTimeout(hbEgitimDoldur, 120);
+  }
+}
+
+// ===== HIZLI BAKIŞ HYDRATION =====
+async function hbDuyurulariDoldur() {
+  const el = document.getElementById("hbDuyurular");
+  if (!el) return;
+  try {
+    if (typeof duyuruListesi !== "undefined" && duyuruListesi.length === 0 && typeof loadDuyurular === "function") {
+      await loadDuyurular();
+    }
+    const liste = (typeof duyuruListesi !== "undefined" ? duyuruListesi : [])
+      .filter(d => !d.arsiv)
+      .sort((a, b) => (b.olusturuldu || "").localeCompare(a.olusturuldu || ""))
+      .slice(0, 3);
+    if (liste.length === 0) {
+      el.innerHTML = `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Henüz duyuru yok.</div>`;
+      return;
+    }
+    const IK = { acil: "🚨", onemli: "⚠️", normal: "📢" };
+    el.innerHTML = liste.map(d => {
+      const trh = (d.olusturuldu || "").substring(0, 10).split("-").reverse().join(".");
+      return `<div style="display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid rgba(26,46,31,0.06);">
+        <span style="font-size:16px;">${IK[d.aciliyet] || "📢"}</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:700; color:var(--c-ink); font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(d.baslik || "Duyuru").replace(/</g,"&lt;")}</div>
+          <div style="font-size:11.5px; color:var(--c-muted);">${trh}</div>
+        </div>
+      </div>`;
+    }).join("");
+  } catch (e) {
+    el.innerHTML = `<div style="font-size:13px; color:var(--c-muted);">Duyurular yüklenemedi.</div>`;
+  }
+}
+
+async function hbEgitimDoldur() {
+  const el = document.getElementById("hbEgitim");
+  if (!el) return;
+  try {
+    const mufler = {
+      montessori: await mufredatYukle("montessori"),
+      ingilizce: await mufredatYukle("ingilizce"),
+      degerler: await mufredatYukle("degerler")
+    };
+    const tumGel = await tumGelisimYukle();
+    const liste = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => (o.durum || "aktif") !== "pasif");
+    if (liste.length === 0) {
+      el.innerHTML = `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Öğrenci verisi yüklenince görünür.</div>`;
+      return;
+    }
+    let topY = 0, topUzm = 0;
+    liste.forEach(o => {
+      const ov = caAdminOverall(tumGel[o.id], mufler);
+      topY += ov.yuzde; topUzm += ov.uzm;
+    });
+    const genel = Math.round(topY / liste.length);
+    el.innerHTML = `
+      <div style="display:flex; align-items:center; gap:16px; padding:6px 0;">
+        <div style="position:relative; width:72px; height:72px; border-radius:50%; background:conic-gradient(#4A7C59 ${genel * 3.6}deg, #E4EEE6 0deg); display:flex; align-items:center; justify-content:center;">
+          <div style="width:54px; height:54px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:700; font-size:17px; color:var(--c-green-deep);">%${genel}</div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:13px; color:var(--c-body); line-height:1.6;">
+            Okul geneli müfredat ilerlemesi<br>
+            <strong style="color:var(--c-ink);">${topUzm}</strong> <span style="color:var(--c-muted);">konuda ustalaşma (3 disiplin)</span>
+          </div>
+        </div>
+      </div>`;
+  } catch (e) {
+    el.innerHTML = `<div style="font-size:13px; color:var(--c-muted);">Eğitim verisi yüklenemedi.</div>`;
+  }
 }
 
 // Faz 1b — Admin/öğretmen Eğitim Takibi (gerçek veri)
@@ -16758,6 +16807,100 @@ function yonetimHomeHTML(ad) {
   // Bu ay tahsilat tam format (premium kart için): ₺36.000 gibi
   const buAyTahsilatTam = "₺" + Math.round(buAyTahsilat).toLocaleString("tr-TR");
 
+  // ===== HIZLI BAKIŞ WIDGET VERİLERİ =====
+  // 1) Ay bazlı tahsilat serisi (ödemeler grafiği)
+  const ayToplamlari = {};
+  aktifOgrenciler.forEach(o => {
+    const aylikOd = (ayarListesi[o.id] && ayarListesi[o.id].aylikOdemeler) || {};
+    Object.keys(aylikOd).forEach(k => {
+      const kayit = aylikOd[k];
+      const tutar = parseFloat(kayit.odenenTutar) || 0;
+      if (tutar <= 0) return;
+      // Peşinat: ödeme tarihi ayına say; yoksa atla
+      let hedefAy = k;
+      if (k === "__onOdeme") {
+        hedefAy = (kayit.odemeTarihi || "").substring(0, 7);
+        if (!hedefAy) return;
+      }
+      ayToplamlari[hedefAy] = (ayToplamlari[hedefAy] || 0) + tutar;
+    });
+  });
+  const grafikAylar = Object.keys(ayToplamlari).sort().slice(-8); // son 8 ay
+  const grafikMax = Math.max(1, ...grafikAylar.map(k => ayToplamlari[k]));
+  const KISA_AY = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+  const grafikBarlarHTML = grafikAylar.length === 0
+    ? `<div style="font-size:13px; color:var(--c-muted); text-align:center; padding:24px 0;">Henüz ödeme kaydı yok — ödemeler girildikçe grafik oluşur.</div>`
+    : `<div style="display:flex; align-items:flex-end; gap:10px; height:120px;">
+        ${grafikAylar.map(k => {
+          const v = ayToplamlari[k];
+          const h = Math.max(8, Math.round(v / grafikMax * 100));
+          const ayNum = parseInt(k.split("-")[1], 10);
+          return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
+            <div style="font-size:10px; color:var(--c-muted); font-weight:600;">${v >= 1000 ? Math.round(v/1000) + "K" : v}</div>
+            <div style="width:100%; max-width:38px; height:${h}px; background:linear-gradient(180deg,#4A7C59,#2D5E3E); border-radius:8px 8px 4px 4px;"></div>
+            <div style="font-size:11px; color:var(--c-body); font-weight:600;">${KISA_AY[ayNum-1] || k}</div>
+          </div>`;
+        }).join("")}
+      </div>`;
+
+  // 2) Son kayıt olan öğrenciler (onayTarihi'ne göre)
+  const sonKayitlar = aktifOgrenciler
+    .map(o => {
+      const ayar = ayarListesi[o.id] || {};
+      return { o, t: ayar.onayTarihi || "", veli: (ayar.anne && ayar.anne.adSoyad) || (ayar.veli && ayar.veli.adSoyad) || o.veliAdi || "" };
+    })
+    .filter(x => x.t)
+    .sort((a, b) => b.t.localeCompare(a.t))
+    .slice(0, 3);
+  const sonKayitlarHTML = sonKayitlar.length === 0
+    ? `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Kayıt tarihi verisi bulunamadı.</div>`
+    : sonKayitlar.map(x => {
+        const trh = x.t.substring(0, 10).split("-").reverse().join(".");
+        return `<div style="display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid rgba(26,46,31,0.06);">
+          <div style="width:38px; height:38px; border-radius:12px; background:#E4EEE6; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--c-green); font-family:'Fraunces',serif;">${(x.o.adSoyad || "?").charAt(0)}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; color:var(--c-ink); font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(x.o.adSoyad || "İsimsiz").replace(/</g,"&lt;")}</div>
+            <div style="font-size:11.5px; color:var(--c-muted);">${(x.o.sinif || "Sınıf atanmadı").replace(/</g,"&lt;")}${x.veli ? " · " + x.veli.replace(/</g,"&lt;") : ""}</div>
+          </div>
+          <div style="font-size:11px; color:var(--c-muted); white-space:nowrap;">${trh}</div>
+        </div>`;
+      }).join("");
+
+  // 3) Mini takvim (bu ay, etkinlik günleri işaretli)
+  const takYil = bugunD.getFullYear(), takAy = bugunD.getMonth(); // 0-index
+  const takAyKod = `${takYil}-${String(takAy + 1).padStart(2, "0")}`;
+  const etkinlikGunleri = new Set();
+  const tatilGunleri = new Set();
+  try {
+    (typeof takvimEtkinlikler !== "undefined" ? takvimEtkinlikler : []).forEach(e => {
+      if (e.arsiv || !e.tarih || !e.tarih.startsWith(takAyKod)) return;
+      const g = parseInt(e.tarih.split("-")[2], 10);
+      if (e.tur === "tatil") tatilGunleri.add(g); else etkinlikGunleri.add(g);
+    });
+  } catch (e) {}
+  const ayIlkGun = new Date(takYil, takAy, 1);
+  const ayGunSayisi = new Date(takYil, takAy + 1, 0).getDate();
+  const pztBaz = (ayIlkGun.getDay() + 6) % 7; // Pazartesi=0
+  let takvimHucreler = "";
+  for (let i = 0; i < pztBaz; i++) takvimHucreler += `<div></div>`;
+  for (let g = 1; g <= ayGunSayisi; g++) {
+    const bugunMu = g === bugunD.getDate();
+    const etk = etkinlikGunleri.has(g), tat = tatilGunleri.has(g);
+    takvimHucreler += `<div style="position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:11.5px; border-radius:10px; font-weight:${bugunMu ? 800 : 500};
+      ${bugunMu ? "background:#2D5E3E; color:#fff;" : tat ? "background:#F6E5E7; color:#9d2235;" : etk ? "background:#E4EEE6; color:var(--c-green-deep);" : "color:var(--c-body);"}">
+      ${g}${(etk || tat) && !bugunMu ? `<span style="position:absolute; bottom:3px; width:4px; height:4px; border-radius:50%; background:${tat ? "#c2445a" : "#4A7C59"};"></span>` : ""}
+    </div>`;
+  }
+  const miniTakvimHTML = `
+    <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px; font-size:10.5px; color:var(--c-muted); text-align:center; margin-bottom:6px; font-weight:700;">
+      <div>Pt</div><div>Sa</div><div>Ça</div><div>Pe</div><div>Cu</div><div>Ct</div><div>Pz</div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px;">${takvimHucreler}</div>
+    <div style="display:flex; gap:14px; margin-top:10px; font-size:11px; color:var(--c-muted);">
+      <span>● <span style="color:#4A7C59;">Etkinlik</span></span>
+      <span>● <span style="color:#c2445a;">Tatil / özel gün</span></span>
+    </div>`;
+
   return `
     <div class="ca-page ca-stack" style="gap:26px;">
 
@@ -16870,6 +17013,60 @@ function yonetimHomeHTML(ad) {
               <div style="font-size:13.5px; opacity:.85; margin-top:6px;">Takvimden yeni etkinlik ekleyebilirsiniz</div>
             `}
           </div>
+        </div>
+      </div>
+      <!-- OKULDAN HIZLI BAKIŞ (tüm modüllerden canlı özet) -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+          <h3 class="ca-serif" style="font-size:22px; color:var(--c-ink);">Okuldan hızlı bakış</h3>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px;">
+
+          <!-- MUHASEBE: Ödemeler grafiği -->
+          <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+              <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">💼 Aylık Tahsilat</div>
+              <button class="ca-link" onclick="adminGotoTab('finans')">Muhasebe →</button>
+            </div>
+            ${grafikBarlarHTML}
+          </div>
+
+          <!-- ÖĞRENCİLER: Son kayıtlar -->
+          <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">👥 Son Kayıtlar</div>
+              <button class="ca-link" onclick="adminGotoTab('ogrenciler')">Öğrenciler →</button>
+            </div>
+            ${sonKayitlarHTML}
+          </div>
+
+          <!-- EĞİTİM: Genel ilerleme (async doldurulur) -->
+          <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">📚 Eğitim İlerlemesi</div>
+              <button class="ca-link" onclick="caAdminGo('egitim')">Eğitim →</button>
+            </div>
+            <div id="hbEgitim"><div style="font-size:13px; color:var(--c-muted); padding:14px 0;">⏳ İlerleme hesaplanıyor…</div></div>
+          </div>
+
+          <!-- DUYURULAR: Son duyurular (async doldurulur) -->
+          <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">📢 Son Duyurular</div>
+              <button class="ca-link" onclick="adminGotoTab('icerik')">Tümü →</button>
+            </div>
+            <div id="hbDuyurular"><div style="font-size:13px; color:var(--c-muted); padding:14px 0;">⏳ Duyurular yükleniyor…</div></div>
+          </div>
+
+          <!-- TAKVİM: Mini takvim (önemli günler işaretli) -->
+          <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">🗓️ ${buAyIsim}</div>
+              <button class="ca-link" onclick="adminGotoTab('icerik')">Takvim →</button>
+            </div>
+            ${miniTakvimHTML}
+          </div>
+
         </div>
       </div>
     </div>
@@ -30664,13 +30861,13 @@ document.querySelectorAll(".durum-sekme").forEach(btn => {
 /* ============ FAZ A: MODÜL NAVİGASYON MANTIĞI ============ */
 // Her modülün kapsadığı alt sekmeler + varsayılan sekme + özel aksiyon
 const MODUL_HARITASI = {
-  ozet:     { tablar: ["anasayfa"],          varsayilan: "anasayfa" },
-  ogrenci:  { tablar: ["ogrenciler","onay"], varsayilan: "ogrenciler" },
-  personel: { tablar: ["personel"],          varsayilan: "personel" },
-  egitim:   { tablar: ["egitim"],            varsayilan: "egitim" },
-  muhasebe: { tablar: ["finans"],            varsayilan: "finans" },
-  isleyis:  { tablar: ["icerik"],            varsayilan: "icerik" },
-  mesaj:    { tablar: ["icerik"],            varsayilan: "icerik", icerikAlt: "mesajlasma" }
+  ozet:     { tablar: ["anasayfa"],          varsayilan: "anasayfa", ad: "Özet" },
+  ogrenci:  { tablar: ["ogrenciler","onay"], varsayilan: "ogrenciler", ad: "Öğrenci & Okul" },
+  personel: { tablar: ["personel"],          varsayilan: "personel", ad: "Personel Süreçleri" },
+  egitim:   { tablar: ["egitim"],            varsayilan: "egitim", ad: "Eğitim Süreçleri" },
+  muhasebe: { tablar: ["finans"],            varsayilan: "finans", ad: "Muhasebe" },
+  isleyis:  { tablar: ["icerik"],            varsayilan: "icerik", ad: "Okul İşleyişi" },
+  mesaj:    { tablar: ["icerik"],            varsayilan: "icerik", icerikAlt: "mesajlasma", ad: "Mesajlaşma" }
 };
 let aktifModul = "ozet";
 
@@ -30680,10 +30877,11 @@ window.modulSec = function(modulKey, tabTikla = true) {
   if (!tanim) return;
   aktifModul = modulKey;
 
-  // Modül butonlarının aktifliği
-  document.querySelectorAll(".modul-btn").forEach(b => {
-    b.classList.toggle("active", b.dataset.modul === modulKey);
-  });
+  // HUB MODELİ: üst şerit — Ana Sayfa'da gizli, iç sayfalarda görünür + başlık
+  const serit = document.getElementById("ustSerit");
+  const seritBaslik = document.getElementById("ustSeritBaslik");
+  if (serit) serit.style.display = (modulKey === "ozet") ? "none" : "flex";
+  if (seritBaslik) seritBaslik.textContent = tanim.ad || "";
 
   // Alt sekmeleri filtrele: sadece bu modülün + erişilebilir sekmeleri göster
   const tabsBar = document.querySelector(".tabs");
