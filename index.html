@@ -4298,18 +4298,45 @@ html, body {
   font-weight: 700;
 }
 
+/* ============ FAZ B: BAŞVURU HAVUZU — ÖĞRENCİ LİSTESİNDEN AYRIŞMIŞ GÖRSEL DİL ============ */
 .basvuru-karti {
-  background: white;
-  border: 1px solid var(--gray-300);
-  border-radius: 12px;
-  padding: 16px 18px;
-  margin-bottom: 12px;
+  background: linear-gradient(160deg, #fffbeb 0%, #fef3c7 100%);
+  border: 2px dashed #f59e0b;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
   transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
 }
-.basvuru-karti:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-.basvuru-karti.beklemede { border-left: 4px solid #f59e0b; background: linear-gradient(90deg, #fef3c7 0%, white 6%); }
-.basvuru-karti.onaylandi { border-left: 4px solid #22c55e; opacity: 0.85; }
-.basvuru-karti.reddedildi { border-left: 4px solid #ef4444; opacity: 0.75; }
+.basvuru-karti::before {
+  content: "BAŞVURU";
+  position: absolute;
+  top: 14px; right: -34px;
+  transform: rotate(38deg);
+  background: rgba(245, 158, 11, 0.16);
+  color: #92400e;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 3px;
+  padding: 4px 40px;
+  pointer-events: none;
+}
+.basvuru-karti:hover { box-shadow: 0 6px 18px rgba(217, 119, 6, 0.18); transform: translateY(-1px); }
+.basvuru-karti.beklemede { border-color: #f59e0b; }
+.basvuru-karti.onaylandi {
+  border: 2px solid #86efac;
+  background: linear-gradient(160deg, #f0fdf4 0%, #dcfce7 100%);
+  opacity: 0.9;
+}
+.basvuru-karti.onaylandi::before { content: "ONAYLANDI"; background: rgba(34,197,94,.15); color: #166534; }
+.basvuru-karti.reddedildi {
+  border: 2px solid #fca5a5;
+  background: linear-gradient(160deg, #fef2f2 0%, #fee2e2 100%);
+  opacity: 0.8;
+}
+.basvuru-karti.reddedildi::before { content: "REDDEDİLDİ"; background: rgba(239,68,68,.13); color: #991b1b; }
 
 .basvuru-kart-header {
   display: flex;
@@ -4319,17 +4346,27 @@ html, body {
   flex-wrap: wrap;
   gap: 10px;
 }
-.basvuru-ogrenci-isim { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--gray-800); }
-.basvuru-meta { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+.basvuru-ogrenci-isim { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: #78350f; }
+.basvuru-meta { font-size: 12px; color: #a16207; margin-top: 3px; }
 .basvuru-durum-rozet {
   padding: 4px 10px;
   border-radius: 14px;
   font-size: 11px;
   font-weight: 600;
 }
-.basvuru-durum-rozet.beklemede { background: #fef3c7; color: #78350f; }
+.basvuru-durum-rozet.beklemede { background: #fff; color: #78350f; border: 1px solid #fcd34d; }
 .basvuru-durum-rozet.onaylandi { background: #dcfce7; color: #166534; }
 .basvuru-durum-rozet.reddedildi { background: #fee2e2; color: #991b1b; }
+
+/* Kaynak rozeti: Yeni Kayıt (mavi) / Kayıt Yenileme (mor) — bir bakışta ayrım */
+.basvuru-kaynak-rozet {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; letter-spacing: .04em;
+  margin-bottom: 6px;
+}
+.basvuru-kaynak-rozet.yenikayit { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.basvuru-kaynak-rozet.kayityenileme { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; }
 
 .basvuru-detay-grid {
   display: grid;
@@ -4337,11 +4374,12 @@ html, body {
   gap: 12px;
   margin-bottom: 12px;
   padding: 12px;
-  background: var(--gray-100);
-  border-radius: 8px;
+  background: rgba(255,255,255,0.72);
+  border-radius: 10px;
+  border: 1px solid rgba(217,119,6,0.15);
 }
 .basvuru-detay-grup { font-size: 12px; }
-.basvuru-detay-baslik { font-weight: 600; color: #2d6a4f; margin-bottom: 4px; font-size: 11px; letter-spacing: 0.5px; }
+.basvuru-detay-baslik { font-weight: 700; color: #92400e; margin-bottom: 4px; font-size: 11px; letter-spacing: 0.5px; }
 .basvuru-detay-satir { color: var(--gray-700); line-height: 1.7; }
 .basvuru-detay-label { color: var(--gray-500); }
 
@@ -4350,7 +4388,7 @@ html, body {
   gap: 8px;
   flex-wrap: wrap;
   padding-top: 10px;
-  border-top: 1px solid var(--gray-200);
+  border-top: 1px dashed rgba(217,119,6,0.35);
 }
 
 /* ============ MONTESSORI GELİŞİM ============ */
@@ -8772,6 +8810,15 @@ html, body {
     <!-- ÖĞRENCILER TAB -->
     <div class="tab-panel" id="tab-ogrenciler">
 
+      <!-- FAZ B: KAYITLI ÖĞRENCİ KİMLİK ŞERİDİ -->
+      <div style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#2D5E3E,#4A7C59); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;">
+        <span style="font-size:20px;">🎓</span>
+        <div>
+          <div style="font-family:var(--font-display); font-weight:700; font-size:15px;">Kayıtlı Öğrenciler</div>
+          <div style="font-size:11.5px; opacity:.85;">Okula kabul edilmiş öğrenciler. Yeni başvurular <strong>📦 Başvuru Havuzu</strong>'ndadır — onaylanınca buraya taşınır.</div>
+        </div>
+      </div>
+
       <!-- DURUM SEKMELERİ -->
       <div class="durum-sekmeleri">
         <button class="durum-sekme active" data-durum="aktif">
@@ -8781,12 +8828,12 @@ html, body {
         </button>
         <button class="durum-sekme" data-durum="basvuru">
           <span class="durum-icon">📝</span>
-          <span class="durum-ad">Başvuru Bekliyor</span>
+          <span class="durum-ad">Başvuru Sürecinde</span>
           <span class="durum-sayac" id="sayacBasvuru">0</span>
         </button>
         <button class="durum-sekme" data-durum="yenileme">
           <span class="durum-icon">🔄</span>
-          <span class="durum-ad">Yenileme Bekliyor</span>
+          <span class="durum-ad">Yenileme Sürecinde</span>
           <span class="durum-sayac" id="sayacYenileme">0</span>
         </button>
         <button class="durum-sekme" data-durum="arsiv">
@@ -8846,9 +8893,9 @@ html, body {
       <div style="background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#422006; position:relative; overflow:hidden;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
           <div>
-            <div style="font-size:11px; font-weight:600; letter-spacing:1.5px; opacity:0.8;">📦 ONAY BEKLEYEN BAŞVURULAR</div>
-            <h2 style="font-family:var(--font-display); font-size:26px; font-weight:700; margin:6px 0; color:#422006;">Yeni Başvurular</h2>
-            <div style="font-size:13px; opacity:0.9;">Yenikayıt ve Kayıt Yenileme sitelerinden gelen başvurular burada listelenir. Onayladığınız başvurular otomatik olarak sisteme işlenir.</div>
+            <div style="font-size:11px; font-weight:600; letter-spacing:1.5px; opacity:0.8;">📦 BAŞVURU HAVUZU</div>
+            <h2 style="font-family:var(--font-display); font-size:26px; font-weight:700; margin:6px 0; color:#422006;">Onay Bekleyen Başvurular</h2>
+            <div style="font-size:13px; opacity:0.95; line-height:1.6;"><strong>⚠️ Bu ekrandaki kayıtlar henüz öğrenci DEĞİLDİR.</strong> Yenikayıt ve Kayıt Yenileme sitelerinden gelen adaylardır. Onayladığınız başvuru otomatik olarak Öğrenci Listesi'ne taşınır.</div>
           </div>
           <div>
             <button class="btn-mini" style="background:rgba(255,255,255,0.3); color:#422006; border:1px solid rgba(66,32,6,0.2);" onclick="loadOnayBekleyenler()">🔄 Yenile</button>
@@ -8857,11 +8904,18 @@ html, body {
       </div>
 
       <!-- FİLTRELER -->
-      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+      <div style="display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; align-items:center;">
+        <span style="font-size:11px; font-weight:700; color:#92400e; letter-spacing:.05em;">DURUM:</span>
         <button class="btn-mini" data-onay-filter="beklemede" onclick="onayFilter('beklemede')" style="background:#fef3c7; border-color:#fde68a; color:#78350f;">⏱ Bekleyen</button>
         <button class="btn-mini" data-onay-filter="onaylandi" onclick="onayFilter('onaylandi')">✓ Onaylanan</button>
         <button class="btn-mini" data-onay-filter="reddedildi" onclick="onayFilter('reddedildi')">✗ Reddedilen</button>
         <button class="btn-mini" data-onay-filter="tumu" onclick="onayFilter('tumu')">📁 Tümü</button>
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+        <span style="font-size:11px; font-weight:700; color:#92400e; letter-spacing:.05em;">KAYNAK:</span>
+        <button class="btn-mini" data-kaynak-filter="tumu" onclick="kaynakFilter('tumu')" style="font-weight:600;">📁 Tümü</button>
+        <button class="btn-mini" data-kaynak-filter="yenikayit" onclick="kaynakFilter('yenikayit')" style="background:#dbeafe; border-color:#93c5fd; color:#1e40af;">🆕 Yeni Kayıt</button>
+        <button class="btn-mini" data-kaynak-filter="kayityenileme" onclick="kaynakFilter('kayityenileme')" style="background:#ede9fe; border-color:#c4b5fd; color:#6d28d9;">🔄 Kayıt Yenileme</button>
       </div>
 
       <!-- LİSTE -->
@@ -21152,13 +21206,13 @@ function updateOnaySayac() {
 
 window.onayFilter = function(filter) {
   aktifOnayFilter = filter;
-  // Buton aktifleri güncelle
+  // Buton aktifleri güncelle (Faz B: amber tema)
   document.querySelectorAll("[data-onay-filter]").forEach(b => {
     b.style.fontWeight = b.dataset.onayFilter === filter ? "600" : "400";
     if (b.dataset.onayFilter === filter) {
-      b.style.background = "#2d6a4f";
+      b.style.background = "#b45309";
       b.style.color = "white";
-      b.style.borderColor = "#2d6a4f";
+      b.style.borderColor = "#b45309";
     } else {
       b.style.background = "";
       b.style.color = "";
@@ -21168,13 +21222,31 @@ window.onayFilter = function(filter) {
   renderOnayBekleyenler();
 };
 
+// Faz B: kaynak filtresi (yenikayit / kayityenileme / tumu)
+let aktifKaynakFilter = "tumu";
+window.kaynakFilter = function(kaynak) {
+  aktifKaynakFilter = kaynak;
+  document.querySelectorAll("[data-kaynak-filter]").forEach(b => {
+    const aktif = b.dataset.kaynakFilter === kaynak;
+    b.style.outline = aktif ? "3px solid #b45309" : "";
+    b.style.outlineOffset = aktif ? "1px" : "";
+    b.style.fontWeight = aktif ? "800" : "600";
+  });
+  renderOnayBekleyenler();
+};
+
 function renderOnayBekleyenler() {
   const wrap = document.getElementById("onayListesiWrap");
   if (!wrap) return;
 
-  const filtrelenmis = aktifOnayFilter === "tumu"
+  let filtrelenmis = aktifOnayFilter === "tumu"
     ? basvuruListesi
     : basvuruListesi.filter(b => (b.durum || "beklemede") === aktifOnayFilter);
+
+  // Faz B: kaynak filtresi
+  if (aktifKaynakFilter !== "tumu") {
+    filtrelenmis = filtrelenmis.filter(b => (b.kaynak || "yenikayit") === aktifKaynakFilter);
+  }
 
   if (filtrelenmis.length === 0) {
     const mesaj = aktifOnayFilter === "beklemede"
@@ -21205,9 +21277,10 @@ function renderOnayBekleyenler() {
       <div class="basvuru-karti ${durum}" data-basvuru-id="${b.id}">
         <div class="basvuru-kart-header">
           <div>
+            <span class="basvuru-kaynak-rozet ${kaynak === "kayityenileme" ? "kayityenileme" : "yenikayit"}">${kaynak === "kayityenileme" ? "🔄 KAYIT YENİLEME" : "🆕 YENİ KAYIT"}</span>
             <div class="basvuru-ogrenci-isim">${escapeHtml(ogr.adSoyad || ogr.ogrenciAdSoyad || "(İsimsiz)")}</div>
             <div class="basvuru-meta">
-              📅 ${tarihStr} · 🌐 ${escapeHtml(kaynak === "kayityenileme" ? "Kayıt Yenileme" : "Yeni Başvuru")}
+              📅 ${tarihStr}
               ${b.onayTarihi ? ` · ✓ Onay: ${formatTarihTam(b.onayTarihi)}` : ""}
               ${b.retTarihi ? ` · ✗ Ret: ${formatTarihTam(b.retTarihi)}` : ""}
             </div>
