@@ -1080,37 +1080,58 @@ html, body {
 }
 
 /* Tabs */
-/* ============ HUB MODELİ: İNCE ÜST ŞERİT ============ */
-.ust-serit {
+/* ============ 7 MODÜLLÜ ANA NAVİGASYON ============ */
+.modul-bar {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 14px;
-  background: rgba(255,255,255,0.75);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(26,77,46,0.08);
-  border-radius: 16px;
+  gap: 6px;
+  padding: 6px;
+  background: linear-gradient(135deg, #1f4d33, #2D5E3E 60%, #37704a);
+  border-radius: 18px;
   margin-bottom: 14px;
+  box-shadow: 0 6px 18px rgba(29, 77, 51, 0.24);
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
-.ust-serit-home {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 9px 18px;
-  background: linear-gradient(135deg, #1f4d33, #2D5E3E);
-  color: #fff; border: none; border-radius: 12px;
-  font-family: var(--font-body); font-weight: 700; font-size: 13px;
-  cursor: pointer; transition: all .15s ease;
+.modul-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 13px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .01em;
+  color: rgba(255,255,255,0.85);
+  cursor: pointer;
+  transition: all .18s ease;
   white-space: nowrap;
+  position: relative;
 }
-.ust-serit-home:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(29,77,51,0.25); }
-.ust-serit-baslik {
-  flex: 1;
-  font-size: 19px; color: var(--green-deep);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.modul-btn:hover {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  transform: translateY(-1px);
 }
+.modul-btn.active {
+  background: #fff;
+  color: #1f4d33;
+  border-color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+.modul-btn .modul-ikon { font-size: 15px; line-height: 1; }
 .modul-rozet {
   background: #E11D48; color: #fff;
-  font-size: 11px; font-weight: 800;
-  border-radius: 999px; padding: 3px 10px;
+  font-size: 10.5px; font-weight: 800;
+  border-radius: 999px; padding: 1px 7px;
+  margin-left: 2px;
+}
+@media (max-width: 640px) {
+  .modul-btn { padding: 9px 12px; font-size: 12px; }
+  .modul-btn .modul-ad { display: none; }
+  .modul-btn.active .modul-ad { display: inline; }
 }
 /* Alt sekme barı yumuşak görünüm */
 .tabs.tek-sekmeli { display: none; }
@@ -7560,20 +7581,20 @@ html, body {
   background: rgba(255,255,255,0.18); color: #fff; font-size: 13px; font-weight: 600;
 }
 .cicek-app .ca-hizli-kart {
-  background: var(--c-surface); border: none; border-radius: var(--c-radius);
-  box-shadow: 0 6px 20px rgba(26,46,31,0.06);
-  padding: 20px; cursor: pointer; text-align: left;
+  background: var(--c-surface); border: none; border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(26,46,31,0.05);
+  padding: 12px 14px; cursor: pointer; text-align: left;
   transition: transform .15s ease, box-shadow .15s ease;
-  display: flex; flex-direction: column; gap: 14px; width: 100%;
+  display: flex; flex-direction: row; align-items: center; gap: 10px; width: 100%;
   font-family: inherit;
 }
-.cicek-app .ca-hizli-kart:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(26,46,31,0.12); }
+.cicek-app .ca-hizli-kart:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(26,46,31,0.10); }
 .cicek-app .ca-hizli-ikon {
-  width: 46px; height: 46px; border-radius: 14px;
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 21px; background: #E4EEE6;
+  font-size: 16px; background: #E4EEE6;
 }
-.cicek-app .ca-hizli-ad { font-weight: 700; color: var(--c-ink); font-size: 15.5px; }
+.cicek-app .ca-hizli-ad { font-weight: 700; color: var(--c-ink); font-size: 13.5px; white-space: nowrap; }
 .cicek-app .ca-hizli-sub { font-size: 12.5px; color: var(--c-muted); margin-top: 2px; }
 .cicek-app .ca-hero-cam {
   background: rgba(255,255,255,0.14);
@@ -8812,11 +8833,15 @@ html, body {
   </header>
 
   <div class="dash-container">
-    <!-- HUB MODELİ: Ana Sayfa merkez, iç sayfalarda ince dönüş şeridi -->
-    <div class="ust-serit" id="ustSerit" style="display:none;">
-      <button class="ust-serit-home" onclick="modulSec('ozet')"><span>🏠</span> Ana Sayfa</button>
-      <div class="ust-serit-baslik ca-serif" id="ustSeritBaslik"></div>
-      <span class="modul-rozet" id="modulOnayRozet" style="display:none; cursor:pointer;" onclick="adminGotoTab('onay')" title="Bekleyen başvurular">0</span>
+    <!-- 7 MODÜLLÜ ANA NAVİGASYON (her sayfada görünür) -->
+    <div class="modul-bar" id="modulBar">
+      <button class="modul-btn active" data-modul="ozet"     onclick="modulSec('ozet')"><span class="modul-ikon">✨</span><span class="modul-ad">Özet</span></button>
+      <button class="modul-btn" data-modul="ogrenci"  onclick="modulSec('ogrenci')"><span class="modul-ikon">👥</span><span class="modul-ad">Öğrenci &amp; Okul</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
+      <button class="modul-btn" data-modul="personel" onclick="modulSec('personel')"><span class="modul-ikon">🧑‍🏫</span><span class="modul-ad">Personel</span></button>
+      <button class="modul-btn" data-modul="egitim"   onclick="modulSec('egitim')"><span class="modul-ikon">📚</span><span class="modul-ad">Eğitim</span></button>
+      <button class="modul-btn" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="modul-ikon">💼</span><span class="modul-ad">Muhasebe</span></button>
+      <button class="modul-btn" data-modul="isleyis"  onclick="modulSec('isleyis')"><span class="modul-ikon">🌸</span><span class="modul-ad">Okul İşleyişi</span></button>
+      <button class="modul-btn" data-modul="mesaj"    onclick="modulSec('mesaj')"><span class="modul-ikon">💬</span><span class="modul-ad">Mesajlaşma</span></button>
     </div>
 
     <!-- Tabs (modülün alt sekmeleri) -->
@@ -16933,54 +16958,39 @@ function yonetimHomeHTML(ad) {
         </div>
       </div>
 
-      <!-- HIZLI ERİŞİM -->
+      <!-- HIZLI ERİŞİM (kompakt) -->
       <div>
-        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
-          <h3 class="ca-serif" style="font-size:22px; color:var(--c-ink);">Hızlı erişim</h3>
-          <button class="ca-link" onclick="modulSec('ogrenci')">Tümü →</button>
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px;">
+          <h3 class="ca-serif" style="font-size:20px; color:var(--c-ink);">Hızlı erişim</h3>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px;">
-          <button class="ca-hizli-kart" onclick="adminGotoTab('ogrenciler')">
-            <span class="ca-hizli-ikon" style="background:#E4EEE6;">👥</span>
-            <span><span class="ca-hizli-ad">Öğrenciler</span><div class="ca-hizli-sub">Kayıt ve sınıf listesi</div></span>
-          </button>
-          <button class="ca-hizli-kart" onclick="adminGotoTab('egitim')">
-            <span class="ca-hizli-ikon" style="background:#E7E9F5;">📚</span>
-            <span><span class="ca-hizli-ad">Eğitim</span><div class="ca-hizli-sub">Gelişim takibi (S·T·U)</div></span>
-          </button>
-          <button class="ca-hizli-kart" onclick="modulSec('mesaj')">
-            <span class="ca-hizli-ikon" style="background:#F5E9E4;">💬</span>
-            <span><span class="ca-hizli-ad">Mesajlar</span><div class="ca-hizli-sub">Veli &amp; personel iletişimi</div></span>
-          </button>
-          <button class="ca-hizli-kart" onclick="adminGotoTab('onay')">
-            <span class="ca-hizli-ikon" style="background:#FDF0D5;">📦</span>
-            <span><span class="ca-hizli-ad">Başvuru Havuzu</span><div class="ca-hizli-sub">Yeni kayıt &amp; yenileme</div></span>
-          </button>
-          <button class="ca-hizli-kart" onclick="adminGotoTab('personel')">
-            <span class="ca-hizli-ikon" style="background:#E4F0F5;">🧑‍🏫</span>
-            <span><span class="ca-hizli-ad">Personel</span><div class="ca-hizli-sub">${personelSayisi} aktif çalışan</div></span>
-          </button>
-          <button class="ca-hizli-kart" onclick="adminGotoTab('icerik')">
-            <span class="ca-hizli-ikon" style="background:#F0E6F2;">🌸</span>
-            <span><span class="ca-hizli-ad">Okul İşleyişi</span><div class="ca-hizli-sub">Duyuru · galeri · yemek</div></span>
-          </button>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
+          <button class="ca-hizli-kart" onclick="adminGotoTab('ogrenciler')"><span class="ca-hizli-ikon" style="background:#E4EEE6;">👥</span><span class="ca-hizli-ad">Öğrenciler</span></button>
+          <button class="ca-hizli-kart" onclick="adminGotoTab('egitim')"><span class="ca-hizli-ikon" style="background:#E7E9F5;">📚</span><span class="ca-hizli-ad">Eğitim</span></button>
+          <button class="ca-hizli-kart" onclick="modulSec('mesaj')"><span class="ca-hizli-ikon" style="background:#F5E9E4;">💬</span><span class="ca-hizli-ad">Mesajlar</span></button>
+          <button class="ca-hizli-kart" onclick="adminGotoTab('onay')"><span class="ca-hizli-ikon" style="background:#FDF0D5;">📦</span><span class="ca-hizli-ad">Başvurular</span></button>
+          <button class="ca-hizli-kart" onclick="adminGotoTab('personel')"><span class="ca-hizli-ikon" style="background:#E4F0F5;">🧑‍🏫</span><span class="ca-hizli-ad">Personel</span></button>
+          <button class="ca-hizli-kart" onclick="adminGotoTab('icerik')"><span class="ca-hizli-ikon" style="background:#F0E6F2;">🌸</span><span class="ca-hizli-ad">Okul İşleyişi</span></button>
         </div>
       </div>
 
-      <!-- BUGÜNÜN ÖZETİ + YAKLAŞAN ETKİNLİK -->
-      <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:18px;" class="ca-ozet-grid">
-        <div>
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
-            <h3 class="ca-serif" style="font-size:22px; color:var(--c-ink);">Bugünün özeti</h3>
-            <button class="ca-link" onclick="adminGotoTab('finans')">Detay →</button>
-          </div>
+      <!-- İKİ KOLONLU KATEGORİZE GÖVDE -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:22px; align-items:start;" class="ca-govde-grid">
+
+        <!-- SOL KOLON: OKUL & FİNANS -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <h3 class="ca-serif" style="font-size:20px; color:var(--c-ink);">Okul &amp; Finans</h3>
+
+          <!-- Bugünün özeti -->
           <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:22px;">
-            <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
-              <div style="width:46px; height:46px; border-radius:14px; background:#FBF3DC; display:flex; align-items:center; justify-content:center; font-size:20px;">☀️</div>
-              <div>
-                <div class="ca-serif" style="font-size:19px; color:var(--c-ink);">${bugunStr}</div>
-                <div style="font-size:12.5px; color:var(--c-muted);">${donem} dönemi · ${buAyIsim}</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:46px; height:46px; border-radius:14px; background:#FBF3DC; display:flex; align-items:center; justify-content:center; font-size:20px;">☀️</div>
+                <div>
+                  <div class="ca-serif" style="font-size:18px; color:var(--c-ink);">${bugunStr}</div>
+                  <div style="font-size:12.5px; color:var(--c-muted);">${donem} dönemi · ${buAyIsim}</div>
+                </div>
               </div>
+              <button class="ca-link" onclick="adminGotoTab('finans')">Detay →</button>
             </div>
             <div style="display:flex; gap:10px;">
               <div class="ca-pastel-stat" style="background:#E4F0E6;"><div class="v">${odeyenSayisi}</div><div class="l">Ödeyen</div></div>
@@ -16993,36 +17003,8 @@ function yonetimHomeHTML(ad) {
                 : `Tüm ödemeler yolunda görünüyor. 🌱`}
             </div>
           </div>
-        </div>
 
-        <div>
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
-            <h3 class="ca-serif" style="font-size:22px; color:var(--c-ink);">Yaklaşan etkinlik</h3>
-            <button class="ca-link" onclick="adminGotoTab('icerik')">Takvim →</button>
-          </div>
-          <div class="ca-card-cocoa">
-            ${yaklasanEtkinlik ? `
-              <span class="ca-cocoa-pill">${yaklasanEtkinlik.tur === "tatil" ? "🎌 Resmi tatil" : "🌿 Etkinlik"}</span>
-              <div style="flex:1;"></div>
-              <div class="ca-serif" style="font-size:25px; line-height:1.2;">${(yaklasanEtkinlik.baslik || yaklasanEtkinlik.ad || "Etkinlik").replace(/</g,"&lt;")}</div>
-              <div style="font-size:13.5px; opacity:.85; margin-top:6px;">${etkTarihStr}</div>
-            ` : `
-              <span class="ca-cocoa-pill">🗓️ Takvim</span>
-              <div style="flex:1;"></div>
-              <div class="ca-serif" style="font-size:22px; line-height:1.3;">Yaklaşan etkinlik bulunmuyor</div>
-              <div style="font-size:13.5px; opacity:.85; margin-top:6px;">Takvimden yeni etkinlik ekleyebilirsiniz</div>
-            `}
-          </div>
-        </div>
-      </div>
-      <!-- OKULDAN HIZLI BAKIŞ (tüm modüllerden canlı özet) -->
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
-          <h3 class="ca-serif" style="font-size:22px; color:var(--c-ink);">Okuldan hızlı bakış</h3>
-        </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px;">
-
-          <!-- MUHASEBE: Ödemeler grafiği -->
+          <!-- Aylık tahsilat grafiği -->
           <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
               <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">💼 Aylık Tahsilat</div>
@@ -17031,7 +17013,7 @@ function yonetimHomeHTML(ad) {
             ${grafikBarlarHTML}
           </div>
 
-          <!-- ÖĞRENCİLER: Son kayıtlar -->
+          <!-- Son kayıtlar -->
           <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
               <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">👥 Son Kayıtlar</div>
@@ -17040,7 +17022,7 @@ function yonetimHomeHTML(ad) {
             ${sonKayitlarHTML}
           </div>
 
-          <!-- EĞİTİM: Genel ilerleme (async doldurulur) -->
+          <!-- Eğitim ilerlemesi -->
           <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
               <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">📚 Eğitim İlerlemesi</div>
@@ -17048,17 +17030,28 @@ function yonetimHomeHTML(ad) {
             </div>
             <div id="hbEgitim"><div style="font-size:13px; color:var(--c-muted); padding:14px 0;">⏳ İlerleme hesaplanıyor…</div></div>
           </div>
+        </div>
 
-          <!-- DUYURULAR: Son duyurular (async doldurulur) -->
-          <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">📢 Son Duyurular</div>
-              <button class="ca-link" onclick="adminGotoTab('icerik')">Tümü →</button>
-            </div>
-            <div id="hbDuyurular"><div style="font-size:13px; color:var(--c-muted); padding:14px 0;">⏳ Duyurular yükleniyor…</div></div>
+        <!-- SAĞ KOLON: AJANDA & DUYURULAR -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <h3 class="ca-serif" style="font-size:20px; color:var(--c-ink);">Ajanda &amp; Duyurular</h3>
+
+          <!-- Yaklaşan etkinlik -->
+          <div class="ca-card-cocoa" style="min-height:170px;">
+            ${yaklasanEtkinlik ? `
+              <span class="ca-cocoa-pill">${yaklasanEtkinlik.tur === "tatil" ? "🎌 Resmi tatil" : "🌿 Etkinlik"}</span>
+              <div style="flex:1;"></div>
+              <div class="ca-serif" style="font-size:23px; line-height:1.2;">${(yaklasanEtkinlik.baslik || yaklasanEtkinlik.ad || "Etkinlik").replace(/</g,"&lt;")}</div>
+              <div style="font-size:13.5px; opacity:.85; margin-top:6px;">${etkTarihStr}</div>
+            ` : `
+              <span class="ca-cocoa-pill">🗓️ Takvim</span>
+              <div style="flex:1;"></div>
+              <div class="ca-serif" style="font-size:20px; line-height:1.3;">Yaklaşan etkinlik bulunmuyor</div>
+              <div style="font-size:13.5px; opacity:.85; margin-top:6px;">Takvimden yeni etkinlik ekleyebilirsiniz</div>
+            `}
           </div>
 
-          <!-- TAKVİM: Mini takvim (önemli günler işaretli) -->
+          <!-- Mini takvim -->
           <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
               <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">🗓️ ${buAyIsim}</div>
@@ -17067,13 +17060,21 @@ function yonetimHomeHTML(ad) {
             ${miniTakvimHTML}
           </div>
 
+          <!-- Son duyurular -->
+          <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-weight:800; color:var(--c-ink); font-size:14.5px;">📢 Son Duyurular</div>
+              <button class="ca-link" onclick="adminGotoTab('icerik')">Tümü →</button>
+            </div>
+            <div id="hbDuyurular"><div style="font-size:13px; color:var(--c-muted); padding:14px 0;">⏳ Duyurular yükleniyor…</div></div>
+          </div>
         </div>
       </div>
     </div>
 
     <style>
-      @media (max-width: 860px) {
-        .ca-hero-grid, .ca-ozet-grid { grid-template-columns: 1fr !important; }
+      @media (max-width: 900px) {
+        .ca-hero-grid, .ca-govde-grid { grid-template-columns: 1fr !important; }
       }
     </style>
   `;
@@ -30877,11 +30878,10 @@ window.modulSec = function(modulKey, tabTikla = true) {
   if (!tanim) return;
   aktifModul = modulKey;
 
-  // HUB MODELİ: üst şerit — Ana Sayfa'da gizli, iç sayfalarda görünür + başlık
-  const serit = document.getElementById("ustSerit");
-  const seritBaslik = document.getElementById("ustSeritBaslik");
-  if (serit) serit.style.display = (modulKey === "ozet") ? "none" : "flex";
-  if (seritBaslik) seritBaslik.textContent = tanim.ad || "";
+  // Modül butonlarının aktifliği
+  document.querySelectorAll(".modul-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.modul === modulKey);
+  });
 
   // Alt sekmeleri filtrele: sadece bu modülün + erişilebilir sekmeleri göster
   const tabsBar = document.querySelector(".tabs");
