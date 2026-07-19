@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>BCKA — Başvuru Onay Teşhis Aracı</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #F0EDE6; margin: 0; padding: 24px; color: #1a2e1f; }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 22px; color: #2D5E3E; }
+  .card { background: #fff; border-radius: 14px; padding: 18px; margin: 14px 0; box-shadow: 0 4px 14px rgba(26,46,31,.07); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
+  th { background: #E4EEE6; color: #2D5E3E; }
+  .ok { color: #166534; font-weight: 700; }
+  .yok { color: #b91c1c; font-weight: 700; }
+  .uyari { color: #b45309; font-weight: 700; }
+  button { background: #2D5E3E; color: #fff; border: none; border-radius: 10px; padding: 12px 22px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .not { font-size: 12.5px; color: #6b7280; }
+  #durum { margin: 12px 0; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔍 Başvuru Onay Teşhis Aracı</h1>
+  <p class="not">Sadece OKUMA yapar, hiçbir veri değiştirmez. Google ile yönetici hesabınla giriş yap, sonra "Kontrol Et"e bas.</p>
+  <div class="card">
+    <button id="btnGiris">1️⃣ Google ile Giriş Yap</button>
+    <button id="btnKontrol" style="display:none;">2️⃣ Kontrol Et</button>
+    <div id="durum"></div>
+  </div>
+  <div id="sonuclar"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
+  authDomain: "bcka-site.firebaseapp.com",
+  projectId: "bcka-site",
+  storageBucket: "bcka-site.firebasestorage.app",
+  messagingSenderId: "736581475783",
+  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+const DONEM = "2026-2027";
+
+const durumEl = document.getElementById("durum");
+const sonucEl = document.getElementById("sonuclar");
+
+document.getElementById("btnGiris").onclick = async () => {
+  try {
+    const p = new GoogleAuthProvider();
+    p.setCustomParameters({ prompt: "select_account" });
+    await signInWithPopup(auth, p);
+    durumEl.textContent = "✓ Giriş yapıldı: " + auth.currentUser.email;
+    document.getElementById("btnKontrol").style.display = "inline-block";
+  } catch (e) { durumEl.textContent = "Giriş hatası: " + e.message; }
+};
+
+document.getElementById("btnKontrol").onclick = async () => {
+  durumEl.textContent = "⏳ Kontrol ediliyor…";
+  sonucEl.innerHTML = "";
+  try {
+    // 1) Son 48 saatte oluşturulan öğrenciler
+    const sinir = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+    const ogrSnap = await getDocs(collection(db, "ogrenciler"));
+    const yeniler = [];
+    ogrSnap.forEach(d => {
+      const v = d.data();
+      if ((v.olusturuldu || "") >= sinir) yeniler.push({ id: d.id, ...v });
+    });
+    yeniler.sort((a, b) => (b.olusturuldu || "").localeCompare(a.olusturuldu || ""));
+
+    let html1 = `<div class="card"><h3>🆕 Son 48 saatte oluşturulan öğrenci kayıtları (${yeniler.length})</h3>`;
+    if (yeniler.length === 0) {
+      html1 += `<p class="uyari">⚠️ Son 48 saatte hiç yeni öğrenci kaydı OLUŞMAMIŞ. Onay işlemi büyük ihtimalle hata verdi (F12 → Console'a bakın) veya tamamlanmadı.</p>`;
+    } else {
+      html1 += `<table><tr><th>Ad Soyad</th><th>Durum</th><th>Sınıf</th><th>${DONEM} dönem dok.</th><th>Kaynak Başvuru</th><th>Oluşturulma</th></tr>`;
+      for (const o of yeniler) {
+        let donemVar = "kontrol…";
+        try {
+          const dd = await getDoc(doc(db, "ogrenciler", o.id, "donemler", DONEM));
+          donemVar = dd.exists() ? `<span class="ok">✓ VAR</span>` : `<span class="yok">✗ YOK ← listede görünmeme sebebi bu!</span>`;
+        } catch (e) { donemVar = "hata: " + e.message; }
+        html1 += `<tr>
+          <td><strong>${o.ogrenciAdSoyad || "(İSİMSİZ!)"}</strong></td>
+          <td>${o.durum || "aktif"}</td>
+          <td>${o.sinif || "—"}</td>
+          <td>${donemVar}</td>
+          <td>${o.kaynakBasvuruId ? "✓ " + o.kaynakBasvuruId.substring(0, 8) + "…" : "—"}</td>
+          <td>${(o.olusturuldu || "").substring(0, 16).replace("T", " ")}</td>
+        </tr>`;
+      }
+      html1 += `</table>
+      <p class="not">💡 Dönem dokümanı VAR + durum aktif ise öğrenci portalda "Aktif" sekmesinde görünmelidir (dönem seçici 2026-2027'de olmalı). İSİMSİZ ise başvuruda ad alanı boştu.</p>`;
+    }
+    html1 += `</div>`;
+    sonucEl.innerHTML += html1;
+
+    // 2) Onaylanmış başvurular → öğrenci eşleşmesi
+    let html2 = `<div class="card"><h3>📦 Onaylanmış başvurular → öğrenci eşleşmesi</h3>
+      <table><tr><th>Koleksiyon</th><th>Ad</th><th>Onay Tarihi</th><th>eklenenOgrenciId</th><th>Öğrenci mevcut mu?</th></tr>`;
+    for (const kol of ["basvurular", "kayitYenileme"]) {
+      try {
+        const snap = await getDocs(collection(db, kol));
+        for (const d of snap.docs) {
+          const v = d.data();
+          if (v.durum !== "onaylandi") continue;
+          if ((v.onayTarihi || "") < sinir) continue; // sadece son 48 saat
+          let esles = "—";
+          if (v.eklenenOgrenciId) {
+            try {
+              const od = await getDoc(doc(db, "ogrenciler", v.eklenenOgrenciId));
+              esles = od.exists()
+                ? `<span class="ok">✓ VAR (${od.data().ogrenciAdSoyad || "isimsiz"}, durum: ${od.data().durum || "aktif"})</span>`
+                : `<span class="yok">✗ YOK — kayıt oluşmamış!</span>`;
+            } catch (e) { esles = "hata"; }
+          } else {
+            esles = `<span class="yok">✗ eklenenOgrenciId boş — onay yarım kalmış</span>`;
+          }
+          html2 += `<tr>
+            <td>${kol}</td>
+            <td>${v.ogrenci?.adSoyad || "(isimsiz)"}</td>
+            <td>${(v.onayTarihi || "").substring(0, 16).replace("T", " ")}</td>
+            <td>${v.eklenenOgrenciId ? v.eklenenOgrenciId.substring(0, 8) + "…" : "—"}</td>
+            <td>${esles}</td>
+          </tr>`;
+        }
+      } catch (e) {
+        html2 += `<tr><td colspan="5">${kol} okunamadı: ${e.message}</td></tr>`;
+      }
+    }
+    html2 += `</table><p class="not">Son 48 saatte onaylanan başvurular listelenir.</p></div>`;
+    sonucEl.innerHTML += html2;
+
+    durumEl.textContent = "✓ Kontrol tamamlandı.";
+  } catch (e) {
+    durumEl.textContent = "Hata: " + e.message;
+  }
+};
+</script>
+</body>
+</html>
