@@ -7483,6 +7483,30 @@ i[data-lucide] svg { display: block; }
   padding: 14px 16px; font-weight: 700; font-size: 16px; color: #1f2937;
   border-bottom: 1px solid #e5e7eb; background: white;
 }
+/* Mesajlaşma kategori filtre + renklendirme */
+.mesaj-kategori-filtre {
+  display: flex; gap: 6px; padding: 8px 12px;
+  background: #F6F8FA; border-bottom: 1px solid #E9EBF4;
+}
+.mkf-btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 7px 8px; border: 1px solid #E1E5EC; border-radius: 100px;
+  background: #fff; color: #5A6472; font-size: 11.5px; font-weight: 700;
+  cursor: pointer; transition: all .14s; font-family: inherit; white-space: nowrap;
+}
+.mkf-btn:hover { background: #EEF1F5; }
+.mkf-btn.active { background: #1F2544; color: #fff; border-color: #1F2544; }
+.mkf-nokta { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.mesaj-thread-item.kat-veli { border-left: 3px solid #22C55E; }
+.mesaj-thread-item.kat-ic { border-left: 3px solid #5A6ACF; }
+.mesaj-thread-item.kat-gozetim { border-left: 3px solid #B45309; }
+.mesaj-kat-rozet {
+  font-size: 9.5px; font-weight: 800; padding: 1px 7px; border-radius: 100px;
+  letter-spacing: .03em; margin-left: 6px; white-space: nowrap;
+}
+.mesaj-kat-rozet.veli { background: #E4F5EC; color: #16803C; }
+.mesaj-kat-rozet.ic { background: #EDEFFB; color: #3A45A8; }
+.mesaj-kat-rozet.gozetim { background: #FCF3E4; color: #92600C; }
 .mesaj-yeni-btn {
   padding: 6px 12px; background: linear-gradient(135deg,#ec4899,#db2777);
   color: white; border: none; border-radius: 8px; font-size: 13px;
@@ -10592,6 +10616,11 @@ i[data-lucide] svg { display: block; }
               </div>
               <div class="mesaj-liste-ara">
                 <input type="text" id="mesajListeAra" placeholder="🔍 Ara..." oninput="mesajThreadleriListele()">
+              </div>
+              <div class="mesaj-kategori-filtre">
+                <button class="mkf-btn active" data-mkf="hepsi" onclick="mesajKategoriFiltrele('hepsi')">Tümü</button>
+                <button class="mkf-btn" data-mkf="veli" onclick="mesajKategoriFiltrele('veli')"><span class="mkf-nokta" style="background:#22C55E;"></span> Veli</button>
+                <button class="mkf-btn" data-mkf="ic" onclick="mesajKategoriFiltrele('ic')"><span class="mkf-nokta" style="background:#5A6ACF;"></span> İç Yazışma</button>
               </div>
               <div id="mesajThreadListesi" class="mesaj-thread-listesi">
                 <div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
@@ -14185,6 +14214,14 @@ function mesajlasmaDurdur() {
 }
 
 // Thread listesini render et
+// Mesajlaşma kategori filtresi (hepsi/veli/ic)
+let mesajAktifKategori = "hepsi";
+window.mesajKategoriFiltrele = function(kat) {
+  mesajAktifKategori = kat;
+  document.querySelectorAll(".mkf-btn").forEach(b => b.classList.toggle("active", b.dataset.mkf === kat));
+  if (typeof mesajThreadleriListele === "function") mesajThreadleriListele();
+};
+
 function mesajThreadleriListele() {
   const el = document.getElementById("mesajThreadListesi");
   if (!el) return;
@@ -14192,6 +14229,25 @@ function mesajThreadleriListele() {
   const arama = (document.getElementById("mesajListeAra")?.value || "").toLowerCase().trim();
 
   let liste = [...mesajThreadListesi];
+
+  // Kategori belirleme yardımcısı: veli / ic (personel arası) / gozetim
+  function threadKategori(t) {
+    const benimGoz = !((t.katilimcilar || []).includes(benim));
+    if (benimGoz) return "gozetim";
+    const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
+    const rol = t.katilimciBilgi?.[karsi]?.rol;
+    return rol === "veli" ? "veli" : "ic";
+  }
+
+  // Kategori filtresi (Tümü / Veli / İç Yazışma)
+  if (typeof mesajAktifKategori !== "undefined" && mesajAktifKategori !== "hepsi") {
+    liste = liste.filter(t => {
+      const kat = threadKategori(t);
+      if (mesajAktifKategori === "veli") return kat === "veli";
+      if (mesajAktifKategori === "ic") return kat === "ic" || kat === "gozetim";
+      return true;
+    });
+  }
 
   // Arama filtresi
   if (arama) {
@@ -14231,13 +14287,19 @@ function mesajThreadleriListele() {
     const aktifClass = (mesajAktifThread && mesajAktifThread.id === t.id) ? "aktif" : "";
     const tarih = mesajTarihFormat(t.sonMesajTarihi);
     const idEsc = t.id.replace(/'/g, "\\'");
+    // Kategori (renk şeridi + rozet)
+    const kat = threadKategori(t);
+    const katClass = kat === "veli" ? "kat-veli" : kat === "gozetim" ? "kat-gozetim" : "kat-ic";
+    const katRozet = kat === "veli" ? '<span class="mesaj-kat-rozet veli">VELİ</span>'
+                   : kat === "gozetim" ? '<span class="mesaj-kat-rozet gozetim">GÖZETİM</span>'
+                   : '<span class="mesaj-kat-rozet ic">İÇ YAZIŞMA</span>';
 
     return `
-      <div class="mesaj-thread-item ${aktifClass}" onclick="mesajThreadAc('${idEsc}')">
+      <div class="mesaj-thread-item ${aktifClass} ${katClass}" onclick="mesajThreadAc('${idEsc}')">
         <div class="mesaj-thread-avatar">${escapeHtmlGelisim(initial)}</div>
         <div class="mesaj-thread-bilgi">
           <div class="mesaj-thread-ust">
-            <span class="mesaj-thread-ad">${escapeHtmlGelisim(adGoster)}</span>
+            <span class="mesaj-thread-ad">${escapeHtmlGelisim(adGoster)}${katRozet}</span>
             <span class="mesaj-thread-tarih">${tarih}</span>
           </div>
           <div class="mesaj-thread-alt">
