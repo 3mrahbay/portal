@@ -8823,7 +8823,7 @@ i[data-lucide] svg { display: block; }
             </div>
             <div class="hero-card-btn-row">
               <button class="hero-card-btn primary" onclick="showLoginModal()">📄 Sözleşme İndir</button>
-              <button class="hero-card-btn secondary" onclick="showLoginModal()">💳 Ödeme Bildir</button>
+              <button class="hero-card-btn secondary" onclick="showLoginModal()"><i data-lucide="credit-card" style="width:14px;height:14px;vertical-align:-2px;"></i> Ödeme Bildir</button>
             </div>
           </div>
         </div>
@@ -9200,7 +9200,7 @@ i[data-lucide] svg { display: block; }
             <div style="font-size:13px; opacity:0.95; line-height:1.6;"><strong>⚠️ Bu ekrandaki kayıtlar henüz öğrenci DEĞİLDİR.</strong> Yenikayıt ve Kayıt Yenileme sitelerinden gelen adaylardır. Onayladığınız başvuru otomatik olarak Öğrenci Listesi'ne taşınır.</div>
           </div>
           <div>
-            <button class="btn-mini" style="background:rgba(255,255,255,0.3); color:#422006; border:1px solid rgba(66,32,6,0.2);" onclick="loadOnayBekleyenler()">🔄 Yenile</button>
+            <button class="btn-mini" style="background:rgba(255,255,255,0.3); color:#422006; border:1px solid rgba(66,32,6,0.2);" onclick="loadOnayBekleyenler()"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Yenile</button>
           </div>
         </div>
       </div>
@@ -9211,11 +9211,11 @@ i[data-lucide] svg { display: block; }
         <button class="btn-mini" data-onay-filter="beklemede" onclick="onayFilter('beklemede')" style="background:#fef3c7; border-color:#fde68a; color:#78350f;">⏱ Bekleyen</button>
         <button class="btn-mini" data-onay-filter="onaylandi" onclick="onayFilter('onaylandi')">✓ Onaylanan</button>
         <button class="btn-mini" data-onay-filter="reddedildi" onclick="onayFilter('reddedildi')">✗ Reddedilen</button>
-        <button class="btn-mini" data-onay-filter="tumu" onclick="onayFilter('tumu')">📁 Tümü</button>
+        <button class="btn-mini" data-onay-filter="tumu" onclick="onayFilter('tumu')"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
       </div>
       <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
         <span style="font-size:11px; font-weight:700; color:#92400e; letter-spacing:.05em;">KAYNAK:</span>
-        <button class="btn-mini" data-kaynak-filter="tumu" onclick="kaynakFilter('tumu')" style="font-weight:600;">📁 Tümü</button>
+        <button class="btn-mini" data-kaynak-filter="tumu" onclick="kaynakFilter('tumu')" style="font-weight:600;"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
         <button class="btn-mini" data-kaynak-filter="yenikayit" onclick="kaynakFilter('yenikayit')" style="background:#dbeafe; border-color:#93c5fd; color:#1e40af;">🆕 Yeni Kayıt</button>
         <button class="btn-mini" data-kaynak-filter="kayityenileme" onclick="kaynakFilter('kayityenileme')" style="background:#ede9fe; border-color:#c4b5fd; color:#6d28d9;">🔄 Kayıt Yenileme</button>
       </div>
@@ -9417,8 +9417,8 @@ i[data-lucide] svg { display: block; }
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" onclick="closeGiderEkleModal()">İptal</button>
-          <button class="btn-primary" onclick="kaydetGider()">💾 Kaydet</button>
-          <button class="btn-secondary" id="giderSilBtn" onclick="silGider()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+          <button class="btn-primary" onclick="kaydetGider()"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Kaydet</button>
+          <button class="btn-secondary" id="giderSilBtn" onclick="silGider()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
         </div>
       </div>
     </div>
@@ -9453,7 +9453,7 @@ i[data-lucide] svg { display: block; }
           <button class="rapor-geri-btn" onclick="egitimDisiplinKapat()">← Disiplin Seçimine Dön</button>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn-mini" onclick="mufredatEditorAc()" style="font-size:12px;">⚙️ Müfredat Düzenle</button>
-            <button class="btn-mini" onclick="egitimMatrixYenile()" style="font-size:12px;">🔄 Yenile</button>
+            <button class="btn-mini" onclick="egitimMatrixYenile()" style="font-size:12px;"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Yenile</button>
           </div>
         </div>
 
@@ -9562,7 +9562,7 @@ i[data-lucide] svg { display: block; }
               <button class="btn-mini" onclick="devamsizlikGunDegistir(-1)">← Dün</button>
               <input type="date" id="devamsizlikTarih" onchange="devamsizlikTarihDegisti()" style="padding:8px 10px; border:1px solid #fecaca; border-radius:8px; font-size:13px; color:#991b1b; font-weight:600;">
               <button class="btn-mini" onclick="devamsizlikGunDegistir(1)">Yarın →</button>
-              <button class="btn-mini" onclick="devamsizlikBugun()" title="Bugüne git">📅 Bugün</button>
+              <button class="btn-mini" onclick="devamsizlikBugun()" title="Bugüne git"><i data-lucide="calendar" style="width:14px;height:14px;vertical-align:-2px;"></i> Bugün</button>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn-mini" onclick="devamsizlikHepsiGeldi()" style="background:#dcfce7; border-color:#bbf7d0; color:#166534;">✅ Hepsi Geldi</button>
@@ -9720,7 +9720,7 @@ i[data-lucide] svg { display: block; }
         <div class="modal-footer">
           <button class="btn-secondary" onclick="closeDuyuruModal()">İptal</button>
           <button class="btn-primary" onclick="kaydetDuyuru()" style="background:#eab308; border:none;">💾 Yayınla</button>
-          <button class="btn-secondary" id="duyuruSilBtn" onclick="silDuyuru()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+          <button class="btn-secondary" id="duyuruSilBtn" onclick="silDuyuru()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
         </div>
       </div>
     </div>
@@ -9812,8 +9812,8 @@ i[data-lucide] svg { display: block; }
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" onclick="takvimModalKapat()">İptal</button>
-          <button class="btn-primary" onclick="takvimEtkinlikKaydet()" style="background:#16a34a; border:none;">💾 Kaydet</button>
-          <button class="btn-secondary" id="takvimSilBtn" onclick="takvimEtkinlikSil()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+          <button class="btn-primary" onclick="takvimEtkinlikKaydet()" style="background:#16a34a; border:none;"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Kaydet</button>
+          <button class="btn-secondary" id="takvimSilBtn" onclick="takvimEtkinlikSil()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
         </div>
       </div>
     </div>
@@ -9884,8 +9884,8 @@ i[data-lucide] svg { display: block; }
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" onclick="randevuSlotModalKapat()">İptal</button>
-          <button class="btn-primary" onclick="randevuSlotKaydet()" style="background:#0891b2; border:none;">💾 Kaydet</button>
-          <button class="btn-secondary" id="randevuSlotSilBtn" onclick="randevuSlotSil()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+          <button class="btn-primary" onclick="randevuSlotKaydet()" style="background:#0891b2; border:none;"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Kaydet</button>
+          <button class="btn-secondary" id="randevuSlotSilBtn" onclick="randevuSlotSil()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
         </div>
       </div>
     </div>
@@ -9998,7 +9998,7 @@ i[data-lucide] svg { display: block; }
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" onclick="closeYemekModal()">İptal</button>
-          <button class="btn-primary" onclick="kaydetYemekMenusu()" style="background:#f97316; border:none;">💾 Kaydet</button>
+          <button class="btn-primary" onclick="kaydetYemekMenusu()" style="background:#f97316; border:none;"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Kaydet</button>
         </div>
       </div>
     </div>
@@ -10091,8 +10091,8 @@ i[data-lucide] svg { display: block; }
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" onclick="closeEtkinlikModal()">İptal</button>
-          <button class="btn-primary" onclick="kaydetEtkinlik()" style="background:#3b82f6; border:none;">💾 Kaydet</button>
-          <button class="btn-secondary" id="etkinlikSilBtn" onclick="silEtkinlik()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;">🗑 Sil</button>
+          <button class="btn-primary" onclick="kaydetEtkinlik()" style="background:#3b82f6; border:none;"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Kaydet</button>
+          <button class="btn-secondary" id="etkinlikSilBtn" onclick="silEtkinlik()" style="display:none; background:#fee2e2; color:#991b1b; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
         </div>
       </div>
     </div>
@@ -10136,7 +10136,7 @@ i[data-lucide] svg { display: block; }
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" onclick="closeDevamsizlikNot()">İptal</button>
-          <button class="btn-primary" onclick="kaydetDevamsizlikNot()">💾 Kaydet</button>
+          <button class="btn-primary" onclick="kaydetDevamsizlikNot()"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Kaydet</button>
         </div>
       </div>
     </div>
@@ -10253,8 +10253,8 @@ i[data-lucide] svg { display: block; }
             <h2 class="rapor-hero-title" id="raporHeroTitle">2025-2026 Dönemi</h2>
           </div>
           <div class="rapor-hero-actions">
-            <button class="rapor-btn-light" onclick="raporYenile()">🔄 Yenile</button>
-            <button class="rapor-btn-yellow" onclick="raporExcelTumu()">📥 Excel İndir</button>
+            <button class="rapor-btn-light" onclick="raporYenile()"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Yenile</button>
+            <button class="rapor-btn-yellow" onclick="raporExcelTumu()"><i data-lucide="download" style="width:14px;height:14px;vertical-align:-2px;"></i> Excel İndir</button>
           </div>
         </div>
 
@@ -10407,7 +10407,7 @@ i[data-lucide] svg { display: block; }
             <h3 class="rapor-karti-title">🌱 Montessori Gelişim - Tüm Sınıf</h3>
             <div class="rapor-karti-sub">Öğrencilerin alan bazlı ortalama ilerlemesi</div>
           </div>
-          <button class="rapor-btn-light" onclick="adminMontessoriYenile()">🔄 Yenile</button>
+          <button class="rapor-btn-light" onclick="adminMontessoriYenile()"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Yenile</button>
         </div>
         <div id="adminMontessoriIcerik" style="padding:16px 0;">
           <div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Yenile butonuna basın...</div>
@@ -10567,7 +10567,7 @@ i[data-lucide] svg { display: block; }
               <button class="btn-mini" data-etkinlik-filter="yaklasan" onclick="etkinlikFilter('yaklasan')" style="background:#3b82f6; border:none; color:white;">🔜 Yaklaşan</button>
               <button class="btn-mini" data-etkinlik-filter="buAy" onclick="etkinlikFilter('buAy')">📅 Bu Ay</button>
               <button class="btn-mini" data-etkinlik-filter="gecmis" onclick="etkinlikFilter('gecmis')">⏮ Geçmiş</button>
-              <button class="btn-mini" data-etkinlik-filter="tumu" onclick="etkinlikFilter('tumu')">📁 Tümü</button>
+              <button class="btn-mini" data-etkinlik-filter="tumu" onclick="etkinlikFilter('tumu')"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
             </div>
             <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
           </div>
@@ -10706,7 +10706,7 @@ i[data-lucide] svg { display: block; }
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn-mini" data-duyuru-filter="aktif" onclick="duyuruFilter('aktif')" style="background:#eab308; border:none; color:white;">✓ Aktif</button>
               <button class="btn-mini" data-duyuru-filter="arsiv" onclick="duyuruFilter('arsiv')">📦 Arşiv</button>
-              <button class="btn-mini" data-duyuru-filter="tumu" onclick="duyuruFilter('tumu')">📁 Tümü</button>
+              <button class="btn-mini" data-duyuru-filter="tumu" onclick="duyuruFilter('tumu')"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
             </div>
             <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
           </div>
@@ -10728,7 +10728,7 @@ i[data-lucide] svg { display: block; }
               <button class="btn-mini" onclick="yemekHaftaDegistir(-1)">← Önceki Hafta</button>
               <div id="yemekHaftaEtiketi" style="padding:8px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; font-weight:600; color:#9a3412; font-size:13px; min-width:220px; text-align:center;">Hafta yükleniyor...</div>
               <button class="btn-mini" onclick="yemekHaftaDegistir(1)">Sonraki Hafta →</button>
-              <button class="btn-mini" onclick="yemekBuHaftaGit()" title="Bu haftaya git">📅 Bugün</button>
+              <button class="btn-mini" onclick="yemekBuHaftaGit()" title="Bu haftaya git"><i data-lucide="calendar" style="width:14px;height:14px;vertical-align:-2px;"></i> Bugün</button>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn-primary" onclick="yemekMenusuDuzenle()" style="background:#f97316; border:none; color:white;">✏️ Bu Haftayı Düzenle</button>
@@ -10848,7 +10848,7 @@ i[data-lucide] svg { display: block; }
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="personelFormKapat()">İptal</button>
-      <button class="btn-primary" id="personelKaydetBtn" onclick="personelKaydet()">💾 Kaydet</button>
+      <button class="btn-primary" id="personelKaydetBtn" onclick="personelKaydet()"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Kaydet</button>
     </div>
   </div>
 </div>
@@ -11104,7 +11104,7 @@ i[data-lucide] svg { display: block; }
               <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Çocuğunuzun okul anıları</div>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;" id="veliGaleriFiltreler">
-              <button class="btn-mini" data-veli-galeri-filter="tumu" onclick="veliGaleriFilter('tumu')" style="background:#9333ea; border:none; color:white;">📁 Tümü</button>
+              <button class="btn-mini" data-veli-galeri-filter="tumu" onclick="veliGaleriFilter('tumu')" style="background:#9333ea; border:none; color:white;"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
               <button class="btn-mini" data-veli-galeri-filter="ozel" onclick="veliGaleriFilter('ozel')">⭐ Size Özel</button>
               <button class="btn-mini" data-veli-galeri-filter="sinif" onclick="veliGaleriFilter('sinif')">👥 Sınıf</button>
               <button class="btn-mini" data-veli-galeri-filter="okul" onclick="veliGaleriFilter('okul')">🏫 Tüm Okul</button>
@@ -11165,7 +11165,7 @@ i[data-lucide] svg { display: block; }
               <div id="veliAyarYontem" style="font-size:14px; margin-top:2px;">—</div>
             </div>
             <div style="padding-top:12px; border-top:1px solid var(--gray-200);">
-              <button class="veli-btn-secondary" onclick="signOut()">🚪 Çıkış Yap</button>
+              <button class="veli-btn-secondary" onclick="signOut()"><i data-lucide="log-out" style="width:14px;height:14px;vertical-align:-2px;"></i> Çıkış Yap</button>
             </div>
           </div>
         </div>
@@ -11215,7 +11215,7 @@ i[data-lucide] svg { display: block; }
         <button class="modal-tab" data-modal-tab="aidat"><span class="modal-tab-icon">💰</span>Aidat</button>
         <button class="modal-tab" data-modal-tab="gelisim"><span class="modal-tab-icon">🌱</span>Gelişim</button>
         <button class="modal-tab" data-modal-tab="sozlesme"><span class="modal-tab-icon">📄</span>Sözleşme</button>
-        <button class="modal-tab" data-modal-tab="cikti"><span class="modal-tab-icon">🖨️</span>Çıktı</button>
+        <button class="modal-tab" data-modal-tab="cikti"><span class="modal-tab-icon"><i data-lucide="printer" style="width:14px;height:14px;vertical-align:-2px;"></i></span>Çıktı</button>
       </div>
 
       <!-- ============ ÖĞRENCİ SEKMESİ ============ -->
@@ -12277,9 +12277,9 @@ i[data-lucide] svg { display: block; }
         </div>
 
         <div class="aylik-islem-row">
-          <button class="btn-mini" onclick="aylikToplu('tumu')" type="button">✓ Tümünü Ödendi İşaretle</button>
+          <button class="btn-mini" onclick="aylikToplu('tumu')" type="button"><i data-lucide="check-check" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümünü Ödendi İşaretle</button>
           <button class="btn-mini" onclick="aylikToplu('gecmis')" type="button">📅 Bugüne Kadar Ödendi</button>
-          <button class="btn-mini" onclick="aylikToplu('sifirla')" type="button">🔄 Tümünü Sıfırla</button>
+          <button class="btn-mini" onclick="aylikToplu('sifirla')" type="button"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümünü Sıfırla</button>
         </div>
 
         <div class="aylik-grid" id="aylikGrid">
@@ -12316,8 +12316,8 @@ i[data-lucide] svg { display: block; }
         </div>
 
         <div class="aylik-islem-row">
-          <button class="btn-mini" onclick="digerToplu('tumu')" type="button">✓ Tümünü Ödendi İşaretle</button>
-          <button class="btn-mini" onclick="digerToplu('sifirla')" type="button">🔄 Tümünü Sıfırla</button>
+          <button class="btn-mini" onclick="digerToplu('tumu')" type="button"><i data-lucide="check-check" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümünü Ödendi İşaretle</button>
+          <button class="btn-mini" onclick="digerToplu('sifirla')" type="button"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümünü Sıfırla</button>
         </div>
 
         <div class="aylik-grid" id="digerGrid">
@@ -12526,7 +12526,7 @@ i[data-lucide] svg { display: block; }
 
         <div class="cikti-intro">
           <div class="cikti-intro-left">
-            <strong>🖨️ Sözleşme Çıktısı</strong>
+            <strong><i data-lucide="printer" style="width:14px;height:14px;vertical-align:-2px;"></i> Sözleşme Çıktısı</strong>
             <small>Tüm alanlar doldurulduktan sonra MEB formatında çıktı alın</small>
           </div>
         </div>
@@ -12577,7 +12577,7 @@ i[data-lucide] svg { display: block; }
 
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeAyarModal()">İptal</button>
-      <button class="btn-save" onclick="saveAyarlar()">💾 Kaydet</button>
+      <button class="btn-save" onclick="saveAyarlar()"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Kaydet</button>
     </div>
   </div>
 </div>
@@ -13370,8 +13370,8 @@ function personelListele() {
       // Kurucu müdür kendini arşivleyemez
       const kendisiMi = email.toLowerCase() === (currentUser?.email || "").toLowerCase();
       aksiyonlar = `
-        <button class="personel-kart-btn duzenle" onclick="personelDuzenle('${emailEsc}')">✏️ Düzenle</button>
-        ${kendisiMi ? "" : `<button class="personel-kart-btn arsivle" onclick="personelArsivle('${emailEsc}')">🗄️ Arşivle</button>`}`;
+        <button class="personel-kart-btn duzenle" onclick="personelDuzenle('${emailEsc}')"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Düzenle</button>
+        ${kendisiMi ? "" : `<button class="personel-kart-btn arsivle" onclick="personelArsivle('${emailEsc}')"><i data-lucide="archive" style="width:14px;height:14px;vertical-align:-2px;"></i> Arşivle</button>`}`;
     }
 
     return `
@@ -15158,7 +15158,7 @@ function showVeliNotAuthorized(email) {
         <a href="mailto:eposta@bircicekkoleji.com" style="color:#2d6a4f; text-decoration:none; font-weight:500;">📧 eposta@bircicekkoleji.com</a>
       </div>
       <div style="margin-top:18px;">
-        <button class="veli-btn-primary" onclick="signOut()">🚪 Çıkış Yap</button>
+        <button class="veli-btn-primary" onclick="signOut()"><i data-lucide="log-out" style="width:14px;height:14px;vertical-align:-2px;"></i> Çıkış Yap</button>
       </div>
       <div style="margin-top:10px; font-size:11px; color:var(--gray-500);">
         Güvenliğiniz için 10 saniye içinde otomatik çıkış yapılacak.
@@ -16971,7 +16971,7 @@ function caAdminEgitimHTML(ogrenciler, tumGel, mufler) {
         <div class="ca-row"><button class="ca-back" onclick="caAdminGo('home')" title="Geri">←</button>
           <div><div class="ca-tile-sub">EĞİTİM TAKİBİ</div><h2 style="font-size:19px;">Sınıflar</h2></div>
         </div>
-        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Gözlem girişi">✎ Gözlem Gir</button>
+        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Gözlem girişi"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Gözlem Gir</button>
       </div>
       <div class="ca-card-green">
         <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">GENEL</div>
@@ -17004,7 +17004,7 @@ function caAdminSinifHTML(sinif, ogrenciler, tumGel, mufler) {
         <div class="ca-row"><button class="ca-back" onclick="caAdminGo('egitim')" title="Geri">←</button>
           <div><div class="ca-tile-sub">SINIF</div><h2 style="font-size:19px;">${escapeHtml(sinif)}</h2></div>
         </div>
-        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Gözlem girişi">✎ Gözlem Gir</button>
+        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Gözlem girişi"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Gözlem Gir</button>
       </div>
       <div class="ca-tile-sub">${ogrenciler.length} öğrenci · genel ilerleme (Montessori+İngilizce+Değerler)</div>
       <div class="ca-stack">${rows || '<div class="ca-card"><div class="ca-tile-sub">Öğrenci yok.</div></div>'}</div>
@@ -18474,7 +18474,7 @@ function dashOdemeDoldur() {
         <div class="dash-odeme-tutar">${aidat.toLocaleString("tr-TR")} <small>TL</small></div>
         <div class="dash-odeme-bilgi">${bilgi}</div>
         <div class="dash-odeme-aksiyon">
-          <button class="dash-odeme-buton primary" onclick="veliSwitchTab('odemeler')">💳 Ödeme Bildir</button>
+          <button class="dash-odeme-buton primary" onclick="veliSwitchTab('odemeler')"><i data-lucide="credit-card" style="width:14px;height:14px;vertical-align:-2px;"></i> Ödeme Bildir</button>
           <button class="dash-odeme-buton ikincil" onclick="veliSwitchTab('sozlesme')">📄 Sözleşme</button>
         </div>
         <div class="dash-odeme-genel-bar">
@@ -18638,7 +18638,7 @@ function veliRenderOdemeler() {
     const p = pmap[durum] || ["var(--c-tint)", "var(--c-muted)", durum];
     const odenmisMi = (durum === "odendi");
     const bildirBtn = odenmisMi ? "" : `
-        <button class="ca-btn ghost" style="padding:7px 12px; font-size:11px; margin-top:10px; width:100%;" onclick="veliOdemeBildirAc('aidat-${ay.ayKod}', '${escapeHtml(ay.tam)} Aidatı', ${beklenen})">✉️ Bu Ödemeyi Bildir</button>`;
+        <button class="ca-btn ghost" style="padding:7px 12px; font-size:11px; margin-top:10px; width:100%;" onclick="veliOdemeBildirAc('aidat-${ay.ayKod}', '${escapeHtml(ay.tam)} Aidatı', ${beklenen})"><i data-lucide="mail" style="width:14px;height:14px;vertical-align:-2px;"></i> Bu Ödemeyi Bildir</button>`;
     const gecikmeUyari = (durum === "gecikmis") ? `
         <div style="background:#FFE3E9; border:1px solid #f9a8d4; border-radius:8px; padding:7px 10px; margin-top:8px; font-size:11px; color:#9d174d;">⚠ Bu ödemede gecikme var. Ödediyseniz lütfen bildirin.</div>` : "";
     return `<div class="ca-card ca-odeme-karti" data-durum="${filtreKat}" style="padding:13px 16px;">
@@ -18677,7 +18677,7 @@ function veliRenderOdemeler() {
 
     // Tutar belirlenmemişse bildir butonu gösterme (henüz ödenecek bir şey yok)
     const bildirBtn = (odendi || belirlenmedi) ? "" : `
-        <button class="ca-btn ghost" style="padding:7px 12px; font-size:11px; margin-top:10px; width:100%;" onclick="veliOdemeBildirAc('diger-${k}', '${escapeHtml(meta[1])}', ${tutar})">✉️ Bu Ödemeyi Bildir</button>`;
+        <button class="ca-btn ghost" style="padding:7px 12px; font-size:11px; margin-top:10px; width:100%;" onclick="veliOdemeBildirAc('diger-${k}', '${escapeHtml(meta[1])}', ${tutar})"><i data-lucide="mail" style="width:14px;height:14px;vertical-align:-2px;"></i> Bu Ödemeyi Bildir</button>`;
 
     const tutarYazi = belirlenmedi
       ? `<span style="color:var(--c-muted);">Tutar daha sonra belirlenecek</span>`
@@ -19311,7 +19311,7 @@ window.ogrenciArsivModalAc = function(ogrenciId) {
         </label>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button onclick="document.getElementById('arsivModalOverlay').remove()" style="padding:10px 16px; background:#f3f4f6; color:#374151; border:none; border-radius:8px; font-size:14px; font-weight:500; cursor:pointer;">İptal</button>
-          <button id="arsivOnayBtn" style="padding:10px 16px; background:#dc2626; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">🗄️ Arşivle</button>
+          <button id="arsivOnayBtn" style="padding:10px 16px; background:#dc2626; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;"><i data-lucide="archive" style="width:14px;height:14px;vertical-align:-2px;"></i> Arşivle</button>
         </div>
       </div>
     </div>`;
@@ -19674,8 +19674,8 @@ function takvimEtkinlikKartHTML(e, gosterAksiyon) {
 
   const aksiyon = gosterAksiyon && !e.sabit ? `
     <div style="display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap;">
-      <button class="takvim-aksiyon-btn" onclick="takvimEtkinlikModalAc('${e.id}')">✏️ Düzenle</button>
-      <button class="takvim-aksiyon-btn" onclick="takvimICSIndir('${e.id}')">📅 Takvime Ekle</button>
+      <button class="takvim-aksiyon-btn" onclick="takvimEtkinlikModalAc('${e.id}')"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Düzenle</button>
+      <button class="takvim-aksiyon-btn" onclick="takvimICSIndir('${e.id}')"><i data-lucide="calendar-plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Takvime Ekle</button>
     </div>` : (e.sabit ? `<span style="font-size:11px; color:#9ca3af; flex-shrink:0;">Sabit (resmi)</span>` : "");
 
   return `
@@ -19867,7 +19867,7 @@ window.takvimEtkinlikDetayAc = function(e) {
         </div>
         ${e.aciklama ? `<div class="takvim-detay-aciklama">${aciklamaSafe}</div>` : ''}
         <div class="takvim-detay-butonlar">
-          ${!e.sabit ? `<button class="takvim-detay-btn ics" onclick="takvimICSIndir('${e.id}')">📅 Takvime Ekle</button>` : ''}
+          ${!e.sabit ? `<button class="takvim-detay-btn ics" onclick="takvimICSIndir('${e.id}')"><i data-lucide="calendar-plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Takvime Ekle</button>` : ''}
           <button class="takvim-detay-btn kapat" onclick="takvimDetayKapat()">Kapat</button>
         </div>
       </div>
@@ -20433,7 +20433,7 @@ function randevuSlotSatirHTML(s, gecmis) {
       </div>
       <div class="randevu-slot-aksiyon">
         ${mesajBtn}
-        ${!gecmis ? `<button onclick="randevuSlotModalAc('${s.id}')">✏️ Düzenle</button>` : ""}
+        ${!gecmis ? `<button onclick="randevuSlotModalAc('${s.id}')"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Düzenle</button>` : ""}
         ${durum === "dolu" ? `<button onclick="randevuSlotIptal('${s.id}')" class="danger" title="Veli rezervasyonunu iptal et">🔓 Rez. İptal</button>` : ""}
         <button onclick="randevuSlotSilDirekt('${s.id}')" class="danger">🗑</button>
       </div>
@@ -22932,9 +22932,9 @@ async function renderDuyurular() {
         </div>
         <div style="font-size:13px; color:var(--gray-700); line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(d.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1" target="_blank" style="color:#2d6a4f;">$2</a>')}</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
-          <button onclick="duzenleDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">✏️ Düzenle</button>
+          <button onclick="duzenleDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Düzenle</button>
           ${!d.arsiv ? `<button onclick="arsivleDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📦 Arşivle</button>` : `<button onclick="arsivAcDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📤 Arşivden Çıkar</button>`}
-          <button onclick="silDuyuruHizli('${d.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;">🗑 Sil</button>
+          <button onclick="silDuyuruHizli('${d.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
         </div>
       </div>
     `;
@@ -23497,8 +23497,8 @@ async function renderEtkinlikler() {
           </div>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
-          <button onclick="duzenleEtkinlik('${e.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">✏️ Düzenle</button>
-          <button onclick="silEtkinlikHizli('${e.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;">🗑 Sil</button>
+          <button onclick="duzenleEtkinlik('${e.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Düzenle</button>
+          <button onclick="silEtkinlikHizli('${e.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
         </div>
       </div>
     `;
@@ -25695,7 +25695,7 @@ function renderOgretmenYorumlari() {
         <div class="yorum-karti-metin">${escapeHtmlGelisim(y.metin)}</div>
         <div class="yorum-karti-aksiyonlar">
           <button type="button" class="yorum-karti-btn" onclick="yorumPaylasimDegistir(${y._orjIndex})">${y.paylas ? '🔒 Gizle' : '👨‍👩‍👧 Veliye Aç'}</button>
-          <button type="button" class="yorum-karti-btn sil" onclick="yorumSil(${y._orjIndex})">🗑 Sil</button>
+          <button type="button" class="yorum-karti-btn sil" onclick="yorumSil(${y._orjIndex})"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
         </div>
       </div>
     `;
@@ -26121,7 +26121,7 @@ function veliRenderRaporDetay(disiplin) {
     <div class="rapor-aksiyon-bar no-print">
       <button onclick="veliRaporDashboarDon()" class="rapor-geri-btn" style="margin-bottom:0;">← Tüm Raporlara Dön</button>
       <div class="rapor-aksiyon-saglar">
-        <button class="rapor-aksiyon-btn yazdir" onclick="veliRaporYazdir()">🖨️ Yazdır / PDF</button>
+        <button class="rapor-aksiyon-btn yazdir" onclick="veliRaporYazdir()"><i data-lucide="printer" style="width:14px;height:14px;vertical-align:-2px;"></i> Yazdır / PDF</button>
       </div>
     </div>
 
@@ -26311,7 +26311,7 @@ function veliRenderRaporDetay(disiplin) {
     <!-- ALT AKSİYON BAR -->
     <div class="rapor-aksiyon-bar no-print" style="margin-top:18px; justify-content:center;">
       <div class="rapor-aksiyon-saglar" style="margin-left:0;">
-        <button class="rapor-aksiyon-btn yazdir" onclick="veliRaporYazdir()">🖨️ Yazdır / PDF</button>
+        <button class="rapor-aksiyon-btn yazdir" onclick="veliRaporYazdir()"><i data-lucide="printer" style="width:14px;height:14px;vertical-align:-2px;"></i> Yazdır / PDF</button>
       </div>
     </div>
   `;
@@ -26732,7 +26732,7 @@ window.adminMontessoriYenile = async function() {
       <div style="background:white; padding:16px; border:1px solid #e5e7eb; border-radius:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
           <div style="font-weight:600; font-size:14px; color:#1f2937;">👥 Öğrenci Bazlı Özet</div>
-          <button class="btn-mini" onclick="adminEgitimExcelIndir()" style="font-size:11px; background:#16a34a; color:white;">📥 Excel İndir</button>
+          <button class="btn-mini" onclick="adminEgitimExcelIndir()" style="font-size:11px; background:#16a34a; color:white;"><i data-lucide="download" style="width:14px;height:14px;vertical-align:-2px;"></i> Excel İndir</button>
         </div>
         <div style="overflow-x:auto;">
           <table style="width:100%; border-collapse:collapse; font-size:12px;">
@@ -28285,7 +28285,7 @@ function renderFinansalOzet() {
           <h2 style="font-family:var(--font-display); font-size:30px; font-weight:700; margin:8px 0 4px;">${AKTIF_DONEM} Dönemi</h2>
           <div style="font-size:13px; opacity:0.9;">${donemLabel} için finansal durum</div>
         </div>
-        <button class="btn-mini" style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.3);" onclick="loadFinansalData()">🔄 Yenile</button>
+        <button class="btn-mini" style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.3);" onclick="loadFinansalData()"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Yenile</button>
       </div>
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
         <div style="background:#facc15; color:#1f2937; border-radius:16px; padding:18px 20px; box-shadow:0 4px 12px rgba(250,204,21,0.3);">
@@ -29814,11 +29814,11 @@ async function renderKartTalepleri() {
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
           ${t.durum === "bekliyor" ? `
             <button onclick="talepDurumGuncelle('${t.id}', 'arandi')" style="padding:7px 14px; background:#3b82f6; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📞 Arandı</button>
-            <button onclick="talepDurumGuncelle('${t.id}', 'tamamlandi')" style="padding:7px 14px; background:#16a34a; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">✓ Tamamlandı</button>
-            <button onclick="talepDurumGuncelle('${t.id}', 'iptal')" style="padding:7px 14px; background:white; border:1px solid #d1d5db; color:#6b7280; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">✗ İptal</button>
+            <button onclick="talepDurumGuncelle('${t.id}', 'tamamlandi')" style="padding:7px 14px; background:#16a34a; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px;"></i> Tamamlandı</button>
+            <button onclick="talepDurumGuncelle('${t.id}', 'iptal')" style="padding:7px 14px; background:white; border:1px solid #d1d5db; color:#6b7280; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="x" style="width:14px;height:14px;vertical-align:-2px;"></i> İptal</button>
           ` : t.durum === "arandi" ? `
-            <button onclick="talepDurumGuncelle('${t.id}', 'tamamlandi')" style="padding:7px 14px; background:#16a34a; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">✓ Tamamlandı</button>
-            <button onclick="talepDurumGuncelle('${t.id}', 'iptal')" style="padding:7px 14px; background:white; border:1px solid #d1d5db; color:#6b7280; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">✗ İptal</button>
+            <button onclick="talepDurumGuncelle('${t.id}', 'tamamlandi')" style="padding:7px 14px; background:#16a34a; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px;"></i> Tamamlandı</button>
+            <button onclick="talepDurumGuncelle('${t.id}', 'iptal')" style="padding:7px 14px; background:white; border:1px solid #d1d5db; color:#6b7280; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="x" style="width:14px;height:14px;vertical-align:-2px;"></i> İptal</button>
           ` : ''}
           <button onclick="talepNotEkle('${t.id}')" style="padding:7px 14px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📝 Not Ekle</button>
           <a href="mailto:${escapeHtml(t.veliEposta)}?subject=Kredi%20Kart%C4%B1%20Talebiniz%20Hk." style="padding:7px 14px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; text-decoration:none;">✉ Mail</a>
@@ -31826,6 +31826,9 @@ document.querySelectorAll(".tab").forEach(tab => {
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
     const panel = document.getElementById(`tab-${tab.dataset.tab}`);
     if (panel) panel.classList.add("active");
+
+    // Her sekme geçişinde Lucide ikonlarını yenile (dinamik render sonrası)
+    if (window.lucideYenile) { setTimeout(window.lucideYenile, 60); setTimeout(window.lucideYenile, 300); }
 
     // Yeni Tasarım ana sayfasına geçildiyse rol bazlı render et
     if (tab.dataset.tab === "anasayfa") {
@@ -34196,7 +34199,7 @@ td.label { width: 35%; font-weight: bold; background: #f8f8f8; }
 .yazdir-btn { position: fixed; top: 20px; right: 20px; padding: 12px 24px; background: #2d6a4f; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; z-index: 999; }
 @media print { .yazdir-btn { display: none; } .sayfa-break { border-top: none; padding-top: 0; } }
 </style></head><body>
-<button class="yazdir-btn" onclick="window.print()">🖨️ Yazdır</button>`;
+<button class="yazdir-btn" onclick="window.print()"><i data-lucide="printer" style="width:14px;height:14px;vertical-align:-2px;"></i> Yazdır</button>`;
 
     const headerHTML = `<div class="header-logolu">
       <img src="${LOGO_OKUL_BASE64}" alt="Okul Logosu"/>
