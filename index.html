@@ -9072,7 +9072,7 @@ i[data-lucide] svg { display: block; }
       </div>
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
-        <button class="side-item" data-modul="isleyis" onclick="modulSec('isleyis')"><span class="side-ikon"><i data-lucide="flower-2"></i></span><span class="side-ad">Okul İşleyişi</span></button>
+        <button class="side-item" data-modul="devamsizlik" onclick="modulSec('devamsizlik')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">Devamsızlık</span></button>
         <button class="side-item" data-modul="galeri" onclick="modulSec('galeri')"><span class="side-ikon"><i data-lucide="image"></i></span><span class="side-ad">Galeri</span></button>
         <button class="side-item" data-modul="duyurular" onclick="modulSec('duyurular')"><span class="side-ikon"><i data-lucide="megaphone"></i></span><span class="side-ad">Duyurular</span></button>
         <button class="side-item" data-modul="yemek" onclick="modulSec('yemek')"><span class="side-ikon"><i data-lucide="utensils"></i></span><span class="side-ad">Yemek Menüsü</span></button>
@@ -9097,6 +9097,7 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="mesajlasma" id="tab-mesajlasma-btn" style="display:none;"><i data-lucide="message-circle"></i> Mesajlaşma</button>
       <button class="tab" data-tab="duyurular" id="tab-duyurular-btn" style="display:none;"><i data-lucide="megaphone"></i> Duyurular</button>
       <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;"><i data-lucide="utensils"></i> Yemek Menüsü</button>
+      <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
     </div>
 
     <!-- YENİ TASARIM · ANA SAYFA TAB (rol bazlı: yönetim/öğretmen) -->
@@ -9538,7 +9539,7 @@ i[data-lucide] svg { display: block; }
         <button class="icerik-altsekme-btn active" data-icerik-alt="devamsizlik" data-renk="kirmizi" onclick="icerikSwitchAlt('devamsizlik')">
           <span>📋</span> Devamsızlık
         </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="galeri" data-renk="mor" onclick="icerikSwitchAlt('galeri')">
+        <button class="icerik-altsekme-btn active" data-icerik-alt="galeri" data-renk="mor" onclick="icerikSwitchAlt('galeri')">
           <span><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span> Galeri
         </button>
         </div>
@@ -9555,32 +9556,9 @@ i[data-lucide] svg { display: block; }
         <!-- TAKVİM (Faz A) -->
 
         <!-- DEVAMSIZLIK -->
-        <div id="icerikAlt-devamsizlik" class="icerik-alt-panel" style="display:none;">
-          <!-- Üst bar -->
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; background:white; border:1px solid var(--gray-300); border-radius:12px; padding:14px 18px;">
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-              <button class="btn-mini" onclick="devamsizlikGunDegistir(-1)">← Dün</button>
-              <input type="date" id="devamsizlikTarih" onchange="devamsizlikTarihDegisti()" style="padding:8px 10px; border:1px solid #fecaca; border-radius:8px; font-size:13px; color:#991b1b; font-weight:600;">
-              <button class="btn-mini" onclick="devamsizlikGunDegistir(1)">Yarın →</button>
-              <button class="btn-mini" onclick="devamsizlikBugun()" title="Bugüne git"><i data-lucide="calendar" style="width:14px;height:14px;vertical-align:-2px;"></i> Bugün</button>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-mini" onclick="devamsizlikHepsiGeldi()" style="background:#dcfce7; border-color:#bbf7d0; color:#166534;">✅ Hepsi Geldi</button>
-              <button class="btn-mini" onclick="acAylikOzet()" style="background:#eff6ff; border-color:#bfdbfe; color:#1e40af;"><i data-lucide="bar-chart-3" style="width:13px;height:13px;vertical-align:-2px;"></i> Aylık Özet</button>
-            </div>
-          </div>
-
-          <!-- Özet şerit -->
-          <div id="devamsizlikOzet" style="margin-bottom:14px;"><!-- JS --></div>
-
-          <!-- Öğrenci listesi -->
-          <div id="devamsizlikListesi">
-            <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
-          </div>
-        </div>
 
         <!-- GALERİ -->
-        <div id="icerikAlt-galeri" class="icerik-alt-panel" style="display:none;">
+        <div id="icerikAlt-galeri" class="icerik-alt-panel">
           <!-- Üst bar: başlık + filtreler -->
           <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -10741,6 +10719,43 @@ i[data-lucide] svg { display: block; }
           </div>
         </div>
 </div>
+    </div>
+
+    <!-- ============ DEVAMSIZLIK MODÜLÜ (bağımsız, ZEKY yeşil tema) ============ -->
+    <div class="tab-panel" id="tab-devamsizlik">
+      <!-- ZEKY yeşil hero -->
+      <div style="background:linear-gradient(135deg,#2D5E3E 0%,#4A7C59 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-6%; width:260px; height:260px; background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85; display:flex; align-items:center; gap:7px;"><i data-lucide="clipboard-check" style="width:15px;height:15px;"></i> GÜNLÜK YOKLAMA</div>
+          <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Devamsızlık Takibi</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:640px; margin:0;">Günlük öğrenci yoklaması alın, gelen/gelmeyen kaydı tutun, aylık devamsızlık özetini görün.</p>
+        </div>
+      </div>
+              <div>
+          <!-- Üst bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; background:white; border:1px solid var(--gray-300); border-radius:12px; padding:14px 18px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button class="btn-mini" onclick="devamsizlikGunDegistir(-1)">← Dün</button>
+              <input type="date" id="devamsizlikTarih" onchange="devamsizlikTarihDegisti()" style="padding:8px 10px; border:1px solid #C9E4D3; border-radius:8px; font-size:13px; color:#2D5E3E; font-weight:600;">
+              <button class="btn-mini" onclick="devamsizlikGunDegistir(1)">Yarın →</button>
+              <button class="btn-mini" onclick="devamsizlikBugun()" title="Bugüne git"><i data-lucide="calendar" style="width:14px;height:14px;vertical-align:-2px;"></i> Bugün</button>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-mini" onclick="devamsizlikHepsiGeldi()" style="background:#E4F0E6; border-color:#7CB97C; color:#2D5E3E;"><i data-lucide="check-check" style="width:14px;height:14px;vertical-align:-2px;"></i> Hepsi Geldi</button>
+              <button class="btn-mini" onclick="acAylikOzet()" style="background:#eff6ff; border-color:#bfdbfe; color:#1e40af;"><i data-lucide="bar-chart-3" style="width:13px;height:13px;vertical-align:-2px;"></i> Aylık Özet</button>
+            </div>
+          </div>
+
+          <!-- Özet şerit -->
+          <div id="devamsizlikOzet" style="margin-bottom:14px;"><!-- JS --></div>
+
+          <!-- Öğrenci listesi -->
+          <div id="devamsizlikListesi">
+            <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+          </div>
+        </div>
+
     </div>
 
     <div class="tab-panel" id="tab-personel">
@@ -22807,7 +22822,7 @@ function renderFinansalAltSekme() {
 }
 
 // ============ OKUL-AİLE İÇERİK YÖNETİMİ ============
-let aktifIcerikAlt = "devamsizlik";
+let aktifIcerikAlt = "galeri";
 
 window.icerikSwitchAlt = function(alt) {
   aktifIcerikAlt = alt;
@@ -22832,9 +22847,8 @@ window.icerikSwitchAlt = function(alt) {
 };
 
 function renderIcerikAltSekme() {
-  if (aktifIcerikAlt === "devamsizlik") renderDevamsizlik();
-  else if (aktifIcerikAlt === "galeri") renderGaleri();
-  // Not: duyurular/yemek/etkinlik/takvim/mesajlaşma artık bağımsız sidebar modülleri
+  if (aktifIcerikAlt === "galeri") renderGaleri();
+  // Not: devamsızlık/duyurular/yemek/etkinlik/takvim/mesajlaşma artık bağımsız sidebar modülleri
 
   // Mesajlaşma dışında bir sekmeye geçildiyse dinleyicileri durdur (Firestore maliyeti)
   if (aktifIcerikAlt !== "mesajlasma" && typeof mesajlasmaDurdur === "function") {
@@ -31734,7 +31748,7 @@ const MODUL_HARITASI = {
   personel:    { tablar: ["personel"],   varsayilan: "personel", ad: "Personel" },
   egitim:      { tablar: ["egitim"],     varsayilan: "egitim", ad: "Eğitim" },
   muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
-  isleyis:     { tablar: ["icerik"],     varsayilan: "icerik", ad: "Okul İşleyişi" },
+  devamsizlik: { tablar: ["devamsizlik"], varsayilan: "devamsizlik", ad: "Devamsızlık" },
   galeri:      { tablar: ["icerik"],     varsayilan: "icerik", ad: "Galeri", icerikAlt: "galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
@@ -31867,7 +31881,7 @@ document.querySelectorAll(".tab").forEach(tab => {
     if (tab.dataset.tab === "icerik") {
       setTimeout(() => {
         if (typeof icerikSwitchAlt === "function") {
-          icerikSwitchAlt(aktifIcerikAlt || "devamsizlik");
+          icerikSwitchAlt(aktifIcerikAlt || "galeri");
         }
       }, 50);
     }
@@ -31918,6 +31932,18 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Yemek Menüsü bağımsız sekmesi açıldı
     if (tab.dataset.tab === "yemek") {
       setTimeout(() => { if (typeof renderYemekMenusu === "function") renderYemekMenusu(); }, 50);
+    }
+
+    // Devamsızlık bağımsız sekmesi açıldı
+    if (tab.dataset.tab === "devamsizlik") {
+      setTimeout(() => {
+        if (typeof devamsizlikBugun === "function" && !document.getElementById("devamsizlikTarih")?.value) {
+          devamsizlikBugun();
+        } else if (typeof renderDevamsizlik === "function") {
+          renderDevamsizlik();
+        }
+        if (window.lucideYenile) window.lucideYenile();
+      }, 50);
     }
   });
 });

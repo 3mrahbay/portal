@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesajlaşma Teşhis — BÇKA</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 780px; margin: 20px auto; padding: 0 16px; background: #F4F5F9; color: #1F2544; }
+  h1 { font-size: 20px; }
+  .kart { background: #fff; border: 1px solid #E9EBF4; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(30,41,90,0.05); }
+  button { background: #2B3674; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: 0.5; }
+  pre { background: #1F2544; color: #d1fae5; padding: 14px; border-radius: 10px; overflow-x: auto; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .ok { color: #16a34a; font-weight: 700; }
+  .hata { color: #dc2626; font-weight: 700; }
+  .uyari { color: #b45309; font-weight: 700; }
+  .satir { padding: 8px 0; border-bottom: 1px solid #F1F2F7; font-size: 14px; }
+  code { background: #F1F2F7; padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>🔍 Mesajlaşma Sistemi Teşhis Aracı</h1>
+<div class="kart">
+  <p>Bu araç, mesajlaşmanın neden çalışmadığını (veya çalıştığını) kesin olarak gösterir: Firestore Rules izinleri, thread oluşturma, katılımcı eşleşmesi.</p>
+  <button id="baslatBtn" onclick="teshisBaslat()">Google ile Giriş Yap & Teşhis Et</button>
+</div>
+<div class="kart" id="sonucKart" style="display:none;">
+  <div id="sonuc"></div>
+</div>
+<div class="kart" id="logKart" style="display:none;">
+  <strong>Ham Log:</strong>
+  <pre id="log"></pre>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
+  authDomain: "bcka-site.firebaseapp.com",
+  projectId: "bcka-site",
+  storageBucket: "bcka-site.firebasestorage.app",
+  messagingSenderId: "736581475783",
+  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const logEl = () => document.getElementById("log");
+function log(msg) { logEl().textContent += msg + "\n"; }
+function sonucEkle(html) { document.getElementById("sonuc").innerHTML += html; }
+
+window.teshisBaslat = async function() {
+  document.getElementById("baslatBtn").disabled = true;
+  document.getElementById("sonucKart").style.display = "block";
+  document.getElementById("logKart").style.display = "block";
+  document.getElementById("sonuc").innerHTML = "<p>Çalışıyor...</p>";
+  logEl().textContent = "";
+
+  let user;
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    const res = await signInWithPopup(auth, provider);
+    user = res.user;
+    log("✓ Giriş: " + user.email);
+  } catch (e) {
+    document.getElementById("sonuc").innerHTML = `<p class="hata">Giriş başarısız: ${e.message}</p>`;
+    document.getElementById("baslatBtn").disabled = false;
+    return;
+  }
+
+  const benim = user.email.toLowerCase();
+  document.getElementById("sonuc").innerHTML = `<h3>Kullanıcı: ${benim}</h3>`;
+
+  // 1) Bu kullanıcı personel mi, veli mi?
+  let rol = "bilinmiyor";
+  try {
+    const pSnap = await getDoc(doc(db, "personeller", benim));
+    if (pSnap.exists()) { rol = pSnap.data().rol || "personel"; log("✓ personeller/" + benim + " bulundu, rol: " + rol); }
+    else { log("• personeller/" + benim + " yok → muhtemelen veli"); }
+  } catch (e) { log("✗ personeller okuma hatası: " + e.code); }
+
+  try {
+    const vSnap = await getDoc(doc(db, "veliler", benim));
+    if (vSnap.exists()) { rol = rol === "bilinmiyor" ? "veli" : rol; log("✓ veliler/" + benim + " bulundu"); }
+    else { log("• veliler/" + benim + " yok"); }
+  } catch (e) { log("✗ veliler okuma hatası: " + e.code); }
+  sonucEkle(`<div class="satir">Rol tespiti: <strong>${rol}</strong></div>`);
+
+  // 2) mesajlar koleksiyonu OKUMA testi
+  let okumaOK = false;
+  try {
+    const q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benim));
+    const snap = await getDocs(q);
+    okumaOK = true;
+    log(`✓ mesajlar okuma OK — ${snap.size} thread bulundu (katılımcı olduğun)`);
+    sonucEkle(`<div class="satir"><span class="ok">✓ Mesaj OKUMA izni VAR</span> — ${snap.size} sohbetin var</div>`);
+    snap.forEach(d => {
+      const t = d.data();
+      log("   thread: " + d.id + " | katılımcılar: " + JSON.stringify(t.katilimcilar));
+    });
+  } catch (e) {
+    log("✗ mesajlar okuma HATASI: " + e.code + " — " + e.message);
+    sonucEkle(`<div class="satir"><span class="hata">✗ Mesaj OKUMA izni YOK</span> — Firestore Rules <code>mesajlar</code> okumaya izin vermiyor (${e.code})</div>`);
+  }
+
+  // 3) mesajlar YAZMA testi (deneme thread'i oluştur, sonra sil)
+  const testThreadId = "TESHIS_" + benim.replace(/[^a-z0-9]/g, "_") + "_" + Date.now();
+  try {
+    await setDoc(doc(db, "mesajlar", testThreadId), {
+      katilimcilar: [benim, "teshis@test.com"],
+      katilimciBilgi: { [benim]: { ad: "Teşhis", rol, tip: rol === "veli" ? "veli" : "personel" } },
+      ogrenciId: "", ogrenciAd: "", ogrenciSinif: "",
+      sonMesaj: "teşhis", sonMesajTarihi: serverTimestamp(),
+      okunmamis: { [benim]: 0 }, olusturuldu: serverTimestamp()
+    });
+    log("✓ mesajlar YAZMA OK — test thread oluşturuldu: " + testThreadId);
+    sonucEkle(`<div class="satir"><span class="ok">✓ Mesaj YAZMA izni VAR</span> — yeni sohbet başlatabilirsin</div>`);
+
+    // messages alt-koleksiyonuna yazma
+    try {
+      await setDoc(doc(db, "mesajlar", testThreadId, "messages", "test1"), {
+        gonderen: benim, metin: "teşhis mesajı", tarih: serverTimestamp()
+      });
+      log("✓ messages alt-koleksiyon YAZMA OK");
+      sonucEkle(`<div class="satir"><span class="ok">✓ Mesaj GÖNDERME izni VAR</span></div>`);
+    } catch (e) {
+      log("✗ messages yazma HATASI: " + e.code);
+      sonucEkle(`<div class="satir"><span class="hata">✗ Mesaj GÖNDERME izni YOK</span> — <code>mesajlar/{id}/messages</code> yazmaya izin yok (${e.code})</div>`);
+    }
+
+    // Temizlik
+    try { await deleteDoc(doc(db, "mesajlar", testThreadId, "messages", "test1")); } catch(e){}
+    try { await deleteDoc(doc(db, "mesajlar", testThreadId)); log("✓ Test thread temizlendi"); } catch(e){ log("• Test thread silinemedi (Rules delete yok) — elle silebilirsin: " + testThreadId); }
+
+  } catch (e) {
+    log("✗ mesajlar YAZMA HATASI: " + e.code + " — " + e.message);
+    sonucEkle(`<div class="satir"><span class="hata">✗ Mesaj YAZMA izni YOK</span> — Firestore Rules <code>mesajlar</code> yazmaya izin vermiyor (${e.code}). <b>Sorun büyük ihtimalle bu!</b></div>`);
+  }
+
+  // 4) Özet
+  sonucEkle(`<hr><h3>Sonuç</h3>`);
+  if (okumaOK) {
+    sonucEkle(`<p class="ok">Mesajlaşma altyapısı çalışıyor. Sorun kodda değil — muhtemelen henüz hiç sohbet başlatılmamış veya arayüzde "+ Yeni" butonuyla kişi seçilmemiş.</p>`);
+  } else {
+    sonucEkle(`<p class="hata">Firestore Rules mesajlaşmayı engelliyor. Bu araçtaki hata kodlarını Claude'a ilet — Rules düzeltmesi gerekiyor.</p>`);
+  }
+  sonucEkle(`<p style="font-size:13px; color:#6b7280;">Bu logu Claude'a kopyala-yapıştır, ona göre çözüm üretelim.</p>`);
+
+  document.getElementById("baslatBtn").disabled = false;
+};
+</script>
+</body>
+</html>
