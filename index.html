@@ -9462,12 +9462,12 @@ i[data-lucide] svg { display: block; }
     <div class="tab-panel" id="tab-egitim">
 
       <!-- HERO -->
-      <div style="background:linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; position:relative; overflow:hidden;">
+      <div style="background:linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; position:relative; overflow:hidden;">
         <div style="position:absolute; top:-30%; right:-10%; width:300px; height:300px; background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); pointer-events:none;"></div>
         <div style="position:relative; z-index:1;">
           <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;"><i data-lucide="book-open" style="width:14px;height:14px;vertical-align:-2px;"></i> EĞİTİM TAKİP SİSTEMİ</div>
           <h2 style="font-family:var(--font-display); font-weight:600; font-size:30px; margin:8px 0 6px 0;">Sınıf Bazlı Gelişim Takibi</h2>
-          <p style="opacity:0.92; font-size:14px; max-width:780px; margin:0;">3 disiplinde tüm öğrencileri tek bakışta görüp hızlıca işaretleme yapın. Her hücreye tıklayarak <strong>Sunuldu (S) → Tekrar (T) → Uzmanlaştı (U) → Boş</strong> arasında geçiş yapabilirsiniz.</p>
+          <p style="opacity:0.92; font-size:14px; max-width:780px; margin:0;">BCDM programlarında tüm öğrencileri tek bakışta görüp hızlıca işaretleme yapın. Her hücreye tıklayarak <strong>Sunuldu (S) → Tekrar (T) → Uzmanlaştı (U) → Boş</strong> arasında geçiş yapabilirsiniz.</p>
         </div>
       </div>
 
@@ -9534,6 +9534,44 @@ i[data-lucide] svg { display: block; }
             <span><span class="stu-rozet stu-T">T</span> Tekrar — Çocuk üzerinde çalışıyor</span>
             <span><span class="stu-rozet stu-U">U</span> Uzmanlaştı — İçselleştirdi</span>
             <span style="color:#6b7280; font-size:11px;"><i data-lucide="lightbulb" style="width:13px;height:13px;vertical-align:-2px;"></i> Hücreye tıklayarak durumu değiştirin</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- YENİ BRANŞ EKLEME MODALI -->
+      <div class="modal-overlay" id="yeniBransModal" onclick="if(event.target.id==='yeniBransModal') yeniBransModalKapat()">
+        <div class="modal-box" style="max-width:480px;">
+          <div class="modal-header">
+            <h2><i data-lucide="plus-circle" style="width:18px;height:18px;vertical-align:-3px;"></i> Yeni Branş Ekle</h2>
+            <button class="close-btn" onclick="yeniBransModalKapat()">×</button>
+          </div>
+          <div style="padding:20px;">
+            <p style="font-size:13px; color:#6b7280; margin:0 0 18px;">Robotik, müzik, drama, satranç gibi yeni bir branş programı ekleyin. Eklendikten sonra müfredatını düzenleyip öğrenci değerlendirmesi yapabilirsiniz.</p>
+
+            <label style="display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px;">Branş Adı *</label>
+            <input type="text" id="yeniBransAd" placeholder="Örn: Robotik Atölyesi" style="width:100%; padding:11px 14px; border:1px solid #d1d5db; border-radius:10px; font-size:14px; margin-bottom:16px; box-sizing:border-box;">
+
+            <label style="display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px;">Kısa Açıklama</label>
+            <input type="text" id="yeniBransAciklama" placeholder="Örn: Temel kodlama ve mekanik düşünme becerileri" style="width:100%; padding:11px 14px; border:1px solid #d1d5db; border-radius:10px; font-size:14px; margin-bottom:16px; box-sizing:border-box;">
+
+            <div style="display:flex; gap:14px; margin-bottom:16px;">
+              <div style="flex:1;">
+                <label style="display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px;">İkon (emoji)</label>
+                <input type="text" id="yeniBransIkon" placeholder="🤖" maxlength="4" style="width:100%; padding:11px 14px; border:1px solid #d1d5db; border-radius:10px; font-size:18px; text-align:center; box-sizing:border-box;">
+              </div>
+              <div style="flex:1;">
+                <label style="display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px;">Renk</label>
+                <input type="color" id="yeniBransRenk" value="#7c3aed" style="width:100%; height:44px; padding:4px; border:1px solid #d1d5db; border-radius:10px; box-sizing:border-box; cursor:pointer;">
+              </div>
+            </div>
+
+            <label style="display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px;">Takvim / Dönem</label>
+            <input type="text" id="yeniBransTakvim" placeholder="Örn: Eylül–Haziran haftalık" style="width:100%; padding:11px 14px; border:1px solid #d1d5db; border-radius:10px; font-size:14px; margin-bottom:20px; box-sizing:border-box;">
+
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+              <button class="btn-mini" onclick="yeniBransModalKapat()">İptal</button>
+              <button class="btn-primary" onclick="yeniBransKaydet()"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Branşı Ekle</button>
+            </div>
           </div>
         </div>
       </div>
@@ -24157,7 +24195,7 @@ async function renderAylikOzet() {
 // Kayıt anahtarı: "alanId__grupAd__dersAd"  (örn: "practical__Öz Bakım__El Yıkama")
 
 // 3 disiplinin meta bilgisi
-const DISIPLINLER = [
+let DISIPLINLER = [
   { id:"montessori", ad:"Montessori",        ikon:"🌱", renk:"#2d6a4f", kod:"BMCM®", tip:"ana", takvim:"Bireysel sürekli akış", aciklama:"Hazırlanmış çevre, bireysel sunum, tekrar ve ustalaşma (BMCM®)" },
   { id:"orman",      ad:"Orman Okulu",        ikon:"🍂", renk:"#b45309", kod:"BFLM®", tip:"ana", takvim:"Ekim–Mayıs sabit haftalık", aciklama:"Doğa okuryazarlığı, güvenli risk-fayda, duyusal keşif (BFLM®)" },
   { id:"degerler",   ad:"Değerler Eğitimi",   ikon:"💎", renk:"#7c3aed", kod:"BVLM®", tip:"ana", takvim:"Eylül–Haziran sabit haftalık", aciklama:"Milli ve manevi değerler; oyun, hikâye, rutin ve aile katılımı (BVLM®)" },
@@ -24421,34 +24459,36 @@ async function mufredatYukle(disiplin) {
     ingilizce:  VARSAYILAN_MUFREDAT_INGILIZCE,
     degerler:   VARSAYILAN_MUFREDAT_DEGERLER
   };
+  // Varsayılanı olmayan program/branş (orman, ahsap, özel branşlar) → boş müfredat ile başla
+  const varsayilan = varsayilanlar[disiplin] || [];
   try {
     const snap = await getDoc(doc(db, "mufredatlar", disiplin));
     if (snap.exists() && snap.data().alanlar) {
       aktifMufredatlar[disiplin] = snap.data().alanlar;
     } else {
-      aktifMufredatlar[disiplin] = JSON.parse(JSON.stringify(varsayilanlar[disiplin]));
-      await setDoc(doc(db, "mufredatlar", disiplin), {
-        alanlar: aktifMufredatlar[disiplin],
-        olusturulma: serverTimestamp(),
-        sonGuncelleme: serverTimestamp()
-      });
-      console.log(`Varsayılan ${disiplin} müfredatı oluşturuldu.`);
+      aktifMufredatlar[disiplin] = JSON.parse(JSON.stringify(varsayilan));
+      // Sadece varsayılanı olan disiplinleri otomatik oluştur (boşları kullanıcı doldurur)
+      if (varsayilan.length > 0) {
+        await setDoc(doc(db, "mufredatlar", disiplin), {
+          alanlar: aktifMufredatlar[disiplin],
+          olusturulma: serverTimestamp(),
+          sonGuncelleme: serverTimestamp()
+        });
+      }
     }
     return aktifMufredatlar[disiplin];
   } catch(e) {
     console.error(`${disiplin} müfredatı yüklenemedi:`, e);
-    aktifMufredatlar[disiplin] = JSON.parse(JSON.stringify(varsayilanlar[disiplin]));
+    aktifMufredatlar[disiplin] = JSON.parse(JSON.stringify(varsayilan));
     return aktifMufredatlar[disiplin];
   }
 }
 
 // Tüm müfredatları yükle (yan yana)
 async function tumMufredatlariYukle() {
-  await Promise.all([
-    mufredatYukle("montessori"),
-    mufredatYukle("ingilizce"),
-    mufredatYukle("degerler")
-  ]);
+  // Tüm programlar + branşlar (DISIPLINLER'den dinamik)
+  const idler = (typeof DISIPLINLER !== "undefined" ? DISIPLINLER.map(d => d.id) : ["montessori","ingilizce","degerler"]);
+  await Promise.all(idler.map(id => mufredatYukle(id)));
 }
 
 // Müfredatı Firestore'a kaydet (admin düzenlediğinde)
@@ -24657,7 +24697,86 @@ let egitimGrupAcik = {};         // { 'GrupAd1': true, 'GrupAd2': false } — a�
 let egitimTumuKapaliMi = false;  // "Tümünü Kapat/Aç" düğmesinin durumu
 
 // Sekme açıldığında çağrılır
-window.egitimSekmesiAcildi = function() {
+// ============ YENİ BRANŞ EKLEME ============
+window.yeniBransModalAc = function() {
+  ["yeniBransAd","yeniBransAciklama","yeniBransIkon","yeniBransTakvim"].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = "";
+  });
+  const renkEl = document.getElementById("yeniBransRenk"); if (renkEl) renkEl.value = "#7c3aed";
+  document.getElementById("yeniBransModal").classList.add("active");
+  if (window.lucideYenile) window.lucideYenile();
+};
+
+window.yeniBransModalKapat = function() {
+  document.getElementById("yeniBransModal").classList.remove("active");
+};
+
+// Branş ID üret (Türkçe karakterleri sadeleştir)
+function bransIdUret(ad) {
+  const tr = { 'ç':'c','ğ':'g','ı':'i','ö':'o','ş':'s','ü':'u','Ç':'c','Ğ':'g','İ':'i','Ö':'o','Ş':'s','Ü':'u' };
+  return "brans_" + ad.toLowerCase().replace(/[çğıöşüÇĞİÖŞÜ]/g, c => tr[c] || c)
+    .replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").substring(0, 30);
+}
+
+window.yeniBransKaydet = async function() {
+  const ad = document.getElementById("yeniBransAd").value.trim();
+  if (!ad) { showToast("Branş adı gerekli", "error"); return; }
+
+  const aciklama = document.getElementById("yeniBransAciklama").value.trim() || (ad + " programı");
+  const ikon = document.getElementById("yeniBransIkon").value.trim() || "🎓";
+  const renk = document.getElementById("yeniBransRenk").value || "#7c3aed";
+  const takvim = document.getElementById("yeniBransTakvim").value.trim() || "Dönemsel";
+  const id = bransIdUret(ad);
+
+  // Aynı ID var mı?
+  if (DISIPLINLER.some(d => d.id === id)) {
+    showToast("Bu isimde bir program/branş zaten var", "error");
+    return;
+  }
+
+  const yeniBrans = { id, ad, ikon, renk, kod:"", tip:"brans", takvim, aciklama, ozel:true };
+
+  try {
+    // Firestore'a kaydet (ayarlar/ozelBranslar içinde dizi)
+    const ref = doc(db, "ayarlar", "ozelBranslar");
+    const snap = await getDoc(ref);
+    const mevcut = snap.exists() ? (snap.data().branslar || []) : [];
+    mevcut.push(yeniBrans);
+    await setDoc(ref, { branslar: mevcut }, { merge: true });
+
+    // Bellekteki DISIPLINLER'e ekle
+    DISIPLINLER.push(yeniBrans);
+
+    yeniBransModalKapat();
+    showToast("✓ Branş eklendi: " + ad);
+    egitimSekmesiAcildi(); // Seçiciyi yenile
+  } catch (e) {
+    showToast("Branş kaydedilemedi: " + e.message, "error");
+  }
+};
+
+// Uygulama açılışında özel branşları yükle
+async function ozelBranslariYukle() {
+  try {
+    const snap = await getDoc(doc(db, "ayarlar", "ozelBranslar"));
+    if (snap.exists()) {
+      const branslar = snap.data().branslar || [];
+      branslar.forEach(b => {
+        if (!DISIPLINLER.some(d => d.id === b.id)) {
+          DISIPLINLER.push({ ...b, tip: "brans" });
+        }
+      });
+    }
+  } catch (e) { console.warn("Özel branşlar yüklenemedi:", e.code); }
+}
+
+let ozelBranslarYuklendi = false;
+window.egitimSekmesiAcildi = async function() {
+  // Özel branşları bir kez yükle
+  if (!ozelBranslarYuklendi) {
+    await ozelBranslariYukle();
+    ozelBranslarYuklendi = true;
+  }
   // Disiplin seçim ekranını göster, matrix'i gizle
   const secici = document.getElementById("egitimDisiplinSecici");
   const bransSecici = document.getElementById("egitimBransSecici");
@@ -24691,11 +24810,11 @@ window.egitimSekmesiAcildi = function() {
   if (bransSecici) {
     const branslar = DISIPLINLER.filter(d => d.tip === "brans");
     bransSecici.innerHTML = branslar.map(kutuHTML).join("") + `
-      <button type="button" class="egitim-disiplin-kutu" onclick="showToast('Yeni branş ekleme yakında — müfredat editöründen tanımlanabilecek')" style="--d-renk:#94a3b8; border-style:dashed; opacity:.85;">
+      <button type="button" class="egitim-disiplin-kutu" onclick="yeniBransModalAc()" style="--d-renk:#7c3aed; border-style:dashed;">
         <div class="egitim-disiplin-ikon">➕</div>
         <div class="egitim-disiplin-baslik">Yeni Branş Ekle</div>
-        <div class="egitim-disiplin-aciklama">Robotik, müzik, drama gibi yeni branşlar buraya eklenebilir</div>
-        <div class="egitim-disiplin-ileri">Yakında</div>
+        <div class="egitim-disiplin-aciklama">Robotik, müzik, drama gibi yeni branşlar ekleyin</div>
+        <div class="egitim-disiplin-ileri">Ekle →</div>
       </button>`;
     bransSecici.style.display = "grid";
   }
@@ -25833,26 +25952,13 @@ window.mufredatEditorAc = async function() {
           <div class="modal-header-row">
             <div>
               <h2><i data-lucide="settings" style="width:18px;height:18px;vertical-align:-3px;"></i> Müfredat Düzenleyici</h2>
-              <p>3 disiplinin müfredatını düzenleyebilirsiniz</p>
+              <p>Tüm program ve branşların müfredatını düzenleyebilirsiniz</p>
             </div>
             <button class="btn-close" onclick="mufredatEditorKapat()">×</button>
           </div>
         </div>
         <div style="padding:12px 16px 0; border-bottom:1px solid #e5e7eb;">
-          <div class="disiplin-sekme-bar" style="margin-bottom:12px;">
-            <button type="button" class="disiplin-sekme-btn aktif" data-editor-disiplin="montessori" onclick="mufredatEditorDisiplinSec('montessori')">
-              <span class="disiplin-sekme-ikon">🌱</span>
-              <span class="disiplin-sekme-ad">Montessori</span>
-            </button>
-            <button type="button" class="disiplin-sekme-btn" data-editor-disiplin="ingilizce" onclick="mufredatEditorDisiplinSec('ingilizce')">
-              <span class="disiplin-sekme-ikon">🇬🇧</span>
-              <span class="disiplin-sekme-ad">İngilizce</span>
-            </button>
-            <button type="button" class="disiplin-sekme-btn" data-editor-disiplin="degerler" onclick="mufredatEditorDisiplinSec('degerler')">
-              <span class="disiplin-sekme-ikon">💎</span>
-              <span class="disiplin-sekme-ad">Değerler</span>
-            </button>
-          </div>
+          <div class="disiplin-sekme-bar" id="mufredatEditorSekmeBar" style="margin-bottom:12px; flex-wrap:wrap;"></div>
         </div>
         <div id="mufredatEditorIcerik" style="padding:16px; max-height:60vh; overflow-y:auto;"></div>
         <div style="padding:14px 16px; border-top:1px solid #e5e7eb; display:flex; justify-content:space-between; gap:8px; background:#f9fafb;">
@@ -25867,8 +25973,18 @@ window.mufredatEditorAc = async function() {
     document.body.appendChild(modal);
   }
   modal.classList.add("active");
-  aktifEditorDisiplin = "montessori";
+  // Disiplin sekmelerini DISIPLINLER'den dinamik doldur (tüm program + branşlar)
+  const sekmeBar = document.getElementById("mufredatEditorSekmeBar");
+  if (sekmeBar) {
+    sekmeBar.innerHTML = DISIPLINLER.map((d, i) => `
+      <button type="button" class="disiplin-sekme-btn ${i === 0 ? 'aktif' : ''}" data-editor-disiplin="${d.id}" onclick="mufredatEditorDisiplinSec('${d.id}')">
+        <span class="disiplin-sekme-ikon">${d.ikon}</span>
+        <span class="disiplin-sekme-ad">${d.ad}</span>
+      </button>`).join("");
+  }
+  aktifEditorDisiplin = DISIPLINLER[0]?.id || "montessori";
   renderMufredatEditor();
+  if (window.lucideYenile) window.lucideYenile();
 };
 
 window.mufredatEditorKapat = function() {
@@ -25892,14 +26008,15 @@ function renderMufredatEditor() {
     el.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af;">Müfredat yükleniyor...</div>`;
     return;
   }
-  el.innerHTML = mufredat.map((alan, ai) => `
-    <div class="mufredat-alan-kart" style="border-left:4px solid ${alan.renk};">
+  const alanlarHtml = mufredat.map((alan, ai) => `
+    <div class="mufredat-alan-kart" style="border-left:4px solid ${alan.renk || '#7c3aed'};">
       <div class="mufredat-alan-baslik">
-        <span style="font-size:20px;">${alan.ikon}</span>
-        <span style="font-size:15px;">${alan.ad}</span>
+        <span style="font-size:20px;">${alan.ikon || '📚'}</span>
+        <span style="font-size:15px;">${escapeHtmlGelisim(alan.ad)}</span>
         <span style="margin-left:auto; font-size:11px; color:#6b7280;">
           ${alan.gruplar.reduce((t,g)=>t+g.dersler.length,0)} ders / ${alan.gruplar.length} grup
         </span>
+        <button class="btn-mini" onclick="mufredatAlanSil(${ai})" style="font-size:11px; background:#fef2f2; color:#dc2626; margin-left:8px;" title="Alanı sil">×</button>
       </div>
       ${alan.gruplar.map((g, gi) => `
         <div class="mufredat-grup">
@@ -25925,7 +26042,36 @@ function renderMufredatEditor() {
       </div>
     </div>
   `).join("");
+
+  const bosDurum = mufredat.length === 0
+    ? `<div style="padding:24px; text-align:center; color:#9ca3af; background:#f9fafb; border-radius:12px; margin-bottom:12px;">
+         Bu programın henüz müfredatı yok. Aşağıdan ilk gelişim alanını ekleyerek başlayın.
+       </div>` : "";
+
+  el.innerHTML = bosDurum + alanlarHtml + `
+    <button class="btn-mini" onclick="mufredatAlanEkle()" style="width:100%; margin-top:8px; padding:12px; font-size:13px; background:#f5f3ff; color:#6d28d9; border:1px dashed #c4b5fd; font-weight:700;">
+      + Yeni Gelişim Alanı Ekle
+    </button>`;
 }
+
+window.mufredatAlanEkle = function() {
+  const ad = prompt("Yeni gelişim alanının adı:\n(Örn: Temel Beceriler, Yaratıcılık, Sosyal Gelişim)");
+  if (!ad || !ad.trim()) return;
+  if (!aktifMufredatlar[aktifEditorDisiplin]) aktifMufredatlar[aktifEditorDisiplin] = [];
+  // Disiplinin rengini al
+  const disp = (typeof DISIPLINLER !== "undefined") ? DISIPLINLER.find(d => d.id === aktifEditorDisiplin) : null;
+  aktifMufredatlar[aktifEditorDisiplin].push({
+    ad: ad.trim(), ikon: disp?.ikon || "📚", renk: disp?.renk || "#7c3aed", gruplar: []
+  });
+  renderMufredatEditor();
+};
+
+window.mufredatAlanSil = function(ai) {
+  const alan = aktifMufredatlar[aktifEditorDisiplin][ai];
+  if (!confirm(`"${alan.ad}" alanını (tüm grup ve dersleriyle) silmek istediğinizden emin misiniz?\n\n(Öğrenci kayıtları korunur ama bu alan artık görünmez.)`)) return;
+  aktifMufredatlar[aktifEditorDisiplin].splice(ai, 1);
+  renderMufredatEditor();
+};
 
 window.mufredatDersEkle = function(ai, gi) {
   const ad = prompt("Yeni dersin adı:");
@@ -25969,7 +26115,9 @@ window.mufredatVarsayilanaAl = function() {
 
 window.mufredatKaydetVeKapat = async function() {
   let basarili = 0, hata = 0;
-  for (const d of ["montessori","ingilizce","degerler"]) {
+  // Yüklü olan tüm disiplinleri kaydet (5 program + branşlar)
+  const idler = Object.keys(aktifMufredatlar);
+  for (const d of idler) {
     const ok = await mufredatKaydet(d);
     if (ok) basarili++; else hata++;
   }
