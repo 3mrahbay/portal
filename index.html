@@ -1206,6 +1206,14 @@ i[data-lucide] svg { display: block; }
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.tab [data-lucide], .tab svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .tab:hover {
@@ -9061,6 +9069,7 @@ i[data-lucide] svg { display: block; }
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
         <button class="side-item" data-modul="isleyis" onclick="modulSec('isleyis')"><span class="side-ikon"><i data-lucide="flower-2"></i></span><span class="side-ad">Okul İşleyişi</span></button>
+        <button class="side-item" data-modul="galeri" onclick="modulSec('galeri')"><span class="side-ikon"><i data-lucide="image"></i></span><span class="side-ad">Galeri</span></button>
         <button class="side-item" data-modul="duyurular" onclick="modulSec('duyurular')"><span class="side-ikon"><i data-lucide="megaphone"></i></span><span class="side-ad">Duyurular</span></button>
         <button class="side-item" data-modul="yemek" onclick="modulSec('yemek')"><span class="side-ikon"><i data-lucide="utensils"></i></span><span class="side-ad">Yemek Menüsü</span></button>
         <button class="side-item" data-modul="etkinlik" onclick="modulSec('etkinlik')"><span class="side-ikon"><i data-lucide="calendar-heart"></i></span><span class="side-ad">Etkinlik &amp; Takvim</span></button>
@@ -9071,19 +9080,19 @@ i[data-lucide] svg { display: block; }
 
     <!-- Tabs (modülün alt sekmeleri) -->
     <div class="tabs">
-      <button class="tab active" data-tab="anasayfa">✨ Ana Sayfa</button>
-      <button class="tab" data-tab="ogrenciler">👥 Öğrenci Listesi</button>
-      <button class="tab" data-tab="onay" id="tab-onay-btn">📦 Başvuru Havuzu <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
-      <button class="tab" data-tab="finans">💼 Finansal Yönetim</button>
-      <button class="tab" data-tab="egitim">📚 Eğitim</button>
-      <button class="tab" data-tab="icerik">🌸 Okul-Aile İçerik Yönetimi</button>
-      <button class="tab" data-tab="personel" id="tab-personel-btn" style="display:none;">🧑‍🏫 Personel Yönetimi</button>
-      <button class="tab" data-tab="gelisim" id="tab-gelisim-btn" style="display:none;">🌷 Gelişim &amp; Kalite</button>
-      <button class="tab" data-tab="denetim" id="tab-denetim-btn" style="display:none;">🛡️ MEB Denetim</button>
-      <button class="tab" data-tab="etkinlik" id="tab-etkinlik-btn" style="display:none;">🎉 Etkinlik &amp; Takvim</button>
-      <button class="tab" data-tab="mesajlasma" id="tab-mesajlasma-btn" style="display:none;">💬 Mesajlaşma</button>
-      <button class="tab" data-tab="duyurular" id="tab-duyurular-btn" style="display:none;">📢 Duyurular</button>
-      <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;">🍽️ Yemek Menüsü</button>
+      <button class="tab active" data-tab="anasayfa"><i data-lucide="sparkles"></i> Ana Sayfa</button>
+      <button class="tab" data-tab="ogrenciler"><i data-lucide="users"></i> Öğrenci Listesi</button>
+      <button class="tab" data-tab="onay" id="tab-onay-btn"><i data-lucide="inbox"></i> Başvuru Havuzu <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
+      <button class="tab" data-tab="finans"><i data-lucide="wallet"></i> Finansal Yönetim</button>
+      <button class="tab" data-tab="egitim"><i data-lucide="book-open"></i> Eğitim</button>
+      <button class="tab" data-tab="icerik"><i data-lucide="flower-2"></i> Okul-Aile İçerik Yönetimi</button>
+      <button class="tab" data-tab="personel" id="tab-personel-btn" style="display:none;"><i data-lucide="briefcase"></i> Personel Yönetimi</button>
+      <button class="tab" data-tab="gelisim" id="tab-gelisim-btn" style="display:none;"><i data-lucide="sparkles"></i> Gelişim &amp; Kalite</button>
+      <button class="tab" data-tab="denetim" id="tab-denetim-btn" style="display:none;"><i data-lucide="shield-check"></i> MEB Denetim</button>
+      <button class="tab" data-tab="etkinlik" id="tab-etkinlik-btn" style="display:none;"><i data-lucide="calendar-heart"></i> Etkinlik &amp; Takvim</button>
+      <button class="tab" data-tab="mesajlasma" id="tab-mesajlasma-btn" style="display:none;"><i data-lucide="message-circle"></i> Mesajlaşma</button>
+      <button class="tab" data-tab="duyurular" id="tab-duyurular-btn" style="display:none;"><i data-lucide="megaphone"></i> Duyurular</button>
+      <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;"><i data-lucide="utensils"></i> Yemek Menüsü</button>
     </div>
 
     <!-- YENİ TASARIM · ANA SAYFA TAB (rol bazlı: yönetim/öğretmen) -->
@@ -9568,17 +9577,18 @@ i[data-lucide] svg { display: block; }
 
         <!-- GALERİ -->
         <div id="icerikAlt-galeri" class="icerik-alt-panel" style="display:none;">
-          <!-- Üst bar -->
+          <!-- Üst bar: başlık + filtreler -->
           <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-mini" data-galeri-filter="tumu" onclick="galeriFilter('tumu')" style="background:#9333ea; border:none; color:white;">📁 Tümü</button>
-              <button class="btn-mini" data-galeri-filter="foto" onclick="galeriFilter('foto')">🖼 Fotoğraflar</button>
-              <button class="btn-mini" data-galeri-filter="onayBekliyor" onclick="galeriFilter('onayBekliyor')" id="galeriOnayFiltreBtn" style="display:none;">⏳ Onay Bekleyenler <span id="galeriOnayBekleyenRozet" style="background:#f59e0b; color:white; border-radius:9px; padding:0 6px; font-size:11px; margin-left:2px; display:none;">0</span></button>
+              <button class="btn-mini" data-galeri-filter="tumu" onclick="galeriFilter('tumu')" style="background:#9333ea; border:none; color:white;"><i data-lucide="layout-grid"></i> Tümü</button>
+              <button class="btn-mini" data-galeri-filter="foto" onclick="galeriFilter('foto')"><i data-lucide="image"></i> Fotoğraflar</button>
+              <button class="btn-mini" data-galeri-filter="video" onclick="galeriFilter('video')"><i data-lucide="video"></i> Videolar</button>
+              <button class="btn-mini" data-galeri-filter="onayBekliyor" onclick="galeriFilter('onayBekliyor')" id="galeriOnayFiltreBtn" style="display:none;"><i data-lucide="clock"></i> Onay Bekleyenler <span id="galeriOnayBekleyenRozet" style="background:#f59e0b; color:white; border-radius:9px; padding:0 6px; font-size:11px; margin-left:2px; display:none;">0</span></button>
             </div>
-            <button class="btn-primary" onclick="openGaleriYuklemeModal()" style="background:#9333ea; border:none; color:white;">+ Yükleme</button>
+            <button class="btn-mini" onclick="galeriGorunumToggle()" id="galeriGorunumBtn" title="Görünümü değiştir"><i data-lucide="rows-3"></i> Albüm görünümü</button>
           </div>
 
-          <!-- Liste -->
+          <!-- Liste (Instagram grid veya albüm görünümü) -->
           <div id="galeriListesi">
             <div class="loading"><div class="spinner"></div><p>Galeri yükleniyor...</p></div>
           </div>
@@ -26875,6 +26885,19 @@ async function resimSikistir(file, maxBoyut = 1920, kalite = 0.85) {
 let galeriListesiVerisi = [];
 let aktifGaleriFilter = "tumu";
 let galeriSecilenDosyalar = [];
+let galeriGorunum = "grid"; // "grid" (Instagram) | "album" (gruplu)
+
+window.galeriGorunumToggle = function() {
+  galeriGorunum = galeriGorunum === "grid" ? "album" : "grid";
+  const btn = document.getElementById("galeriGorunumBtn");
+  if (btn) {
+    btn.innerHTML = galeriGorunum === "grid"
+      ? '<i data-lucide="rows-3"></i> Albüm görünümü'
+      : '<i data-lucide="layout-grid"></i> Izgara görünümü';
+  }
+  renderGaleri();
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 50);
+};
 
 window.galeriFilter = function(f) {
   aktifGaleriFilter = f;
@@ -26961,6 +26984,81 @@ async function renderGaleri() {
   if (aktifGaleriFilter === "foto") liste = liste.filter(g => g.dosyaTipi === "foto");
   else if (aktifGaleriFilter === "video") liste = liste.filter(g => g.dosyaTipi === "video");
   else if (aktifGaleriFilter === "onayBekliyor") liste = liste.filter(g => (g.durum || "onaylandi") === "onayBekliyor");
+
+  // ═══ INSTAGRAM GRID GÖRÜNÜMÜ ═══
+  if (galeriGorunum === "grid") {
+    // Son eklenenler önce (olusturmaTarihi veya etkinlikTarih'e göre)
+    const sirali = [...liste].sort((a, b) => {
+      const ta = a.olusturmaTarihi || a.yuklemeTarihi || a.etkinlikTarih || "";
+      const tb = b.olusturmaTarihi || b.yuklemeTarihi || b.etkinlikTarih || "";
+      return String(tb).localeCompare(String(ta));
+    });
+
+    // Üstte 3 ekleme kutusu (kare) + son eklenenler grid
+    let gHtml = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:8px;">`;
+
+    // + RESİM EKLE
+    gHtml += `
+      <div onclick="openGaleriYuklemeModal('foto')" style="aspect-ratio:1; border:2px dashed #c4b5fd; border-radius:12px; background:#faf5ff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:.15s;" onmouseover="this.style.background='#f3e8ff'; this.style.borderColor='#9333ea'" onmouseout="this.style.background='#faf5ff'; this.style.borderColor='#c4b5fd'">
+        <div style="width:44px; height:44px; border-radius:50%; background:#ede9fe; display:grid; place-items:center; color:#7c3aed;"><i data-lucide="image-plus"></i></div>
+        <div style="font-size:12px; font-weight:700; color:#6b21a8;">Resim Ekle</div>
+      </div>`;
+    // + ALBÜM EKLE
+    gHtml += `
+      <div onclick="openGaleriYuklemeModal('album')" style="aspect-ratio:1; border:2px dashed #c4b5fd; border-radius:12px; background:#faf5ff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:.15s;" onmouseover="this.style.background='#f3e8ff'; this.style.borderColor='#9333ea'" onmouseout="this.style.background='#faf5ff'; this.style.borderColor='#c4b5fd'">
+        <div style="width:44px; height:44px; border-radius:50%; background:#ede9fe; display:grid; place-items:center; color:#7c3aed;"><i data-lucide="folder-plus"></i></div>
+        <div style="font-size:12px; font-weight:700; color:#6b21a8;">Albüm Ekle</div>
+      </div>`;
+    // + VİDEO EKLE
+    gHtml += `
+      <div onclick="openGaleriYuklemeModal('video')" style="aspect-ratio:1; border:2px dashed #c4b5fd; border-radius:12px; background:#faf5ff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:.15s;" onmouseover="this.style.background='#f3e8ff'; this.style.borderColor='#9333ea'" onmouseout="this.style.background='#faf5ff'; this.style.borderColor='#c4b5fd'">
+        <div style="width:44px; height:44px; border-radius:50%; background:#ede9fe; display:grid; place-items:center; color:#7c3aed;"><i data-lucide="video"></i></div>
+        <div style="font-size:12px; font-weight:700; color:#6b21a8;">Video Ekle</div>
+      </div>`;
+
+    const yonetimMiG = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
+    for (const d of sirali) {
+      const previewUrl = d.dosyaTipi === "video" ? d.kucukResim : d.bunnyUrl;
+      const thumbUrl = (d.dosyaTipi === "foto" && d.bunnyUrl) ? d.bunnyUrl + "?width=400" : previewUrl;
+      const durum = d.durum || "onaylandi";
+      const reddedildiMi = durum === "reddedildi";
+      let rozet = "";
+      if (durum === "onayBekliyor") rozet = `<div style="position:absolute; top:6px; right:6px; background:#f59e0b; color:white; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700;"><i data-lucide="clock" style="width:10px;height:10px;"></i></div>`;
+      else if (reddedildiMi) rozet = `<div style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700;">✕</div>`;
+
+      let onayBtn = "";
+      if (durum === "onayBekliyor" && yonetimMiG) {
+        onayBtn = `<div style="position:absolute; bottom:0; left:0; right:0; display:flex; gap:3px; padding:5px; background:rgba(0,0,0,0.55);">
+          <button onclick="event.stopPropagation(); galeriOnayla('${d.id}')" style="flex:1; padding:6px; background:#16a34a; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✓</button>
+          <button onclick="event.stopPropagation(); galeriReddet('${d.id}')" style="flex:1; padding:6px; background:#dc2626; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✕</button>
+        </div>`;
+      }
+
+      gHtml += `
+        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:12px; overflow:hidden; cursor:pointer; ${durum==='onayBekliyor'?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626; opacity:.7;':''}" onclick="acGaleriLightbox('${d.id}')">
+          ${d.dosyaTipi === "video"
+            ? `<img src="${escapeHtml(previewUrl||'')}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center;"><i data-lucide='video'></i></div><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
+            : `<img src="${escapeHtml(thumbUrl||'')}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">`
+          }
+          ${rozet}
+          ${onayBtn}
+          <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" class="galeri-sil-btn" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:26px; height:26px; border-radius:50%; cursor:pointer; opacity:0; transition:opacity 0.2s; display:grid; place-items:center;" onmouseover="this.style.opacity='1'"><i data-lucide="trash-2" style="width:13px;height:13px;"></i></button>
+        </div>`;
+    }
+    gHtml += `</div><style>.galeri-sil-btn:hover{opacity:1 !important;}div:hover > .galeri-sil-btn{opacity:0.85;}</style>`;
+
+    if (sirali.length === 0) {
+      gHtml = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:8px; margin-bottom:20px;">
+        <div onclick="openGaleriYuklemeModal('foto')" style="aspect-ratio:1; border:2px dashed #c4b5fd; border-radius:12px; background:#faf5ff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer;"><div style="width:44px; height:44px; border-radius:50%; background:#ede9fe; display:grid; place-items:center; color:#7c3aed;"><i data-lucide="image-plus"></i></div><div style="font-size:12px; font-weight:700; color:#6b21a8;">Resim Ekle</div></div>
+        <div onclick="openGaleriYuklemeModal('album')" style="aspect-ratio:1; border:2px dashed #c4b5fd; border-radius:12px; background:#faf5ff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer;"><div style="width:44px; height:44px; border-radius:50%; background:#ede9fe; display:grid; place-items:center; color:#7c3aed;"><i data-lucide="folder-plus"></i></div><div style="font-size:12px; font-weight:700; color:#6b21a8;">Albüm Ekle</div></div>
+        <div onclick="openGaleriYuklemeModal('video')" style="aspect-ratio:1; border:2px dashed #c4b5fd; border-radius:12px; background:#faf5ff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer;"><div style="width:44px; height:44px; border-radius:50%; background:#ede9fe; display:grid; place-items:center; color:#7c3aed;"><i data-lucide="video"></i></div><div style="font-size:12px; font-weight:700; color:#6b21a8;">Video Ekle</div></div>
+      </div><div style="text-align:center; color:var(--gray-500); padding:24px; font-size:13px;">Henüz içerik yok — yukarıdaki kutulardan ekleyin.</div>`;
+    }
+    el.innerHTML = gHtml;
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 30);
+    return;
+  }
+  // ═══ /INSTAGRAM GRID ═══
 
   // Etkinlik/album bazında grupla
   const gruplar = {};
@@ -27079,7 +27177,9 @@ async function renderGaleri() {
 }
 
 // Yükleme Modalı
-window.openGaleriYuklemeModal = function() {
+window.openGaleriYuklemeModal = function(mod) {
+  // mod: 'foto' | 'video' | 'album' | undefined (grid ekleme kutularından gelir)
+  window._galeriYuklemeMod = mod || 'foto';
   // "Yeni Yükleme" butonu tıklandıysa (albumEkleMod null ise) sıfırla
   // "Albüme Ekle" çağırmışsa albumEEkle kendi setTimeout'unda doldurur
   document.getElementById("galeriYuklemeModal").classList.add("active");
@@ -27102,9 +27202,21 @@ window.openGaleriYuklemeModal = function() {
   if (sinifSel) { sinifSel.disabled = false; sinifSel.style.background = ""; sinifSel.style.cursor = ""; }
   if (ogrSel) { ogrSel.disabled = false; ogrSel.style.background = ""; ogrSel.style.cursor = ""; }
 
-  // Başlık sıfırla
+  // Başlık sıfırla (moda göre)
   const header = document.querySelector("#galeriYuklemeModal .modal-header h3");
-  if (header) header.innerHTML = `📸 Galeri Yüklemesi`;
+  const mod = window._galeriYuklemeMod || 'foto';
+  const fileInp = document.getElementById("galeriFileInput");
+  if (mod === 'video') {
+    if (header) header.innerHTML = `<i data-lucide="video"></i> Video Yükle`;
+    if (fileInp) fileInp.setAttribute("accept", "video/*");
+  } else if (mod === 'album') {
+    if (header) header.innerHTML = `<i data-lucide="folder-plus"></i> Yeni Albüm`;
+    if (fileInp) fileInp.setAttribute("accept", "image/*,video/*");
+  } else {
+    if (header) header.innerHTML = `<i data-lucide="image-plus"></i> Resim Yükle`;
+    if (fileInp) fileInp.setAttribute("accept", "image/*");
+  }
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
 
   // Mail checkbox alanını geri getir
   const mailAlan = document.querySelector("#galeriMailGonder")?.closest(".form-group");
@@ -31618,6 +31730,7 @@ const MODUL_HARITASI = {
   egitim:      { tablar: ["egitim"],     varsayilan: "egitim", ad: "Eğitim" },
   muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
   isleyis:     { tablar: ["icerik"],     varsayilan: "icerik", ad: "Okul İşleyişi" },
+  galeri:      { tablar: ["icerik"],     varsayilan: "icerik", ad: "Galeri", icerikAlt: "galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
   etkinlik:    { tablar: ["etkinlik"],   varsayilan: "etkinlik", ad: "Etkinlik & Takvim" },
