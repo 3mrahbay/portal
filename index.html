@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
 <!-- Yeni tasarım dili (Bir Çiçek mobil app prototipi) — Quicksand + DM Sans -->
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- PWA: kurulabilir mobil app -->
@@ -1105,7 +1106,12 @@ html, body {
 }
 .side-item:hover { background: #F1F2F7; color: #1F2544; }
 .side-item.active { background: #EDEFFB; color: #2B3674; box-shadow: inset 3px 0 0 #5A6ACF; }
-.side-ikon { font-size: 16px; width: 22px; text-align: center; }
+.side-ikon { font-size: 16px; width: 22px; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
+.side-ikon i { width: 18px; height: 18px; }
+.side-ikon svg { width: 18px; height: 18px; stroke-width: 2; }
+/* Genel Lucide ikon hizalama */
+[data-lucide] { display: inline-flex; vertical-align: middle; }
+i[data-lucide] svg { display: block; }
 .side-ad { flex: 1; }
 .modul-rozet {
   background: #E5484D; color: #fff;
@@ -8954,24 +8960,25 @@ html, body {
     <!-- CRM SOL SIDEBAR (kategorili navigasyon) -->
     <aside class="crm-sidebar" id="modulBar">
       <div class="side-grup">
-        <button class="side-item active" data-modul="ozet" onclick="modulSec('ozet')"><span class="side-ikon">✨</span><span class="side-ad">Özet</span></button>
+        <button class="side-item active" data-modul="ozet" onclick="modulSec('ozet')"><span class="side-ikon"><i data-lucide="layout-dashboard"></i></span><span class="side-ad">Özet</span></button>
       </div>
       <div class="side-kategori">ÖĞRENCİ &amp; OKUL</div>
       <div class="side-grup">
-        <button class="side-item" data-modul="ogrencilerM" onclick="modulSec('ogrencilerM')"><span class="side-ikon">👥</span><span class="side-ad">Öğrenciler</span></button>
-        <button class="side-item" data-modul="basvuru" onclick="modulSec('basvuru')"><span class="side-ikon">📦</span><span class="side-ad">Başvuru Havuzu</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
+        <button class="side-item" data-modul="ogrencilerM" onclick="modulSec('ogrencilerM')"><span class="side-ikon"><i data-lucide="users"></i></span><span class="side-ad">Öğrenciler</span></button>
+        <button class="side-item" data-modul="basvuru" onclick="modulSec('basvuru')"><span class="side-ikon"><i data-lucide="inbox"></i></span><span class="side-ad">Başvuru Havuzu</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
       </div>
       <div class="side-kategori">KURUM</div>
       <div class="side-grup">
-        <button class="side-item" data-modul="personel" onclick="modulSec('personel')"><span class="side-ikon">🧑‍🏫</span><span class="side-ad">Personel</span></button>
-        <button class="side-item" data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon">📚</span><span class="side-ad">Eğitim</span></button>
-        <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon">💼</span><span class="side-ad">Muhasebe</span></button>
+        <button class="side-item" data-modul="personel" onclick="modulSec('personel')"><span class="side-ikon"><i data-lucide="briefcase"></i></span><span class="side-ad">Personel</span></button>
+        <button class="side-item" data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon"><i data-lucide="book-open"></i></span><span class="side-ad">Eğitim</span></button>
+        <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon"><i data-lucide="wallet"></i></span><span class="side-ad">Muhasebe</span></button>
+        <button class="side-item" data-modul="denetim" onclick="modulSec('denetim')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">MEB Denetim</span></button>
       </div>
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
-        <button class="side-item" data-modul="isleyis" onclick="modulSec('isleyis')"><span class="side-ikon">🌸</span><span class="side-ad">Okul İşleyişi</span></button>
-        <button class="side-item" data-modul="mesaj" onclick="modulSec('mesaj')"><span class="side-ikon">💬</span><span class="side-ad">Mesajlaşma</span></button>
-        <button class="side-item" data-modul="gelisim" onclick="modulSec('gelisim')"><span class="side-ikon">🌷</span><span class="side-ad">Gelişim &amp; Kalite</span></button>
+        <button class="side-item" data-modul="isleyis" onclick="modulSec('isleyis')"><span class="side-ikon"><i data-lucide="flower-2"></i></span><span class="side-ad">Okul İşleyişi</span></button>
+        <button class="side-item" data-modul="mesaj" onclick="modulSec('mesaj')"><span class="side-ikon"><i data-lucide="message-circle"></i></span><span class="side-ad">Mesajlaşma</span></button>
+        <button class="side-item" data-modul="gelisim" onclick="modulSec('gelisim')"><span class="side-ikon"><i data-lucide="sparkles"></i></span><span class="side-ad">Gelişim &amp; Kalite</span></button>
       </div>
     </aside>
 
@@ -8985,6 +8992,7 @@ html, body {
       <button class="tab" data-tab="icerik">🌸 Okul-Aile İçerik Yönetimi</button>
       <button class="tab" data-tab="personel" id="tab-personel-btn" style="display:none;">🧑‍🏫 Personel Yönetimi</button>
       <button class="tab" data-tab="gelisim" id="tab-gelisim-btn" style="display:none;">🌷 Gelişim &amp; Kalite</button>
+      <button class="tab" data-tab="denetim" id="tab-denetim-btn" style="display:none;">🛡️ MEB Denetim</button>
     </div>
 
     <!-- YENİ TASARIM · ANA SAYFA TAB (rol bazlı: yönetim/öğretmen) -->
@@ -10635,6 +10643,57 @@ html, body {
         <div id="bccmAlanlarGrid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:14px;"></div>
         <div style="margin-top:14px; padding:12px 14px; background:#F1F2F7; border-radius:10px; font-size:12.5px; color:var(--ink-soft);">
           ℹ️ İleride her öğrencinin profilinde "8 alan gelişim görünümü" bu modele göre oluşacak. Şu an veri modeli hazırlanıyor; program gözlemleri (S/T/U) bu alanlarla eşleştirilecek.
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ MEB DENETİM HAZIRLIĞI MODÜLÜ ============ -->
+    <div class="tab-panel" id="tab-denetim">
+      <!-- HERO -->
+      <div style="background:linear-gradient(135deg,#1F2A3F 0%,#2B3674 100%); border-radius:20px; padding:26px 30px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-8%; width:280px; height:280px; background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+          <div>
+            <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85; display:flex; align-items:center; gap:7px;"><i data-lucide="shield-check" style="width:15px;height:15px;"></i> MEB DENETİM HAZIRLIĞI</div>
+            <h2 style="font-family:var(--font-display); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Denetim Öz-Değerlendirme</h2>
+            <p style="opacity:0.92; font-size:14px; max-width:680px; margin:0;">MEB / Aile Bakanlığı / İSG mevzuatına göre kurum hazırlık kontrol listesi. Maddeleri işaretleyin, belge ekleyin, denetime hazır olun.</p>
+          </div>
+          <div style="text-align:center; background:rgba(255,255,255,0.12); border-radius:16px; padding:16px 22px; min-width:120px;">
+            <div id="denetimUyumSkor" style="font-size:34px; font-weight:800; line-height:1;">%0</div>
+            <div style="font-size:11px; opacity:0.8; margin-top:4px;">Uyum Skoru</div>
+            <div id="denetimKritikUyari" style="font-size:11px; margin-top:8px; color:#FFB4B4; font-weight:600;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARAÇ ÇUBUĞU -->
+      <div style="display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center;">
+        <button class="btn-mini" onclick="denetimKaydet()" style="background:#2B3674; color:#fff; border-color:#2B3674; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="save" style="width:14px;height:14px;"></i> Kaydet</button>
+        <button class="btn-mini" onclick="denetimRaporCiktisi()" style="display:inline-flex; align-items:center; gap:6px;"><i data-lucide="printer" style="width:14px;height:14px;"></i> Rapor Çıktısı / PDF</button>
+        <div style="flex:1;"></div>
+        <div style="display:flex; gap:6px; font-size:11px; color:var(--gray-500); align-items:center; flex-wrap:wrap;">
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:16px;height:16px;border-radius:5px;background:#E4F5EC;color:#2F9E63;display:inline-flex;align-items:center;justify-content:center;font-weight:800;">✓</span>Uyumlu</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:16px;height:16px;border-radius:5px;background:#FDECEF;color:#C2445A;display:inline-flex;align-items:center;justify-content:center;font-weight:800;">✕</span>Eksik</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:16px;height:16px;border-radius:5px;background:#FCF7E1;color:#B45309;display:inline-flex;align-items:center;justify-content:center;font-weight:800;">—</span>Uygulanamaz</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:16px;height:16px;border-radius:5px;background:#F1F2F7;color:#8A92A6;display:inline-flex;align-items:center;justify-content:center;font-weight:800;">?</span>Cevapsız</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#FEE2E2;color:#991B1B;padding:1px 6px;border-radius:5px;font-weight:800;">K</span>Kritik</span>
+        </div>
+      </div>
+
+      <!-- KATEGORİLER (JS ile doldurulur) -->
+      <div id="denetimKategoriler"></div>
+
+      <!-- İMZA ALANI -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:24px;">
+        <div style="background:#fff; border:1px solid #EDEEF3; border-radius:14px; padding:18px;">
+          <div style="font-size:12px; color:var(--gray-500); margin-bottom:6px;">Hazırlayan</div>
+          <div style="height:44px; border-bottom:1px dashed #D8DCE9;"></div>
+          <div style="font-size:11px; color:var(--gray-500); margin-top:6px;">Ad Soyad / İmza</div>
+        </div>
+        <div style="background:#fff; border:1px solid #EDEEF3; border-radius:14px; padding:18px;">
+          <div style="font-size:12px; color:var(--gray-500); margin-bottom:6px;">Onaylayan (Yönetici)</div>
+          <div style="height:44px; border-bottom:1px dashed #D8DCE9;"></div>
+          <div style="font-size:11px; color:var(--gray-500); margin-top:6px;">Ad Soyad / İmza</div>
         </div>
       </div>
     </div>
@@ -12820,6 +12879,12 @@ html, body {
 
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
+// Lucide ikonlarını yenile (dinamik içerik sonrası çağrılır)
+window.lucideYenile = function() {
+  try { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); } catch(e) {}
+};
+// Sayfa yüklenince ilk render
+setTimeout(() => window.lucideYenile(), 300);
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
@@ -23959,6 +24024,119 @@ const BCCM_ALANLAR = [
   { kod:"DEG", ad:"Değerler ve Karakter", ikon:"⭐" }
 ];
 
+// ============ MEB DENETİM ÖZ-DEĞERLENDİRME (minikres.com formatı) ============
+// Kategoriler + maddeler. [K]=kritik. Kaynak=mevzuat referansı.
+const DENETIM_KATEGORILERI = [
+  {
+    id: "yemek", ad: "Yemek Numunesi & Saklama", ikon: "utensils-crossed", renk: "#3D8A5F",
+    maddeler: [
+      { k:true,  s:"Her öğün için 100 gr yemek numunesi alınıyor mu?", kaynak:"Sağlık Bakanlığı Toplu Tüketim Yön." },
+      { k:false, s:"Numuneler etiketli mi? (tarih, saat, öğün, alan kişi)", kaynak:"Sağlık Bakanlığı" },
+      { k:false, s:"Numune saklama buzdolabı sıcaklığı +4°C ± 2°C aralığında mı?", kaynak:"Sağlık Bakanlığı" },
+      { k:true,  s:"Numuneler 72 saat saklanıyor mu?", kaynak:"Sağlık Bakanlığı Toplu Tüketim Yön." },
+      { k:false, s:"Saklama süresi dolan numuneler için imha kaydı tutuluyor mu?", kaynak:"—" },
+      { k:false, s:"Son numune fotoğrafı yüklendi mi?", kaynak:"—" },
+      { k:false, s:"Mutfak günlük temizlik checklist'i dolduruluyor mu?", kaynak:"Sağlık Bakanlığı Hijyen" },
+      { k:true,  s:"Mutfak personeli sağlık karnesi/portör muayeneleri güncel mi?", kaynak:"Sağlık Bakanlığı" },
+      { k:false, s:"Mutfakta haşere kontrol sözleşmesi/raporu mevcut mu?", kaynak:"—" },
+      { k:false, s:"Yemek tedarikçisi gıda güvenliği belgesi yüklü mü? (dış catering)", kaynak:"—" },
+      { k:false, s:"Aylık yemek menüsü beslenme uzmanı/diyetisyen onaylı mı?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"Günlük yemek menüsü panoda/uygulamada veliye gösteriliyor mu?", kaynak:"MEB ÖÖKY" }
+    ]
+  },
+  {
+    id: "evrak", ad: "Resmi Evrak & Personel Dokümantasyon", ikon: "folder-open", renk: "#5A6ACF",
+    maddeler: [
+      { k:true,  s:"Kurum açılış izin belgesi yüklü ve geçerli mi?", kaynak:"MEB / Aile Bakanlığı" },
+      { k:true,  s:"Açılış izin belgesindeki toplam öğrenci kapasitesi sistemde kayıtlı mı?", kaynak:"—" },
+      { k:true,  s:"Mali mesuliyet sigorta poliçesi yüklü mü?", kaynak:"İşyeri Sigorta" },
+      { k:true,  s:"Öğrenci kaza sigortası yapıldı mı?", kaynak:"—" },
+      { k:false, s:"Yangın/işyeri sigorta poliçesi geçerli mi?", kaynak:"—" },
+      { k:false, s:"Tüm personelin diploma fotokopisi sistemde yüklü mü?", kaynak:"MEB ÖÖKY" },
+      { k:true,  s:"Tüm personelin sağlık raporu güncel (son 6 ay) mi?", kaynak:"İSG / MEB" },
+      { k:false, s:"Tüm personelin akciğer (PA) röntgen raporu son 1 yıl içinde mi?", kaynak:"Sağlık Bakanlığı" },
+      { k:true,  s:"Tüm personelin adli sicil belgesi son 1 yıl içinde mi?", kaynak:"MEB ÖÖKY md. 26" },
+      { k:false, s:"Tüm personel için ilk yardım eğitim sertifikası var mı?", kaynak:"İSG" },
+      { k:true,  s:"Tüm personelin SGK kayıtları aktif mi?", kaynak:"SGK" },
+      { k:false, s:"İmzalı iş sözleşmesi her personel için mevcut mu?", kaynak:"İş Kanunu" },
+      { k:false, s:"Öğretmenlerin pedagojik formasyon belgesi yüklü mü?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"Personel devamsızlık (PDKS) kayıtları tutuluyor mu?", kaynak:"İş Kanunu" },
+      { k:true,  s:"Tüm aktif öğrencilerin aşı kartı sisteme yüklü mü?", kaynak:"Sağlık Bakanlığı aşı takvimi" },
+      { k:false, s:"Tüm aktif öğrencilerin sağlık raporu (kayıt anında) yüklü mü?", kaynak:"—" },
+      { k:false, s:"Veli kayıt sözleşmesi her öğrenci için imzalı mı?", kaynak:"—" },
+      { k:true,  s:"KVKK açık rıza belgesi her veli için alındı mı?", kaynak:"KVKK md. 5/6" },
+      { k:false, s:"MEB ders günlüğü / etkinlik defteri tutuluyor mu?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"Yoklama kayıtları günlük tutuluyor ve denetlenebilir mi?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"Aylık eğitim programı dosyada arşivli mi?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"Veli bilgilendirme/duyuru kayıtları arşivli mi?", kaynak:"—" },
+      { k:false, s:"Kayıt-defter incelemesi (öğrenci giriş-çıkış) tutuluyor mu?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"Aidat tahsilat kayıtları (e-arşiv fatura) düzenli kesiliyor mu?", kaynak:"Vergi Usul Kanunu" },
+      { k:false, s:"Vergi levhası asılı / yüklü mü?", kaynak:"VUK" },
+      { k:false, s:"Mali müşavir sözleşmesi mevcut mu?", kaynak:"—" },
+      { k:false, s:"Aylık beyannameler düzenli veriliyor mu?", kaynak:"Maliye" },
+      { k:true,  s:"İşletme ruhsatı / faaliyet belgesi geçerli mi?", kaynak:"—" }
+    ]
+  },
+  {
+    id: "guvenlik", ad: "Tatbikat, Güvenlik & Bina Kontrolü", ikon: "shield-alert", renk: "#C2445A",
+    maddeler: [
+      { k:true,  s:"Yangın tatbikatı son 6 ay içinde yapıldı mı?", kaynak:"İtfaiye Yönetmeliği" },
+      { k:false, s:"Deprem tatbikatı son 6 ay içinde yapıldı mı?", kaynak:"AFAD" },
+      { k:false, s:"Tahliye tatbikatı son 12 ay içinde yapıldı mı?", kaynak:"İSG" },
+      { k:true,  s:"Yangın söndürücüler son 6 ayda kontrol edildi mi?", kaynak:"İtfaiye" },
+      { k:false, s:"Yangın algılama sistemi yıllık kontrol yapıldı mı?", kaynak:"İtfaiye" },
+      { k:false, s:"Asansör periyodik muayenesi (varsa) son 1 yıl içinde mi?", kaynak:"Asansör Yön." },
+      { k:false, s:"Elektrik tesisat kontrol raporu (EMO) son 1 yıl içinde mi?", kaynak:"EMO" },
+      { k:false, s:"Doğalgaz tesisat kontrol (İGDAŞ vs.) son 1 yıl içinde mi?", kaynak:"Doğalgaz dağıtım" },
+      { k:false, s:"Su deposu temizlik son 3 ay içinde mi?", kaynak:"Sağlık Bakanlığı" },
+      { k:false, s:"Klima/havalandırma temizlik son 6 ay içinde mi?", kaynak:"—" },
+      { k:false, s:"Bina periyodik bakım sözleşmesi güncel mi?", kaynak:"—" },
+      { k:true,  s:"İlk yardım dolabı dolu, son kullanım tarihleri geçmemiş mi?", kaynak:"İSG" },
+      { k:false, s:"Acil çıkış levhaları her bölümde görünür mü?", kaynak:"İtfaiye" },
+      { k:false, s:"Acil çıkış aydınlatması çalışıyor mu?", kaynak:"İtfaiye" },
+      { k:true,  s:"Yangın merdiveni engelsiz, kullanılabilir durumda mı?", kaynak:"İtfaiye" },
+      { k:false, s:"Çocuk parkı oyuncakları TS EN 1176 uyumlu mu?", kaynak:"TS EN 1176" },
+      { k:false, s:"Pencere çocuk-güvenlik kilitleri takılı mı?", kaynak:"İSG" },
+      { k:false, s:"Elektrik prizleri çocuk-güvenlikli (kapaklı) mı?", kaynak:"İSG" },
+      { k:false, s:"Kapı zili / kamera / ziyaretçi defteri ile giriş kontrolü var mı?", kaynak:"MEB ÖÖKY" },
+      { k:true,  s:"Çocuk teslim güvenliği (PIN/yetkili kişi) sistemi aktif mi?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"Olay/kaza raporu prosedürü tanımlı ve kayıt tutuluyor mu?", kaynak:"İSG" },
+      { k:false, s:"Risk değerlendirme raporu (İSG) hazır ve güncel mi?", kaynak:"6331 sayılı İSG Kanunu" },
+      { k:true,  s:"Çocuk ilaç talepleri reçeteli mi (reçetesiz ilaç verilmiyor)?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"İlaç verme logu kayıt altında mı?", kaynak:"—" },
+      { k:false, s:"İlaçlar çocuğun ulaşamayacağı kilitli alanda mı saklanıyor?", kaynak:"İSG" }
+    ]
+  },
+  {
+    id: "kapasite", ad: "Kapasite & Operasyonel Hazırlık", ikon: "clipboard-list", renk: "#B45309",
+    maddeler: [
+      { k:true,  s:"Açılış izin belgesindeki toplam kapasite sistemde kayıtlı mı?", kaynak:"MEB / Aile Bakanlığı" },
+      { k:true,  s:"Aktif öğrenci sayısı bakanlık kapasitesinin altında mı?", kaynak:"MEB / Aile Bakanlığı" },
+      { k:false, s:"Her sınıfın metre kare ölçüsü sistemde kayıtlı mı?", kaynak:"MEB ÖÖKY md. 4-5" },
+      { k:false, s:"Açık oyun alanı m² ölçüsü sisteme girildi mi?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"Günlük temizlik checklist'i dolduruluyor mu?", kaynak:"Sağlık Bakanlığı Hijyen" },
+      { k:false, s:"Tuvalet/lavabo temizlik logu tutuluyor mu (günde min 2)?", kaynak:"Hijyen" },
+      { k:false, s:"Çocuk ölçüm (boy/kilo) takibi aylık yapılıyor mu?", kaynak:"Sağlık Bakanlığı" },
+      { k:false, s:"Çocuk uyku takibi günlük yapılıyor mu?", kaynak:"—" },
+      { k:false, s:"Beslenme takibi (yedi/yemedi) günlük yapılıyor mu?", kaynak:"—" },
+      { k:false, s:"Ziyaretçi giriş-çıkış defteri tutuluyor mu?", kaynak:"MEB ÖÖKY" },
+      { k:false, s:"Sınıflarda yeterli sayıda öğretmen/yardımcı personel görevli mi?", kaynak:"İyi pratik" },
+      { k:false, s:"Sınıf öğretmenlerinin nöbet/izin durumu önceden planlı mı?", kaynak:"İş Kanunu" },
+      { k:false, s:"Yedek/destek öğretmen tanımı mevcut mu?", kaynak:"—" },
+      { k:false, s:"Veli memnuniyet anketi son 6 ay içinde yapıldı mı?", kaynak:"—" },
+      { k:false, s:"Aile katılımı (etkinlik, açık ders) düzenli planlı mı?", kaynak:"MEB ÖÖKY" }
+    ]
+  }
+];
+// Durum döngüsü: bos → uygun → eksik → uygulanamaz → bos
+const DENETIM_DURUMLAR = {
+  bos:         { et:"?", ad:"Cevapsız",    renk:"#8A92A6", bg:"#F1F2F7" },
+  uygun:       { et:"✓", ad:"Uyumlu",      renk:"#2F9E63", bg:"#E4F5EC" },
+  eksik:       { et:"✕", ad:"Eksik",       renk:"#C2445A", bg:"#FDECEF" },
+  uygulanamaz: { et:"—", ad:"Uygulanamaz", renk:"#B45309", bg:"#FCF7E1" }
+};
+let denetimKayitlari = {}; // { "kategoriId_maddeIdx": {durum, not, tarih} }
+
 // Renk haritası (S/T/U için)
 const STU_BILGI = {
   S: { ad:"Sunuldu",     ikon:"🌱", renk:"#16a34a", bg:"#f0fdf4", border:"#bbf7d0" },
@@ -31347,7 +31525,8 @@ const MODUL_HARITASI = {
   muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
   isleyis:     { tablar: ["icerik"],     varsayilan: "icerik", ad: "Okul İşleyişi" },
   mesaj:       { tablar: ["icerik"],     varsayilan: "icerik", icerikAlt: "mesajlasma", ad: "Mesajlaşma" },
-  gelisim:     { tablar: ["gelisim"],    varsayilan: "gelisim", ad: "Gelişim & Kalite" }
+  gelisim:     { tablar: ["gelisim"],    varsayilan: "gelisim", ad: "Gelişim & Kalite" },
+  denetim:     { tablar: ["denetim"],    varsayilan: "denetim", ad: "MEB Denetim Hazırlığı" }
 };
 let aktifModul = "ozet";
 
@@ -31361,6 +31540,7 @@ window.modulSec = function(modulKey, tabTikla = true) {
   document.querySelectorAll(".side-item").forEach(b => {
     b.classList.toggle("active", b.dataset.modul === modulKey);
   });
+  setTimeout(() => window.lucideYenile && window.lucideYenile(), 60);
 
   // Alt sekmeleri filtrele: sadece bu modülün + erişilebilir sekmeleri göster
   const tabsBar = document.querySelector(".tabs");
@@ -31494,8 +31674,166 @@ document.querySelectorAll(".tab").forEach(tab => {
         }
       }, 50);
     }
+
+    // MEB Denetim sekmesi açıldı
+    if (tab.dataset.tab === "denetim") {
+      setTimeout(() => { if (typeof denetimSekmesiAcildi === "function") denetimSekmesiAcildi(); }, 50);
+    }
   });
 });
+
+// ============ MEB DENETİM FONKSİYONLARI ============
+function denetimAnahtar(katId, idx) { return `${katId}_${idx}`; }
+
+async function denetimYukle() {
+  try {
+    const snap = await getDoc(doc(db, "ayarlar", "mebDenetim"));
+    denetimKayitlari = snap.exists() ? (snap.data().kayitlar || {}) : {};
+  } catch (e) { denetimKayitlari = {}; }
+}
+
+window.denetimSekmesiAcildi = async function() {
+  await denetimYukle();
+  denetimRender();
+};
+
+function denetimRender() {
+  const wrap = document.getElementById("denetimKategoriler");
+  if (!wrap) return;
+  let html = "";
+  DENETIM_KATEGORILERI.forEach(kat => {
+    let uygun = 0;
+    kat.maddeler.forEach((m, i) => {
+      const kayit = denetimKayitlari[denetimAnahtar(kat.id, i)];
+      if (kayit && kayit.durum === "uygun") uygun++;
+    });
+    html += `
+      <div style="background:#fff; border:1px solid #EDEEF3; border-radius:16px; margin-bottom:16px; overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:12px; padding:16px 20px; background:${kat.renk}0d; border-bottom:1px solid #EDEEF3;">
+          <span style="width:38px; height:38px; border-radius:11px; background:${kat.renk}1a; color:${kat.renk}; display:flex; align-items:center; justify-content:center;"><i data-lucide="${kat.ikon}" style="width:19px;height:19px;"></i></span>
+          <div style="flex:1;"><div style="font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink);">${kat.ad}</div></div>
+          <div style="font-size:13px; font-weight:700; color:${kat.renk};">${uygun}/${kat.maddeler.length}</div>
+        </div>
+        <div>
+          ${kat.maddeler.map((m, i) => {
+            const key = denetimAnahtar(kat.id, i);
+            const kayit = denetimKayitlari[key] || { durum: "bos" };
+            const d = DENETIM_DURUMLAR[kayit.durum] || DENETIM_DURUMLAR.bos;
+            return `
+              <div style="display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid #F5F6F9;">
+                <button onclick="denetimDurumDegis('${kat.id}',${i})" title="Durumu değiştir"
+                  style="width:30px; height:30px; border-radius:8px; border:none; cursor:pointer; flex-shrink:0; font-weight:800; font-size:14px; background:${d.bg}; color:${d.renk};">${d.et}</button>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:13.5px; color:var(--ink); line-height:1.4;">
+                    ${m.k ? `<span style="background:#FEE2E2; color:#991B1B; font-size:10px; font-weight:800; padding:1px 6px; border-radius:5px; margin-right:6px;">K</span>` : ""}${m.s.replace(/</g,"&lt;")}
+                  </div>
+                  <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">${m.kaynak !== "—" ? "📋 " + m.kaynak : ""}</div>
+                </div>
+                <span style="font-size:11px; font-weight:600; color:${d.renk}; white-space:nowrap;">${d.ad}</span>
+              </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+  });
+  wrap.innerHTML = html;
+  denetimSkorGuncelle();
+  if (window.lucideYenile) window.lucideYenile();
+}
+
+window.denetimDurumDegis = function(katId, idx) {
+  const key = denetimAnahtar(katId, idx);
+  const sira = ["bos", "uygun", "eksik", "uygulanamaz"];
+  const mevcut = (denetimKayitlari[key] && denetimKayitlari[key].durum) || "bos";
+  const yeni = sira[(sira.indexOf(mevcut) + 1) % sira.length];
+  denetimKayitlari[key] = { ...(denetimKayitlari[key] || {}), durum: yeni, tarih: new Date().toISOString() };
+  denetimRender();
+};
+
+function denetimSkorGuncelle() {
+  let toplam = 0, uygun = 0, kritikEksik = 0;
+  DENETIM_KATEGORILERI.forEach(kat => {
+    kat.maddeler.forEach((m, i) => {
+      const kayit = denetimKayitlari[denetimAnahtar(kat.id, i)];
+      const durum = (kayit && kayit.durum) || "bos";
+      if (durum === "uygulanamaz") return;
+      toplam++;
+      if (durum === "uygun") uygun++;
+      if (m.k && durum !== "uygun") kritikEksik++;
+    });
+  });
+  const yuzde = toplam > 0 ? Math.round(uygun / toplam * 100) : 0;
+  const skorEl = document.getElementById("denetimUyumSkor");
+  const uyariEl = document.getElementById("denetimKritikUyari");
+  if (skorEl) skorEl.textContent = "%" + yuzde;
+  if (uyariEl) uyariEl.innerHTML = kritikEksik > 0 ? `⚠ ${kritikEksik} kritik eksik` : "✓ Kritik madde tamam";
+}
+
+window.denetimKaydet = async function() {
+  try {
+    await setDoc(doc(db, "ayarlar", "mebDenetim"), {
+      kayitlar: denetimKayitlari,
+      guncelleyen: currentUser?.email || "",
+      guncellendi: new Date().toISOString()
+    }, { merge: true });
+    showToast("✓ Denetim durumu kaydedildi");
+  } catch (e) {
+    showToast("Kayıt hatası: " + e.message, "error");
+  }
+};
+
+window.denetimRaporCiktisi = function() {
+  const bugun = new Date().toLocaleDateString("tr-TR");
+  let toplam = 0, uygun = 0, kritikEksik = 0;
+  DENETIM_KATEGORILERI.forEach(kat => kat.maddeler.forEach((m,i) => {
+    const durum = (denetimKayitlari[denetimAnahtar(kat.id,i)]||{}).durum || "bos";
+    if (durum === "uygulanamaz") return;
+    toplam++; if (durum==="uygun") uygun++; if (m.k && durum!=="uygun") kritikEksik++;
+  }));
+  const yuzde = toplam>0 ? Math.round(uygun/toplam*100) : 0;
+
+  let html = `<html><head><meta charset="utf-8"><title>MEB Denetim Raporu</title>
+    <style>
+      body{font-family:'Segoe UI',system-ui,sans-serif; color:#1F2544; padding:32px; font-size:12px;}
+      h1{font-size:18px; color:#2B3674; margin:0 0 4px;}
+      .ust{border-bottom:2px solid #2B3674; padding-bottom:12px; margin-bottom:16px;}
+      .skor{display:inline-block; background:#EDEFFB; color:#2B3674; padding:6px 16px; border-radius:8px; font-weight:800; font-size:15px;}
+      .kat{margin:18px 0 8px; font-size:14px; font-weight:700; color:#2B3674; border-left:4px solid #2B3674; padding-left:10px;}
+      table{width:100%; border-collapse:collapse; margin-bottom:12px;}
+      td{padding:6px 8px; border-bottom:1px solid #eee; vertical-align:top;}
+      .et{width:24px; text-align:center; font-weight:800; border-radius:4px;}
+      .u{color:#2F9E63;} .e{color:#C2445A;} .n{color:#8A92A6;} .x{color:#B45309;}
+      .k{background:#FEE2E2; color:#991B1B; font-size:9px; font-weight:800; padding:1px 5px; border-radius:4px;}
+      .imza{display:flex; gap:40px; margin-top:40px;}
+      .imza div{flex:1; border-top:1px solid #333; padding-top:6px; font-size:11px; color:#666;}
+    </style></head><body>
+    <div class="ust">
+      <h1>Bir Çiçek Koleji Anaokulu — MEB Denetim Öz-Değerlendirme Raporu</h1>
+      <div style="color:#666;">MEB / Aile Bakanlığı / İSG mevzuatına göre · Tarih: ${bugun}</div>
+      <div style="margin-top:10px;"><span class="skor">Uyum Skoru: %${yuzde}</span>${kritikEksik>0?` <span style="color:#C2445A; font-weight:700; margin-left:10px;">${kritikEksik} kritik eksik</span>`:""}</div>
+    </div>`;
+
+  const durumClass = { uygun:"u", eksik:"e", bos:"n", uygulanamaz:"x" };
+  DENETIM_KATEGORILERI.forEach(kat => {
+    let ku=0; kat.maddeler.forEach((m,i)=>{ if((denetimKayitlari[denetimAnahtar(kat.id,i)]||{}).durum==="uygun") ku++; });
+    html += `<div class="kat">${kat.ad} — ${ku}/${kat.maddeler.length}</div><table>`;
+    kat.maddeler.forEach((m,i) => {
+      const durum = (denetimKayitlari[denetimAnahtar(kat.id,i)]||{}).durum || "bos";
+      const d = DENETIM_DURUMLAR[durum];
+      html += `<tr>
+        <td class="et ${durumClass[durum]}">${d.et}</td>
+        <td>${m.k?'<span class="k">K</span> ':''}${m.s}</td>
+        <td style="color:#999; white-space:nowrap;">${m.kaynak!=="—"?m.kaynak:""}</td>
+      </tr>`;
+    });
+    html += `</table>`;
+  });
+  html += `<div class="imza"><div>Hazırlayan<br>Ad Soyad / İmza</div><div>Onaylayan (Yönetici)<br>Ad Soyad / İmza</div></div>
+    <scr` + `ipt>window.onload=()=>window.print();<\/scr` + `ipt></body></html>`;
+
+  const w = window.open("", "_blank");
+  w.document.write(html);
+  w.document.close();
+};
 
 // Faz A: sayfa açılışında Özet modülü filtresini uygula (tıklama yok, sadece görünürlük)
 modulSec("ozet", false);
