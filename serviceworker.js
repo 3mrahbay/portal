@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v28";
+const CACHE_VERSION = "v29";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 // Açılışta önceden cache'lenecek temel kabuk varlıkları
