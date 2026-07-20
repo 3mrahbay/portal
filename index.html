@@ -9355,7 +9355,7 @@ i[data-lucide] svg { display: block; }
               <label>Kategori *</label>
               <select id="giderKategori">
                 <option value="">Kategori seçin</option>
-                <optgroup label="<i data-lucide="users" style="width:13px;height:13px;vertical-align:-2px;"></i> Personel">
+                <optgroup label="👥 Personel">
                   <option value="personel_ogretmen">Öğretmen Maaşı</option>
                   <option value="personel_yonetici">Yönetici/İdari</option>
                   <option value="personel_temizlik">Temizlik Görevlisi</option>
@@ -9377,7 +9377,7 @@ i[data-lucide] svg { display: block; }
                   <option value="isletme_kirtasiye">Kırtasiye/Sarf</option>
                   <option value="isletme_bakim">Bakım/Onarım</option>
                 </optgroup>
-                <optgroup label="<i data-lucide="file-text" style="width:13px;height:13px;vertical-align:-2px;"></i> Diğer">
+                <optgroup label="📝 Diğer">
                   <option value="diger_reklam">Reklam/Pazarlama</option>
                   <option value="diger_muhasebe">Muhasebe/Danışmanlık</option>
                   <option value="diger_sigorta">Sigorta</option>
@@ -11844,7 +11844,7 @@ i[data-lucide] svg { display: block; }
           <div class="section-collapsible-header" onclick="toggleSection('sec-servis')">
             <div class="section-header-left">
               <span class="section-header-arrow">▶</span>
-              <span class="section-header-title"><i data-lucide="bus" style="width:13px;height:13px;vertical-align:-2px;"></i> Servis Bilgileri</span>
+              <span class="section-header-title">🚌 Servis Bilgileri</span>
               <span class="section-badge optional">Opsiyonel</span>
             </div>
             <label class="section-sozlesme-toggle" onclick="event.stopPropagation();">
@@ -12166,7 +12166,7 @@ i[data-lucide] svg { display: block; }
           <input type="number" id="ilanKiyafet" placeholder="0" min="0" value="0">
         </div>
         <div class="ilan-ucret-card">
-          <label><i data-lucide="bus" style="width:13px;height:13px;vertical-align:-2px;"></i> Servis Ücreti (Yıllık TL)</label>
+          <label>🚌 Servis Ücreti (Yıllık TL)</label>
           <input type="number" id="ilanServis" placeholder="0" min="0" value="0">
         </div>
         <div class="ilan-ucret-card">
@@ -13396,7 +13396,7 @@ function personelListele() {
 
 // Modal: yeni personel ekleme formunu aç
 window.personelFormAc = function() {
-  document.getElementById("personelModalBaslik").innerHTML = "🧑‍<i data-lucide="school" style="width:13px;height:13px;vertical-align:-2px;"></i> Personel Ekle";
+  document.getElementById("personelModalBaslik").innerHTML = "🧑‍🏫 Personel Ekle";
   document.getElementById("personelDuzenleEmail").value = "";
   document.getElementById("personelAdSoyad").value = "";
   document.getElementById("personelEmail").value = "";
@@ -14019,7 +14019,7 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
   // Thread özetinde gösterilecek son mesaj metni
   const ozetMetin = temizMetin
     ? (temizMetin.length > 80 ? temizMetin.slice(0, 80) + "…" : temizMetin)
-    : (belgeUrl ? "<i data-lucide="file" style="width:13px;height:13px;vertical-align:-2px;"></i> Belge" : "<i data-lucide="camera" style="width:13px;height:13px;vertical-align:-2px;"></i> Fotoğraf");
+    : (belgeUrl ? "📄 Belge" : "📸 Fotoğraf");
 
   // okunmamis: email anahtarindaki nokta Firestore'da alt-alan sanildigi icin
   // dot-path yerine map'i komple guncelliyoruz (nokta bug fix — app+portal ortak).
@@ -16767,7 +16767,7 @@ function renderAdminHome() {
   if (!root) return;
   // Faz 1b: admin iç-navigasyon (eğitim takibi gerçek veri)
   if (caAdminEkran === "egitim") {
-    root.innerHTML = `<div class="ca-page ca-stack"><div class="ca-draft-banner"><i data-lucide="book-open" style="width:13px;height:13px;vertical-align:-2px;"></i> Sınıf eğitim verileri yükleniyor…</div></div>`;
+    root.innerHTML = `<div class="ca-page ca-stack"><div class="ca-draft-banner">📚 Sınıf eğitim verileri yükleniyor…</div></div>`;
     if (typeof caTemaUygula === "function") caTemaUygula();
     caAdminEgitimYukle();
     return;
@@ -18132,7 +18132,7 @@ async function dashBugunDoldur(bugunStr, ogrId) {
     }
 
     let rozetSinif = "bilgiyok";
-    let rozetMetin = "<i data-lucide="clipboard-list" style="width:13px;height:13px;vertical-align:-2px;"></i> Henüz bilgi yok";
+    let rozetMetin = "📋 Henüz bilgi yok";
     if (durum === "geldi" || durum === "var") {
       rozetSinif = "geldi";
       rozetMetin = "✅ Bugün okuldaydı";
@@ -18153,7 +18153,7 @@ async function dashBugunDoldur(bugunStr, ogrId) {
     `;
   } catch(e) {
     console.warn("Devamsızlık yüklenemedi:", e);
-    el.innerHTML = `<div class="dash-bugun-rozet bilgiyok"><i data-lucide="clipboard-list" style="width:13px;height:13px;vertical-align:-2px;"></i> Bilgi yok</div>`;
+    el.innerHTML = `<div class="dash-bugun-rozet bilgiyok">📋 Bilgi yok</div>`;
   }
 }
 
@@ -18886,7 +18886,7 @@ window.odemeBildirGonder = async function() {
 
     // Yönetime mail gönder
     const mailIcerik = portalMailSablon(
-      "<i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Ödeme Bildirimi",
+      "💳 Yeni Ödeme Bildirimi",
       `<strong>${escapeHtml(veliAd)}</strong> bir ödeme bildirdi:<br><br>
        <table style="width:100%; border-collapse:collapse; font-size:14px;">
          <tr><td style="padding:6px 0; color:#666;">Öğrenci:</td><td style="padding:6px 0;"><strong>${escapeHtml(ogr.ogrenciAdSoyad || "")}</strong> (${escapeHtml(ogr.sinif || "—")})</td></tr>
@@ -19184,9 +19184,9 @@ function getOgrenciDurum(o, ayar) {
 
 const ARSIV_SEBEPLERI = {
   mezun: "🎓 Mezun (eğitim tamamlandı)",
-  transfer: "<i data-lucide="bus" style="width:13px;height:13px;vertical-align:-2px;"></i> Transfer (başka okula)",
+  transfer: "🚌 Transfer (başka okula)",
   veli_istegi: "👨‍👩‍👧 Veli isteği (kayıt çekildi)",
-  diger: "<i data-lucide="file-text" style="width:13px;height:13px;vertical-align:-2px;"></i> Diğer"
+  diger: "📝 Diğer"
 };
 
 // Bir öğrenci arşivli mi? (her yerde tek noktadan kontrol)
@@ -19515,11 +19515,11 @@ const RESMI_TATILLER = [
 ];
 
 const TAKVIM_TIP_LABEL = {
-  etkinlik: "<i data-lucide="party-popper" style="width:13px;height:13px;vertical-align:-2px;"></i> Etkinlik",
-  toplanti: "<i data-lucide="users" style="width:13px;height:13px;vertical-align:-2px;"></i> Toplantı",
-  randevu: "<i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px;"></i> Randevu",
-  gezi: "<i data-lucide="bus" style="width:13px;height:13px;vertical-align:-2px;"></i> Gezi",
-  duyuru: "<i data-lucide="megaphone" style="width:13px;height:13px;vertical-align:-2px;"></i> Duyuru",
+  etkinlik: "🎉 Etkinlik",
+  toplanti: "👥 Toplantı",
+  randevu: "📞 Randevu",
+  gezi: "🚌 Gezi",
+  duyuru: "📢 Duyuru",
   tatil: "🏖️ Tatil"
 };
 
@@ -19668,7 +19668,7 @@ function takvimEtkinlikKartHTML(e, gosterAksiyon) {
   const aylar = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
   const tarihStr = `${tarih.getDate()} ${aylar[tarih.getMonth()]} ${tarih.getFullYear()}`;
   const saatStr = e.tumGun ? "Tüm gün" : (e.baslangicSaat ? `${e.baslangicSaat}${e.bitisSaat ? ' - ' + e.bitisSaat : ''}` : "");
-  const hedef = e.hedefTur === "tumOkul" ? "<i data-lucide="school" style="width:13px;height:13px;vertical-align:-2px;"></i> Tüm Okul"
+  const hedef = e.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
               : e.hedefTur === "sinif" ? `🏷️ ${escapeHtml(e.hedefDeger || "")}`
               : e.hedefTur === "ogrenci" ? `👤 ${escapeHtml(e.hedefOgrenciAd || "")}` : "";
 
@@ -20266,11 +20266,11 @@ window.veliTakvimEtkinlikDetay = function(id) {
 //   arsiv, olusturan, olusturuldu, guncellendi }
 
 const RANDEVU_TIP_LABEL = {
-  ogretmen_veli: "👨‍<i data-lucide="school" style="width:13px;height:13px;vertical-align:-2px;"></i> Öğretmen-Veli",
+  ogretmen_veli: "👨‍🏫 Öğretmen-Veli",
   pdr: "🧠 PDR",
   idare: "🏢 İdare",
   meslek_sunumu: "💼 Meslek Sunumu",
-  diger: "<i data-lucide="pin" style="width:13px;height:13px;vertical-align:-2px;"></i> Diğer"
+  diger: "📌 Diğer"
 };
 
 let randevuSlotlari = [];
@@ -20392,7 +20392,7 @@ async function randevuListesiRender() {
 function randevuSlotSatirHTML(s, gecmis) {
   const durum = s.durum || "musait";
   const tip = s.tip || "diger";
-  const tipLabel = (tip === "diger" && s.tipAciklama) ? `📌 ${escapeHtml(s.tipAciklama)}` : RANDEVU_TIP_LABEL[tip] || "<i data-lucide="pin" style="width:13px;height:13px;vertical-align:-2px;"></i> Slot";
+  const tipLabel = (tip === "diger" && s.tipAciklama) ? `📌 ${escapeHtml(s.tipAciklama)}` : RANDEVU_TIP_LABEL[tip] || "📌 Slot";
   const saat = `${s.baslangicSaat || "—"} - ${s.bitisSaat || "—"}`;
 
   const ogretmenInfo = s.ogretmenAd ? `<span>👤 ${escapeHtml(s.ogretmenAd)}</span>` : "";
@@ -20466,7 +20466,7 @@ window.randevuYonetimMesajlas = async function(slotId) {
     });
 
     // Otomatik bir başlangıç mesajı önerisi (gönderilmez, sadece pano açma)
-    const baslamaIpucu = `<i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px;"></i> Randevu: ${s.tarih} ${s.baslangicSaat}-${s.bitisSaat}\n${s.tip === "meslek_sunumu" ? "Konu: Meslek Sunumu" : ""}`;
+    const baslamaIpucu = `📞 Randevu: ${s.tarih} ${s.baslangicSaat}-${s.bitisSaat}\n${s.tip === "meslek_sunumu" ? "Konu: Meslek Sunumu" : ""}`;
     showToast("Mesajlaşma açılıyor...");
 
     // Bağımsız Mesajlaşma modülüne geç
@@ -20490,7 +20490,7 @@ window.randevuSlotModalAc = function(slotId) {
   if (slotId) {
     const s = randevuSlotlari.find(x => x.id === slotId);
     if (!s) { showToast("Slot bulunamadı", "error"); return; }
-    document.getElementById("randevuSlotModalBaslik").innerHTML = `<i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px;"></i> Randevu Slot — Düzenle`; window.lucideYenile && window.lucideYenile();
+    document.getElementById("randevuSlotModalBaslik").innerHTML = `📞 Randevu Slot — Düzenle`; window.lucideYenile && window.lucideYenile();
     document.getElementById("randevuSlotTip").value = s.tip || "ogretmen_veli";
     document.getElementById("randevuSlotDigerAd").value = s.tipAciklama || "";
     document.getElementById("randevuSlotTarih").value = s.tarih || "";
@@ -20506,7 +20506,7 @@ window.randevuSlotModalAc = function(slotId) {
     }
     document.getElementById("randevuSlotSilBtn").style.display = "inline-block";
   } else {
-    document.getElementById("randevuSlotModalBaslik").innerHTML = `<i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Randevu Slot`; window.lucideYenile && window.lucideYenile();
+    document.getElementById("randevuSlotModalBaslik").innerHTML = `📞 Yeni Randevu Slot`; window.lucideYenile && window.lucideYenile();
     document.getElementById("randevuSlotTip").value = "ogretmen_veli";
     document.getElementById("randevuSlotDigerAd").value = "";
     document.getElementById("randevuSlotTarih").value = new Date().toISOString().slice(0,10);
@@ -20949,7 +20949,7 @@ function veliRandevuKartHTML(s, benim) {
   const tip = s.tip || "diger";
   const tipLabel = (tip === "diger" && s.tipAciklama)
     ? `📌 ${escapeHtmlGelisim(s.tipAciklama)}`
-    : RANDEVU_TIP_LABEL[tip] || "<i data-lucide="pin" style="width:13px;height:13px;vertical-align:-2px;"></i> Slot";
+    : RANDEVU_TIP_LABEL[tip] || "📌 Slot";
 
   const ogretmenInfo = s.ogretmenAd ? `<span>👤 ${escapeHtmlGelisim(s.ogretmenAd)}</span>` : "";
   const konumInfo = s.konum ? `<span>📍 ${escapeHtmlGelisim(s.konum)}</span>` : "";
@@ -20995,7 +20995,7 @@ window.veliSlotRezerveModalAc = function(slotId) {
   const tip = s.tip || "diger";
   const tipLabel = (tip === "diger" && s.tipAciklama)
     ? `📌 ${escapeHtmlGelisim(s.tipAciklama)}`
-    : RANDEVU_TIP_LABEL[tip] || "<i data-lucide="pin" style="width:13px;height:13px;vertical-align:-2px;"></i> Slot";
+    : RANDEVU_TIP_LABEL[tip] || "📌 Slot";
 
   // Tarih güzel format
   const tarih = new Date(s.tarih);
@@ -21185,7 +21185,7 @@ window.veliSlotRezerveEt = async function(slotId) {
   } catch (e) {
     console.error("Rezervasyon hatası:", e);
     btn.disabled = false;
-    btn.innerHTML = "<i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px;"></i> Randevu Al";
+    btn.innerHTML = "📞 Randevu Al";
     showToast(e.message || "Rezervasyon başarısız", "error");
     // Sayfayı yenile ki güncel durumu görsün
     if (e.message && e.message.includes("dolu")) {
@@ -21204,7 +21204,7 @@ window.veliRandevuDetayAc = function(slotId, benim) {
   const tip = s.tip || "diger";
   const tipLabel = (tip === "diger" && s.tipAciklama)
     ? `📌 ${escapeHtmlGelisim(s.tipAciklama)}`
-    : RANDEVU_TIP_LABEL[tip] || "<i data-lucide="pin" style="width:13px;height:13px;vertical-align:-2px;"></i> Slot";
+    : RANDEVU_TIP_LABEL[tip] || "📌 Slot";
 
   const tarih = new Date(s.tarih);
   const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
@@ -22671,10 +22671,10 @@ const GIDER_KATEGORILERI = {
 };
 
 const GIDER_GRUP_ADLARI = {
-  personel: "<i data-lucide="users" style="width:13px;height:13px;vertical-align:-2px;"></i> Personel",
+  personel: "👥 Personel",
   sabit:    "🏠 Sabit Giderler",
   isletme:  "🍽️ İşletme",
-  diger:    "<i data-lucide="file-text" style="width:13px;height:13px;vertical-align:-2px;"></i> Diğer"
+  diger:    "📝 Diğer"
 };
 
 async function loadFinansalData() {
@@ -22901,7 +22901,7 @@ async function renderDuyurular() {
   let html = `<div style="display:flex; flex-direction:column; gap:12px;">`;
   for (const d of liste) {
     const st = aciliyetStilleri[d.aciliyet] || aciliyetStilleri.normal;
-    const hedefLabel = d.hedefTur === "tumOkul" ? "<i data-lucide="school" style="width:13px;height:13px;vertical-align:-2px;"></i> Tüm Okul"
+    const hedefLabel = d.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
       : d.hedefTur === "sinif" ? `👥 ${escapeHtml(d.hedefDeger)}`
       : `👤 ${escapeHtml(d.hedefOgrenciAd || d.hedefDeger)}`;
     const tarih = d.olusturuldu ? new Date(d.olusturuldu).toLocaleString("tr-TR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
@@ -22946,7 +22946,7 @@ async function renderDuyurular() {
 // Modal aç
 window.openDuyuruModal = function() {
   document.getElementById("duyuruModal").classList.add("active");
-  document.getElementById("duyuruModalBaslik").innerHTML = `<i data-lucide="file-text" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Duyuru`; window.lucideYenile && window.lucideYenile();
+  document.getElementById("duyuruModalBaslik").innerHTML = `📝 Yeni Duyuru`; window.lucideYenile && window.lucideYenile();
   document.getElementById("duyuruDuzenleId").value = "";
   document.getElementById("duyuruBaslik").value = "";
   document.getElementById("duyuruIcerik").value = "";
@@ -23095,7 +23095,7 @@ async function duyuruMailGonder(data) {
       return;
     }
 
-    const aciliyetLabels = { normal: "<i data-lucide="megaphone" style="width:13px;height:13px;vertical-align:-2px;"></i> Duyuru", onemli: "⚠️ Önemli Duyuru", acil: "🚨 Acil Duyuru" };
+    const aciliyetLabels = { normal: "📢 Duyuru", onemli: "⚠️ Önemli Duyuru", acil: "🚨 Acil Duyuru" };
     const aciliyetRenk = { normal: "#eab308", onemli: "#f59e0b", acil: "#dc2626" };
     const konu = `${aciliyetLabels[data.aciliyet] || '<i data-lucide="megaphone" style="width:13px;height:13px;vertical-align:-2px;"></i> Duyuru'}: ${data.baslik}`;
 
@@ -23473,7 +23473,7 @@ async function renderEtkinlikler() {
     const etkinlikTarih = e.tarih ? new Date(e.tarih) : null;
     const gecmisMi = etkinlikTarih && etkinlikTarih < bugun;
     const buGunMu = etkinlikTarih && isoTarih(etkinlikTarih) === isoTarih(bugun);
-    const hedefLabel = e.hedefTur === "tumOkul" ? "<i data-lucide="school" style="width:13px;height:13px;vertical-align:-2px;"></i> Tüm Okul" : `👥 ${escapeHtml(e.hedefDeger)}`;
+    const hedefLabel = e.hedefTur === "tumOkul" ? "🏫 Tüm Okul" : `👥 ${escapeHtml(e.hedefDeger)}`;
 
     const tarihStr = etkinlikTarih ? etkinlikTarih.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "Tarih yok";
     const saatStr = e.baslangicSaat ? (e.bitisSaat ? `${e.baslangicSaat} - ${e.bitisSaat}` : e.baslangicSaat) : "";
@@ -23509,7 +23509,7 @@ async function renderEtkinlikler() {
 
 window.openEtkinlikModal = function() {
   document.getElementById("etkinlikModal").classList.add("active");
-  document.getElementById("etkinlikModalBaslik").innerHTML = `<i data-lucide="calendar" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Etkinlik`; window.lucideYenile && window.lucideYenile();
+  document.getElementById("etkinlikModalBaslik").innerHTML = `📅 Yeni Etkinlik`; window.lucideYenile && window.lucideYenile();
   document.getElementById("etkinlikDuzenleId").value = "";
   document.getElementById("etkinlikBaslik").value = "";
   document.getElementById("etkinlikKategori").value = "gezi";
@@ -23603,7 +23603,7 @@ window.kaydetEtkinlik = async function() {
 
 async function etkinlikMailGonder(data) {
   try {
-    const kategoriLabels = { gezi: "<i data-lucide="bus" style="width:13px;height:13px;vertical-align:-2px;"></i> Gezi", kutlama: "<i data-lucide="party-popper" style="width:13px;height:13px;vertical-align:-2px;"></i> Kutlama", toplanti: "<i data-lucide="users" style="width:13px;height:13px;vertical-align:-2px;"></i> Veli Toplantısı", atolye: "🎨 Atölye", diger: "<i data-lucide="pin" style="width:13px;height:13px;vertical-align:-2px;"></i> Etkinlik" };
+    const kategoriLabels = { gezi: "🚌 Gezi", kutlama: "🎉 Kutlama", toplanti: "👥 Veli Toplantısı", atolye: "🎨 Atölye", diger: "📌 Etkinlik" };
     const hedefMailler = [];
     for (const o of ogrenciList) {
       if (getOgrenciDurum(o, ayarListesi[o.id]) !== "aktif") continue;
@@ -23899,7 +23899,7 @@ async function devamsizlikVeliMail(ogrenciId) {
 window.acDevamsizlikNot = function(ogrenciId) {
   const ogr = ogrenciList.find(o => o.id === ogrenciId);
   const mevcut = ((aktifDevamsizlikVerisi?.kayitlar || {})[ogrenciId] || {}).not || "";
-  document.getElementById("devamsizlikNotBaslik").innerHTML = `<i data-lucide="file-text" style="width:13px;height:13px;vertical-align:-2px;"></i> Not: ${ogr?.ogrenciAdSoyad || ""}`; window.lucideYenile && window.lucideYenile();
+  document.getElementById("devamsizlikNotBaslik").innerHTML = `📝 Not: ${ogr?.ogrenciAdSoyad || ""}`; window.lucideYenile && window.lucideYenile();
   document.getElementById("devamsizlikNotOgrenciId").value = ogrenciId;
   document.getElementById("devamsizlikNotMetin").value = mevcut;
   document.getElementById("devamsizlikNotModal").classList.add("active");
@@ -27099,7 +27099,7 @@ async function renderGaleri() {
 
   let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
   for (const grup of gruplarDizi) {
-    const hedefLabel = grup.hedefTur === "tumOkul" ? "<i data-lucide="school" style="width:13px;height:13px;vertical-align:-2px;"></i> Tüm Okul"
+    const hedefLabel = grup.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
       : grup.hedefTur === "sinif" ? `👥 ${escapeHtml(grup.hedefDeger)}`
       : `👤 ${escapeHtml(grup.hedefOgrenciAd || grup.hedefDeger || "")}`;
 
@@ -28084,7 +28084,7 @@ function renderVeliGaleri() {
 
   let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
   for (const grup of gruplarDizi) {
-    const hedefLabel = grup.hedefTur === "tumOkul" ? "<i data-lucide="school" style="width:13px;height:13px;vertical-align:-2px;"></i> Tüm Okul"
+    const hedefLabel = grup.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
       : grup.hedefTur === "sinif" ? `👥 ${escapeHtml(grup.hedefDeger)}`
       : `⭐ Size Özel`;
 
@@ -29981,7 +29981,7 @@ async function veliRenderBildirimler() {
         `;
       } else if (b._tip === "duyuru") {
         const stil = duyuruStilleri[b.aciliyet] || duyuruStilleri.normal;
-        const hedefLabel = b.hedefTur === "tumOkul" ? "<i data-lucide="school" style="width:13px;height:13px;vertical-align:-2px;"></i> Tüm Okul"
+        const hedefLabel = b.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
           : b.hedefTur === "sinif" ? `👥 ${escapeHtml(b.hedefDeger)}`
           : `👤 ${escapeHtml(b.hedefOgrenciAd || "")}`;
 
@@ -30179,12 +30179,12 @@ async function veliRenderEtkinlikListesi() {
       const st = kategoriStilleri[e.kategori] || kategoriStilleri.diger;
       const etkinlikTarih = new Date(e.tarih);
       const buGunMu = isoTarih(etkinlikTarih) === isoTarih(bugun);
-      const hedefLabel = e.hedefTur === "tumOkul" ? "<i data-lucide="school" style="width:13px;height:13px;vertical-align:-2px;"></i> Tüm Okul" : `👥 ${escapeHtml(e.hedefDeger)}`;
+      const hedefLabel = e.hedefTur === "tumOkul" ? "🏫 Tüm Okul" : `👥 ${escapeHtml(e.hedefDeger)}`;
 
       // Kalan gün hesabı
       const kalanGun = Math.round((etkinlikTarih - bugun) / (1000 * 60 * 60 * 24));
       let zamanEtiketi = "";
-      if (buGunMu) zamanEtiketi = "<i data-lucide="map-pin" style="width:13px;height:13px;vertical-align:-2px;"></i> BUGÜN";
+      if (buGunMu) zamanEtiketi = "📍 BUGÜN";
       else if (kalanGun === 1) zamanEtiketi = "⏰ YARIN";
       else if (kalanGun <= 7) zamanEtiketi = `⏰ ${kalanGun} gün sonra`;
 
@@ -31320,7 +31320,7 @@ function updateRaporMetrikler(d) {
   document.getElementById("raporGecikenSayi").textContent = d.gecikenSayi;
   document.getElementById("raporGecikenAlt").textContent = d.gecikenSayi > 0
     ? `${d.gecikenSayi} öğrencide geciken ödeme`
-    : "<i data-lucide="party-popper" style="width:13px;height:13px;vertical-align:-2px;"></i> Geciken yok!";
+    : "🎉 Geciken yok!";
 }
 
 function renderRaporTrendChart(d) {
@@ -31496,7 +31496,7 @@ function renderRaporGecikenListe(d) {
   if (!container) return;
 
   if (d.gecikenOgrenciler.length === 0) {
-    container.innerHTML = '<div class="rapor-empty"><i data-lucide="party-popper" style="width:13px;height:13px;vertical-align:-2px;"></i> Geciken öğrenci yok — Harika iş!</div>';
+    container.innerHTML = '<div class="rapor-empty">🎉 Geciken öğrenci yok — Harika iş!</div>';
     return;
   }
 
