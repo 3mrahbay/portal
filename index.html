@@ -1112,6 +1112,10 @@ html, body {
 /* Genel Lucide ikon hizalama */
 [data-lucide] { display: inline-flex; vertical-align: middle; }
 i[data-lucide] svg { display: block; }
+/* KPI/panel ikon kutularında Lucide ortalama */
+.kpi-ikon i[data-lucide], .kpi-ikon-dark i[data-lucide] { width: 17px; height: 17px; }
+.kpi-ikon svg, .kpi-ikon-dark svg { width: 17px; height: 17px; }
+.ozet-panel-head i[data-lucide] svg { width: 16px; height: 16px; }
 .side-ad { flex: 1; }
 .modul-rozet {
   background: #E5484D; color: #fff;
@@ -16779,6 +16783,8 @@ function renderAdminHome() {
     setTimeout(hbEgitimDoldur, 120);
     setTimeout(hbOgretmenDoldur, 90);
   }
+  // Lucide ikonlarını render et (dinamik innerHTML sonrası — widget geç dolabilir)
+  if (window.lucideYenile) { setTimeout(window.lucideYenile, 40); setTimeout(window.lucideYenile, 250); }
 }
 
 // Öğretmen Durumu widget'ını gerçek personel verisiyle doldur
@@ -17398,7 +17404,7 @@ function yonetimHomeHTML(ad) {
         <!-- Toplam Öğrenci (koyu vurgu kart) -->
         <div class="kpi-kart kpi-dark">
           <div class="kpi-head">
-            <span class="kpi-ikon-dark">👥</span>
+            <span class="kpi-ikon-dark"><i data-lucide="users" style="width:17px;height:17px;"></i></span>
             <span class="kpi-baslik-dark">Toplam Öğrenci</span>
             <span class="kpi-more">···</span>
           </div>
@@ -17415,7 +17421,7 @@ function yonetimHomeHTML(ad) {
         <!-- Aidat Tahsilatı -->
         <div class="kpi-kart">
           <div class="kpi-head">
-            <span class="kpi-ikon" style="background:#E9EBF4;">📋</span>
+            <span class="kpi-ikon" style="background:#E9EBF4;"><i data-lucide="receipt-text" style="width:17px;height:17px;"></i></span>
             <span class="kpi-baslik">Aidat Tahsilatı</span>
             <span class="kpi-more">···</span>
           </div>
@@ -17431,7 +17437,7 @@ function yonetimHomeHTML(ad) {
         <!-- Sınıf Doluluğu -->
         <div class="kpi-kart">
           <div class="kpi-head">
-            <span class="kpi-ikon" style="background:#FDECEF;">🏫</span>
+            <span class="kpi-ikon" style="background:#FDECEF;"><i data-lucide="school" style="width:17px;height:17px;"></i></span>
             <span class="kpi-baslik">Sınıf Doluluğu</span>
             <span class="kpi-more">···</span>
           </div>
@@ -17451,7 +17457,7 @@ function yonetimHomeHTML(ad) {
         <!-- Başvuru / Randevu -->
         <div class="kpi-kart">
           <div class="kpi-head">
-            <span class="kpi-ikon" style="background:#FCF7E1;">📅</span>
+            <span class="kpi-ikon" style="background:#FCF7E1;"><i data-lucide="calendar-clock" style="width:17px;height:17px;"></i></span>
             <span class="kpi-baslik">Ön Kayıt & Talep</span>
             <span class="kpi-more">···</span>
           </div>
@@ -17471,7 +17477,7 @@ function yonetimHomeHTML(ad) {
         <div class="ozet-panel">
           <div class="ozet-panel-head">
             <div>
-              <span style="font-size:16px;">📈</span>
+              <span style="font-size:16px; display:inline-flex;"><i data-lucide="trending-up" style="width:16px;height:16px;"></i></span>
               <span class="ozet-panel-baslik">Gelir & Tahsilat Özeti</span>
             </div>
             <span class="ozet-panel-etiket">Son ${grafikAylar.length || 6} ay</span>
@@ -17502,7 +17508,7 @@ function yonetimHomeHTML(ad) {
               <div class="ozet-gunplan-satir"><span>● ${(yaklasanEtkinlik.baslik||"Etkinlik").replace(/</g,"&lt;")}</span><span class="ozet-gunplan-saat">${yaklasanEtkinlik.baslangicSaat||""}</span></div>
               <div style="font-size:11.5px; color:rgba(255,255,255,0.6); margin-top:4px;">${etkTarihStr}</div>
             ` : `<div style="font-size:12.5px; color:rgba(255,255,255,0.65);">Bugün için planlı etkinlik yok.</div>`}
-            <button class="ozet-gunplan-btn" onclick="adminGotoTab('icerik')">+ Etkinlik Ekle</button>
+            <button class="ozet-gunplan-btn" onclick="adminGotoTab('icerik')"><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Etkinlik Ekle</button>
           </div>
         </div>
       </div>
@@ -17513,7 +17519,7 @@ function yonetimHomeHTML(ad) {
         <!-- Sınıf Dağılımı (donut) -->
         <div class="ozet-panel">
           <div class="ozet-panel-head">
-            <div><span style="font-size:16px;">🏫</span><span class="ozet-panel-baslik">Sınıf Dağılımı</span></div>
+            <div><span style="font-size:16px; display:inline-flex;"><i data-lucide="pie-chart" style="width:16px;height:16px;"></i></span><span class="ozet-panel-baslik">Sınıf Dağılımı</span></div>
             <span class="kpi-more">···</span>
           </div>
           <div class="ozet-donut-wrap">
@@ -17530,7 +17536,7 @@ function yonetimHomeHTML(ad) {
         <!-- Öğretmen Durumu -->
         <div class="ozet-panel">
           <div class="ozet-panel-head">
-            <div><span style="font-size:16px;">🧑‍🏫</span><span class="ozet-panel-baslik">Öğretmen Durumu</span></div>
+            <div><span style="font-size:16px; display:inline-flex;"><i data-lucide="users-round" style="width:16px;height:16px;"></i></span><span class="ozet-panel-baslik">Öğretmen Durumu</span></div>
             <span class="kpi-more">···</span>
           </div>
           <div class="ozet-ogr-durum" id="hbOgretmenSayac">
@@ -17546,7 +17552,7 @@ function yonetimHomeHTML(ad) {
         <!-- Bugünkü Görüşmeler -->
         <div class="ozet-panel">
           <div class="ozet-panel-head">
-            <div><span style="font-size:16px;">💬</span><span class="ozet-panel-baslik">Son Kayıtlar</span></div>
+            <div><span style="font-size:16px; display:inline-flex;"><i data-lucide="user-plus" style="width:16px;height:16px;"></i></span><span class="ozet-panel-baslik">Son Kayıtlar</span></div>
             <span class="kpi-more">···</span>
           </div>
           ${sonKayitlarHTML}
