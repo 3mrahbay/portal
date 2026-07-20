@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Albert+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- Yeni tasarım dili (Bir Çiçek mobil app prototipi) — Quicksand + DM Sans -->
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- PWA: kurulabilir mobil app -->
@@ -20,30 +20,30 @@
 <link rel="apple-touch-icon" href="okul_logo.png">
 <style>
 :root {
-  --green-deep: #12291d;
-  --green-primary: #1c4632;
-  --green-medium: #3d8a5f;
-  --green-light: #bfdcc9;
-  --green-mist: #e3e7e1;
-  --cream: #faf7f0;
-  --warm-white: #f6f4ee;
-  --earth: #8a8577;
-  --sand: #f5efe2;
-  --ink: #26362b;
-  --ink-soft: #4a5548;
-  --gray-500: #7a8177;
-  --gray-300: #c9d0c9;
-  --gray-100: #f2f4f1;
-  --red: #dc2626;
-  --amber: #d9a441;
-  --blue: #2563eb;
+  --green-deep: #1F2544;
+  --green-primary: #2B3674;
+  --green-medium: #5A6ACF;
+  --green-light: #C9D1F0;
+  --green-mist: #E9EBF4;
+  --cream: #FFFFFF;
+  --warm-white: #F7F8FC;
+  --earth: #8A92A6;
+  --sand: #F4F5F9;
+  --ink: #1F2544;
+  --ink-soft: #4A5169;
+  --gray-500: #8A92A6;
+  --gray-300: #D8DCE9;
+  --gray-100: #F1F2F7;
+  --red: #E5484D;
+  --amber: #F0B429;
+  --blue: #5A6ACF;
 
-  --font-display: 'Instrument Serif', 'Fraunces', Georgia, serif;
-  --font-body: 'Albert Sans', 'Manrope', -apple-system, sans-serif;
+  --font-display: 'Inter', 'Albert Sans', -apple-system, sans-serif;
+  --font-body: 'Inter', 'Albert Sans', -apple-system, sans-serif;
 
-  --shadow-sm: 0 4px 14px rgba(28, 70, 50, 0.07);
-  --shadow-md: 0 12px 28px rgba(28, 70, 50, 0.12);
-  --shadow-lg: 0 20px 48px rgba(28, 70, 50, 0.18);
+  --shadow-sm: 0 2px 8px rgba(30, 41, 90, 0.06);
+  --shadow-md: 0 8px 22px rgba(30, 41, 90, 0.09);
+  --shadow-lg: 0 18px 40px rgba(30, 41, 90, 0.14);
 
   --radius-sm: 10px;
   --radius-md: 18px;
@@ -55,7 +55,7 @@
 html, body {
   font-family: var(--font-body);
   color: var(--ink);
-  background: #f5efe2; /* Premium krem zemin (görsel referans) */
+  background: #F4F5F9; /* Premium krem zemin (görsel referans) */
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -1081,58 +1081,52 @@ html, body {
 }
 
 /* Tabs */
-/* ============ 7 MODÜLLÜ ANA NAVİGASYON ============ */
-.modul-bar {
-  display: flex;
-  gap: 6px;
-  padding: 6px;
-  background: linear-gradient(135deg, #12291d, #1c4632 60%, #26543a);
-  border-radius: 18px;
-  margin-bottom: 14px;
-  box-shadow: 0 6px 18px rgba(29, 77, 51, 0.24);
-  overflow-x: auto;
-  scrollbar-width: thin;
+/* ============ CRM SOL SIDEBAR ============ */
+.crm-sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0;
+  width: 232px; z-index: 60;
+  background: #FFFFFF;
+  border-right: 1px solid #E9EBF4;
+  padding: 84px 12px 20px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px;
 }
-.modul-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 16px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 100px;
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: .01em;
-  color: rgba(255,255,255,0.85);
-  cursor: pointer;
-  transition: all .18s ease;
-  white-space: nowrap;
-  position: relative;
+.side-kategori {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .09em;
+  color: #8A92A6; padding: 14px 12px 6px;
 }
-.modul-btn:hover {
-  background: rgba(255,255,255,0.18);
-  color: #fff;
-  transform: translateY(-1px);
+.side-grup { display: flex; flex-direction: column; gap: 2px; }
+.side-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border: none; border-radius: 10px;
+  background: transparent; color: #4A5169;
+  font-family: var(--font-body); font-weight: 600; font-size: 13.5px;
+  cursor: pointer; transition: all .14s ease; text-align: left; width: 100%;
 }
-.modul-btn.active {
-  background: #faf7f0;
-  color: #12291d;
-  border-color: #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
-}
-.modul-btn .modul-ikon { font-size: 15px; line-height: 1; }
+.side-item:hover { background: #F1F2F7; color: #1F2544; }
+.side-item.active { background: #EDEFFB; color: #2B3674; box-shadow: inset 3px 0 0 #5A6ACF; }
+.side-ikon { font-size: 16px; width: 22px; text-align: center; }
+.side-ad { flex: 1; }
 .modul-rozet {
-  background: #E11D48; color: #fff;
+  background: #E5484D; color: #fff;
   font-size: 10.5px; font-weight: 800;
   border-radius: 999px; padding: 1px 7px;
-  margin-left: 2px;
 }
-@media (max-width: 640px) {
-  .modul-btn { padding: 9px 12px; font-size: 12px; }
-  .modul-btn .modul-ad { display: none; }
-  .modul-btn.active .modul-ad { display: inline; }
+/* İçerik alanı sidebar'a yer açar */
+#dashboard .dash-header { margin-left: 232px; }
+#dashboard .dash-container { margin-left: 232px; }
+@media (max-width: 900px) {
+  .crm-sidebar {
+    position: static; width: auto; padding: 8px;
+    flex-direction: row; overflow-x: auto; gap: 6px;
+    border-right: none; border-bottom: 1px solid #E9EBF4;
+    border-radius: 12px; margin-bottom: 12px;
+  }
+  .side-kategori { display: none; }
+  .side-grup { flex-direction: row; gap: 6px; }
+  .side-item { white-space: nowrap; padding: 9px 12px; }
+  .side-item.active { box-shadow: none; }
+  #dashboard .dash-header, #dashboard .dash-container { margin-left: 0; }
 }
 /* Alt sekme barı yumuşak görünüm */
 .tabs.tek-sekmeli { display: none; }
@@ -7175,7 +7169,7 @@ html, body {
 }
 .personel-hero-ikon {
   width: 56px; height: 56px;
-  background: linear-gradient(135deg, #2e5339, #3d8a5f);
+  background: linear-gradient(135deg, #2e5339, #5A6ACF);
   border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
   font-size: 28px; flex-shrink: 0;
@@ -7229,7 +7223,7 @@ html, body {
 .personel-kart-ust { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .personel-kart-avatar {
   width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
-  background: linear-gradient(135deg, #2e5339, #3d8a5f);
+  background: linear-gradient(135deg, #2e5339, #5A6ACF);
   color: white; display: flex; align-items: center; justify-content: center;
   font-size: 18px; font-weight: 700;
 }
@@ -7372,7 +7366,7 @@ html, body {
 .mesaj-thread-item.aktif { background: #fce7f3; }
 .mesaj-thread-avatar {
   width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg,#2e5339,#3d8a5f); color: white;
+  background: linear-gradient(135deg,#2e5339,#5A6ACF); color: white;
   display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;
 }
 .mesaj-thread-bilgi { flex: 1; min-width: 0; }
@@ -7406,7 +7400,7 @@ html, body {
 }
 .mesaj-sohbet-avatar {
   width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg,#2e5339,#3d8a5f); color: white;
+  background: linear-gradient(135deg,#2e5339,#5A6ACF); color: white;
   display: flex; align-items: center; justify-content: center; font-weight: 700;
 }
 .mesaj-sohbet-ad { font-weight: 700; font-size: 15px; color: #1f2937; }
@@ -7421,7 +7415,7 @@ html, body {
 }
 .mesaj-balon-meta { font-size: 10px; opacity: 0.7; margin-top: 3px; text-align: right; }
 .mesaj-balon.giden {
-  align-self: flex-end; background: linear-gradient(135deg,#2e5339,#3d8a5f); color: white;
+  align-self: flex-end; background: linear-gradient(135deg,#2e5339,#5A6ACF); color: white;
   border-bottom-right-radius: 4px;
 }
 .mesaj-balon.gelen {
@@ -7444,7 +7438,7 @@ html, body {
 .mesaj-sohbet-giris textarea:focus { outline: none; border-color: #2e5339; }
 .mesaj-gonder-btn {
   width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg,#2e5339,#3d8a5f); color: white; border: none;
+  background: linear-gradient(135deg,#2e5339,#5A6ACF); color: white; border: none;
   font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .mesaj-gonder-btn:hover { opacity: 0.9; }
@@ -7506,31 +7500,31 @@ html, body {
 <style id="cicek-app-theme">
 .cicek-app {
   /* Renkler — Premium Yorum tasarım dili */
-  --c-green:        #1c4632;  /* marka orman yeşili */
-  --c-green-deep:   #12291d;
-  --c-green-light:  #3d8a5f;
-  --c-green-mid:    #26543a;  /* hero gradient üst tonu */
+  --c-green:        #2B3674;  /* marka orman yeşili */
+  --c-green-deep:   #1F2544;
+  --c-green-light:  #5A6ACF;
+  --c-green-mid:    #3D4C7A;  /* hero gradient üst tonu */
   --c-pink-soft:    #f7dce8;  --c-pink-deep:   #e8a0c0;
-  --c-yellow-soft:  #f6e899;  --c-yellow-deep: #d9a441;
+  --c-yellow-soft:  #FCEFC7;  --c-yellow-deep: #F0B429;
   --c-blue-soft:    #CDE7F5;  --c-blue-deep:   #8FC8E5;
   --c-purple-soft:  #E2D7F8;  --c-purple-deep: #B8A0E8;
-  --c-peach-soft:   #f3d3c2;  --c-peach-deep:  #c96f4a;
+  --c-peach-soft:   #E8ECFB;  --c-peach-deep:  #5A6ACF;
   /* Metin */
-  --c-ink:    #26362b;   /* koyu başlık */
-  --c-body:   #4a5548;   /* gövde */
-  --c-muted:  #7a8177;   /* soluk */
+  --c-ink:    #1F2544;   /* koyu başlık */
+  --c-body:   #4A5169;   /* gövde */
+  --c-muted:  #8A92A6;   /* soluk */
   /* Yüzeyler */
-  --c-surface: #fdfcf8;
-  --c-tint:    #f6f4ee;  /* açık krem kart zemini */
-  --c-border:  #e3e7e1;
-  --c-bg:      #f5efe2;
+  --c-surface: #FFFFFF;
+  --c-tint:    #F7F8FC;  /* açık krem kart zemini */
+  --c-border:  #E9EBF4;
+  --c-bg:      #F4F5F9;
   /* Form */
   --c-radius:  20px;
   --c-radius-sm: 12px;
   --c-shadow:  0 12px 28px rgba(28,70,50,0.10), 0 4px 10px rgba(28,70,50,0.06);
   --c-shadow-lg: 0 24px 50px rgba(28,70,50,0.15);
-  --c-font-head: "Albert Sans", "Quicksand", system-ui, sans-serif;
-  --c-font-body: "Albert Sans", "DM Sans", system-ui, sans-serif;
+  --c-font-head: "Inter", system-ui, sans-serif;
+  --c-font-body: "Inter", system-ui, sans-serif;
 
   font-family: var(--c-font-body);
   color: var(--c-body);
@@ -7556,23 +7550,23 @@ html, body {
 .cicek-app .ca-card.tint { background: var(--c-tint); }
 
 /* ============ PREMIUM TASARIM (görsel referans) ============ */
-.cicek-app .ca-serif { font-family: var(--font-display) !important; font-weight: 500; letter-spacing: 0; }
+.cicek-app .ca-serif { font-family: 'Inter', sans-serif !important; font-weight: 700; letter-spacing: -0.02em; }
 .cicek-app .ca-card-lavender {
-  background: linear-gradient(150deg, #f6e899 0%, #f0dcae 60%, #f5efe2 100%);
+  background: linear-gradient(150deg, #FCEFC7 0%, #F7E6B5 60%, #F4F5F9 100%);
   border: none; border-radius: var(--c-radius);
   padding: 22px; color: var(--c-ink);
   display: flex; flex-direction: column; gap: 10px;
 }
 .cicek-app .ca-lav-rozet {
   display: inline-flex; padding: 7px 16px; border-radius: 999px;
-  background: #d9a441; color: #12291d; font-size: 13px; font-weight: 700;
+  background: #F0B429; color: #1F2544; font-size: 13px; font-weight: 700;
 }
 .cicek-app .ca-lav-pill {
   display: inline-flex; padding: 7px 16px; border-radius: 999px;
   background: #fff; color: var(--c-ink); font-size: 13px; font-weight: 600;
 }
 .cicek-app .ca-card-cocoa {
-  background: linear-gradient(160deg, #a6512f 0%, #c96f4a 100%);
+  background: linear-gradient(160deg, #4553B8 0%, #5A6ACF 100%);
   border: none; border-radius: var(--c-radius);
   padding: 24px; color: #fff;
   display: flex; flex-direction: column; min-height: 220px;
@@ -7593,7 +7587,7 @@ html, body {
 .cicek-app .ca-hizli-ikon {
   width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px; background: #e3e7e1;
+  font-size: 16px; background: #E9EBF4;
 }
 .cicek-app .ca-hizli-ad { font-weight: 700; color: var(--c-ink); font-size: 13.5px; white-space: nowrap; }
 .cicek-app .ca-hizli-sub { font-size: 12.5px; color: var(--c-muted); margin-top: 2px; }
@@ -7654,7 +7648,7 @@ html, body {
 .cicek-app .ca-btn {
   font-family: var(--c-font-head); font-weight: 700; font-size: 14px;
   border: none; border-radius: 100px; padding: 12px 22px; cursor: pointer;
-  background: var(--c-green); color: #faf7f0; transition: filter .15s ease;
+  background: var(--c-green); color: #FFFFFF; transition: filter .15s ease;
 }
 .cicek-app .ca-btn:hover { filter: brightness(1.05); }
 .cicek-app .ca-btn.ghost { background: var(--c-tint); color: var(--c-ink); border: 1px solid var(--c-border); }
@@ -7893,7 +7887,7 @@ html, body {
 /* WhatsApp üst başlık (yeşil bar) */
 .cicek-app .wa-head {
   display:flex; align-items:center; gap:10px;
-  padding:10px 12px; background:var(--c-green-deep, #1c4632);
+  padding:10px 12px; background:var(--c-green-deep, #2B3674);
   color:#fff; flex-shrink:0;
   box-shadow:0 1px 4px rgba(0,0,0,0.15); z-index:2;
 }
@@ -7944,7 +7938,7 @@ html, body {
   display:inline-flex; align-items:center; gap:3px; line-height:1;
   position:relative; top:4px;
 }
-.cicek-app .wa-bub.giden .wa-bub-meta { color:#3d8a5f; }
+.cicek-app .wa-bub.giden .wa-bub-meta { color:#5A6ACF; }
 .cicek-app .wa-tik { font-size:13px; letter-spacing:-2px; }
 .cicek-app .wa-tik.okundu { color:#53bdeb; }
 .cicek-app .wa-bub-img { display:block; max-width:100%; min-width:180px; border-radius:6px; margin-bottom:3px; cursor:pointer; }
@@ -7984,7 +7978,7 @@ html, body {
 }
 .cicek-app .wa-bar-send {
   flex-shrink:0; width:46px; height:46px; border-radius:50%;
-  background:var(--c-green-deep, #1c4632); color:#fff; border:none;
+  background:var(--c-green-deep, #2B3674); color:#fff; border:none;
   cursor:pointer; display:grid; place-items:center; font-size:19px;
 }
 .cicek-app .wa-bar-send:disabled { opacity:.55; cursor:default; }
@@ -8834,16 +8828,28 @@ html, body {
   </header>
 
   <div class="dash-container">
-    <!-- 7 MODÜLLÜ ANA NAVİGASYON (her sayfada görünür) -->
-    <div class="modul-bar" id="modulBar">
-      <button class="modul-btn active" data-modul="ozet"     onclick="modulSec('ozet')"><span class="modul-ikon">✨</span><span class="modul-ad">Özet</span></button>
-      <button class="modul-btn" data-modul="ogrenci"  onclick="modulSec('ogrenci')"><span class="modul-ikon">👥</span><span class="modul-ad">Öğrenci &amp; Okul</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
-      <button class="modul-btn" data-modul="personel" onclick="modulSec('personel')"><span class="modul-ikon">🧑‍🏫</span><span class="modul-ad">Personel</span></button>
-      <button class="modul-btn" data-modul="egitim"   onclick="modulSec('egitim')"><span class="modul-ikon">📚</span><span class="modul-ad">Eğitim</span></button>
-      <button class="modul-btn" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="modul-ikon">💼</span><span class="modul-ad">Muhasebe</span></button>
-      <button class="modul-btn" data-modul="isleyis"  onclick="modulSec('isleyis')"><span class="modul-ikon">🌸</span><span class="modul-ad">Okul İşleyişi</span></button>
-      <button class="modul-btn" data-modul="mesaj"    onclick="modulSec('mesaj')"><span class="modul-ikon">💬</span><span class="modul-ad">Mesajlaşma</span></button>
-    </div>
+    <!-- CRM SOL SIDEBAR (kategorili navigasyon) -->
+    <aside class="crm-sidebar" id="modulBar">
+      <div class="side-grup">
+        <button class="side-item active" data-modul="ozet" onclick="modulSec('ozet')"><span class="side-ikon">✨</span><span class="side-ad">Özet</span></button>
+      </div>
+      <div class="side-kategori">ÖĞRENCİ &amp; OKUL</div>
+      <div class="side-grup">
+        <button class="side-item" data-modul="ogrencilerM" onclick="modulSec('ogrencilerM')"><span class="side-ikon">👥</span><span class="side-ad">Öğrenciler</span></button>
+        <button class="side-item" data-modul="basvuru" onclick="modulSec('basvuru')"><span class="side-ikon">📦</span><span class="side-ad">Başvuru Havuzu</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
+      </div>
+      <div class="side-kategori">KURUM</div>
+      <div class="side-grup">
+        <button class="side-item" data-modul="personel" onclick="modulSec('personel')"><span class="side-ikon">🧑‍🏫</span><span class="side-ad">Personel</span></button>
+        <button class="side-item" data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon">📚</span><span class="side-ad">Eğitim</span></button>
+        <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon">💼</span><span class="side-ad">Muhasebe</span></button>
+      </div>
+      <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
+      <div class="side-grup">
+        <button class="side-item" data-modul="isleyis" onclick="modulSec('isleyis')"><span class="side-ikon">🌸</span><span class="side-ad">Okul İşleyişi</span></button>
+        <button class="side-item" data-modul="mesaj" onclick="modulSec('mesaj')"><span class="side-ikon">💬</span><span class="side-ad">Mesajlaşma</span></button>
+      </div>
+    </aside>
 
     <!-- Tabs (modülün alt sekmeleri) -->
     <div class="tabs">
@@ -8867,7 +8873,7 @@ html, body {
     <div class="tab-panel" id="tab-ogrenciler">
 
       <!-- FAZ B: KAYITLI ÖĞRENCİ KİMLİK ŞERİDİ -->
-      <div style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#1c4632,#3d8a5f); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#2B3674,#5A6ACF); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;">
         <span style="font-size:20px;">🎓</span>
         <div>
           <div style="font-family:var(--font-display); font-weight:700; font-size:15px;">Kayıtlı Öğrenciler</div>
@@ -9278,7 +9284,7 @@ html, body {
     <div class="tab-panel" id="tab-icerik">
 <!-- 📅 Etkinlik Yönetim Modülü Kartı -->
 <div style="background:linear-gradient(135deg,#e8f5e9 0%,#f1f8f1 100%);border:2px solid #a5d6a7;border-radius:16px;padding:20px;margin:16px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 4px 16px rgba(46,83,57,0.08);font-family:'Nunito',sans-serif;">
-  <div style="width:64px;height:64px;background:linear-gradient(135deg,#2e5339,#3d8a5f);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;box-shadow:0 4px 12px rgba(46,83,57,0.25);">📅</div>
+  <div style="width:64px;height:64px;background:linear-gradient(135deg,#2e5339,#5A6ACF);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;box-shadow:0 4px 12px rgba(46,83,57,0.25);">📅</div>
   <div style="flex:1;min-width:240px;">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
       <h3 style="margin:0;color:#1b3a26;font-size:18px;font-weight:800;">Etkinlik Yönetim Modülü</h3>
@@ -9287,7 +9293,7 @@ html, body {
     <p style="margin:0 0 4px;color:#555;font-size:13px;line-height:1.5;">Etkinlikleri yönet • Kayıtları gör • Aboneleri yönet • CSV indir</p>
     <p style="margin:0;color:#888;font-size:11px;line-height:1.4;">🌷 Bir Çiçekli ailelere özel & 🌍 herkese açık etkinlikler, kayıtlar, raporlar tek yerden.</p>
   </div>
-  <a href="https://etkinlikler.bircicekkoleji.com/?admin=true" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2e5339,#3d8a5f);color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(46,83,57,0.25);white-space:nowrap;">
+  <a href="https://etkinlikler.bircicekkoleji.com/?admin=true" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2e5339,#5A6ACF);color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(46,83,57,0.25);white-space:nowrap;">
     Modülü Aç <span style="font-size:18px;">→</span>
   </a>
 </div>
@@ -16507,7 +16513,7 @@ async function hbEgitimDoldur() {
     const genel = Math.round(topY / liste.length);
     el.innerHTML = `
       <div style="display:flex; align-items:center; gap:16px; padding:6px 0;">
-        <div style="position:relative; width:72px; height:72px; border-radius:50%; background:conic-gradient(#3d8a5f ${genel * 3.6}deg, #e3e7e1 0deg); display:flex; align-items:center; justify-content:center;">
+        <div style="position:relative; width:72px; height:72px; border-radius:50%; background:conic-gradient(#5A6ACF ${genel * 3.6}deg, #E9EBF4 0deg); display:flex; align-items:center; justify-content:center;">
           <div style="width:54px; height:54px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:17px; color:var(--c-green-deep);">%${genel}</div>
         </div>
         <div style="flex:1;">
@@ -16871,7 +16877,7 @@ function yonetimHomeHTML(ad) {
           const ayNum = parseInt(k.split("-")[1], 10);
           return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
             <div style="font-size:10px; color:var(--c-muted); font-weight:600;">${v >= 1000 ? Math.round(v/1000) + "K" : v}</div>
-            <div style="width:100%; max-width:38px; height:${h}px; background:linear-gradient(180deg,#3d8a5f,#1c4632); border-radius:8px 8px 4px 4px;"></div>
+            <div style="width:100%; max-width:38px; height:${h}px; background:linear-gradient(180deg,#5A6ACF,#2B3674); border-radius:8px 8px 4px 4px;"></div>
             <div style="font-size:11px; color:var(--c-body); font-weight:600;">${KISA_AY[ayNum-1] || k}</div>
           </div>`;
         }).join("")}
@@ -16891,7 +16897,7 @@ function yonetimHomeHTML(ad) {
     : sonKayitlar.map(x => {
         const trh = x.t.substring(0, 10).split("-").reverse().join(".");
         return `<div style="display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid rgba(26,46,31,0.06);">
-          <div style="width:38px; height:38px; border-radius:12px; background:#e3e7e1; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--c-green); font-family:var(--font-display);">${(x.o.adSoyad || "?").charAt(0)}</div>
+          <div style="width:38px; height:38px; border-radius:12px; background:#E9EBF4; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--c-green); font-family:var(--font-display);">${(x.o.adSoyad || "?").charAt(0)}</div>
           <div style="flex:1; min-width:0;">
             <div style="font-weight:700; color:var(--c-ink); font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(x.o.adSoyad || "İsimsiz").replace(/</g,"&lt;")}</div>
             <div style="font-size:11.5px; color:var(--c-muted);">${(x.o.sinif || "Sınıf atanmadı").replace(/</g,"&lt;")}${x.veli ? " · " + x.veli.replace(/</g,"&lt;") : ""}</div>
@@ -16921,8 +16927,8 @@ function yonetimHomeHTML(ad) {
     const bugunMu = g === bugunD.getDate();
     const etk = etkinlikGunleri.has(g), tat = tatilGunleri.has(g);
     takvimHucreler += `<div style="position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:11.5px; border-radius:10px; font-weight:${bugunMu ? 800 : 500};
-      ${bugunMu ? "background:#1c4632; color:#fff;" : tat ? "background:#F6E5E7; color:#9d2235;" : etk ? "background:#e3e7e1; color:var(--c-green-deep);" : "color:var(--c-body);"}">
-      ${g}${(etk || tat) && !bugunMu ? `<span style="position:absolute; bottom:3px; width:4px; height:4px; border-radius:50%; background:${tat ? "#c2445a" : "#3d8a5f"};"></span>` : ""}
+      ${bugunMu ? "background:#2B3674; color:#fff;" : tat ? "background:#FDECEF; color:#9d2235;" : etk ? "background:#E9EBF4; color:var(--c-green-deep);" : "color:var(--c-body);"}">
+      ${g}${(etk || tat) && !bugunMu ? `<span style="position:absolute; bottom:3px; width:4px; height:4px; border-radius:50%; background:${tat ? "#c2445a" : "#5A6ACF"};"></span>` : ""}
     </div>`;
   }
   const miniTakvimHTML = `
@@ -16931,7 +16937,7 @@ function yonetimHomeHTML(ad) {
     </div>
     <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px;">${takvimHucreler}</div>
     <div style="display:flex; gap:14px; margin-top:10px; font-size:11px; color:var(--c-muted);">
-      <span>● <span style="color:#3d8a5f;">Etkinlik</span></span>
+      <span>● <span style="color:#5A6ACF;">Etkinlik</span></span>
       <span>● <span style="color:#c2445a;">Tatil / özel gün</span></span>
     </div>`;
 
@@ -16973,12 +16979,12 @@ function yonetimHomeHTML(ad) {
           <h3 class="ca-serif" style="font-size:20px; color:var(--c-ink);">Hızlı erişim</h3>
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
-          <button class="ca-hizli-kart" onclick="adminGotoTab('ogrenciler')"><span class="ca-hizli-ikon" style="background:#e3e7e1;">👥</span><span class="ca-hizli-ad">Öğrenciler</span></button>
-          <button class="ca-hizli-kart" onclick="adminGotoTab('egitim')"><span class="ca-hizli-ikon" style="background:#E7E9F5;">📚</span><span class="ca-hizli-ad">Eğitim</span></button>
-          <button class="ca-hizli-kart" onclick="modulSec('mesaj')"><span class="ca-hizli-ikon" style="background:#F5E9E4;">💬</span><span class="ca-hizli-ad">Mesajlar</span></button>
-          <button class="ca-hizli-kart" onclick="adminGotoTab('onay')"><span class="ca-hizli-ikon" style="background:#FDF0D5;">📦</span><span class="ca-hizli-ad">Başvurular</span></button>
-          <button class="ca-hizli-kart" onclick="adminGotoTab('personel')"><span class="ca-hizli-ikon" style="background:#E4F0F5;">🧑‍🏫</span><span class="ca-hizli-ad">Personel</span></button>
-          <button class="ca-hizli-kart" onclick="adminGotoTab('icerik')"><span class="ca-hizli-ikon" style="background:#F0E6F2;">🌸</span><span class="ca-hizli-ad">Okul İşleyişi</span></button>
+          <button class="ca-hizli-kart" onclick="adminGotoTab('ogrenciler')"><span class="ca-hizli-ikon" style="background:#E9EBF4;">👥</span><span class="ca-hizli-ad">Öğrenciler</span></button>
+          <button class="ca-hizli-kart" onclick="adminGotoTab('egitim')"><span class="ca-hizli-ikon" style="background:#E8ECFB;">📚</span><span class="ca-hizli-ad">Eğitim</span></button>
+          <button class="ca-hizli-kart" onclick="modulSec('mesaj')"><span class="ca-hizli-ikon" style="background:#FDECEF;">💬</span><span class="ca-hizli-ad">Mesajlar</span></button>
+          <button class="ca-hizli-kart" onclick="adminGotoTab('onay')"><span class="ca-hizli-ikon" style="background:#FCF7E1;">📦</span><span class="ca-hizli-ad">Başvurular</span></button>
+          <button class="ca-hizli-kart" onclick="adminGotoTab('personel')"><span class="ca-hizli-ikon" style="background:#E4F0F9;">🧑‍🏫</span><span class="ca-hizli-ad">Personel</span></button>
+          <button class="ca-hizli-kart" onclick="adminGotoTab('icerik')"><span class="ca-hizli-ikon" style="background:#EFEDF9;">🌸</span><span class="ca-hizli-ad">Okul İşleyişi</span></button>
         </div>
       </div>
 
@@ -16993,7 +16999,7 @@ function yonetimHomeHTML(ad) {
           <div class="ca-card" style="border:none; box-shadow:0 6px 20px rgba(26,46,31,0.06); padding:22px;">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
               <div style="display:flex; align-items:center; gap:14px;">
-                <div style="width:46px; height:46px; border-radius:14px; background:#FBF3DC; display:flex; align-items:center; justify-content:center; font-size:20px;">☀️</div>
+                <div style="width:46px; height:46px; border-radius:14px; background:#FCF7E1; display:flex; align-items:center; justify-content:center; font-size:20px;">☀️</div>
                 <div>
                   <div class="ca-serif" style="font-size:18px; color:var(--c-ink);">${bugunStr}</div>
                   <div style="font-size:12.5px; color:var(--c-muted);">${donem} dönemi · ${buAyIsim}</div>
@@ -17002,9 +17008,9 @@ function yonetimHomeHTML(ad) {
               <button class="ca-link" onclick="adminGotoTab('finans')">Detay →</button>
             </div>
             <div style="display:flex; gap:10px;">
-              <div class="ca-pastel-stat" style="background:#e0efe6;"><div class="v">${odeyenSayisi}</div><div class="l">Ödeyen</div></div>
-              <div class="ca-pastel-stat" style="background:#EAE6F3;"><div class="v">${bekleyenSayisi}</div><div class="l">Bekleyen</div></div>
-              <div class="ca-pastel-stat" style="background:#F6E5E7;"><div class="v">${gecikenSayisi}</div><div class="l">Geciken</div></div>
+              <div class="ca-pastel-stat" style="background:#E6FBF0;"><div class="v">${odeyenSayisi}</div><div class="l">Ödeyen</div></div>
+              <div class="ca-pastel-stat" style="background:#EDEFFB;"><div class="v">${bekleyenSayisi}</div><div class="l">Bekleyen</div></div>
+              <div class="ca-pastel-stat" style="background:#FDECEF;"><div class="v">${gecikenSayisi}</div><div class="l">Geciken</div></div>
             </div>
             <div style="margin-top:14px; font-size:13.5px; color:var(--c-body);">
               ${gecikenSayisi > 0
@@ -31001,13 +31007,15 @@ document.querySelectorAll(".durum-sekme").forEach(btn => {
 /* ============ FAZ A: MODÜL NAVİGASYON MANTIĞI ============ */
 // Her modülün kapsadığı alt sekmeler + varsayılan sekme + özel aksiyon
 const MODUL_HARITASI = {
-  ozet:     { tablar: ["anasayfa"],          varsayilan: "anasayfa", ad: "Özet" },
-  ogrenci:  { tablar: ["ogrenciler","onay"], varsayilan: "ogrenciler", ad: "Öğrenci & Okul" },
-  personel: { tablar: ["personel"],          varsayilan: "personel", ad: "Personel Süreçleri" },
-  egitim:   { tablar: ["egitim"],            varsayilan: "egitim", ad: "Eğitim Süreçleri" },
-  muhasebe: { tablar: ["finans"],            varsayilan: "finans", ad: "Muhasebe" },
-  isleyis:  { tablar: ["icerik"],            varsayilan: "icerik", ad: "Okul İşleyişi" },
-  mesaj:    { tablar: ["icerik"],            varsayilan: "icerik", icerikAlt: "mesajlasma", ad: "Mesajlaşma" }
+  ozet:        { tablar: ["anasayfa"],   varsayilan: "anasayfa", ad: "Özet" },
+  ogrencilerM: { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
+  basvuru:     { tablar: ["onay"],       varsayilan: "onay", ad: "Başvuru Havuzu" },
+  ogrenci:     { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
+  personel:    { tablar: ["personel"],   varsayilan: "personel", ad: "Personel" },
+  egitim:      { tablar: ["egitim"],     varsayilan: "egitim", ad: "Eğitim" },
+  muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
+  isleyis:     { tablar: ["icerik"],     varsayilan: "icerik", ad: "Okul İşleyişi" },
+  mesaj:       { tablar: ["icerik"],     varsayilan: "icerik", icerikAlt: "mesajlasma", ad: "Mesajlaşma" }
 };
 let aktifModul = "ozet";
 
@@ -31018,7 +31026,7 @@ window.modulSec = function(modulKey, tabTikla = true) {
   aktifModul = modulKey;
 
   // Modül butonlarının aktifliği
-  document.querySelectorAll(".modul-btn").forEach(b => {
+  document.querySelectorAll(".side-item").forEach(b => {
     b.classList.toggle("active", b.dataset.modul === modulKey);
   });
 
@@ -31060,7 +31068,7 @@ window.modulVurgula = function(tabAdi) {
 
 // Rol yüklenince modül görünürlüğünü ayarla (erişilemeyen modül gizlenir)
 window.modulBarYenile = function() {
-  document.querySelectorAll(".modul-btn").forEach(btn => {
+  document.querySelectorAll(".side-item").forEach(btn => {
     const tanim = MODUL_HARITASI[btn.dataset.modul];
     if (!tanim) return;
     const erisebilir = tanim.tablar.some(t =>
