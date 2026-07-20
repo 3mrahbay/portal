@@ -1131,6 +1131,32 @@ html, body {
 /* Alt sekme barı yumuşak görünüm */
 .tabs.tek-sekmeli { display: none; }
 
+/* ============ GELİŞİM & KALİTE KARTLARI ============ */
+.gelisim-kart {
+  background: #fff; border: 1px solid var(--gray-300);
+  border-top: 3px solid var(--gk, #5A6ACF);
+  border-radius: 16px; padding: 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column;
+}
+.gelisim-kart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.gelisim-kart-ikon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 21px; }
+.gelisim-kart-kod { font-size: 11px; font-weight: 800; letter-spacing: .04em; padding: 4px 10px; border-radius: 100px; }
+.gelisim-kart-baslik { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--ink); margin: 0 0 6px; letter-spacing: -0.01em; }
+.gelisim-kart-aciklama { font-size: 13px; color: var(--gray-500); line-height: 1.5; margin: 0 0 12px; }
+.gelisim-kart-liste { list-style: none; padding: 0; margin: 0 0 14px; display: flex; flex-direction: column; gap: 6px; }
+.gelisim-kart-liste li { font-size: 12.5px; color: var(--ink-soft); padding-left: 18px; position: relative; }
+.gelisim-kart-liste li::before { content: "•"; position: absolute; left: 4px; color: var(--gk, #5A6ACF); font-weight: 700; }
+.gelisim-kart-durum { margin-top: auto; font-size: 11.5px; font-weight: 600; color: #92400e; padding-top: 10px; border-top: 1px dashed var(--gray-300); }
+.bccm-alan-kutu {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; background: #F7F8FC; border-radius: 10px;
+  border: 1px solid var(--gray-300);
+}
+.bccm-alan-kutu .bak { font-size: 18px; }
+.bccm-alan-kutu .bad { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.bccm-alan-kutu .bko { font-size: 10.5px; font-weight: 800; color: var(--gray-500); letter-spacing: .05em; }
+
 .tabs {
   display: flex;
   gap: 4px;
@@ -8848,6 +8874,7 @@ html, body {
       <div class="side-grup">
         <button class="side-item" data-modul="isleyis" onclick="modulSec('isleyis')"><span class="side-ikon">🌸</span><span class="side-ad">Okul İşleyişi</span></button>
         <button class="side-item" data-modul="mesaj" onclick="modulSec('mesaj')"><span class="side-ikon">💬</span><span class="side-ad">Mesajlaşma</span></button>
+        <button class="side-item" data-modul="gelisim" onclick="modulSec('gelisim')"><span class="side-ikon">🌷</span><span class="side-ad">Gelişim &amp; Kalite</span></button>
       </div>
     </aside>
 
@@ -8860,6 +8887,7 @@ html, body {
       <button class="tab" data-tab="egitim">📚 Eğitim</button>
       <button class="tab" data-tab="icerik">🌸 Okul-Aile İçerik Yönetimi</button>
       <button class="tab" data-tab="personel" id="tab-personel-btn" style="display:none;">🧑‍🏫 Personel Yönetimi</button>
+      <button class="tab" data-tab="gelisim" id="tab-gelisim-btn" style="display:none;">🌷 Gelişim &amp; Kalite</button>
     </div>
 
     <!-- YENİ TASARIM · ANA SAYFA TAB (rol bazlı: yönetim/öğretmen) -->
@@ -9199,26 +9227,14 @@ html, body {
         </div>
       </div>
 
-      <!-- 3 DİSİPLİN SEÇİM KUTULARI -->
-      <div class="egitim-disiplin-secici" id="egitimDisiplinSecici">
-        <button type="button" class="egitim-disiplin-kutu" data-disiplin="montessori" onclick="egitimDisiplinAc('montessori')" style="--d-renk:#16a34a;">
-          <div class="egitim-disiplin-ikon">🌱</div>
-          <div class="egitim-disiplin-baslik">Montessori</div>
-          <div class="egitim-disiplin-aciklama">5 alan, 149 ders</div>
-          <div class="egitim-disiplin-ileri">Aç →</div>
-        </button>
-        <button type="button" class="egitim-disiplin-kutu" data-disiplin="ingilizce" onclick="egitimDisiplinAc('ingilizce')" style="--d-renk:#2563eb;">
-          <div class="egitim-disiplin-ikon">🇬🇧</div>
-          <div class="egitim-disiplin-baslik">İngilizce</div>
-          <div class="egitim-disiplin-aciklama">5 alan, 120+ ders</div>
-          <div class="egitim-disiplin-ileri">Aç →</div>
-        </button>
-        <button type="button" class="egitim-disiplin-kutu" data-disiplin="degerler" onclick="egitimDisiplinAc('degerler')" style="--d-renk:#7c3aed;">
-          <div class="egitim-disiplin-ikon">💎</div>
-          <div class="egitim-disiplin-baslik">Değerler Eğitimi</div>
-          <div class="egitim-disiplin-aciklama">6 alan, 100+ ders</div>
-          <div class="egitim-disiplin-ileri">Aç →</div>
-        </button>
+      <!-- 5 PROGRAM + BRANŞLAR (BCDM) -->
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--gray-500); margin-bottom:10px;">ANA PROGRAMLAR</div>
+        <div class="egitim-disiplin-secici" id="egitimDisiplinSecici"></div>
+      </div>
+      <div style="margin-top:18px;">
+        <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--gray-500); margin-bottom:10px;">BRANŞLAR</div>
+        <div class="egitim-disiplin-secici" id="egitimBransSecici"></div>
       </div>
 
       <!-- MATRIX SİSTEMİ (gizli, disiplin seçilince açılır) -->
@@ -10440,6 +10456,92 @@ html, body {
     </div>
 
     <!-- ============ PERSONEL YÖNETİMİ TAB ============ -->
+    <!-- ============ GELİŞİM & KALİTE MODÜLÜ (BFPM / BTEF / BAOS) ============ -->
+    <div class="tab-panel" id="tab-gelisim">
+      <!-- HERO -->
+      <div style="background:linear-gradient(135deg,#2B3674 0%,#5A6ACF 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-8%; width:280px; height:280px; background:radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85;">🌷 GELİŞİM &amp; KALİTE MERKEZİ</div>
+          <h2 style="font-family:var(--font-display); font-weight:700; font-size:28px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Okul · Aile · Öğretmen Gelişim Modeli</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:760px; margin:0;">BCDM® kurumsal sistemin ortaklık ve kalite katmanı: aile ortaklığı, öğretmen mükemmelliği ve değerlendirme-gözlem sistemini tek merkezde toplar.</p>
+        </div>
+      </div>
+
+      <!-- 3 KATMAN KARTI -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-bottom:22px;">
+
+        <!-- BFPM -->
+        <div class="gelisim-kart" style="--gk:#3D8A5F;">
+          <div class="gelisim-kart-head">
+            <span class="gelisim-kart-ikon" style="background:#E4F0E6;">👨‍👩‍👧</span>
+            <span class="gelisim-kart-kod" style="color:#3D8A5F; background:#3D8A5F14;">BFPM®</span>
+          </div>
+          <h3 class="gelisim-kart-baslik">Aile Ortaklığı</h3>
+          <p class="gelisim-kart-aciklama">Aileyi bilgilendirme, katılım, geri bildirim, ev uzantıları, görüşmeler ve ortak gelişim hedefleriyle sürece dahil etme.</p>
+          <ul class="gelisim-kart-liste">
+            <li>Aile oryantasyonu ve program tanıtımı</li>
+            <li>Aylık veli içeriği ve evde devam önerileri</li>
+            <li>Veli onayları ve medya izinleri</li>
+            <li>Aile geri bildirim formları</li>
+            <li>Bireysel görüşme ve ortak hedefler</li>
+          </ul>
+          <div class="gelisim-kart-durum">🚧 Mimari tanımlı · operasyonel içerik sırada</div>
+        </div>
+
+        <!-- BTEF -->
+        <div class="gelisim-kart" style="--gk:#5A6ACF;">
+          <div class="gelisim-kart-head">
+            <span class="gelisim-kart-ikon" style="background:#E8ECFB;">🎓</span>
+            <span class="gelisim-kart-kod" style="color:#5A6ACF; background:#5A6ACF14;">BTEF®</span>
+          </div>
+          <h3 class="gelisim-kart-baslik">Öğretmen Mükemmellik Çerçevesi</h3>
+          <p class="gelisim-kart-aciklama">Öğretmen yeterlikleri, kurum içi oryantasyon, uygulama sadakati, gözlem, koçluk ve mesleki gelişim.</p>
+          <ul class="gelisim-kart-liste">
+            <li>Program okuryazarlığı ve oryantasyon</li>
+            <li>Hazırlık ve ortam kurma yeterliği</li>
+            <li>Çocuk pedagojisine uygun öğretmen dili</li>
+            <li>Gözlem notu yazma kalitesi</li>
+            <li>Koçluk, öz değerlendirme, gelişim planı</li>
+          </ul>
+          <div class="gelisim-kart-durum">🚧 Mimari tanımlı · rubrikler sırada</div>
+        </div>
+
+        <!-- BAOS -->
+        <div class="gelisim-kart" style="--gk:#B45309;">
+          <div class="gelisim-kart-head">
+            <span class="gelisim-kart-ikon" style="background:#FCF7E1;">📋</span>
+            <span class="gelisim-kart-kod" style="color:#B45309; background:#B4530914;">BAOS®</span>
+          </div>
+          <h3 class="gelisim-kart-baslik">Değerlendirme &amp; Gözlem Sistemi</h3>
+          <p class="gelisim-kart-aciklama">Tüm programlarda ortak gözlem, kanıt, aşama, portfolyo, rapor ve analiz standardını yöneten sistem.</p>
+          <ul class="gelisim-kart-liste">
+            <li>Ortak gözlem ölçekleri (S/T/U + Montessori)</li>
+            <li>Kanıt türleri ve görünürlük politikaları</li>
+            <li>Aylık ve dönemlik portfolyo</li>
+            <li>Programlar arası BCCM gelişim görünümü</li>
+            <li>Veri kalite kontrolü ve denetim izi</li>
+          </ul>
+          <div class="gelisim-kart-durum" style="color:#166534;">✓ Çekirdek mantık eğitim modülünde aktif</div>
+        </div>
+      </div>
+
+      <!-- BCCM ÇEKİRDEK ÇOCUK MODELİ -->
+      <div style="background:#fff; border:1px solid var(--gray-300); border-radius:18px; padding:24px; box-shadow:var(--shadow-sm);">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+          <span style="font-size:24px;">🧒</span>
+          <div>
+            <h3 style="font-family:var(--font-display); font-weight:700; font-size:18px; color:var(--ink); margin:0;">BCCM® — Çekirdek Çocuk Modeli</h3>
+            <div style="font-size:12.5px; color:var(--gray-500);">8 gelişim alanı · tüm programlardan gelen gözlemler tek çocuk profilinde birleşir</div>
+          </div>
+        </div>
+        <div id="bccmAlanlarGrid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:14px;"></div>
+        <div style="margin-top:14px; padding:12px 14px; background:#F1F2F7; border-radius:10px; font-size:12.5px; color:var(--ink-soft);">
+          ℹ️ İleride her öğrencinin profilinde "8 alan gelişim görünümü" bu modele göre oluşacak. Şu an veri modeli hazırlanıyor; program gözlemleri (S/T/U) bu alanlarla eşleştirilecek.
+        </div>
+      </div>
+    </div>
+
     <div class="tab-panel" id="tab-personel">
 
       <!-- HERO -->
@@ -23648,9 +23750,23 @@ async function renderAylikOzet() {
 
 // 3 disiplinin meta bilgisi
 const DISIPLINLER = [
-  { id:"montessori", ad:"Montessori",        ikon:"🌱", renk:"#2d6a4f", aciklama:"Maria Montessori metoduna göre 5 alanda ders takibi" },
-  { id:"ingilizce",  ad:"İngilizce",         ikon:"🇬🇧", renk:"#1d4ed8", aciklama:"Yaş grubuna uygun erken İngilizce takibi" },
-  { id:"degerler",   ad:"Değerler Eğitimi",  ikon:"💎", renk:"#7c3aed", aciklama:"Çocuğun karakter ve değer gelişimi" }
+  { id:"montessori", ad:"Montessori",        ikon:"🌱", renk:"#2d6a4f", kod:"BMCM®", tip:"ana", takvim:"Bireysel sürekli akış", aciklama:"Hazırlanmış çevre, bireysel sunum, tekrar ve ustalaşma (BMCM®)" },
+  { id:"orman",      ad:"Orman Okulu",        ikon:"🍂", renk:"#b45309", kod:"BFLM®", tip:"ana", takvim:"Ekim–Mayıs sabit haftalık", aciklama:"Doğa okuryazarlığı, güvenli risk-fayda, duyusal keşif (BFLM®)" },
+  { id:"degerler",   ad:"Değerler Eğitimi",   ikon:"💎", renk:"#7c3aed", kod:"BVLM®", tip:"ana", takvim:"Eylül–Haziran sabit haftalık", aciklama:"Milli ve manevi değerler; oyun, hikâye, rutin ve aile katılımı (BVLM®)" },
+  { id:"ingilizce",  ad:"İngilizce",          ikon:"🇬🇧", renk:"#1d4ed8", kod:"BELM®", tip:"ana", takvim:"Eylül–Haziran sabit haftalık", aciklama:"Şarkı, oyun, hikâye ve gerçek iletişim bağlamında İngilizce (BELM®)" },
+  { id:"ahsap",      ad:"Ahşap Atölyesi",     ikon:"🔨", renk:"#92400e", kod:"BWLM®", tip:"brans", takvim:"Eylül–Haziran dönemsel proje", aciklama:"Atölye kültürü, güvenli çalışma, ölçme, tasarım ve üretim (BWLM®)" }
+];
+
+// BCCM® Çekirdek Çocuk Modeli — 8 gelişim alanı (tüm programlardan beslenir)
+const BCCM_ALANLAR = [
+  { kod:"BIL", ad:"Bilişsel Gelişim",     ikon:"🧩" },
+  { kod:"DIL", ad:"Dil ve İletişim",      ikon:"💬" },
+  { kod:"SDG", ad:"Sosyal-Duygusal",      ikon:"💗" },
+  { kod:"MOT", ad:"Fiziksel ve Motor",    ikon:"🏃" },
+  { kod:"OZY", ad:"Öz Bakım ve Yaşam",    ikon:"🧺" },
+  { kod:"EST", ad:"Estetik ve Yaratıcılık", ikon:"🎨" },
+  { kod:"DOG", ad:"Doğa ve Çevre",        ikon:"🌿" },
+  { kod:"DEG", ad:"Değerler ve Karakter", ikon:"⭐" }
 ];
 
 // Renk haritası (S/T/U için)
@@ -24023,8 +24139,38 @@ let egitimTumuKapaliMi = false;  // "Tümünü Kapat/Aç" düğmesinin durumu
 window.egitimSekmesiAcildi = function() {
   // Disiplin seçim ekranını göster, matrix'i gizle
   const secici = document.getElementById("egitimDisiplinSecici");
+  const bransSecici = document.getElementById("egitimBransSecici");
   const matrix = document.getElementById("egitimMatrixContainer");
-  if (secici) secici.style.display = "grid";
+
+  // Kutuları DISIPLINLER'den dinamik üret (BCDM kodlarıyla)
+  function kutuHTML(d) {
+    return `
+      <button type="button" class="egitim-disiplin-kutu" data-disiplin="${d.id}" onclick="egitimDisiplinAc('${d.id}')" style="--d-renk:${d.renk};">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div class="egitim-disiplin-ikon">${d.ikon}</div>
+          <span style="font-size:10px; font-weight:800; letter-spacing:.05em; color:${d.renk}; background:${d.renk}14; padding:3px 8px; border-radius:100px;">${d.kod || ""}</span>
+        </div>
+        <div class="egitim-disiplin-baslik">${d.ad}</div>
+        <div class="egitim-disiplin-aciklama">${d.aciklama}</div>
+        <div style="font-size:11px; color:var(--gray-500); margin-top:4px;">📅 ${d.takvim || ""}</div>
+        <div class="egitim-disiplin-ileri">Aç →</div>
+      </button>`;
+  }
+  if (secici) {
+    secici.innerHTML = DISIPLINLER.filter(d => d.tip !== "brans").map(kutuHTML).join("");
+    secici.style.display = "grid";
+  }
+  if (bransSecici) {
+    const branslar = DISIPLINLER.filter(d => d.tip === "brans");
+    bransSecici.innerHTML = branslar.map(kutuHTML).join("") + `
+      <button type="button" class="egitim-disiplin-kutu" onclick="showToast('Yeni branş ekleme yakında — müfredat editöründen tanımlanabilecek')" style="--d-renk:#94a3b8; border-style:dashed; opacity:.85;">
+        <div class="egitim-disiplin-ikon">➕</div>
+        <div class="egitim-disiplin-baslik">Yeni Branş Ekle</div>
+        <div class="egitim-disiplin-aciklama">Robotik, müzik, drama gibi yeni branşlar buraya eklenebilir</div>
+        <div class="egitim-disiplin-ileri">Yakında</div>
+      </button>`;
+    bransSecici.style.display = "grid";
+  }
   if (matrix) matrix.style.display = "none";
   egitimAktifDisiplin = null;
 };
@@ -31015,7 +31161,8 @@ const MODUL_HARITASI = {
   egitim:      { tablar: ["egitim"],     varsayilan: "egitim", ad: "Eğitim" },
   muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
   isleyis:     { tablar: ["icerik"],     varsayilan: "icerik", ad: "Okul İşleyişi" },
-  mesaj:       { tablar: ["icerik"],     varsayilan: "icerik", icerikAlt: "mesajlasma", ad: "Mesajlaşma" }
+  mesaj:       { tablar: ["icerik"],     varsayilan: "icerik", icerikAlt: "mesajlasma", ad: "Mesajlaşma" },
+  gelisim:     { tablar: ["gelisim"],    varsayilan: "gelisim", ad: "Gelişim & Kalite" }
 };
 let aktifModul = "ozet";
 
@@ -31146,6 +31293,20 @@ document.querySelectorAll(".tab").forEach(tab => {
     if (tab.dataset.tab === "egitim") {
       setTimeout(() => {
         if (typeof egitimSekmesiAcildi === "function") egitimSekmesiAcildi();
+      }, 50);
+    }
+
+    // Gelişim & Kalite sekmesi: BCCM 8 alanı doldur
+    if (tab.dataset.tab === "gelisim") {
+      setTimeout(() => {
+        const grid = document.getElementById("bccmAlanlarGrid");
+        if (grid && typeof BCCM_ALANLAR !== "undefined") {
+          grid.innerHTML = BCCM_ALANLAR.map(a => `
+            <div class="bccm-alan-kutu">
+              <span class="bak">${a.ikon}</span>
+              <div><div class="bad">${a.ad}</div><div class="bko">${a.kod}</div></div>
+            </div>`).join("");
+        }
       }, 50);
     }
   });
