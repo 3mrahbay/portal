@@ -7372,12 +7372,73 @@ i[data-lucide] svg { display: block; }
   display: flex;
   gap: 0;
   height: 600px;
-  max-height: 75vh;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  max-height: 78vh;
+  border: 1px solid #E9EBF4;
+  border-radius: 16px;
   overflow: hidden;
   background: white;
+  box-shadow: 0 8px 28px rgba(30,41,90,0.10);
 }
+
+/* ============ WHATSAPP TARZI MESAJLAŞMA ============ */
+.wa-katman .mesaj-liste-panel { width: 340px; background: #fff; }
+.wa-katman .mesaj-liste-baslik { background: #F0F2F5; color: #1F2544; border-bottom: 1px solid #E9EBF4; }
+.wa-katman .mesaj-yeni-btn { background: #1F5F33; }
+.wa-katman .mesaj-liste-ara { background: #F6F8FA; }
+.wa-katman .mesaj-liste-ara input {
+  background: #EFF2F5 !important; border: none !important; border-radius: 100px !important;
+  padding: 9px 16px !important; font-size: 13.5px !important;
+}
+/* Sohbet başlığı - WhatsApp yeşil */
+.wa-katman .mesaj-sohbet-header {
+  background: #F0F2F5;
+  border-bottom: 1px solid #E9EBF4;
+}
+.wa-katman .mesaj-sohbet-avatar {
+  background: linear-gradient(135deg, #1F5F33, #3D8A5F) !important; color: #fff !important;
+}
+/* Sohbet gövdesi - WhatsApp desenli arka plan */
+.wa-katman .mesaj-sohbet-govde {
+  background-color: #E5DDD5;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 8%),
+    radial-gradient(circle at 75% 60%, rgba(255,255,255,0.3) 0%, transparent 7%),
+    radial-gradient(circle at 50% 85%, rgba(255,255,255,0.35) 0%, transparent 6%);
+  background-size: 220px 220px, 300px 300px, 180px 180px;
+}
+/* Mesaj baloncukları - WhatsApp stili */
+.wa-katman .mesaj-balon {
+  max-width: 72%; padding: 7px 11px 8px; border-radius: 8px; margin-bottom: 8px;
+  font-size: 13.8px; line-height: 1.4; position: relative;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.08); word-wrap: break-word;
+}
+.wa-katman .mesaj-balon.giden {
+  background: #D9FDD3; margin-left: auto; border-top-right-radius: 2px;
+}
+.wa-katman .mesaj-balon.gelen {
+  background: #fff; margin-right: auto; border-top-left-radius: 2px;
+}
+.wa-katman .mesaj-balon-saat { font-size: 10.5px; color: #667781; text-align: right; margin-top: 2px; }
+/* Giriş alanı - WhatsApp */
+.wa-katman .mesaj-sohbet-giris { background: #F0F2F5; padding: 10px 14px; }
+.wa-katman .mesaj-sohbet-giris input, .wa-katman .mesaj-sohbet-giris textarea {
+  background: #fff !important; border: none !important; border-radius: 100px !important;
+  padding: 11px 18px !important;
+}
+.wa-katman .mesaj-gonder-btn {
+  background: #1F5F33 !important; border-radius: 50% !important;
+  width: 44px !important; height: 44px !important; flex-shrink: 0;
+}
+/* İç alt-sekme butonları (Etkinlik/Takvim) */
+.et-alt-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border-radius: 100px; border: 1px solid #E9EBF4;
+  background: #fff; color: var(--ink-soft); font-family: var(--font-body);
+  font-weight: 700; font-size: 13.5px; cursor: pointer; transition: all .15s;
+}
+.et-alt-btn:hover { background: #F1F2F7; }
+.et-alt-btn.active { background: #2B3674; color: #fff; border-color: #2B3674; }
+
 .mesaj-liste-panel {
   width: 320px;
   flex-shrink: 0;
@@ -8977,6 +9038,7 @@ i[data-lucide] svg { display: block; }
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
         <button class="side-item" data-modul="isleyis" onclick="modulSec('isleyis')"><span class="side-ikon"><i data-lucide="flower-2"></i></span><span class="side-ad">Okul İşleyişi</span></button>
+        <button class="side-item" data-modul="etkinlik" onclick="modulSec('etkinlik')"><span class="side-ikon"><i data-lucide="calendar-heart"></i></span><span class="side-ad">Etkinlik &amp; Takvim</span></button>
         <button class="side-item" data-modul="mesaj" onclick="modulSec('mesaj')"><span class="side-ikon"><i data-lucide="message-circle"></i></span><span class="side-ad">Mesajlaşma</span></button>
         <button class="side-item" data-modul="gelisim" onclick="modulSec('gelisim')"><span class="side-ikon"><i data-lucide="sparkles"></i></span><span class="side-ad">Gelişim &amp; Kalite</span></button>
       </div>
@@ -8993,6 +9055,8 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="personel" id="tab-personel-btn" style="display:none;">🧑‍🏫 Personel Yönetimi</button>
       <button class="tab" data-tab="gelisim" id="tab-gelisim-btn" style="display:none;">🌷 Gelişim &amp; Kalite</button>
       <button class="tab" data-tab="denetim" id="tab-denetim-btn" style="display:none;">🛡️ MEB Denetim</button>
+      <button class="tab" data-tab="etkinlik" id="tab-etkinlik-btn" style="display:none;">🎉 Etkinlik &amp; Takvim</button>
+      <button class="tab" data-tab="mesajlasma" id="tab-mesajlasma-btn" style="display:none;">💬 Mesajlaşma</button>
     </div>
 
     <!-- YENİ TASARIM · ANA SAYFA TAB (rol bazlı: yönetim/öğretmen) -->
@@ -9437,12 +9501,6 @@ i[data-lucide] svg { display: block; }
         <button class="icerik-altsekme-btn" data-icerik-alt="yemek" data-renk="turuncu" onclick="icerikSwitchAlt('yemek')">
           <span>🍽</span> Yemek Menüsü
         </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="etkinlik" data-renk="mavi" onclick="icerikSwitchAlt('etkinlik')">
-          <span>📅</span> Etkinlikler
-        </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="takvim" data-renk="yesil" onclick="icerikSwitchAlt('takvim')">
-          <span>🗓️</span> Takvim
-        </button>
         <button class="icerik-altsekme-btn" data-icerik-alt="devamsizlik" data-renk="kirmizi" onclick="icerikSwitchAlt('devamsizlik')">
           <span>📋</span> Devamsızlık
         </button>
@@ -9461,10 +9519,7 @@ i[data-lucide] svg { display: block; }
         <button class="icerik-altsekme-btn" data-icerik-alt="ingilizce" data-renk="koyuMavi" onclick="icerikSwitchAlt('ingilizce')">
           <span>🇬🇧</span> İngilizce Raporu
         </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="mesajlasma" data-renk="pembe" onclick="icerikSwitchAlt('mesajlasma')">
-          <span>💬</span> Mesajlaşma
-        </button>
-      </div>
+        </div>
 
       <!-- ALT PANELLER (Pastel arka plan) -->
       <div id="icerikAltPanelWrap" data-aktif-renk="sari" style="border-radius:16px; padding:20px; transition:background 0.3s; min-height:400px;">
@@ -9509,91 +9564,8 @@ i[data-lucide] svg { display: block; }
         </div>
 
         <!-- ETKİNLİKLER -->
-        <div id="icerikAlt-etkinlik" class="icerik-alt-panel" style="display:none;">
-          <!-- Üst bar -->
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-mini" data-etkinlik-filter="yaklasan" onclick="etkinlikFilter('yaklasan')" style="background:#3b82f6; border:none; color:white;">🔜 Yaklaşan</button>
-              <button class="btn-mini" data-etkinlik-filter="buAy" onclick="etkinlikFilter('buAy')">📅 Bu Ay</button>
-              <button class="btn-mini" data-etkinlik-filter="gecmis" onclick="etkinlikFilter('gecmis')">⏮ Geçmiş</button>
-              <button class="btn-mini" data-etkinlik-filter="tumu" onclick="etkinlikFilter('tumu')">📁 Tümü</button>
-            </div>
-            <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
-          </div>
-
-          <!-- Liste -->
-          <div id="etkinlikListesi">
-            <div class="loading"><div class="spinner"></div><p>Etkinlikler yükleniyor...</p></div>
-          </div>
-        </div>
 
         <!-- TAKVİM (Faz A) -->
-        <div id="icerikAlt-takvim" class="icerik-alt-panel" style="display:none;">
-          <div class="takvim-yonetim-bar">
-            <h3>🗓️ Okul Takvimi</h3>
-            <button class="takvim-yeni-btn" onclick="takvimEtkinlikModalAc()">+ Yeni Etkinlik</button>
-          </div>
-
-          <!-- AY GRID -->
-          <div class="takvim-ay-bar">
-            <div class="takvim-ay-baslik" id="takvimAyBaslik">—</div>
-            <div class="takvim-ay-nav">
-              <button onclick="takvimAyGec(-1)" title="Önceki ay">‹</button>
-              <button onclick="takvimBugune()" title="Bugün" style="width:auto; padding:0 12px;">Bugün</button>
-              <button onclick="takvimAyGec(1)" title="Sonraki ay">›</button>
-            </div>
-          </div>
-          <div id="takvimGrid" class="takvim-grid">
-            <!-- JS ile doldurulur -->
-          </div>
-
-          <!-- YAKLAŞAN ETKİNLİKLER (liste) -->
-          <h3 style="margin:18px 0 10px; font-size:15px; color:#166534;">Yaklaşan Etkinlikler</h3>
-          <div id="takvimYaklasanListe" class="takvim-etkinlik-listesi">
-            <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
-          </div>
-
-          <!-- 📞 RANDEVU SLOT SİSTEMİ (FAZ B) -->
-          <div class="randevu-yonetim-bar" style="margin-top:24px;">
-            <div>
-              <h3>📞 Randevu Slot'ları</h3>
-              <div style="font-size:12px; color:#0e7490; margin-top:4px;">Velilere randevu açın. Veliler müsait slotlardan birini seçer.</div>
-            </div>
-            <div class="randevu-yeni-btn-grup">
-              <button class="randevu-yeni-btn" onclick="randevuSlotModalAc()">+ Tek Slot</button>
-              <button class="randevu-yeni-btn toplu" onclick="randevuTopluModalAc()">⚡ Toplu Slot Oluştur</button>
-            </div>
-          </div>
-
-          <!-- Filtre çubuğu -->
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; padding:10px 14px; background:white; border:1px solid #e5e7eb; border-radius:10px;">
-            <span style="font-size:12px; color:#6b7280; font-weight:600;">FİLTRE:</span>
-            <select id="randevuFiltreTip" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
-              <option value="">Tüm Tipler</option>
-              <option value="ogretmen_veli">👨‍🏫 Öğretmen-Veli</option>
-              <option value="pdr">🧠 PDR</option>
-              <option value="idare">🏢 İdare</option>
-              <option value="meslek_sunumu">💼 Meslek Sunumu</option>
-              <option value="diger">📌 Diğer</option>
-            </select>
-            <select id="randevuFiltreDurum" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
-              <option value="">Tüm Durumlar</option>
-              <option value="musait">🟢 Sadece Müsait</option>
-              <option value="dolu">🟡 Sadece Dolu</option>
-            </select>
-            <select id="randevuFiltreZaman" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
-              <option value="gelecek">📅 Yaklaşan</option>
-              <option value="tum">📂 Tümü</option>
-              <option value="gecmis">📜 Geçmiş</option>
-            </select>
-            <span style="margin-left:auto; font-size:11px; color:#6b7280;" id="randevuSayac">—</span>
-          </div>
-
-          <!-- Slot listesi -->
-          <div id="randevuListesi">
-            <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
-          </div>
-        </div>
 
         <!-- DEVAMSIZLIK -->
         <div id="icerikAlt-devamsizlik" class="icerik-alt-panel" style="display:none;">
@@ -9705,52 +9677,6 @@ i[data-lucide] svg { display: block; }
         </div>
 
         <!-- MESAJLAŞMA -->
-        <div id="icerikAlt-mesajlasma" class="icerik-alt-panel" style="display:none;">
-          <div class="mesaj-konteyner">
-            <!-- SOL: Sohbet listesi -->
-            <div class="mesaj-liste-panel" id="mesajListePanel">
-              <div class="mesaj-liste-baslik">
-                <span>💬 Mesajlar</span>
-                <button class="mesaj-yeni-btn" onclick="mesajYeniSohbetAc()">+ Yeni</button>
-              </div>
-              <div class="mesaj-liste-ara">
-                <input type="text" id="mesajListeAra" placeholder="🔍 Ara..." oninput="mesajThreadleriListele()">
-              </div>
-              <div id="mesajThreadListesi" class="mesaj-thread-listesi">
-                <div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
-              </div>
-            </div>
-
-            <!-- SAĞ: Sohbet ekranı -->
-            <div class="mesaj-sohbet-panel" id="mesajSohbetPanel">
-              <div class="mesaj-sohbet-bos" id="mesajSohbetBos">
-                <div style="font-size:48px;">💬</div>
-                <h3>Bir sohbet seçin</h3>
-                <p>Sol taraftan bir sohbete tıklayın veya yeni mesaj başlatın.</p>
-              </div>
-              <div class="mesaj-sohbet-aktif" id="mesajSohbetAktif" style="display:none;">
-                <div class="mesaj-sohbet-header">
-                  <button class="mesaj-geri-btn" onclick="mesajSohbetKapat()">←</button>
-                  <div class="mesaj-sohbet-avatar" id="mesajSohbetAvatar">A</div>
-                  <div class="mesaj-sohbet-baslik">
-                    <div class="mesaj-sohbet-ad" id="mesajSohbetAd">—</div>
-                    <div class="mesaj-sohbet-alt" id="mesajSohbetAlt">—</div>
-                  </div>
-                </div>
-                <div class="mesaj-sohbet-govde" id="mesajSohbetGovde">
-                  <!-- Mesaj balonları -->
-                </div>
-                <div id="mesajResimOnizleme" style="display:none; padding:8px 12px; border-top:1px solid #e5e7eb; background:#f9fafb;"></div>
-                <div class="mesaj-sohbet-giris">
-                  <input type="file" id="mesajResimInput" accept="image/*" style="display:none;" onchange="mesajResimSecildi(event)">
-                  <button class="mesaj-atac-btn" onclick="document.getElementById('mesajResimInput').click()" title="Resim ekle">📎</button>
-                  <textarea id="mesajGirisInput" placeholder="Mesaj yazın..." rows="1" onkeydown="mesajGirisKeydown(event)"></textarea>
-                  <button class="mesaj-gonder-btn" onclick="mesajGonderTikla()">➤</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <!-- YENİ SOHBET MODAL (personel) -->
         <div class="modal-overlay" id="mesajYeniModal" onclick="if(event.target.id==='mesajYeniModal') mesajYeniSohbetKapat()">
@@ -10696,6 +10622,150 @@ i[data-lucide] svg { display: block; }
           <div style="font-size:11px; color:var(--gray-500); margin-top:6px;">Ad Soyad / İmza</div>
         </div>
       </div>
+    </div>
+
+    <!-- ============ ETKİNLİK & TAKVİM MODÜLÜ (bağımsız) ============ -->
+    <div class="tab-panel" id="tab-etkinlik">
+      <div style="display:flex; gap:8px; margin-bottom:18px;">
+        <button class="et-alt-btn active" data-et-alt="etkinlik" onclick="etkinlikAltSec('etkinlik')"><i data-lucide="party-popper" style="width:15px;height:15px;"></i> Etkinlikler</button>
+        <button class="et-alt-btn" data-et-alt="takvim" onclick="etkinlikAltSec('takvim')"><i data-lucide="calendar-days" style="width:15px;height:15px;"></i> Takvim</button>
+      </div>
+      <div id="etAlt-etkinlik"><div>
+          <!-- Üst bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-mini" data-etkinlik-filter="yaklasan" onclick="etkinlikFilter('yaklasan')" style="background:#3b82f6; border:none; color:white;">🔜 Yaklaşan</button>
+              <button class="btn-mini" data-etkinlik-filter="buAy" onclick="etkinlikFilter('buAy')">📅 Bu Ay</button>
+              <button class="btn-mini" data-etkinlik-filter="gecmis" onclick="etkinlikFilter('gecmis')">⏮ Geçmiş</button>
+              <button class="btn-mini" data-etkinlik-filter="tumu" onclick="etkinlikFilter('tumu')">📁 Tümü</button>
+            </div>
+            <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
+          </div>
+
+          <!-- Liste -->
+          <div id="etkinlikListesi">
+            <div class="loading"><div class="spinner"></div><p>Etkinlikler yükleniyor...</p></div>
+          </div>
+        </div>
+</div>
+      <div id="etAlt-takvim" style="display:none;"><div>
+          <div class="takvim-yonetim-bar">
+            <h3>🗓️ Okul Takvimi</h3>
+            <button class="takvim-yeni-btn" onclick="takvimEtkinlikModalAc()">+ Yeni Etkinlik</button>
+          </div>
+
+          <!-- AY GRID -->
+          <div class="takvim-ay-bar">
+            <div class="takvim-ay-baslik" id="takvimAyBaslik">—</div>
+            <div class="takvim-ay-nav">
+              <button onclick="takvimAyGec(-1)" title="Önceki ay">‹</button>
+              <button onclick="takvimBugune()" title="Bugün" style="width:auto; padding:0 12px;">Bugün</button>
+              <button onclick="takvimAyGec(1)" title="Sonraki ay">›</button>
+            </div>
+          </div>
+          <div id="takvimGrid" class="takvim-grid">
+            <!-- JS ile doldurulur -->
+          </div>
+
+          <!-- YAKLAŞAN ETKİNLİKLER (liste) -->
+          <h3 style="margin:18px 0 10px; font-size:15px; color:#166534;">Yaklaşan Etkinlikler</h3>
+          <div id="takvimYaklasanListe" class="takvim-etkinlik-listesi">
+            <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+          </div>
+
+          <!-- 📞 RANDEVU SLOT SİSTEMİ (FAZ B) -->
+          <div class="randevu-yonetim-bar" style="margin-top:24px;">
+            <div>
+              <h3>📞 Randevu Slot'ları</h3>
+              <div style="font-size:12px; color:#0e7490; margin-top:4px;">Velilere randevu açın. Veliler müsait slotlardan birini seçer.</div>
+            </div>
+            <div class="randevu-yeni-btn-grup">
+              <button class="randevu-yeni-btn" onclick="randevuSlotModalAc()">+ Tek Slot</button>
+              <button class="randevu-yeni-btn toplu" onclick="randevuTopluModalAc()">⚡ Toplu Slot Oluştur</button>
+            </div>
+          </div>
+
+          <!-- Filtre çubuğu -->
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; padding:10px 14px; background:white; border:1px solid #e5e7eb; border-radius:10px;">
+            <span style="font-size:12px; color:#6b7280; font-weight:600;">FİLTRE:</span>
+            <select id="randevuFiltreTip" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
+              <option value="">Tüm Tipler</option>
+              <option value="ogretmen_veli">👨‍🏫 Öğretmen-Veli</option>
+              <option value="pdr">🧠 PDR</option>
+              <option value="idare">🏢 İdare</option>
+              <option value="meslek_sunumu">💼 Meslek Sunumu</option>
+              <option value="diger">📌 Diğer</option>
+            </select>
+            <select id="randevuFiltreDurum" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
+              <option value="">Tüm Durumlar</option>
+              <option value="musait">🟢 Sadece Müsait</option>
+              <option value="dolu">🟡 Sadece Dolu</option>
+            </select>
+            <select id="randevuFiltreZaman" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
+              <option value="gelecek">📅 Yaklaşan</option>
+              <option value="tum">📂 Tümü</option>
+              <option value="gecmis">📜 Geçmiş</option>
+            </select>
+            <span style="margin-left:auto; font-size:11px; color:#6b7280;" id="randevuSayac">—</span>
+          </div>
+
+          <!-- Slot listesi -->
+          <div id="randevuListesi">
+            <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+          </div>
+        </div>
+</div>
+    </div>
+
+    <!-- ============ MESAJLAŞMA MODÜLÜ (bağımsız, WhatsApp tarzı) ============ -->
+    <div class="tab-panel" id="tab-mesajlasma">
+      <div class="wa-katman"><div>
+          <div class="mesaj-konteyner">
+            <!-- SOL: Sohbet listesi -->
+            <div class="mesaj-liste-panel" id="mesajListePanel">
+              <div class="mesaj-liste-baslik">
+                <span>💬 Mesajlar</span>
+                <button class="mesaj-yeni-btn" onclick="mesajYeniSohbetAc()">+ Yeni</button>
+              </div>
+              <div class="mesaj-liste-ara">
+                <input type="text" id="mesajListeAra" placeholder="🔍 Ara..." oninput="mesajThreadleriListele()">
+              </div>
+              <div id="mesajThreadListesi" class="mesaj-thread-listesi">
+                <div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+              </div>
+            </div>
+
+            <!-- SAĞ: Sohbet ekranı -->
+            <div class="mesaj-sohbet-panel" id="mesajSohbetPanel">
+              <div class="mesaj-sohbet-bos" id="mesajSohbetBos">
+                <div style="font-size:48px;">💬</div>
+                <h3>Bir sohbet seçin</h3>
+                <p>Sol taraftan bir sohbete tıklayın veya yeni mesaj başlatın.</p>
+              </div>
+              <div class="mesaj-sohbet-aktif" id="mesajSohbetAktif" style="display:none;">
+                <div class="mesaj-sohbet-header">
+                  <button class="mesaj-geri-btn" onclick="mesajSohbetKapat()">←</button>
+                  <div class="mesaj-sohbet-avatar" id="mesajSohbetAvatar">A</div>
+                  <div class="mesaj-sohbet-baslik">
+                    <div class="mesaj-sohbet-ad" id="mesajSohbetAd">—</div>
+                    <div class="mesaj-sohbet-alt" id="mesajSohbetAlt">—</div>
+                  </div>
+                </div>
+                <div class="mesaj-sohbet-govde" id="mesajSohbetGovde">
+                  <!-- Mesaj balonları -->
+                </div>
+                <div id="mesajResimOnizleme" style="display:none; padding:8px 12px; border-top:1px solid #e5e7eb; background:#f9fafb;"></div>
+                <div class="mesaj-sohbet-giris">
+                  <input type="file" id="mesajResimInput" accept="image/*" style="display:none;" onchange="mesajResimSecildi(event)">
+                  <button class="mesaj-atac-btn" onclick="document.getElementById('mesajResimInput').click()" title="Resim ekle">📎</button>
+                  <textarea id="mesajGirisInput" placeholder="Mesaj yazın..." rows="1" onkeydown="mesajGirisKeydown(event)"></textarea>
+                  <button class="mesaj-gonder-btn" onclick="mesajGonderTikla()">➤</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+</div>
     </div>
 
     <div class="tab-panel" id="tab-personel">
@@ -14087,11 +14157,11 @@ function mesajBildirimRozetGuncelle(toplam) {
     const btn = document.querySelector('.veli-menu-item[data-veli-tab="iletisim"]');
     if (btn) rozetYerlestir(btn, toplam, "veli-mesaj-rozet", "margin-left:auto;");
   } else {
-    // PERSONEL: ana sekmedeki "İçerik" butonuna + içerik alt "Mesajlaşma" butonuna rozet
-    const anaBtn = document.querySelector('.tab[data-tab="icerik"]');
-    if (anaBtn) rozetYerlestir(anaBtn, toplam, "icerik-mesaj-rozet", "");
-    const altBtn = document.querySelector('[data-icerik-alt="mesajlasma"]');
-    if (altBtn) rozetYerlestir(altBtn, toplam, "mesaj-alt-rozet", "");
+    // PERSONEL: bağımsız Mesajlaşma sidebar öğesine + tab butonuna rozet
+    const mesajSideBtn = document.querySelector('.side-item[data-modul="mesaj"]');
+    if (mesajSideBtn) rozetYerlestir(mesajSideBtn, toplam, "mesaj-side-rozet", "");
+    const mesajTabBtn = document.querySelector('.tab[data-tab="mesajlasma"]');
+    if (mesajTabBtn) rozetYerlestir(mesajTabBtn, toplam, "mesaj-alt-rozet", "");
   }
 }
 
@@ -20358,13 +20428,9 @@ window.randevuYonetimMesajlas = async function(slotId) {
     const baslamaIpucu = `📞 Randevu: ${s.tarih} ${s.baslangicSaat}-${s.bitisSaat}\n${s.tip === "meslek_sunumu" ? "Konu: Meslek Sunumu" : ""}`;
     showToast("Mesajlaşma açılıyor...");
 
-    // Mesaj sekmesine geç (yönetim için tab değişimi)
-    if (typeof veliSwitchTab === "function") {
-      // Yönetim mesajlaşma sekmesini aç
-      if (typeof icerikSwitchAlt === "function") {
-        const mesajSekmesi = document.querySelector('[data-icerik-alt="mesajlasma"]');
-        if (mesajSekmesi) mesajSekmesi.click();
-      }
+    // Bağımsız Mesajlaşma modülüne geç
+    if (typeof modulSec === "function") {
+      modulSec("mesaj");
     }
     console.log(`[Yönetim Mesaj] Thread açıldı: ${thread.id}, başlama ipucu: ${baslamaIpucu}`);
   } catch (e) {
@@ -22727,11 +22793,9 @@ window.icerikSwitchAlt = function(alt) {
 function renderIcerikAltSekme() {
   if (aktifIcerikAlt === "duyurular") renderDuyurular();
   else if (aktifIcerikAlt === "yemek") renderYemekMenusu();
-  else if (aktifIcerikAlt === "etkinlik") renderEtkinlikler();
-  else if (aktifIcerikAlt === "takvim") takvimYonetimRender();
   else if (aktifIcerikAlt === "devamsizlik") renderDevamsizlik();
   else if (aktifIcerikAlt === "galeri") renderGaleri();
-  else if (aktifIcerikAlt === "mesajlasma") { if (typeof mesajlasmaBaslat === "function") mesajlasmaBaslat(); }
+  // Not: etkinlik/takvim/mesajlaşma artık bağımsız sidebar modülleri (icerikten çıkarıldı)
 
   // Mesajlaşma dışında bir sekmeye geçildiyse dinleyicileri durdur (Firestore maliyeti)
   if (aktifIcerikAlt !== "mesajlasma" && typeof mesajlasmaDurdur === "function") {
@@ -31524,7 +31588,8 @@ const MODUL_HARITASI = {
   egitim:      { tablar: ["egitim"],     varsayilan: "egitim", ad: "Eğitim" },
   muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
   isleyis:     { tablar: ["icerik"],     varsayilan: "icerik", ad: "Okul İşleyişi" },
-  mesaj:       { tablar: ["icerik"],     varsayilan: "icerik", icerikAlt: "mesajlasma", ad: "Mesajlaşma" },
+  etkinlik:    { tablar: ["etkinlik"],   varsayilan: "etkinlik", ad: "Etkinlik & Takvim" },
+  mesaj:       { tablar: ["mesajlasma"], varsayilan: "mesajlasma", ad: "Mesajlaşma" },
   gelisim:     { tablar: ["gelisim"],    varsayilan: "gelisim", ad: "Gelişim & Kalite" },
   denetim:     { tablar: ["denetim"],    varsayilan: "denetim", ad: "MEB Denetim Hazırlığı" }
 };
@@ -31679,8 +31744,34 @@ document.querySelectorAll(".tab").forEach(tab => {
     if (tab.dataset.tab === "denetim") {
       setTimeout(() => { if (typeof denetimSekmesiAcildi === "function") denetimSekmesiAcildi(); }, 50);
     }
+
+    // Etkinlik & Takvim bağımsız sekmesi açıldı
+    if (tab.dataset.tab === "etkinlik") {
+      setTimeout(() => {
+        etkinlikAltSec(aktifEtkinlikAlt || "etkinlik");
+      }, 50);
+    }
+
+    // Mesajlaşma bağımsız sekmesi açıldı
+    if (tab.dataset.tab === "mesajlasma") {
+      setTimeout(() => { if (typeof mesajlasmaBaslat === "function") mesajlasmaBaslat(); }, 50);
+    }
   });
 });
+
+// Etkinlik & Takvim iç alt-sekme geçişi
+let aktifEtkinlikAlt = "etkinlik";
+window.etkinlikAltSec = function(alt) {
+  aktifEtkinlikAlt = alt;
+  document.querySelectorAll(".et-alt-btn").forEach(b => b.classList.toggle("active", b.dataset.etAlt === alt));
+  const eP = document.getElementById("etAlt-etkinlik");
+  const tP = document.getElementById("etAlt-takvim");
+  if (eP) eP.style.display = alt === "etkinlik" ? "block" : "none";
+  if (tP) tP.style.display = alt === "takvim" ? "block" : "none";
+  if (alt === "etkinlik" && typeof renderEtkinlikler === "function") renderEtkinlikler();
+  if (alt === "takvim" && typeof takvimYonetimRender === "function") takvimYonetimRender();
+  if (window.lucideYenile) window.lucideYenile();
+};
 
 // ============ MEB DENETİM FONKSİYONLARI ============
 function denetimAnahtar(katId, idx) { return `${katId}_${idx}`; }
