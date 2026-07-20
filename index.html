@@ -6167,8 +6167,12 @@ html, body {
   font-weight: 700;
 }
 .egitim-matrix-tablosu thead th.ogrenci-h {
-  min-width: 70px;
-  max-width: 70px;
+  min-width: 34px;
+  max-width: 34px;
+  width: 34px;
+  height: 200px;
+  padding: 8px 2px 12px;
+  vertical-align: bottom;
 }
 .matrix-ogr-foto {
   width: 44px;
@@ -6192,13 +6196,22 @@ html, body {
 .matrix-ogr-foto:hover {
   transform: scale(1.1);
 }
+/* Dikey öğrenci ismi (görsel referans: sütunlar daralır, çok öğrenci sığar) */
 .matrix-ogr-ad {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: #374151;
-  text-align: center;
-  line-height: 1.2;
-  word-break: break-word;
+  line-height: 1;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  text-align: left;
+  margin: 0 auto;
+  letter-spacing: 0.3px;
+  max-height: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
 }
 
 .egitim-matrix-tablosu tbody td.ders-adi {
@@ -24483,15 +24496,10 @@ function egitimMatrixRender() {
   html += `<th class="ders-baslik-h">${alan.ikon || "📚"} ${escapeHtmlGelisim(alan.ad)}</th>`;
   ogrenciler.forEach(o => {
     const ad = o.ogrenciAdSoyad || "—";
-    const adKisa = ad.length > 16 ? ad.substring(0,14)+"…" : ad;
-    const fotoUrl = o.fotoUrl || "";
-    const ilkHarf = ad.charAt(0).toUpperCase();
-    const stil = fotoUrl ? `background-image:url('${escapeHtmlGelisim(fotoUrl)}');` : '';
-    const harfHTML = fotoUrl ? '' : ilkHarf;
+    const adKisa = ad.length > 24 ? ad.substring(0,22)+"…" : ad;
     html += `
       <th class="ogrenci-h">
-        <div class="matrix-ogr-foto" style="${stil}" onclick="ogrenciFotoYonet('${o.id}')" title="Fotoğraf yönet">${harfHTML}</div>
-        <div class="matrix-ogr-ad" title="${escapeHtmlGelisim(ad)}">${escapeHtmlGelisim(adKisa)}</div>
+        <div class="matrix-ogr-ad" title="${escapeHtmlGelisim(ad)} — fotoğraf/profil için tıklayın" onclick="ogrenciFotoYonet('${o.id}')">${escapeHtmlGelisim(adKisa)}</div>
       </th>`;
   });
   html += `</tr></thead><tbody>`;
