@@ -31981,7 +31981,7 @@ function denetimRender() {
                   <div style="font-size:13.5px; color:var(--ink); line-height:1.4;">
                     ${m.k ? `<span style="background:#FEE2E2; color:#991B1B; font-size:10px; font-weight:800; padding:1px 6px; border-radius:5px; margin-right:6px;">K</span>` : ""}${m.s.replace(/</g,"&lt;")}
                   </div>
-                  <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">${m.kaynak !== "—" ? "📋 " + m.kaynak : ""}</div>
+                  <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">${m.kaynak !== "—" ? `<i data-lucide="scale" style="width:13px;height:13px;vertical-align:-2px;"></i> ` + m.kaynak : ""}</div>
                 </div>
                 <span style="font-size:11px; font-weight:600; color:${d.renk}; white-space:nowrap;">${d.ad}</span>
               </div>`;
