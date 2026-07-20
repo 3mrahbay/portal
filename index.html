@@ -27204,7 +27204,6 @@ window.openGaleriYuklemeModal = function(mod) {
 
   // Başlık sıfırla (moda göre)
   const header = document.querySelector("#galeriYuklemeModal .modal-header h3");
-  const mod = window._galeriYuklemeMod || 'foto';
   const fileInp = document.getElementById("galeriFileInput");
   if (mod === 'video') {
     if (header) header.innerHTML = `<i data-lucide="video"></i> Video Yükle`;
