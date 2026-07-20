@@ -1137,6 +1137,25 @@ i[data-lucide] svg { display: block; }
 /* Alt sekme barı yumuşak görünüm */
 .tabs.tek-sekmeli { display: none; }
 
+/* Eğitim program grubu: ana kart + altında küçük rapor kutusu */
+.egitim-program-grup { display: flex; flex-direction: column; gap: 8px; }
+.egitim-rapor-kutu {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--gray-300); background: #fff;
+  cursor: pointer; transition: all .15s; text-align: left; width: 100%;
+  font-family: var(--font-body);
+}
+.egitim-rapor-kutu:hover { border-color: var(--d-renk); background: #FBFBFD; transform: translateY(-1px); }
+.egitim-rapor-kutu .er-ikon {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.egitim-rapor-kutu .er-metin { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.egitim-rapor-kutu .er-metin strong { font-size: 13px; color: var(--ink); font-weight: 700; }
+.egitim-rapor-kutu .er-metin span { font-size: 11px; color: var(--gray-500); }
+.egitim-rapor-kutu .er-ok { color: var(--d-renk); font-weight: 700; font-size: 15px; }
+
 /* ============ GELİŞİM & KALİTE KARTLARI ============ */
 .gelisim-kart {
   background: #fff; border: 1px solid var(--gray-300);
@@ -8131,6 +8150,10 @@ i[data-lucide] svg { display: block; }
 .cicek-app .wa-bub.giden .wa-bub-meta { color:#5A6ACF; }
 .cicek-app .wa-tik { font-size:13px; letter-spacing:-2px; }
 .cicek-app .wa-tik.okundu { color:#53bdeb; }
+/* Mesajlaşma baloncuk okundu tikleri (yönetim/öğretmen tarafı) */
+.wa-tik { font-size: 13px; letter-spacing: -2px; margin-left: 4px; color: #8696a0; }
+.wa-tik.okundu { color: #53bdeb; }
+.mesaj-balon-meta { display: inline-flex; align-items: center; gap: 2px; }
 .cicek-app .wa-bub-img { display:block; max-width:100%; min-width:180px; border-radius:6px; margin-bottom:3px; cursor:pointer; }
 /* Belge eki balonu */
 .cicek-app .wa-belge {
@@ -9038,6 +9061,8 @@ i[data-lucide] svg { display: block; }
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
         <button class="side-item" data-modul="isleyis" onclick="modulSec('isleyis')"><span class="side-ikon"><i data-lucide="flower-2"></i></span><span class="side-ad">Okul İşleyişi</span></button>
+        <button class="side-item" data-modul="duyurular" onclick="modulSec('duyurular')"><span class="side-ikon"><i data-lucide="megaphone"></i></span><span class="side-ad">Duyurular</span></button>
+        <button class="side-item" data-modul="yemek" onclick="modulSec('yemek')"><span class="side-ikon"><i data-lucide="utensils"></i></span><span class="side-ad">Yemek Menüsü</span></button>
         <button class="side-item" data-modul="etkinlik" onclick="modulSec('etkinlik')"><span class="side-ikon"><i data-lucide="calendar-heart"></i></span><span class="side-ad">Etkinlik &amp; Takvim</span></button>
         <button class="side-item" data-modul="mesaj" onclick="modulSec('mesaj')"><span class="side-ikon"><i data-lucide="message-circle"></i></span><span class="side-ad">Mesajlaşma</span></button>
         <button class="side-item" data-modul="gelisim" onclick="modulSec('gelisim')"><span class="side-ikon"><i data-lucide="sparkles"></i></span><span class="side-ad">Gelişim &amp; Kalite</span></button>
@@ -9057,6 +9082,8 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="denetim" id="tab-denetim-btn" style="display:none;">🛡️ MEB Denetim</button>
       <button class="tab" data-tab="etkinlik" id="tab-etkinlik-btn" style="display:none;">🎉 Etkinlik &amp; Takvim</button>
       <button class="tab" data-tab="mesajlasma" id="tab-mesajlasma-btn" style="display:none;">💬 Mesajlaşma</button>
+      <button class="tab" data-tab="duyurular" id="tab-duyurular-btn" style="display:none;">📢 Duyurular</button>
+      <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;">🍽️ Yemek Menüsü</button>
     </div>
 
     <!-- YENİ TASARIM · ANA SAYFA TAB (rol bazlı: yönetim/öğretmen) -->
@@ -9495,29 +9522,11 @@ i[data-lucide] svg { display: block; }
 
       <!-- ALT SEKMELER (Renkli Butonlar) -->
       <div class="icerik-altsekme-bar">
-        <button class="icerik-altsekme-btn active" data-icerik-alt="duyurular" data-renk="sari" onclick="icerikSwitchAlt('duyurular')">
-          <span>📝</span> Duyurular
-        </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="yemek" data-renk="turuncu" onclick="icerikSwitchAlt('yemek')">
-          <span>🍽</span> Yemek Menüsü
-        </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="devamsizlik" data-renk="kirmizi" onclick="icerikSwitchAlt('devamsizlik')">
+        <button class="icerik-altsekme-btn active" data-icerik-alt="devamsizlik" data-renk="kirmizi" onclick="icerikSwitchAlt('devamsizlik')">
           <span>📋</span> Devamsızlık
         </button>
         <button class="icerik-altsekme-btn" data-icerik-alt="galeri" data-renk="mor" onclick="icerikSwitchAlt('galeri')">
           <span>📸</span> Galeri
-        </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="montessori" data-renk="yesil" onclick="icerikSwitchAlt('montessori')">
-          <span>📚</span> Montessori Raporu
-        </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="orman" data-renk="camYesil" onclick="icerikSwitchAlt('orman')">
-          <span>🌳</span> Orman Okulu Raporu
-        </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="degerler" data-renk="altin" onclick="icerikSwitchAlt('degerler')">
-          <span>💛</span> Değerler Raporu
-        </button>
-        <button class="icerik-altsekme-btn" data-icerik-alt="ingilizce" data-renk="koyuMavi" onclick="icerikSwitchAlt('ingilizce')">
-          <span>🇬🇧</span> İngilizce Raporu
         </button>
         </div>
 
@@ -9525,43 +9534,8 @@ i[data-lucide] svg { display: block; }
       <div id="icerikAltPanelWrap" data-aktif-renk="sari" style="border-radius:16px; padding:20px; transition:background 0.3s; min-height:400px;">
 
         <!-- DUYURULAR -->
-        <div id="icerikAlt-duyurular" class="icerik-alt-panel">
-          <!-- Üst bar: yeni duyuru butonu + filtreler -->
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-mini" data-duyuru-filter="aktif" onclick="duyuruFilter('aktif')" style="background:#eab308; border:none; color:white;">✓ Aktif</button>
-              <button class="btn-mini" data-duyuru-filter="arsiv" onclick="duyuruFilter('arsiv')">📦 Arşiv</button>
-              <button class="btn-mini" data-duyuru-filter="tumu" onclick="duyuruFilter('tumu')">📁 Tümü</button>
-            </div>
-            <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
-          </div>
-
-          <!-- Liste -->
-          <div id="duyurularListesi">
-            <div class="loading"><div class="spinner"></div><p>Duyurular yükleniyor...</p></div>
-          </div>
-        </div>
 
         <!-- YEMEK MENÜSÜ -->
-        <div id="icerikAlt-yemek" class="icerik-alt-panel" style="display:none;">
-          <!-- Üst bar: hafta seçici + yeni menü -->
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; background:white; border:1px solid var(--gray-300); border-radius:12px; padding:14px 18px;">
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-              <button class="btn-mini" onclick="yemekHaftaDegistir(-1)">← Önceki Hafta</button>
-              <div id="yemekHaftaEtiketi" style="padding:8px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; font-weight:600; color:#9a3412; font-size:13px; min-width:220px; text-align:center;">Hafta yükleniyor...</div>
-              <button class="btn-mini" onclick="yemekHaftaDegistir(1)">Sonraki Hafta →</button>
-              <button class="btn-mini" onclick="yemekBuHaftaGit()" title="Bu haftaya git">📅 Bugün</button>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-primary" onclick="yemekMenusuDuzenle()" style="background:#f97316; border:none; color:white;">✏️ Bu Haftayı Düzenle</button>
-            </div>
-          </div>
-
-          <!-- Menü Tablosu -->
-          <div id="yemekMenusuGorunum">
-            <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
-          </div>
-        </div>
 
         <!-- ETKİNLİKLER -->
 
@@ -9611,70 +9585,12 @@ i[data-lucide] svg { display: block; }
         </div>
 
         <!-- MONTESSORİ RAPORU -->
-        <div id="icerikAlt-montessori" class="icerik-alt-panel" style="display:none;">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">📚</div>
-            <h3>Montessori Gelişim Raporu</h3>
-            <p>Her öğrenci için 5 alanda S/T/U değerlendirme yapın.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Günlük Yaşam Becerileri</div>
-              <div>✓ Duyu Eğitimi</div>
-              <div>✓ Dil / Okuma-Yazma</div>
-              <div>✓ Matematik</div>
-              <div>✓ Doğa / Kültür</div>
-              <div>✓ Sunuldu (S) / Tekrar (T) / Uygulandı (U)</div>
-            </div>
-            <div class="icerik-placeholder-rozet">TUR 7'de aktif olacak</div>
-          </div>
-        </div>
 
         <!-- ORMAN OKULU RAPORU -->
-        <div id="icerikAlt-orman" class="icerik-alt-panel" style="display:none;">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">🌳</div>
-            <h3>Orman Okulu Gelişim Raporu</h3>
-            <p>Level 3 Forest School — doğada gözlem ve beceri değerlendirmesi.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Doğa keşfi becerileri</div>
-              <div>✓ Risk değerlendirme</div>
-              <div>✓ Sosyal beceriler (doğa ortamında)</div>
-              <div>✓ Serbest gözlem notları</div>
-            </div>
-            <div class="icerik-placeholder-rozet">TUR 8'de aktif olacak</div>
-          </div>
-        </div>
 
         <!-- DEĞERLER EĞİTİMİ RAPORU -->
-        <div id="icerikAlt-degerler" class="icerik-alt-panel" style="display:none;">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">💛</div>
-            <h3>Değerler Eğitimi Raporu</h3>
-            <p>Aylık tema değerler ve öğrenci gözlemleri.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Aylık tema (sevgi, saygı, paylaşım...)</div>
-              <div>✓ Öğrenci gözlem notu</div>
-              <div>✓ Etkinlik fotoğrafları</div>
-              <div>✓ Veli işbirliği önerileri</div>
-            </div>
-            <div class="icerik-placeholder-rozet">TUR 8'de aktif olacak</div>
-          </div>
-        </div>
 
         <!-- İNGİLİZCE RAPORU -->
-        <div id="icerikAlt-ingilizce" class="icerik-alt-panel" style="display:none;">
-          <div class="icerik-placeholder">
-            <div class="icerik-placeholder-icon">🇬🇧</div>
-            <h3>İngilizce Gelişim Raporu</h3>
-            <p>Yaş grubuna uygun seviye ve beceri takibi.</p>
-            <div class="icerik-placeholder-ozellikler">
-              <div>✓ Kelime dağarcığı seviyesi</div>
-              <div>✓ Anlama becerileri (listening)</div>
-              <div>✓ Konuşma cesareti (speaking)</div>
-              <div>✓ Şarkı ve oyun katılımı</div>
-            </div>
-            <div class="icerik-placeholder-rozet">TUR 9'da aktif olacak</div>
-          </div>
-        </div>
 
         <!-- MESAJLAŞMA -->
 
@@ -10763,6 +10679,51 @@ i[data-lucide] svg { display: block; }
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+</div>
+    </div>
+
+    <!-- ============ DUYURULAR MODÜLÜ (bağımsız) ============ -->
+    <div class="tab-panel" id="tab-duyurular">
+      <div>        <div id="icerikAlt-duyurular" >
+          <!-- Üst bar: yeni duyuru butonu + filtreler -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-mini" data-duyuru-filter="aktif" onclick="duyuruFilter('aktif')" style="background:#eab308; border:none; color:white;">✓ Aktif</button>
+              <button class="btn-mini" data-duyuru-filter="arsiv" onclick="duyuruFilter('arsiv')">📦 Arşiv</button>
+              <button class="btn-mini" data-duyuru-filter="tumu" onclick="duyuruFilter('tumu')">📁 Tümü</button>
+            </div>
+            <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
+          </div>
+
+          <!-- Liste -->
+          <div id="duyurularListesi">
+            <div class="loading"><div class="spinner"></div><p>Duyurular yükleniyor...</p></div>
+          </div>
+        </div>
+</div>
+    </div>
+
+    <!-- ============ YEMEK MENÜSÜ MODÜLÜ (bağımsız) ============ -->
+    <div class="tab-panel" id="tab-yemek">
+      <div>        <div id="icerikAlt-yemek"  >
+          <!-- Üst bar: hafta seçici + yeni menü -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; background:white; border:1px solid var(--gray-300); border-radius:12px; padding:14px 18px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button class="btn-mini" onclick="yemekHaftaDegistir(-1)">← Önceki Hafta</button>
+              <div id="yemekHaftaEtiketi" style="padding:8px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; font-weight:600; color:#9a3412; font-size:13px; min-width:220px; text-align:center;">Hafta yükleniyor...</div>
+              <button class="btn-mini" onclick="yemekHaftaDegistir(1)">Sonraki Hafta →</button>
+              <button class="btn-mini" onclick="yemekBuHaftaGit()" title="Bu haftaya git">📅 Bugün</button>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-primary" onclick="yemekMenusuDuzenle()" style="background:#f97316; border:none; color:white;">✏️ Bu Haftayı Düzenle</button>
+            </div>
+          </div>
+
+          <!-- Menü Tablosu -->
+          <div id="yemekMenusuGorunum">
+            <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
           </div>
         </div>
 </div>
@@ -14070,7 +14031,10 @@ async function mesajOkunduIsaretle(threadId) {
     if (!snap.exists()) return;
     const okunmamis = Object.assign({}, snap.data().okunmamis || {});
     okunmamis[benim] = 0;
-    await updateDoc(doc(db, "mesajlar", threadId), { okunmamis });
+    // Okundu tikleri için: bu kullanıcının son okuma zamanını kaydet
+    const sonOkuma = Object.assign({}, snap.data().sonOkuma || {});
+    sonOkuma[benim] = new Date().toISOString();
+    await updateDoc(doc(db, "mesajlar", threadId), { okunmamis, sonOkuma });
   } catch (e) {
     console.warn("Okundu işaretleme hatası:", e);
   }
@@ -14377,11 +14341,25 @@ function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
     }
 
     const benMiGonderdim = gonderenLower === benim;
+    // Okundu tiki: sadece BENİM gönderdiğim mesajlarda (yönetim/öğretmen tarafı)
+    let tikHtml = "";
+    if (benMiGonderdim) {
+      const sonOkuma = mesajAktifThread?.sonOkuma || {};
+      const mesajZamani = m.tarih?.toDate ? m.tarih.toDate().getTime()
+                        : m.tarih?.seconds ? m.tarih.seconds * 1000
+                        : new Date(m.tarih || 0).getTime();
+      // Karşı taraf (ben olmayan katılımcı) mesajdan sonra okudu mu?
+      const karsiOkudu = Object.keys(sonOkuma).some(e => {
+        if (e === benim) return false;
+        return new Date(sonOkuma[e]).getTime() >= mesajZamani;
+      });
+      tikHtml = `<span class="wa-tik ${karsiOkudu ? "okundu" : ""}">${karsiOkudu ? "✓✓" : "✓"}</span>`;
+    }
     return `
       <div class="mesaj-balon ${benMiGonderdim ? 'giden' : 'gelen'}">
         ${resimHtml}
         ${metinHtml}
-        <div class="mesaj-balon-meta">${tarih}</div>
+        <div class="mesaj-balon-meta">${tarih}${tikHtml}</div>
       </div>`;
   }).join("");
 
@@ -16785,10 +16763,57 @@ function renderAdminHome() {
   const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
   root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
   if (typeof caTemaUygula === "function") caTemaUygula();
-  // HUB: hızlı bakış widget'larını async doldur (duyurular + eğitim)
+  // HUB: hızlı bakış widget'larını async doldur (duyurular + eğitim + öğretmen)
   if (!ogretmenMi) {
     setTimeout(hbDuyurulariDoldur, 60);
     setTimeout(hbEgitimDoldur, 120);
+    setTimeout(hbOgretmenDoldur, 90);
+  }
+}
+
+// Öğretmen Durumu widget'ını gerçek personel verisiyle doldur
+async function hbOgretmenDoldur() {
+  const listeEl = document.getElementById("hbOgretmenListe");
+  const sayacEl = document.getElementById("hbOgretmenSayac");
+  if (!listeEl && !sayacEl) return;
+  try {
+    // Personel henüz yüklenmediyse yükle
+    if ((typeof personelListesi === "undefined" || personelListesi.length === 0) && typeof loadPersoneller === "function") {
+      await loadPersoneller();
+    }
+    const tumP = (typeof personelListesi !== "undefined" ? personelListesi : []);
+    const gorevde = tumP.filter(p => !p.durum || p.durum === "aktif").length;
+    const izinli = tumP.filter(p => p.durum === "izinli").length;
+    const raporlu = tumP.filter(p => p.durum === "raporlu").length;
+
+    if (sayacEl) {
+      sayacEl.innerHTML = `
+        <div class="ozet-ogr-stat"><span class="v">${gorevde}</span><span class="l">Görevde</span></div>
+        <div class="ozet-ogr-stat"><span class="v">${izinli}</span><span class="l">İzinli</span></div>
+        <div class="ozet-ogr-stat"><span class="v">${raporlu}</span><span class="l">Raporlu</span></div>`;
+    }
+    if (listeEl) {
+      if (tumP.length === 0) {
+        listeEl.innerHTML = `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Henüz personel eklenmemiş.</div>`;
+        return;
+      }
+      listeEl.innerHTML = tumP.slice(0, 4).map(p => {
+        const durumBilgi = p.durum === "izinli" ? {t:"İzinli", r:"#c2445a", bg:"#FDECEF"}
+                         : p.durum === "raporlu" ? {t:"Raporlu", r:"#b45309", bg:"#FCF7E1"}
+                         : {t:"Görevde", r:"#3D8A5F", bg:"#E4F0E6"};
+        const bas = (p.adSoyad || p.ad || "?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();
+        return `<div style="display:flex; align-items:center; gap:11px; padding:10px 0; border-bottom:1px solid #F1F2F7;">
+          <div style="width:36px; height:36px; border-radius:50%; background:#E9EBF4; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:var(--c-ink);">${bas}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; font-size:13px; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(p.adSoyad||p.ad||"—").replace(/</g,"&lt;")}</div>
+            <div style="font-size:11px; color:var(--c-muted);">${(p.gorev||p.brans||ROL_ETIKETLERI?.[p.rol]||"Personel").toString().replace(/</g,"&lt;")}</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:${durumBilgi.r}; background:${durumBilgi.bg}; padding:3px 10px; border-radius:100px;">${durumBilgi.t}</span>
+        </div>`;
+      }).join("");
+    }
+  } catch (e) {
+    if (listeEl) listeEl.innerHTML = `<div style="font-size:12px; color:var(--c-muted);">Personel yüklenemedi.</div>`;
   }
 }
 
@@ -17498,13 +17523,13 @@ function yonetimHomeHTML(ad) {
             <div><span style="font-size:16px;">🧑‍🏫</span><span class="ozet-panel-baslik">Öğretmen Durumu</span></div>
             <span class="kpi-more">···</span>
           </div>
-          <div class="ozet-ogr-durum">
+          <div class="ozet-ogr-durum" id="hbOgretmenSayac">
             <div class="ozet-ogr-stat"><span class="v">${gorevdeSayisi}</span><span class="l">Görevde</span></div>
             <div class="ozet-ogr-stat"><span class="v">${izinliSayisi}</span><span class="l">İzinli</span></div>
             <div class="ozet-ogr-stat"><span class="v">${raporluSayisi}</span><span class="l">Raporlu</span></div>
           </div>
           <div style="font-size:12px; font-weight:700; color:var(--c-muted); margin:14px 0 4px;">Personel listesi</div>
-          ${ogretmenListeHTML}
+          <div id="hbOgretmenListe">${ogretmenListeHTML}</div>
           <button class="kpi-mini-btn" style="margin-top:12px;" onclick="adminGotoTab('personel')">Tümünü gör →</button>
         </div>
 
@@ -22766,7 +22791,7 @@ function renderFinansalAltSekme() {
 }
 
 // ============ OKUL-AİLE İÇERİK YÖNETİMİ ============
-let aktifIcerikAlt = "duyurular";
+let aktifIcerikAlt = "devamsizlik";
 
 window.icerikSwitchAlt = function(alt) {
   aktifIcerikAlt = alt;
@@ -22791,11 +22816,9 @@ window.icerikSwitchAlt = function(alt) {
 };
 
 function renderIcerikAltSekme() {
-  if (aktifIcerikAlt === "duyurular") renderDuyurular();
-  else if (aktifIcerikAlt === "yemek") renderYemekMenusu();
-  else if (aktifIcerikAlt === "devamsizlik") renderDevamsizlik();
+  if (aktifIcerikAlt === "devamsizlik") renderDevamsizlik();
   else if (aktifIcerikAlt === "galeri") renderGaleri();
-  // Not: etkinlik/takvim/mesajlaşma artık bağımsız sidebar modülleri (icerikten çıkarıldı)
+  // Not: duyurular/yemek/etkinlik/takvim/mesajlaşma artık bağımsız sidebar modülleri
 
   // Mesajlaşma dışında bir sekmeye geçildiyse dinleyicileri durdur (Firestore maliyeti)
   if (aktifIcerikAlt !== "mesajlasma" && typeof mesajlasmaDurdur === "function") {
@@ -24577,16 +24600,23 @@ window.egitimSekmesiAcildi = function() {
   // Kutuları DISIPLINLER'den dinamik üret (BCDM kodlarıyla)
   function kutuHTML(d) {
     return `
-      <button type="button" class="egitim-disiplin-kutu" data-disiplin="${d.id}" onclick="egitimDisiplinAc('${d.id}')" style="--d-renk:${d.renk};">
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <div class="egitim-disiplin-ikon">${d.ikon}</div>
-          <span style="font-size:10px; font-weight:800; letter-spacing:.05em; color:${d.renk}; background:${d.renk}14; padding:3px 8px; border-radius:100px;">${d.kod || ""}</span>
-        </div>
-        <div class="egitim-disiplin-baslik">${d.ad}</div>
-        <div class="egitim-disiplin-aciklama">${d.aciklama}</div>
-        <div style="font-size:11px; color:var(--gray-500); margin-top:4px;">📅 ${d.takvim || ""}</div>
-        <div class="egitim-disiplin-ileri">Aç →</div>
-      </button>`;
+      <div class="egitim-program-grup">
+        <button type="button" class="egitim-disiplin-kutu" data-disiplin="${d.id}" onclick="egitimDisiplinAc('${d.id}')" style="--d-renk:${d.renk};">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div class="egitim-disiplin-ikon">${d.ikon}</div>
+            <span style="font-size:10px; font-weight:800; letter-spacing:.05em; color:${d.renk}; background:${d.renk}14; padding:3px 8px; border-radius:100px;">${d.kod || ""}</span>
+          </div>
+          <div class="egitim-disiplin-baslik">${d.ad}</div>
+          <div class="egitim-disiplin-aciklama">${d.aciklama}</div>
+          <div style="font-size:11px; color:var(--gray-500); margin-top:4px;">📅 ${d.takvim || ""}</div>
+          <div class="egitim-disiplin-ileri">Değerlendirme →</div>
+        </button>
+        <button type="button" class="egitim-rapor-kutu" onclick="egitimDisiplinAc('${d.id}')" style="--d-renk:${d.renk};" title="${d.ad} gelişim raporu">
+          <span class="er-ikon" style="background:${d.renk}14; color:${d.renk};">📊</span>
+          <span class="er-metin"><strong>${d.ad} Raporu</strong><span>Öğrenci gelişim çıktısı · S/T/U</span></span>
+          <span class="er-ok">→</span>
+        </button>
+      </div>`;
   }
   if (secici) {
     secici.innerHTML = DISIPLINLER.filter(d => d.tip !== "brans").map(kutuHTML).join("");
@@ -31588,6 +31618,8 @@ const MODUL_HARITASI = {
   egitim:      { tablar: ["egitim"],     varsayilan: "egitim", ad: "Eğitim" },
   muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
   isleyis:     { tablar: ["icerik"],     varsayilan: "icerik", ad: "Okul İşleyişi" },
+  duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
+  yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
   etkinlik:    { tablar: ["etkinlik"],   varsayilan: "etkinlik", ad: "Etkinlik & Takvim" },
   mesaj:       { tablar: ["mesajlasma"], varsayilan: "mesajlasma", ad: "Mesajlaşma" },
   gelisim:     { tablar: ["gelisim"],    varsayilan: "gelisim", ad: "Gelişim & Kalite" },
@@ -31714,7 +31746,7 @@ document.querySelectorAll(".tab").forEach(tab => {
     if (tab.dataset.tab === "icerik") {
       setTimeout(() => {
         if (typeof icerikSwitchAlt === "function") {
-          icerikSwitchAlt(aktifIcerikAlt || "duyurular");
+          icerikSwitchAlt(aktifIcerikAlt || "devamsizlik");
         }
       }, 50);
     }
@@ -31755,6 +31787,16 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Mesajlaşma bağımsız sekmesi açıldı
     if (tab.dataset.tab === "mesajlasma") {
       setTimeout(() => { if (typeof mesajlasmaBaslat === "function") mesajlasmaBaslat(); }, 50);
+    }
+
+    // Duyurular bağımsız sekmesi açıldı
+    if (tab.dataset.tab === "duyurular") {
+      setTimeout(() => { if (typeof renderDuyurular === "function") renderDuyurular(); }, 50);
+    }
+
+    // Yemek Menüsü bağımsız sekmesi açıldı
+    if (tab.dataset.tab === "yemek") {
+      setTimeout(() => { if (typeof renderYemekMenusu === "function") renderYemekMenusu(); }, 50);
     }
   });
 });
