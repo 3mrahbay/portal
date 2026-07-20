@@ -9089,7 +9089,6 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="onay" id="tab-onay-btn"><i data-lucide="inbox"></i> Başvuru Havuzu <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans"><i data-lucide="wallet"></i> Finansal Yönetim</button>
       <button class="tab" data-tab="egitim"><i data-lucide="book-open"></i> Eğitim</button>
-      <button class="tab" data-tab="icerik"><i data-lucide="flower-2"></i> Okul-Aile İçerik Yönetimi</button>
       <button class="tab" data-tab="personel" id="tab-personel-btn" style="display:none;"><i data-lucide="briefcase"></i> Personel Yönetimi</button>
       <button class="tab" data-tab="gelisim" id="tab-gelisim-btn" style="display:none;"><i data-lucide="sparkles"></i> Gelişim &amp; Kalite</button>
       <button class="tab" data-tab="denetim" id="tab-denetim-btn" style="display:none;"><i data-lucide="shield-check"></i> MEB Denetim</button>
@@ -9098,6 +9097,7 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="duyurular" id="tab-duyurular-btn" style="display:none;"><i data-lucide="megaphone"></i> Duyurular</button>
       <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;"><i data-lucide="utensils"></i> Yemek Menüsü</button>
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
+      <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
     </div>
 
     <!-- YENİ TASARIM · ANA SAYFA TAB (rol bazlı: yönetim/öğretmen) -->
@@ -9242,6 +9242,15 @@ i[data-lucide] svg { display: block; }
 
     <!-- FİNANSAL YÖNETİM TAB -->
     <div class="tab-panel" id="tab-finans">
+      <!-- Modül hero -->
+      <div style="background:linear-gradient(135deg,#4338CA 0%,#6366F1 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-6%; width:260px; height:260px; background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85; display:flex; align-items:center; gap:7px;"><i data-lucide="wallet" style="width:15px;height:15px;"></i> MALİ YÖNETİM</div>
+          <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Finansal Yönetim</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:660px; margin:0;">Aidat tahsilatı, gelir-gider takibi, ödeme durumları ve mali raporları tek yerden yönetin.</p>
+        </div>
+      </div>
 
       <!-- ALT SEKMELER (Renkli Butonlar) -->
       <div class="finans-altsekme-bar">
@@ -9507,65 +9516,24 @@ i[data-lucide] svg { display: block; }
     </div>
 
     <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
-    <div class="tab-panel" id="tab-icerik">
-<!-- <i data-lucide="calendar" style="width:13px;height:13px;vertical-align:-2px;"></i> Etkinlik Yönetim Modülü Kartı -->
-<div style="background:linear-gradient(135deg,#e8f5e9 0%,#f1f8f1 100%);border:2px solid #a5d6a7;border-radius:16px;padding:20px;margin:16px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 4px 16px rgba(46,83,57,0.08);font-family:'Nunito',sans-serif;">
-  <div style="width:64px;height:64px;background:linear-gradient(135deg,#2e5339,#5A6ACF);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;box-shadow:0 4px 12px rgba(46,83,57,0.25);"><i data-lucide="calendar" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
-  <div style="flex:1;min-width:240px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-      <h3 style="margin:0;color:#1b3a26;font-size:18px;font-weight:800;">Etkinlik Yönetim Modülü</h3>
-      <span style="background:#2e5339;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">AYRI MODÜL</span>
-    </div>
-    <p style="margin:0 0 4px;color:#555;font-size:13px;line-height:1.5;">Etkinlikleri yönet • Kayıtları gör • Aboneleri yönet • CSV indir</p>
-    <p style="margin:0;color:#888;font-size:11px;line-height:1.4;">🌷 Bir Çiçekli ailelere özel & 🌍 herkese açık etkinlikler, kayıtlar, raporlar tek yerden.</p>
-  </div>
-  <a href="https://etkinlikler.bircicekkoleji.com/?admin=true" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2e5339,#5A6ACF);color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(46,83,57,0.25);white-space:nowrap;">
-    Modülü Aç <span style="font-size:18px;">→</span>
-  </a>
-</div>
-<!-- /Etkinlik Modülü Kartı -->
-      <!-- HERO -->
-      <div style="background:linear-gradient(135deg, #e11d48 0%, #f43f5e 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:-30%; right:-10%; width:300px; height:300px; background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); pointer-events:none;"></div>
+    <!-- ============ GALERİ MODÜLÜ (bağımsız) ============ -->
+    <div class="tab-panel" id="tab-galeri">
+      <div style="background:linear-gradient(135deg,#7C3AED 0%,#A855F7 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-6%; width:260px; height:260px; background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events:none;"></div>
         <div style="position:relative; z-index:1;">
-          <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;"><i data-lucide="flower-2" style="width:14px;height:14px;vertical-align:-2px;"></i> OKUL-AİLE KÖPRÜSÜ</div>
-          <h2 style="font-family:var(--font-display); font-size:28px; font-weight:700; margin:8px 0 4px;">İçerik Yönetimi</h2>
-          <div style="font-size:14px; opacity:0.92;">Duyurular, yemek menüsü, galeri, gelişim raporları ve daha fazlası — velilerinizle paylaşın.</div>
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85; display:flex; align-items:center; gap:7px;"><i data-lucide="image" style="width:15px;height:15px;"></i> OKUL ANILARI</div>
+          <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Galeri</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:660px; margin:0;">Sınıf fotoğraf ve videolarını yükleyin, velilerle paylaşın. Tüm medya güvenli CDN üzerinden sunulur.</p>
         </div>
       </div>
-
-      <!-- ALT SEKMELER (Renkli Butonlar) -->
-      <div class="icerik-altsekme-bar">
-        <button class="icerik-altsekme-btn active" data-icerik-alt="devamsizlik" data-renk="kirmizi" onclick="icerikSwitchAlt('devamsizlik')">
-          <span>📋</span> Devamsızlık
-        </button>
-        <button class="icerik-altsekme-btn active" data-icerik-alt="galeri" data-renk="mor" onclick="icerikSwitchAlt('galeri')">
-          <span><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span> Galeri
-        </button>
-        </div>
-
-      <!-- ALT PANELLER (Pastel arka plan) -->
-      <div id="icerikAltPanelWrap" data-aktif-renk="sari" style="border-radius:16px; padding:20px; transition:background 0.3s; min-height:400px;">
-
-        <!-- DUYURULAR -->
-
-        <!-- YEMEK MENÜSÜ -->
-
-        <!-- ETKİNLİKLER -->
-
-        <!-- TAKVİM (Faz A) -->
-
-        <!-- DEVAMSIZLIK -->
-
-        <!-- GALERİ -->
-        <div id="icerikAlt-galeri" class="icerik-alt-panel">
+      <div>        <div id="icerikAlt-galeri" >
           <!-- Üst bar: başlık + filtreler -->
           <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn-mini" data-galeri-filter="tumu" onclick="galeriFilter('tumu')" style="background:#9333ea; border:none; color:white;"><i data-lucide="layout-grid"></i> Tümü</button>
               <button class="btn-mini" data-galeri-filter="foto" onclick="galeriFilter('foto')"><i data-lucide="image"></i> Fotoğraflar</button>
               <button class="btn-mini" data-galeri-filter="video" onclick="galeriFilter('video')"><i data-lucide="video"></i> Videolar</button>
-              <button class="btn-mini" data-galeri-filter="onayBekliyor" onclick="galeriFilter('onayBekliyor')" id="galeriOnayFiltreBtn" style="display:none;"><i data-lucide="clock"></i> Onay Bekleyenler <span id="galeriOnayBekleyenRozet" style="background:#f59e0b; color:white; border-radius:9px; padding:0 6px; font-size:11px; margin-left:2px; display:none;">0</span></button>
+              <button class="btn-mini" data-galeri-filter="onayBekliyor" onclick="galeriFilter('onayBekliyor')" id="galeriOnayFiltreBtn" ><i data-lucide="clock"></i> Onay Bekleyenler <span id="galeriOnayBekleyenRozet" style="background:#f59e0b; color:white; border-radius:9px; padding:0 6px; font-size:11px; margin-left:2px; display:none;">0</span></button>
             </div>
             <button class="btn-mini" onclick="galeriGorunumToggle()" id="galeriGorunumBtn" title="Görünümü değiştir"><i data-lucide="rows-3"></i> Albüm görünümü</button>
           </div>
@@ -9575,40 +9543,9 @@ i[data-lucide] svg { display: block; }
             <div class="loading"><div class="spinner"></div><p>Galeri yükleniyor...</p></div>
           </div>
         </div>
-
-        <!-- MONTESSORİ RAPORU -->
-
-        <!-- ORMAN OKULU RAPORU -->
-
-        <!-- DEĞERLER EĞİTİMİ RAPORU -->
-
-        <!-- İNGİLİZCE RAPORU -->
-
-        <!-- MESAJLAŞMA -->
-
-        <!-- YENİ SOHBET MODAL (personel) -->
-        <div class="modal-overlay" id="mesajYeniModal" onclick="if(event.target.id==='mesajYeniModal') mesajYeniSohbetKapat()">
-          <div class="modal" style="max-width:480px;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#fce7f3 0%,#fbcfe8 100%); border-bottom:1px solid #f9a8d4;">
-              <h3 style="color:#9d174d;"><i data-lucide="message-circle" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Mesaj</h3>
-              <button class="close-btn" onclick="mesajYeniSohbetKapat()">×</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label>Öğrenci Seçin</label>
-                <small class="form-ipucu" style="display:block; margin-bottom:6px;">Mesaj göndereceğiniz öğrencinin velisini seçmek için önce öğrenciyi seçin.</small>
-                <input type="text" id="mesajYeniOgrenciAra" placeholder="🔍 Öğrenci ara..." oninput="mesajYeniOgrencileriListele()" style="margin-bottom:8px;">
-                <div id="mesajYeniOgrenciListesi" class="mesaj-yeni-ogrenci-listesi">
-                  <!-- Öğrenci kartları -->
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /icerikAltPanelWrap -->
-
+</div>
     </div>
+
 
     <!-- DUYURU OLUŞTUR/DÜZENLE MODAL -->
     <div class="modal-overlay" id="duyuruModal">
@@ -10534,6 +10471,15 @@ i[data-lucide] svg { display: block; }
 
     <!-- ============ ETKİNLİK & TAKVİM MODÜLÜ (bağımsız) ============ -->
     <div class="tab-panel" id="tab-etkinlik">
+      <!-- Modül hero -->
+      <div style="background:linear-gradient(135deg,#0E7490 0%,#06B6D4 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-6%; width:260px; height:260px; background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85; display:flex; align-items:center; gap:7px;"><i data-lucide="calendar-heart" style="width:15px;height:15px;"></i> ETKİNLİK & TAKVİM</div>
+          <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Etkinlik & Takvim</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:660px; margin:0;">Okul etkinliklerini planlayın, takvimi düzenleyin, velilere duyurun ve katılımı takip edin.</p>
+        </div>
+      </div>
       <div style="display:flex; gap:8px; margin-bottom:18px;">
         <button class="et-alt-btn active" data-et-alt="etkinlik" onclick="etkinlikAltSec('etkinlik')"><i data-lucide="party-popper" style="width:15px;height:15px;"></i> Etkinlikler</button>
         <button class="et-alt-btn" data-et-alt="takvim" onclick="etkinlikAltSec('takvim')"><i data-lucide="calendar-days" style="width:15px;height:15px;"></i> Takvim</button>
@@ -10627,6 +10573,15 @@ i[data-lucide] svg { display: block; }
 
     <!-- ============ MESAJLAŞMA MODÜLÜ (bağımsız, WhatsApp tarzı) ============ -->
     <div class="tab-panel" id="tab-mesajlasma">
+      <!-- Modül hero -->
+      <div style="background:linear-gradient(135deg,#166534 0%,#22C55E 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-6%; width:260px; height:260px; background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85; display:flex; align-items:center; gap:7px;"><i data-lucide="message-circle" style="width:15px;height:15px;"></i> İLETİŞİM MERKEZİ</div>
+          <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Mesajlaşma</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:660px; margin:0;">Veli ve personelle gerçek zamanlı yazışın. Sohbetler otomatik kaydedilir, okundu bilgisi görünür.</p>
+        </div>
+      </div>
       <div class="wa-katman"><div>
           <div class="mesaj-konteyner">
             <!-- SOL: Sohbet listesi -->
@@ -10678,6 +10633,15 @@ i[data-lucide] svg { display: block; }
 
     <!-- ============ DUYURULAR MODÜLÜ (bağımsız) ============ -->
     <div class="tab-panel" id="tab-duyurular">
+      <!-- Modül hero -->
+      <div style="background:linear-gradient(135deg,#B45309 0%,#F59E0B 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-6%; width:260px; height:260px; background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85; display:flex; align-items:center; gap:7px;"><i data-lucide="megaphone" style="width:15px;height:15px;"></i> OKUL DUYURULARI</div>
+          <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Duyurular</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:660px; margin:0;">Tüm okula veya belirli sınıflara duyuru yayınlayın. Veliler anında bilgilendirilir.</p>
+        </div>
+      </div>
       <div>        <div id="icerikAlt-duyurular" >
           <!-- Üst bar: yeni duyuru butonu + filtreler -->
           <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
@@ -10699,6 +10663,15 @@ i[data-lucide] svg { display: block; }
 
     <!-- ============ YEMEK MENÜSÜ MODÜLÜ (bağımsız) ============ -->
     <div class="tab-panel" id="tab-yemek">
+      <!-- Modül hero -->
+      <div style="background:linear-gradient(135deg,#BE185D 0%,#EC4899 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-6%; width:260px; height:260px; background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85; display:flex; align-items:center; gap:7px;"><i data-lucide="utensils" style="width:15px;height:15px;"></i> BESLENME</div>
+          <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Yemek Menüsü</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:660px; margin:0;">Haftalık ve aylık yemek menüsünü hazırlayın. Kahvaltı, öğle ve ikindi öğünleri veliyle paylaşılır.</p>
+        </div>
+      </div>
       <div>        <div id="icerikAlt-yemek"  >
           <!-- Üst bar: hafta seçici + yeni menü -->
           <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; background:white; border:1px solid var(--gray-300); border-radius:12px; padding:14px 18px;">
@@ -31749,7 +31722,7 @@ const MODUL_HARITASI = {
   egitim:      { tablar: ["egitim"],     varsayilan: "egitim", ad: "Eğitim" },
   muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
   devamsizlik: { tablar: ["devamsizlik"], varsayilan: "devamsizlik", ad: "Devamsızlık" },
-  galeri:      { tablar: ["icerik"],     varsayilan: "icerik", ad: "Galeri", icerikAlt: "galeri" },
+  galeri:      { tablar: ["galeri"],     varsayilan: "galeri", ad: "Galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
   etkinlik:    { tablar: ["etkinlik"],   varsayilan: "etkinlik", ad: "Etkinlik & Takvim" },
@@ -31878,11 +31851,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     }
 
     // İçerik Yönetimi sekmesine geçildiyse aktif alt sekmeyi göster
-    if (tab.dataset.tab === "icerik") {
+    // Galeri bağımsız sekmesi açıldı
+    if (tab.dataset.tab === "galeri") {
       setTimeout(() => {
-        if (typeof icerikSwitchAlt === "function") {
-          icerikSwitchAlt(aktifIcerikAlt || "galeri");
-        }
+        if (typeof renderGaleri === "function") renderGaleri();
+        if (window.lucideYenile) window.lucideYenile();
       }, 50);
     }
 
