@@ -13043,7 +13043,35 @@ window.zekiFotoIzniVar = async function(cocukId) {
     return false;
   }
 };
-let AKTIF_DONEM = "2026-2027";  // Aktif dönem. Dropdown'dan geçmiş dönemlere bakılabilir.
+let AKTIF_DONEM = "2026-2027";  // Varsayılan. Gerçek değer ayarlar/donem.aktif'ten okunur.
+
+// ═══ AKTİF DÖNEM — ZEKY app ile ORTAK KAYNAK ═══
+// Dönem artık koda gömülü değil: ayarlar/donem = { aktif: "2026-2027" }
+// App tarafı da aynı belgeyi okur (zeky-data.js -> aktifDonemGetir()).
+// Böylece dönem değişiminde tek yerden güncelleme yeterli olur.
+// Belge yoksa yukarıdaki varsayılana düşer (geriye dönük uyum).
+async function aktifDonemYukle() {
+  try {
+    const snap = await getDoc(doc(db, "ayarlar", "donem"));
+    if (snap.exists() && snap.data().aktif) {
+      AKTIF_DONEM = snap.data().aktif;
+      console.log("Aktif dönem:", AKTIF_DONEM);
+    }
+  } catch (e) {
+    console.warn("Aktif dönem okunamadı, varsayılan kullanılıyor:", e?.message);
+  }
+  return AKTIF_DONEM;
+}
+
+// Dönemi değiştirir (Yönetim Ayarları ekranından çağrılabilir)
+window.aktifDonemKaydet = async function(donem) {
+  if (!donem) return false;
+  await setDoc(doc(db, "ayarlar", "donem"),
+    { aktif: donem, guncellendi: new Date().toISOString(), guncelleyen: (currentUser?.email || "") },
+    { merge: true });
+  AKTIF_DONEM = donem;
+  return true;
+};
 
 // ✉️ GİRİŞ BİLGİSİ MAİLLERİ: Portal + ZEKY app tamamlanana kadar otomatik GÖNDERİLMEZ.
 // Sistem hazır olunca true yapılabilir; o zamana dek öğrenci listesindeki
@@ -14765,6 +14793,9 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     const email = (user.email || "").toLowerCase();
+
+    // Aktif dönemi ayarlar/donem'den yükle (app ile ortak kaynak)
+    await aktifDonemYukle();
 
     // ===== FAZ 1a: Rol bilgisini belirle =====
     isAdmin = email === ADMIN_EMAIL.toLowerCase();
@@ -19617,16 +19648,36 @@ let takvimAktifAy = new Date();
 
 async function takvimEtkinlikleriYukle(force = false) {
   if (takvimEtkinlikler.length > 0 && !force) return takvimEtkinlikler;
-  try {
-    const snap = await getDocs(collection(db, "takvim"));
-    const liste = [];
-    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
-    takvimEtkinlikler = liste;
-    return liste;
-  } catch (e) {
-    console.error("Takvim yüklenemedi:", e);
-    return [];
-  }
+
+  // ═══ İKİ KOLEKSİYON BİRDEN OKUNUR (ZEKY app ile ortak) ═══
+  // Etkinlik Yönetimi modülü "etkinlikler"e yazıyor, eski okul takvimi
+  // ise "takvim"de duruyordu. Sadece "takvim" okunduğu için Etkinlik
+  // Yönetimi'nden eklenen etkinlikler veli takviminde GÖRÜNMÜYORDU.
+  // Artık ikisi birleştirilip tekrarlar eleniyor.
+  const liste = [];
+  const gorulen = new Set();
+
+  const oku = async (koleksiyonAdi) => {
+    try {
+      const snap = await getDocs(collection(db, koleksiyonAdi));
+      snap.forEach(d => {
+        const v = d.data() || {};
+        if (v.arsiv === true) return;
+        const imza = (v.baslik || "") + "|" + (v.tarih || "") + "|" + (v.baslangicSaat || "");
+        if (gorulen.has(imza)) return;
+        gorulen.add(imza);
+        liste.push({ id: d.id, kaynak: koleksiyonAdi, ...v });
+      });
+    } catch (e) {
+      console.warn("Takvim okuma (" + koleksiyonAdi + "):", e?.message);
+    }
+  };
+
+  await oku("etkinlikler");   // önce Etkinlik Yönetimi kayıtları
+  await oku("takvim");        // sonra eski okul takvimi
+
+  takvimEtkinlikler = liste;
+  return liste;
 }
 
 function takvimTumEtkinlikler() {
