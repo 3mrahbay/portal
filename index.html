@@ -15491,10 +15491,12 @@ function veliRenderYeniApp() {
                  : (caEkran === "gunluk") ? caGunlukHTML()
                  : (caEkran === "galeri") ? caGaleriHTML()
                  : (caEkran === "mesajlar") ? caMesajlarHTML()
+                 : (caEkran === "etkinlikler") ? caEtkinliklerHTML()
                  : (caEkran === "takvim") ? caTakvimHTML()
                  : (caEkran === "yemek") ? caYemekHTML()
                  : caHomeHTML();
   if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
+  if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); }, 100); } catch(e) { console.warn(e); } }
@@ -16064,6 +16066,7 @@ const CA_MODULLER = [
   { k:"odemeler",  ad:"Ödemeler",          ikon:"💳", renk:"var(--c-purple-soft)", git:"veliSwitchTab('odemeler')" },
   { k:"sozlesme",  ad:"Sözleşme",          ikon:"📄", renk:"var(--c-blue-soft)",   git:"veliSwitchTab('sozlesme')" },
   { k:"okul",      ad:"Okul Hayatı",       ikon:"🌸", renk:"#Dff4e3",              git:"veliSwitchTab('okul')" },
+  { k:"etkinlikler",ad:"Etkinlikler",      ikon:"🎈", renk:"var(--c-peach-soft)",  git:"caGo('etkinlikler')" },
   { k:"takvim",    ad:"Takvim",            ikon:"🗓️", renk:"var(--c-green-light)", git:"caGo('takvim')" },
   { k:"yemek",     ad:"Yemek Menüsü",      ikon:"🍽️", renk:"var(--c-pink-soft)",   git:"caGo('yemek')" },
   { k:"ayarlar",   ad:"Ayarlar",           ikon:"⚙️", renk:"var(--c-tint)",        git:"veliSwitchTab('ayarlar')" }
@@ -20234,6 +20237,151 @@ async function caYemekYukle() {
   }
   html += `</div>`;
   el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VELİ ETKİNLİK LİSTESİ (ZEKY app veli-etkinlikler.html ile AYNI mantık)
+// Veri kaynağı takvimEtkinlikleriYukle() — "etkinlikler" + "takvim" birleşik.
+// Aynı etkinlik hem burada listelenir hem Takvim ekranında görünür.
+// ═══════════════════════════════════════════════════════════════
+let caEtkinlikSekme = "yaklasan";   // yaklasan | gecmis | tumu
+
+const CA_ETKINLIK_KATEGORI = {
+  etkinlik:   { ad: "Etkinlik",   bg: "#FCE7EC", yazi: "#C44569" },
+  gezi:       { ad: "Gezi",       bg: "#EDE8F7", yazi: "#6B4FB6" },
+  tatil:      { ad: "Tatil",      bg: "#FDF3D6", yazi: "#B8860B" },
+  egitim:     { ad: "Eğitim",     bg: "#E4F2DC", yazi: "#2D7A2D" },
+  randevu:    { ad: "Randevu",    bg: "#DCEBF6", yazi: "#2E5C8A" },
+  hatirlatma: { ad: "Hatırlatma", bg: "#FDECD9", yazi: "#C77E20" },
+  genel:      { ad: "Etkinlik",   bg: "#FCE7EC", yazi: "#C44569" }
+};
+function caEtkinlikKategori(e) {
+  const k = String(e.kategori || e.tip || "genel").toLocaleLowerCase("tr");
+  return CA_ETKINLIK_KATEGORI[k] || CA_ETKINLIK_KATEGORI.genel;
+}
+
+window.caEtkinlikSekmeSec = function(s) {
+  caEtkinlikSekme = s;
+  document.querySelectorAll(".ca-etk-tab").forEach(b =>
+    b.classList.toggle("active", b.dataset.s === s));
+  caEtkinlikleriRender();
+};
+
+function caEtkinliklerHTML() {
+  const tab = (id, ad) =>
+    `<button class="veli-takvim-tab ca-etk-tab ${caEtkinlikSekme === id ? "active" : ""}" data-s="${id}" onclick="caEtkinlikSekmeSec('${id}')">${ad}</button>`;
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div>
+            <div class="ca-tile-sub">OKUL</div>
+            <h2 style="font-size:18px;">Etkinlikler</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="veli-takvim-tabs">
+        ${tab("yaklasan", "Yaklaşan")}${tab("gecmis", "Geçmiş")}${tab("tumu", "Tümü")}
+      </div>
+
+      <div id="caEtkinlikListe">
+        <div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
+      </div>
+
+      <button class="ca-card" onclick="caGo('takvim')"
+        style="width:100%; padding:13px; margin-top:6px; text-align:center; cursor:pointer; border:none; font-family:inherit; font-weight:700; font-size:13.5px; color:var(--c-ink);">
+        <i data-lucide="calendar-days" style="width:15px;height:15px;vertical-align:-3px;"></i> Takvimde görüntüle
+      </button>
+    </div>
+  `;
+}
+
+async function caEtkinlikleriRender() {
+  const el = document.getElementById("caEtkinlikListe");
+  if (!el) return;
+
+  const AY_KISA = ["OCA","ŞUB","MAR","NİS","MAY","HAZ","TEM","AĞU","EYL","EKİ","KAS","ARA"];
+  const GUN_AD  = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+
+  let liste = [];
+  try {
+    liste = await takvimEtkinlikleriYukle(true);
+  } catch (e) {
+    el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Etkinlikler yüklenemedi.</div>`;
+    return;
+  }
+
+  // Hedef kitle filtresi — veli sadece kendi sınıfının etkinliklerini görür
+  const sinifim = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci)
+    ? (veliAktifOgrenci.sinif || "") : "";
+  liste = liste.filter(e => {
+    const tur = e.hedefTur || e.hedefTip || "tumOkul";
+    if (tur === "tumOkul" || tur === "okul" || tur === "tum") return true;
+    if (tur === "sinif") {
+      const hedef = e.hedefDeger || "";
+      if (!sinifim || !hedef) return true;
+      return String(hedef).toLocaleLowerCase("tr").trim() === String(sinifim).toLocaleLowerCase("tr").trim();
+    }
+    return true;
+  });
+
+  const bugun = new Date(); bugun.setHours(0,0,0,0);
+  const tarihi = (e) => {
+    if (!e.tarih) return null;
+    const d = new Date(e.tarih + "T00:00:00");
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  liste = liste.filter(e => tarihi(e))
+               .sort((a,b) => ((a.tarih||"") + (a.baslangicSaat||"00:00"))
+                          .localeCompare((b.tarih||"") + (b.baslangicSaat||"00:00")));
+
+  if (caEtkinlikSekme === "yaklasan")      liste = liste.filter(e => tarihi(e) >= bugun);
+  else if (caEtkinlikSekme === "gecmis")   liste = liste.filter(e => tarihi(e) <  bugun).reverse();
+
+  if (!liste.length) {
+    const mesaj = caEtkinlikSekme === "yaklasan" ? "Yaklaşan etkinlik yok."
+                : caEtkinlikSekme === "gecmis"   ? "Geçmiş etkinlik yok."
+                : "Henüz etkinlik yok.";
+    el.innerHTML = `<div class="ca-card" style="padding:28px 20px; text-align:center; color:var(--c-muted); font-size:13px;">${mesaj}</div>`;
+    return;
+  }
+
+  let html = "", sonAy = "";
+  liste.forEach(e => {
+    const d = tarihi(e);
+    const ayEt = AY_ISIMLERI[d.getMonth()] + " " + d.getFullYear();
+    if (ayEt !== sonAy) {
+      html += `<div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:14px 2px 8px;">${ayEt}</div>`;
+      sonAy = ayEt;
+    }
+    const kat = caEtkinlikKategori(e);
+    const gecmis = d < bugun;
+    const buGun = d.getTime() === bugun.getTime();
+    const saat = e.tumGun ? "Tüm gün"
+               : [e.baslangicSaat, e.bitisSaat].filter(Boolean).join(" – ");
+
+    html += `
+      <div class="ca-card" style="display:flex; gap:12px; padding:13px 14px; margin-bottom:9px; ${gecmis ? "opacity:.62;" : ""}">
+        <div style="width:50px; flex-shrink:0; border-radius:11px; background:${kat.bg}; color:${kat.yazi}; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:7px 0;">
+          <div style="font-size:20px; font-weight:700; line-height:1;">${d.getDate()}</div>
+          <div style="font-size:10px; font-weight:700; margin-top:3px;">${AY_KISA[d.getMonth()]}</div>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:14.5px; font-weight:700; line-height:1.35;">${escapeHtml(e.baslik || "Etkinlik")}</div>
+          <div style="font-size:12px; color:var(--c-muted); margin-top:5px;">${GUN_AD[d.getDay()]}${saat ? " · " + escapeHtml(saat) : ""}</div>
+          ${e.konum ? `<div style="font-size:12px; color:var(--c-muted); margin-top:3px;"><i data-lucide="map-pin" style="width:12px;height:12px;vertical-align:-2px;"></i> ${escapeHtml(e.konum)}</div>` : ""}
+          ${e.aciklama ? `<div style="font-size:12.5px; color:#5A6B62; margin-top:7px; line-height:1.55;">${escapeHtml(e.aciklama)}</div>` : ""}
+          <span style="display:inline-block; padding:3px 9px; border-radius:12px; font-size:10.5px; font-weight:700; margin-top:8px; background:${kat.bg}; color:${kat.yazi};">${kat.ad}</span>
+          ${buGun ? `<span style="display:inline-block; padding:3px 9px; border-radius:12px; font-size:10.5px; font-weight:700; margin-top:8px; margin-left:5px; background:#2D5E3E; color:#fff;">Bugün</span>` : ""}
+        </div>
+      </div>`;
+  });
+
+  el.innerHTML = html;
+  if (window.lucide) lucide.createIcons();
 }
 
 function caTakvimHTML() {
