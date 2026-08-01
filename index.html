@@ -9234,6 +9234,9 @@ i[data-lucide] svg { display: block; }
       <!-- UYARI ALANI (eksik veri) -->
       <div id="veliUyarilar"></div>
 
+      <!-- MÜKERRER ÖĞRENCİ KAYDI TEMİZLİĞİ -->
+      <div id="mukerrerAlan"></div>
+
       <!-- ARAMA + FİLTRE -->
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
         <input type="text" id="veliArama" placeholder="Veli adı, e-posta, telefon veya çocuk ara…"
@@ -16858,20 +16861,52 @@ function caGunlukHTML() {
 }
 
 // ===== Çocuk Profili ekranı =====
+// GERÇEK VERİ: veliAktifOgrenci (seçili çocuk) + ogrenciGelisim (gelişim yüzdeleri)
+// Demo isim/puanlar kaldırıldı; veri yoksa dürüstçe "—" gösterilir.
+function caProfilYas(dogumTarihi) {
+  if (!dogumTarihi) return "";
+  let d = new Date(dogumTarihi);
+  if (isNaN(d) && /^\d{1,2}\.\d{1,2}\.\d{4}$/.test(dogumTarihi)) {
+    const pp = dogumTarihi.split("."); d = new Date(+pp[2], +pp[1] - 1, +pp[0]);
+  }
+  if (isNaN(d)) return "";
+  const ay = Math.floor((Date.now() - d.getTime()) / (30.44 * 24 * 3600 * 1000));
+  return Math.floor(ay / 12) + " yaş " + (ay % 12) + " ay";
+}
+
 function caProfilHTML() {
-  const alanlar = [
-    ["Sosyal", 90, "var(--c-green-light)"],
-    ["Motor", 78, "var(--c-purple-deep)"],
-    ["Dil", 85, "var(--c-yellow-deep)"],
-    ["Yaratıcılık", 95, "var(--c-pink-deep)"],
-    ["Bilişsel", 82, "var(--c-blue-deep)"],
-    ["Öz-bakım", 88, "var(--c-green)"]
-  ];
-  const rings = alanlar.map(([ad, p, c]) => `
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : {};
+  const ogrAd = o.ogrenciAdSoyad || o.adSoyad || [o.ad, o.soyad].filter(Boolean).join(" ") || "Öğrenci";
+  const ogrSinif = o.sinif || o.sinifi || "";
+  const ogrYas = caProfilYas(o.dogumTarihi);
+  const basHarf = (ogrAd[0] || "?").toLocaleUpperCase("tr");
+
+  // Gelişim alanları — ogrenciGelisim'den; veri yoksa boş liste
+  const RENK = ["var(--c-green-light)","var(--c-purple-deep)","var(--c-yellow-deep)",
+                "var(--c-pink-deep)","var(--c-blue-deep)","var(--c-green)"];
+  let alanlar = [];
+  try {
+    const g = (typeof veliRaporGelisimVerisi !== "undefined" && veliRaporGelisimVerisi) ? veliRaporGelisimVerisi : null;
+    if (g && typeof g === "object") {
+      const kaynak = g.alanlar || g.gelisimAlanlari || g;
+      Object.keys(kaynak).forEach((k, i) => {
+        const v = kaynak[k];
+        const yuzde = typeof v === "number" ? v
+                    : (v && typeof v === "object" && typeof v.yuzde === "number") ? v.yuzde : null;
+        if (yuzde !== null) alanlar.push([k, Math.round(yuzde), RENK[i % RENK.length]]);
+      });
+    }
+  } catch (e) { console.warn("gelişim verisi okunamadı", e); }
+
+  const ortalama = alanlar.length
+    ? Math.round(alanlar.reduce((t, a) => t + a[1], 0) / alanlar.length) : null;
+
+  const rings = alanlar.length ? alanlar.map(([ad, p, c]) => `
     <div class="ca-ring">
       <div class="ca-ring-circle" style="background:conic-gradient(${c} ${p}%, var(--c-border) 0);"><div class="ca-ring-inner">${p}</div></div>
       <div><div style="font-weight:700; color:var(--c-ink); font-size:13px;">${ad}</div><div class="ca-tile-sub">%${p}</div></div>
-    </div>`).join("");
+    </div>`).join("")
+    : `<div style="text-align:center; padding:22px 10px; color:var(--c-muted); font-size:13px;">Henüz gelişim değerlendirmesi girilmemiş.</div>`;
   return `
     <div class="ca-page ca-stack">
       <div class="ca-topbar">
@@ -16883,15 +16918,14 @@ function caProfilHTML() {
 
       <div class="ca-card" style="text-align:center;">
         <div style="position:relative; width:96px; height:96px; margin:4px auto 12px;">
-          <div class="ca-avatar" style="width:96px; height:96px; font-size:38px; background:var(--c-pink-soft); color:var(--c-ink);">D</div>
+          <div class="ca-avatar" style="width:96px; height:96px; font-size:38px; background:var(--c-pink-soft); color:var(--c-ink);">${basHarf}</div>
           <span class="ca-profilbadge">✓</span>
         </div>
-        <h2 style="font-size:22px;">Defne Demir</h2>
-        <div class="ca-tile-sub" style="margin-top:2px;">Papatya Sınıfı · 5 yaş 3 ay</div>
-        <div class="ca-row" style="justify-content:center; gap:8px; margin-top:10px;">
-          <span class="ca-pill" style="background:#Dff4e3;">🟢 Okulda · 09:12</span>
-          <span class="ca-pill yellow">%86 ortalama</span>
-        </div>
+        <h2 style="font-size:22px;">${escapeHtml(ogrAd)}</h2>
+        <div class="ca-tile-sub" style="margin-top:2px;">${escapeHtml([ogrSinif, ogrYas].filter(Boolean).join(" · ") || "—")}</div>
+        ${ortalama !== null ? `<div class="ca-row" style="justify-content:center; gap:8px; margin-top:10px;">
+          <span class="ca-pill yellow">%${ortalama} ortalama</span>
+        </div>` : ""}
       </div>
 
       <div class="ca-quick">
@@ -16901,10 +16935,10 @@ function caProfilHTML() {
         <button class="ca-qbtn" onclick="caGo('egitim')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="bar-chart-3" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Rapor</span></button>
       </div>
 
-      <div class="ca-statpills">
-        <div class="ca-statpill" style="background:#Dff4e3;"><div class="v">124</div><div class="l">Okul günü</div></div>
-        <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v">12</div><div class="l">Devamsızlık</div></div>
-        <div class="ca-statpill" style="background:var(--c-yellow-soft);"><div class="v">%96</div><div class="l">Mutluluk</div></div>
+      <div class="ca-statpills" id="caProfilSayaclar">
+        <div class="ca-statpill" style="background:#Dff4e3;"><div class="v" id="caProfOkulGun">—</div><div class="l">Okul günü</div></div>
+        <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v" id="caProfDevamsiz">—</div><div class="l">Devamsızlık</div></div>
+        <div class="ca-statpill" style="background:var(--c-yellow-soft);"><div class="v" id="caProfOrtalama">${ortalama !== null ? "%" + ortalama : "—"}</div><div class="l">Gelişim ort.</div></div>
       </div>
 
       <div>
@@ -19575,7 +19609,8 @@ function simsekPopupGoster(kuyruk, idx) {
 
   const html = `
     <div id="simsekOverlay" style="position:fixed; inset:0; background:rgba(31,95,51,0.4); backdrop-filter:blur(4px); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px; animation:simsekFadeIn 0.25s ease-out;">
-      <div style="background:white; border-radius:20px; max-width:440px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 24px 48px rgba(0,0,0,0.18); position:relative; animation:simsekSlideUp 0.3s ease-out;">
+      <div style="position:relative; max-width:440px; width:100%; margin-top:26px; animation:simsekSlideUp 0.3s ease-out;">
+      <div style="background:white; border-radius:20px; width:100%; max-height:calc(90vh - 26px); overflow-y:auto; box-shadow:0 24px 48px rgba(0,0,0,0.18); position:relative;">
 
         <!-- DEKORATİF ÇİÇEK MOTİFİ -->
         <div style="position:absolute; top:-22px; left:50%; transform:translateX(-50%); width:60px; height:60px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
@@ -19609,6 +19644,7 @@ function simsekPopupGoster(kuyruk, idx) {
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
     <style>
@@ -21984,6 +22020,12 @@ window.veliListesiYukle = async function() {
     const harita = new Map();
     veliVelisizOgrenciler = [];
 
+    // Mükerrer kayıt tespiti (arşivdekiler hariç)
+    mukerrerGruplar = mukerrerTespit(ogrenciler);
+
+    // Arşivlenmiş kayıtlar veli listesine girmesin
+    ogrenciler = ogrenciler.filter(o => o.arsiv !== true && o.kayitDurumu !== "arsiv");
+
     ogrenciler.forEach(o => {
       const ad = o.ogrenciAdSoyad || o.adSoyad || [o.ad, o.soyad].filter(Boolean).join(" ") || "İsimsiz";
       const sinif = o.sinif || o.sinifi || "";
@@ -22128,7 +22170,140 @@ window.veliListesiRender = function() {
     </div>
     <div style="margin-top:10px; font-size:12.5px; color:var(--c-muted,#64748B);">${liste.length} veli listeleniyor.</div>`;
 
+  mukerrerKayitlariCiz();
   if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// MÜKERRER ÖĞRENCİ KAYDI TESPİTİ VE ARŞİVLEME
+// Aynı çocuk için birden fazla ogrenciler belgesi olduğunda veli listesi
+// şişiyor. Kural: anne+baba bilgisi TAM olan kayıt kalır, eksik olan arşive.
+// Arşivleme = silme DEĞİL; kayitDurumu:"arsiv" + arsiv:true işaretlenir,
+// belge Firestore'da durur, geri alınabilir.
+// ═══════════════════════════════════════════════════════════════════
+let mukerrerGruplar = [];
+
+function ogrenciAdNormalize(ad) {
+  return String(ad || "").trim().toLocaleLowerCase("tr")
+    .replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u")
+    .replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c")
+    .replace(/\s+/g," ");
+}
+
+// Kayıt "tam" mı? (hem anne hem baba bilgisi var mı)
+function kayitTamlikPuani(o) {
+  const veliler = veliKayitlariCikar(o);
+  const yakinliklar = new Set(veliler.map(v => (v.yakinlik || "").toLocaleLowerCase("tr")));
+  let puan = veliler.length * 10;                       // veli sayısı
+  if (yakinliklar.has("anne") && yakinliklar.has("baba")) puan += 50;  // ikisi de tanımlı
+  if (Array.isArray(o.veliler) && o.veliler.length >= 2) puan += 30;   // yeni format
+  if (veliler.every(v => v.telefon)) puan += 5;
+  if (o.tcKimlik) puan += 3;
+  if (o.dogumTarihi) puan += 2;
+  return puan;
+}
+
+function mukerrerTespit(ogrenciler) {
+  const gr = {};
+  ogrenciler.forEach(o => {
+    if (o.arsiv === true || o.kayitDurumu === "arsiv") return;   // zaten arşivde
+    const ad = o.ogrenciAdSoyad || o.adSoyad || "";
+    if (!ad.trim()) return;
+    const k = ogrenciAdNormalize(ad);
+    (gr[k] = gr[k] || []).push(o);
+  });
+  return Object.values(gr)
+    .filter(v => v.length > 1)
+    .map(v => {
+      const puanli = v.map(o => ({ o, puan: kayitTamlikPuani(o), veliler: veliKayitlariCikar(o) }))
+                      .sort((a, b) => b.puan - a.puan);
+      return { kalan: puanli[0], arsivlenecek: puanli.slice(1) };
+    });
+}
+
+function mukerrerKayitlariCiz() {
+  const el = document.getElementById("mukerrerAlan");
+  if (!el) return;
+  if (!mukerrerGruplar.length) { el.innerHTML = ""; return; }
+
+  const toplamArsiv = mukerrerGruplar.reduce((t, g) => t + g.arsivlenecek.length, 0);
+  el.innerHTML = `
+    <div style="background:#FEF3C7; border:1px solid #FDE68A; border-radius:12px; padding:14px 16px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <div style="font-weight:700; color:#78350F; font-size:14px;">
+            ${mukerrerGruplar.length} çocuk için mükerrer kayıt bulundu
+          </div>
+          <div style="font-size:12.5px; color:#92400E; margin-top:3px;">
+            ${toplamArsiv} eksik kayıt arşive alınabilir. Anne + baba bilgisi tam olan kayıt korunur.
+          </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button onclick="mukerrerDetayAcKapa()" style="padding:8px 13px; border:1px solid #FCD34D; background:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600; color:#78350F;">İncele</button>
+          <button onclick="mukerrerTumunuArsivle()" style="padding:8px 13px; border:none; background:#B45309; color:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700;">Tümünü Arşivle</button>
+        </div>
+      </div>
+      <div id="mukerrerDetay" style="display:none; margin-top:14px;">
+        ${mukerrerGruplar.map((g, i) => `
+          <div style="background:#fff; border:1px solid #FDE68A; border-radius:10px; padding:11px 13px; margin-bottom:8px;">
+            <div style="font-weight:700; font-size:13.5px; color:#1E293B; margin-bottom:7px;">
+              ${escapeHtml(g.kalan.o.ogrenciAdSoyad || g.kalan.o.adSoyad || "")}
+            </div>
+            <div style="display:flex; gap:9px; align-items:flex-start; padding:7px 9px; background:#ECFDF5; border-radius:8px; margin-bottom:5px;">
+              <span style="font-size:11px; font-weight:700; color:#065F46; background:#D1FAE5; padding:2px 7px; border-radius:6px; white-space:nowrap;">KALACAK</span>
+              <div style="font-size:12.5px; color:#334155;">
+                ${escapeHtml(g.kalan.o.sinif || "sınıf yok")} ·
+                ${g.kalan.veliler.length} veli: ${escapeHtml(g.kalan.veliler.map(v => (v.yakinlik || "Veli") + " " + v.ad).join(", ") || "—")}
+              </div>
+            </div>
+            ${g.arsivlenecek.map(a => `
+              <div style="display:flex; gap:9px; align-items:flex-start; padding:7px 9px; background:#FEF2F2; border-radius:8px; margin-bottom:5px;">
+                <span style="font-size:11px; font-weight:700; color:#991B1B; background:#FEE2E2; padding:2px 7px; border-radius:6px; white-space:nowrap;">ARŞİVE</span>
+                <div style="font-size:12.5px; color:#334155;">
+                  ${escapeHtml(a.o.sinif || "sınıf yok")} ·
+                  ${a.veliler.length} veli: ${escapeHtml(a.veliler.map(v => (v.yakinlik || "Veli") + " " + v.ad).join(", ") || "—")}
+                </div>
+              </div>`).join("")}
+          </div>`).join("")}
+      </div>
+    </div>`;
+}
+
+window.mukerrerDetayAcKapa = function() {
+  const d = document.getElementById("mukerrerDetay");
+  if (d) d.style.display = d.style.display === "none" ? "block" : "none";
+};
+
+window.mukerrerTumunuArsivle = async function() {
+  const toplam = mukerrerGruplar.reduce((t, g) => t + g.arsivlenecek.length, 0);
+  if (!toplam) return;
+  if (!confirm(
+    toplam + " mükerrer öğrenci kaydı arşive alınacak.\n\n" +
+    "· Kayıtlar SİLİNMEZ, sadece arşiv olarak işaretlenir.\n" +
+    "· Anne + baba bilgisi tam olan kayıt korunur.\n" +
+    "· Firebase Console'dan geri alınabilir.\n\nDevam edilsin mi?")) return;
+
+  let basarili = 0, hata = 0;
+  for (const g of mukerrerGruplar) {
+    for (const a of g.arsivlenecek) {
+      try {
+        await updateDoc(doc(db, "ogrenciler", a.o.id), {
+          arsiv: true,
+          kayitDurumu: "arsiv",
+          arsivNedeni: "Mükerrer kayıt — eksik veli bilgisi",
+          arsivZamani: new Date().toISOString(),
+          arsivleyen: (currentUser?.email || "")
+        });
+        basarili++;
+      } catch (e) { console.error("arşivleme hatası", a.o.id, e); hata++; }
+    }
+  }
+  if (typeof showToast === "function") {
+    showToast(basarili + " kayıt arşive alındı" + (hata ? ", " + hata + " hata" : ""), hata ? "error" : "success");
+  }
+  mukerrerGruplar = [];
+  if (typeof ogrenciList !== "undefined") ogrenciList = [];   // yeniden yükle
+  veliListesiYukle();
 };
 
 window.veliListesiDisaAktar = function() {
@@ -30259,7 +30434,7 @@ window.kartTalepOlustur = async function(ogrenciId, borc, gecikenAy) {
   const talepData = {
     ogrenciId,
     ogrenciAd: ogr ? (ogr.ogrenciAdSoyad || "") : "",
-    veliEposta: currentUser.email,
+    veliEposta: (currentUser.email || "").toLowerCase(),
     veliAd: veliAd,
     borc: borc || 0,
     gecikenAySayisi: gecikenAy || 0,
