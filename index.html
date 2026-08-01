@@ -9086,6 +9086,7 @@ i[data-lucide] svg { display: block; }
       <div class="side-kategori">ÖĞRENCİ &amp; OKUL</div>
       <div class="side-grup">
         <button class="side-item" data-modul="ogrencilerM" onclick="modulSec('ogrencilerM')"><span class="side-ikon"><i data-lucide="users"></i></span><span class="side-ad">Öğrenciler</span></button>
+        <button class="side-item" data-modul="velilerM" onclick="modulSec('velilerM')"><span class="side-ikon"><i data-lucide="contact"></i></span><span class="side-ad">Veliler</span></button>
         <button class="side-item" data-modul="basvuru" onclick="modulSec('basvuru')"><span class="side-ikon"><i data-lucide="inbox"></i></span><span class="side-ad">Başvuru Havuzu</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
       </div>
       <div class="side-kategori">KURUM</div>
@@ -9111,6 +9112,7 @@ i[data-lucide] svg { display: block; }
     <div class="tabs">
       <button class="tab active" data-tab="anasayfa"><i data-lucide="sparkles"></i> Ana Sayfa</button>
       <button class="tab" data-tab="ogrenciler"><i data-lucide="users"></i> Öğrenci Listesi</button>
+      <button class="tab" data-tab="veliler"><i data-lucide="contact"></i> Veli Listesi</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn"><i data-lucide="inbox"></i> Başvuru Havuzu <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans"><i data-lucide="wallet"></i> Finansal Yönetim</button>
       <button class="tab" data-tab="egitim"><i data-lucide="book-open"></i> Eğitim</button>
@@ -9210,6 +9212,53 @@ i[data-lucide] svg { display: block; }
         <div class="loading">
           <div class="spinner"></div>
           <p>Öğrenciler yükleniyor...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- VELİLER TAB -->
+    <div class="tab-panel" id="tab-veliler">
+
+      <!-- KİMLİK ŞERİDİ -->
+      <div style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#2D5E3E,#4A7C59); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;">
+        <span style="font-size:20px;">👨‍👩‍👧</span>
+        <div>
+          <div style="font-family:var(--font-display); font-weight:700; font-size:15px;">Veliler</div>
+          <div style="font-size:11.5px; opacity:.88;">Öğrenci kayıtlarından türetilir. Portal/uygulama erişimi <strong>veliler</strong> koleksiyonundaki onaya bağlıdır.</div>
+        </div>
+      </div>
+
+      <!-- ÖZET KUTULARI -->
+      <div id="veliOzetSerit" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:14px;"></div>
+
+      <!-- UYARI ALANI (eksik veri) -->
+      <div id="veliUyarilar"></div>
+
+      <!-- ARAMA + FİLTRE -->
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+        <input type="text" id="veliArama" placeholder="Veli adı, e-posta, telefon veya çocuk ara…"
+          oninput="veliListesiRender()"
+          style="flex:1; min-width:220px; padding:10px 14px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:13.5px;">
+        <select id="veliFiltre" onchange="veliListesiRender()"
+          style="padding:10px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:13.5px;">
+          <option value="tumu">Tüm veliler</option>
+          <option value="erisimVar">Erişimi açık</option>
+          <option value="erisimYok">Erişimi olmayan</option>
+        </select>
+        <select id="veliSinifFiltre" onchange="veliListesiRender()"
+          style="padding:10px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:13.5px;">
+          <option value="">Tüm sınıflar</option>
+        </select>
+        <button onclick="veliListesiDisaAktar()" class="btn-ikincil"
+          style="padding:10px 14px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:600;">
+          <i data-lucide="download" style="width:14px;height:14px;vertical-align:-2px;"></i> CSV
+        </button>
+      </div>
+
+      <!-- TABLO -->
+      <div id="veliTabloWrap">
+        <div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);">
+          <p>Veliler yükleniyor...</p>
         </div>
       </div>
     </div>
@@ -13263,6 +13312,7 @@ function personelYonetebilirMi() {
 // Her sekme (data-tab) hangi rollere görünür?
 const SEKME_YETKILERI = {
   ogrenciler: ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  veliler:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   onay:       ["kurucu_mudur", "mudur"],
   finans:     ["kurucu_mudur", "mudur", "muhasebe"],
   egitim:     ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
@@ -21873,6 +21923,233 @@ document.addEventListener("click", () => {
 });
 
 // ============ TABLO RENDER ============
+// ═══════════════════════════════════════════════════════════════════
+// VELİ LİSTESİ MODÜLÜ
+// Kaynak: ogrenciler koleksiyonu (veli bilgisi öğrenci belgesinde durur)
+//   + veliler/{email} (portal & app giriş yetkisi)
+// ZEKY app'teki "Veli & Öğrenci > Veliler" sekmesi ile AYNI mantık.
+// Veli alan adları 3 farklı biçimde yazılmış olabilir; hepsi okunur:
+//   1) veliler[] dizisi   2) veli1Eposta/...   3) veli1Email/...
+// ═══════════════════════════════════════════════════════════════════
+let veliListesi = [];          // Türetilmiş veli kayıtları
+let veliVelisizOgrenciler = [];
+
+// Bir öğrenci belgesinden tüm veli kayıtlarını çıkarır (app: ogrenciVelileri)
+function veliKayitlariCikar(o) {
+  const cikti = [], gorulen = new Set();
+  const ekle = (eposta, ad, telefon, yakinlik) => {
+    const e = String(eposta || "").trim().toLowerCase();
+    if (!e || gorulen.has(e)) return;
+    gorulen.add(e);
+    cikti.push({
+      email: e,
+      ad: String(ad || "").trim() || e.split("@")[0],
+      telefon: String(telefon || "").trim(),
+      yakinlik: String(yakinlik || "").trim()
+    });
+  };
+  if (Array.isArray(o.veliler)) {
+    o.veliler.forEach(v => ekle(v && (v.email || v.eposta), v && (v.adSoyad || v.ad), v && v.telefon, v && v.yakinlik));
+  }
+  ekle(o.veli1Eposta, o.veli1AdSoyad, o.veli1Telefon, "Veli 1");
+  ekle(o.veli2Eposta, o.veli2AdSoyad, o.veli2Telefon, "Veli 2");
+  ekle(o.veli1Email,  o.veli1Ad,      o.veli1Tel,     "Veli 1");
+  ekle(o.veli2Email,  o.veli2Ad,      o.veli2Tel,     "Veli 2");
+  ekle(o.veliEposta,  o.veliAdSoyad || o.veliAdi, o.veliTelefon, "Veli");
+  ekle(o.veliEmail,   o.veliAdSoyad || o.veliAdi, o.veliTelefon, "Veli");
+  return cikti;
+}
+
+window.veliListesiYukle = async function() {
+  const wrap = document.getElementById("veliTabloWrap");
+  if (!wrap) return;
+  wrap.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Veliler yükleniyor...</p></div>`;
+
+  try {
+    // Öğrenciler zaten yüklüyse tekrar çekme
+    let ogrenciler = (typeof ogrenciList !== "undefined" && ogrenciList.length) ? ogrenciList : [];
+    if (!ogrenciler.length) {
+      const snap = await getDocs(collection(db, "ogrenciler"));
+      ogrenciler = [];
+      snap.forEach(d => ogrenciler.push({ id: d.id, ...d.data() }));
+    }
+
+    // veliler/{email} → giriş yetkisi
+    const whitelist = {};
+    try {
+      const vs = await getDocs(collection(db, "veliler"));
+      vs.forEach(d => { whitelist[(d.id || "").toLowerCase()] = d.data() || {}; });
+    } catch (e) { console.warn("veliler koleksiyonu okunamadı:", e?.message); }
+
+    const harita = new Map();
+    veliVelisizOgrenciler = [];
+
+    ogrenciler.forEach(o => {
+      const ad = o.ogrenciAdSoyad || o.adSoyad || [o.ad, o.soyad].filter(Boolean).join(" ") || "İsimsiz";
+      const sinif = o.sinif || o.sinifi || "";
+      const veliler = veliKayitlariCikar(o);
+      if (!veliler.length) { veliVelisizOgrenciler.push({ id: o.id, ad, sinif }); return; }
+
+      veliler.forEach(v => {
+        if (!harita.has(v.email)) {
+          const w = whitelist[v.email] || null;
+          harita.set(v.email, {
+            email: v.email, ad: v.ad, telefon: v.telefon, yakinlik: v.yakinlik,
+            cocuklar: [], kayitli: !!w, onayli: !!(w && w.onaylandi === true)
+          });
+        }
+        const k = harita.get(v.email);
+        if (!k.telefon && v.telefon) k.telefon = v.telefon;
+        if (k.ad.includes("@") && v.ad && !v.ad.includes("@")) k.ad = v.ad;
+        k.cocuklar.push({ id: o.id, ad, sinif });
+      });
+    });
+
+    veliListesi = [...harita.values()].sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
+
+    // Sınıf filtresi seçeneklerini doldur
+    const sinifSet = new Set();
+    veliListesi.forEach(v => v.cocuklar.forEach(c => { if (c.sinif) sinifSet.add(c.sinif); }));
+    const sf = document.getElementById("veliSinifFiltre");
+    if (sf) {
+      sf.innerHTML = '<option value="">Tüm sınıflar</option>' +
+        [...sinifSet].sort((a, b) => a.localeCompare(b, "tr"))
+          .map(x => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
+    }
+
+    veliListesiRender();
+  } catch (e) {
+    console.error("Veli listesi yüklenemedi:", e);
+    wrap.innerHTML = `<div style="text-align:center; padding:40px; color:#DC2626;"><p>Veli listesi yüklenemedi.</p></div>`;
+  }
+};
+
+function veliFiltreliListe() {
+  const q = (document.getElementById("veliArama")?.value || "").toLocaleLowerCase("tr").trim();
+  const f = document.getElementById("veliFiltre")?.value || "tumu";
+  const sf = document.getElementById("veliSinifFiltre")?.value || "";
+  return veliListesi.filter(v => {
+    if (f === "erisimVar" && !v.onayli) return false;
+    if (f === "erisimYok" && v.onayli) return false;
+    if (sf && !v.cocuklar.some(c => c.sinif === sf)) return false;
+    if (!q) return true;
+    return v.ad.toLocaleLowerCase("tr").includes(q)
+        || v.email.includes(q)
+        || (v.telefon || "").includes(q)
+        || v.cocuklar.some(c => c.ad.toLocaleLowerCase("tr").includes(q));
+  });
+}
+
+window.veliListesiRender = function() {
+  const wrap = document.getElementById("veliTabloWrap");
+  if (!wrap) return;
+
+  // Özet şerit
+  const toplam = veliListesi.length;
+  const acik = veliListesi.filter(v => v.onayli).length;
+  const bekleyen = veliListesi.filter(v => v.kayitli && !v.onayli).length;
+  const kayitsiz = veliListesi.filter(v => !v.kayitli).length;
+  const kutu = (ad, deger, renk) =>
+    `<div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:12px; padding:12px 14px;">
+       <div style="font-size:11px; font-weight:700; color:var(--c-muted,#64748B); text-transform:uppercase; letter-spacing:.4px;">${ad}</div>
+       <div style="font-size:22px; font-weight:700; color:${renk}; margin-top:3px;">${deger}</div>
+     </div>`;
+  const ozet = document.getElementById("veliOzetSerit");
+  if (ozet) ozet.innerHTML =
+    kutu("Toplam veli", toplam, "#2B3674") +
+    kutu("Erişimi açık", acik, "#2D7A2D") +
+    kutu("Onay bekliyor", bekleyen, "#C77E20") +
+    kutu("Portal kaydı yok", kayitsiz, "#94A3B8");
+
+  // Uyarılar
+  const uy = document.getElementById("veliUyarilar");
+  if (uy) {
+    let h = "";
+    if (bekleyen + kayitsiz > 0) {
+      h += `<div style="background:#FDF3D6; color:#8A6A0B; border-radius:11px; padding:11px 14px; font-size:13px; margin-bottom:10px;">
+        <b>${bekleyen + kayitsiz} velinin</b> portal ve uygulama erişimi yok. Giriş yapabilmeleri için <i>veliler</i> kaydının oluşturulup onaylanması gerekir.</div>`;
+    }
+    if (veliVelisizOgrenciler.length) {
+      const isimler = veliVelisizOgrenciler.slice(0, 6).map(o => escapeHtml(o.ad)).join(", ");
+      h += `<div style="background:#FEE2E2; color:#991B1B; border-radius:11px; padding:11px 14px; font-size:13px; margin-bottom:10px;">
+        <b>${veliVelisizOgrenciler.length} öğrencinin</b> kayıtlı veli bilgisi yok: ${isimler}${veliVelisizOgrenciler.length > 6 ? " …" : ""}</div>`;
+    }
+    uy.innerHTML = h;
+  }
+
+  const liste = veliFiltreliListe();
+  if (!liste.length) {
+    wrap.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Kayıt bulunamadı.</p></div>`;
+    return;
+  }
+
+  const rozet = (v) => v.onayli
+    ? `<span style="background:#E4F2DC;color:#2D7A2D;padding:3px 9px;border-radius:11px;font-size:11px;font-weight:700;">Erişim açık</span>`
+    : v.kayitli
+      ? `<span style="background:#FDECD9;color:#C77E20;padding:3px 9px;border-radius:11px;font-size:11px;font-weight:700;">Onay bekliyor</span>`
+      : `<span style="background:#F1F5F9;color:#64748B;padding:3px 9px;border-radius:11px;font-size:11px;font-weight:700;">Kayıt yok</span>`;
+
+  wrap.innerHTML = `
+    <div style="overflow-x:auto; background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <thead>
+          <tr style="background:#F8FAFC; text-align:left;">
+            <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; color:#64748B;">Veli</th>
+            <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; color:#64748B;">İletişim</th>
+            <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; color:#64748B;">Çocuk(lar)</th>
+            <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; color:#64748B;">Erişim</th>
+            <th style="padding:11px 14px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${liste.map(v => `
+            <tr style="border-top:1px solid var(--c-line,#E2E8F0);">
+              <td style="padding:11px 14px;">
+                <div style="font-weight:700; color:#1E293B;">${escapeHtml(v.ad)}</div>
+                <div style="font-size:12px; color:#64748B;">${escapeHtml(v.yakinlik || "Veli")}</div>
+              </td>
+              <td style="padding:11px 14px; font-size:12.5px; color:#475569;">
+                <div>${escapeHtml(v.email)}</div>
+                ${v.telefon ? `<div style="margin-top:2px;">${escapeHtml(v.telefon)}</div>` : ""}
+              </td>
+              <td style="padding:11px 14px; font-size:12.5px; color:#475569;">
+                ${v.cocuklar.map(c => `<div>${escapeHtml(c.ad)}${c.sinif ? ` <span style="color:#94A3B8;">· ${escapeHtml(c.sinif)}</span>` : ""}</div>`).join("")}
+              </td>
+              <td style="padding:11px 14px;">${rozet(v)}</td>
+              <td style="padding:11px 14px; white-space:nowrap;">
+                ${v.telefon ? `<a href="https://wa.me/${escapeHtml((v.telefon || "").replace(/\D/g, ""))}" target="_blank" title="WhatsApp"
+                  style="display:inline-flex; padding:6px; border-radius:8px; background:#F1F5F9; color:#2D7A2D; margin-right:5px;"><i data-lucide="message-circle" style="width:15px;height:15px;"></i></a>` : ""}
+                <a href="mailto:${escapeHtml(v.email)}" title="E-posta"
+                  style="display:inline-flex; padding:6px; border-radius:8px; background:#F1F5F9; color:#2E5C8A;"><i data-lucide="mail" style="width:15px;height:15px;"></i></a>
+              </td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px; font-size:12.5px; color:var(--c-muted,#64748B);">${liste.length} veli listeleniyor.</div>`;
+
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+};
+
+window.veliListesiDisaAktar = function() {
+  const liste = veliFiltreliListe();
+  if (!liste.length) { if (typeof showToast === "function") showToast("Dışa aktarılacak kayıt yok", "error"); return; }
+  const basliklar = ["Veli", "Yakınlık", "E-posta", "Telefon", "Çocuklar", "Sınıf", "Erişim"];
+  const satirlar = liste.map(v => [
+    v.ad, v.yakinlik || "Veli", v.email, v.telefon,
+    v.cocuklar.map(c => c.ad).join(" | "),
+    [...new Set(v.cocuklar.map(c => c.sinif).filter(Boolean))].join(" | "),
+    v.onayli ? "Erişim açık" : v.kayitli ? "Onay bekliyor" : "Kayıt yok"
+  ]);
+  const csv = "\ufeff" + [basliklar, ...satirlar]
+    .map(r => r.map(h => `"${String(h == null ? "" : h).replace(/"/g, '""')}"`).join(";")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = "veli-listesi-" + new Date().toISOString().slice(0, 10) + ".csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
 function renderTable() {
   const wrap = document.getElementById("ogrenciTableWrap");
   const searchVal = document.getElementById("searchInput").value.toLowerCase().trim();
@@ -32126,6 +32403,7 @@ document.querySelectorAll(".durum-sekme").forEach(btn => {
 const MODUL_HARITASI = {
   ozet:        { tablar: ["anasayfa"],   varsayilan: "anasayfa", ad: "Özet" },
   ogrencilerM: { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
+  velilerM:    { tablar: ["veliler"],    varsayilan: "veliler", ad: "Veliler" },
   basvuru:     { tablar: ["onay"],       varsayilan: "onay", ad: "Başvuru Havuzu" },
   ogrenci:     { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
   personel:    { tablar: ["personel"],   varsayilan: "personel", ad: "Personel" },
@@ -32241,6 +32519,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Onay Bekleyenler sekmesine geçildiyse yükle
     if (tab.dataset.tab === "onay") {
       setTimeout(() => loadOnayBekleyenler(), 50);
+    }
+
+    // Veli Listesi sekmesine geçildiyse yükle
+    if (tab.dataset.tab === "veliler") {
+      setTimeout(() => { if (typeof veliListesiYukle === "function") veliListesiYukle(); }, 50);
     }
 
     // Personel Yönetimi sekmesine geçildiyse yükle
