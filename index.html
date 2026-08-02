@@ -11350,7 +11350,23 @@ i[data-lucide] svg { display: block; }
       <!-- AYARLAR SEKMESİ -->
       <div class="veli-tab-panel" id="veliPanel-ayarlar">
         <div class="veli-card">
-          <div class="veli-card-title">⚙️ Hesap Ayarları</div>
+          <div class="veli-card-title"><i data-lucide="user-round" style="width:14px;height:14px;vertical-align:-2px;"></i> Profil Fotoğrafım</div>
+          <div style="display:flex; align-items:center; gap:16px; padding:4px 0;">
+            <div data-foto-veli id="veliFotoOnizleme" style="width:76px; height:76px; flex-shrink:0; border-radius:50%; background:var(--c-pink-soft,#F4C2C2); color:#2D2D2D; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:28px; overflow:hidden;">?</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; color:var(--gray-600); line-height:1.6; margin-bottom:10px;">
+                Fotoğrafınız yalnızca okul personeline ve mesajlaşmada görünür.</div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="veli-btn-primary" onclick="veliFotoDegistir()" style="padding:8px 16px; font-size:13px;">
+                  <i data-lucide="camera" style="width:14px;height:14px;vertical-align:-2px;"></i> Fotoğraf Yükle</button>
+                <button class="veli-btn-secondary" onclick="veliFotoKaldir()" style="padding:8px 16px; font-size:13px;">Kaldır</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="veli-card">
+          <div class="veli-card-title"><i data-lucide="settings" style="width:14px;height:14px;vertical-align:-2px;"></i> Hesap Ayarları</div>
           <div id="veliAyarlarContent">
             <div style="margin-bottom:14px;">
               <div style="font-size:12px; color:var(--gray-500);">E-posta</div>
@@ -11416,6 +11432,20 @@ i[data-lucide] svg { display: block; }
 
       <!-- ============ ÖĞRENCİ SEKMESİ ============ -->
       <div class="modal-tab-panel active" id="panel-ogrenci">
+
+        <!-- PROFİL FOTOĞRAFI -->
+        <div style="display:flex; align-items:center; gap:16px; padding:14px 16px; background:#F8FAFC; border-radius:14px; margin-bottom:18px;">
+          <div id="ogrFotoOnizleme" style="width:72px; height:72px; flex-shrink:0; border-radius:50%; background:#2D5E3E; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:26px; overflow:hidden;">?</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; font-size:13.5px; color:#1E293B; margin-bottom:3px;">Öğrenci Fotoğrafı</div>
+            <div style="font-size:12px; color:#64748B; line-height:1.5; margin-bottom:9px;">Veli panelinde ve sınıf listelerinde görünür. En fazla 8 MB.</div>
+            <div style="display:flex; gap:7px; flex-wrap:wrap;">
+              <button type="button" id="ogrFotoYukleBtn" style="padding:7px 14px; border:none; background:#2D5E3E; color:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700;">
+                <i data-lucide="upload" style="width:13px;height:13px;vertical-align:-2px;"></i> Fotoğraf Seç</button>
+              <button type="button" id="ogrFotoKaldirBtn" style="padding:7px 14px; border:1px solid #FECACA; background:#fff; color:#DC2626; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600;">Kaldır</button>
+            </div>
+          </div>
+        </div>
 
         <div class="form-row-2">
           <div class="form-group">
@@ -15108,6 +15138,10 @@ onAuthStateChanged(auth, async (user) => {
     await aktifDonemYukle();
     // Sınıf seçim kutularını siniflar koleksiyonundan doldur
     sinifSecimleriniDoldur().catch(e => console.warn("sınıf dropdown", e));
+    // Veli profil fotoğrafını yükle (avatar için)
+    if (typeof veliFotoYukleBaslangic === "function") {
+      veliFotoYukleBaslangic().catch(e => console.warn("veli fotoğrafı", e));
+    }
 
     // ===== FAZ 1a: Rol bilgisini belirle =====
     isAdmin = email === ADMIN_EMAIL.toLowerCase();
@@ -15705,6 +15739,13 @@ function hesaplaYas(dogumTarihi) {
 }
 
 window.veliSwitchTab = function(tabName) {
+  // Ayarlar sekmesi açılınca profil fotoğrafı önizlemesini tazele
+  try {
+    if (arguments[0] === "ayarlar" && typeof veliFotoYukleBaslangic === "function") {
+      setTimeout(function () { veliFotoYukleBaslangic(); }, 120);
+    }
+  } catch (e) {}
+
   // Menu item aktif
   document.querySelectorAll(".veli-menu-item").forEach(el => {
     el.classList.toggle("active", el.dataset.veliTab === tabName);
@@ -15805,12 +15846,14 @@ function veliRenderYeniApp() {
                  : (caEkran === "galeri") ? caGaleriHTML()
                  : (caEkran === "mesajlar") ? caMesajlarHTML()
                  : (caEkran === "pdr") ? caPdrHTML()
+                 : (caEkran === "randevular") ? caRandevularHTML()
                  : (caEkran === "etkinlikler") ? caEtkinliklerHTML()
                  : (caEkran === "takvim") ? caTakvimHTML()
                  : (caEkran === "yemek") ? caYemekHTML()
                  : caHomeHTML();
   if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
   if (caEkran === "pdr") { try { caPdrYukle(); } catch(e) { console.warn(e); } }
+  if (caEkran === "randevular") { try { caRandevulariYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
@@ -16377,6 +16420,120 @@ window.caHomeRandevulariDoldur = caHomeRandevulariDoldur;
 //         ogrenciGelisim (çocuğa özel gelişim notu)
 // ZEKY app'teki veli-pdr.html ile aynı veri.
 // ═══════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════
+// VELİ RANDEVULARIM EKRANI
+// randevuSlotlari'ndan velinin kendi randevuları.
+// durum: talep (onay bekliyor) · dolu (onaylandı) · reddedildi
+// ═══════════════════════════════════════════════════════════════════
+function caRandevularHTML() {
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div>
+            <div class="ca-tile-sub">GÖRÜŞMELER</div>
+            <h2 style="font-size:18px;">Randevularım</h2>
+          </div>
+        </div>
+        <button onclick="caRandevuTalepAc()" title="Yeni randevu"
+          style="display:flex; align-items:center; gap:7px; background:var(--c-green); color:#fff; border:none; border-radius:22px; padding:9px 16px; font-family:inherit; font-weight:700; font-size:13px; cursor:pointer;">
+          <i data-lucide="plus" style="width:15px;height:15px;"></i> Yeni</button>
+      </div>
+      <div id="caRandevuListe">
+        <div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+      </div>
+    </div>`;
+}
+
+async function caRandevulariYukle() {
+  const el = document.getElementById("caRandevuListe");
+  if (!el) return;
+  try {
+    const veliEmail = (currentUser?.email || "").toLowerCase();
+    const snap = await getDocs(query(collection(db, "randevuSlotlari"), where("veliEmail", "==", veliEmail)));
+    const liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+
+    if (!liste.length) {
+      el.innerHTML = `<div class="ca-card" style="padding:34px 20px; text-align:center;">
+        <i data-lucide="calendar-clock" style="width:36px;height:36px;opacity:.3;display:block;margin:0 auto 12px;"></i>
+        <div style="font-weight:700; color:var(--c-ink); font-size:14.5px; margin-bottom:6px;">Henüz randevunuz yok</div>
+        <div style="color:var(--c-muted); font-size:13px; line-height:1.6; max-width:300px; margin:0 auto 16px;">
+          PDR, sınıf öğretmeni veya müdür ile görüşme talep edebilirsiniz.</div>
+        <button onclick="caRandevuTalepAc()" style="background:var(--c-green); color:#fff; border:none; border-radius:11px; padding:11px 22px; font-family:inherit; font-weight:700; font-size:13.5px; cursor:pointer;">Randevu Talep Et</button>
+      </div>`;
+      if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+      return;
+    }
+
+    const bugun = new Date().toISOString().slice(0, 10);
+    const yaklasan = liste.filter(r => (r.tarih || "") >= bugun && r.durum !== "reddedildi")
+                          .sort((a, b) => (a.tarih + a.baslangicSaat).localeCompare(b.tarih + b.baslangicSaat));
+    const gecmis   = liste.filter(r => (r.tarih || "") < bugun || r.durum === "reddedildi")
+                          .sort((a, b) => (b.tarih + b.baslangicSaat).localeCompare(a.tarih + a.baslangicSaat));
+
+    const kart = (r, soluk) => {
+      const h = RANDEVU_HEDEFLERI.find(x => x.k === r.tip);
+      const d = new Date((r.tarih || "") + "T00:00:00");
+      const gunNo = isNaN(d) ? "?" : d.getDate();
+      const ayKisa = isNaN(d) ? "" : ["OCA","ŞUB","MAR","NİS","MAY","HAZ","TEM","AĞU","EYL","EKİ","KAS","ARA"][d.getMonth()];
+      const gunAd = isNaN(d) ? "" : d.toLocaleDateString("tr-TR", { weekday: "long" });
+      const durum = r.durum === "talep" ? { ad: "Onay bekliyor", bg: "#FEF3C7", yazi: "#92400E" }
+                  : r.durum === "reddedildi" ? { ad: "Karşılanamadı", bg: "#FEE2E2", yazi: "#991B1B" }
+                  : { ad: "Onaylandı", bg: "#D1FAE5", yazi: "#065F46" };
+      return `
+        <div class="ca-card" style="display:flex; gap:14px; padding:14px 16px; margin-bottom:10px; ${soluk ? "opacity:.62;" : ""}">
+          <div style="width:52px; flex-shrink:0; border-radius:13px; background:var(--c-blue-soft); color:#2E5C8A; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:9px 0;">
+            <div style="font-size:21px; font-weight:700; line-height:1;">${gunNo}</div>
+            <div style="font-size:10px; font-weight:700; margin-top:3px;">${ayKisa}</div>
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; font-size:14.5px; color:var(--c-ink);">${escapeHtml((h && h.ad) || "Görüşme")}</div>
+            <div style="font-size:12.5px; color:var(--c-muted); margin-top:4px;">
+              <i data-lucide="clock" style="width:12px;height:12px;vertical-align:-2px;"></i>
+              ${escapeHtml(gunAd)} · ${escapeHtml(r.baslangicSaat || "")}${r.bitisSaat ? "–" + escapeHtml(r.bitisSaat) : ""}
+            </div>
+            ${r.konum ? `<div style="font-size:12.5px; color:var(--c-muted); margin-top:3px;"><i data-lucide="map-pin" style="width:12px;height:12px;vertical-align:-2px;"></i> ${escapeHtml(r.konum)}</div>` : ""}
+            ${r.veliNotu ? `<div style="font-size:12.5px; color:#475569; margin-top:8px; background:#F8FAFC; border-radius:9px; padding:9px 11px; line-height:1.5;">${escapeHtml(r.veliNotu)}</div>` : ""}
+            ${r.retGerekcesi ? `<div style="font-size:12.5px; color:#7C2D12; margin-top:8px; background:#FEF3C7; border-radius:9px; padding:9px 11px; line-height:1.5;"><b>Okuldan not:</b> ${escapeHtml(r.retGerekcesi)}</div>` : ""}
+            <span style="display:inline-block; margin-top:9px; font-size:10.5px; font-weight:700; padding:3px 10px; border-radius:10px; background:${durum.bg}; color:${durum.yazi};">${durum.ad}</span>
+            ${(r.durum === "talep" && (r.tarih || "") >= bugun)
+              ? `<button onclick="caRandevuIptal('${r.id}')" style="margin-left:7px; margin-top:9px; font-size:11px; font-weight:600; padding:3px 11px; border:1px solid #FECACA; background:#fff; color:#DC2626; border-radius:10px; cursor:pointer; font-family:inherit;">İptal et</button>` : ""}
+          </div>
+        </div>`;
+    };
+
+    el.innerHTML =
+      (yaklasan.length
+        ? `<div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:2px 2px 9px;">Yaklaşan</div>
+           ${yaklasan.map(r => kart(r, false)).join("")}` : "") +
+      (gecmis.length
+        ? `<div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:18px 2px 9px;">Geçmiş</div>
+           ${gecmis.slice(0, 10).map(r => kart(r, true)).join("")}` : "");
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    console.warn("randevularım", e?.message);
+    el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Randevular yüklenemedi.</div>`;
+  }
+}
+
+// Veli kendi bekleyen talebini iptal edebilir
+window.caRandevuIptal = async function(id) {
+  if (!confirm("Randevu talebiniz iptal edilecek. Devam edilsin mi?")) return;
+  try {
+    await updateDoc(doc(db, "randevuSlotlari", id), {
+      durum: "reddedildi", arsiv: true,
+      retGerekcesi: "Veli tarafından iptal edildi",
+      guncellendi: new Date().toISOString()
+    });
+    if (typeof showToast === "function") showToast("Talebiniz iptal edildi");
+    caRandevulariYukle();
+    caHomeRandevulariDoldur();
+  } catch (e) { alert("İptal edilemedi: " + (e.message || e)); }
+};
+
 function caPdrHTML() {
   return `
     <div class="ca-page ca-stack">
@@ -16468,10 +16625,154 @@ window.caPdrAc = function(i) {
   if (el) el.style.display = el.style.display === "none" ? "block" : "none";
 };
 
+
+// ═══════════════════════════════════════════════════════════════════
+// PROFİL FOTOĞRAFI (öğrenci + veli)
+// Bunny.net'e güvenli proxy (medyaYukle) üzerinden yüklenir.
+// Firestore'a SADECE URL yazılır — base64 saklamak yasak.
+//   Öğrenci : ogrenciler/{id}.fotoUrl  + fotoYol (silme için)
+//   Veli    : veliler/{email}.fotoUrl  + fotoYol
+// Portal ve ZEKY app aynı alan adlarını kullanır.
+// ═══════════════════════════════════════════════════════════════════
+
+// Ortak yükleme: dosya seç → sıkıştır → Bunny → Firestore'a URL yaz
+async function profilFotoYukle(dosya, koleksiyon, belgeId, klasor) {
+  if (!dosya) return null;
+  if (!dosya.type.startsWith("image/")) throw new Error("Lütfen bir görsel dosyası seçin.");
+  if (dosya.size > 8 * 1024 * 1024) throw new Error("Görsel 8 MB'tan küçük olmalı.");
+
+  // Profil fotoğrafı için 800px yeterli — hem hızlı hem CDN dostu
+  const kucuk = await resimSikistir(dosya, 800, 0.85);
+  const sonuc = await medyaYukle(kucuk, klasor);
+
+  // Eski fotoğrafı Bunny'den temizle (yer kaplamasın)
+  try {
+    const mevcut = await getDoc(doc(db, koleksiyon, belgeId));
+    const eskiYol = mevcut.exists() ? mevcut.data().fotoYol : null;
+    if (eskiYol && eskiYol !== sonuc.yol) await medyaSil(eskiYol);
+  } catch (e) { console.warn("eski foto silinemedi", e?.message); }
+
+  await setDoc(doc(db, koleksiyon, belgeId), {
+    fotoUrl: sonuc.url,
+    fotoYol: sonuc.yol,
+    fotoGuncellendi: new Date().toISOString()
+  }, { merge: true });
+
+  return sonuc.url;
+}
+
+// Fotoğrafı kaldır
+async function profilFotoKaldir(koleksiyon, belgeId) {
+  try {
+    const mevcut = await getDoc(doc(db, koleksiyon, belgeId));
+    const yol = mevcut.exists() ? mevcut.data().fotoYol : null;
+    if (yol) await medyaSil(yol);
+  } catch (e) { console.warn("foto silinemedi", e?.message); }
+  await setDoc(doc(db, koleksiyon, belgeId), {
+    fotoUrl: "", fotoYol: "", fotoGuncellendi: new Date().toISOString()
+  }, { merge: true });
+}
+
+// Gizli dosya seçici — her çağrıda yeniden oluşturulur
+function fotoSecicAc(geriCagir) {
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = "image/*";
+  inp.style.display = "none";
+  inp.onchange = function () { if (inp.files && inp.files[0]) geriCagir(inp.files[0]); inp.remove(); };
+  document.body.appendChild(inp);
+  inp.click();
+}
+
+// ── ÖĞRENCİ FOTOĞRAFI (yönetim: öğrenci detayı) ──
+window.ogrenciFotoDegistir = function(ogrenciId) {
+  fotoSecicAc(async function (dosya) {
+    if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
+    try {
+      const url = await profilFotoYukle(dosya, "ogrenciler", ogrenciId, "ogrenci-foto");
+      // Yerel listeyi de güncelle ki ekran hemen yansısın
+      const o = (typeof ogrenciList !== "undefined") ? ogrenciList.find(x => x.id === ogrenciId) : null;
+      if (o) o.fotoUrl = url;
+      if (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci && veliAktifOgrenci.id === ogrenciId) {
+        veliAktifOgrenci.fotoUrl = url;
+      }
+      document.querySelectorAll('[data-foto-ogrenci="' + ogrenciId + '"]').forEach(el => {
+        el.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+        el.style.padding = "0"; el.style.overflow = "hidden";
+      });
+      if (typeof showToast === "function") showToast("Fotoğraf güncellendi", "success");
+    } catch (e) {
+      console.error("öğrenci fotoğrafı", e);
+      alert("Yüklenemedi: " + (e.message || e));
+    }
+  });
+};
+
+window.ogrenciFotoKaldir = async function(ogrenciId) {
+  if (!confirm("Öğrenci fotoğrafı kaldırılacak. Devam edilsin mi?")) return;
+  try {
+    await profilFotoKaldir("ogrenciler", ogrenciId);
+    const o = (typeof ogrenciList !== "undefined") ? ogrenciList.find(x => x.id === ogrenciId) : null;
+    if (o) o.fotoUrl = "";
+    if (typeof showToast === "function") showToast("Fotoğraf kaldırıldı");
+    if (typeof renderTable === "function") renderTable();
+  } catch (e) { alert("Kaldırılamadı: " + (e.message || e)); }
+};
+
+// ── VELİ KENDİ FOTOĞRAFI ──
+window.veliFotoDegistir = function() {
+  const eposta = (currentUser?.email || "").toLowerCase();
+  if (!eposta) return;
+  fotoSecicAc(async function (dosya) {
+    if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
+    try {
+      const url = await profilFotoYukle(dosya, "veliler", eposta, "veli-foto");
+      window._veliFotoUrl = url;
+      document.querySelectorAll('[data-foto-veli]').forEach(el => {
+        el.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+        el.style.padding = "0"; el.style.overflow = "hidden";
+      });
+      if (typeof showToast === "function") showToast("Profil fotoğrafınız güncellendi", "success");
+    } catch (e) {
+      console.error("veli fotoğrafı", e);
+      alert("Yüklenemedi: " + (e.message || e));
+    }
+  });
+};
+
+window.veliFotoKaldir = async function() {
+  const eposta = (currentUser?.email || "").toLowerCase();
+  if (!eposta || !confirm("Profil fotoğrafınız kaldırılacak. Devam edilsin mi?")) return;
+  try {
+    await profilFotoKaldir("veliler", eposta);
+    window._veliFotoUrl = "";
+    if (typeof showToast === "function") showToast("Fotoğraf kaldırıldı");
+    if (typeof veliRenderYeniApp === "function") veliRenderYeniApp();
+  } catch (e) { alert("Kaldırılamadı: " + (e.message || e)); }
+};
+
+// Veli fotoğrafını oturum açılışında yükle (avatar için)
+async function veliFotoYukleBaslangic() {
+  try {
+    const eposta = (currentUser?.email || "").toLowerCase();
+    if (!eposta) return;
+    const d = await getDoc(doc(db, "veliler", eposta));
+    window._veliFotoUrl = (d.exists() && d.data().fotoUrl) ? d.data().fotoUrl : "";
+  } catch (e) { window._veliFotoUrl = ""; }
+}
+window.veliFotoYukleBaslangic = veliFotoYukleBaslangic;
+
 function caHomeHTML() {
   const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || null;
   const cocukAd = ogr ? (ogr.ogrenciAdSoyad || "Çocuğum") : "Çocuğum";
   const cocukHarf = (cocukAd[0] || "?").toUpperCase();
+  // Öğrenci fotoğrafı — kayıtlıysa harf yerine görsel gösterilir (Bunny.net CDN)
+  const cocukFoto = ogr ? (ogr.fotoUrl || ogr.foto || ogr.fotografUrl || "") : "";
+  const cocukAvatar = cocukFoto
+    ? `<div class="ca-avatar" data-foto-ogrenci="${ogr ? ogr.id : ""}" style="background:#fff; padding:0; overflow:hidden;">
+         <img src="${escapeHtmlGelisim(cocukFoto)}" alt="" style="width:100%; height:100%; object-fit:cover; display:block;"
+              onerror="this.parentNode.innerHTML='${cocukHarf}'; this.parentNode.style.color='var(--c-green)';"></div>`
+    : `<div class="ca-avatar" data-foto-ogrenci="${ogr ? ogr.id : ""}" style="background:#fff; color:var(--c-green);">${cocukHarf}</div>`;
   const cocukSinif = ogr ? (ogr.sinif || "—") : "—";
   const cocukYas = (ogr && typeof hesaplaYas === "function") ? (hesaplaYas(ogr.dogumTarihi) || "") : "";
   const veliAd = (typeof currentUser !== "undefined" && currentUser && currentUser.displayName) ? currentUser.displayName.split(" ")[0] : "Veli";
@@ -16484,10 +16785,15 @@ function caHomeHTML() {
       <!-- Üst bar -->
       <div class="ca-topbar">
         <div class="ca-row">
-          <div class="ca-avatar" style="background:var(--c-pink-soft); color:var(--c-ink);">${veliHarf}</div>
+          <div class="ca-avatar" data-foto-veli onclick="veliSwitchTab('ayarlar')" title="Profil ve ayarlar"
+               style="background:var(--c-pink-soft); color:var(--c-ink); cursor:pointer; ${window._veliFotoUrl ? "padding:0; overflow:hidden;" : ""}">${
+                 window._veliFotoUrl
+                   ? `<img src="${escapeHtmlGelisim(window._veliFotoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentNode.textContent='${veliHarf}';">`
+                   : veliHarf
+               }</div>
           <div>
             <div class="ca-tile-sub">Hoş geldiniz</div>
-            <h2 style="font-size:18px;">${escapeHtmlGelisim(veliAd)}</h2>
+            <h2 style="font-size:18px; cursor:pointer;" onclick="veliSwitchTab('ayarlar')" title="Profil ve ayarlar">${escapeHtmlGelisim(veliAd)}</h2>
           </div>
         </div>
         <div class="ca-row" style="gap:8px;">
@@ -16511,7 +16817,7 @@ function caHomeHTML() {
         <div class="ca-card-green" style="cursor:pointer;" onclick="caGo('profil')">
           <div class="ca-row" style="justify-content:space-between;">
             <div class="ca-row">
-              <div class="ca-avatar" style="background:#fff; color:var(--c-green);">${cocukHarf}</div>
+              ${cocukAvatar}
               <div>
                 <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">ÇOCUĞUM</div>
                 <h2 style="font-size:19px;">${escapeHtmlGelisim(cocukAd)}</h2>
@@ -16794,6 +17100,8 @@ const CA_MODULLER = [
   { k:"sozlesme",  ad:"Sözleşme",          ikon:"file-text", renk:"var(--c-blue-soft)",   git:"veliSwitchTab('sozlesme')" },
   { k:"okul",      ad:"Okul Hayatı",       ikon:"flower-2", renk:"#Dff4e3",              git:"veliSwitchTab('okul')" },
   { k:"etkinlikler",ad:"Etkinlikler",      ikon:"calendar-heart", renk:"var(--c-peach-soft)",  git:"caGo('etkinlikler')" },
+  { k:"randevular",ad:"Randevularım",      ikon:"calendar-clock", renk:"var(--c-blue-soft)",   git:"caGo('randevular')" },
+  { k:"pdr",       ad:"Rehberlik (PDR)",   ikon:"brain",          renk:"var(--c-purple-soft)", git:"caGo('pdr')" },
   { k:"takvim",    ad:"Takvim",            ikon:"calendar-days", renk:"var(--c-green-light)", git:"caGo('takvim')" },
   { k:"yemek",     ad:"Yemek Menüsü",      ikon:"utensils", renk:"var(--c-pink-soft)",   git:"caGo('yemek')" },
   { k:"ayarlar",   ad:"Ayarlar",           ikon:"settings", renk:"var(--c-tint)",        git:"veliSwitchTab('ayarlar')" }
@@ -35581,6 +35889,28 @@ function loadOgrenciSekmesi(o) {
 
   document.getElementById("ogrAyarTC").value = ogr.tcKimlik || o.tcKimlik || "";
   document.getElementById("ogrAyarAdSoyad").value = ogr.adSoyad || o.ogrenciAdSoyad || "";
+
+  // ── PROFİL FOTOĞRAFI ──
+  (function () {
+    const onizleme = document.getElementById("ogrFotoOnizleme");
+    const yukleBtn = document.getElementById("ogrFotoYukleBtn");
+    const kaldirBtn = document.getElementById("ogrFotoKaldirBtn");
+    if (!onizleme) return;
+    const ad = ogr.adSoyad || o.ogrenciAdSoyad || "?";
+    const harf = (String(ad)[0] || "?").toLocaleUpperCase("tr");
+    const url = o.fotoUrl || "";
+    onizleme.setAttribute("data-foto-ogrenci", o.id);
+    if (url) {
+      onizleme.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentNode.textContent='${harf}';">`;
+    } else {
+      onizleme.textContent = harf;
+    }
+    if (yukleBtn)  yukleBtn.onclick  = function () { ogrenciFotoDegistir(o.id); };
+    if (kaldirBtn) {
+      kaldirBtn.style.display = url ? "" : "none";
+      kaldirBtn.onclick = function () { ogrenciFotoKaldir(o.id); };
+    }
+  })();
   document.getElementById("ogrAyarCinsiyet").value = ogr.cinsiyet || o.cinsiyet || "";
   document.getElementById("ogrAyarDogumTarihi").value = formatDateForInput(ogr.dogumTarihi || o.dogumTarihi);
   document.getElementById("ogrAyarEvAdresi").value = ogr.evAdresi || o.evAdresi || "";
