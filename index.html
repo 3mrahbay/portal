@@ -9088,6 +9088,7 @@ i[data-lucide] svg { display: block; }
         <button class="side-item" data-modul="ogrencilerM" onclick="modulSec('ogrencilerM')"><span class="side-ikon"><i data-lucide="users"></i></span><span class="side-ad">Öğrenciler</span></button>
         <button class="side-item" data-modul="velilerM" onclick="modulSec('velilerM')"><span class="side-ikon"><i data-lucide="contact"></i></span><span class="side-ad">Veliler</span></button>
         <button class="side-item" data-modul="siniflarM" onclick="modulSec('siniflarM')"><span class="side-ikon"><i data-lucide="layout-grid"></i></span><span class="side-ad">Sınıflar</span></button>
+        <button class="side-item" data-modul="oryantasyonM" onclick="modulSec('oryantasyonM')"><span class="side-ikon"><i data-lucide="compass"></i></span><span class="side-ad">İlk Adımlar</span></button>
         <button class="side-item" data-modul="basvuru" onclick="modulSec('basvuru')"><span class="side-ikon"><i data-lucide="inbox"></i></span><span class="side-ad">Başvuru Havuzu</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
       </div>
       <div class="side-kategori">KURUM</div>
@@ -9116,6 +9117,7 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="ogrenciler"><i data-lucide="users"></i> Öğrenci Listesi</button>
       <button class="tab" data-tab="veliler"><i data-lucide="contact"></i> Veli Listesi</button>
       <button class="tab" data-tab="siniflar"><i data-lucide="layout-grid"></i> Sınıf Yönetimi</button>
+      <button class="tab" data-tab="oryantasyon"><i data-lucide="compass"></i> İlk Adımlar Programı</button>
       <button class="tab" data-tab="ozluk"><i data-lucide="clock"></i> Özlük &amp; Puantaj</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn"><i data-lucide="inbox"></i> Başvuru Havuzu <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans"><i data-lucide="wallet"></i> Finansal Yönetim</button>
@@ -9244,6 +9246,20 @@ i[data-lucide] svg { display: block; }
 
       <div id="ozlukAraclar" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;"></div>
       <div id="ozlukIcerik">
+        <div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+
+    <!-- İLK ADIMLAR PROGRAMI TAB (yönetim) -->
+    <div class="tab-panel" id="tab-oryantasyon">
+      <div style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#2D5E3E,#4A7C59); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;">
+        <span style="font-size:20px;">🧭</span>
+        <div>
+          <div style="font-family:var(--font-display); font-weight:700; font-size:15px;">İlk Adımlar · Güvenli Başlangıç Programı</div>
+          <div style="font-size:11.5px; opacity:.88;">4 haftalık uyum süreci. Yalnızca yeni başlayan ailelere gösterilir. ZEKY uygulaması ile ortak veri.</div>
+        </div>
+      </div>
+      <div id="oryYonetimAlan">
         <div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>
       </div>
     </div>
@@ -16755,6 +16771,188 @@ async function caOryantasyonYukle() {
     el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Program yüklenemedi.</div>`;
   }
 }
+
+
+// ═══════════════════════════════════════════════════════════════════
+// İLK ADIMLAR PROGRAMI — YÖNETİM EKRANI
+// ayarlar/oryantasyon belgesini düzenler. ZEKY app ile ORTAK belge:
+// buradan yapılan değişiklik anında hem portal hem app velisine yansır.
+// ═══════════════════════════════════════════════════════════════════
+const ORY_VARSAYILAN = {
+  programAdi: "İlk Adımlar · Güvenli Başlangıç Programı",
+  ozet: "Okulun ilk ayı, çocuğunuzun okula güvenle ve kendi hızında uyum sağlaması için tasarlanmış 4 haftalık kademeli bir programdır.",
+  baslangicTarihi: "",
+  haftalar: [
+    { no:1, ad:"Ebeveynli Program",    ikon:"users",    baslangicSaat:"10:30", bitisSaat:"12:00", ebeveynli:true,  ogunler:[], aciklama:"", pdrTavsiye:"" },
+    { no:2, ad:"Ebeveynsiz Program",   ikon:"smile",    baslangicSaat:"10:30", bitisSaat:"12:00", ebeveynli:false, ogunler:[], aciklama:"", pdrTavsiye:"" },
+    { no:3, ad:"Öğle Yemeğine Geçiş",  ikon:"utensils", baslangicSaat:"10:00", bitisSaat:"13:00", ebeveynli:false, ogunler:["Öğle yemeği"], aciklama:"", pdrTavsiye:"" },
+    { no:4, ad:"Tam Güne Geçiş",       ikon:"sun",      baslangicSaat:"09:30", bitisSaat:"13:00", ebeveynli:false, ogunler:["Sabah kahvaltısı","Öğle yemeği"], aciklama:"", pdrTavsiye:"" }
+  ],
+  seminerler: [
+    { hafta:1, baslik:"Okula Uyum ve Ayrılık Kaygısı",     saat:"15:00", konusmaci:"", aciklama:"" },
+    { hafta:2, baslik:"Veda Rutini ve Güvenli Bağlanma",   saat:"15:00", konusmaci:"", aciklama:"" },
+    { hafta:3, baslik:"Beslenme ve Öz Bakım Becerileri",   saat:"15:00", konusmaci:"", aciklama:"" },
+    { hafta:4, baslik:"Tam Güne Geçiş ve Ev Rutini",       saat:"15:00", konusmaci:"", aciklama:"" }
+  ]
+};
+
+let ORY_YONETIM = null;
+
+window.oryYonetimYukle = async function() {
+  const el = document.getElementById("oryYonetimAlan");
+  if (!el) return;
+  el.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>`;
+  try {
+    const d = await getDoc(doc(db, "ayarlar", "oryantasyon"));
+    const v = d.exists() ? (d.data() || {}) : {};
+    ORY_YONETIM = {
+      ...ORY_VARSAYILAN, ...v,
+      haftalar:   (v.haftalar   && v.haftalar.length)   ? v.haftalar   : ORY_VARSAYILAN.haftalar,
+      seminerler: (v.seminerler && v.seminerler.length) ? v.seminerler : ORY_VARSAYILAN.seminerler
+    };
+    ORY_PROGRAM = ORY_YONETIM;   // veli tarafı önbelleğini de tazele
+    oryYonetimCiz();
+  } catch (e) {
+    console.error("oryantasyon", e);
+    el.innerHTML = `<div style="text-align:center; padding:40px; color:#DC2626;"><p>Program yüklenemedi.</p></div>`;
+  }
+};
+
+function oryYonetimCiz() {
+  const el = document.getElementById("oryYonetimAlan");
+  if (!el || !ORY_YONETIM) return;
+  const p = ORY_YONETIM;
+  const aktif = oryAktifHafta(p.baslangicTarihi);
+
+  const durumBandi = !p.baslangicTarihi
+    ? `<div style="background:#FEF3C7; border:1px solid #FDE68A; border-radius:12px; padding:13px 16px; margin-bottom:14px; font-size:13px; color:#78350F;">
+         <b>Başlangıç tarihi girilmemiş.</b> Program velilere görünmüyor. Aşağıdan 1. haftanın pazartesi tarihini girin.</div>`
+    : aktif === 0
+    ? `<div style="background:#EDF4FA; border:1px solid #BFDBFE; border-radius:12px; padding:13px 16px; margin-bottom:14px; font-size:13px; color:#1E40AF;">Program henüz başlamadı. İlk hafta: ${(oryHaftaTarihi(p.baslangicTarihi,1)||{}).aralik || "—"}</div>`
+    : aktif > 4
+    ? `<div style="background:#F1F5F9; border-radius:12px; padding:13px 16px; margin-bottom:14px; font-size:13px; color:#475569;">Program tamamlandı. Veliler normal düzene geçti.</div>`
+    : `<div style="background:#DFF4E3; border:1px solid #86EFAC; border-radius:12px; padding:13px 16px; margin-bottom:14px; font-size:13px; color:#065F46;">
+         <b>Şu an ${aktif}. hafta yürürlükte</b> · ${(oryHaftaTarihi(p.baslangicTarihi,aktif)||{}).aralik || ""}</div>`;
+
+  const gir = (id, etiket, deger, tip, ipucu) => `
+    <div style="margin-bottom:12px;">
+      <label style="display:block; font-size:11.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">${etiket}</label>
+      <input type="${tip || "text"}" id="${id}" value="${escapeHtml(deger || "")}" ${ipucu ? `placeholder="${escapeHtml(ipucu)}"` : ""}
+        style="width:100%; padding:10px 13px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:14px;">
+    </div>`;
+
+  const alan = (id, etiket, deger, satir, ipucu, vurgu) => `
+    <div style="margin-bottom:12px;">
+      <label style="display:block; font-size:11.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">${etiket}</label>
+      <textarea id="${id}" rows="${satir || 2}" ${ipucu ? `placeholder="${escapeHtml(ipucu)}"` : ""}
+        style="width:100%; padding:10px 13px; border:1px solid ${vurgu ? "#BFDBFE" : "var(--c-line,#E2E8F0)"}; ${vurgu ? "background:#F7FBFD;" : ""} border-radius:10px; font-family:inherit; font-size:13.5px; resize:vertical;">${escapeHtml(deger || "")}</textarea>
+    </div>`;
+
+  el.innerHTML = durumBandi + `
+    <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px; padding:16px 18px; margin-bottom:14px;">
+      ${gir("oryAd", "Program Adı", p.programAdi)}
+      ${gir("oryBaslangic", "1. Haftanın Pazartesi Tarihi", p.baslangicTarihi, "date")}
+      <div style="font-size:12px; color:#64748B; margin:-6px 0 12px; line-height:1.5;">Diğer haftaların tarihleri ve seminer günleri buradan otomatik hesaplanır.</div>
+      ${alan("oryOzet", "Programın Özeti (veliye görünür)", p.ozet, 3)}
+    </div>
+
+    <div style="font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.5px; margin:16px 2px 10px;">Haftalar</div>
+    ${(p.haftalar || []).map((h, i) => {
+      const t = oryHaftaTarihi(p.baslangicTarihi, h.no);
+      const suAn = aktif === h.no;
+      return `
+      <div style="background:#fff; border:1px solid ${suAn ? "#2D5E3E" : "var(--c-line,#E2E8F0)"}; ${suAn ? "border-width:2px;" : ""} border-radius:14px; padding:15px 17px; margin-bottom:11px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:13px;">
+          <div style="font-weight:700; font-size:15px; color:#1E293B;">${h.no}. Hafta ${suAn ? `<span style="background:#DFF4E3;color:#065F46;padding:2px 9px;border-radius:9px;font-size:11px;margin-left:6px;">Bu hafta</span>` : ""}</div>
+          ${t ? `<span style="font-size:12px; color:#64748B;">${t.aralik}</span>` : ""}
+        </div>
+        ${gir("oryHAd" + i, "Hafta Adı", h.ad)}
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:11px;">
+          ${gir("oryHBas" + i, "Başlangıç", h.baslangicSaat, "time")}
+          ${gir("oryHBit" + i, "Bitiş", h.bitisSaat, "time")}
+        </div>
+        <label style="display:flex; align-items:center; gap:9px; font-size:13.5px; margin-bottom:12px; cursor:pointer;">
+          <input type="checkbox" id="oryHEb${i}" ${h.ebeveynli ? "checked" : ""}> Ebeveynli program (ebeveyn sınıfta bulunur)</label>
+        ${gir("oryHOgun" + i, "Öğünler", (h.ogunler || []).join(", "), "text", "Virgülle: Sabah kahvaltısı, Öğle yemeği")}
+        ${alan("oryHAc" + i, "Açıklama", h.aciklama, 2, "Bu haftada neler oluyor?")}
+        ${alan("oryHPdr" + i, "PDR Önerisi", h.pdrTavsiye, 2, "Veliye mavi kutuda gösterilir", true)}
+      </div>`;
+    }).join("")}
+
+    <div style="font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.5px; margin:18px 2px 10px;">Aile Seminerleri · her haftanın cuma günü</div>
+    ${(p.seminerler || []).map((x, i) => {
+      const t = oryHaftaTarihi(p.baslangicTarihi, x.hafta);
+      return `
+      <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px; padding:15px 17px; margin-bottom:11px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-weight:700; font-size:14.5px; color:#1E293B;">${x.hafta}. Hafta Semineri</div>
+          ${t ? `<span style="font-size:12px; color:#64748B;">Cuma · ${t.cumaTarih}</span>` : ""}
+        </div>
+        ${gir("orySB" + i, "Başlık", x.baslik)}
+        <div style="display:grid; grid-template-columns:1fr 2fr; gap:11px;">
+          ${gir("orySSaat" + i, "Saat", x.saat, "time")}
+          ${gir("orySK" + i, "Konuşmacı", x.konusmaci, "text", "Opsiyonel")}
+        </div>
+        ${alan("orySAc" + i, "Açıklama", x.aciklama, 2)}
+      </div>`;
+    }).join("")}
+
+    <div style="display:flex; gap:10px; margin-top:16px; position:sticky; bottom:14px;">
+      <button onclick="oryYonetimYukle()" style="padding:14px 20px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:600; font-size:14px;">Geri Al</button>
+      <button onclick="oryYonetimKaydet()" id="oryKaydetBtn" style="flex:1; padding:14px 20px; border:none; background:#2D5E3E; color:#fff; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:700; font-size:14.5px; box-shadow:0 4px 14px rgba(45,94,62,.25);">
+        <i data-lucide="check" style="width:16px;height:16px;vertical-align:-3px;"></i> Programı Kaydet</button>
+    </div>`;
+
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+}
+
+window.oryYonetimKaydet = async function() {
+  const btn = document.getElementById("oryKaydetBtn");
+  if (!ORY_YONETIM) return;
+  const v = (id) => { const e = document.getElementById(id); return e ? e.value.trim() : ""; };
+
+  if (btn) { btn.disabled = true; btn.textContent = "Kaydediliyor…"; }
+  try {
+    const yeni = {
+      programAdi: v("oryAd") || ORY_VARSAYILAN.programAdi,
+      baslangicTarihi: v("oryBaslangic"),
+      ozet: v("oryOzet"),
+      haftalar: (ORY_YONETIM.haftalar || []).map((h, i) => ({
+        ...h,
+        ad: v("oryHAd" + i) || h.ad,
+        baslangicSaat: v("oryHBas" + i) || h.baslangicSaat,
+        bitisSaat: v("oryHBit" + i) || h.bitisSaat,
+        ebeveynli: !!(document.getElementById("oryHEb" + i) || {}).checked,
+        ogunler: v("oryHOgun" + i) ? v("oryHOgun" + i).split(",").map(x => x.trim()).filter(Boolean) : [],
+        aciklama: v("oryHAc" + i),
+        pdrTavsiye: v("oryHPdr" + i)
+      })),
+      seminerler: (ORY_YONETIM.seminerler || []).map((x, i) => ({
+        ...x,
+        baslik: v("orySB" + i) || x.baslik,
+        saat: v("orySSaat" + i) || x.saat,
+        konusmaci: v("orySK" + i),
+        aciklama: v("orySAc" + i)
+      }))
+    };
+
+    await setDoc(doc(db, "ayarlar", "oryantasyon"), {
+      ...yeni,
+      guncelleyen: currentUser?.email || "",
+      guncellendi: new Date().toISOString()
+    }, { merge: true });
+
+    ORY_YONETIM = { ...ORY_YONETIM, ...yeni };
+    ORY_PROGRAM = ORY_YONETIM;   // veli tarafı önbelleği
+    if (typeof showToast === "function") showToast("Program kaydedildi · velilere yansıdı", "success");
+    oryYonetimCiz();
+  } catch (e) {
+    console.error("oryantasyon kaydet", e);
+    alert("Kaydedilemedi: " + (e.message || e));
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="check" style="width:16px;height:16px;vertical-align:-3px;"></i> Programı Kaydet'; if (window.lucideYenile) window.lucideYenile(); }
+  }
+};
 
 function caPdrHTML() {
   return `
@@ -35744,6 +35942,7 @@ const MODUL_HARITASI = {
   ogrencilerM: { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
   velilerM:    { tablar: ["veliler"],    varsayilan: "veliler", ad: "Veliler" },
   siniflarM:   { tablar: ["siniflar"],   varsayilan: "siniflar", ad: "Sınıflar" },
+  oryantasyonM:{ tablar: ["oryantasyon"],varsayilan: "oryantasyon", ad: "İlk Adımlar" },
   ozlukM:      { tablar: ["ozluk"],      varsayilan: "ozluk", ad: "Özlük & Puantaj" },
   basvuru:     { tablar: ["onay"],       varsayilan: "onay", ad: "Başvuru Havuzu" },
   ogrenci:     { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
@@ -35886,6 +36085,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Özlük & Puantaj sekmesine geçildiyse yükle
     if (tab.dataset.tab === "ozluk") {
       setTimeout(() => { if (typeof ozlukYukle === "function") ozlukYukle(); }, 50);
+    }
+
+    // İlk Adımlar Programı sekmesine geçildiyse yükle
+    if (tab.dataset.tab === "oryantasyon") {
+      setTimeout(() => { if (typeof oryYonetimYukle === "function") oryYonetimYukle(); }, 50);
     }
 
     // Sınıf Yönetimi sekmesine geçildiyse yükle
