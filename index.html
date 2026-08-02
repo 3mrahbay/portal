@@ -10730,6 +10730,7 @@ i[data-lucide] svg { display: block; }
             </select>
             <select id="randevuFiltreDurum" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
               <option value="">Tüm Durumlar</option>
+              <option value="talep">🟠 Onay Bekleyen Talepler</option>
               <option value="musait">🟢 Sadece Müsait</option>
               <option value="dolu">🟡 Sadece Dolu</option>
             </select>
@@ -10740,6 +10741,9 @@ i[data-lucide] svg { display: block; }
             </select>
             <span style="margin-left:auto; font-size:11px; color:#6b7280;" id="randevuSayac">—</span>
           </div>
+
+          <!-- BEKLEYEN VELİ TALEPLERİ -->
+          <div id="randevuTalepKutusu" style="display:none; margin-bottom:16px;"></div>
 
           <!-- Slot listesi -->
           <div id="randevuListesi">
@@ -16249,23 +16253,69 @@ window.caRandevuTalepGonder = async function() {
       olusturan: veliEmail, olusturuldu: new Date().toISOString()
     });
 
-    // Yönetime bilgilendirme maili (mevcut mail altyapısı)
+    const hedefAd = (RANDEVU_HEDEFLERI.find(h => h.k === window._caRandevuHedef) || {}).ad || "Görüşme";
+    const tarihGuzel = (() => {
+      try { return new Date(tarih + "T00:00:00")
+        .toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "long" }); }
+      catch (e) { return tarih; }
+    })();
+
+    // 1) Yönetime bilgilendirme MAİLİ
     try {
-      const hedefAd = (RANDEVU_HEDEFLERI.find(h => h.k === window._caRandevuHedef) || {}).ad || "Görüşme";
-      if (typeof mailGonder === "function") {
-        await mailGonder({
-          to: "eposta@bircicekkoleji.com",
+      // Okul adresi ayarlardan okunur; yoksa varsayılana düşer (SaaS uyumu)
+      let okulMail = "eposta@bircicekkoleji.com";
+      try {
+        const ay = await getDoc(doc(db, "ayarlar", "okulBilgileri"));
+        if (ay.exists() && ay.data().eposta) okulMail = ay.data().eposta;
+      } catch (e) { /* varsayılan kullanılır */ }
+
+      if (typeof brevoMail === "function") {
+        await brevoMail({
+          to: okulMail,
           subject: "Yeni randevu talebi · " + (o ? (o.ogrenciAdSoyad || "") : ""),
-          htmlContent: `<h3>Yeni Randevu Talebi</h3>
-            <p><b>Veli:</b> ${veliAd} (${veliEmail})<br>
-            <b>Öğrenci:</b> ${o ? (o.ogrenciAdSoyad || "") : "—"}<br>
-            <b>Görüşülecek:</b> ${hedefAd}<br>
-            <b>Tarih:</b> ${tarih} ${saat}<br>
-            <b>Not:</b> ${not || "—"}</p>
-            <p>Portal → Etkinlik &amp; Takvim bölümünden onaylayabilirsiniz.</p>`
+          htmlContent: `
+            <div style="font-family:Arial,sans-serif; max-width:520px;">
+              <div style="background:#2D5E3E; color:#fff; padding:18px 22px; border-radius:12px 12px 0 0;">
+                <div style="font-size:12px; opacity:.85; letter-spacing:1px;">PORTAL</div>
+                <div style="font-size:19px; font-weight:700; margin-top:4px;">Yeni Randevu Talebi</div>
+              </div>
+              <div style="border:1px solid #E2E8F0; border-top:none; border-radius:0 0 12px 12px; padding:20px;">
+                <div style="background:#F8FAFC; border-radius:10px; padding:14px 16px; color:#334155;">
+                  <div style="margin-bottom:6px;"><b>Veli:</b> ${escapeHtml(veliAd)} (${escapeHtml(veliEmail)})</div>
+                  <div style="margin-bottom:6px;"><b>Öğrenci:</b> ${escapeHtml(o ? (o.ogrenciAdSoyad || "") : "—")}${o && o.sinif ? " · " + escapeHtml(o.sinif) : ""}</div>
+                  <div style="margin-bottom:6px;"><b>Görüşülecek:</b> ${escapeHtml(hedefAd)}</div>
+                  <div style="margin-bottom:6px;"><b>Tarih:</b> ${escapeHtml(tarihGuzel)}</div>
+                  <div><b>Saat:</b> ${escapeHtml(saat)} – ${escapeHtml(bitisSaat)}</div>
+                </div>
+                ${not ? `<div style="background:#FFF7ED; border-radius:10px; padding:13px 16px; margin-top:12px; color:#7C2D12;"><b>Görüşme konusu:</b><br>${escapeHtml(not)}</div>` : ""}
+                <p style="color:#64748B; font-size:14px; margin:18px 0 14px;">Portal → Etkinlik &amp; Takvim bölümünden onaylayabilir veya reddedebilirsiniz.</p>
+                <a href="https://portal.bircicekkoleji.com" style="display:inline-block; background:#2D5E3E; color:#fff; text-decoration:none; padding:11px 22px; border-radius:9px; font-weight:700;">Portalı Aç</a>
+              </div>
+            </div>`
         });
       }
     } catch (e) { console.warn("randevu maili gönderilemedi", e?.message); }
+
+    // 2) Yönetime UYGULAMA İÇİ BİLDİRİM
+    // Mail gözden kaçabilir; portale giren yönetici rozette görsün.
+    try {
+      const pSnap = await getDocs(collection(db, "personeller"));
+      const yoneticiler = [];
+      pSnap.forEach(d => {
+        const v = d.data() || {};
+        if ((v.durum || "aktif") !== "aktif") return;
+        if (["kurucu_mudur", "mudur", "egitim_koordinator"].includes(v.rol)) yoneticiler.push(d.id);
+      });
+      await Promise.all(yoneticiler.map(em => addDoc(collection(db, "bildirimler"), {
+        aliciEmail: (em || "").toLowerCase(),
+        tip: "randevu_talep",
+        baslik: "Yeni randevu talebi",
+        metin: `${veliAd} · ${hedefAd} · ${tarih} ${saat}`,
+        hedefSayfa: "etkinlik",
+        okundu: false,
+        olusturuldu: new Date().toISOString()
+      })));
+    } catch (e) { console.warn("yönetim bildirimi", e?.message); }
 
     document.getElementById("caRandevuArka").remove();
     if (typeof showToast === "function") showToast("Randevu talebiniz iletildi", "success");
@@ -21417,6 +21467,168 @@ function randevuOgretmenDropdownDoldur() {
 }
 
 // ===== ANA RENDER =====
+
+// ═══════════════════════════════════════════════════════════════════
+// VELİ RANDEVU TALEPLERİ — ONAY / RED
+// Veli randevuSlotlari'na durum:"talep" olarak yazar.
+// Yönetim onaylayınca durum:"dolu" olur ve takvimde görünür.
+// Her iki durumda da veliye bilgilendirme maili gider.
+// ═══════════════════════════════════════════════════════════════════
+const RANDEVU_TIP_ADI = {
+  pdr: "PDR / Rehberlik", ogretmen_veli: "Sınıf Öğretmeni",
+  idare: "Müdür / İdare", meslek_sunumu: "Meslek Sunumu", diger: "Diğer"
+};
+
+function randevuTalepleriCiz() {
+  const kutu = document.getElementById("randevuTalepKutusu");
+  if (!kutu) return;
+  const talepler = (randevuSlotlari || [])
+    .filter(s => !s.arsiv && s.durum === "talep")
+    .sort((a, b) => (a.tarih + a.baslangicSaat).localeCompare(b.tarih + b.baslangicSaat));
+
+  if (!talepler.length) { kutu.style.display = "none"; kutu.innerHTML = ""; return; }
+  kutu.style.display = "";
+  kutu.innerHTML = `
+    <div style="background:#FFF7ED; border:1px solid #FED7AA; border-radius:14px; padding:15px 17px;">
+      <div style="display:flex; align-items:center; gap:9px; margin-bottom:12px;">
+        <i data-lucide="bell-ring" style="width:17px;height:17px;color:#C2410C;"></i>
+        <span style="font-weight:700; font-size:14.5px; color:#7C2D12;">${talepler.length} veli randevu talebi onay bekliyor</span>
+      </div>
+      ${talepler.map(t => {
+        const d = new Date(t.tarih + "T00:00:00");
+        const tarihMetni = isNaN(d) ? t.tarih : d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" });
+        return `
+        <div style="background:#fff; border:1px solid #FED7AA; border-radius:11px; padding:12px 14px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:200px;">
+              <div style="font-weight:700; font-size:13.5px; color:#1E293B;">${escapeHtml(t.veliAd || t.veliEmail || "Veli")}
+                <span style="font-weight:500; color:#64748B;">· ${escapeHtml(t.ogrenciAd || "")}</span></div>
+              <div style="font-size:12.5px; color:#475569; margin-top:4px;">
+                <i data-lucide="calendar" style="width:12px;height:12px;vertical-align:-2px;"></i> ${escapeHtml(tarihMetni)} · ${escapeHtml(t.baslangicSaat || "")}–${escapeHtml(t.bitisSaat || "")}
+              </div>
+              <div style="font-size:12.5px; color:#475569; margin-top:3px;">
+                <i data-lucide="users" style="width:12px;height:12px;vertical-align:-2px;"></i> ${escapeHtml(RANDEVU_TIP_ADI[t.tip] || t.tip || "Görüşme")}
+                ${t.hedefSinif ? " · " + escapeHtml(t.hedefSinif) : ""}
+              </div>
+              ${t.veliNotu ? `<div style="font-size:12.5px; color:#475569; margin-top:7px; background:#F8FAFC; border-radius:8px; padding:8px 10px; line-height:1.5;">${escapeHtml(t.veliNotu)}</div>` : ""}
+            </div>
+            <div style="display:flex; gap:7px; flex-wrap:wrap;">
+              <button onclick="randevuTalepOnayla('${t.id}')" style="padding:8px 15px; border:none; background:#2D7A2D; color:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700;">
+                <i data-lucide="check" style="width:13px;height:13px;vertical-align:-2px;"></i> Onayla</button>
+              <button onclick="randevuTalepReddet('${t.id}')" style="padding:8px 15px; border:1px solid #FECACA; background:#fff; color:#DC2626; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700;">
+                <i data-lucide="x" style="width:13px;height:13px;vertical-align:-2px;"></i> Reddet</button>
+            </div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+}
+
+// Veliye bilgilendirme maili
+async function randevuVeliyeMail(t, onaylandi, gerekce) {
+  if (typeof brevoMail !== "function" || !t.veliEmail) return;
+  const d = new Date(t.tarih + "T00:00:00");
+  const tarihMetni = isNaN(d) ? t.tarih : d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
+  const tipAd = RANDEVU_TIP_ADI[t.tip] || "Görüşme";
+  try {
+    await brevoMail({
+      to: t.veliEmail,
+      subject: onaylandi ? "Randevunuz onaylandı · Bir Çiçek Koleji" : "Randevu talebiniz hakkında · Bir Çiçek Koleji",
+      htmlContent: onaylandi
+        ? `<div style="font-family:Arial,sans-serif; max-width:520px; margin:0 auto;">
+             <div style="background:linear-gradient(135deg,#2D5E3E,#4A7C59); color:#fff; padding:22px 24px; border-radius:14px 14px 0 0;">
+               <div style="font-size:12px; opacity:.85; letter-spacing:1px;">RANDEVU</div>
+               <div style="font-size:21px; font-weight:700; margin-top:5px;">Randevunuz Onaylandı</div>
+             </div>
+             <div style="border:1px solid #E2E8F0; border-top:none; border-radius:0 0 14px 14px; padding:24px;">
+               <p style="margin:0 0 16px; color:#334155;">Sayın ${escapeHtml(t.veliAd || "Velimiz")}, randevu talebiniz onaylanmıştır.</p>
+               <div style="background:#ECFDF5; border-radius:11px; padding:16px 18px; color:#065F46;">
+                 <div style="margin-bottom:7px;"><b>Görüşme:</b> ${escapeHtml(tipAd)}</div>
+                 <div style="margin-bottom:7px;"><b>Tarih:</b> ${escapeHtml(tarihMetni)}</div>
+                 <div style="margin-bottom:7px;"><b>Saat:</b> ${escapeHtml(t.baslangicSaat || "")} – ${escapeHtml(t.bitisSaat || "")}</div>
+                 ${t.ogrenciAd ? `<div><b>Öğrenci:</b> ${escapeHtml(t.ogrenciAd)}</div>` : ""}
+               </div>
+               <p style="color:#475569; font-size:14px; margin:18px 0 6px;">Randevunuz portal takviminize eklendi.
+                 Görüşmeden bir gün önce hatırlatma göndereceğiz.</p>
+               <p style="color:#64748B; font-size:13px; margin:0 0 18px;">Katılamayacaksanız lütfen okulu bilgilendirin.</p>
+               <a href="https://portal.bircicekkoleji.com" style="display:inline-block; background:#2D5E3E; color:#fff; text-decoration:none; padding:12px 24px; border-radius:10px; font-weight:700;">Portalı Aç</a>
+               <p style="margin:22px 0 0; color:#94A3B8; font-size:12px;">Bir Çiçek Koleji</p>
+             </div>
+           </div>`
+        : `<div style="font-family:Arial,sans-serif; max-width:520px; margin:0 auto;">
+             <div style="background:#B45309; color:#fff; padding:22px 24px; border-radius:14px 14px 0 0;">
+               <div style="font-size:12px; opacity:.85; letter-spacing:1px;">RANDEVU</div>
+               <div style="font-size:21px; font-weight:700; margin-top:5px;">Talebiniz Hakkında</div>
+             </div>
+             <div style="border:1px solid #E2E8F0; border-top:none; border-radius:0 0 14px 14px; padding:24px;">
+               <p style="margin:0 0 14px; color:#334155;">Sayın ${escapeHtml(t.veliAd || "Velimiz")},</p>
+               <p style="margin:0 0 16px; color:#334155;">${escapeHtml(tarihMetni)} ${escapeHtml(t.baslangicSaat || "")} için ilettiğiniz randevu talebi maalesef karşılanamadı.</p>
+               ${gerekce ? `<div style="background:#FEF3C7; border-radius:11px; padding:15px 17px; color:#7C2D12; margin-bottom:16px;"><b>Okuldan not:</b><br>${escapeHtml(gerekce)}</div>` : ""}
+               <p style="color:#475569; font-size:14px; margin:0 0 18px;">Portal üzerinden farklı bir tarih için yeni talep oluşturabilirsiniz.</p>
+               <a href="https://portal.bircicekkoleji.com" style="display:inline-block; background:#2D5E3E; color:#fff; text-decoration:none; padding:12px 24px; border-radius:10px; font-weight:700;">Yeni Talep Oluştur</a>
+               <p style="margin:22px 0 0; color:#94A3B8; font-size:12px;">Bir Çiçek Koleji</p>
+             </div>
+           </div>`
+    });
+  } catch (e) { console.warn("randevu maili", e?.message); }
+}
+
+window.randevuTalepOnayla = async function(id) {
+  const t = (randevuSlotlari || []).find(x => x.id === id);
+  if (!t) return;
+  if (!confirm(`${t.veliAd || t.veliEmail} için randevu onaylanacak.\n\n${t.tarih} ${t.baslangicSaat}\n\nVeliye onay maili gönderilecek. Devam edilsin mi?`)) return;
+  try {
+    await updateDoc(doc(db, "randevuSlotlari", id), {
+      durum: "dolu",
+      onaylandi: true,
+      onaylayan: currentUser?.email || "",
+      onayTarihi: new Date().toISOString(),
+      guncellendi: new Date().toISOString()
+    });
+    await randevuVeliyeMail(t, true);
+    // Veliye uygulama içi bildirim
+    try {
+      await addDoc(collection(db, "bildirimler"), {
+        aliciEmail: (t.veliEmail || "").toLowerCase(),
+        tip: "randevu", baslik: "Randevunuz onaylandı",
+        metin: `${t.tarih} ${t.baslangicSaat} · ${RANDEVU_TIP_ADI[t.tip] || "Görüşme"}`,
+        okundu: false, olusturuldu: new Date().toISOString()
+      });
+    } catch (e) { console.warn("bildirim", e?.message); }
+    showToast("Randevu onaylandı, veliye bilgi verildi", "success");
+    await randevuSlotlariYukle(true);
+    randevuListesiRender();
+  } catch (e) { alert("Onaylanamadı: " + (e.message || e)); }
+};
+
+window.randevuTalepReddet = async function(id) {
+  const t = (randevuSlotlari || []).find(x => x.id === id);
+  if (!t) return;
+  const gerekce = prompt("Ret gerekçesi (veliye iletilecek, boş bırakılabilir):", "");
+  if (gerekce === null) return;
+  try {
+    await updateDoc(doc(db, "randevuSlotlari", id), {
+      durum: "reddedildi", arsiv: true,
+      retGerekcesi: gerekce || "",
+      karariVeren: currentUser?.email || "",
+      karariTarihi: new Date().toISOString()
+    });
+    await randevuVeliyeMail(t, false, gerekce);
+    try {
+      await addDoc(collection(db, "bildirimler"), {
+        aliciEmail: (t.veliEmail || "").toLowerCase(),
+        tip: "randevu", baslik: "Randevu talebiniz karşılanamadı",
+        metin: `${t.tarih} ${t.baslangicSaat}${gerekce ? " · " + gerekce : ""}`,
+        okundu: false, olusturuldu: new Date().toISOString()
+      });
+    } catch (e) { console.warn("bildirim", e?.message); }
+    showToast("Talep reddedildi, veliye bilgi verildi");
+    await randevuSlotlariYukle(true);
+    randevuListesiRender();
+  } catch (e) { alert("İşlem yapılamadı: " + (e.message || e)); }
+};
+
 async function randevuListesiRender() {
   const liste = document.getElementById("randevuListesi");
   if (!liste) return;
@@ -21430,6 +21642,9 @@ async function randevuListesiRender() {
 
   const bugun = new Date();
   const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+
+  // ── VELİ TALEPLERİ (durum: "talep") — onay bekliyor ──
+  randevuTalepleriCiz();
 
   let filtreli = randevuSlotlari.filter(s => !s.arsiv);
   if (filtreTip) filtreli = filtreli.filter(s => s.tip === filtreTip);
