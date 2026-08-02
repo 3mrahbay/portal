@@ -9886,8 +9886,8 @@ i[data-lucide] svg { display: block; }
               <select id="takvimHedefSinif">
                 <option value="">— Sınıf Seçin —</option>
                 <option value="Papatyalar Sınıfı">Papatyalar Sınıfı</option>
-                <option value="Kardelen Çiçekleri">Kardelen Çiçekleri</option>
-                <option value="Nar Çiçekleri">Nar Çiçekleri</option>
+                <option value="Kardelenler Sınıfı">Kardelenler Sınıfı</option>
+                <option value="Nar Çiçekleri Sınıfı">Nar Çiçekleri Sınıfı</option>
               </select>
             </div>
           </div>
@@ -12927,8 +12927,8 @@ i[data-lucide] svg { display: block; }
           <select id="yoSinif" class="yo-input">
             <option value="">Seçiniz</option>
             <option value="Papatyalar Sınıfı">Papatyalar Sınıfı</option>
-            <option value="Kardelen Çiçekleri">Kardelen Çiçekleri</option>
-            <option value="Nar Çiçekleri">Nar Çiçekleri</option>
+            <option value="Kardelenler Sınıfı">Kardelenler Sınıfı</option>
+            <option value="Nar Çiçekleri Sınıfı">Nar Çiçekleri Sınıfı</option>
           </select>
         </div>
         <div>
@@ -13909,6 +13909,19 @@ window.personelKaydet = async function() {
         });
       }
     }
+
+    // ═══ KRİTİK: personeller/{email} belgesine de yaz ═══
+    // Firestore Rules'daki ogretmenOgrencisi() kuralı öğrencinin sinif değerini
+    // personeller/{email}.siniflar dizisinde arar. Portal eskiden sadece
+    // sinifAtamalari koleksiyonuna yazıyordu; bu yüzden öğretmen
+    // ogrenciler/{id}/donemler alt koleksiyonunu OKUYAMIYOR ve öğrenci
+    // listesi boş geliyordu.
+    // ZEKY app (ogretmenSiniflariniAyarla) da bu iki alanı birlikte yazar.
+    batch.set(doc(db, "personeller", email), {
+      sinifAtamalari: rol === "ogretmen" ? personelSeciliSiniflar : [],
+      siniflar:       rol === "ogretmen" ? personelSeciliSiniflar : []
+    }, { merge: true });
+
     await batch.commit();
 
     showToast(duzenleEmail ? "✓ Personel güncellendi" : "✓ Personel eklendi");
@@ -15742,7 +15755,7 @@ function veliRenderTab(tabName) {
 
 // ============================================================
 // ===== YENİ TASARIM (PİLOT) — "Bir Çiçek" mobil app dili =====
-// Faz 1: statik taslak ana sayfa. Veri bağlama Faz 2'de yapılacak.
+// Ana sayfa — tüm veriler Firestore'dan gelir (statik/demo içerik yoktur).
 // İçerik, gönderilecek ekran görüntüsüne göre birebir güncellenecek.
 // ============================================================
 let caEkran = "home";  // Yeni Tasarım iç-navigasyon: "home" | "menu" | ...
@@ -15773,7 +15786,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); }, 100); } catch(e) { console.warn(e); } }
 }
 
 // ===== Faz 1: Eğitim Takibi — GERÇEK VERİ (ogrenciGelisim + mufredatlar) =====
@@ -15998,6 +16011,39 @@ function caHizliIslemlerHTML() {
   `).join("");
 }
 
+
+// Veli ana sayfası — mesaj önizlemesi (GERÇEK VERİ, demo yok)
+async function caHomeMesajlariDoldur() {
+  const el = document.getElementById("caHomeMesajlar");
+  if (!el) return;
+  try {
+    const benim = (currentUser?.email || "").toLowerCase();
+    const q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benim));
+    const snap = await getDocs(q);
+    const liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.sonMesajZamani || "").localeCompare(String(a.sonMesajZamani || "")));
+    el.innerHTML = liste.length
+      ? liste.slice(0, 3).map(t => {
+          const digerleri = (t.katilimcilar || []).filter(x => x !== benim);
+          const kimAd = (t.katilimciAdlari && t.katilimciAdlari[digerleri[0]]) || digerleri[0] || "Okul";
+          const okunmamis = (t.okunmamis && t.okunmamis[benim]) || 0;
+          return `<div class="ca-msgitem" onclick="caGo('mesajlar')" style="cursor:pointer;">
+            <div class="ca-msgmini" style="background:var(--c-green-light); color:#fff;">${escapeHtml((String(kimAd)[0] || "?").toLocaleUpperCase("tr"))}</div>
+            <div style="min-width:0;">
+              <div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(kimAd)}</div>
+              <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.sonMesaj || "")}</div>
+            </div>
+            ${okunmamis > 0 ? `<span class="ca-unread">${okunmamis}</span>` : ""}
+          </div>`;
+        }).join("")
+      : `<div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz mesajınız yok.</div>`;
+  } catch (e) {
+    el.innerHTML = `<div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Mesajlar yüklenemedi.</div>`;
+  }
+}
+window.caHomeMesajlariDoldur = caHomeMesajlariDoldur;
+
 function caHomeHTML() {
   const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || null;
   const cocukAd = ogr ? (ogr.ogrenciAdSoyad || "Çocuğum") : "Çocuğum";
@@ -16135,47 +16181,8 @@ function caHomeHTML() {
             <h3 class="ca-head" style="font-size:15px;">Mesajlar</h3>
             <button class="ca-link" onclick="caGo('mesajlar')">Tümü →</button>
           </div>
-          <div class="ca-card" style="padding:12px 16px;">
-            <div class="ca-msgitem">
-              <div class="ca-msgmini" style="background:var(--c-green-light); color:#fff;">E</div>
-              <div style="min-width:0;">
-                <div style="font-weight:600; color:var(--c-ink); font-size:13px;">Esra Öğretmen</div>
-                <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Defne bugün çok keyifliydi 🌸</div>
-              </div>
-              <span class="ca-unread">2</span>
-            </div>
-            <div class="ca-msgitem">
-              <div class="ca-msgmini" style="background:var(--c-yellow-soft);">P</div>
-              <div style="min-width:0;">
-                <div style="font-weight:600; color:var(--c-ink); font-size:13px;">Papatya Sınıfı</div>
-                <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">23 Nisan için kostüm…</div>
-              </div>
-              <span class="ca-unread">5</span>
-            </div>
-            <div class="ca-msgitem">
-              <div class="ca-msgmini" style="background:var(--c-blue-soft);">M</div>
-              <div style="min-width:0;">
-                <div style="font-weight:600; color:var(--c-ink); font-size:13px;">Müdür Murat Bey</div>
-                <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Veli toplantısı için tarih…</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Son eklenen galeri -->
-        <div>
-          <div class="ca-sectionhead">
-            <h3 class="ca-head" style="font-size:15px;">Anılarımız</h3>
-            <button class="ca-link" onclick="caGo('galeri')">Tümü →</button>
-          </div>
-          <div class="ca-card" style="padding:12px;" onclick="caGo('galeri')">
-            <div class="ca-thumb">
-              <span class="ca-pill pink" style="position:absolute; top:8px; left:8px;">🆕 Yeni · 8 fotoğraf</span>
-            </div>
-            <div style="margin-top:10px;" class="ca-row">
-              <span style="font-weight:700; color:var(--c-ink); font-size:13.5px;">Bahçe Etkinliği</span>
-              <span class="ca-tile-sub" style="margin-left:auto;">22 Nisan · Papatya Sınıfı</span>
-            </div>
+          <div class="ca-card" style="padding:12px 16px;" id="caHomeMesajlar">
+            <div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
           </div>
         </div>
 
@@ -17181,7 +17188,7 @@ function caProfilHTML() {
 
 // ============================================================
 // ===== YENİ TASARIM · ADMIN/PERSONEL ANA SAYFA (rol bazlı) =====
-// Yönetim ve Öğretmen için ayrı dashboard. Statik (Faz 2'de canlıya bağlanacak).
+// Yönetim ve Öğretmen için ayrı dashboard. İkisi de gerçek Firestore verisiyle çalışır.
 // ============================================================
 window.adminGotoTab = function(name) {
   // Faz A: hedef sekme hangi modüldeyse önce o modülü aç (görünürlük için)
@@ -17204,6 +17211,10 @@ function renderAdminHome() {
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
   const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
   root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
+  // Öğretmen ana sayfası: sayıları Firestore'dan doldur (demo veri yok)
+  if (ogretmenMi && typeof ogretmenHomeVeriYukle === "function") {
+    ogretmenHomeVeriYukle().catch(e => console.warn("öğretmen ana sayfa verisi", e));
+  }
   if (typeof caTemaUygula === "function") caTemaUygula();
   // HUB: hızlı bakış widget'larını async doldur (duyurular + eğitim + öğretmen)
   if (!ogretmenMi) {
@@ -17991,38 +18002,43 @@ function yonetimHomeHTML(ad) {
   `;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// ÖĞRETMEN ANA SAYFASI — GERÇEK VERİ
+// Demo/pilot içerik tamamen kaldırıldı. Tüm sayılar Firestore'dan gelir:
+//   devamsizlik/{tarih}  → bugünkü yoklama
+//   ogrenciler           → sınıf mevcudu (öğretmenin atandığı sınıf)
+//   mesajlar             → okunmamış veli mesajı
+//   takvim + etkinlikler → günün planı
+// Veri yoksa uydurma sayı gösterilmez, dürüstçe "—" veya boş durum yazılır.
+// ═══════════════════════════════════════════════════════════════════
 function ogretmenHomeHTML(ad) {
+  const sinifim = (aktifKullaniciSiniflari || []).join(", ");
   return `
     <div class="ca-page ca-stack">
-      <div class="ca-draft-banner">✨ Pilot / taslak — Öğretmen ana sayfası. Veriler örnek; Faz 2'de canlı Firebase verisine bağlanacak.</div>
-
       <div class="ca-topbar">
         <div class="ca-row">
-          <div class="ca-avatar" style="background:var(--c-blue-soft); color:var(--c-ink);">${ad.charAt(0).toUpperCase()}</div>
+          <div class="ca-avatar" style="background:var(--c-blue-soft); color:var(--c-ink);">${escapeHtml(ad.charAt(0).toUpperCase())}</div>
           <div>
-            <div class="ca-tile-sub">Günaydın</div>
-            <h2 style="font-size:18px;">${ad}</h2>
+            <div class="ca-tile-sub">Merhaba</div>
+            <h2 style="font-size:18px;">${escapeHtml(ad)}</h2>
           </div>
         </div>
-        <span class="ca-pill blue">🌼 Papatya Sınıfı</span>
+        ${sinifim ? `<span class="ca-pill blue">${escapeHtml(sinifim)}</span>` : `<span class="ca-pill">Sınıf atanmamış</span>`}
       </div>
 
       <div class="ca-hero-row">
         <div class="ca-card-green">
           <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">BUGÜN · YOKLAMA</div>
-          <div class="ca-row" style="margin-top:10px; gap:18px;">
-            <div><div style="font-family:var(--c-font-head); font-weight:700; font-size:30px;">22<span style="font-size:16px; opacity:.8;">/24</span></div><div style="font-size:12px; opacity:.9;">çocuk geldi</div></div>
-            <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:10px 14px;"><div style="font-weight:700;">2</div><div style="font-size:11px; opacity:.9;">gelmedi</div></div>
+          <div class="ca-row" style="margin-top:10px; gap:18px;" id="ogrHomeYoklama">
+            <div><div style="font-family:var(--c-font-head); font-weight:700; font-size:30px;">—</div><div style="font-size:12px; opacity:.9;">yükleniyor</div></div>
           </div>
-          <button class="ca-btn ghost" style="margin-top:14px; width:100%;" onclick="adminGotoTab('egitim')">Yoklamayı düzenle</button>
+          <button class="ca-btn ghost" style="margin-top:14px; width:100%;" onclick="modulSec('devamsizlik')">Yoklamayı düzenle</button>
         </div>
 
         <div class="ca-card">
-          <div class="ca-sectionhead"><span class="ca-head" style="font-size:14px;">Günün Planı</span><span class="ca-pill" style="background:var(--c-tint);">Çarşamba</span></div>
-          <div class="ca-stack" style="gap:8px; margin-top:6px;">
-            <div class="ca-row"><span>🌿</span><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Orman etkinliği</div><div class="ca-tile-sub">09:30 · Bahçe</div></div></div>
-            <div class="ca-row"><span>🔢</span><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Matematik · yapraklarla sayma</div><div class="ca-tile-sub">11:00 · Sınıf</div></div></div>
-            <div class="ca-row"><span>🎨</span><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Sanat atölyesi</div><div class="ca-tile-sub">14:00 · Atölye</div></div></div>
+          <div class="ca-sectionhead"><span class="ca-head" style="font-size:14px;">Günün Planı</span><span class="ca-pill" style="background:var(--c-tint);">${["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"][new Date().getDay()]}</span></div>
+          <div class="ca-stack" style="gap:8px; margin-top:6px;" id="ogrHomePlan">
+            <div class="ca-tile-sub">Yükleniyor…</div>
           </div>
         </div>
       </div>
@@ -18030,46 +18046,135 @@ function ogretmenHomeHTML(ad) {
       <div>
         <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:10px; max-width:640px;">
-          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-green-light); color:#fff;">✓</span><span class="ca-qlabel">Yoklama</span></button>
-          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-yellow-soft);">👀</span><span class="ca-qlabel">Gözlem</span></button>
-          <button class="ca-qbtn" onclick="adminGotoTab('egitim')"><span class="ca-qicon" style="background:var(--c-blue-soft);">📔</span><span class="ca-qlabel">Sınıf Günlüğü</span></button>
-          <button class="ca-qbtn" onclick="adminGotoTab('icerik')"><span class="ca-qicon" style="background:var(--c-pink-soft);"><i data-lucide="message-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Veli Mesajı</span></button>
-          <button class="ca-qbtn" onclick="adminGotoTab('icerik')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Galeri Yükle</span></button>
-          <button class="ca-qbtn" onclick="caAdminGo('egitim')"><span class="ca-qicon" style="background:var(--c-peach-soft);"><i data-lucide="book-open" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Eğitim Takip</span></button>
+          <button class="ca-qbtn" onclick="modulSec('devamsizlik')"><span class="ca-qicon" style="background:var(--c-green-light); color:#fff;">✓</span><span class="ca-qlabel">Yoklama</span></button>
+          <button class="ca-qbtn" onclick="modulSec('egitim')"><span class="ca-qicon" style="background:var(--c-yellow-soft);">👀</span><span class="ca-qlabel">Gözlem</span></button>
+          <button class="ca-qbtn" onclick="modulSec('ogrencilerM')"><span class="ca-qicon" style="background:var(--c-blue-soft);">📔</span><span class="ca-qlabel">Sınıfım</span></button>
+          <button class="ca-qbtn" onclick="modulSec('mesaj')"><span class="ca-qicon" style="background:var(--c-pink-soft);"><i data-lucide="message-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Veli Mesajı</span></button>
+          <button class="ca-qbtn" onclick="modulSec('galeri')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Galeri Yükle</span></button>
+          <button class="ca-qbtn" onclick="modulSec('egitim')"><span class="ca-qicon" style="background:var(--c-peach-soft);"><i data-lucide="book-open" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Eğitim Takip</span></button>
         </div>
       </div>
 
       <div class="ca-dash">
         <div>
-          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Bekleyen Veli Mesajları</h3><button class="ca-link" onclick="adminGotoTab('icerik')">Tümü →</button></div>
-          <div class="ca-card" style="padding:12px 16px;">
-            <div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-pink-soft);">A</div><div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Ayşe Hanım (Defne)</div><div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Yarın geç bırakabilir miyim?</div></div><span class="ca-unread">1</span></div>
-            <div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-blue-soft);">M</div><div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Mehmet Bey (Kerem)</div><div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Kostüm hakkında…</div></div><span class="ca-unread">2</span></div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Bekleyen Veli Mesajları</h3><button class="ca-link" onclick="modulSec('mesaj')">Tümü →</button></div>
+          <div class="ca-card" style="padding:12px 16px;" id="ogrHomeMesajlar">
+            <div class="ca-tile-sub">Yükleniyor…</div>
           </div>
         </div>
 
         <div>
-          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıf Eğitim İlerlemesi</h3><button class="ca-link" onclick="caAdminGo('egitim')">Detay →</button></div>
-          <div class="ca-card">
-            <div class="ca-edurow"><span class="lbl">Montessori</span><span class="track"><span class="fill" style="width:84%; background:var(--c-green-light);"></span></span><span class="pct">84</span></div>
-            <div class="ca-edurow"><span class="lbl">Orman</span><span class="track"><span class="fill" style="width:76%; background:var(--c-blue-deep);"></span></span><span class="pct">76</span></div>
-            <div class="ca-edurow"><span class="lbl">İngilizce</span><span class="track"><span class="fill" style="width:69%; background:var(--c-yellow-deep);"></span></span><span class="pct">69</span></div>
-            <div class="ca-edurow"><span class="lbl">Değerler</span><span class="track"><span class="fill" style="width:91%; background:var(--c-purple-deep);"></span></span><span class="pct">91</span></div>
-          </div>
-        </div>
-
-        <div>
-          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Bugün Yapılacaklar</h3></div>
-          <div class="ca-card" style="padding:12px 16px;">
-            <div class="ca-msgitem"><span style="font-size:16px;"><i data-lucide="file-text" style="width:15px;height:15px;vertical-align:-2px;"></i></span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Günlük raporları gir (22 çocuk)</div></div>
-            <div class="ca-msgitem"><span style="font-size:16px;">👀</span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Gözlem girişi · 5 bekliyor</div></div>
-            <div class="ca-msgitem"><span style="font-size:16px;"><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Bahçe etkinliği fotoğrafları yükle</div></div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıfım</h3><button class="ca-link" onclick="modulSec('ogrencilerM')">Detay →</button></div>
+          <div class="ca-card" id="ogrHomeSinif">
+            <div class="ca-tile-sub">Yükleniyor…</div>
           </div>
         </div>
       </div>
     </div>
   `;
 }
+
+// Öğretmen ana sayfası verilerini Firestore'dan doldur
+async function ogretmenHomeVeriYukle() {
+  const bugun = new Date().toISOString().slice(0, 10);
+  const siniflarim = aktifKullaniciSiniflari || [];
+
+  // ── Sınıf mevcudu ──
+  let sinifOgrencileri = [];
+  try {
+    let hepsi = (typeof ogrenciList !== "undefined" && ogrenciList.length) ? ogrenciList : [];
+    if (!hepsi.length) {
+      const snap = await getDocs(collection(db, "ogrenciler"));
+      hepsi = []; snap.forEach(d => hepsi.push({ id: d.id, ...d.data() }));
+    }
+    sinifOgrencileri = hepsi.filter(o =>
+      o.arsiv !== true && o.kayitDurumu !== "arsiv" &&
+      (!siniflarim.length || sinifGorunur(o.sinif || o.sinifi || "")));
+  } catch (e) { console.warn("sınıf mevcudu", e); }
+
+  const sinifEl = document.getElementById("ogrHomeSinif");
+  if (sinifEl) {
+    sinifEl.innerHTML = sinifOgrencileri.length
+      ? `<div style="font-family:var(--c-font-head); font-weight:700; font-size:26px; color:var(--c-ink);">${sinifOgrencileri.length}</div>
+         <div class="ca-tile-sub" style="margin-bottom:10px;">kayıtlı öğrenci</div>
+         ${sinifOgrencileri.slice(0, 5).map(o => `<div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-green-light); color:#fff;">${escapeHtml((String(o.ogrenciAdSoyad || "?")[0] || "?").toLocaleUpperCase("tr"))}</div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(o.ogrenciAdSoyad || o.adSoyad || "")}</div></div>`).join("")}
+         ${sinifOgrencileri.length > 5 ? `<div class="ca-tile-sub" style="margin-top:6px;">+${sinifOgrencileri.length - 5} öğrenci daha</div>` : ""}`
+      : `<div class="ca-tile-sub">Sınıfınıza atanmış öğrenci bulunamadı.</div>`;
+  }
+
+  // ── Bugünkü yoklama ──
+  const ykEl = document.getElementById("ogrHomeYoklama");
+  if (ykEl) {
+    try {
+      const snap = await getDoc(doc(db, "devamsizlik", bugun));
+      const kayitlar = snap.exists() ? ((snap.data() || {}).kayitlar || {}) : {};
+      const benimIds = new Set(sinifOgrencileri.map(o => o.id));
+      let geldi = 0, gelmedi = 0, girilen = 0;
+      Object.keys(kayitlar).forEach(oid => {
+        if (benimIds.size && !benimIds.has(oid)) return;
+        girilen++;
+        const d = (kayitlar[oid] || {}).durum;
+        if (d === "geldi") geldi++; else gelmedi++;
+      });
+      ykEl.innerHTML = girilen
+        ? `<div><div style="font-family:var(--c-font-head); font-weight:700; font-size:30px;">${geldi}<span style="font-size:16px; opacity:.8;">/${sinifOgrencileri.length || girilen}</span></div><div style="font-size:12px; opacity:.9;">çocuk geldi</div></div>
+           <div style="background:rgba(255,255,255,.18); border-radius:14px; padding:10px 14px;"><div style="font-weight:700;">${gelmedi}</div><div style="font-size:11px; opacity:.9;">gelmedi</div></div>`
+        : `<div><div style="font-family:var(--c-font-head); font-weight:700; font-size:22px;">Yoklama alınmadı</div><div style="font-size:12px; opacity:.9;">${sinifOgrencileri.length} öğrenci bekliyor</div></div>`;
+    } catch (e) {
+      ykEl.innerHTML = `<div><div style="font-size:14px; opacity:.9;">Yoklama bilgisi okunamadı</div></div>`;
+    }
+  }
+
+  // ── Günün planı (takvim + etkinlikler) ──
+  const planEl = document.getElementById("ogrHomePlan");
+  if (planEl) {
+    try {
+      const liste = await takvimEtkinlikleriYukle(true);
+      const bugunku = (liste || [])
+        .filter(e => e.tarih === bugun)
+        .filter(e => {
+          const tur = e.hedefTur || e.hedefTip || "tumOkul";
+          if (tur !== "sinif") return true;
+          return !siniflarim.length || sinifGorunur(e.hedefDeger || "");
+        })
+        .sort((a, b) => String(a.baslangicSaat || "").localeCompare(String(b.baslangicSaat || "")));
+      planEl.innerHTML = bugunku.length
+        ? bugunku.map(e => `<div class="ca-row"><span>📌</span><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(e.baslik || "Etkinlik")}</div><div class="ca-tile-sub">${escapeHtml([e.tumGun ? "Tüm gün" : e.baslangicSaat, e.konum].filter(Boolean).join(" · "))}</div></div></div>`).join("")
+        : `<div class="ca-tile-sub">Bugün için planlanmış etkinlik yok.</div>`;
+    } catch (e) { planEl.innerHTML = `<div class="ca-tile-sub">Plan yüklenemedi.</div>`; }
+  }
+
+  // ── Bekleyen veli mesajları ──
+  const msjEl = document.getElementById("ogrHomeMesajlar");
+  if (msjEl) {
+    try {
+      const benim = (currentUser?.email || "").toLowerCase();
+      const q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benim));
+      const snap = await getDocs(q);
+      const threadler = [];
+      snap.forEach(d => {
+        const v = d.data() || {};
+        const okunmamis = (v.okunmamis && v.okunmamis[benim]) || 0;
+        if (okunmamis > 0) threadler.push({ id: d.id, ...v, okunmamisSayi: okunmamis });
+      });
+      threadler.sort((a, b) => String(b.sonMesajZamani || "").localeCompare(String(a.sonMesajZamani || "")));
+      msjEl.innerHTML = threadler.length
+        ? threadler.slice(0, 4).map(t => {
+            const digerleri = (t.katilimcilar || []).filter(x => x !== benim);
+            const kimAd = (t.katilimciAdlari && t.katilimciAdlari[digerleri[0]]) || digerleri[0] || "Veli";
+            return `<div class="ca-msgitem" onclick="modulSec('mesaj')" style="cursor:pointer;">
+              <div class="ca-msgmini" style="background:var(--c-pink-soft);">${escapeHtml((String(kimAd)[0] || "?").toLocaleUpperCase("tr"))}</div>
+              <div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(kimAd)}</div>
+              <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.sonMesaj || "")}</div></div>
+              <span class="ca-unread">${t.okunmamisSayi}</span></div>`;
+          }).join("")
+        : `<div class="ca-tile-sub">Okunmamış veli mesajınız yok.</div>`;
+    } catch (e) { msjEl.innerHTML = `<div class="ca-tile-sub">Mesajlar yüklenemedi.</div>`; }
+  }
+
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+}
+window.ogretmenHomeVeriYukle = ogretmenHomeVeriYukle;
 
 // ============================================================
 // ===== FAZ 3c: VELİ MESAJLAŞMA UI =====
@@ -23628,11 +23733,17 @@ function renderTable() {
       if (!sinifGorunur(sn)) return false;
     }
 
-    // ===== DÖNEM FİLTRESİ (en önemli) =====
+    // ===== DÖNEM FİLTRESİ =====
     // Sadece seçili dönemde (AKTIF_DONEM) dönem dokümanı olan öğrenciler görünür.
-    // Öğrenci yeni döneme "Gelecek Döneme Yenile" ile taşınınca o dönemde belirir.
+    // ÖNEMLİ İSTİSNA: dönem verisi ogrenciler/{id}/donemler alt koleksiyonundan
+    // okunur ve Firestore Rules bu alt koleksiyonu öğretmene çoğu zaman
+    // kapatır (ogretmenOgrencisi kuralı sınıf adının birebir eşleşmesini ister).
+    // Okuma reddedilince ayarListesi boş kalıyor ve öğretmenin listesi
+    // TAMAMEN boşalıyordu. Mali/dönem bilgisi zaten öğretmene gösterilmediği
+    // için bu rollerde dönem şartı aranmaz.
     const donemVerisi = ayarListesi[o.id];
-    if (!donemVerisi) return false;
+    const donemSartiAra = (typeof finansGorebilir !== "function") || finansGorebilir();
+    if (donemSartiAra && !donemVerisi) return false;
 
     // Arama
     if (searchVal) {
@@ -23645,9 +23756,13 @@ function renderTable() {
     }
 
     // Durum filtre (durum sekmelerinden)
+    // Öğretmende durum sekmeleri gizli olduğu için bu filtre uygulanmaz;
+    // ayrıca dönem verisi okunamadığında durum yanlış hesaplanıyordu.
     const ayar = ayarListesi[o.id];
-    const durum = getOgrenciDurum(o, ayar);
-    if (activeDurum !== "tumu" && durum !== activeDurum) return false;
+    if (donemSartiAra) {
+      const durum = getOgrenciDurum(o, ayar);
+      if (activeDurum !== "tumu" && durum !== activeDurum) return false;
+    }
 
     // Alt filtre (tüm öğrenciler üzerinde)
     // Güncel program değeri: önce ayar'dan, yoksa master'dan
@@ -23655,8 +23770,14 @@ function renderTable() {
                           || o.programTuru || "";
     if (activeFilter === "ayarli") return ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.aylikAidat > 0;
     if (activeFilter === "eksik") return !ayar || !ayar.aidatAyarlari || !ayar.aidatAyarlari.aylikAidat;
-    // M2/M3 filtreleri - önce dönem kayıt bilgisini oku
-    const filtreSinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "";
+    // SINIF FİLTRELERİ — artık resmi sınıf adlarına göre (eski m2/m3 kaldırıldı)
+    const filtreSinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "";
+    const resmiFiltreSinif = (typeof sinifAdiResmiEsle === "function")
+      ? sinifAdiResmiEsle(filtreSinif) : filtreSinif;
+    if (activeFilter === "papatyalar")  return resmiFiltreSinif === "Papatyalar Sınıfı";
+    if (activeFilter === "kardelenler") return resmiFiltreSinif === "Kardelenler Sınıfı";
+    if (activeFilter === "nar")         return resmiFiltreSinif === "Nar Çiçekleri Sınıfı";
+    // Geriye dönük: eski m2/m3 çipleri hâlâ tıklanırsa
     if (activeFilter === "m2") return filtreSinif.includes("2");
     if (activeFilter === "m3") return filtreSinif.includes("3");
     if (activeFilter === "tamgun") return guncelProgram === "Tam Gün";
@@ -23699,6 +23820,12 @@ function renderTable() {
   // Öğretmen ve eğitim koordinatörü mali sütunları (aidat/ödeme) GÖRMEZ.
   // Onlara eğitim odaklı sadeleştirilmiş liste + hızlı işlem kısayolları gösterilir.
   if (typeof finansGorebilir === "function" && !finansGorebilir()) {
+    // Öğretmen/koordinatör: arşivlenmiş öğrenciler yine gizlensin
+    filteredList = filteredList.filter(o => {
+      const dv = ayarListesi[o.id];
+      const durum = (dv && dv.durum) || o.kayitDurumu || o.durum || "aktif";
+      return durum !== "arsiv" && o.arsiv !== true;
+    });
     renderTableEgitim(wrap);
     return;
   }
