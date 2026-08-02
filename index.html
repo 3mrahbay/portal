@@ -9087,6 +9087,7 @@ i[data-lucide] svg { display: block; }
       <div class="side-grup">
         <button class="side-item" data-modul="ogrencilerM" onclick="modulSec('ogrencilerM')"><span class="side-ikon"><i data-lucide="users"></i></span><span class="side-ad">Öğrenciler</span></button>
         <button class="side-item" data-modul="velilerM" onclick="modulSec('velilerM')"><span class="side-ikon"><i data-lucide="contact"></i></span><span class="side-ad">Veliler</span></button>
+        <button class="side-item" data-modul="siniflarM" onclick="modulSec('siniflarM')"><span class="side-ikon"><i data-lucide="layout-grid"></i></span><span class="side-ad">Sınıflar</span></button>
         <button class="side-item" data-modul="basvuru" onclick="modulSec('basvuru')"><span class="side-ikon"><i data-lucide="inbox"></i></span><span class="side-ad">Başvuru Havuzu</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
       </div>
       <div class="side-kategori">KURUM</div>
@@ -9113,6 +9114,7 @@ i[data-lucide] svg { display: block; }
       <button class="tab active" data-tab="anasayfa"><i data-lucide="sparkles"></i> Ana Sayfa</button>
       <button class="tab" data-tab="ogrenciler"><i data-lucide="users"></i> Öğrenci Listesi</button>
       <button class="tab" data-tab="veliler"><i data-lucide="contact"></i> Veli Listesi</button>
+      <button class="tab" data-tab="siniflar"><i data-lucide="layout-grid"></i> Sınıf Yönetimi</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn"><i data-lucide="inbox"></i> Başvuru Havuzu <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans"><i data-lucide="wallet"></i> Finansal Yönetim</button>
       <button class="tab" data-tab="egitim"><i data-lucide="book-open"></i> Eğitim</button>
@@ -9214,6 +9216,33 @@ i[data-lucide] svg { display: block; }
           <div class="spinner"></div>
           <p>Öğrenciler yükleniyor...</p>
         </div>
+      </div>
+    </div>
+
+    <!-- SINIFLAR TAB -->
+    <div class="tab-panel" id="tab-siniflar">
+
+      <div style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#2D5E3E,#4A7C59); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;">
+        <span style="font-size:20px;">🏫</span>
+        <div>
+          <div style="font-family:var(--font-display); font-weight:700; font-size:15px;">Sınıf Yönetimi</div>
+          <div style="font-size:11.5px; opacity:.88;">Sınıf oluştur, düzenle, öğrenci aktar. Portal ve ZEKY uygulaması aynı sınıfları görür.</div>
+        </div>
+      </div>
+
+      <div id="sinifUyari"></div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+        <button onclick="sinifEkleModal()" style="padding:10px 16px; border:none; background:#2D5E3E; color:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-size:13.5px; font-weight:700;">
+          <i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Yeni Sınıf
+        </button>
+        <button onclick="sinifYonetimYukle()" style="padding:10px 16px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-size:13.5px; font-weight:600;">
+          <i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Yenile
+        </button>
+      </div>
+
+      <div id="sinifListesi">
+        <div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Sınıflar yükleniyor...</p></div>
       </div>
     </div>
 
@@ -11920,7 +11949,6 @@ i[data-lucide] svg { display: block; }
               <option value="Papatyalar Sınıfı">Papatyalar Sınıfı</option>
               <option value="Kardelenler Sınıfı">Kardelenler Sınıfı</option>
               <option value="Nar Çiçekleri Sınıfı">Nar Çiçekleri Sınıfı</option>
-              <option value="Montessori 4">Montessori 4 (3 yaş - 5 yaş)</option>
             </select>
           </div>
           <div class="form-group">
@@ -13321,6 +13349,7 @@ function personelYonetebilirMi() {
 const SEKME_YETKILERI = {
   ogrenciler: ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   veliler:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  siniflar:   ["kurucu_mudur", "mudur", "egitim_koordinator"],
   onay:       ["kurucu_mudur", "mudur"],
   finans:     ["kurucu_mudur", "mudur", "muhasebe"],
   egitim:     ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
@@ -14854,6 +14883,8 @@ onAuthStateChanged(auth, async (user) => {
 
     // Aktif dönemi ayarlar/donem'den yükle (app ile ortak kaynak)
     await aktifDonemYukle();
+    // Sınıf seçim kutularını siniflar koleksiyonundan doldur
+    sinifSecimleriniDoldur().catch(e => console.warn("sınıf dropdown", e));
 
     // ===== FAZ 1a: Rol bilgisini belirle =====
     isAdmin = email === ADMIN_EMAIL.toLowerCase();
@@ -22363,6 +22394,400 @@ window.veliListesiDisaAktar = function() {
   a.click();
   URL.revokeObjectURL(a.href);
 };
+
+
+// ═══════════════════════════════════════════════════════════════════
+// SINIF YÖNETİMİ — Portal + ZEKY app ORTAK KAYNAK: siniflar/{id}
+// Alanlar: { ad, emoji, renk, sira, durum:'aktif'|'pasif', kapasite }
+// App tarafı (yonetim-siniflar.html) birebir aynı belgeleri okur/yazar.
+// Sınıf adı DEĞİŞTİRİLİRSE tüm öğrenci kayıtları da güncellenir,
+// böylece veri tutarlılığı bozulmaz.
+// ═══════════════════════════════════════════════════════════════════
+let sinifYonetimListesi = [];
+let sinifOgrenciSayilari = {};
+
+const SINIF_RENKLERI = [
+  { ad: "Sarı",   deger: "#F9E5A0" }, { ad: "Mavi",  deger: "#B8D4E8" },
+  { ad: "Pembe",  deger: "#F4C2C2" }, { ad: "Yeşil", deger: "#C5E1B5" },
+  { ad: "Mor",    deger: "#D4C4E8" }, { ad: "Turuncu", deger: "#FFD4A8" }
+];
+const SINIF_EMOJILER = ["🌼","🌷","🌺","🌿","🍀","🌸","🌻","🌱"];
+
+window.sinifYonetimYukle = async function() {
+  const el = document.getElementById("sinifListesi");
+  if (!el) return;
+  el.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Sınıflar yükleniyor...</p></div>`;
+  try {
+    const snap = await getDocs(collection(db, "siniflar"));
+    sinifYonetimListesi = [];
+    snap.forEach(d => sinifYonetimListesi.push({ id: d.id, ...d.data() }));
+    sinifYonetimListesi.sort((a, b) => (a.sira || 99) - (b.sira || 99));
+
+    // Öğrenci sayıları
+    let ogrenciler = (typeof ogrenciList !== "undefined" && ogrenciList.length) ? ogrenciList : [];
+    if (!ogrenciler.length) {
+      const os = await getDocs(collection(db, "ogrenciler"));
+      ogrenciler = []; os.forEach(d => ogrenciler.push({ id: d.id, ...d.data() }));
+    }
+    sinifOgrenciSayilari = {};
+    const eslesmeyen = [];
+    ogrenciler.forEach(o => {
+      if (o.arsiv === true || o.kayitDurumu === "arsiv") return;
+      const sinif = (o.sinif || o.sinifi || "").trim();
+      if (!sinif) { eslesmeyen.push({ ad: o.ogrenciAdSoyad || "", sinif: "(boş)" }); return; }
+      sinifOgrenciSayilari[sinif] = (sinifOgrenciSayilari[sinif] || 0) + 1;
+    });
+    window._sinifEslesmeyen = eslesmeyen;
+    sinifYonetimCiz();
+  } catch (e) {
+    console.error("sınıflar yüklenemedi", e);
+    el.innerHTML = `<div style="text-align:center; padding:40px; color:#DC2626;"><p>Sınıflar yüklenemedi.</p></div>`;
+  }
+};
+
+function sinifYonetimCiz() {
+  const el = document.getElementById("sinifListesi");
+  const uy = document.getElementById("sinifUyari");
+
+  // Tanımlı sınıf adları
+  const tanimli = new Set(sinifYonetimListesi.map(x => (x.ad || "").trim()));
+  // Öğrencide geçen ama sınıf kaydı olmayan adlar
+  const yetim = Object.keys(sinifOgrenciSayilari).filter(a => !tanimli.has(a));
+
+  if (uy) {
+    let h = "";
+    if (yetim.length) {
+      h += `<div style="background:#FEF3C7; border:1px solid #FDE68A; border-radius:11px; padding:12px 15px; margin-bottom:12px; font-size:13px; color:#78350F;">
+        <b>Sınıf kaydı olmayan ${yetim.length} ad bulundu:</b> ${yetim.map(a => escapeHtml(a) + " (" + sinifOgrenciSayilari[a] + ")").join(", ")}.
+        Bu adlar öğrenci kayıtlarında geçiyor ama sınıf listesinde yok. Aşağıdan sınıf oluşturabilir veya öğrencileri mevcut bir sınıfa aktarabilirsiniz.
+        ${yetim.map(a => `<button onclick="sinifOgrenciAktarModal('${escapeHtml(a).replace(/'/g,"\\'")}')" style="margin:6px 6px 0 0; padding:5px 11px; border:1px solid #FCD34D; background:#fff; border-radius:8px; cursor:pointer; font-family:inherit; font-size:12px; font-weight:600; color:#78350F;">${escapeHtml(a)} → aktar</button>`).join("")}
+      </div>`;
+    }
+    uy.innerHTML = h;
+  }
+
+  if (!sinifYonetimListesi.length) {
+    el.innerHTML = `<div style="text-align:center; padding:36px 20px; color:var(--c-muted,#64748B);">
+      <p style="margin-bottom:12px;">Henüz sınıf tanımlanmamış.</p>
+      <button onclick="sinifVarsayilanOlustur()" style="padding:10px 18px; border:none; background:#2D5E3E; color:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:700; font-size:13.5px;">Varsayılan 3 sınıfı oluştur</button>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = sinifYonetimListesi.map((sn, i) => {
+    const say = sinifOgrenciSayilari[(sn.ad || "").trim()] || 0;
+    const pasif = sn.durum === "pasif";
+    const kap = sn.kapasite || 25;
+    const doluluk = Math.min(100, Math.round((say / kap) * 100));
+    return `
+      <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px; padding:14px 16px; margin-bottom:10px; ${pasif ? "opacity:.6;" : ""}">
+        <div style="display:flex; align-items:center; gap:13px; flex-wrap:wrap;">
+          <div style="width:46px; height:46px; flex-shrink:0; border-radius:13px; background:${sn.renk || "#E2E8F0"}; display:flex; align-items:center; justify-content:center; font-size:23px;">${sn.emoji || "🌼"}</div>
+          <div style="flex:1; min-width:180px;">
+            <div style="font-weight:700; font-size:15px; color:#1E293B;">${escapeHtml(sn.ad || "İsimsiz")}${pasif ? ` <span style="font-size:11px; background:#F1F5F9; color:#64748B; padding:2px 8px; border-radius:8px; font-weight:700;">PASİF</span>` : ""}</div>
+            <div style="font-size:12.5px; color:#64748B; margin-top:3px;">${say} öğrenci · kapasite ${kap}</div>
+            <div style="margin-top:6px; background:#F1F5F9; height:5px; border-radius:4px; overflow:hidden; max-width:220px;">
+              <div style="background:${doluluk >= 100 ? "#DC2626" : doluluk >= 85 ? "#F59E0B" : "#2D7A2D"}; height:100%; width:${doluluk}%;"></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button onclick="sinifDuzenleModal('${sn.id}')" title="Düzenle" style="padding:7px 12px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600;"><i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px;"></i> Düzenle</button>
+            ${say > 0 ? `<button onclick="sinifOgrenciAktarModal('${escapeHtml(sn.ad || "").replace(/'/g,"\\'")}')" title="Öğrenci aktar" style="padding:7px 12px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600;"><i data-lucide="arrow-right-left" style="width:13px;height:13px;vertical-align:-2px;"></i> Aktar</button>` : ""}
+            <button onclick="sinifSiraDegistir('${sn.id}', -1)" ${i === 0 ? "disabled" : ""} title="Yukarı" style="padding:7px 9px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:9px; cursor:${i === 0 ? "not-allowed" : "pointer"}; opacity:${i === 0 ? ".4" : "1"};"><i data-lucide="chevron-up" style="width:13px;height:13px;vertical-align:-2px;"></i></button>
+            <button onclick="sinifSiraDegistir('${sn.id}', 1)" ${i === sinifYonetimListesi.length - 1 ? "disabled" : ""} title="Aşağı" style="padding:7px 9px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:9px; cursor:${i === sinifYonetimListesi.length - 1 ? "not-allowed" : "pointer"}; opacity:${i === sinifYonetimListesi.length - 1 ? ".4" : "1"};"><i data-lucide="chevron-down" style="width:13px;height:13px;vertical-align:-2px;"></i></button>
+            <button onclick="sinifSil('${sn.id}')" title="Sil" style="padding:7px 9px; border:1px solid #FECACA; background:#fff; color:#DC2626; border-radius:9px; cursor:pointer;"><i data-lucide="trash-2" style="width:13px;height:13px;vertical-align:-2px;"></i></button>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+}
+
+window.sinifVarsayilanOlustur = async function() {
+  if (!confirm("Papatyalar, Kardelenler ve Nar Çiçekleri sınıfları oluşturulacak. Devam edilsin mi?")) return;
+  const varsayilan = [
+    { ad: "Papatyalar Sınıfı",    emoji: "🌼", renk: "#F9E5A0", sira: 1, kapasite: 25 },
+    { ad: "Kardelenler Sınıfı",   emoji: "🌷", renk: "#B8D4E8", sira: 2, kapasite: 25 },
+    { ad: "Nar Çiçekleri Sınıfı", emoji: "🌺", renk: "#F4C2C2", sira: 3, kapasite: 25 }
+  ];
+  try {
+    for (const v of varsayilan) {
+      await addDoc(collection(db, "siniflar"), {
+        ...v, durum: "aktif",
+        olusturan: (currentUser?.email || ""), olusturuldu: new Date().toISOString()
+      });
+    }
+    if (typeof showToast === "function") showToast("3 sınıf oluşturuldu", "success");
+    sinifYonetimYukle();
+  } catch (e) { alert("Oluşturulamadı: " + (e.message || e)); }
+};
+
+function sinifModalAc(baslik, sn) {
+  const d = sn || { ad: "", emoji: "🌼", renk: "#F9E5A0", kapasite: 25, durum: "aktif" };
+  const eski = document.getElementById("sinifModalArka");
+  if (eski) eski.remove();
+  const div = document.createElement("div");
+  div.id = "sinifModalArka";
+  div.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9000; display:flex; align-items:center; justify-content:center; padding:20px;";
+  div.innerHTML = `
+    <div style="background:#fff; border-radius:18px; max-width:440px; width:100%; padding:22px; max-height:88vh; overflow-y:auto;">
+      <h3 style="margin:0 0 16px; font-family:var(--font-display); font-size:18px;">${baslik}</h3>
+      <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Sınıf Adı *</label>
+      <input id="sfAd" value="${escapeHtml(d.ad)}" placeholder="Örn: Papatyalar Sınıfı"
+        style="width:100%; padding:10px 13px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:14px; margin-bottom:14px;">
+
+      <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Simge</label>
+      <div id="sfEmojiler" style="display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px;">
+        ${SINIF_EMOJILER.map(e => `<button type="button" data-e="${e}" onclick="sinifEmojiSec('${e}')" style="width:40px; height:40px; border-radius:10px; border:2px solid ${e === d.emoji ? "#2D5E3E" : "transparent"}; background:#F8FAFC; font-size:20px; cursor:pointer;">${e}</button>`).join("")}
+      </div>
+
+      <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Renk</label>
+      <div id="sfRenkler" style="display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px;">
+        ${SINIF_RENKLERI.map(r => `<button type="button" data-r="${r.deger}" onclick="sinifRenkSec('${r.deger}')" title="${r.ad}" style="width:40px; height:40px; border-radius:10px; border:3px solid ${r.deger === d.renk ? "#2D5E3E" : "transparent"}; background:${r.deger}; cursor:pointer;"></button>`).join("")}
+      </div>
+
+      <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Kapasite</label>
+      <input id="sfKapasite" type="number" min="1" max="60" value="${d.kapasite || 25}"
+        style="width:100%; padding:10px 13px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:14px; margin-bottom:14px;">
+
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:18px; cursor:pointer;">
+        <input type="checkbox" id="sfPasif" ${d.durum === "pasif" ? "checked" : ""}> Pasif (listelerde gösterilmez)
+      </label>
+
+      <div style="display:flex; gap:9px; justify-content:flex-end;">
+        <button onclick="document.getElementById('sinifModalArka').remove()" style="padding:10px 18px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:600;">İptal</button>
+        <button id="sfKaydet" style="padding:10px 20px; border:none; background:#2D5E3E; color:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:700;">Kaydet</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  window._sfEmoji = d.emoji; window._sfRenk = d.renk;
+}
+window.sinifEmojiSec = function(e) {
+  window._sfEmoji = e;
+  document.querySelectorAll("#sfEmojiler button").forEach(b => b.style.borderColor = b.dataset.e === e ? "#2D5E3E" : "transparent");
+};
+window.sinifRenkSec = function(r) {
+  window._sfRenk = r;
+  document.querySelectorAll("#sfRenkler button").forEach(b => b.style.borderColor = b.dataset.r === r ? "#2D5E3E" : "transparent");
+};
+
+window.sinifEkleModal = function() {
+  sinifModalAc("Yeni Sınıf");
+  document.getElementById("sfKaydet").onclick = async function() {
+    const ad = document.getElementById("sfAd").value.trim();
+    if (!ad) { alert("Sınıf adı gerekli."); return; }
+    if (sinifYonetimListesi.some(x => (x.ad || "").trim().toLocaleLowerCase("tr") === ad.toLocaleLowerCase("tr"))) {
+      alert("Bu adda bir sınıf zaten var."); return;
+    }
+    this.disabled = true; this.textContent = "Kaydediliyor...";
+    try {
+      await addDoc(collection(db, "siniflar"), {
+        ad, emoji: window._sfEmoji, renk: window._sfRenk,
+        kapasite: parseInt(document.getElementById("sfKapasite").value) || 25,
+        sira: sinifYonetimListesi.length + 1,
+        durum: document.getElementById("sfPasif").checked ? "pasif" : "aktif",
+        olusturan: (currentUser?.email || ""), olusturuldu: new Date().toISOString()
+      });
+      document.getElementById("sinifModalArka").remove();
+      if (typeof showToast === "function") showToast("Sınıf oluşturuldu", "success");
+      sinifYonetimYukle();
+    } catch (e) { alert("Kaydedilemedi: " + (e.message || e)); this.disabled = false; this.textContent = "Kaydet"; }
+  };
+};
+
+window.sinifDuzenleModal = function(id) {
+  const sn = sinifYonetimListesi.find(x => x.id === id);
+  if (!sn) return;
+  const eskiAd = (sn.ad || "").trim();
+  sinifModalAc("Sınıfı Düzenle", sn);
+  document.getElementById("sfKaydet").onclick = async function() {
+    const ad = document.getElementById("sfAd").value.trim();
+    if (!ad) { alert("Sınıf adı gerekli."); return; }
+    const adDegisti = ad !== eskiAd;
+    const ogrSayi = sinifOgrenciSayilari[eskiAd] || 0;
+    if (adDegisti && ogrSayi > 0) {
+      if (!confirm(`Sınıf adı "${eskiAd}" → "${ad}" olarak değişecek.\n\n${ogrSayi} öğrencinin kaydı da güncellenecek.\n\nDevam edilsin mi?`)) return;
+    }
+    this.disabled = true; this.textContent = "Kaydediliyor...";
+    try {
+      await updateDoc(doc(db, "siniflar", id), {
+        ad, emoji: window._sfEmoji, renk: window._sfRenk,
+        kapasite: parseInt(document.getElementById("sfKapasite").value) || 25,
+        durum: document.getElementById("sfPasif").checked ? "pasif" : "aktif",
+        guncelleyen: (currentUser?.email || ""), guncellendi: new Date().toISOString()
+      });
+      // Ad değiştiyse öğrenci kayıtlarını da güncelle (veri tutarlılığı)
+      if (adDegisti) await sinifAdiniOgrencilereYaz(eskiAd, ad);
+      document.getElementById("sinifModalArka").remove();
+      if (typeof showToast === "function") showToast("Sınıf güncellendi", "success");
+      if (typeof ogrenciList !== "undefined") ogrenciList = [];
+      sinifYonetimYukle();
+    } catch (e) { alert("Kaydedilemedi: " + (e.message || e)); this.disabled = false; this.textContent = "Kaydet"; }
+  };
+};
+
+// Sınıf adını tüm öğrenci kayıtlarında değiştirir
+async function sinifAdiniOgrencilereYaz(eskiAd, yeniAd) {
+  const snap = await getDocs(collection(db, "ogrenciler"));
+  let sayac = 0;
+  for (const d of snap.docs) {
+    const v = d.data();
+    if ((v.sinif || v.sinifi || "").trim() === eskiAd) {
+      await updateDoc(doc(db, "ogrenciler", d.id), { sinif: yeniAd });
+      sayac++;
+    }
+  }
+  return sayac;
+}
+
+window.sinifSil = async function(id) {
+  const sn = sinifYonetimListesi.find(x => x.id === id);
+  if (!sn) return;
+  const say = sinifOgrenciSayilari[(sn.ad || "").trim()] || 0;
+  if (say > 0) {
+    alert(`"${sn.ad}" sınıfında ${say} öğrenci var.\n\nÖnce "Aktar" ile öğrencileri başka bir sınıfa taşıyın, sonra silin.`);
+    return;
+  }
+  if (!confirm(`"${sn.ad}" sınıfı silinecek. Devam edilsin mi?`)) return;
+  try {
+    await deleteDoc(doc(db, "siniflar", id));
+    if (typeof showToast === "function") showToast("Sınıf silindi", "success");
+    sinifYonetimYukle();
+  } catch (e) { alert("Silinemedi: " + (e.message || e)); }
+};
+
+window.sinifSiraDegistir = async function(id, yon) {
+  const i = sinifYonetimListesi.findIndex(x => x.id === id);
+  const j = i + yon;
+  if (i < 0 || j < 0 || j >= sinifYonetimListesi.length) return;
+  const a = sinifYonetimListesi[i], b = sinifYonetimListesi[j];
+  try {
+    await updateDoc(doc(db, "siniflar", a.id), { sira: j + 1 });
+    await updateDoc(doc(db, "siniflar", b.id), { sira: i + 1 });
+    sinifYonetimYukle();
+  } catch (e) { alert("Sıra değiştirilemedi: " + (e.message || e)); }
+};
+
+// ── ÖĞRENCİ AKTARMA ────────────────────────────────────────────────
+window.sinifOgrenciAktarModal = async function(kaynakAd) {
+  const eski = document.getElementById("sinifAktarArka");
+  if (eski) eski.remove();
+
+  let ogrenciler = (typeof ogrenciList !== "undefined" && ogrenciList.length) ? ogrenciList : [];
+  if (!ogrenciler.length) {
+    const os = await getDocs(collection(db, "ogrenciler"));
+    ogrenciler = []; os.forEach(d => ogrenciler.push({ id: d.id, ...d.data() }));
+  }
+  const liste = ogrenciler.filter(o =>
+    o.arsiv !== true && o.kayitDurumu !== "arsiv" &&
+    (o.sinif || o.sinifi || "").trim() === kaynakAd
+  ).sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "", "tr"));
+
+  const hedefler = sinifYonetimListesi.filter(x => (x.ad || "").trim() !== kaynakAd);
+
+  const div = document.createElement("div");
+  div.id = "sinifAktarArka";
+  div.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9000; display:flex; align-items:center; justify-content:center; padding:20px;";
+  div.innerHTML = `
+    <div style="background:#fff; border-radius:18px; max-width:520px; width:100%; padding:22px; max-height:88vh; overflow-y:auto;">
+      <h3 style="margin:0 0 6px; font-family:var(--font-display); font-size:18px;">Öğrenci Aktar</h3>
+      <div style="font-size:13px; color:#64748B; margin-bottom:16px;"><b>${escapeHtml(kaynakAd)}</b> sınıfından ${liste.length} öğrenci</div>
+
+      <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Hedef Sınıf *</label>
+      <select id="aktarHedef" style="width:100%; padding:10px 13px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:14px; margin-bottom:14px;">
+        <option value="">Seçiniz</option>
+        ${hedefler.map(h => `<option value="${escapeHtml(h.ad)}">${escapeHtml(h.emoji || "")} ${escapeHtml(h.ad)}</option>`).join("")}
+      </select>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">
+        <label style="font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px;">Aktarılacak Öğrenciler</label>
+        <button onclick="aktarTumunuSec()" style="padding:4px 10px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:7px; cursor:pointer; font-family:inherit; font-size:11.5px; font-weight:600;">Tümünü seç / kaldır</button>
+      </div>
+      <div style="border:1px solid var(--c-line,#E2E8F0); border-radius:10px; max-height:240px; overflow-y:auto; margin-bottom:16px;">
+        ${liste.length ? liste.map(o => `
+          <label style="display:flex; align-items:center; gap:9px; padding:9px 13px; border-bottom:1px solid #F1F5F9; cursor:pointer; font-size:13.5px;">
+            <input type="checkbox" class="aktarKutu" value="${o.id}">
+            <span>${escapeHtml(o.ogrenciAdSoyad || o.adSoyad || "İsimsiz")}</span>
+          </label>`).join("") : `<div style="padding:20px; text-align:center; color:#64748B; font-size:13px;">Bu sınıfta öğrenci yok.</div>`}
+      </div>
+
+      <div style="display:flex; gap:9px; justify-content:flex-end;">
+        <button onclick="document.getElementById('sinifAktarArka').remove()" style="padding:10px 18px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:600;">İptal</button>
+        <button id="aktarUygula" style="padding:10px 20px; border:none; background:#2D5E3E; color:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:700;">Aktar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+
+  document.getElementById("aktarUygula").onclick = async function() {
+    const hedef = document.getElementById("aktarHedef").value;
+    if (!hedef) { alert("Hedef sınıf seçin."); return; }
+    const secili = [...document.querySelectorAll(".aktarKutu:checked")].map(x => x.value);
+    if (!secili.length) { alert("En az bir öğrenci seçin."); return; }
+    if (!confirm(`${secili.length} öğrenci "${hedef}" sınıfına aktarılacak. Devam edilsin mi?`)) return;
+    this.disabled = true; this.textContent = "Aktarılıyor...";
+    let ok = 0, hata = 0;
+    for (const id of secili) {
+      try { await updateDoc(doc(db, "ogrenciler", id), { sinif: hedef }); ok++; }
+      catch (e) { console.error("aktarma", id, e); hata++; }
+    }
+    document.getElementById("sinifAktarArka").remove();
+    if (typeof showToast === "function") showToast(ok + " öğrenci aktarıldı" + (hata ? ", " + hata + " hata" : ""), hata ? "error" : "success");
+    if (typeof ogrenciList !== "undefined") ogrenciList = [];
+    sinifYonetimYukle();
+  };
+};
+window.aktarTumunuSec = function() {
+  const kutular = [...document.querySelectorAll(".aktarKutu")];
+  const hepsi = kutular.every(k => k.checked);
+  kutular.forEach(k => k.checked = !hepsi);
+};
+
+
+// ═══════════════════════════════════════════════════════════════════
+// SINIF DROPDOWN'LARINI DİNAMİK DOLDUR
+// Sınıf adları artık koda gömülü değil; siniflar koleksiyonundan gelir.
+// Yeni okul / yeni sınıf eklendiğinde tüm formlar otomatik güncellenir.
+// ═══════════════════════════════════════════════════════════════════
+const SINIF_SECIM_ALANLARI = [
+  "kayitAyarSinif", "yoSinif", "duyuruHedefSinif", "takvimHedefSinif",
+  "etkinlikHedefSinif", "galeriHedefSinif"
+];
+
+async function sinifSecimleriniDoldur() {
+  let liste = sinifYonetimListesi;
+  if (!liste || !liste.length) {
+    try {
+      const snap = await getDocs(collection(db, "siniflar"));
+      liste = [];
+      snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+      liste.sort((a, b) => (a.sira || 99) - (b.sira || 99));
+      sinifYonetimListesi = liste;
+    } catch (e) { console.warn("sınıf listesi alınamadı", e); return; }
+  }
+  const aktifler = liste.filter(x => x.durum !== "pasif");
+  if (!aktifler.length) return;   // sınıf yoksa mevcut seçenekleri bozma
+
+  SINIF_SECIM_ALANLARI.forEach(alanId => {
+    const el = document.getElementById(alanId);
+    if (!el) return;
+    const mevcut = el.value;
+    // İlk seçenek (Seçiniz / Tüm okul vb.) korunur
+    const ilk = el.querySelector("option");
+    const ilkHtml = ilk && !ilk.value ? ilk.outerHTML : '<option value="">Seçiniz</option>';
+    el.innerHTML = ilkHtml + aktifler
+      .map(x => `<option value="${escapeHtml(x.ad)}">${escapeHtml(x.ad)}</option>`).join("");
+    if (mevcut) {
+      // Eski değer listede yoksa geçici olarak ekle (veri kaybı olmasın)
+      if (![...el.options].some(o => o.value === mevcut)) {
+        const o = document.createElement("option");
+        o.value = mevcut; o.textContent = mevcut + " (listede yok)";
+        el.appendChild(o);
+      }
+      el.value = mevcut;
+    }
+  });
+}
+window.sinifSecimleriniDoldur = sinifSecimleriniDoldur;
 
 function renderTable() {
   const wrap = document.getElementById("ogrenciTableWrap");
@@ -32625,6 +33050,7 @@ const MODUL_HARITASI = {
   ozet:        { tablar: ["anasayfa"],   varsayilan: "anasayfa", ad: "Özet" },
   ogrencilerM: { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
   velilerM:    { tablar: ["veliler"],    varsayilan: "veliler", ad: "Veliler" },
+  siniflarM:   { tablar: ["siniflar"],   varsayilan: "siniflar", ad: "Sınıflar" },
   basvuru:     { tablar: ["onay"],       varsayilan: "onay", ad: "Başvuru Havuzu" },
   ogrenci:     { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
   personel:    { tablar: ["personel"],   varsayilan: "personel", ad: "Personel" },
@@ -32740,6 +33166,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Onay Bekleyenler sekmesine geçildiyse yükle
     if (tab.dataset.tab === "onay") {
       setTimeout(() => loadOnayBekleyenler(), 50);
+    }
+
+    // Sınıf Yönetimi sekmesine geçildiyse yükle
+    if (tab.dataset.tab === "siniflar") {
+      setTimeout(() => { if (typeof sinifYonetimYukle === "function") sinifYonetimYukle(); }, 50);
     }
 
     // Veli Listesi sekmesine geçildiyse yükle
