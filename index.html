@@ -15846,6 +15846,7 @@ function veliRenderYeniApp() {
                  : (caEkran === "galeri") ? caGaleriHTML()
                  : (caEkran === "mesajlar") ? caMesajlarHTML()
                  : (caEkran === "pdr") ? caPdrHTML()
+                 : (caEkran === "oryantasyon") ? caOryantasyonHTML()
                  : (caEkran === "randevular") ? caRandevularHTML()
                  : (caEkran === "etkinlikler") ? caEtkinliklerHTML()
                  : (caEkran === "takvim") ? caTakvimHTML()
@@ -15853,11 +15854,12 @@ function veliRenderYeniApp() {
                  : caHomeHTML();
   if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
   if (caEkran === "pdr") { try { caPdrYukle(); } catch(e) { console.warn(e); } }
+  if (caEkran === "oryantasyon") { try { caOryantasyonYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "randevular") { try { caRandevulariYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -16536,6 +16538,224 @@ window.caRandevuIptal = async function(id) {
   } catch (e) { alert("İptal edilemedi: " + (e.message || e)); }
 };
 
+
+// ═══════════════════════════════════════════════════════════════════
+// İLK ADIMLAR · GÜVENLİ BAŞLANGIÇ PROGRAMI (Oryantasyon)
+// Kaynak: ayarlar/oryantasyon — ZEKY app ile ORTAK belge, aynı alanlar.
+// Yalnızca oryantasyondaki ailelere gösterilir.
+// ═══════════════════════════════════════════════════════════════════
+let ORY_PROGRAM = null;
+let ORY_DURUM = null;   // { goster, aktifHafta }
+
+function oryHaftaTarihi(baslangicTarihi, haftaNo) {
+  if (!baslangicTarihi) return null;
+  const bas = new Date(baslangicTarihi + "T00:00:00");
+  if (isNaN(bas)) return null;
+  const pzt = new Date(bas); pzt.setDate(pzt.getDate() + (haftaNo - 1) * 7);
+  const cum = new Date(pzt);  cum.setDate(cum.getDate() + 4);
+  const AY = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const ayni = pzt.getMonth() === cum.getMonth();
+  return {
+    aralik: ayni ? pzt.getDate() + "–" + cum.getDate() + " " + AY[cum.getMonth()]
+                 : pzt.getDate() + " " + AY[pzt.getMonth()] + " – " + cum.getDate() + " " + AY[cum.getMonth()],
+    cumaTarih: cum.getDate() + " " + AY[cum.getMonth()]
+  };
+}
+
+function oryAktifHafta(baslangicTarihi) {
+  if (!baslangicTarihi) return 0;
+  const bas = new Date(baslangicTarihi + "T00:00:00");
+  if (isNaN(bas)) return 0;
+  const bugun = new Date(); bugun.setHours(0, 0, 0, 0);
+  if (bugun < bas) return 0;
+  const h = Math.floor((bugun - bas) / (24 * 3600 * 1000) / 7) + 1;
+  return h > 4 ? 5 : h;
+}
+
+// Öğrenci oryantasyonda mı? (app'teki oryantasyondaMi ile aynı kural)
+function oryOgrenciKapsamda(o, program) {
+  if (!o) return false;
+  if (o.oryantasyonda === false) return false;
+  if (o.oryantasyonda === true) return true;
+  const bas = program && program.baslangicTarihi;
+  if (!bas) return false;
+  const baslangic = new Date(bas + "T00:00:00");
+  if (isNaN(baslangic)) return false;
+  const bitis = new Date(baslangic); bitis.setDate(bitis.getDate() + 35);
+  const bugun = new Date(); bugun.setHours(0, 0, 0, 0);
+  if (bugun > bitis) return false;
+  const ham = o.okulaBaslamaTarihi || o.baslamaTarihi || "";
+  if (!ham) return false;
+  let ogrBas = new Date(ham);
+  if (isNaN(ogrBas) && /^\d{1,2}\.\d{1,2}\.\d{4}$/.test(ham)) {
+    const pp = ham.split("."); ogrBas = new Date(+pp[2], +pp[1] - 1, +pp[0]);
+  }
+  if (isNaN(ogrBas)) return false;
+  const erken = new Date(baslangic); erken.setDate(erken.getDate() - 14);
+  return ogrBas >= erken && ogrBas <= bitis;
+}
+
+async function oryProgramYukle() {
+  if (ORY_PROGRAM) return ORY_PROGRAM;
+  try {
+    const d = await getDoc(doc(db, "ayarlar", "oryantasyon"));
+    ORY_PROGRAM = d.exists() ? (d.data() || {}) : {};
+  } catch (e) { ORY_PROGRAM = {}; }
+  return ORY_PROGRAM;
+}
+
+// Ana sayfa bandı — oryantasyondaki veliye belirgin şekilde gösterilir
+async function caHomeOryantasyonDoldur() {
+  const bant = document.getElementById("caHomeOryBant");
+  if (!bant) return;
+  try {
+    const program = await oryProgramYukle();
+    const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+    if (!o || !oryOgrenciKapsamda(o, program)) { bant.style.display = "none"; return; }
+
+    const haftalar = program.haftalar || [];
+    const toplam = haftalar.length || 4;
+    const aktif = oryAktifHafta(program.baslangicTarihi);
+    const h = haftalar[Math.max(0, aktif - 1)] || {};
+    const t = oryHaftaTarihi(program.baslangicTarihi, Math.max(1, Math.min(aktif, toplam)));
+    ORY_DURUM = { goster: true, aktifHafta: aktif };
+
+    let rozet, baslik, detay, ilerlemeMetin, yuzde;
+    if (aktif === 0) {
+      rozet = "Başlıyor"; baslik = "Program yakında başlıyor";
+      detay = t ? "İlk hafta: " + t.aralik : ""; yuzde = 0;
+      ilerlemeMetin = toplam + " haftalık uyum programı";
+    } else if (aktif > toplam) {
+      rozet = "Tamamlandı"; baslik = "Uyum programı tamamlandı";
+      detay = "Artık normal okul düzenine geçtiniz."; yuzde = 100;
+      ilerlemeMetin = toplam + "/" + toplam + " hafta";
+    } else {
+      rozet = aktif + ". Hafta"; baslik = h.ad || (aktif + ". Hafta");
+      detay = [
+        (h.baslangicSaat || "") + (h.bitisSaat ? " – " + h.bitisSaat : ""),
+        h.ebeveynli ? "Ebeveynli" : "Ebeveynsiz",
+        (h.ogunler && h.ogunler.length) ? h.ogunler.join(" + ") : ""
+      ].filter(Boolean).join(" · ");
+      yuzde = Math.round(aktif / toplam * 100);
+      ilerlemeMetin = aktif + "/" + toplam + " hafta" + (t ? " · " + t.aralik : "");
+    }
+
+    bant.innerHTML = `
+      <div onclick="caGo('oryantasyon')" style="background:linear-gradient(135deg,#2D5E3E,#4A7C59); color:#fff; border-radius:20px; padding:17px 19px; cursor:pointer; box-shadow:0 6px 18px rgba(45,94,62,.22);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:11px;">
+          <span style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; opacity:.9;">
+            <i data-lucide="compass" style="width:14px;height:14px;"></i> ${escapeHtml(program.programAdi || "İlk Adımlar Programı")}</span>
+          <span style="background:rgba(255,255,255,.22); padding:4px 11px; border-radius:12px; font-size:11.5px; font-weight:700; white-space:nowrap;">${escapeHtml(rozet)}</span>
+        </div>
+        <div style="font-size:18px; font-weight:700; line-height:1.25;">${escapeHtml(baslik)}</div>
+        ${detay ? `<div style="font-size:12.5px; opacity:.9; margin-top:5px; line-height:1.5;">${escapeHtml(detay)}</div>` : ""}
+        <div style="height:6px; background:rgba(255,255,255,.22); border-radius:4px; overflow:hidden; margin-top:13px;">
+          <div style="height:100%; background:#fff; border-radius:4px; width:${yuzde}%;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; margin-top:9px; opacity:.92;">
+          <span>${escapeHtml(ilerlemeMetin)}</span>
+          <span style="display:flex; align-items:center; gap:3px; font-weight:700;">Programı gör <i data-lucide="chevron-right" style="width:14px;height:14px;"></i></span>
+        </div>
+      </div>`;
+    bant.style.display = "block";
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    console.warn("oryantasyon bandı", e?.message);
+    bant.style.display = "none";
+  }
+}
+window.caHomeOryantasyonDoldur = caHomeOryantasyonDoldur;
+
+// ── DETAY EKRANI ──
+function caOryantasyonHTML() {
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div>
+            <div class="ca-tile-sub">UYUM SÜRECİ</div>
+            <h2 style="font-size:18px;" id="caOryBaslik">İlk Adımlar</h2>
+          </div>
+        </div>
+      </div>
+      <div id="caOryIcerik">
+        <div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+      </div>
+    </div>`;
+}
+
+async function caOryantasyonYukle() {
+  const el = document.getElementById("caOryIcerik");
+  if (!el) return;
+  try {
+    const program = await oryProgramYukle();
+    const haftalar = program.haftalar || [];
+    const seminerler = program.seminerler || [];
+    const aktif = oryAktifHafta(program.baslangicTarihi);
+    const bas = document.getElementById("caOryBaslik");
+    if (bas) bas.textContent = program.programAdi || "İlk Adımlar";
+
+    if (!haftalar.length) {
+      el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Program içeriği henüz tanımlanmamış.</div>`;
+      return;
+    }
+
+    const haftaKarti = (h) => {
+      const durum = aktif === 0 ? "yaklasan" : h.no < aktif ? "tamam" : h.no === aktif ? "aktif" : "yaklasan";
+      const t = oryHaftaTarihi(program.baslangicTarihi, h.no);
+      const renk = durum === "tamam" ? { bg:"#DFF4E3", yazi:"#065F46", ad:"Tamamlandı" }
+                 : durum === "aktif" ? { bg:"#2D5E3E", yazi:"#fff", ad:"Bu hafta" }
+                 : { bg:"var(--c-tint)", yazi:"var(--c-muted)", ad:"Yaklaşan" };
+      const etiket = (metin, bg, yazi, ikon) =>
+        `<span style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${yazi}; padding:3px 9px; border-radius:10px; font-size:11.5px; font-weight:600;">
+           <i data-lucide="${ikon}" style="width:12px;height:12px;"></i> ${escapeHtml(metin)}</span>`;
+      return `
+        <div class="ca-card" style="padding:15px 17px; margin-bottom:10px; ${durum === "aktif" ? "border:2px solid #2D5E3E;" : ""}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+            <div style="font-weight:700; font-size:15px; color:var(--c-ink);">${h.no}. Hafta · ${escapeHtml(h.ad || "")}</div>
+            <span style="background:${renk.bg}; color:${renk.yazi}; padding:3px 10px; border-radius:11px; font-size:11px; font-weight:700; white-space:nowrap;">${renk.ad}</span>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;">
+            ${t ? etiket(t.aralik, "var(--c-tint)", "var(--c-body)", "calendar") : ""}
+            ${etiket((h.baslangicSaat || "") + " – " + (h.bitisSaat || ""), "var(--c-tint)", "var(--c-body)", "clock")}
+            ${h.ebeveynli ? etiket("Ebeveynli", "#E8F0FE", "#2E5C8A", "users") : etiket("Ebeveynsiz", "#EAF6EC", "#2D7A2D", "smile")}
+            ${(h.ogunler && h.ogunler.length) ? etiket(h.ogunler.join(" + "), "#FDF3D6", "#8a6d1a", "utensils") : ""}
+          </div>
+          ${h.aciklama ? `<div style="font-size:13px; color:var(--c-body); line-height:1.6; margin-top:11px;">${escapeHtml(h.aciklama)}</div>` : ""}
+          ${h.pdrTavsiye ? `<div style="display:flex; gap:9px; align-items:flex-start; background:#EDF4FA; border-radius:11px; padding:11px 13px; margin-top:11px;">
+            <i data-lucide="lightbulb" style="width:15px;height:15px;color:#2E5C8A;flex-shrink:0;margin-top:1px;"></i>
+            <div style="font-size:12.5px; color:#2E5C8A; line-height:1.55;"><b>PDR önerisi:</b> ${escapeHtml(h.pdrTavsiye)}</div>
+          </div>` : ""}
+        </div>`;
+    };
+
+    el.innerHTML =
+      (program.ozet ? `<div class="ca-card" style="padding:15px 17px; margin-bottom:14px; font-size:13.5px; color:var(--c-body); line-height:1.65;">${escapeHtml(program.ozet)}</div>` : "") +
+      `<div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:2px 2px 9px;">Haftalar</div>` +
+      haftalar.map(haftaKarti).join("") +
+      (seminerler.length ? `
+        <div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:18px 2px 9px;">Aile Seminerleri · her hafta cuma</div>
+        ${seminerler.map(x => {
+          const t = oryHaftaTarihi(program.baslangicTarihi, x.hafta);
+          const gecmis = aktif > x.hafta;
+          return `<div class="ca-card" style="display:flex; gap:12px; padding:13px 15px; margin-bottom:9px; ${gecmis ? "opacity:.6;" : ""}">
+            <span style="width:38px; height:38px; flex-shrink:0; border-radius:11px; background:#F3EFFC; color:#6B4FB6; display:flex; align-items:center; justify-content:center;">
+              <i data-lucide="presentation" style="width:17px;height:17px;"></i></span>
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:700; font-size:13.5px; color:var(--c-ink);">${escapeHtml(x.baslik || "")}</div>
+              <div style="font-size:12px; color:var(--c-muted); margin-top:3px;">${t ? "Cuma · " + t.cumaTarih : x.hafta + ". hafta cuma"}${x.saat ? " · " + escapeHtml(x.saat) : ""}${x.konusmaci ? " · " + escapeHtml(x.konusmaci) : ""}</div>
+              ${x.aciklama ? `<div style="font-size:12.5px; color:#5A6B62; margin-top:6px; line-height:1.5;">${escapeHtml(x.aciklama)}</div>` : ""}
+            </div>
+          </div>`;
+        }).join("")}` : "");
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    console.warn("oryantasyon", e?.message);
+    el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Program yüklenemedi.</div>`;
+  }
+}
+
 function caPdrHTML() {
   return `
     <div class="ca-page ca-stack">
@@ -16815,6 +17035,9 @@ function caHomeHTML() {
       ${cocukSwitcher}
 
       <!-- Hero: Çocuk kartı + Ödeme yan yana (geniş ekran) -->
+      <!-- İLK ADIMLAR PROGRAMI (yalnızca oryantasyondaki ailelere) -->
+      <div id="caHomeOryBant" style="display:none; margin-bottom:14px;"></div>
+
       <div class="ca-hero-row">
         <div class="ca-card-green" style="cursor:pointer;" onclick="caGo('profil')">
           <div class="ca-row" style="justify-content:space-between;">
