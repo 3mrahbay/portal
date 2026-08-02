@@ -13128,7 +13128,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction
+  query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction,
+  documentId
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -15799,15 +15800,17 @@ function veliRenderYeniApp() {
                  : (caEkran === "gunluk") ? caGunlukHTML()
                  : (caEkran === "galeri") ? caGaleriHTML()
                  : (caEkran === "mesajlar") ? caMesajlarHTML()
+                 : (caEkran === "pdr") ? caPdrHTML()
                  : (caEkran === "etkinlikler") ? caEtkinliklerHTML()
                  : (caEkran === "takvim") ? caTakvimHTML()
                  : (caEkran === "yemek") ? caYemekHTML()
                  : caHomeHTML();
   if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
+  if (caEkran === "pdr") { try { caPdrYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -16132,6 +16135,289 @@ async function caHomeGunlukDoldur() {
 }
 window.caHomeGunlukDoldur = caHomeGunlukDoldur;
 
+
+// ═══════════════════════════════════════════════════════════════════
+// VELİ RANDEVU TALEBİ
+// Mevcut slot sistemine EK olarak talep akışı:
+//   Veli gün + saat + görüşülecek taraf seçer → randevuSlotlari'na
+//   durum:"talep" olarak yazılır → yönetim onaylayınca durum:"dolu" olur.
+// Aynı koleksiyon kullanıldığı için takvimde de otomatik görünür.
+// Firestore Rules zaten veliye kendi e-postasıyla create izni veriyor.
+// ═══════════════════════════════════════════════════════════════════
+const RANDEVU_HEDEFLERI = [
+  { k: "pdr",           ad: "PDR / Rehberlik",   ikon: "brain",       aciklama: "Gelişim, davranış, uyum konuları" },
+  { k: "ogretmen_veli", ad: "Sınıf Öğretmeni",   ikon: "user",        aciklama: "Sınıf içi gelişim ve günlük durum" },
+  { k: "idare",         ad: "Müdür / İdare",     ikon: "briefcase",   aciklama: "Kayıt, ücret, genel konular" },
+  { k: "diger",         ad: "Diğer",             ikon: "circle-help", aciklama: "Konuyu notta belirtin" }
+];
+
+window.caRandevuTalepAc = function() {
+  const eski = document.getElementById("caRandevuArka");
+  if (eski) eski.remove();
+
+  // En erken yarın, en geç 60 gün sonrası
+  const yarin = new Date(); yarin.setDate(yarin.getDate() + 1);
+  const sonGun = new Date(); sonGun.setDate(sonGun.getDate() + 60);
+  const iso = (d) => d.toISOString().slice(0, 10);
+
+  const saatler = [];
+  for (let h = 9; h <= 16; h++) { saatler.push(String(h).padStart(2, "0") + ":00"); saatler.push(String(h).padStart(2, "0") + ":30"); }
+
+  const div = document.createElement("div");
+  div.id = "caRandevuArka";
+  div.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9500; display:flex; align-items:center; justify-content:center; padding:20px;";
+  div.innerHTML = `
+    <div style="background:#fff; border-radius:20px; max-width:440px; width:100%; padding:22px; max-height:90vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <h3 style="margin:0; font-family:var(--c-font-head,inherit); font-size:18px;">Randevu Talebi</h3>
+        <button onclick="document.getElementById('caRandevuArka').remove()" style="border:none; background:transparent; font-size:24px; color:#94A3B8; cursor:pointer; line-height:1;">&times;</button>
+      </div>
+      <div style="font-size:12.5px; color:#64748B; margin-bottom:16px; line-height:1.5;">Talebiniz okula iletilir. Onaylandığında takviminize eklenir ve size bildirim gönderilir.</div>
+
+      <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:7px;">Kiminle görüşmek istiyorsunuz?</label>
+      <div id="caRandevuHedefler" style="display:grid; gap:8px; margin-bottom:16px;">
+        ${RANDEVU_HEDEFLERI.map((h, i) => `
+          <button type="button" data-h="${h.k}" onclick="caRandevuHedefSec('${h.k}')"
+            style="display:flex; align-items:center; gap:11px; text-align:left; padding:11px 13px; border:2px solid ${i === 0 ? "#2D5E3E" : "#E2E8F0"}; background:#fff; border-radius:12px; cursor:pointer; font-family:inherit;">
+            <span style="width:34px; height:34px; flex-shrink:0; border-radius:10px; background:#ECFDF5; color:#2D5E3E; display:flex; align-items:center; justify-content:center;"><i data-lucide="${h.ikon}" style="width:16px;height:16px;"></i></span>
+            <span style="flex:1;"><span style="display:block; font-weight:700; font-size:13.5px; color:#1E293B;">${h.ad}</span>
+            <span style="display:block; font-size:11.5px; color:#64748B; margin-top:1px;">${h.aciklama}</span></span>
+          </button>`).join("")}
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-bottom:16px;">
+        <div>
+          <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Tarih</label>
+          <input type="date" id="caRandevuTarih" min="${iso(yarin)}" max="${iso(sonGun)}" value="${iso(yarin)}"
+            style="width:100%; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13.5px;">
+        </div>
+        <div>
+          <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Saat</label>
+          <select id="caRandevuSaat" style="width:100%; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13.5px;">
+            ${saatler.map(x => `<option value="${x}">${x}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+
+      <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Görüşme konusu <span style="font-weight:500; text-transform:none; letter-spacing:0;">(isteğe bağlı)</span></label>
+      <textarea id="caRandevuNot" rows="3" placeholder="Kısaca konuyu yazabilirsiniz…"
+        style="width:100%; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13.5px; resize:vertical;"></textarea>
+
+      <div style="display:flex; gap:9px; justify-content:flex-end; margin-top:18px;">
+        <button onclick="document.getElementById('caRandevuArka').remove()" style="padding:11px 18px; border:1px solid #E2E8F0; background:#fff; border-radius:11px; cursor:pointer; font-family:inherit; font-weight:600;">Vazgeç</button>
+        <button id="caRandevuGonderBtn" onclick="caRandevuTalepGonder()" style="padding:11px 22px; border:none; background:#2D5E3E; color:#fff; border-radius:11px; cursor:pointer; font-family:inherit; font-weight:700;">Talep Gönder</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  window._caRandevuHedef = RANDEVU_HEDEFLERI[0].k;
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+};
+
+window.caRandevuHedefSec = function(k) {
+  window._caRandevuHedef = k;
+  document.querySelectorAll("#caRandevuHedefler button").forEach(b =>
+    b.style.borderColor = b.dataset.h === k ? "#2D5E3E" : "#E2E8F0");
+};
+
+window.caRandevuTalepGonder = async function() {
+  const btn = document.getElementById("caRandevuGonderBtn");
+  const tarih = document.getElementById("caRandevuTarih").value;
+  const saat = document.getElementById("caRandevuSaat").value;
+  const not = (document.getElementById("caRandevuNot").value || "").trim();
+  if (!tarih || !saat) { alert("Tarih ve saat seçin."); return; }
+
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  const veliEmail = (currentUser?.email || "").toLowerCase();
+  const veliAd = currentUser?.displayName || veliEmail.split("@")[0];
+
+  btn.disabled = true; btn.textContent = "Gönderiliyor…";
+  try {
+    // Bitiş saati = başlangıç + 30 dk
+    const [sa, dk] = saat.split(":").map(Number);
+    const bit = new Date(2000, 0, 1, sa, dk + 30);
+    const bitisSaat = String(bit.getHours()).padStart(2, "0") + ":" + String(bit.getMinutes()).padStart(2, "0");
+
+    await addDoc(collection(db, "randevuSlotlari"), {
+      tarih, baslangicSaat: saat, bitisSaat,
+      tip: window._caRandevuHedef || "diger",
+      durum: "talep",                       // yönetim onaylayınca "dolu" olur
+      veliEmail, veliAd,
+      ogrenciId: o ? o.id : "", ogrenciAd: o ? (o.ogrenciAdSoyad || "") : "",
+      hedefSinif: o ? (o.sinif || "") : "",
+      veliNotu: not,
+      rezervasyonTarihi: new Date().toISOString(),
+      olusturan: veliEmail, olusturuldu: new Date().toISOString()
+    });
+
+    // Yönetime bilgilendirme maili (mevcut mail altyapısı)
+    try {
+      const hedefAd = (RANDEVU_HEDEFLERI.find(h => h.k === window._caRandevuHedef) || {}).ad || "Görüşme";
+      if (typeof mailGonder === "function") {
+        await mailGonder({
+          to: "eposta@bircicekkoleji.com",
+          subject: "Yeni randevu talebi · " + (o ? (o.ogrenciAdSoyad || "") : ""),
+          htmlContent: `<h3>Yeni Randevu Talebi</h3>
+            <p><b>Veli:</b> ${veliAd} (${veliEmail})<br>
+            <b>Öğrenci:</b> ${o ? (o.ogrenciAdSoyad || "") : "—"}<br>
+            <b>Görüşülecek:</b> ${hedefAd}<br>
+            <b>Tarih:</b> ${tarih} ${saat}<br>
+            <b>Not:</b> ${not || "—"}</p>
+            <p>Portal → Etkinlik &amp; Takvim bölümünden onaylayabilirsiniz.</p>`
+        });
+      }
+    } catch (e) { console.warn("randevu maili gönderilemedi", e?.message); }
+
+    document.getElementById("caRandevuArka").remove();
+    if (typeof showToast === "function") showToast("Randevu talebiniz iletildi", "success");
+    caHomeRandevulariDoldur();
+  } catch (e) {
+    console.error("randevu talebi", e);
+    alert("Talep gönderilemedi: " + (e.message || e));
+    btn.disabled = false; btn.textContent = "Talep Gönder";
+  }
+};
+
+// Ana sayfada yaklaşan randevularım
+async function caHomeRandevulariDoldur() {
+  const bolum = document.getElementById("caHomeRandevuBolum");
+  const el = document.getElementById("caHomeRandevular");
+  if (!bolum || !el) return;
+  try {
+    const veliEmail = (currentUser?.email || "").toLowerCase();
+    const bugun = new Date().toISOString().slice(0, 10);
+    const q = query(collection(db, "randevuSlotlari"), where("veliEmail", "==", veliEmail));
+    const snap = await getDocs(q);
+    const liste = [];
+    snap.forEach(d => {
+      const v = d.data() || {};
+      if (v.arsiv === true) return;
+      if ((v.tarih || "") < bugun) return;
+      liste.push({ id: d.id, ...v });
+    });
+    if (!liste.length) { bolum.style.display = "none"; return; }
+    liste.sort((a, b) => (a.tarih + a.baslangicSaat).localeCompare(b.tarih + b.baslangicSaat));
+    bolum.style.display = "";
+    el.innerHTML = liste.slice(0, 3).map(r => {
+      const bekliyor = r.durum === "talep";
+      const h = RANDEVU_HEDEFLERI.find(x => x.k === r.tip);
+      const d = new Date(r.tarih + "T00:00:00");
+      const tarihMetni = isNaN(d) ? r.tarih : d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" });
+      return `<div class="ca-msgitem" onclick="caGo('takvim')" style="cursor:pointer;">
+        <div class="ca-msgmini" style="background:${bekliyor ? "var(--c-yellow-soft)" : "var(--c-green-light)"}; ${bekliyor ? "" : "color:#fff;"}">
+          <i data-lucide="${bekliyor ? "clock" : "calendar-check"}" style="width:16px;height:16px;"></i></div>
+        <div style="min-width:0;">
+          <div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml((h && h.ad) || "Görüşme")}</div>
+          <div class="ca-tile-sub">${escapeHtml(tarihMetni)} · ${escapeHtml(r.baslangicSaat || "")}</div>
+        </div>
+        <span style="font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:10px; background:${bekliyor ? "#FEF3C7" : "#D1FAE5"}; color:${bekliyor ? "#92400E" : "#065F46"};">${bekliyor ? "Onay bekliyor" : "Onaylandı"}</span>
+      </div>`;
+    }).join("");
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    console.warn("randevularım", e?.message);
+    bolum.style.display = "none";
+  }
+}
+window.caHomeRandevulariDoldur = caHomeRandevulariDoldur;
+
+
+// ═══════════════════════════════════════════════════════════════════
+// VELİ PDR / REHBERLİK EKRANI
+// Kaynak: ayarlar/pdrSSS (yönetimin girdiği S.S.S. ve tavsiyeler)
+//         ogrenciGelisim (çocuğa özel gelişim notu)
+// ZEKY app'teki veli-pdr.html ile aynı veri.
+// ═══════════════════════════════════════════════════════════════════
+function caPdrHTML() {
+  return `
+    <div class="ca-page ca-stack">
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
+          <div>
+            <div class="ca-tile-sub">REHBERLİK</div>
+            <h2 style="font-size:18px;">PDR &amp; Gelişim Tavsiyeleri</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="ca-card" style="background:linear-gradient(135deg,#2E5C8A,#4A7C9E); border:none; color:#fff; padding:18px 20px; cursor:pointer;" onclick="caRandevuTalepAc()">
+        <div style="display:flex; align-items:center; gap:13px;">
+          <span style="width:44px; height:44px; border-radius:13px; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center;"><i data-lucide="calendar-plus" style="width:21px;height:21px;"></i></span>
+          <div style="flex:1;">
+            <div style="font-weight:700; font-size:15px;">Rehberlik Randevusu Al</div>
+            <div style="font-size:12.5px; opacity:.9; margin-top:2px;">PDR uzmanımızla birebir görüşme talep edin</div>
+          </div>
+          <i data-lucide="chevron-right" style="width:18px;height:18px;"></i>
+        </div>
+      </div>
+
+      <div>
+        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Çocuğuma Özel Notlar</h3></div>
+        <div class="ca-card" id="caPdrOzelNot">
+          <div style="padding:14px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sık Sorulan Sorular</h3></div>
+        <div id="caPdrSSS">
+          <div class="ca-card" style="padding:14px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function caPdrYukle() {
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+
+  // Çocuğa özel PDR notu
+  const notEl = document.getElementById("caPdrOzelNot");
+  if (notEl) {
+    try {
+      let metin = "";
+      if (o) {
+        const g = await getDoc(doc(db, "ogrenciGelisim", o.id));
+        if (g.exists()) {
+          const v = g.data() || {};
+          metin = v.pdrNotu || v.rehberlikNotu || v.genelDegerlendirme || "";
+        }
+      }
+      notEl.innerHTML = metin
+        ? `<div style="font-size:13.5px; color:var(--c-body); line-height:1.7; padding:4px 2px;">${escapeHtml(metin)}</div>`
+        : `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz size özel bir rehberlik notu paylaşılmamış.</div>`;
+    } catch (e) {
+      notEl.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Not yüklenemedi.</div>`;
+    }
+  }
+
+  // S.S.S. + tavsiyeler
+  const sssEl = document.getElementById("caPdrSSS");
+  if (sssEl) {
+    try {
+      const d = await getDoc(doc(db, "ayarlar", "pdrSSS"));
+      const liste = (d.exists() ? (d.data().sorular || d.data().liste || []) : []);
+      sssEl.innerHTML = liste.length
+        ? liste.map((x, i) => `
+          <div class="ca-card" style="padding:0; margin-bottom:8px; overflow:hidden;">
+            <button onclick="caPdrAc(${i})" style="width:100%; display:flex; align-items:center; gap:10px; text-align:left; padding:13px 15px; border:none; background:#fff; cursor:pointer; font-family:inherit;">
+              <i data-lucide="circle-help" style="width:16px;height:16px;color:#B8860B;flex-shrink:0;"></i>
+              <span style="flex:1; font-weight:600; font-size:13.5px; color:var(--c-ink);">${escapeHtml(x.soru || x.baslik || "")}</span>
+              <i data-lucide="chevron-down" style="width:16px;height:16px;color:#94A3B8;"></i>
+            </button>
+            <div id="caPdrCevap${i}" style="display:none; padding:0 15px 14px; font-size:13px; color:var(--c-body); line-height:1.7;">${escapeHtml(x.cevap || x.icerik || "")}</div>
+          </div>`).join("")
+        : `<div class="ca-card" style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz içerik eklenmemiş.</div>`;
+      if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+    } catch (e) {
+      sssEl.innerHTML = `<div class="ca-card" style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">İçerik yüklenemedi.</div>`;
+    }
+  }
+}
+window.caPdrAc = function(i) {
+  const el = document.getElementById("caPdrCevap" + i);
+  if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+};
+
 function caHomeHTML() {
   const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || null;
   const cocukAd = ogr ? (ogr.ogrenciAdSoyad || "Çocuğum") : "Çocuğum";
@@ -16279,6 +16565,42 @@ function caHomeHTML() {
               <span class="ca-link" style="margin-left:auto;">Aç →</span>
             </div>
           </div>
+        </div>
+
+        <!-- PDR & REHBERLİK -->
+        <div>
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">Rehberlik (PDR)</h3>
+          </div>
+          <div class="ca-card" style="padding:12px 16px;">
+            <div class="ca-msgitem" onclick="caGo('pdr')" style="cursor:pointer;">
+              <div class="ca-msgmini" style="background:var(--c-blue-soft);"><i data-lucide="brain" style="width:16px;height:16px;color:#2E5C8A;"></i></div>
+              <div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Gelişim Tavsiyeleri</div>
+              <div class="ca-tile-sub">Yaşına uygun öneriler ve etkinlik fikirleri</div></div>
+              <i data-lucide="chevron-right" style="width:16px;height:16px;color:#94A3B8;"></i>
+            </div>
+            <div class="ca-msgitem" onclick="caGo('pdr')" style="cursor:pointer;">
+              <div class="ca-msgmini" style="background:var(--c-yellow-soft);"><i data-lucide="circle-help" style="width:16px;height:16px;color:#B8860B;"></i></div>
+              <div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Sık Sorulan Sorular</div>
+              <div class="ca-tile-sub">Uyku, beslenme, tuvalet eğitimi, ekran süresi…</div></div>
+              <i data-lucide="chevron-right" style="width:16px;height:16px;color:#94A3B8;"></i>
+            </div>
+            <div class="ca-msgitem" onclick="caRandevuTalepAc()" style="cursor:pointer;">
+              <div class="ca-msgmini" style="background:var(--c-green-light); color:#fff;"><i data-lucide="calendar-plus" style="width:16px;height:16px;"></i></div>
+              <div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">Randevu Talep Et</div>
+              <div class="ca-tile-sub">PDR · Öğretmen · Müdür ile görüşme</div></div>
+              <i data-lucide="chevron-right" style="width:16px;height:16px;color:#94A3B8;"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- YAKLAŞAN RANDEVULARIM -->
+        <div id="caHomeRandevuBolum" style="display:none;">
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">Randevularım</h3>
+            <button class="ca-link" onclick="caGo('takvim')">Takvim →</button>
+          </div>
+          <div class="ca-card" style="padding:12px 16px;" id="caHomeRandevular"></div>
         </div>
 
       </div>
@@ -32484,13 +32806,31 @@ async function veliZamanCizelgesiYukle() {
   const olaylar = [];
   let geldiGun = 0, gelmediGun = 0, fotoSayi = 0, etkinlikSayi = 0;
 
+  // PERFORMANS: koleksiyonların tamamı okunmaz, yalnızca seçili AY aralığı çekilir.
+  // Tarihler YYYY-MM-DD metni olduğu için sözlük sırası = kronolojik sıra;
+  // ">= ayın 1'i" ve "<= ayın son günü" karşılaştırması güvenle çalışır.
+  const ayBas = ayKod + "-01";
+  const ayBit = ayKod + "-31";
+
   // ── 1) Günlük raporlar ──
+  // ogrenciId eşitliği + tarih aralığı BİLEŞİK İNDEKS ister.
+  // İndeks henüz açılmadıysa sorgu hata verir; o durumda yalnızca
+  // ogrenciId ile çekip ayı kod tarafında süzüyoruz (yavaş ama çalışır).
+  // Konsolda Firestore'un verdiği "create index" bağlantısına tıklayıp
+  // indeksi açtığınızda otomatik olarak hızlı yola geçer.
   try {
-    const q = query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id));
-    const snap = await getDocs(q);
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db, "gunlukRaporlar"),
+                                 where("ogrenciId", "==", o.id),
+                                 where("tarih", ">=", ayBas), where("tarih", "<=", ayBit)));
+    } catch (indeksHatasi) {
+      console.warn("gunlukRaporlar bileşik indeksi yok, yedek sorguya düşülüyor:", indeksHatasi?.message);
+      snap = await getDocs(query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id)));
+    }
     snap.forEach(d => {
       const v = d.data() || {};
-      if (!(v.tarih || "").startsWith(ayKod)) return;
+      if (!(v.tarih || "").startsWith(ayKod)) return;   // yedek yolda gerekli
       const metin = v.not || v.aciklama || "";
       olaylar.push({ tarih: v.tarih, tip: "gunluk", baslik: "Günlük rapor",
                      metin: metin.slice(0, 160), ek: v.mood || v.ruhHali || "" });
@@ -32499,12 +32839,22 @@ async function veliZamanCizelgesiYukle() {
 
   // ── 2) Galeri (sınıf medyası) ──
   try {
-    const snap = await getDocs(collection(db, "galeri"));
+    // Sadece bu ayın medyası (tarih alanına tek alanlı indeks yeterli).
+    // 'tarih' alanı olmayan eski kayıtlar bu sorguya girmez; sorgu tümden
+    // başarısız olursa tam koleksiyona düşülür.
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db, "galeri"),
+                                 where("tarih", ">=", ayBas), where("tarih", "<=", ayBit)));
+    } catch (indeksHatasi) {
+      console.warn("galeri tarih sorgusu başarısız, tam okuma:", indeksHatasi?.message);
+      snap = await getDocs(collection(db, "galeri"));
+    }
     snap.forEach(d => {
       const v = d.data() || {};
       if (v.durum !== "onaylandi") return;
       const t = (v.tarih || v.olusturuldu || "").slice(0, 10);
-      if (!t.startsWith(ayKod)) return;
+      if (!t.startsWith(ayKod)) return;   // yedek yolda gerekli
       const sinifi = v.sinif || v.hedefDeger || "";
       if (sinifi && typeof sinifAdiResmiEsle === "function" &&
           sinifAdiResmiEsle(sinifi) !== sinifAdiResmiEsle(o.sinif || "")) return;
@@ -32551,9 +32901,18 @@ async function veliZamanCizelgesiYukle() {
 
   // ── 5) Devamsızlık ──
   try {
-    const snap = await getDocs(collection(db, "devamsizlik"));
+    // Belge id'si YYYY-MM-DD olduğu için documentId aralığı kullanılır;
+    // ek indeks gerekmez, tüm koleksiyon okunmaz.
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db, "devamsizlik"),
+                                 where(documentId(), ">=", ayBas), where(documentId(), "<=", ayBit)));
+    } catch (hata) {
+      console.warn("devamsizlik aralık sorgusu başarısız, tam okuma:", hata?.message);
+      snap = await getDocs(collection(db, "devamsizlik"));
+    }
     snap.forEach(d => {
-      if (!d.id.startsWith(ayKod)) return;
+      if (!d.id.startsWith(ayKod)) return;   // yedek yolda gerekli
       const kayit = ((d.data() || {}).kayitlar || {})[o.id];
       if (!kayit) return;
       if (kayit.durum === "geldi") { geldiGun++; return; }
