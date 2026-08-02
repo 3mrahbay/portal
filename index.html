@@ -16593,6 +16593,17 @@ function oryOgrenciKapsamda(o, program) {
   if (!o) return false;
   if (o.oryantasyonda === false) return false;
   if (o.oryantasyonda === true) return true;
+
+  // ORYANTASYON SINIFI: bu sınıfa atanan her çocuk otomatik programa dahil.
+  // Çocuk normal sınıfına taşınınca program ekranı kendiliğinden kaybolur.
+  const orySinif = program && program.oryantasyonSinifi;
+  if (orySinif) {
+    const ogrSinif = o.sinif || o.sinifi || "";
+    const n = (x) => (typeof sinifAdiResmiEsle === "function" ? sinifAdiResmiEsle(x) : x)
+      .toString().toLocaleLowerCase("tr").replace(/\s+/g, "");
+    return !!ogrSinif && n(orySinif) === n(ogrSinif);
+  }
+
   const bas = program && program.baslangicTarihi;
   if (!bas) return false;
   const baslangic = new Date(bas + "T00:00:00");
@@ -16782,6 +16793,7 @@ const ORY_VARSAYILAN = {
   programAdi: "İlk Adımlar · Güvenli Başlangıç Programı",
   ozet: "Okulun ilk ayı, çocuğunuzun okula güvenle ve kendi hızında uyum sağlaması için tasarlanmış 4 haftalık kademeli bir programdır.",
   baslangicTarihi: "",
+  oryantasyonSinifi: "",
   haftalar: [
     { no:1, ad:"Ebeveynli Program",    ikon:"users",    baslangicSaat:"10:30", bitisSaat:"12:00", ebeveynli:true,  ogunler:[], aciklama:"", pdrTavsiye:"" },
     { no:2, ad:"Ebeveynsiz Program",   ikon:"smile",    baslangicSaat:"10:30", bitisSaat:"12:00", ebeveynli:false, ogunler:[], aciklama:"", pdrTavsiye:"" },
@@ -16803,6 +16815,15 @@ window.oryYonetimYukle = async function() {
   if (!el) return;
   el.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>`;
   try {
+    // Sınıf listesi seçici için gerekli
+    if (typeof sinifYonetimListesi === "undefined" || !sinifYonetimListesi.length) {
+      try {
+        const sn = await getDocs(collection(db, "siniflar"));
+        sinifYonetimListesi = [];
+        sn.forEach(x => sinifYonetimListesi.push({ id: x.id, ...x.data() }));
+        sinifYonetimListesi.sort((a, b) => (a.sira || 99) - (b.sira || 99));
+      } catch (e) { console.warn("sınıf listesi", e?.message); }
+    }
     const d = await getDoc(doc(db, "ayarlar", "oryantasyon"));
     const v = d.exists() ? (d.data() || {}) : {};
     ORY_YONETIM = {
@@ -16852,7 +16873,22 @@ function oryYonetimCiz() {
     <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px; padding:16px 18px; margin-bottom:14px;">
       ${gir("oryAd", "Program Adı", p.programAdi)}
       ${gir("oryBaslangic", "1. Haftanın Pazartesi Tarihi", p.baslangicTarihi, "date")}
-      <div style="font-size:12px; color:#64748B; margin:-6px 0 12px; line-height:1.5;">Diğer haftaların tarihleri ve seminer günleri buradan otomatik hesaplanır.</div>
+      <div style="font-size:12px; color:#64748B; margin:-6px 0 14px; line-height:1.5;">Diğer haftaların tarihleri ve seminer günleri buradan otomatik hesaplanır.</div>
+
+      <label style="display:block; font-size:11.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Oryantasyon Sınıfı</label>
+      <select id="oryHedefSinif" style="width:100%; padding:10px 13px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:14px;">
+        <option value="">Sınıf seçilmedi — tarih bazlı otomatik karar</option>
+        ${((typeof sinifYonetimListesi !== "undefined" ? sinifYonetimListesi : []) || [])
+          .filter(x => x.durum !== "pasif")
+          .map(x => `<option value="${escapeHtml(x.ad)}" ${p.oryantasyonSinifi === x.ad ? "selected" : ""}>${escapeHtml(x.emoji || "")} ${escapeHtml(x.ad)}</option>`).join("")}
+      </select>
+      <div style="display:flex; gap:9px; align-items:flex-start; background:#EDF4FA; border-radius:10px; padding:11px 13px; margin:9px 0 14px;">
+        <i data-lucide="info" style="width:15px;height:15px;color:#2E5C8A;flex-shrink:0;margin-top:1px;"></i>
+        <div style="font-size:12.5px; color:#2E5C8A; line-height:1.55;">
+          Bu sınıfa atadığınız her çocuğun velisine program ekranı <b>otomatik</b> açılır.
+          Çocuğu normal sınıfına taşıdığınızda ekran kendiliğinden kapanır.
+          Sınıf seçmezseniz sistem okula başlama tarihine bakarak karar verir.</div>
+      </div>
       ${alan("oryOzet", "Programın Özeti (veliye görünür)", p.ozet, 3)}
     </div>
 
@@ -16916,6 +16952,7 @@ window.oryYonetimKaydet = async function() {
     const yeni = {
       programAdi: v("oryAd") || ORY_VARSAYILAN.programAdi,
       baslangicTarihi: v("oryBaslangic"),
+      oryantasyonSinifi: v("oryHedefSinif"),
       ozet: v("oryOzet"),
       haftalar: (ORY_YONETIM.haftalar || []).map((h, i) => ({
         ...h,
