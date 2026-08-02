@@ -15786,7 +15786,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); }, 100); } catch(e) { console.warn(e); } }
 }
 
 // ===== Faz 1: Eğitim Takibi — GERÇEK VERİ (ogrenciGelisim + mufredatlar) =====
@@ -16005,7 +16005,7 @@ function caHizliIslemlerHTML() {
   secili = secili.slice(0, 8);
   return secili.map(m => `
     <button class="ca-qbtn" onclick="${m.git}">
-      <span class="ca-qicon" style="background:${m.renk};">${m.ikon}</span>
+      <span class="ca-qicon" style="background:${m.renk};"><i data-lucide="${m.ikon}"></i></span>
       <span class="ca-qlabel">${m.ad.split(" ")[0]}</span>
     </button>
   `).join("");
@@ -16044,6 +16044,54 @@ async function caHomeMesajlariDoldur() {
 }
 window.caHomeMesajlariDoldur = caHomeMesajlariDoldur;
 
+
+// Veli ana sayfası — bugünün günlüğü (GERÇEK VERİ)
+async function caHomeGunlukDoldur() {
+  const el = document.getElementById("caHomeGunluk");
+  if (!el) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  if (!o) { el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Öğrenci seçilmedi.</div>`; return; }
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const q = query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id));
+    const snap = await getDocs(q);
+    let liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
+    const r = liste[0];
+    if (!r) {
+      el.innerHTML = `<div style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz günlük rapor girilmemiş.</div>`;
+      return;
+    }
+    const gunAd = (() => {
+      try {
+        const d = new Date(r.tarih + "T00:00:00");
+        return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+      } catch (e) { return r.tarih || ""; }
+    })();
+    const pil = (deger, etiket, bg) => deger
+      ? `<div class="ca-statpill" style="background:${bg};"><div class="v">${escapeHtml(String(deger))}</div><div class="l">${etiket}</div></div>` : "";
+    el.innerHTML = `
+      <div class="ca-row">
+        <span class="ca-qicon" style="background:var(--c-yellow-soft); width:42px; height:42px;"><i data-lucide="sun"></i></span>
+        <div>
+          <div style="font-weight:700; color:var(--c-ink);">${escapeHtml(gunAd)}${r.tarih === bugun ? "" : " <span style='font-weight:400;color:var(--c-muted);font-size:12px;'>(son rapor)</span>"}</div>
+          ${r.ogretmenAd ? `<div class="ca-tile-sub">Öğretmen: ${escapeHtml(r.ogretmenAd)}</div>` : ""}
+        </div>
+      </div>
+      ${(r.yemek || r.uyku || r.mood) ? `<div class="ca-statpills">
+        ${pil(r.yemek, "Yemek", "var(--c-pink-soft)")}
+        ${pil(r.uyku, "Uyku", "var(--c-purple-soft)")}
+        ${pil(r.mood || r.ruhHali, "Mood", "#Dff4e3")}
+      </div>` : ""}
+      ${r.not || r.aciklama ? `<div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">${escapeHtml(r.not || r.aciklama)}</div>` : ""}`;
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Günlük rapor yüklenemedi.</div>`;
+  }
+}
+window.caHomeGunlukDoldur = caHomeGunlukDoldur;
+
 function caHomeHTML() {
   const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || null;
   const cocukAd = ogr ? (ogr.ogrenciAdSoyad || "Çocuğum") : "Çocuğum";
@@ -16063,7 +16111,7 @@ function caHomeHTML() {
           <div class="ca-avatar" style="background:var(--c-pink-soft); color:var(--c-ink);">${veliHarf}</div>
           <div>
             <div class="ca-tile-sub">Hoş geldiniz</div>
-            <h2 style="font-size:18px;">${escapeHtmlGelisim(veliAd)} 🌿</h2>
+            <h2 style="font-size:18px;">${escapeHtmlGelisim(veliAd)}</h2>
           </div>
         </div>
         <div class="ca-row" style="gap:8px;">
@@ -16096,7 +16144,7 @@ function caHomeHTML() {
             </div>
             <span style="opacity:.85; font-size:18px;">›</span>
           </div>
-          <div class="ca-status">🌿 Profili ve eğitim gelişimini görmek için dokun</div>
+          <div class="ca-status"><i data-lucide="sprout" style="width:13px;height:13px;vertical-align:-2px;"></i> Profili ve eğitim gelişimini görmek için dokun</div>
         </div>
 
         <div class="ca-card ca-pay">
@@ -16131,22 +16179,8 @@ function caHomeHTML() {
             <h3 class="ca-head" style="font-size:15px;">Bugünün günlüğü</h3>
             <button class="ca-link" onclick="caGo('gunluk')">Tümü →</button>
           </div>
-          <div class="ca-card">
-            <div class="ca-row">
-              <span class="ca-qicon" style="background:var(--c-yellow-soft); width:42px; height:42px; font-size:18px;">☀️</span>
-              <div>
-                <div style="font-weight:700; color:var(--c-ink);">Çarşamba, 22 Nisan</div>
-                <div class="ca-tile-sub">Öğretmen: Esra Yıldırım</div>
-              </div>
-            </div>
-            <div class="ca-statpills">
-              <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v">%85</div><div class="l">Yemek</div></div>
-              <div class="ca-statpill" style="background:var(--c-purple-soft);"><div class="v">1s 20dk</div><div class="l">Uyku</div></div>
-              <div class="ca-statpill" style="background:#Dff4e3;"><div class="v">Mutlu</div><div class="l">Mood</div></div>
-            </div>
-            <div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">
-              Bugün bahçede yapraklarla matematik etkinliği yaptık. Defne çok ilgiliydi ve arkadaşlarına da yardım etti 🌿
-            </div>
+          <div class="ca-card" id="caHomeGunluk">
+            <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
           </div>
         </div>
 
@@ -16167,7 +16201,7 @@ function caHomeHTML() {
         <!-- 🗓️ TAKVİM KARTI - duyuruların hemen altında -->
         <div>
           <div class="ca-sectionhead">
-            <h3 class="ca-head" style="font-size:15px;">🗓️ Takvim</h3>
+            <h3 class="ca-head" style="font-size:15px;"><i data-lucide="calendar-days" style="width:15px;height:15px;vertical-align:-2px;"></i> Takvim</h3>
             <button class="ca-link" onclick="caGo('takvim')">Tümü →</button>
           </div>
           <div id="caHomeTakvimOnizleme" class="ca-card" style="padding:0; overflow:hidden;">
@@ -16242,7 +16276,7 @@ async function caHomeEgitimOzetRender() {
     }
 
     // Orman Okulu — henüz veri sistemi yok, "yakında" satırı
-    satirlar += `<div class="ca-edurow" style="opacity:0.55;"><span class="lbl">🌳 Orman</span><span class="track"><span class="fill" style="width:0%; background:#5C8B5A;"></span></span><span class="pct" style="font-size:10px;">yakında</span></div>`;
+    satirlar += `<div class="ca-edurow" style="opacity:0.55;"><span class="lbl">Orman</span><span class="track"><span class="fill" style="width:0%; background:#5C8B5A;"></span></span><span class="pct" style="font-size:10px;">yakında</span></div>`;
 
     el.innerHTML = satirlar;
   } catch (e) {
@@ -16321,7 +16355,7 @@ async function caHomeTakvimOnizlemeRender() {
             <div class="ca-tile-sub" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
               <span style="color:${renk}; font-weight:600;">${tipLabel}</span>
               ${saatStr ? `<span>· ${saatStr}</span>` : ''}
-              ${e.konum ? `<span>· 📍 ${escapeHtmlGelisim(e.konum)}</span>` : ''}
+              ${e.konum ? `<span>· <i data-lucide="map-pin" style="width:12px;height:12px;vertical-align:-2px;"></i> ${escapeHtmlGelisim(e.konum)}</span>` : ''}
             </div>
           </div>
           <span style="color:var(--c-muted); font-size:14px; flex-shrink:0;">›</span>
@@ -16337,20 +16371,20 @@ async function caHomeTakvimOnizlemeRender() {
 // ===== Menü (Tüm Modüller) ekranı =====
 // ZEKY veli modül listesi (caMenu + hızlı işlemler ortak kullanır)
 const CA_MODULLER = [
-  { k:"home",      ad:"Ana Sayfa",         ikon:"🏠", renk:"var(--c-green-light)", git:"caGo('home')" },
-  { k:"cocugum",   ad:"Çocuğum",           ikon:"👧", renk:"var(--c-pink-soft)",   git:"caGo('profil')" },
-  { k:"gunluk",    ad:"Günlük Rapor",      ikon:"📔", renk:"var(--c-pink-soft)",   git:"caGo('gunluk')" },
-  { k:"gelisim",   ad:"Gelişim Raporları", ikon:"📊", renk:"var(--c-yellow-soft)", git:"caGo('egitim')" },
-  { k:"galeri",    ad:"Galeri",            ikon:"📷", renk:"var(--c-blue-soft)",   git:"caGo('galeri')" },
-  { k:"mesajlar",  ad:"Mesajlar",          ikon:"💬", renk:"var(--c-yellow-soft)", git:"caGo('mesajlar')" },
-  { k:"duyurular", ad:"Duyurular",         ikon:"🔔", renk:"var(--c-peach-soft)",  git:"veliSwitchTab('bildirimler')" },
-  { k:"odemeler",  ad:"Ödemeler",          ikon:"💳", renk:"var(--c-purple-soft)", git:"veliSwitchTab('odemeler')" },
-  { k:"sozlesme",  ad:"Sözleşme",          ikon:"📄", renk:"var(--c-blue-soft)",   git:"veliSwitchTab('sozlesme')" },
-  { k:"okul",      ad:"Okul Hayatı",       ikon:"🌸", renk:"#Dff4e3",              git:"veliSwitchTab('okul')" },
-  { k:"etkinlikler",ad:"Etkinlikler",      ikon:"🎈", renk:"var(--c-peach-soft)",  git:"caGo('etkinlikler')" },
-  { k:"takvim",    ad:"Takvim",            ikon:"🗓️", renk:"var(--c-green-light)", git:"caGo('takvim')" },
-  { k:"yemek",     ad:"Yemek Menüsü",      ikon:"🍽️", renk:"var(--c-pink-soft)",   git:"caGo('yemek')" },
-  { k:"ayarlar",   ad:"Ayarlar",           ikon:"⚙️", renk:"var(--c-tint)",        git:"veliSwitchTab('ayarlar')" }
+  { k:"home",      ad:"Ana Sayfa",         ikon:"home", renk:"var(--c-green-light)", git:"caGo('home')" },
+  { k:"cocugum",   ad:"Çocuğum",           ikon:"baby", renk:"var(--c-pink-soft)",   git:"caGo('profil')" },
+  { k:"gunluk",    ad:"Günlük Rapor",      ikon:"notebook-pen", renk:"var(--c-pink-soft)",   git:"caGo('gunluk')" },
+  { k:"gelisim",   ad:"Gelişim Raporları", ikon:"chart-column", renk:"var(--c-yellow-soft)", git:"caGo('egitim')" },
+  { k:"galeri",    ad:"Galeri",            ikon:"camera", renk:"var(--c-blue-soft)",   git:"caGo('galeri')" },
+  { k:"mesajlar",  ad:"Mesajlar",          ikon:"message-circle", renk:"var(--c-yellow-soft)", git:"caGo('mesajlar')" },
+  { k:"duyurular", ad:"Duyurular",         ikon:"bell", renk:"var(--c-peach-soft)",  git:"veliSwitchTab('bildirimler')" },
+  { k:"odemeler",  ad:"Ödemeler",          ikon:"credit-card", renk:"var(--c-purple-soft)", git:"veliSwitchTab('odemeler')" },
+  { k:"sozlesme",  ad:"Sözleşme",          ikon:"file-text", renk:"var(--c-blue-soft)",   git:"veliSwitchTab('sozlesme')" },
+  { k:"okul",      ad:"Okul Hayatı",       ikon:"flower-2", renk:"#Dff4e3",              git:"veliSwitchTab('okul')" },
+  { k:"etkinlikler",ad:"Etkinlikler",      ikon:"calendar-heart", renk:"var(--c-peach-soft)",  git:"caGo('etkinlikler')" },
+  { k:"takvim",    ad:"Takvim",            ikon:"calendar-days", renk:"var(--c-green-light)", git:"caGo('takvim')" },
+  { k:"yemek",     ad:"Yemek Menüsü",      ikon:"utensils", renk:"var(--c-pink-soft)",   git:"caGo('yemek')" },
+  { k:"ayarlar",   ad:"Ayarlar",           ikon:"settings", renk:"var(--c-tint)",        git:"veliSwitchTab('ayarlar')" }
 ];
 
 // Hızlı işlemler için varsayılan 6 (favori yoksa gösterilir)
@@ -16363,8 +16397,8 @@ function caMenuHTML() {
     const aktif = fav.has(m.k);
     return `
       <button class="ca-modtile ${aktif ? "fav" : ""}" data-ad="${m.ad}" onclick="${m.git}">
-        <span class="ca-modstar ${aktif ? "on" : ""}" onclick="caFavToggle('${m.k}', event)" title="Favori">${aktif ? "⭐" : "☆"}</span>
-        <span class="ca-modicon" style="background:${m.renk};">${m.ikon}</span>
+        <span class="ca-modstar ${aktif ? "on" : ""}" onclick="caFavToggle('${m.k}', event)" title="Favori"><i data-lucide="star" style="width:14px;height:14px;${aktif ? "fill:#F5B301;color:#F5B301;" : ""}"></i></span>
+        <span class="ca-modicon" style="background:${m.renk};"><i data-lucide="${m.ikon}"></i></span>
         <span class="ca-modlabel">${m.ad}</span>
       </button>`;
   }).join("");
@@ -16392,7 +16426,7 @@ function caMenuHTML() {
       <!-- ÇIKIŞ YAP - kalıcı görünür buton -->
       <div style="margin-top:8px;">
         <button onclick="signOut()" style="width:100%; background:white; color:#dc2626; border:1.5px solid #fecaca; padding:14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px;">
-          🚪 Çıkış Yap
+          <i data-lucide="log-out" style="width:15px;height:15px;vertical-align:-2px;"></i> Çıkış Yap
         </button>
       </div>
     </div>
@@ -16451,7 +16485,7 @@ function caMesajlarHTML() {
       <div id="caMsgListeGorunum" class="ca-msg-sol">
         <div class="ca-search"><span><i data-lucide="search" style="width:15px;height:15px;vertical-align:-2px;"></i></span><input type="text" id="caMsgAra" placeholder="Sohbet ara…" oninput="caMsgListele()"></div>
         <div class="ca-card" style="display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--c-yellow-soft); border-color:var(--c-yellow-deep); margin-top:10px;">
-          <span style="font-size:16px;">🔒</span>
+          <i data-lucide="lock" style="width:15px;height:15px;"></i>
           <div style="font-size:12px; color:#6b5b16; font-weight:600; line-height:1.5;">Mesajlar yalnız sizinle okul personeli arasındadır. Aileler birbirini göremez.</div>
         </div>
         <div class="ca-card" style="padding:6px; margin-top:10px;">
@@ -16482,7 +16516,7 @@ function caMesajlarHTML() {
             <!-- Ataç menüsü -->
             <div id="caMsgAtacMenu" class="wa-atac-menu" style="display:none;">
               <button class="wa-atac-sec" onclick="caMsgAtacSec('foto')">
-                <span class="wa-atac-ikon" style="background:#bf59cf;">🖼️</span> Fotoğraf
+                <span class="wa-atac-ikon" style="background:#bf59cf;"><i data-lucide="image" style="width:15px;height:15px;"></i></span> Fotoğraf
               </button>
               <button class="wa-atac-sec" onclick="caMsgAtacSec('belge')">
                 <span class="wa-atac-ikon" style="background:#5157ae;"><i data-lucide="file" style="width:15px;height:15px;vertical-align:-2px;"></i></span> Belge
@@ -16495,10 +16529,10 @@ function caMesajlarHTML() {
             <input type="file" id="caMsgBelgeInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" style="display:none;" onchange="caMsgBelgeSecildi(event)">
             <input type="file" id="caMsgKameraInput" accept="image/*" capture="environment" style="display:none;" onchange="caMsgResimSecildi(event)">
             <div class="wa-bar-input">
-              <button class="wa-bar-atac" onclick="caMsgAtacToggle()" title="Ekle">📎</button>
+              <button class="wa-bar-atac" onclick="caMsgAtacToggle()" title="Ekle"><i data-lucide="paperclip" style="width:16px;height:16px;"></i></button>
               <textarea id="caMsgGirisInput" placeholder="Mesaj yazın…" rows="1" onkeydown="caMsgGirisKeydown(event)"></textarea>
             </div>
-            <button class="wa-bar-send" id="caMsgGonderBtn" onclick="caMsgGonder()" title="Gönder">➤</button>
+            <button class="wa-bar-send" id="caMsgGonderBtn" onclick="caMsgGonder()" title="Gönder"><i data-lucide="send" style="width:16px;height:16px;"></i></button>
           </div>
         </div>
       </div>
@@ -16769,7 +16803,7 @@ window.caMsgResimSecildi = function(event) {
   onizleme.style.display = "flex";
   onizleme.innerHTML = `
     <img src="${url}" style="width:46px; height:46px; object-fit:cover; border-radius:8px;">
-    <span style="font-size:13px; color:#1f2c33; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📷 ${escapeHtmlGelisim(dosya.name)}</span>
+    <span style="font-size:13px; color:#1f2c33; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><i data-lucide="camera" style="width:13px;height:13px;vertical-align:-2px;"></i> ${escapeHtmlGelisim(dosya.name)}</span>
     <button class="ca-btn ghost" style="padding:4px 10px; font-size:11px;" onclick="caMsgResimIptal()">İptal</button>`;
   event.target.value = "";
 };
@@ -17071,13 +17105,13 @@ function caGunlukHTML() {
       <div class="ca-grid-2">
         <div class="ca-card" style="background:var(--c-purple-soft); border:none;">
           <div class="ca-statbox">
-            <span style="font-size:22px;">🌙</span>
+            <i data-lucide="moon" style="width:21px;height:21px;"></i>
             <div><div class="ca-head" style="font-size:18px;">1s 20dk</div><div class="ca-tile-sub">Öğle uykusu</div></div>
           </div>
         </div>
         <div class="ca-card" style="background:var(--c-blue-soft); border:none;">
           <div class="ca-statbox">
-            <span style="font-size:22px;">✅</span>
+            <i data-lucide="circle-check" style="width:21px;height:21px;"></i>
             <div><div class="ca-head" style="font-size:18px;">4 kez</div><div class="ca-tile-sub">Tuvalet</div></div>
           </div>
         </div>
@@ -17157,7 +17191,7 @@ function caProfilHTML() {
       </div>
 
       <div class="ca-quick">
-        <button class="ca-qbtn" onclick="caGo('gunluk')"><span class="ca-qicon" style="background:var(--c-yellow-soft);">📔</span><span class="ca-qlabel">Günlük</span></button>
+        <button class="ca-qbtn" onclick="caGo('gunluk')"><span class="ca-qicon" style="background:var(--c-yellow-soft);"><i data-lucide="notebook-pen"></i></span><span class="ca-qlabel">Günlük</span></button>
         <button class="ca-qbtn" onclick="caGo('galeri')"><span class="ca-qicon" style="background:var(--c-pink-soft);"><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Galeri</span></button>
         <button class="ca-qbtn" onclick="caGo('mesajlar')"><span class="ca-qicon" style="background:var(--c-blue-soft);"><i data-lucide="message-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Mesaj</span></button>
         <button class="ca-qbtn" onclick="caGo('egitim')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="bar-chart-3" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Rapor</span></button>
@@ -17179,7 +17213,7 @@ function caProfilHTML() {
       <!-- ÇIKIŞ YAP -->
       <div style="margin-top:8px;">
         <button onclick="signOut()" style="width:100%; background:white; color:#dc2626; border:1.5px solid #fecaca; padding:14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px;">
-          🚪 Çıkış Yap
+          <i data-lucide="log-out" style="width:15px;height:15px;vertical-align:-2px;"></i> Çıkış Yap
         </button>
       </div>
     </div>
@@ -17202,7 +17236,7 @@ function renderAdminHome() {
   if (!root) return;
   // Faz 1b: admin iç-navigasyon (eğitim takibi gerçek veri)
   if (caAdminEkran === "egitim") {
-    root.innerHTML = `<div class="ca-page ca-stack"><div class="ca-draft-banner">📚 Sınıf eğitim verileri yükleniyor…</div></div>`;
+    root.innerHTML = `<div class="ca-page ca-stack"><div class="ca-draft-banner"><i data-lucide="book-open" style="width:14px;height:14px;vertical-align:-2px;"></i> Sınıf eğitim verileri yükleniyor…</div></div>`;
     if (typeof caTemaUygula === "function") caTemaUygula();
     caAdminEgitimYukle();
     return;
@@ -17288,11 +17322,11 @@ async function hbDuyurulariDoldur() {
       el.innerHTML = `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Henüz duyuru yok.</div>`;
       return;
     }
-    const IK = { acil: "🚨", onemli: "⚠️", normal: "📢" };
+    const IK = { acil: "siren", onemli: "triangle-alert", normal: "megaphone" };
     el.innerHTML = liste.map(d => {
       const trh = (d.olusturuldu || "").substring(0, 10).split("-").reverse().join(".");
       return `<div style="display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid rgba(26,46,31,0.06);">
-        <span style="font-size:16px;">${IK[d.aciliyet] || "📢"}</span>
+        <i data-lucide="${IK[d.aciliyet] || 'megaphone'}" style="width:16px;height:16px;"></i>
         <div style="flex:1; min-width:0;">
           <div style="font-weight:700; color:var(--c-ink); font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(d.baslik || "Duyuru").replace(/</g,"&lt;")}</div>
           <div style="font-size:11.5px; color:var(--c-muted);">${trh}</div>
@@ -17506,9 +17540,9 @@ function caGozlemHTML(st, muf, alan, grup, dersler) {
         <select class="ca-select" onchange="caGozlemSet('dersIdx', this.value)">${dersOpts}</select>
         <div class="ca-formlbl">SEVİYE</div>
         <div class="ca-sevgrid">
-          <div class="ca-sev ${st.seviye === "S" ? "on" : ""}" data-s="S" onclick="caGozlemSeviye('S')">🌱 Sunuldu</div>
-          <div class="ca-sev ${st.seviye === "T" ? "on" : ""}" data-s="T" onclick="caGozlemSeviye('T')">🌿 Tekrar</div>
-          <div class="ca-sev ${st.seviye === "U" ? "on" : ""}" data-s="U" onclick="caGozlemSeviye('U')">🌳 Uzmanlaştı</div>
+          <div class="ca-sev ${st.seviye === "S" ? "on" : ""}" data-s="S" onclick="caGozlemSeviye('S')"><i data-lucide="sprout" style="width:13px;height:13px;vertical-align:-2px;"></i> Sunuldu</div>
+          <div class="ca-sev ${st.seviye === "T" ? "on" : ""}" data-s="T" onclick="caGozlemSeviye('T')"><i data-lucide="leaf" style="width:13px;height:13px;vertical-align:-2px;"></i> Tekrar</div>
+          <div class="ca-sev ${st.seviye === "U" ? "on" : ""}" data-s="U" onclick="caGozlemSeviye('U')"><i data-lucide="trees" style="width:13px;height:13px;vertical-align:-2px;"></i> Uzmanlaştı</div>
         </div>
         <div class="ca-formlbl">ÖĞRETMEN NOTU (opsiyonel)</div>
         <textarea id="caGozlemNot" class="ca-area" rows="4" placeholder="Gözleminizi yazın…" oninput="caGozlemSet('not', this.value)">${escapeHtml(st.not || "")}</textarea>
@@ -18046,9 +18080,9 @@ function ogretmenHomeHTML(ad) {
       <div>
         <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:10px; max-width:640px;">
-          <button class="ca-qbtn" onclick="modulSec('devamsizlik')"><span class="ca-qicon" style="background:var(--c-green-light); color:#fff;">✓</span><span class="ca-qlabel">Yoklama</span></button>
-          <button class="ca-qbtn" onclick="modulSec('egitim')"><span class="ca-qicon" style="background:var(--c-yellow-soft);">👀</span><span class="ca-qlabel">Gözlem</span></button>
-          <button class="ca-qbtn" onclick="modulSec('ogrencilerM')"><span class="ca-qicon" style="background:var(--c-blue-soft);">📔</span><span class="ca-qlabel">Sınıfım</span></button>
+          <button class="ca-qbtn" onclick="modulSec('devamsizlik')"><span class="ca-qicon" style="background:var(--c-green-light); color:#fff;"><i data-lucide="check"></i></span><span class="ca-qlabel">Yoklama</span></button>
+          <button class="ca-qbtn" onclick="modulSec('egitim')"><span class="ca-qicon" style="background:var(--c-yellow-soft);"><i data-lucide="eye"></i></span><span class="ca-qlabel">Gözlem</span></button>
+          <button class="ca-qbtn" onclick="modulSec('ogrencilerM')"><span class="ca-qicon" style="background:var(--c-blue-soft);"><i data-lucide="notebook-pen"></i></span><span class="ca-qlabel">Sınıfım</span></button>
           <button class="ca-qbtn" onclick="modulSec('mesaj')"><span class="ca-qicon" style="background:var(--c-pink-soft);"><i data-lucide="message-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Veli Mesajı</span></button>
           <button class="ca-qbtn" onclick="modulSec('galeri')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Galeri Yükle</span></button>
           <button class="ca-qbtn" onclick="modulSec('egitim')"><span class="ca-qicon" style="background:var(--c-peach-soft);"><i data-lucide="book-open" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Eğitim Takip</span></button>
@@ -18139,7 +18173,7 @@ async function ogretmenHomeVeriYukle() {
         })
         .sort((a, b) => String(a.baslangicSaat || "").localeCompare(String(b.baslangicSaat || "")));
       planEl.innerHTML = bugunku.length
-        ? bugunku.map(e => `<div class="ca-row"><span>📌</span><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(e.baslik || "Etkinlik")}</div><div class="ca-tile-sub">${escapeHtml([e.tumGun ? "Tüm gün" : e.baslangicSaat, e.konum].filter(Boolean).join(" · "))}</div></div></div>`).join("")
+        ? bugunku.map(e => `<div class="ca-row"><i data-lucide="pin" style="width:15px;height:15px;color:var(--c-green);"></i><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(e.baslik || "Etkinlik")}</div><div class="ca-tile-sub">${escapeHtml([e.tumGun ? "Tüm gün" : e.baslangicSaat, e.konum].filter(Boolean).join(" · "))}</div></div></div>`).join("")
         : `<div class="ca-tile-sub">Bugün için planlanmış etkinlik yok.</div>`;
     } catch (e) { planEl.innerHTML = `<div class="ca-tile-sub">Plan yüklenemedi.</div>`; }
   }
