@@ -9093,6 +9093,7 @@ i[data-lucide] svg { display: block; }
       <div class="side-kategori">KURUM</div>
       <div class="side-grup">
         <button class="side-item" data-modul="personel" onclick="modulSec('personel')"><span class="side-ikon"><i data-lucide="briefcase"></i></span><span class="side-ad">Personel</span></button>
+        <button class="side-item" data-modul="ozlukM" onclick="modulSec('ozlukM')"><span class="side-ikon"><i data-lucide="clock"></i></span><span class="side-ad">Özlük &amp; Puantaj</span></button>
         <button class="side-item" data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon"><i data-lucide="book-open"></i></span><span class="side-ad">Eğitim</span></button>
         <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon"><i data-lucide="wallet"></i></span><span class="side-ad">Muhasebe</span></button>
         <button class="side-item" data-modul="denetim" onclick="modulSec('denetim')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">MEB Denetim</span></button>
@@ -9115,6 +9116,7 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="ogrenciler"><i data-lucide="users"></i> Öğrenci Listesi</button>
       <button class="tab" data-tab="veliler"><i data-lucide="contact"></i> Veli Listesi</button>
       <button class="tab" data-tab="siniflar"><i data-lucide="layout-grid"></i> Sınıf Yönetimi</button>
+      <button class="tab" data-tab="ozluk"><i data-lucide="clock"></i> Özlük &amp; Puantaj</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn"><i data-lucide="inbox"></i> Başvuru Havuzu <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans"><i data-lucide="wallet"></i> Finansal Yönetim</button>
       <button class="tab" data-tab="egitim"><i data-lucide="book-open"></i> Eğitim</button>
@@ -9216,6 +9218,33 @@ i[data-lucide] svg { display: block; }
           <div class="spinner"></div>
           <p>Öğrenciler yükleniyor...</p>
         </div>
+      </div>
+    </div>
+
+    <!-- ÖZLÜK & PUANTAJ TAB -->
+    <div class="tab-panel" id="tab-ozluk">
+
+      <div style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#2D5E3E,#4A7C59); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;">
+        <span style="font-size:20px;">🕐</span>
+        <div>
+          <div style="font-family:var(--font-display); font-weight:700; font-size:15px;">Özlük &amp; Puantaj</div>
+          <div style="font-size:11.5px; opacity:.88;">Giriş-çıkış kayıtları, izin talepleri, puantaj ve bordro. ZEKY uygulaması ile aynı veri.</div>
+        </div>
+      </div>
+
+      <!-- ALT SEKMELER -->
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+        <button class="ozluk-tab active" data-o="durum"  onclick="ozlukSekme('durum')"  style="padding:9px 15px; border:1.5px solid #2D5E3E; background:#2D5E3E; color:#fff; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Anlık Durum</button>
+        <button class="ozluk-tab" data-o="qrlog"  onclick="ozlukSekme('qrlog')"  style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Giriş-Çıkış Kaydı</button>
+        <button class="ozluk-tab" data-o="izin"   onclick="ozlukSekme('izin')"   style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">İzin Talepleri</button>
+        <button class="ozluk-tab" data-o="puantaj" onclick="ozlukSekme('puantaj')" style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Aylık Puantaj</button>
+        <button class="ozluk-tab" data-o="bordro" onclick="ozlukSekme('bordro')" style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Bordro</button>
+        <button class="ozluk-tab" data-o="ozluk"  onclick="ozlukSekme('ozluk')"  style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Özlük Bilgileri</button>
+      </div>
+
+      <div id="ozlukAraclar" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;"></div>
+      <div id="ozlukIcerik">
+        <div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>
       </div>
     </div>
 
@@ -13350,6 +13379,7 @@ const SEKME_YETKILERI = {
   ogrenciler: ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   veliler:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   siniflar:   ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  ozluk:      ["kurucu_mudur", "mudur", "muhasebe"],
   onay:       ["kurucu_mudur", "mudur"],
   finans:     ["kurucu_mudur", "mudur", "muhasebe"],
   egitim:     ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
@@ -22788,6 +22818,496 @@ async function sinifSecimleriniDoldur() {
   });
 }
 window.sinifSecimleriniDoldur = sinifSecimleriniDoldur;
+
+
+// ═══════════════════════════════════════════════════════════════════
+// ÖZLÜK & PUANTAJ — Portal + ZEKY app ORTAK KAYNAK
+// Koleksiyonlar (app ile birebir aynı alan adları):
+//   puantaj/{id}          { personelEmail, personelAd, tip, zaman, tarih, yontem }
+//                          tip: giris | cikis | mola-basla | mola-bitir
+//   personelDurum/{email} { durum: iceride|disarida|molada, sonZaman }
+//   izinTalepleri/{id}    { personelEmail, tur, gun, aciklama, durum }
+//   bordrolar/{email_ay}  { personelEmail, donem, netMaas, durum }
+//   personeller/{email}   özlük bilgileri
+// ═══════════════════════════════════════════════════════════════════
+let ozlukAktifSekme = "durum";
+let ozlukPersoneller = [];
+
+const OZLUK_TIP_AD = { "giris": "Giriş", "cikis": "Çıkış", "mola-basla": "Mola başladı", "mola-bitir": "Mola bitti" };
+const OZLUK_TIP_RENK = {
+  "giris": { bg: "#D1FAE5", yazi: "#065F46" }, "cikis": { bg: "#FEE2E2", yazi: "#991B1B" },
+  "mola-basla": { bg: "#FEF3C7", yazi: "#92400E" }, "mola-bitir": { bg: "#DBEAFE", yazi: "#1E40AF" }
+};
+const OZLUK_DURUM_AD = {
+  "iceride": { ad: "İçeride", bg: "#D1FAE5", yazi: "#065F46" },
+  "disarida": { ad: "Dışarıda", bg: "#F1F5F9", yazi: "#64748B" },
+  "molada": { ad: "Molada", bg: "#FEF3C7", yazi: "#92400E" }
+};
+const IZIN_TUR_AD = { yillik: "Yıllık İzin", mazeret: "Mazeret", rapor: "Raporlu", ucretsiz: "Ücretsiz", dogum: "Doğum", olum: "Ölüm", evlilik: "Evlilik" };
+
+function ozlukSaat(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return isNaN(d) ? "—" : d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+}
+function ozlukTarihSaat(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return isNaN(d) ? "—" : d.toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+function ozlukBugun() { return new Date().toISOString().slice(0, 10); }
+function ozlukBuAy() { return new Date().toISOString().slice(0, 7); }
+
+window.ozlukSekme = function(sekme) {
+  ozlukAktifSekme = sekme;
+  document.querySelectorAll(".ozluk-tab").forEach(b => {
+    const aktif = b.dataset.o === sekme;
+    b.style.background = aktif ? "#2D5E3E" : "#fff";
+    b.style.color = aktif ? "#fff" : "#64748B";
+    b.style.borderColor = aktif ? "#2D5E3E" : "var(--c-line,#E2E8F0)";
+  });
+  ozlukYukle();
+};
+
+window.ozlukYukle = async function() {
+  const el = document.getElementById("ozlukIcerik");
+  if (!el) return;
+  el.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>`;
+
+  // Personel listesi (bir kez)
+  if (!ozlukPersoneller.length) {
+    try {
+      const snap = await getDocs(collection(db, "personeller"));
+      ozlukPersoneller = [];
+      snap.forEach(d => ozlukPersoneller.push({ id: d.id, email: d.id, ...d.data() }));
+      ozlukPersoneller = ozlukPersoneller.filter(p => p.durum !== "arsiv" && p.durum !== "pasif");
+      ozlukPersoneller.sort((a, b) => ((a.adSoyad || a.ad || a.email)).localeCompare((b.adSoyad || b.ad || b.email), "tr"));
+    } catch (e) { console.warn("personeller", e); }
+  }
+
+  try {
+    if (ozlukAktifSekme === "durum")   await ozlukDurumCiz();
+    else if (ozlukAktifSekme === "qrlog")   await ozlukQrLogCiz();
+    else if (ozlukAktifSekme === "izin")    await ozlukIzinCiz();
+    else if (ozlukAktifSekme === "puantaj") await ozlukPuantajCiz();
+    else if (ozlukAktifSekme === "bordro")  await ozlukBordroCiz();
+    else if (ozlukAktifSekme === "ozluk")   await ozlukBilgiCiz();
+  } catch (e) {
+    console.error("özlük", e);
+    el.innerHTML = `<div style="text-align:center; padding:40px; color:#DC2626;"><p>Veri yüklenemedi: ${escapeHtml(e.message || "")}</p></div>`;
+  }
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+};
+
+function ozlukPersonelAd(email) {
+  const p = ozlukPersoneller.find(x => (x.email || "").toLowerCase() === (email || "").toLowerCase());
+  return p ? (p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email) : (email || "—");
+}
+
+// ── 1) ANLIK DURUM ─────────────────────────────────────────────────
+async function ozlukDurumCiz() {
+  document.getElementById("ozlukAraclar").innerHTML =
+    `<div style="font-size:12.5px; color:var(--c-muted,#64748B);">Bugün: ${new Date().toLocaleDateString("tr-TR")}</div>`;
+
+  const durumlar = {};
+  try {
+    const snap = await getDocs(collection(db, "personelDurum"));
+    snap.forEach(d => { durumlar[(d.id || "").toLowerCase()] = d.data(); });
+  } catch (e) { console.warn("personelDurum", e); }
+
+  // Bugünün hareketleri
+  const hareket = {};
+  try {
+    const q = query(collection(db, "puantaj"), where("tarih", "==", ozlukBugun()));
+    const snap = await getDocs(q);
+    snap.forEach(d => {
+      const v = d.data();
+      const e = (v.personelEmail || "").toLowerCase();
+      (hareket[e] = hareket[e] || []).push(v);
+    });
+    Object.keys(hareket).forEach(e => hareket[e].sort((a, b) => new Date(a.zaman) - new Date(b.zaman)));
+  } catch (e) { console.warn("puantaj", e); }
+
+  const say = { iceride: 0, molada: 0, disarida: 0 };
+  ozlukPersoneller.forEach(p => {
+    const d = durumlar[(p.email || "").toLowerCase()];
+    const durum = (d && d.durum) || "disarida";
+    say[durum] = (say[durum] || 0) + 1;
+  });
+
+  const kutu = (ad, deger, renk) =>
+    `<div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:12px; padding:12px 14px;">
+       <div style="font-size:11px; font-weight:700; color:var(--c-muted,#64748B); text-transform:uppercase; letter-spacing:.4px;">${ad}</div>
+       <div style="font-size:22px; font-weight:700; color:${renk}; margin-top:3px;">${deger}</div></div>`;
+
+  document.getElementById("ozlukIcerik").innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:14px;">
+      ${kutu("Toplam personel", ozlukPersoneller.length, "#2B3674")}
+      ${kutu("İçeride", say.iceride, "#065F46")}
+      ${kutu("Molada", say.molada, "#92400E")}
+      ${kutu("Dışarıda", say.disarida, "#64748B")}
+    </div>
+    <div style="overflow-x:auto; background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <thead><tr style="background:#F8FAFC; text-align:left;">
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Personel</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Durum</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">İlk Giriş</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Son Hareket</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Bugünkü Hareket</th>
+        </tr></thead>
+        <tbody>
+          ${ozlukPersoneller.map(p => {
+            const e = (p.email || "").toLowerCase();
+            const d = durumlar[e];
+            const durum = (d && d.durum) || "disarida";
+            const bilgi = OZLUK_DURUM_AD[durum] || OZLUK_DURUM_AD.disarida;
+            const h = hareket[e] || [];
+            const ilkGiris = h.find(x => x.tip === "giris");
+            return `<tr style="border-top:1px solid var(--c-line,#E2E8F0);">
+              <td style="padding:11px 14px;">
+                <div style="font-weight:700; color:#1E293B;">${escapeHtml(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email)}</div>
+                <div style="font-size:12px; color:#64748B;">${escapeHtml(p.rol || p.unvan || "")}</div>
+              </td>
+              <td style="padding:11px 14px;"><span style="background:${bilgi.bg}; color:${bilgi.yazi}; padding:3px 10px; border-radius:11px; font-size:11.5px; font-weight:700;">${bilgi.ad}</span></td>
+              <td style="padding:11px 14px; color:#475569;">${ilkGiris ? ozlukSaat(ilkGiris.zaman) : "—"}</td>
+              <td style="padding:11px 14px; color:#475569;">${d && d.sonZaman ? ozlukSaat(d.sonZaman) : "—"}</td>
+              <td style="padding:11px 14px; color:#475569;">${h.length}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ── 2) GİRİŞ-ÇIKIŞ KAYDI (QR LOG) ──────────────────────────────────
+async function ozlukQrLogCiz() {
+  const tarih = window._ozlukQrTarih || ozlukBugun();
+  document.getElementById("ozlukAraclar").innerHTML = `
+    <label style="font-size:12.5px; font-weight:600; color:#64748B;">Tarih:</label>
+    <input type="date" id="ozlukQrTarih" value="${tarih}" onchange="ozlukQrTarihDegis(this.value)"
+      style="padding:8px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:9px; font-family:inherit; font-size:13px;">
+    <button onclick="ozlukQrDisaAktar()" style="padding:8px 13px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600;">
+      <i data-lucide="download" style="width:13px;height:13px;vertical-align:-2px;"></i> CSV</button>`;
+
+  const liste = [];
+  try {
+    const q = query(collection(db, "puantaj"), where("tarih", "==", tarih));
+    const snap = await getDocs(q);
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => new Date(b.zaman) - new Date(a.zaman));
+  } catch (e) { console.warn("puantaj", e); }
+  window._ozlukQrListe = liste;
+
+  document.getElementById("ozlukIcerik").innerHTML = liste.length ? `
+    <div style="overflow-x:auto; background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <thead><tr style="background:#F8FAFC; text-align:left;">
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Saat</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Personel</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Hareket</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Yöntem</th>
+        </tr></thead>
+        <tbody>
+          ${liste.map(k => {
+            const r = OZLUK_TIP_RENK[k.tip] || { bg: "#F1F5F9", yazi: "#64748B" };
+            return `<tr style="border-top:1px solid var(--c-line,#E2E8F0);">
+              <td style="padding:11px 14px; font-weight:700; color:#1E293B;">${ozlukSaat(k.zaman)}</td>
+              <td style="padding:11px 14px; color:#334155;">${escapeHtml(k.personelAd || ozlukPersonelAd(k.personelEmail))}</td>
+              <td style="padding:11px 14px;"><span style="background:${r.bg}; color:${r.yazi}; padding:3px 10px; border-radius:11px; font-size:11.5px; font-weight:700;">${OZLUK_TIP_AD[k.tip] || k.tip}</span></td>
+              <td style="padding:11px 14px; color:#64748B; font-size:12.5px;">${escapeHtml(k.yontem || "—")}${k.konum ? " · konumlu" : ""}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px; font-size:12.5px; color:var(--c-muted,#64748B);">${liste.length} hareket kaydı.</div>`
+  : `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Bu tarihte hareket kaydı yok.</p></div>`;
+}
+window.ozlukQrTarihDegis = function(t) { window._ozlukQrTarih = t; ozlukYukle(); };
+window.ozlukQrDisaAktar = function() {
+  const liste = window._ozlukQrListe || [];
+  if (!liste.length) { if (typeof showToast === "function") showToast("Kayıt yok", "error"); return; }
+  const csv = "\ufeff" + [["Saat", "Personel", "Hareket", "Yöntem"], ...liste.map(k =>
+    [ozlukSaat(k.zaman), k.personelAd || k.personelEmail, OZLUK_TIP_AD[k.tip] || k.tip, k.yontem || ""])]
+    .map(r => r.map(h => `"${String(h == null ? "" : h).replace(/"/g, '""')}"`).join(";")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = "puantaj-" + (window._ozlukQrTarih || ozlukBugun()) + ".csv";
+  a.click(); URL.revokeObjectURL(a.href);
+};
+
+// ── 3) İZİN TALEPLERİ ──────────────────────────────────────────────
+async function ozlukIzinCiz() {
+  const filtre = window._ozlukIzinFiltre || "bekliyor";
+  document.getElementById("ozlukAraclar").innerHTML = `
+    <select id="ozlukIzinFiltre" onchange="ozlukIzinFiltreDegis(this.value)"
+      style="padding:8px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:9px; font-family:inherit; font-size:13px;">
+      <option value="bekliyor" ${filtre === "bekliyor" ? "selected" : ""}>Bekleyenler</option>
+      <option value="onaylandi" ${filtre === "onaylandi" ? "selected" : ""}>Onaylananlar</option>
+      <option value="reddedildi" ${filtre === "reddedildi" ? "selected" : ""}>Reddedilenler</option>
+      <option value="tumu" ${filtre === "tumu" ? "selected" : ""}>Tümü</option>
+    </select>`;
+
+  let liste = [];
+  try {
+    const snap = await getDocs(collection(db, "izinTalepleri"));
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.olusturuldu || "").localeCompare(String(a.olusturuldu || "")));
+  } catch (e) { console.warn("izinTalepleri", e); }
+  if (filtre !== "tumu") liste = liste.filter(x => (x.durum || "bekliyor") === filtre);
+
+  document.getElementById("ozlukIcerik").innerHTML = liste.length ? liste.map(t => {
+    const bekliyor = (t.durum || "bekliyor") === "bekliyor";
+    const rozet = t.durum === "onaylandi" ? `<span style="background:#D1FAE5;color:#065F46;padding:3px 10px;border-radius:11px;font-size:11.5px;font-weight:700;">Onaylandı</span>`
+                : t.durum === "reddedildi" ? `<span style="background:#FEE2E2;color:#991B1B;padding:3px 10px;border-radius:11px;font-size:11.5px;font-weight:700;">Reddedildi</span>`
+                : `<span style="background:#FEF3C7;color:#92400E;padding:3px 10px;border-radius:11px;font-size:11.5px;font-weight:700;">Bekliyor</span>`;
+    return `<div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:13px; padding:14px 16px; margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px;">
+          <div style="font-weight:700; font-size:14.5px; color:#1E293B;">${escapeHtml(t.personelAd || ozlukPersonelAd(t.personelEmail))}</div>
+          <div style="font-size:12.5px; color:#64748B; margin-top:3px;">
+            ${escapeHtml(IZIN_TUR_AD[t.tur] || t.tur || "İzin")}${t.gun ? " · " + escapeHtml(String(t.gun)) + " gün" : ""}
+            ${t.baslangic ? " · " + escapeHtml(t.baslangic) : ""}${t.bitis ? " → " + escapeHtml(t.bitis) : ""}
+          </div>
+          ${t.aciklama ? `<div style="font-size:13px; color:#475569; margin-top:7px; line-height:1.5;">${escapeHtml(t.aciklama)}</div>` : ""}
+          <div style="font-size:11.5px; color:#94A3B8; margin-top:6px;">${ozlukTarihSaat(t.olusturuldu)}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:7px; align-items:flex-end;">
+          ${rozet}
+          ${bekliyor ? `<div style="display:flex; gap:6px;">
+            <button onclick="ozlukIzinKarar('${t.id}','onaylandi')" style="padding:6px 13px; border:none; background:#2D7A2D; color:#fff; border-radius:8px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700;">Onayla</button>
+            <button onclick="ozlukIzinKarar('${t.id}','reddedildi')" style="padding:6px 13px; border:1px solid #FECACA; background:#fff; color:#DC2626; border-radius:8px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700;">Reddet</button>
+          </div>` : ""}
+        </div>
+      </div>
+    </div>`;
+  }).join("") : `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Kayıt bulunamadı.</p></div>`;
+}
+window.ozlukIzinFiltreDegis = function(v) { window._ozlukIzinFiltre = v; ozlukYukle(); };
+window.ozlukIzinKarar = async function(id, karar) {
+  const metin = karar === "onaylandi" ? "onaylanacak" : "reddedilecek";
+  if (!confirm("İzin talebi " + metin + ". Devam edilsin mi?")) return;
+  try {
+    await updateDoc(doc(db, "izinTalepleri", id), {
+      durum: karar, kararTarihi: new Date().toISOString(), kararVeren: (currentUser?.email || "")
+    });
+    if (typeof showToast === "function") showToast(karar === "onaylandi" ? "Onaylandı" : "Reddedildi", "success");
+    ozlukYukle();
+  } catch (e) { alert("İşlem yapılamadı: " + (e.message || e)); }
+};
+
+// ── 4) AYLIK PUANTAJ ───────────────────────────────────────────────
+async function ozlukPuantajCiz() {
+  const ay = window._ozlukPuantajAy || ozlukBuAy();
+  document.getElementById("ozlukAraclar").innerHTML = `
+    <label style="font-size:12.5px; font-weight:600; color:#64748B;">Ay:</label>
+    <input type="month" value="${ay}" onchange="ozlukPuantajAyDegis(this.value)"
+      style="padding:8px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:9px; font-family:inherit; font-size:13px;">`;
+
+  const kayitlar = [];
+  try {
+    const snap = await getDocs(collection(db, "puantaj"));
+    snap.forEach(d => { const v = d.data(); if ((v.tarih || "").startsWith(ay)) kayitlar.push(v); });
+  } catch (e) { console.warn("puantaj", e); }
+
+  // Personel × gün matrisi
+  const ozet = {};
+  kayitlar.forEach(k => {
+    const e = (k.personelEmail || "").toLowerCase();
+    ozet[e] = ozet[e] || { gunler: {}, toplamDakika: 0 };
+    (ozet[e].gunler[k.tarih] = ozet[e].gunler[k.tarih] || []).push(k);
+  });
+  Object.keys(ozet).forEach(e => {
+    Object.keys(ozet[e].gunler).forEach(g => {
+      const h = ozet[e].gunler[g].sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
+      const giris = h.find(x => x.tip === "giris");
+      const cikis = [...h].reverse().find(x => x.tip === "cikis");
+      if (giris && cikis) ozet[e].toplamDakika += Math.max(0, (new Date(cikis.zaman) - new Date(giris.zaman)) / 60000);
+    });
+  });
+
+  document.getElementById("ozlukIcerik").innerHTML = `
+    <div style="overflow-x:auto; background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <thead><tr style="background:#F8FAFC; text-align:left;">
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Personel</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Çalışılan Gün</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Toplam Süre</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Ortalama / Gün</th>
+        </tr></thead>
+        <tbody>
+          ${ozlukPersoneller.map(p => {
+            const e = (p.email || "").toLowerCase();
+            const o = ozet[e] || { gunler: {}, toplamDakika: 0 };
+            const gunSayi = Object.keys(o.gunler).length;
+            const saat = Math.floor(o.toplamDakika / 60), dk = Math.round(o.toplamDakika % 60);
+            const ort = gunSayi ? (o.toplamDakika / gunSayi) : 0;
+            return `<tr style="border-top:1px solid var(--c-line,#E2E8F0);">
+              <td style="padding:11px 14px; font-weight:700; color:#1E293B;">${escapeHtml(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email)}</td>
+              <td style="padding:11px 14px; color:#475569;">${gunSayi}</td>
+              <td style="padding:11px 14px; color:#475569;">${gunSayi ? saat + " sa " + dk + " dk" : "—"}</td>
+              <td style="padding:11px 14px; color:#475569;">${gunSayi ? Math.floor(ort / 60) + " sa " + Math.round(ort % 60) + " dk" : "—"}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px; font-size:12.5px; color:var(--c-muted,#64748B);">Süre, günün ilk girişi ile son çıkışı arasından hesaplanır. Mola düşülmez.</div>`;
+}
+window.ozlukPuantajAyDegis = function(v) { window._ozlukPuantajAy = v; ozlukYukle(); };
+
+// ── 5) BORDRO ──────────────────────────────────────────────────────
+async function ozlukBordroCiz() {
+  const ay = window._ozlukBordroAy || ozlukBuAy();
+  document.getElementById("ozlukAraclar").innerHTML = `
+    <label style="font-size:12.5px; font-weight:600; color:#64748B;">Dönem:</label>
+    <input type="month" value="${ay}" onchange="ozlukBordroAyDegis(this.value)"
+      style="padding:8px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:9px; font-family:inherit; font-size:13px;">`;
+
+  const liste = [];
+  try {
+    const q = query(collection(db, "bordrolar"), where("donem", "==", ay));
+    const snap = await getDocs(q);
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+  } catch (e) { console.warn("bordrolar", e); }
+
+  const harita = {};
+  liste.forEach(b => { harita[(b.personelEmail || "").toLowerCase()] = b; });
+  const toplam = liste.reduce((t, b) => t + (parseFloat(b.netMaas) || 0), 0);
+
+  document.getElementById("ozlukIcerik").innerHTML = `
+    <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:12px; padding:12px 14px; margin-bottom:12px; display:inline-block;">
+      <div style="font-size:11px; font-weight:700; color:#64748B; text-transform:uppercase;">Toplam Net Ödeme</div>
+      <div style="font-size:22px; font-weight:700; color:#2B3674; margin-top:3px;">₺${toplam.toLocaleString("tr-TR")}</div>
+    </div>
+    <div style="overflow-x:auto; background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <thead><tr style="background:#F8FAFC; text-align:left;">
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Personel</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Net Maaş</th>
+          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Durum</th>
+          <th style="padding:11px 14px;"></th>
+        </tr></thead>
+        <tbody>
+          ${ozlukPersoneller.map(p => {
+            const b = harita[(p.email || "").toLowerCase()];
+            const odendi = b && b.durum === "odendi";
+            return `<tr style="border-top:1px solid var(--c-line,#E2E8F0);">
+              <td style="padding:11px 14px; font-weight:700; color:#1E293B;">${escapeHtml(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email)}</td>
+              <td style="padding:11px 14px; color:#475569;">${b && b.netMaas ? "₺" + Number(b.netMaas).toLocaleString("tr-TR") : "—"}</td>
+              <td style="padding:11px 14px;">${b
+                ? (odendi ? `<span style="background:#D1FAE5;color:#065F46;padding:3px 10px;border-radius:11px;font-size:11.5px;font-weight:700;">Ödendi</span>`
+                          : `<span style="background:#FEF3C7;color:#92400E;padding:3px 10px;border-radius:11px;font-size:11.5px;font-weight:700;">Hazır</span>`)
+                : `<span style="background:#F1F5F9;color:#64748B;padding:3px 10px;border-radius:11px;font-size:11.5px;font-weight:700;">Bordro yok</span>`}</td>
+              <td style="padding:11px 14px;">${b && !odendi
+                ? `<button onclick="ozlukBordroOdendi('${escapeHtml(p.email)}','${ay}')" style="padding:6px 12px; border:none; background:#2D5E3E; color:#fff; border-radius:8px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700;">Ödendi işaretle</button>`
+                : ""}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px; font-size:12.5px; color:var(--c-muted,#64748B);">Bordro hesaplaması ZEKY uygulamasından yapılır; burada görüntülenir ve ödeme işaretlenir.</div>`;
+}
+window.ozlukBordroAyDegis = function(v) { window._ozlukBordroAy = v; ozlukYukle(); };
+window.ozlukBordroOdendi = async function(email, ay) {
+  if (!confirm("Bordro ödendi olarak işaretlenecek. Devam edilsin mi?")) return;
+  try {
+    await setDoc(doc(db, "bordrolar", email + "_" + ay), {
+      durum: "odendi", odemeTarihi: new Date().toISOString(), odeyenKullanici: (currentUser?.email || "")
+    }, { merge: true });
+    if (typeof showToast === "function") showToast("Ödendi olarak işaretlendi", "success");
+    ozlukYukle();
+  } catch (e) { alert("İşlem yapılamadı: " + (e.message || e)); }
+};
+
+// ── 6) ÖZLÜK BİLGİLERİ ─────────────────────────────────────────────
+async function ozlukBilgiCiz() {
+  document.getElementById("ozlukAraclar").innerHTML =
+    `<input type="text" id="ozlukAra" placeholder="Personel ara…" oninput="ozlukBilgiCizFiltre()"
+      style="flex:1; min-width:220px; padding:9px 13px; border:1px solid var(--c-line,#E2E8F0); border-radius:9px; font-family:inherit; font-size:13.5px;">`;
+  ozlukBilgiCizFiltre();
+}
+window.ozlukBilgiCizFiltre = function() {
+  const q = (document.getElementById("ozlukAra")?.value || "").toLocaleLowerCase("tr").trim();
+  const liste = ozlukPersoneller.filter(p => !q ||
+    (p.adSoyad || "").toLocaleLowerCase("tr").includes(q) || (p.email || "").includes(q));
+
+  const alan = (etiket, deger) => deger
+    ? `<div><span style="font-size:11.5px; color:#94A3B8;">${etiket}</span><div style="font-size:13px; color:#334155; font-weight:600;">${escapeHtml(String(deger))}</div></div>` : "";
+
+  document.getElementById("ozlukIcerik").innerHTML = liste.length ? `
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px;">
+      ${liste.map(p => `
+        <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px; padding:15px 16px;">
+          <div style="font-weight:700; font-size:15px; color:#1E293B;">${escapeHtml(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email)}</div>
+          <div style="font-size:12.5px; color:#64748B; margin-top:2px;">${escapeHtml(p.email)}</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px;">
+            ${alan("Rol", p.rol)}
+            ${alan("Ünvan", p.unvan)}
+            ${alan("Telefon", p.telefon)}
+            ${alan("TC Kimlik", p.tcKimlik)}
+            ${alan("Doğum Tarihi", p.dogumTarihi)}
+            ${alan("İşe Giriş", p.iseGirisTarihi || p.baslamaTarihi)}
+            ${alan("SGK No", p.sgkNo)}
+            ${alan("IBAN", p.iban)}
+            ${alan("Brüt Maaş", p.brutMaas ? "₺" + Number(p.brutMaas).toLocaleString("tr-TR") : "")}
+            ${alan("Yıllık İzin Hakkı", p.yillikIzinHakki ? p.yillikIzinHakki + " gün" : "")}
+          </div>
+          ${(p.sinifAtamalari || p.siniflar || []).length ? `<div style="margin-top:11px; display:flex; gap:5px; flex-wrap:wrap;">
+            ${(p.sinifAtamalari || p.siniflar || []).map(sn => `<span style="background:#ECFDF5; color:#065F46; padding:3px 9px; border-radius:9px; font-size:11.5px; font-weight:600;">${escapeHtml(sn)}</span>`).join("")}
+          </div>` : ""}
+          <button onclick="ozlukBilgiDuzenle('${escapeHtml(p.email)}')" style="width:100%; margin-top:12px; padding:8px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600;">
+            <i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px;"></i> Özlük Bilgilerini Düzenle</button>
+        </div>`).join("")}
+    </div>` : `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Personel bulunamadı.</p></div>`;
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+};
+
+window.ozlukBilgiDuzenle = function(email) {
+  const p = ozlukPersoneller.find(x => (x.email || "").toLowerCase() === email.toLowerCase());
+  if (!p) return;
+  const eski = document.getElementById("ozlukDuzenleArka");
+  if (eski) eski.remove();
+  const g = (k) => escapeHtml(p[k] || "");
+  const div = document.createElement("div");
+  div.id = "ozlukDuzenleArka";
+  div.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9000; display:flex; align-items:center; justify-content:center; padding:20px;";
+  div.innerHTML = `
+    <div style="background:#fff; border-radius:18px; max-width:480px; width:100%; padding:22px; max-height:88vh; overflow-y:auto;">
+      <h3 style="margin:0 0 4px; font-family:var(--font-display); font-size:18px;">Özlük Bilgileri</h3>
+      <div style="font-size:13px; color:#64748B; margin-bottom:16px;">${escapeHtml(p.adSoyad || p.email)}</div>
+      ${[["ozTelefon","Telefon","telefon"],["ozTc","TC Kimlik","tcKimlik"],["ozDogum","Doğum Tarihi","dogumTarihi"],
+         ["ozIseGiris","İşe Giriş Tarihi","iseGirisTarihi"],["ozSgk","SGK No","sgkNo"],["ozIban","IBAN","iban"],
+         ["ozUnvan","Ünvan","unvan"],["ozBrut","Brüt Maaş","brutMaas"],["ozIzin","Yıllık İzin Hakkı (gün)","yillikIzinHakki"],
+         ["ozAdres","Adres","adres"]].map(([id, etiket, alan]) => `
+        <label style="display:block; font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px;">${etiket}</label>
+        <input id="${id}" value="${g(alan)}" style="width:100%; padding:9px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:9px; font-family:inherit; font-size:13.5px; margin-bottom:11px;">`).join("")}
+      <div style="display:flex; gap:9px; justify-content:flex-end; margin-top:6px;">
+        <button onclick="document.getElementById('ozlukDuzenleArka').remove()" style="padding:10px 18px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:600;">İptal</button>
+        <button id="ozKaydet" style="padding:10px 20px; border:none; background:#2D5E3E; color:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:700;">Kaydet</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  document.getElementById("ozKaydet").onclick = async function() {
+    this.disabled = true; this.textContent = "Kaydediliyor...";
+    const v = (id) => (document.getElementById(id)?.value || "").trim();
+    try {
+      await setDoc(doc(db, "personeller", email.toLowerCase()), {
+        telefon: v("ozTelefon"), tcKimlik: v("ozTc"), dogumTarihi: v("ozDogum"),
+        iseGirisTarihi: v("ozIseGiris"), sgkNo: v("ozSgk"), iban: v("ozIban"),
+        unvan: v("ozUnvan"), brutMaas: v("ozBrut"), yillikIzinHakki: v("ozIzin"),
+        adres: v("ozAdres"),
+        guncelleyen: (currentUser?.email || ""), guncellendi: new Date().toISOString()
+      }, { merge: true });
+      document.getElementById("ozlukDuzenleArka").remove();
+      if (typeof showToast === "function") showToast("Özlük bilgileri güncellendi", "success");
+      ozlukPersoneller = [];
+      ozlukYukle();
+    } catch (e) { alert("Kaydedilemedi: " + (e.message || e)); this.disabled = false; this.textContent = "Kaydet"; }
+  };
+};
 
 function renderTable() {
   const wrap = document.getElementById("ogrenciTableWrap");
@@ -33051,6 +33571,7 @@ const MODUL_HARITASI = {
   ogrencilerM: { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
   velilerM:    { tablar: ["veliler"],    varsayilan: "veliler", ad: "Veliler" },
   siniflarM:   { tablar: ["siniflar"],   varsayilan: "siniflar", ad: "Sınıflar" },
+  ozlukM:      { tablar: ["ozluk"],      varsayilan: "ozluk", ad: "Özlük & Puantaj" },
   basvuru:     { tablar: ["onay"],       varsayilan: "onay", ad: "Başvuru Havuzu" },
   ogrenci:     { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
   personel:    { tablar: ["personel"],   varsayilan: "personel", ad: "Personel" },
@@ -33166,6 +33687,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Onay Bekleyenler sekmesine geçildiyse yükle
     if (tab.dataset.tab === "onay") {
       setTimeout(() => loadOnayBekleyenler(), 50);
+    }
+
+    // Özlük & Puantaj sekmesine geçildiyse yükle
+    if (tab.dataset.tab === "ozluk") {
+      setTimeout(() => { if (typeof ozlukYukle === "function") ozlukYukle(); }, 50);
     }
 
     // Sınıf Yönetimi sekmesine geçildiyse yükle
