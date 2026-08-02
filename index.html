@@ -9707,9 +9707,10 @@ i[data-lucide] svg { display: block; }
               <button class="btn-mini" data-galeri-filter="tumu" onclick="galeriFilter('tumu')" style="background:#9333ea; border:none; color:white;"><i data-lucide="layout-grid"></i> Tümü</button>
               <button class="btn-mini" data-galeri-filter="foto" onclick="galeriFilter('foto')"><i data-lucide="image"></i> Fotoğraflar</button>
               <button class="btn-mini" data-galeri-filter="video" onclick="galeriFilter('video')"><i data-lucide="video"></i> Videolar</button>
+              <button class="btn-mini" data-galeri-filter="album" onclick="galeriFilter('album')"><i data-lucide="folder"></i> Albümler</button>
               <button class="btn-mini" data-galeri-filter="onayBekliyor" onclick="galeriFilter('onayBekliyor')" id="galeriOnayFiltreBtn" ><i data-lucide="clock"></i> Onay Bekleyenler <span id="galeriOnayBekleyenRozet" style="background:#f59e0b; color:white; border-radius:9px; padding:0 6px; font-size:11px; margin-left:2px; display:none;">0</span></button>
             </div>
-            <button class="btn-mini" onclick="galeriGorunumToggle()" id="galeriGorunumBtn" title="Görünümü değiştir"><i data-lucide="rows-3"></i> Albüm görünümü</button>
+            <button class="btn-mini" onclick="galeriGorunumToggle()" id="galeriGorunumBtn" title="Görünümü değiştir" style="display:none;"><i data-lucide="rows-3"></i> Albüm görünümü</button>
           </div>
 
           <!-- Liste (Instagram grid veya albüm görünümü) -->
@@ -13511,10 +13512,16 @@ function sekmeleriRoleGoreAyarla() {
 
   // Öğrenci Ayarları araç grubu (CSV yükleme + Dönem seçici) sadece finans yetkili rollere
   const aracGrubu = document.getElementById("ogrenciAracGrubu");
-  if (aracGrubu) {
-    const finansYetkisi = isAdmin || ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
-    aracGrubu.style.display = finansYetkisi ? "flex" : "none";
-  }
+  const finansYetkisi = isAdmin || ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
+  if (aracGrubu) aracGrubu.style.display = finansYetkisi ? "flex" : "none";
+
+  // Mali filtre çipleri (Ayarlı / Eksik Ayar / Gecikmiş) öğretmene gösterilmez
+  ["chipAyarli", "chipEksik", "chipGecikmis"].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) c.style.display = finansYetkisi ? "" : "none";
+  });
+  document.querySelectorAll('[data-filter="ayarli"],[data-filter="eksik"],[data-filter="gecikmis"]')
+    .forEach(c => { c.style.display = finansYetkisi ? "" : "none"; });
 
   // Faz A: modül barını da role göre yenile
   if (typeof modulBarYenile === "function") setTimeout(modulBarYenile, 30);
@@ -23420,6 +23427,134 @@ window.ozlukBilgiDuzenle = function(email) {
   };
 };
 
+
+// ═══════════════════════════════════════════════════════════════════
+// ÖĞRETMEN / KOORDİNATÖR ÖĞRENCİ GÖRÜNÜMÜ
+// Mali bilgi (aidat, ödeme, borç) GÖSTERİLMEZ.
+// Bunun yerine eğitim işlemlerine hızlı kısayollar sunulur.
+// ═══════════════════════════════════════════════════════════════════
+function finansGorebilir() {
+  if (typeof isAdmin !== "undefined" && isAdmin) return true;
+  return ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
+}
+window.finansGorebilir = finansGorebilir;
+
+function renderTableEgitim(wrap) {
+  if (!filteredList.length) {
+    wrap.innerHTML = '<div class="empty"><h3>Sonuç bulunamadı</h3><p>Arama veya filtreleri değiştirmeyi deneyin.</p></div>';
+    return;
+  }
+  const bas = (ad) => (String(ad || "?")[0] || "?").toLocaleUpperCase("tr");
+  wrap.innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:12px; padding:4px;">
+      ${filteredList.map(o => {
+        const ayar = ayarListesi[o.id] || {};
+        const sinif = (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "";
+        const program = (ayar.aidatAyarlari && ayar.aidatAyarlari.programTuru) || o.programTuru || "";
+        const ad = o.ogrenciAdSoyad || o.adSoyad || "İsimsiz";
+        return `
+        <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px; padding:14px 15px;">
+          <div style="display:flex; align-items:center; gap:11px; cursor:pointer;" onclick="ogrenciEgitimPopup('${o.id}')">
+            <div style="width:42px; height:42px; flex-shrink:0; border-radius:50%; background:#2D5E3E; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px;">${bas(ad)}</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:700; font-size:14.5px; color:#1E293B;">${escapeHtml(ad)}</div>
+              <div style="font-size:12.5px; color:#64748B; margin-top:2px;">${escapeHtml([sinif, program].filter(Boolean).join(" · ") || "—")}</div>
+            </div>
+            <i data-lucide="chevron-right" style="width:17px;height:17px;color:#94A3B8;"></i>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:11px;">
+            ${egitimKisayolBtn(o.id, "Gözlem", "eye", "gozlem")}
+            ${egitimKisayolBtn(o.id, "Gelişim", "sprout", "gelisim")}
+            ${egitimKisayolBtn(o.id, "Rapor", "file-text", "rapor")}
+            ${egitimKisayolBtn(o.id, "Mesaj", "message-square", "mesaj")}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+    <div style="margin-top:12px; font-size:12.5px; color:var(--c-muted,#64748B); padding:0 4px;">${filteredList.length} öğrenci listeleniyor.</div>`;
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+}
+
+function egitimKisayolBtn(id, ad, ikon, islem) {
+  return `<button onclick="event.stopPropagation(); ogrenciEgitimIslem('${id}','${islem}')"
+    style="flex:1; min-width:66px; padding:7px 4px; border:1px solid var(--c-line,#E2E8F0); background:#F8FAFC; border-radius:9px; cursor:pointer; font-family:inherit; font-size:11.5px; font-weight:600; color:#334155;">
+    <i data-lucide="${ikon}" style="width:13px;height:13px;vertical-align:-2px;"></i> ${ad}</button>`;
+}
+
+// Öğrenciye tıklayınca: tüm eğitim işlemleri tek popup'ta
+window.ogrenciEgitimPopup = function(id) {
+  const o = (ogrenciList || []).find(x => x.id === id);
+  if (!o) return;
+  const ayar = ayarListesi[id] || {};
+  const sinif = (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "";
+  const ad = o.ogrenciAdSoyad || o.adSoyad || "İsimsiz";
+  const eski = document.getElementById("egitimPopupArka");
+  if (eski) eski.remove();
+
+  const kisayol = (etiket, aciklama, ikon, islem) => `
+    <button onclick="ogrenciEgitimIslem('${id}','${islem}')"
+      style="display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:12px; cursor:pointer; font-family:inherit; margin-bottom:8px;">
+      <span style="width:38px; height:38px; flex-shrink:0; border-radius:10px; background:#ECFDF5; color:#2D5E3E; display:flex; align-items:center; justify-content:center;"><i data-lucide="${ikon}" style="width:18px;height:18px;"></i></span>
+      <span style="flex:1;">
+        <span style="display:block; font-weight:700; font-size:14px; color:#1E293B;">${etiket}</span>
+        <span style="display:block; font-size:12px; color:#64748B; margin-top:2px;">${aciklama}</span>
+      </span>
+      <i data-lucide="chevron-right" style="width:16px;height:16px;color:#94A3B8;"></i>
+    </button>`;
+
+  const div = document.createElement("div");
+  div.id = "egitimPopupArka";
+  div.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9000; display:flex; align-items:center; justify-content:center; padding:20px;";
+  div.innerHTML = `
+    <div style="background:#fff; border-radius:18px; max-width:440px; width:100%; padding:22px; max-height:88vh; overflow-y:auto;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+        <div style="width:48px; height:48px; border-radius:50%; background:#2D5E3E; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:19px;">${(String(ad)[0] || "?").toLocaleUpperCase("tr")}</div>
+        <div style="flex:1;">
+          <div style="font-family:var(--font-display); font-weight:700; font-size:17px;">${escapeHtml(ad)}</div>
+          <div style="font-size:12.5px; color:#64748B;">${escapeHtml(sinif || "Sınıf atanmamış")}</div>
+        </div>
+        <button onclick="document.getElementById('egitimPopupArka').remove()" style="border:none; background:transparent; font-size:22px; color:#94A3B8; cursor:pointer; line-height:1;">&times;</button>
+      </div>
+      ${kisayol("Gözlem Gir", "Günlük gözlem ve not ekle", "eye", "gozlem")}
+      ${kisayol("Gelişim Değerlendirmesi", "Montessori / İngilizce / Değerler", "sprout", "gelisim")}
+      ${kisayol("Rapor Oluştur", "Dönemlik gelişim raporu", "file-text", "rapor")}
+      ${kisayol("Devamsızlık", "Yoklama ve devam durumu", "clipboard-check", "devamsizlik")}
+      ${kisayol("Galeriye Fotoğraf", "Bu öğrenciyle ilgili medya", "image", "galeri")}
+      ${kisayol("Veliye Mesaj", "Uygulama içi mesajlaşma", "message-square", "mesaj")}
+      <div style="margin-top:14px; padding:11px 13px; background:#F8FAFC; border-radius:10px; font-size:12px; color:#64748B; line-height:1.5;">
+        Mali bilgiler (aidat, ödeme) yalnızca yönetim ve muhasebe tarafından görüntülenebilir.
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+};
+
+// Kısayol tıklaması: ilgili modüle götür
+window.ogrenciEgitimIslem = function(id, islem) {
+  const pop = document.getElementById("egitimPopupArka");
+  if (pop) pop.remove();
+  const o = (ogrenciList || []).find(x => x.id === id);
+  const ad = o ? (o.ogrenciAdSoyad || o.adSoyad || "") : "";
+
+  const git = (modul, mesaj) => {
+    try { modulSec(modul); } catch (e) { console.warn(e); }
+    if (mesaj && typeof showToast === "function") setTimeout(() => showToast(mesaj, "info"), 350);
+  };
+
+  if (islem === "gozlem" || islem === "gelisim" || islem === "rapor") {
+    window._egitimSeciliOgrenci = id;
+    git("egitim", ad ? ad + " için " + (islem === "gozlem" ? "gözlem" : islem === "rapor" ? "rapor" : "gelişim") + " bölümü açıldı" : "");
+  } else if (islem === "devamsizlik") {
+    git("devamsizlik");
+  } else if (islem === "galeri") {
+    git("galeri");
+  } else if (islem === "mesaj") {
+    const veliler = (typeof veliKayitlariCikar === "function" && o) ? veliKayitlariCikar(o) : [];
+    if (veliler.length && typeof veliyeMesajAc === "function") veliyeMesajAc(veliler[0].email);
+    else git("mesaj");
+  }
+};
+
 function renderTable() {
   const wrap = document.getElementById("ogrenciTableWrap");
   const searchVal = document.getElementById("searchInput").value.toLowerCase().trim();
@@ -23501,6 +23636,14 @@ function renderTable() {
     return;
   }
   
+  // ═══ ROL AYRIMI ═══
+  // Öğretmen ve eğitim koordinatörü mali sütunları (aidat/ödeme) GÖRMEZ.
+  // Onlara eğitim odaklı sadeleştirilmiş liste + hızlı işlem kısayolları gösterilir.
+  if (typeof finansGorebilir === "function" && !finansGorebilir()) {
+    renderTableEgitim(wrap);
+    return;
+  }
+
   let html = `
     <table>
       <thead>
@@ -28858,6 +29001,22 @@ window.galeriGorunumToggle = function() {
 };
 
 window.galeriFilter = function(f) {
+  // "Albümler" ayrı bir medya türü değil, GÖRÜNÜM modudur (mobil app ile aynı mantık).
+  // Seçilince albüm görünümüne geçilir; diğer kategorilerde ızgara görünümü kullanılır.
+  if (f === "album") {
+    galeriGorunum = "album";
+    aktifGaleriFilter = "tumu";
+    document.querySelectorAll("[data-galeri-filter]").forEach(b => {
+      const aktif = b.dataset.galeriFilter === "album";
+      b.style.background = aktif ? "#9333ea" : "";
+      b.style.color = aktif ? "white" : "";
+      b.style.border = aktif ? "none" : "";
+    });
+    renderGaleri();
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 50);
+    return;
+  }
+  galeriGorunum = "grid";
   aktifGaleriFilter = f;
   document.querySelectorAll("[data-galeri-filter]").forEach(b => {
     if (b.dataset.galeriFilter === f) {
