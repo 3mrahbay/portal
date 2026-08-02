@@ -15884,10 +15884,12 @@ async function caEgitimYukle() {
   try {
     const snap = await getDoc(doc(db, "ogrenciGelisim", ogr.id));
     const gel = snap.exists() ? snap.data() : {};
+    // 4 disiplin — Orman Okulu dahil (mufredatlar/orman, ZEKY app ile ortak)
     const dlist = [
       { id:"montessori", ad:"Montessori",       renk:"var(--c-green)" },
-      { id:"ingilizce",  ad:"İngilizce",        renk:"var(--c-blue-deep)" },
-      { id:"degerler",   ad:"Değerler Eğitimi", renk:"var(--c-purple-deep)" }
+      { id:"orman",      ad:"Orman Okulu",      renk:"#C2410C" },
+      { id:"degerler",   ad:"Değerler Eğitimi", renk:"var(--c-purple-deep)" },
+      { id:"ingilizce",  ad:"İngilizce",        renk:"var(--c-blue-deep)" }
     ];
     const veriler = [];
     for (const d of dlist) {
@@ -16978,25 +16980,52 @@ async function caHomeEgitimOzetRender() {
     const snap = await getDoc(doc(db, "ogrenciGelisim", ogr.id));
     const gel = snap.exists() ? snap.data() : {};
 
-    // 3 gerçek disiplin
+    // 4 disiplin — Orman Okulu da dahil (mufredatlar/orman, app ile ortak kaynak)
     const dlist = [
-      { id:"montessori", ad:"Montessori",  renk:"var(--c-green-light)" },
-      { id:"ingilizce",  ad:"İngilizce",   renk:"var(--c-blue-deep)" },
-      { id:"degerler",   ad:"Değerler",    renk:"var(--c-purple-deep)" }
+      { id:"montessori", ad:"Montessori",       renk:"#2D7A2D", ekran:"montessori" },
+      { id:"orman",      ad:"Orman Okulu",      renk:"#C2410C", ekran:"orman" },
+      { id:"degerler",   ad:"Değerler Eğitimi", renk:"#C44569", ekran:"degerler" },
+      { id:"ingilizce",  ad:"İngilizce Eğitimi",renk:"#2E5C8A", ekran:"ingilizce" }
     ];
 
-    let satirlar = "";
+    // Seviye etiketi — yüzdeye göre (app ile aynı eşikler)
+    const seviyeAdi = (y) => y >= 75 ? "İleri" : y >= 45 ? "Gelişiyor" : y >= 15 ? "Başlangıç" : "Başlıyor";
+
+    // Halka grafik — mobil app'teki kare kart tasarımı
+    const halka = (yuzde, renk) => {
+      const r = 26, cevre = 2 * Math.PI * r;
+      const dolu = cevre * (Math.max(0, Math.min(100, yuzde)) / 100);
+      return `<svg viewBox="0 0 64 64" style="width:58px; height:58px; display:block; margin:0 auto;">
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--c-line,#E2E8F0)" stroke-width="5"/>
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="${renk}" stroke-width="5" stroke-linecap="round"
+          stroke-dasharray="${dolu.toFixed(1)} ${(cevre - dolu).toFixed(1)}"
+          transform="rotate(-90 32 32)"/>
+      </svg>`;
+    };
+
+    const kartlar = [];
     for (const d of dlist) {
-      const muf = await mufredatYukle(d.id);
-      const kayit = (gel[d.id] && gel[d.id].kayitlar) || {};
-      const gen = disiplinGenelIlerleme(kayit, muf);
-      satirlar += `<div class="ca-edurow"><span class="lbl">${d.ad}</span><span class="track"><span class="fill" style="width:${gen.yuzde}%; background:${d.renk};"></span></span><span class="pct">${gen.yuzde}</span></div>`;
+      let yuzde = 0;
+      try {
+        const muf = await mufredatYukle(d.id);
+        const kayit = (gel[d.id] && gel[d.id].kayitlar) || {};
+        const gen = disiplinGenelIlerleme(kayit, muf);
+        yuzde = gen.yuzde || 0;
+      } catch (e) { console.warn("ilerleme:" + d.id, e?.message); }
+
+      kartlar.push(`
+        <button type="button" onclick="caGo('egitim')"
+          style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:16px; padding:16px 12px 14px; cursor:pointer; font-family:inherit; text-align:center;">
+          <div style="position:relative;">
+            ${halka(yuzde, d.renk)}
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--c-ink);">%${yuzde}</div>
+          </div>
+          <div style="font-weight:700; font-size:13px; color:var(--c-ink); margin-top:10px; line-height:1.3;">${d.ad}</div>
+          <div style="font-size:12px; font-weight:600; color:${d.renk}; margin-top:3px;">${seviyeAdi(yuzde)}</div>
+        </button>`);
     }
 
-    // Orman Okulu — henüz veri sistemi yok, "yakında" satırı
-    satirlar += `<div class="ca-edurow" style="opacity:0.55;"><span class="lbl">Orman</span><span class="track"><span class="fill" style="width:0%; background:#5C8B5A;"></span></span><span class="pct" style="font-size:10px;">yakında</span></div>`;
-
-    el.innerHTML = satirlar;
+    el.innerHTML = `<div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px;">${kartlar.join("")}</div>`;
   } catch (e) {
     console.warn("caHomeEgitimOzetRender:", e?.message);
     el.innerHTML = `<div style="padding:14px; text-align:center; color:var(--c-muted); font-size:12px;">Gelişim verisi yüklenemedi</div>`;
@@ -17856,6 +17885,34 @@ function caProfilYas(dogumTarihi) {
   return Math.floor(ay / 12) + " yaş " + (ay % 12) + " ay";
 }
 
+
+// Veli, çocuğunun fotoğrafını değiştirir (Firestore Rules yalnızca foto
+// alanlarına izin verir; sınıf/aidat gibi alanlara dokunulamaz).
+window.veliCocukFotoDegistir = function(ogrenciId) {
+  if (!ogrenciId) return;
+  fotoSecicAc(async function (dosya) {
+    if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
+    try {
+      const url = await profilFotoYukle(dosya, "ogrenciler", ogrenciId, "ogrenci-foto");
+      if (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci && veliAktifOgrenci.id === ogrenciId) {
+        veliAktifOgrenci.fotoUrl = url;
+      }
+      if (typeof veliOgrenciler !== "undefined") {
+        const x = veliOgrenciler.find(y => y.id === ogrenciId);
+        if (x) x.fotoUrl = url;
+      }
+      document.querySelectorAll('[data-foto-ogrenci="' + ogrenciId + '"]').forEach(el => {
+        el.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+        el.style.padding = "0"; el.style.overflow = "hidden";
+      });
+      if (typeof showToast === "function") showToast("Fotoğraf güncellendi", "success");
+    } catch (e) {
+      console.error("çocuk fotoğrafı", e);
+      alert("Yüklenemedi: " + (e.message || e));
+    }
+  });
+};
+
 function caProfilHTML() {
   const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : {};
   const ogrAd = o.ogrenciAdSoyad || o.adSoyad || [o.ad, o.soyad].filter(Boolean).join(" ") || "Öğrenci";
@@ -17900,8 +17957,14 @@ function caProfilHTML() {
 
       <div class="ca-card" style="text-align:center;">
         <div style="position:relative; width:96px; height:96px; margin:4px auto 12px;">
-          <div class="ca-avatar" style="width:96px; height:96px; font-size:38px; background:var(--c-pink-soft); color:var(--c-ink);">${basHarf}</div>
-          <span class="ca-profilbadge">✓</span>
+          <div class="ca-avatar" data-foto-ogrenci="${o.id || ""}" style="width:96px; height:96px; font-size:38px; background:var(--c-pink-soft); color:var(--c-ink); ${o.fotoUrl ? "padding:0; overflow:hidden;" : ""}">${
+            o.fotoUrl
+              ? `<img src="${escapeHtml(o.fotoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentNode.textContent='${basHarf}';">`
+              : basHarf
+          }</div>
+          <button type="button" onclick="veliCocukFotoDegistir('${o.id || ""}')" title="Fotoğraf ekle / değiştir"
+            style="position:absolute; bottom:0; right:0; width:34px; height:34px; border-radius:50%; background:var(--c-green); color:#fff; border:3px solid #fff; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;">
+            <i data-lucide="camera" style="width:16px;height:16px;"></i></button>
         </div>
         <h2 style="font-size:22px;">${escapeHtml(ogrAd)}</h2>
         <div class="ca-tile-sub" style="margin-top:2px;">${escapeHtml([ogrSinif, ogrYas].filter(Boolean).join(" · ") || "—")}</div>
@@ -18064,6 +18127,7 @@ async function hbEgitimDoldur() {
   try {
     const mufler = {
       montessori: await mufredatYukle("montessori"),
+      orman: await mufredatYukle("orman"),
       ingilizce: await mufredatYukle("ingilizce"),
       degerler: await mufredatYukle("degerler")
     };
@@ -18119,6 +18183,7 @@ async function caAdminEgitimYukle() {
   try {
     const mufler = {
       montessori: await mufredatYukle("montessori"),
+      orman: await mufredatYukle("orman"),
       ingilizce: await mufredatYukle("ingilizce"),
       degerler: await mufredatYukle("degerler")
     };
