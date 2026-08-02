@@ -13405,6 +13405,40 @@ const SEKME_YETKILERI = {
   icerik:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"]
 };
 
+// ═══ VERİ GÖRÜNÜRLÜK KISITLARI (rol bazlı) ═══
+// Veli telefon/e-posta gibi kişisel iletişim bilgileri SADECE
+// Müdür ve Kurucu Müdür tarafından görülebilir. Öğretmen veliyle
+// yalnızca uygulama içi mesajlaşma üzerinden iletişim kurar.
+function iletisimGorebilir() {
+  if (typeof isAdmin !== "undefined" && isAdmin) return true;
+  return ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol);
+}
+
+// Öğretmen sadece kendi atandığı sınıfları görür.
+// Diğer roller (yönetim, koordinatör, muhasebe) tüm sınıfları görür.
+function sinifKisitiVarMi() {
+  if (typeof isAdmin !== "undefined" && isAdmin) return false;
+  return aktifKullaniciRol === "ogretmen" && (aktifKullaniciSiniflari || []).length > 0;
+}
+
+// Bu sınıf giriş yapan kullanıcıya görünür mü?
+function sinifGorunur(sinifAdi) {
+  if (!sinifKisitiVarMi()) return true;
+  const n = (x) => String(x || "").toLocaleLowerCase("tr")
+    .replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u")
+    .replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c").replace(/\s+/g," ").trim();
+  const hedef = n(sinifAdi);
+  return (aktifKullaniciSiniflari || []).some(x => n(x) === hedef);
+}
+
+// Öğrenci listesini role göre süz
+function ogrencileriRoleGoreSuz(liste) {
+  if (!sinifKisitiVarMi()) return liste;
+  return (liste || []).filter(o => sinifGorunur(o.sinif || o.sinifi || ""));
+}
+window.iletisimGorebilir = iletisimGorebilir;
+window.sinifGorunur = sinifGorunur;
+
 // Sol menüdeki modüller hangi role görünsün?
 // Modülün varsayılan sekmesine erişimi olmayan rol modülü hiç görmez.
 function modulErisim(modulKey) {
@@ -22181,6 +22215,9 @@ window.veliListesiYukle = async function() {
     // Arşivlenmiş kayıtlar veli listesine girmesin
     ogrenciler = ogrenciler.filter(o => o.arsiv !== true && o.kayitDurumu !== "arsiv");
 
+    // ROL KISITI: öğretmen sadece kendi sınıfındaki velileri görür
+    ogrenciler = ogrencileriRoleGoreSuz(ogrenciler);
+
     ogrenciler.forEach(o => {
       const ad = o.ogrenciAdSoyad || o.adSoyad || [o.ad, o.soyad].filter(Boolean).join(" ") || "İsimsiz";
       const sinif = o.sinif || o.sinifi || "";
@@ -22306,18 +22343,22 @@ window.veliListesiRender = function() {
                 <div style="font-size:12px; color:#64748B;">${escapeHtml(v.yakinlik || "Veli")}</div>
               </td>
               <td style="padding:11px 14px; font-size:12.5px; color:#475569;">
-                <div>${escapeHtml(v.email)}</div>
-                ${v.telefon ? `<div style="margin-top:2px;">${escapeHtml(v.telefon)}</div>` : ""}
+                ${iletisimGorebilir()
+                  ? `<div>${escapeHtml(v.email)}</div>${v.telefon ? `<div style="margin-top:2px;">${escapeHtml(v.telefon)}</div>` : ""}`
+                  : `<span style="color:#94A3B8; font-size:12px;">Gizli · mesajlaşma ile iletişim</span>`}
               </td>
               <td style="padding:11px 14px; font-size:12.5px; color:#475569;">
                 ${v.cocuklar.map(c => `<div>${escapeHtml(c.ad)}${c.sinif ? ` <span style="color:#94A3B8;">· ${escapeHtml(c.sinif)}</span>` : ""}</div>`).join("")}
               </td>
               <td style="padding:11px 14px;">${rozet(v)}</td>
               <td style="padding:11px 14px; white-space:nowrap;">
-                ${v.telefon ? `<a href="https://wa.me/${escapeHtml((v.telefon || "").replace(/\D/g, ""))}" target="_blank" title="WhatsApp"
-                  style="display:inline-flex; padding:6px; border-radius:8px; background:#F1F5F9; color:#2D7A2D; margin-right:5px;"><i data-lucide="message-circle" style="width:15px;height:15px;"></i></a>` : ""}
-                <a href="mailto:${escapeHtml(v.email)}" title="E-posta"
-                  style="display:inline-flex; padding:6px; border-radius:8px; background:#F1F5F9; color:#2E5C8A;"><i data-lucide="mail" style="width:15px;height:15px;"></i></a>
+                ${iletisimGorebilir() ? `
+                  ${v.telefon ? `<a href="https://wa.me/${escapeHtml((v.telefon || "").replace(/\D/g, ""))}" target="_blank" title="WhatsApp"
+                    style="display:inline-flex; padding:6px; border-radius:8px; background:#F1F5F9; color:#2D7A2D; margin-right:5px;"><i data-lucide="message-circle" style="width:15px;height:15px;"></i></a>` : ""}
+                  <a href="mailto:${escapeHtml(v.email)}" title="E-posta"
+                    style="display:inline-flex; padding:6px; border-radius:8px; background:#F1F5F9; color:#2E5C8A;"><i data-lucide="mail" style="width:15px;height:15px;"></i></a>`
+                : `<button onclick="veliyeMesajAc('${escapeHtml(v.email)}')" title="Mesaj gönder"
+                    style="padding:6px 11px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:8px; cursor:pointer; font-family:inherit; font-size:12px; font-weight:600; color:#2D5E3E;"><i data-lucide="message-square" style="width:13px;height:13px;vertical-align:-2px;"></i> Mesaj</button>`}
               </td>
             </tr>`).join("")}
         </tbody>
@@ -22461,9 +22502,24 @@ window.mukerrerTumunuArsivle = async function() {
   veliListesiYukle();
 };
 
+// Öğretmen veliye sadece uygulama içi mesajlaşma ile ulaşır
+window.veliyeMesajAc = function(email) {
+  try {
+    modulSec("mesaj");
+    setTimeout(() => {
+      if (typeof mesajYeniThreadBaslat === "function") mesajYeniThreadBaslat(email);
+      else if (typeof showToast === "function") showToast("Mesajlaşma bölümünden " + email + " ile görüşebilirsiniz", "info");
+    }, 400);
+  } catch (e) { console.warn("mesaj aç", e); }
+};
+
 window.veliListesiDisaAktar = function() {
   const liste = veliFiltreliListe();
   if (!liste.length) { if (typeof showToast === "function") showToast("Dışa aktarılacak kayıt yok", "error"); return; }
+  if (!iletisimGorebilir()) {
+    if (typeof showToast === "function") showToast("İletişim bilgilerini dışa aktarma yetkiniz yok", "error");
+    return;
+  }
   const basliklar = ["Veli", "Yakınlık", "E-posta", "Telefon", "Çocuklar", "Sınıf", "Erişim"];
   const satirlar = liste.map(v => [
     v.ad, v.yakinlik || "Veli", v.email, v.telefon,
@@ -23370,6 +23426,14 @@ function renderTable() {
   
   // Filtre uygula
   filteredList = ogrenciList.filter(o => {
+    // ===== ROL KISITI =====
+    // Öğretmen SADECE kendi atandığı sınıfın öğrencilerini görür.
+    if (typeof sinifKisitiVarMi === "function" && sinifKisitiVarMi()) {
+      const dv = ayarListesi[o.id];
+      const sn = (dv && dv.kayit && dv.kayit.sinif) || o.sinif || o.sinifi || "";
+      if (!sinifGorunur(sn)) return false;
+    }
+
     // ===== DÖNEM FİLTRESİ (en önemli) =====
     // Sadece seçili dönemde (AKTIF_DONEM) dönem dokümanı olan öğrenciler görünür.
     // Öğrenci yeni döneme "Gelecek Döneme Yenile" ile taşınınca o dönemde belirir.
@@ -33674,10 +33738,26 @@ window.modulSec = function(modulKey, tabTikla = true) {
   // Tek sekmeli modülde alt bar gizle (temiz görünüm)
   if (tabsBar) tabsBar.classList.toggle("tek-sekmeli", gorunurSayisi <= 1);
 
-  // Varsayılan sekmeye programatik geç (mevcut listener tetiklenir)
+  // Varsayılan sekmeye programatik geç.
+  // HATA DÜZELTMESİ: bazı sekme butonları HTML'de inline display:none ile
+  // geliyordu; click() tetiklenmediği için önceki panel ekranda kalıyordu
+  // (ör. Devamsızlık'a basınca Eğitim sayfası görünüyordu).
+  // Artık paneli doğrudan aktive ediyoruz, butonun görünürlüğüne bağlı değil.
   if (tabTikla) {
-    const hedef = document.querySelector(`.tab[data-tab="${tanim.varsayilan}"]`);
-    if (hedef && hedef.style.display !== "none") hedef.click();
+    const hedefAd = tanim.varsayilan;
+    const hedef = document.querySelector(`.tab[data-tab="${hedefAd}"]`);
+    if (hedef && sekmeyeErisim(hedefAd)) {
+      hedef.style.display = "";
+      hedef.click();
+      // Yine de panel açılmadıysa elle aç
+      const panel = document.getElementById("tab-" + hedefAd);
+      if (panel && !panel.classList.contains("active")) {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(pn => pn.classList.remove("active"));
+        hedef.classList.add("active");
+        panel.classList.add("active");
+      }
+    }
   }
 
   // Mesajlaşma modülü: içerik sekmesinde mesajlaşma alt sekmesine atla
@@ -34227,7 +34307,9 @@ function resetModalTab() {
 // Her modal sekmesi (data-modal-tab) hangi rollere görünür?
 const MODAL_SEKME_YETKILERI = {
   ogrenci:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
-  veli:     ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe"], // Öğretmen GÖREMEZ (iletişim bilgisi)
+  // Veli iletişim bilgileri (telefon/e-posta/adres) SADECE Müdür ve Kurucu Müdür.
+  // Öğretmen ve koordinatör veliye yalnızca uygulama içi mesajlaşmadan ulaşır.
+  veli:     ["kurucu_mudur", "mudur"],
   kayit:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   aidat:    ["kurucu_mudur", "mudur", "muhasebe"], // Öğretmen + Eğitim Koord. göremez (mali)
   gelisim:  ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"], // Muhasebe göremez (eğitim)
