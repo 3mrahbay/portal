@@ -19843,6 +19843,156 @@ window.caOdemeFiltre = function(btn, kat) {
   });
 };
 
+
+// ═══════════════════════════════════════════════════════════════════
+// VELİ ÖDEME BİLDİRİMİ — kart içi akış (mobil öncelikli)
+// Ayrı modal yerine kartın içinde açılır; "Tamamını ödedim" varsayılan,
+// kısmi ödemede tutar girilir. odemeBildirimleri koleksiyonuna yazar.
+// ═══════════════════════════════════════════════════════════════════
+window.veliOdemeKartAc = function(ayKod) {
+  // Aynı anda tek kart açık kalsın (mobilde kaydırma kolaylığı)
+  document.querySelectorAll('[id^="odemeAc-"]').forEach(el => {
+    if (el.id !== "odemeAc-" + ayKod) el.style.display = "none";
+  });
+  document.querySelectorAll('[id^="odemeAcBtn-"]').forEach(el => { el.style.display = ""; });
+
+  const alan = document.getElementById("odemeAc-" + ayKod);
+  const btn = document.getElementById("odemeAcBtn-" + ayKod);
+  if (!alan) return;
+  alan.style.display = "block";
+  if (btn) btn.style.display = "none";
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 30);
+  setTimeout(() => alan.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80);
+};
+
+window.veliOdemeKartKapat = function(ayKod) {
+  const alan = document.getElementById("odemeAc-" + ayKod);
+  const btn = document.getElementById("odemeAcBtn-" + ayKod);
+  if (alan) alan.style.display = "none";
+  if (btn) btn.style.display = "";
+};
+
+// Tam / kısmi seçimi
+window.veliOdemeTutarSec = function(ayKod, secim, kalanTutar) {
+  const tamBtn = document.getElementById("odemeTam-" + ayKod);
+  const kismiBtn = document.getElementById("odemeKismi-" + ayKod);
+  const kismiAlan = document.getElementById("odemeKismiAlan-" + ayKod);
+  const tutarInput = document.getElementById("odemeTutar-" + ayKod);
+
+  const aktifStil = (b) => { b.style.background = "var(--c-green)"; b.style.color = "#fff"; b.style.borderColor = "var(--c-green)"; };
+  const pasifStil = (b) => { b.style.background = "#fff"; b.style.color = "var(--c-body)"; b.style.borderColor = "var(--c-line,#E2E8F0)"; };
+
+  if (secim === "tam") {
+    aktifStil(tamBtn); pasifStil(kismiBtn);
+    if (kismiAlan) kismiAlan.style.display = "none";
+    if (tutarInput) tutarInput.value = kalanTutar;
+    window["_odemeSecim_" + ayKod] = "tam";
+  } else {
+    aktifStil(kismiBtn); pasifStil(tamBtn);
+    if (kismiAlan) kismiAlan.style.display = "block";
+    if (tutarInput) { tutarInput.value = ""; setTimeout(() => tutarInput.focus(), 80); }
+    window["_odemeSecim_" + ayKod] = "kismi";
+  }
+};
+
+window.veliOdemeBildirGonder = async function(ayKod, ayAdi, beklenen) {
+  const btn = document.getElementById("odemeGonder-" + ayKod);
+  const secim = window["_odemeSecim_" + ayKod] || "tam";
+  const tutarInput = document.getElementById("odemeTutar-" + ayKod);
+  let tutar = parseFloat(tutarInput && tutarInput.value) || 0;
+
+  if (secim === "tam" && !tutar) tutar = beklenen;
+  if (!tutar || tutar <= 0) { alert("Lütfen ödediğiniz tutarı girin."); if (tutarInput) tutarInput.focus(); return; }
+
+  const tarih = (document.getElementById("odemeTarih-" + ayKod) || {}).value || new Date().toISOString().slice(0, 10);
+  const yontem = (document.getElementById("odemeYontem-" + ayKod) || {}).value || "havale";
+  const not = ((document.getElementById("odemeNot-" + ayKod) || {}).value || "").trim();
+
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  const veliEmail = (currentUser?.email || "").toLowerCase();
+  const veliAd = currentUser?.displayName || veliEmail.split("@")[0];
+
+  if (btn) { btn.disabled = true; btn.textContent = "Gönderiliyor…"; }
+  try {
+    await addDoc(collection(db, "odemeBildirimleri"), {
+      veliEmail, veliAd,
+      ogrenciId: o ? o.id : "", ogrenciAd: o ? (o.ogrenciAdSoyad || "") : "",
+      kalemTipi: "aidat-" + ayKod,
+      kalemAd: ayAdi + " Aidatı",
+      ayKod,
+      beklenenTutar: beklenen,
+      tutar,
+      tamOdeme: (tutar >= beklenen),
+      odemeTarihi: tarih,
+      yontem, not,
+      durum: "bekliyor",
+      olusturuldu: new Date().toISOString()
+    });
+
+    // Muhasebe / yönetime mail
+    try {
+      if (typeof brevoMail === "function") {
+        let okulMail = "eposta@bircicekkoleji.com";
+        try {
+          const ay = await getDoc(doc(db, "ayarlar", "okulBilgileri"));
+          if (ay.exists() && ay.data().eposta) okulMail = ay.data().eposta;
+        } catch (e) {}
+        await brevoMail({
+          to: okulMail,
+          subject: "Ödeme bildirimi · " + (o ? (o.ogrenciAdSoyad || "") : ""),
+          htmlContent: `
+            <div style="font-family:Arial,sans-serif; max-width:520px;">
+              <div style="background:#2D5E3E; color:#fff; padding:18px 22px; border-radius:12px 12px 0 0;">
+                <div style="font-size:12px; opacity:.85; letter-spacing:1px;">PORTAL</div>
+                <div style="font-size:19px; font-weight:700; margin-top:4px;">Veli Ödeme Bildirimi</div>
+              </div>
+              <div style="border:1px solid #E2E8F0; border-top:none; border-radius:0 0 12px 12px; padding:20px;">
+                <div style="background:#F8FAFC; border-radius:10px; padding:14px 16px; color:#334155;">
+                  <div style="margin-bottom:6px;"><b>Veli:</b> ${escapeHtml(veliAd)} (${escapeHtml(veliEmail)})</div>
+                  <div style="margin-bottom:6px;"><b>Öğrenci:</b> ${escapeHtml(o ? (o.ogrenciAdSoyad || "") : "—")}</div>
+                  <div style="margin-bottom:6px;"><b>Dönem:</b> ${escapeHtml(ayAdi)}</div>
+                  <div style="margin-bottom:6px;"><b>Beklenen:</b> ${beklenen.toLocaleString("tr-TR")} ₺</div>
+                  <div style="margin-bottom:6px;"><b>Bildirilen:</b> <span style="color:#065F46; font-weight:700;">${tutar.toLocaleString("tr-TR")} ₺</span>${tutar < beklenen ? " (kısmi)" : " (tam)"}</div>
+                  <div style="margin-bottom:6px;"><b>Tarih:</b> ${escapeHtml(tarih)}</div>
+                  <div><b>Yöntem:</b> ${escapeHtml(yontem)}</div>
+                </div>
+                ${not ? `<div style="background:#FFF7ED; border-radius:10px; padding:13px 16px; margin-top:12px; color:#7C2D12;"><b>Veli notu:</b><br>${escapeHtml(not)}</div>` : ""}
+                <p style="color:#64748B; font-size:14px; margin:18px 0 0;">Muhasebe bölümünden kontrol edip onaylayabilirsiniz.</p>
+              </div>
+            </div>`
+        });
+      }
+    } catch (e) { console.warn("ödeme maili", e?.message); }
+
+    // Muhasebe + yönetime uygulama içi bildirim
+    try {
+      const pSnap = await getDocs(collection(db, "personeller"));
+      const alicilar = [];
+      pSnap.forEach(d => {
+        const v = d.data() || {};
+        if ((v.durum || "aktif") !== "aktif") return;
+        if (["kurucu_mudur", "mudur", "muhasebe"].includes(v.rol)) alicilar.push(d.id);
+      });
+      await Promise.all(alicilar.map(em => addDoc(collection(db, "bildirimler"), {
+        aliciEmail: (em || "").toLowerCase(),
+        tip: "odeme_bildirim",
+        baslik: "Veli ödeme bildirdi",
+        metin: `${veliAd} · ${ayAdi} · ${tutar.toLocaleString("tr-TR")} ₺`,
+        hedefSayfa: "muhasebe",
+        okundu: false,
+        olusturuldu: new Date().toISOString()
+      })));
+    } catch (e) { console.warn("bildirim", e?.message); }
+
+    veliOdemeKartKapat(ayKod);
+    if (typeof showToast === "function") showToast("Ödeme bildiriminiz iletildi", "success");
+  } catch (e) {
+    console.error("ödeme bildirimi", e);
+    alert("Gönderilemedi: " + (e.message || e));
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="send" style="width:15px;height:15px;vertical-align:-2px;"></i> Ödemeyi Bildir'; }
+  }
+};
+
 function veliRenderOdemeler() {
   const el = document.getElementById("veliOdemelerContent");
   if (!el) return;
@@ -19916,27 +20066,104 @@ function veliRenderOdemeler() {
     const odenenTutar = parseFloat(od.odenenTutar) || (v.aidatAyarlari && v.aidatAyarlari.pesinOdeme ? beklenen : 0);
     const odemeTarihi = od.odemeTarihi || "";
     const filtreKat = (durum === "odendi" || durum === "kismi") ? "odendi" : "bekliyor";
+    // ── DURUM GÖRSELİ (Lucide + tema renkleri) ──
     const pmap = {
-      odendi:   ["#DFF4E3", "var(--c-green-deep)", "✓ Ödendi"],
-      kismi:    ["var(--c-yellow-soft)", "#8a6d1a", "◐ Kısmi"],
-      bekliyor: ["var(--c-yellow-soft)", "#8a6d1a", "⏱ Bekliyor"],
-      gecikmis: ["#FFE3E9", "var(--c-pink-deep)", "⚠ Gecikmiş"]
+      odendi:   { bg:"#DFF4E3", yazi:"var(--c-green-deep)", ikon:"circle-check",  ad:"Ödendi",   kenar:"#86efac" },
+      kismi:    { bg:"var(--c-yellow-soft)", yazi:"#8a6d1a", ikon:"circle-dashed", ad:"Kısmi",   kenar:"#fcd34d" },
+      bekliyor: { bg:"var(--c-tint)", yazi:"var(--c-muted)", ikon:"clock",        ad:"Bekliyor", kenar:"transparent" },
+      gecikmis: { bg:"#FFE3E9", yazi:"var(--c-pink-deep)", ikon:"triangle-alert", ad:"Gecikmiş", kenar:"#f9a8d4" }
     };
-    const p = pmap[durum] || ["var(--c-tint)", "var(--c-muted)", durum];
+    const p = pmap[durum] || pmap.bekliyor;
     const odenmisMi = (durum === "odendi");
-    const bildirBtn = odenmisMi ? "" : `
-        <button class="ca-btn ghost" style="padding:7px 12px; font-size:11px; margin-top:10px; width:100%;" onclick="veliOdemeBildirAc('aidat-${ay.ayKod}', '${escapeHtml(ay.tam)} Aidatı', ${beklenen})"><i data-lucide="mail" style="width:14px;height:14px;vertical-align:-2px;"></i> Bu Ödemeyi Bildir</button>`;
-    const gecikmeUyari = (durum === "gecikmis") ? `
-        <div style="background:#FFE3E9; border:1px solid #f9a8d4; border-radius:8px; padding:7px 10px; margin-top:8px; font-size:11px; color:#9d174d;">⚠ Bu ödemede gecikme var. Ödediyseniz lütfen bildirin.</div>` : "";
-    return `<div class="ca-card ca-odeme-karti" data-durum="${filtreKat}" style="padding:13px 16px;">
-      <div class="ca-row" style="justify-content:space-between;">
-        <div><div class="ca-head" style="font-size:14px;">${escapeHtml(ay.tam)}</div>
-          <div class="ca-tile-sub">${beklenen.toLocaleString("tr-TR")} ₺${odenenTutar > 0 ? " · ödenen " + Math.round(odenenTutar).toLocaleString("tr-TR") + " ₺" : ""}${odemeTarihi ? " · " + formatTarih(odemeTarihi) : ""}</div>
+    const kalanTutar = Math.max(0, beklenen - odenenTutar);
+
+    // Bildirim alanı — kart içinde açılır, ayrı ekrana gitmeye gerek yok.
+    // Varsayılan: tamamı ödendi. Kısmi ödeme için tutar girilebilir.
+    const bildirimAlani = odenmisMi ? "" : `
+      <div id="odemeAc-${ay.ayKod}" style="display:none; margin-top:11px; padding-top:11px; border-top:1px dashed var(--c-line,#E2E8F0);">
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <button type="button" onclick="veliOdemeTutarSec('${ay.ayKod}','tam',${kalanTutar})"
+            id="odemeTam-${ay.ayKod}"
+            style="flex:1; padding:11px 8px; border:2px solid var(--c-green); background:var(--c-green); color:#fff; border-radius:11px; cursor:pointer; font-family:inherit; font-weight:700; font-size:12.5px;">
+            <i data-lucide="check-check" style="width:14px;height:14px;vertical-align:-2px;"></i> Tamamını ödedim<br>
+            <span style="font-weight:500; font-size:11px; opacity:.9;">${kalanTutar.toLocaleString("tr-TR")} ₺</span></button>
+          <button type="button" onclick="veliOdemeTutarSec('${ay.ayKod}','kismi',${kalanTutar})"
+            id="odemeKismi-${ay.ayKod}"
+            style="flex:1; padding:11px 8px; border:2px solid var(--c-line,#E2E8F0); background:#fff; color:var(--c-body); border-radius:11px; cursor:pointer; font-family:inherit; font-weight:700; font-size:12.5px;">
+            <i data-lucide="circle-dashed" style="width:14px;height:14px;vertical-align:-2px;"></i> Kısmi ödedim<br>
+            <span style="font-weight:500; font-size:11px; opacity:.75;">tutar gireceğim</span></button>
         </div>
-        <span class="ca-pill" style="background:${p[0]}; color:${p[1]};">${p[2]}</span>
+
+        <div id="odemeKismiAlan-${ay.ayKod}" style="display:none; margin-bottom:10px;">
+          <label style="display:block; font-size:11.5px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Ödediğiniz tutar (₺)</label>
+          <input type="number" id="odemeTutar-${ay.ayKod}" inputmode="numeric" placeholder="Örn: 15000" max="${kalanTutar}"
+            style="width:100%; padding:12px 14px; border:1px solid var(--c-line,#E2E8F0); border-radius:11px; font-family:inherit; font-size:16px; font-weight:700;">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+          <div>
+            <label style="display:block; font-size:11.5px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Ödeme tarihi</label>
+            <input type="date" id="odemeTarih-${ay.ayKod}" value="${new Date().toISOString().slice(0,10)}"
+              style="width:100%; padding:11px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:11px; font-family:inherit; font-size:13.5px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:11.5px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Yöntem</label>
+            <select id="odemeYontem-${ay.ayKod}"
+              style="width:100%; padding:11px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:11px; font-family:inherit; font-size:13.5px;">
+              <option value="havale">Havale / EFT</option>
+              <option value="kart">Kredi Kartı</option>
+              <option value="nakit">Nakit</option>
+              <option value="diger">Diğer</option>
+            </select>
+          </div>
+        </div>
+
+        <textarea id="odemeNot-${ay.ayKod}" rows="2" placeholder="Not (isteğe bağlı) — örn: eşimin hesabından gönderdim"
+          style="width:100%; padding:11px 13px; border:1px solid var(--c-line,#E2E8F0); border-radius:11px; font-family:inherit; font-size:13.5px; resize:vertical; margin-bottom:11px;"></textarea>
+
+        <div style="display:flex; gap:8px;">
+          <button type="button" onclick="veliOdemeKartKapat('${ay.ayKod}')"
+            style="padding:12px 16px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:11px; cursor:pointer; font-family:inherit; font-weight:600; font-size:13.5px;">Vazgeç</button>
+          <button type="button" id="odemeGonder-${ay.ayKod}"
+            onclick="veliOdemeBildirGonder('${ay.ayKod}','${escapeHtml(ay.tam)}',${beklenen})"
+            style="flex:1; padding:12px 16px; border:none; background:var(--c-green); color:#fff; border-radius:11px; cursor:pointer; font-family:inherit; font-weight:700; font-size:13.5px;">
+            <i data-lucide="send" style="width:15px;height:15px;vertical-align:-2px;"></i> Ödemeyi Bildir</button>
+        </div>
+      </div>`;
+
+    const bildirBtn = odenmisMi ? "" : `
+        <button class="ca-btn ghost" id="odemeAcBtn-${ay.ayKod}"
+          style="padding:11px 12px; font-size:13px; margin-top:11px; width:100%; font-weight:700;"
+          onclick="veliOdemeKartAc('${ay.ayKod}')">
+          <i data-lucide="hand-coins" style="width:15px;height:15px;vertical-align:-3px;"></i> Ödeme Bildir</button>`;
+
+    const gecikmeUyari = (durum === "gecikmis") ? `
+        <div style="display:flex; gap:8px; align-items:flex-start; background:#FFE3E9; border-radius:10px; padding:9px 12px; margin-top:9px; font-size:12px; color:#9d174d; line-height:1.5;">
+          <i data-lucide="triangle-alert" style="width:14px;height:14px;flex-shrink:0;margin-top:1px;"></i>
+          <span>Bu ödemede gecikme var. Ödediyseniz lütfen bildirin.</span></div>` : "";
+
+    return `<div class="ca-card ca-odeme-karti" data-durum="${filtreKat}"
+        style="padding:15px 17px; ${p.kenar !== "transparent" ? "border-left:4px solid " + p.kenar + ";" : ""}">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div style="flex:1; min-width:0;">
+          <div class="ca-head" style="font-size:15px;">${escapeHtml(ay.tam)}</div>
+          <div style="display:flex; align-items:baseline; gap:7px; margin-top:5px; flex-wrap:wrap;">
+            <span style="font-size:19px; font-weight:700; color:var(--c-ink);">${beklenen.toLocaleString("tr-TR")} ₺</span>
+            ${odenenTutar > 0 && !odenmisMi
+              ? `<span style="font-size:12px; color:var(--c-green-deep); font-weight:600;">${Math.round(odenenTutar).toLocaleString("tr-TR")} ₺ ödendi</span>` : ""}
+          </div>
+          ${odemeTarihi ? `<div class="ca-tile-sub" style="margin-top:3px;"><i data-lucide="calendar-check" style="width:12px;height:12px;vertical-align:-2px;"></i> ${formatTarih(odemeTarihi)}</div>` : ""}
+        </div>
+        <span class="ca-pill" style="background:${p.bg}; color:${p.yazi}; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;">
+          <i data-lucide="${p.ikon}" style="width:13px;height:13px;"></i> ${p.ad}</span>
       </div>
+      ${(!odenmisMi && odenenTutar > 0) ? `
+        <div style="margin-top:9px; background:var(--c-tint,#F1F5F9); height:6px; border-radius:4px; overflow:hidden;">
+          <div style="background:var(--c-green); height:100%; width:${Math.min(100, Math.round(odenenTutar / beklenen * 100))}%;"></div>
+        </div>` : ""}
       ${gecikmeUyari}
       ${bildirBtn}
+      ${bildirimAlani}
     </div>`;
   }).join("");
 
