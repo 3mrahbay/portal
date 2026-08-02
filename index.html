@@ -9145,8 +9145,8 @@ i[data-lucide] svg { display: block; }
       <div style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#2B3674,#5A6ACF); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;">
         <span style="font-size:20px;">🎓</span>
         <div>
-          <div style="font-family:var(--font-display); font-weight:700; font-size:15px;">Kayıtlı Öğrenciler</div>
-          <div style="font-size:11.5px; opacity:.85;">Okula kabul edilmiş öğrenciler. Yeni başvurular <strong><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> Başvuru Havuzu</strong>'ndadır — onaylanınca buraya taşınır.</div>
+          <div id="ogrenciHeroBaslik" style="font-family:var(--font-display); font-weight:700; font-size:15px;">Kayıtlı Öğrenciler</div>
+          <div id="ogrenciHeroAlt" style="font-size:11.5px; opacity:.85;">Okula kabul edilmiş öğrenciler. Yeni başvurular <strong><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> Başvuru Havuzu</strong>'ndadır — onaylanınca buraya taşınır.</div>
         </div>
       </div>
 
@@ -13423,13 +13423,21 @@ function sinifKisitiVarMi() {
 }
 
 // Bu sınıf giriş yapan kullanıcıya görünür mü?
+// HATA DÜZELTMESİ: atama "Nar Çiçekleri", öğrenci kaydı "Nar Çiçekleri Sınıfı"
+// olarak yazılmış olabiliyordu; düz metin karşılaştırması eşleşmiyor ve
+// öğretmen hiç öğrenci göremiyordu. Artık İKİ TARAF da resmi ada çevrilip
+// karşılaştırılıyor (sinifAdiResmiEsle).
 function sinifGorunur(sinifAdi) {
   if (!sinifKisitiVarMi()) return true;
-  const n = (x) => String(x || "").toLocaleLowerCase("tr")
-    .replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u")
-    .replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c").replace(/\s+/g," ").trim();
-  const hedef = n(sinifAdi);
-  return (aktifKullaniciSiniflari || []).some(x => n(x) === hedef);
+  const resmi = (x) => {
+    const r = (typeof sinifAdiResmiEsle === "function") ? sinifAdiResmiEsle(x) : x;
+    return String(r || "").toLocaleLowerCase("tr")
+      .replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u")
+      .replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c").replace(/\s+/g,"").trim();
+  };
+  const hedef = resmi(sinifAdi);
+  if (!hedef) return false;
+  return (aktifKullaniciSiniflari || []).some(x => resmi(x) === hedef);
 }
 
 // Öğrenci listesini role göre süz
@@ -13514,6 +13522,36 @@ function sekmeleriRoleGoreAyarla() {
   const aracGrubu = document.getElementById("ogrenciAracGrubu");
   const finansYetkisi = isAdmin || ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
   if (aracGrubu) aracGrubu.style.display = finansYetkisi ? "flex" : "none";
+
+  // ÖĞRETMEN SADELEŞTİRMESİ
+  // Durum sekmeleri (Aktif / Başvuru Sürecinde / Yenileme / Arşiv / Tümü)
+  // ve kendi sınıfı dışındaki sınıf çipleri öğretmene gösterilmez.
+  const ogretmenGorunumu = !finansYetkisi && aktifKullaniciRol === "ogretmen";
+  document.querySelectorAll('.durum-sekmeleri')
+    .forEach(el => { el.style.display = ogretmenGorunumu ? "none" : ""; });
+
+  // Sınıf çipleri: öğretmen yalnızca atandığı sınıfın çipini görür
+  document.querySelectorAll('[data-filter]').forEach(c => {
+    const f = c.dataset.filter;
+    if (!["papatyalar", "kardelenler", "nar"].includes(f)) return;
+    if (!ogretmenGorunumu) { c.style.display = ""; return; }
+    const esle = { papatyalar: "Papatyalar Sınıfı", kardelenler: "Kardelenler Sınıfı", nar: "Nar Çiçekleri Sınıfı" };
+    c.style.display = sinifGorunur(esle[f]) ? "" : "none";
+  });
+
+  // Üst bandı role göre yazdır
+  const heroBaslik = document.getElementById("ogrenciHeroBaslik");
+  const heroAlt = document.getElementById("ogrenciHeroAlt");
+  if (heroBaslik && heroAlt) {
+    if (ogretmenGorunumu) {
+      const snf = (aktifKullaniciSiniflari || []).join(", ") || "Sınıfım";
+      heroBaslik.textContent = "Sınıfım · " + snf;
+      heroAlt.textContent = "Öğrencilerinize tıklayarak gözlem, gelişim, rapor ve mesaj işlemlerine hızlıca ulaşabilirsiniz.";
+    } else {
+      heroBaslik.textContent = "Kayıtlı Öğrenciler";
+      heroAlt.innerHTML = "Okula kabul edilmiş öğrenciler. Yeni başvurular <b>Başvuru Havuzu</b>'ndadır — onaylanınca buraya taşınır.";
+    }
+  }
 
   // Mali filtre çipleri (Ayarlı / Eksik Ayar / Gecikmiş) öğretmene gösterilmez
   ["chipAyarli", "chipEksik", "chipGecikmis"].forEach(id => {
@@ -13746,7 +13784,28 @@ window.personelRolDegisti = function() {
 function personelSinifChiplariDoldur() {
   const kapsayici = document.getElementById("personelSinifChiplar");
   if (!kapsayici) return;
-  const siniflar = tumSiniflariGetir();
+  // TEK KAYNAK: siniflar koleksiyonu (Sınıf Yönetimi ekranından yönetilir).
+  // Eskiden öğrenci kayıtlarından türetiliyordu; bu yüzden "Montessori 2" gibi
+  // artık kullanılmayan adlar listede kalıyordu.
+  let siniflar = (typeof sinifYonetimListesi !== "undefined" && sinifYonetimListesi.length)
+    ? sinifYonetimListesi.filter(x => x.durum !== "pasif").map(x => x.ad)
+    : [];
+  if (!siniflar.length) {
+    // Sınıf kaydı henüz yüklenmediyse öğrencilerden türet, ama resmi ada çevir
+    const ham = tumSiniflariGetir();
+    siniflar = [...new Set(ham.map(x => (typeof sinifAdiResmiEsle === "function") ? sinifAdiResmiEsle(x) : x))];
+    // Arka planda sınıf listesini yükle, sonra chip'leri tazele
+    if (typeof sinifYonetimYukle === "function" && !window._sinifChipYukleniyor) {
+      window._sinifChipYukleniyor = true;
+      getDocs(collection(db, "siniflar")).then(snap => {
+        sinifYonetimListesi = [];
+        snap.forEach(d => sinifYonetimListesi.push({ id: d.id, ...d.data() }));
+        sinifYonetimListesi.sort((a, b) => (a.sira || 99) - (b.sira || 99));
+        window._sinifChipYukleniyor = false;
+        personelSinifChiplariDoldur();
+      }).catch(() => { window._sinifChipYukleniyor = false; });
+    }
+  }
   if (siniflar.length === 0) {
     kapsayici.innerHTML = `<div style="font-size:12px; color:#9ca3af;">Henüz sınıf tanımlı değil. Öğrencilere sınıf atandıkça burada görünecek.</div>`;
     return;
