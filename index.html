@@ -13375,17 +13375,70 @@ function personelYonetebilirMi() {
 
 // ===== FAZ 1c: ROL BAZLI SEKME GÖRÜNÜRLÜĞÜ =====
 // Her sekme (data-tab) hangi rollere görünür?
+// 5 ROL MİMARİSİ — ZEKY app ile aynı yetki dağılımı.
+// Kurucu Müdür ve Müdür her yeri görür.
+// Eğitim Koordinatörü: eğitim + iletişim, finans YOK, özlük YOK.
+// Muhasebe: öğrenci temel bilgisi + finans + özlük, eğitim YOK.
+// Öğretmen/Branş: kendi sınıfı + eğitim + iletişim, finans ve İK YOK.
 const SEKME_YETKILERI = {
-  ogrenciler: ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
-  veliler:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
-  siniflar:   ["kurucu_mudur", "mudur", "egitim_koordinator"],
-  ozluk:      ["kurucu_mudur", "mudur", "muhasebe"],
-  onay:       ["kurucu_mudur", "mudur"],
-  finans:     ["kurucu_mudur", "mudur", "muhasebe"],
-  egitim:     ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
-  icerik:     ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
-  personel:   ["kurucu_mudur", "mudur"]
+  // Ana sayfa herkese açık
+  anasayfa:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  // Öğrenci & Okul
+  ogrenciler:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  veliler:     ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  siniflar:    ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  onay:        ["kurucu_mudur", "mudur"],
+  // Kurum
+  personel:    ["kurucu_mudur", "mudur"],
+  ozluk:       ["kurucu_mudur", "mudur", "muhasebe"],
+  egitim:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  finans:      ["kurucu_mudur", "mudur", "muhasebe"],
+  denetim:     ["kurucu_mudur", "mudur"],
+  // İletişim & İşleyiş
+  devamsizlik: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  mesajlasma:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  gelisim:     ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  icerik:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"]
 };
+
+// Sol menüdeki modüller hangi role görünsün?
+// Modülün varsayılan sekmesine erişimi olmayan rol modülü hiç görmez.
+function modulErisim(modulKey) {
+  if (typeof isAdmin !== "undefined" && isAdmin) return true;
+  const tanim = MODUL_HARITASI[modulKey];
+  if (!tanim) return true;
+  // Modülün sekmelerinden en az birine erişim varsa modül görünür
+  return (tanim.tablar || []).some(t => sekmeyeErisim(t));
+}
+
+// Sol menüyü role göre filtrele; boş kalan kategori başlığını da gizle
+function solMenuyuRoleGoreAyarla() {
+  document.querySelectorAll(".side-item").forEach(btn => {
+    const mk = btn.dataset.modul;
+    if (!mk) return;
+    btn.style.display = modulErisim(mk) ? "" : "none";
+  });
+  // Kategori başlıkları: altındaki grupta görünür öğe yoksa başlığı da gizle
+  document.querySelectorAll(".side-kategori").forEach(baslik => {
+    const grup = baslik.nextElementSibling;
+    if (!grup || !grup.classList.contains("side-grup")) return;
+    const gorunur = [...grup.querySelectorAll(".side-item")]
+      .some(b => b.style.display !== "none");
+    baslik.style.display = gorunur ? "" : "none";
+    grup.style.display = gorunur ? "" : "none";
+  });
+  // Aktif modül artık görünmüyorsa ilk görünür modüle geç
+  if (!modulErisim(aktifModul)) {
+    const ilk = [...document.querySelectorAll(".side-item")]
+      .find(b => b.style.display !== "none" && b.dataset.modul);
+    if (ilk) modulSec(ilk.dataset.modul);
+  }
+}
+window.solMenuyuRoleGoreAyarla = solMenuyuRoleGoreAyarla;
 
 // Bir sekmeye erişim var mı?
 function sekmeyeErisim(tabAdi) {
@@ -13436,6 +13489,7 @@ function sekmeleriRoleGoreAyarla() {
 // (Geriye uyumluluk) Personel sekmesinin görünürlüğü artık sekmeleriRoleGoreAyarla içinde
 function personelSekmeGorunurluk() {
   sekmeleriRoleGoreAyarla();
+  try { solMenuyuRoleGoreAyarla(); } catch (e) { console.warn("sol menü rol filtresi", e); }
 }
 
 // Tüm öğrencilerin sınıflarından benzersiz sınıf listesi çıkar
@@ -14970,6 +15024,7 @@ onAuthStateChanged(auth, async (user) => {
 
       // Sekmeleri role göre göster/gizle (Faz 1c)
       try { sekmeleriRoleGoreAyarla(); } catch(e) { console.warn(e); }
+      try { solMenuyuRoleGoreAyarla(); } catch(e) { console.warn(e); }
 
       // Yeni Tasarım ana sayfasını (rol bazlı) render et — varsayılan açılış sekmesi
       try { renderAdminHome(); } catch(e) { console.warn("renderAdminHome:", e); }
@@ -33592,6 +33647,11 @@ let aktifModul = "ozet";
 window.modulSec = function(modulKey, tabTikla = true) {
   const tanim = MODUL_HARITASI[modulKey];
   if (!tanim) return;
+  // YETKİ KONTROLÜ: rolü olmayan modülü açamaz (adres/konsol denemesi dahil)
+  if (typeof modulErisim === "function" && !modulErisim(modulKey)) {
+    if (typeof showToast === "function") showToast("Bu bölüme erişim yetkiniz yok", "error");
+    return;
+  }
   aktifModul = modulKey;
 
   // Modül butonlarının aktifliği
