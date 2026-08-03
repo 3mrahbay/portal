@@ -18685,7 +18685,9 @@ async function caProfilFotoSeridiDoldur(ogrenciId) {
     snap.forEach(d => {
       const g = d.data() || {};
       if (g.dosyaTipi !== "foto" || !g.bunnyUrl) return;
-      if (g.hedefTur === "ogrenci" && g.hedefOgrenciId === ogrenciId) foto.push(g);
+      // Öğrenci id'si hedefDeger alanında tutulur (hedefOgrenciId yazılmıyor)
+      const gOgrId = g.hedefOgrenciId || g.hedefDeger;
+      if (g.hedefTur === "ogrenci" && gOgrId === ogrenciId) foto.push(g);
     });
     if (!foto.length) { serit.style.display = "none"; return; }
 
@@ -18729,7 +18731,9 @@ window.veliCocukFotoGaleridenSec = async function(ogrenciId) {
     snap.forEach(d => {
       const g = d.data() || {};
       if (g.dosyaTipi !== "foto" || !g.bunnyUrl) return;
-      if (g.hedefTur === "ogrenci" && g.hedefOgrenciId === ogrenciId) foto.push(g);
+      // Öğrenci id'si hedefDeger alanında tutulur (hedefOgrenciId yazılmıyor)
+      const gOgrId = g.hedefOgrenciId || g.hedefDeger;
+      if (g.hedefTur === "ogrenci" && gOgrId === ogrenciId) foto.push(g);
     });
     if (!foto.length) {
       alert("Bu çocuğa özel yüklenmiş fotoğraf bulunamadı.\n\nGaleriye 'Öğrenci' hedefiyle fotoğraf yüklendiğinde buradan seçebilirsiniz.");
@@ -31969,6 +31973,8 @@ window.galeriYukle = async function() {
         etkinlikTarih,
         aciklama,
         hedefTur, hedefDeger, hedefOgrenciAd,
+        // Öğrenci hedefliyse id'yi ayrıca yaz — okuma tarafı iki adı da destekler
+        hedefOgrenciId: (hedefTur === "ogrenci" ? hedefDeger : ""),
         yukleyen: currentUser.email,
         yuklemeZamani: new Date().toISOString(),
         dosyaBoyutu: f.size,
@@ -32643,7 +32649,7 @@ async function veliRenderGaleri() {
       if (!g.bunnyUrl) return false;
       if (g.hedefTur === "tumOkul") return true;
       if (g.hedefTur === "sinif")   return n(g.hedefDeger) === n(sinifim);
-      if (g.hedefTur === "ogrenci") return o && g.hedefOgrenciId === o.id;
+      if (g.hedefTur === "ogrenci") return o && (g.hedefOgrenciId || g.hedefDeger) === o.id;
       return false;
     });
 
