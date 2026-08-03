@@ -16622,12 +16622,17 @@ function oryOgrenciKapsamda(o, program) {
   return ogrBas >= erken && ogrBas <= bitis;
 }
 
-async function oryProgramYukle() {
-  if (ORY_PROGRAM) return ORY_PROGRAM;
+async function oryProgramYukle(tazele) {
+  // ÖNEMLİ: boş sonuç ÖNBELLEĞE ALINMAZ. Aksi halde yönetim programı
+  // kaydetmeden önce açılan sekme, kayıttan sonra da boş görmeye devam ediyordu.
+  if (ORY_PROGRAM && ORY_PROGRAM.oryantasyonSinifi && !tazele) return ORY_PROGRAM;
   try {
     const d = await getDoc(doc(db, "ayarlar", "oryantasyon"));
     ORY_PROGRAM = d.exists() ? (d.data() || {}) : {};
-  } catch (e) { ORY_PROGRAM = {}; }
+  } catch (e) {
+    console.warn("[Oryantasyon] ayarlar/oryantasyon okunamadı:", e?.message);
+    ORY_PROGRAM = {};
+  }
   return ORY_PROGRAM;
 }
 
@@ -16636,9 +16641,19 @@ async function caHomeOryantasyonDoldur() {
   const bant = document.getElementById("caHomeOryBant");
   if (!bant) return;
   try {
-    const program = await oryProgramYukle();
+    const program = await oryProgramYukle(true);
     const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
-    if (!o || !oryOgrenciKapsamda(o, program)) { bant.style.display = "none"; return; }
+    const kapsamda = o ? oryOgrenciKapsamda(o, program) : false;
+
+    // Teşhis: bant çıkmadığında nedenini konsolda görebilmek için
+    console.log("[Oryantasyon]",
+      "öğrenci:", o ? (o.ogrenciAdSoyad || o.id) : "(yok)",
+      "| sınıfı:", o ? (o.sinif || o.sinifi || "(boş)") : "-",
+      "| program sınıfı:", program.oryantasyonSinifi || "(seçilmemiş)",
+      "| başlangıç:", program.baslangicTarihi || "(boş)",
+      "| sonuç:", kapsamda ? "GÖSTERİLECEK" : "gizlenecek");
+
+    if (!kapsamda) { bant.style.display = "none"; return; }
 
     const haftalar = program.haftalar || [];
     const toplam = haftalar.length || 4;
