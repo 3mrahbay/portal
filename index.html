@@ -3407,6 +3407,32 @@ i[data-lucide] svg { display: block; }
 
 /* ── MOBİL DÜZELTMELERİ ── */
 @media (max-width: 640px) {
+  /* ANA BAŞLIKLAR — masaüstü punto telefonda taşıyordu */
+  .ca-hero-row { grid-template-columns: 1fr !important; }
+  .ca-dash { grid-template-columns: 1fr !important; }
+  .ca-card-green h2 { font-size: 17px !important; }
+  .ca-page h2 { font-size: 16px !important; line-height: 1.3 !important; }
+  .ca-head { font-size: 14px !important; }
+  .ca-sectionhead { flex-wrap: wrap; gap: 6px; }
+
+  /* Üst bar: okul adı + kullanıcı kartı sığmıyordu */
+  .topbar, .ust-bar { flex-wrap: wrap !important; gap: 8px !important; padding: 10px 12px !important; }
+  .topbar h1, .marka-ad { font-size: 15px !important; line-height: 1.25 !important; }
+  .kullanici-kart, .user-chip { padding: 6px 10px !important; font-size: 12px !important; }
+
+  /* Modül hero başlıkları (Finansal Yönetim, Denetim vb.) */
+  .modul-hero h2, .panel-hero h2 { font-size: 19px !important; line-height: 1.3 !important; }
+  .modul-hero, .panel-hero { padding: 16px 16px !important; }
+
+  /* Sekme çubuğu yatay kaydırılsın, sarmalasın */
+  .tabs { overflow-x: auto !important; -webkit-overflow-scrolling: touch; flex-wrap: nowrap !important; }
+  .tabs .tab { flex: 0 0 auto !important; white-space: nowrap; }
+
+  /* Uzun kart başlıkları kelime ortasından bölünmesin */
+  h1, h2, h3, .ca-head { overflow-wrap: anywhere; }
+
+  /* Butonlar tam genişlik */
+  .btn-primary, .btn-mini { max-width: 100%; }
   /* Finans özet kartı: masaüstü ölçüleri telefonda taşıyordu */
   .finans-ozet-hero { padding: 18px 16px !important; border-radius: 16px !important; }
   .finans-ozet-baslik { font-size: 20px !important; margin: 6px 0 3px !important; }
@@ -17306,6 +17332,17 @@ async function caHomeOdemeDoldur() {
   const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
   if (!o) { gizle(); return; }
 
+  // Dönem toplamı içindeki ilerlemeyi gösteren çubuk (tutar yazılmaz)
+  const ilerlemeCubugu = (yuzde, renk) => `
+    <div style="margin-top:14px;">
+      <div style="height:8px; background:var(--c-tint,#EEF2F7); border-radius:5px; overflow:hidden;">
+        <div style="height:100%; width:${Math.max(2, Math.min(100, yuzde))}%; background:${renk}; border-radius:5px; transition:width .4s;"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--c-muted); margin-top:5px;">
+        <span>Dönem başı</span><span>Dönem sonu</span>
+      </div>
+    </div>`;
+
   try {
     const donem = (typeof AKTIF_DONEM !== "undefined" && AKTIF_DONEM) ? AKTIF_DONEM : "2026-2027";
     const d = await getDoc(doc(db, "ogrenciler", o.id, "donemler", donem));
@@ -17314,40 +17351,42 @@ async function caHomeOdemeDoldur() {
     const v = d.data() || {};
     const aylik = v.aylikOdemeler || {};
     const ayarlar = v.aidatAyarlari || {};
-
-    // Bu ay + geçmiş aylardan ödenmemiş EN ESKİ olanı bul
-    const bugun = new Date();
-    const buAyKod = bugun.getFullYear() + "-" + String(bugun.getMonth() + 1).padStart(2, "0");
     const AY_ADLARI = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
 
-    const adaylar = Object.keys(aylik)
-      .filter(k => /^\d{4}-\d{2}$/.test(k))
-      .filter(k => k <= buAyKod)
-      .filter(k => { const x = aylik[k] || {}; return x.odendi !== true; })
-      .sort();
+    // Dönem geneli: kaç ay var, kaçı tamamlandı (çubuk için)
+    const tumAylar = Object.keys(aylik).filter(k => /^\d{4}-\d{2}$/.test(k)).sort();
+    if (!tumAylar.length) { gizle(); return; }
+    const odenmisAy = tumAylar.filter(k => (aylik[k] || {}).odendi === true).length;
+    const ilerlemeYuzde = Math.round(odenmisAy / tumAylar.length * 100);
 
-    // Ödenmemiş ay yoksa: "güncel" durumunu göster
-    if (!adaylar.length) {
-      const toplamAy = Object.keys(aylik).filter(k => /^\d{4}-\d{2}$/.test(k)).length;
-      if (!toplamAy) { gizle(); return; }   // hiç ödeme planı yok
+    const bugun = new Date();
+    const buAyKod = bugun.getFullYear() + "-" + String(bugun.getMonth() + 1).padStart(2, "0");
+
+    // GEÇMİŞ ÖDEME ÖNCELİKLİ: en eski ödenmemiş ay önce gelir
+    const bekleyenler = tumAylar
+      .filter(k => k <= buAyKod)
+      .filter(k => (aylik[k] || {}).odendi !== true);
+
+    goster();
+
+    // ── ÖDENECEK BİR ŞEY YOK ──
+    if (!bekleyenler.length) {
       kart.innerHTML = `
-        <div class="ca-row" style="justify-content:space-between;">
-          <span class="ca-pill" style="background:#2D7A2D; color:#fff;"><i data-lucide="circle-check" style="width:13px;height:13px;vertical-align:-2px;"></i> Ödemeler</span>
-          <span class="ca-pill" style="background:#fff; color:#2D7A2D;">Güncel</span>
-        </div>
-        <div class="ca-row" style="justify-content:space-between; margin-top:12px; align-items:flex-end;">
-          <div>
-            <div class="ca-head" style="font-size:18px;">Bekleyen ödemeniz yok</div>
-            <div class="ca-tile-sub">Tüm aidatlarınız güncel</div>
+        <div style="display:flex; align-items:center; gap:13px;">
+          <span style="width:44px; height:44px; flex-shrink:0; border-radius:14px; background:#DFF4E3; color:#2D7A2D; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="circle-check" style="width:22px;height:22px;"></i></span>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; font-size:15px; color:var(--c-ink);">Bekleyen ödemeniz yok</div>
+            <div style="font-size:12.5px; color:var(--c-muted); margin-top:2px;">Bugüne kadarki tüm ödemeleriniz tamamlandı</div>
           </div>
-          <button class="ca-btn ghost" onclick="veliSwitchTab('odemeler')">Detay</button>
-        </div>`;
-      goster();
+        </div>
+        ${ilerlemeCubugu(ilerlemeYuzde, "#2D7A2D")}`;
       if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
       return;
     }
 
-    const ayKod = adaylar[0];
+    // ── ÖDENECEK VAR: en eski bekleyen ──
+    const ayKod = bekleyenler[0];
     const kayit = aylik[ayKod] || {};
     const beklenen = Number(kayit.beklenenTutar || ayarlar.aylikAidat || 0);
     const odenen = Number(kayit.odenenTutar || 0);
@@ -17359,24 +17398,36 @@ async function caHomeOdemeDoldur() {
     const gecikmis = ayKod < buAyKod;
     const kismi = odenen > 0 && odenen < beklenen;
     const sonGun = ayarlar.sonOdemeGunu || 25;
+    const digerBekleyen = bekleyenler.length - 1;
 
-    const durum = gecikmis ? { ad:"Gecikmiş", bg:"#fff", yazi:"#C44569", ana:"#C44569" }
-                : kismi    ? { ad:"Kısmi",    bg:"#fff", yazi:"#8a6d1a", ana:"#B8860B" }
-                : { ad:"Bekliyor", bg:"#fff", yazi:"var(--c-purple-deep)", ana:"var(--c-purple-deep)" };
+    const t = gecikmis ? { ad:"Gecikmiş", ana:"#C44569", bg:"#FDEEF3", ikon:"triangle-alert" }
+            : kismi    ? { ad:"Kısmi ödendi", ana:"#B8860B", bg:"#FDF6E3", ikon:"circle-dashed" }
+            : { ad:"Bekliyor", ana:"var(--c-purple-deep)", bg:"#F3EFFC", ikon:"credit-card" };
 
     kart.innerHTML = `
-      <div class="ca-row" style="justify-content:space-between;">
-        <span class="ca-pill" style="background:${durum.ana}; color:#fff;"><i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i> ${gecikmis ? "Gecikmiş ödeme" : "Bu ay ödemesi"}</span>
-        <span class="ca-pill" style="background:${durum.bg}; color:${durum.yazi};">${durum.ad}</span>
-      </div>
-      <div class="ca-row" style="justify-content:space-between; margin-top:12px; align-items:flex-end;">
-        <div>
-          <div class="ca-head" style="font-size:22px;">₺${kalan.toLocaleString("tr-TR")}</div>
-          <div class="ca-tile-sub">${escapeHtml(ayAdi)} · son ödeme ${sonGun} ${AY_ADLARI[parseInt(ay,10)-1]}${kismi ? " · " + odenen.toLocaleString("tr-TR") + " ₺ ödendi" : ""}</div>
+      <div style="display:flex; align-items:flex-start; gap:13px;">
+        <span style="width:44px; height:44px; flex-shrink:0; border-radius:14px; background:${t.bg}; color:${t.ana}; display:flex; align-items:center; justify-content:center;">
+          <i data-lucide="${t.ikon}" style="width:22px;height:22px;"></i></span>
+        <div style="flex:1; min-width:0;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-weight:700; font-size:15px; color:var(--c-ink);">${escapeHtml(ayAdi)}</span>
+            <span style="background:${t.bg}; color:${t.ana}; padding:2px 9px; border-radius:10px; font-size:11px; font-weight:700;">${t.ad}</span>
+          </div>
+          <div style="font-size:19px; font-weight:700; color:${t.ana}; margin-top:5px;">₺${kalan.toLocaleString("tr-TR")}</div>
+          <div style="font-size:12px; color:var(--c-muted); margin-top:3px;">
+            Son ödeme ${sonGun} ${AY_ADLARI[parseInt(ay,10)-1]}${kismi ? " · " + odenen.toLocaleString("tr-TR") + " ₺ ödendi" : ""}
+          </div>
+          ${gecikmis && digerBekleyen > 0
+            ? `<div style="display:flex; gap:7px; align-items:flex-start; background:#FDEEF3; border-radius:10px; padding:9px 11px; margin-top:9px;">
+                 <i data-lucide="info" style="width:13px;height:13px;color:#C44569;flex-shrink:0;margin-top:1px;"></i>
+                 <span style="font-size:12px; color:#9d174d; line-height:1.5;">Önce bu ödemeyi tamamlayın. ${digerBekleyen} ödeme daha sırada.</span>
+               </div>` : ""}
         </div>
-        <button class="ca-btn" style="background:${durum.ana};" onclick="caOdemeHizliBildir('${ayKod}','${escapeHtml(ayAdi)}',${beklenen},${kalan})">Ödeme Bildir</button>
-      </div>`;
-    goster();
+      </div>
+      <button onclick="caOdemeHizliBildir('${ayKod}','${escapeHtml(ayAdi)}',${beklenen},${kalan})"
+        style="width:100%; margin-top:13px; padding:13px; border:none; background:${t.ana}; color:#fff; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:700; font-size:14px;">
+        <i data-lucide="hand-coins" style="width:16px;height:16px;vertical-align:-3px;"></i> Ödeme Bildir</button>
+      ${ilerlemeCubugu(ilerlemeYuzde, t.ana)}`;
     if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
   } catch (e) {
     // Okuma izni yoksa veya hata varsa yanlış bilgi göstermek yerine gizle
@@ -17456,7 +17507,16 @@ function caHomeHTML() {
           <div class="ca-status"><i data-lucide="sprout" style="width:13px;height:13px;vertical-align:-2px;"></i> Profili ve eğitim gelişimini görmek için dokun</div>
         </div>
 
-
+        <!-- BUGÜNÜN GÜNLÜĞÜ — üst sıraya alındı -->
+        <div class="ca-card" style="display:flex; flex-direction:column;">
+          <div class="ca-sectionhead" style="margin-bottom:8px;">
+            <h3 class="ca-head" style="font-size:15px;">Bugünün günlüğü</h3>
+            <button class="ca-link" onclick="caGo('gunluk')">Tümü →</button>
+          </div>
+          <div id="caHomeGunluk" style="flex:1;">
+            <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
+          </div>
+        </div>
       </div>
 
       <!-- Hızlı işlemler -->
@@ -17470,19 +17530,8 @@ function caHomeHTML() {
       <!-- Dashboard: değişen yükseklikli kartlar (masonry) -->
       <div class="ca-dash">
 
-        <!-- Bugünün günlüğü -->
-        <div>
-          <div class="ca-sectionhead">
-            <h3 class="ca-head" style="font-size:15px;">Bugünün günlüğü</h3>
-            <button class="ca-link" onclick="caGo('gunluk')">Tümü →</button>
-          </div>
-          <div class="ca-card" id="caHomeGunluk">
-            <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
-          </div>
-        </div>
-
-        <!-- ÖDEME DURUMU — günlükten sonra, duyurulardan önce -->
-        <div id="caHomeOdemeBolum" style="display:none;">
+        <!-- ÖDEME DURUMU — günlüğün yerine, en üstte -->
+        <div id="caHomeOdemeBolum">
           <div class="ca-sectionhead">
             <h3 class="ca-head" style="font-size:15px;">Ödeme Durumu</h3>
             <button class="ca-link" onclick="veliSwitchTab('odemeler')">Tümü →</button>
