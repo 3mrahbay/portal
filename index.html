@@ -15998,6 +15998,7 @@ function veliRenderYeniApp() {
       if (po) setTimeout(() => caProfilFotoSeridiDoldur(po.id), 80);
     } catch(e) { console.warn(e); }
   }
+  if (caEkran === "galeri") { try { veliRenderGaleri(); } catch(e) { console.warn(e); } }
   if (caEkran === "pdr") { try { caPdrYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "oryantasyon") { try { caOryantasyonYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "randevular") { try { caRandevulariYukle(); } catch(e) { console.warn(e); } }
@@ -18460,87 +18461,29 @@ window.caMsgYeniBaslat = async function(personelEmail, personelAd, personelRol) 
 
 // ===== Galeri ekranı =====
 function caGaleriHTML() {
-  const kategoriler = [["tumu","Tümü"],["etkinlik","Etkinlikler"],["orman","Orman"],["sanat","Sanat"],["oyun","Oyun"]];
-  // Albümler: [ad, kapak, sayı, kategori]
-  const albumler = [
-    ["Bahçe Etkinliği", "linear-gradient(135deg,#F8A6B4,#E86A8A)", "24 medya", "etkinlik"],
-    ["Orman Okulu", "linear-gradient(135deg,#9FE0B0,#4BA651)", "18 fotoğraf", "orman"],
-    ["23 Nisan Şenliği", "linear-gradient(135deg,#FFD66B,#F7B591)", "32 medya", "etkinlik"],
-    ["Sanat Atölyesi", "linear-gradient(135deg,#C9B6F0,#B8A0E8)", "12 fotoğraf", "sanat"],
-    ["Doğa Yürüyüşü", "linear-gradient(135deg,#9CD0EC,#8FC8E5)", "20 medya", "orman"],
-    ["Müzik Saati", "linear-gradient(135deg,#FFC2CE,#F8A6B4)", "9 fotoğraf", "sanat"],
-    ["Bilim Deneyleri", "linear-gradient(135deg,#BFE0F2,#8FC8E5)", "15 medya", "etkinlik"],
-    ["Bahçıvanlık", "linear-gradient(135deg,#C9EFD3,#9FE0B0)", "11 fotoğraf", "orman"],
-    ["Resim Sergisi", "linear-gradient(135deg,#DCC9F5,#C9B6F0)", "27 medya", "sanat"],
-    ["Oyun Bahçesi", "linear-gradient(135deg,#FFD9C2,#F7B591)", "14 fotoğraf", "oyun"]
-  ];
-  const gorunenAlbumler = albumler.filter(a => caGalKat === "tumu" || a[3] === caGalKat);
-  const katChips = kategoriler.map(([k, ad]) =>
-    `<button class="ca-chip ${caGalKat === k ? "active" : ""}" onclick="caGalKatSec('${k}')">${ad}</button>`).join("");
-  const albumCards = gorunenAlbumler.map(([ad, g, sayi]) => `
-    <div class="ca-album" onclick="veliSwitchTab('galeri')">
-      <div class="ca-album-cover" style="background:${g};">
-        <button class="ca-iconbtn ca-album-dl" onclick="caIndir(event, '${ad} albümü')" title="Albümü indir">⬇</button>
-        <span class="ca-album-count">${sayi}</span>
-      </div>
-      <div class="ca-album-info"><span class="ca-album-name">${ad}</span><span class="ca-tile-sub">›</span></div>
-    </div>`).join("");
-  const albumBos = gorunenAlbumler.length === 0
-    ? '<div class="ca-tile-sub" style="padding:12px;">Bu kategoride albüm yok.</div>' : "";
-
-  // Medya: [kapak, yükseklik, video?, buHafta?]
-  const medyaTum = [
-    ["linear-gradient(135deg,#FFD4DC,#FFB7C5)", 180, false, true],
-    ["linear-gradient(135deg,#FFF0B0,#FFD66B)", 120, true, true],
-    ["linear-gradient(135deg,#CDE7F5,#9CD0EC)", 150, false, true],
-    ["linear-gradient(135deg,#C9EFD3,#9FE0B0)", 220, false, true],
-    ["linear-gradient(135deg,#E2D7F8,#C9B6F0)", 130, false, true],
-    ["linear-gradient(135deg,#FFD9C2,#F7B591)", 170, false, false],
-    ["linear-gradient(135deg,#FFE0E6,#FFC2CE)", 140, true, false],
-    ["linear-gradient(135deg,#D9EEF9,#BFE0F2)", 205, false, false],
-    ["linear-gradient(135deg,#EDE3FB,#DCC9F5)", 120, false, false],
-    ["linear-gradient(135deg,#C9EFD3,#9FE0B0)", 160, false, false],
-    ["linear-gradient(135deg,#FFF0B0,#FFD66B)", 190, false, false],
-    ["linear-gradient(135deg,#FFD4DC,#FFB7C5)", 135, false, false]
-  ];
-  const gorunenMedya = medyaTum.filter(m => caGalPeriyot === "ay" || m[3]);
-  const fotolar = gorunenMedya.map(([g, h, video]) => `
-    <div class="ca-gphoto" style="background:${g}; height:${h}px;" onclick="veliSwitchTab('galeri')">
-      <button class="ca-iconbtn ca-gdl" onclick="caIndir(event, 'Medya')" title="İndir">⬇</button>
-      ${video ? '<div class="ca-vbadge">0:18</div><div class="ca-play"><span>▶</span></div>' : ""}
-    </div>`).join("");
-
+  // Ana ekrandan açılan galeri. İçerik veliRenderGaleri() ile doldurulur;
+  // böylece Ayarlar sekmesindeki galeri ile TEK tasarım kullanılır.
   return `
     <div class="ca-page ca-stack">
       <div class="ca-topbar">
         <div class="ca-row">
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
-          <div><div class="ca-tile-sub">GALERİ</div><h2 style="font-size:18px;">Anılarımız</h2></div>
-        </div>
-        <button class="ca-bell" onclick="veliSwitchTab('galeri')" title="Ara"><i data-lucide="search" style="width:15px;height:15px;vertical-align:-2px;"></i></button>
-      </div>
-
-      <div class="ca-chips">${katChips}</div>
-
-      <div>
-        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Albümler</h3><span class="ca-tile-sub">← kaydır →</span></div>
-        <div class="ca-albumrow">${albumCards}${albumBos}</div>
-      </div>
-
-      <div>
-        <div class="ca-sectionhead">
-          <h3 class="ca-head" style="font-size:15px;">Medya</h3>
-          <div class="ca-seg">
-            <button class="${caGalPeriyot === "hafta" ? "active" : ""}" onclick="caGalPeriyotSec('hafta')">Haftalık</button>
-            <button class="${caGalPeriyot === "ay" ? "active" : ""}" onclick="caGalPeriyotSec('ay')">Aylık</button>
+          <div>
+            <div class="ca-tile-sub">GALERİ</div>
+            <h2 style="font-size:18px;">Anılarımız</h2>
           </div>
         </div>
-        <div class="ca-masonry">${fotolar}</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;" id="veliGaleriFiltreler">
+          <button class="btn-mini" data-veli-galeri-filter="tumu" onclick="veliGaleriFilter('tumu')" style="background:#2B3674; border:none; color:white;">Tümü</button>
+          <button class="btn-mini" data-veli-galeri-filter="ozel" onclick="veliGaleriFilter('ozel')">Size Özel</button>
+          <button class="btn-mini" data-veli-galeri-filter="sinif" onclick="veliGaleriFilter('sinif')">Sınıf</button>
+          <button class="btn-mini" data-veli-galeri-filter="okul" onclick="veliGaleriFilter('okul')">Tüm Okul</button>
+        </div>
       </div>
-
-      <button class="ca-btn" style="width:100%;" onclick="veliSwitchTab('galeri')"><i data-lucide="camera" style="width:13px;height:13px;vertical-align:-2px;"></i> Tüm fotoğraflar ve videolar</button>
-    </div>
-  `;
+      <div id="caGaleriListesi">
+        <div style="padding:30px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+      </div>
+    </div>`;
 }
 
 // ===== Günlük Rapor ekranı — GERÇEK VERİ =====
@@ -32606,7 +32549,10 @@ window.veliGaleriKategoriSec = function(k) {
 };
 
 async function veliRenderGaleri() {
-  const el = document.getElementById("veliGaleriListesi");
+  // İki farklı galeri ekranı var (ana ekran kartı ve sekme paneli).
+  // Hangisi açıksa onun kapsayıcısına çiziyoruz.
+  const el = document.getElementById("caGaleriListesi")
+          || document.getElementById("veliGaleriListesi");
   if (!el) return;
   el.innerHTML = `<div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>`;
 
@@ -32764,7 +32710,8 @@ window.veliAlbumAc = function(albumAdi) {
   const liste = (window._veliGaleriListe || []).filter(g => (g.etkinlikBaslik || "Diğer") === albumAdi);
   if (!liste.length) return;
   window._veliGaleriListe = liste;
-  const el = document.getElementById("veliGaleriListesi");
+  const el = document.getElementById("caGaleriListesi")
+          || document.getElementById("veliGaleriListesi");
   if (!el) return;
   el.innerHTML = `
     <button onclick="veliRenderGaleri()" style="display:inline-flex; align-items:center; gap:6px; margin-bottom:14px; padding:8px 14px; border:1px solid var(--gray-200,#E2E8F0); background:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:600;">
