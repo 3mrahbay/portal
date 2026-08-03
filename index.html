@@ -18718,6 +18718,72 @@ async function caProfilFotoSeridiDoldur(ogrenciId) {
 }
 window.caProfilFotoSeridiDoldur = caProfilFotoSeridiDoldur;
 
+
+// Çocuk profil fotoğrafını GALERİDEN seç (yeni yükleme yapmadan)
+window.veliCocukFotoGaleridenSec = async function(ogrenciId) {
+  if (!ogrenciId) return;
+  try {
+    const snap = await getDocs(query(collection(db, "galeri"),
+                                     where("durum", "==", "onaylandi")));
+    const foto = [];
+    snap.forEach(d => {
+      const g = d.data() || {};
+      if (g.dosyaTipi !== "foto" || !g.bunnyUrl) return;
+      if (g.hedefTur === "ogrenci" && g.hedefOgrenciId === ogrenciId) foto.push(g);
+    });
+    if (!foto.length) {
+      alert("Bu çocuğa özel yüklenmiş fotoğraf bulunamadı.\n\nGaleriye 'Öğrenci' hedefiyle fotoğraf yüklendiğinde buradan seçebilirsiniz.");
+      return;
+    }
+    foto.sort((a, b) => String(b.yuklenmeTarihi || "").localeCompare(String(a.yuklenmeTarihi || "")));
+
+    const eski = document.getElementById("fotoSecArka");
+    if (eski) eski.remove();
+    const div = document.createElement("div");
+    div.id = "fotoSecArka";
+    div.style.cssText = "position:fixed; inset:0; background:rgba(31,37,68,.55); z-index:9700; display:flex; align-items:center; justify-content:center; padding:20px;";
+    div.innerHTML = `
+      <div style="background:#fff; border-radius:20px; max-width:460px; width:100%; padding:22px; max-height:86vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <h3 style="margin:0; font-size:17px; color:var(--c-ink);">Profil Fotoğrafı Seç</h3>
+          <button onclick="document.getElementById('fotoSecArka').remove()" style="border:none; background:transparent; font-size:24px; color:#94A3B8; cursor:pointer; line-height:1;">&times;</button>
+        </div>
+        <div style="font-size:13px; color:var(--c-muted); margin-bottom:16px;">Galerideki fotoğraflardan birini profil fotoğrafı yapabilirsiniz.</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+          ${foto.map(g => `
+            <div onclick="veliCocukFotoSec('${ogrenciId}','${escapeHtml(g.bunnyUrl)}')"
+                 style="aspect-ratio:1/1; border-radius:13px; overflow:hidden; cursor:pointer; border:2.5px solid transparent; background:var(--c-tint);"
+                 onmouseover="this.style.borderColor='var(--c-green)'" onmouseout="this.style.borderColor='transparent'">
+              <img src="${escapeHtml(g.bunnyUrl)}?width=300" alt="" loading="lazy"
+                   style="width:100%; height:100%; object-fit:cover; display:block;"></div>`).join("")}
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+  } catch (e) {
+    console.error("foto seç", e);
+    alert("Fotoğraflar yüklenemedi: " + (e.message || e));
+  }
+};
+
+window.veliCocukFotoSec = async function(ogrenciId, url) {
+  try {
+    await setDoc(doc(db, "ogrenciler", ogrenciId),
+      { fotoUrl: url, fotoGuncellendi: new Date().toISOString() }, { merge: true });
+    if (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci && veliAktifOgrenci.id === ogrenciId) {
+      veliAktifOgrenci.fotoUrl = url;
+    }
+    document.querySelectorAll('[data-foto-ogrenci="' + ogrenciId + '"]').forEach(el => {
+      el.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+      el.style.padding = "0"; el.style.overflow = "hidden";
+    });
+    const p = document.getElementById("fotoSecArka");
+    if (p) p.remove();
+    if (typeof showToast === "function") showToast("Profil fotoğrafı güncellendi", "success");
+  } catch (e) {
+    alert("Kaydedilemedi: " + (e.message || e));
+  }
+};
+
 function caProfilHTML() {
   const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : {};
   const ogrAd = o.ogrenciAdSoyad || o.adSoyad || [o.ad, o.soyad].filter(Boolean).join(" ") || "Öğrenci";
@@ -18770,9 +18836,12 @@ function caProfilHTML() {
               ? `<img src="${escapeHtml(o.fotoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentNode.textContent='${basHarf}';">`
               : basHarf
           }</div>
-          <button type="button" onclick="veliCocukFotoDegistir('${o.id || ""}')" title="Fotoğraf ekle / değiştir"
+          <button type="button" onclick="veliCocukFotoDegistir('${o.id || ""}')" title="Cihazdan yükle"
             style="position:absolute; bottom:0; right:0; width:34px; height:34px; border-radius:50%; background:var(--c-green); color:#fff; border:3px solid #fff; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;">
             <i data-lucide="camera" style="width:16px;height:16px;"></i></button>
+          <button type="button" onclick="veliCocukFotoGaleridenSec('${o.id || ""}')" title="Galeriden seç"
+            style="position:absolute; bottom:0; left:0; width:34px; height:34px; border-radius:50%; background:var(--c-purple-deep); color:#fff; border:3px solid #fff; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;">
+            <i data-lucide="images" style="width:16px;height:16px;"></i></button>
         </div>
         <h2 style="font-size:22px;">${escapeHtml(ogrAd)}</h2>
         <div class="ca-tile-sub" style="margin-top:2px;">${escapeHtml([ogrSinif, ogrYas].filter(Boolean).join(" · ") || "—")}</div>
@@ -31651,6 +31720,7 @@ async function renderGaleri() {
           ${durumRozet}
           ${onayButonlari}
           <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:11px; opacity:0; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" class="galeri-sil-btn">🗑</button>
+          <button onclick="event.stopPropagation(); galeriKapakYap('${d.id}')" title="Albüm kapağı yap" class="galeri-sil-btn" style="position:absolute; top:6px; left:36px; background:${d.kapak ? "#F0B429" : "rgba(31,37,68,.75)"}; color:white; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; opacity:${d.kapak ? "1" : "0"}; transition:opacity 0.2s; display:grid; place-items:center;" onmouseover="this.style.opacity='1'"><i data-lucide="star" style="width:12px;height:12px;${d.kapak ? "fill:#fff;" : ""}"></i></button>
         </div>
       `;
     }
@@ -32624,10 +32694,14 @@ async function veliRenderGaleri() {
     const albumListe = Object.values(albumler).sort((a, b) => String(b.tarih).localeCompare(String(a.tarih)));
 
     // Albüm kapak renkleri — pastel tema
+    // Tema paleti — site renk değişkenleriyle uyumlu
     const KAPAK = [
-      "linear-gradient(160deg,#EC7C9C,#D9536F)", "linear-gradient(160deg,#6FCF97,#3AA76D)",
-      "linear-gradient(160deg,#F7C548,#E0A22E)", "linear-gradient(160deg,#B39DDB,#8B6FC7)",
-      "linear-gradient(160deg,#7FC5E8,#4A9BC7)", "linear-gradient(160deg,#F5A3BC,#E07396)"
+      "linear-gradient(160deg, var(--c-pink-deep), var(--c-pink-soft))",
+      "linear-gradient(160deg, var(--c-green-light), var(--c-green))",
+      "linear-gradient(160deg, var(--c-yellow-deep), var(--c-yellow-soft))",
+      "linear-gradient(160deg, var(--c-purple-deep), var(--c-purple-soft))",
+      "linear-gradient(160deg, var(--c-blue-deep), var(--c-blue-soft))",
+      "linear-gradient(160deg, var(--c-peach-deep), var(--c-peach-soft))"
     ];
     const tarihGuzel = (t) => {
       if (!t) return "";
@@ -32639,9 +32713,14 @@ async function veliRenderGaleri() {
 
     // ── ALBÜM ŞERİDİ (yatay kaydırmalı) ──
     const albumSerit = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin:4px 2px 10px;">
-        <div style="font-weight:700; font-size:15px; color:var(--gray-800,#1E293B);">Albümler</div>
-        <span style="font-size:12px; color:var(--gray-500);">← kaydır →</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:6px 2px 12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="width:30px; height:30px; border-radius:10px; background:var(--c-purple-soft); color:var(--c-purple-deep); display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="folder" style="width:15px;height:15px;"></i></span>
+          <span style="font-weight:700; font-size:16px; color:var(--c-ink);">Albümler</span>
+          <span style="background:var(--c-tint); color:var(--c-muted); padding:2px 9px; border-radius:10px; font-size:11.5px; font-weight:700;">${albumListe.length}</span>
+        </div>
+        <span style="font-size:12px; color:var(--c-muted);">← kaydır →</span>
       </div>
       <div style="display:flex; gap:12px; overflow-x:auto; padding:2px 2px 12px; -webkit-overflow-scrolling:touch;">
         ${albumListe.map((a, i) => {
@@ -32653,8 +32732,8 @@ async function veliRenderGaleri() {
           const videoVar = a.ogeler.some(x => x.dosyaTipi === "video");
           return `
           <div onclick="veliAlbumAc('${escapeHtml(a.ad).replace(/'/g, "\\'")}')"
-               style="flex:0 0 210px; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.07); cursor:pointer;">
-            <div style="position:relative; height:118px; background:${KAPAK[i % KAPAK.length]};">
+               style="flex:0 0 200px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 3px 14px rgba(31,37,68,.10); cursor:pointer; border:1px solid var(--c-line,#EDF0F7);">
+            <div style="position:relative; height:130px; background:${KAPAK[i % KAPAK.length]};">
               ${kapakUrl ? `<img src="${escapeHtml(kapakUrl)}" alt="" loading="lazy"
                 style="width:100%; height:100%; object-fit:cover; display:block;"
                 onerror="this.style.display='none'">` : ""}
@@ -32664,8 +32743,8 @@ async function veliRenderGaleri() {
             </div>
             <div style="padding:11px 13px; display:flex; align-items:center; gap:6px;">
               <div style="flex:1; min-width:0;">
-                <div style="font-weight:700; font-size:13.5px; color:var(--gray-800,#1E293B); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(a.ad)}</div>
-                ${a.tarih ? `<div style="font-size:11.5px; color:var(--gray-500); margin-top:2px;">${escapeHtml(tarihGuzel(a.tarih))}</div>` : ""}
+                <div style="font-weight:700; font-size:13.5px; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(a.ad)}</div>
+                ${a.tarih ? `<div style="font-size:11.5px; color:var(--c-muted); margin-top:2px;">${escapeHtml(tarihGuzel(a.tarih))}</div>` : ""}
               </div>
               <i data-lucide="chevron-right" style="width:15px;height:15px;color:#94A3B8;flex-shrink:0;"></i>
             </div>
@@ -32674,24 +32753,37 @@ async function veliRenderGaleri() {
       </div>`;
 
     // ── MEDYA IZGARASI (masonry) ──
+    // Değişken yükseklik deseni — hepsi aynı boyda olmasın
+    const ORAN = ["4 / 5", "1 / 1", "3 / 4", "4 / 3", "1 / 1", "2 / 3", "4 / 5", "3 / 2"];
+
     const medyaIzgara = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin:16px 2px 10px;">
-        <div style="font-weight:700; font-size:15px; color:var(--gray-800,#1E293B);">Medya</div>
-        <span style="font-size:12px; color:var(--gray-500);">${liste.length} öğe</span>
+      <div style="height:1px; background:var(--c-line,#E2E8F0); margin:22px 0 18px;"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:0 2px 12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="width:30px; height:30px; border-radius:10px; background:var(--c-blue-soft); color:var(--c-green); display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="image" style="width:15px;height:15px;"></i></span>
+          <span style="font-weight:700; font-size:16px; color:var(--c-ink);">Tüm Medya</span>
+          <span style="background:var(--c-tint); color:var(--c-muted); padding:2px 9px; border-radius:10px; font-size:11.5px; font-weight:700;">${liste.length}</span>
+        </div>
       </div>
-      <div style="columns:3 150px; column-gap:10px;">
+      <div style="columns:3 160px; column-gap:12px;">
         ${liste.map((g, i) => {
           const url = g.bunnyUrl;
-          const kucuk = g.dosyaTipi === "foto" ? url + "?width=500" : (g.kucukResim || url);
+          const kucuk = g.dosyaTipi === "foto" ? url + "?width=600" : (g.kucukResim || url);
+          const oran = ORAN[i % ORAN.length];
           return `
           <div onclick="veliMedyaAc(${i})"
-               style="break-inside:avoid; margin-bottom:10px; border-radius:14px; overflow:hidden; position:relative; cursor:pointer; background:#F1F5F9;">
+               style="break-inside:avoid; margin-bottom:12px; border-radius:16px; overflow:hidden; position:relative; cursor:pointer;
+                      background:var(--c-tint); aspect-ratio:${oran}; box-shadow:0 2px 8px rgba(31,37,68,.07);">
             <img src="${escapeHtml(kucuk)}" alt="" loading="lazy"
-                 style="width:100%; display:block;"
-                 onerror="this.parentNode.style.minHeight='120px'; this.style.display='none';">
+                 style="width:100%; height:100%; object-fit:cover; display:block;"
+                 onerror="this.style.display='none';">
             ${g.dosyaTipi === "video" ? `
-              <div style="position:absolute; left:10px; bottom:8px; display:flex; align-items:center; gap:5px; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.6); font-size:12px; font-weight:700;">
-                <i data-lucide="play" style="width:14px;height:14px;"></i>${g.sure ? escapeHtml(g.sure) : ""}</div>` : ""}
+              <div style="position:absolute; inset:0; background:linear-gradient(to top, rgba(31,37,68,.5), transparent 45%);"></div>
+              <div style="position:absolute; left:11px; bottom:9px; display:flex; align-items:center; gap:5px; color:#fff; font-size:12px; font-weight:700;">
+                <i data-lucide="play" style="width:14px;height:14px;"></i>${g.sure ? escapeHtml(g.sure) : "Video"}</div>` : ""}
+            ${g.kategori ? `
+              <span style="position:absolute; right:9px; top:9px; background:rgba(255,255,255,.92); color:var(--c-ink); padding:3px 9px; border-radius:9px; font-size:10.5px; font-weight:700;">${escapeHtml(g.kategori)}</span>` : ""}
           </div>`;
         }).join("")}
       </div>`;
