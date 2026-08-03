@@ -13195,6 +13195,10 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
+// Çıkış yaptıktan sonra tekrar giriş yapılınca Google son hesabı otomatik
+// seçiyordu; farklı rolle test etmek imkânsız hale geliyordu.
+// 'select_account' her girişte hesap seçim ekranını zorunlu kılar.
+provider.setCustomParameters({ prompt: 'select_account' });
 
 const ADMIN_EMAIL = "emrahby@gmail.com";
 
@@ -17111,16 +17115,164 @@ window.veliFotoYukleBaslangic = veliFotoYukleBaslangic;
 // Sabit "₺4.500 · Nisan 2026" demo değeri kaldırıldı.
 // Ödeme verisi yoksa kart HİÇ gösterilmez — yanlış bilgi verilmez.
 // ═══════════════════════════════════════════════════════════════════
+
+// Ana sayfadan hızlı ödeme bildirimi — Ödemeler sekmesine gitmeden
+window.caOdemeHizliBildir = function(ayKod, ayAdi, beklenen, kalan) {
+  const eski = document.getElementById("hizliOdemeArka");
+  if (eski) eski.remove();
+  const bugun = new Date().toISOString().slice(0, 10);
+
+  const div = document.createElement("div");
+  div.id = "hizliOdemeArka";
+  div.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9600; display:flex; align-items:center; justify-content:center; padding:20px;";
+  div.innerHTML = `
+    <div style="background:#fff; border-radius:20px; max-width:420px; width:100%; padding:22px; max-height:90vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+        <h3 style="margin:0; font-size:18px;">Ödeme Bildir</h3>
+        <button onclick="document.getElementById('hizliOdemeArka').remove()" style="border:none; background:transparent; font-size:24px; color:#94A3B8; cursor:pointer; line-height:1;">&times;</button>
+      </div>
+      <div style="font-size:13px; color:#64748B; margin-bottom:16px;">${escapeHtml(ayAdi)} · beklenen ${Number(beklenen).toLocaleString("tr-TR")} ₺</div>
+
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <button type="button" id="hizliTam" onclick="caHizliSecim('tam', ${kalan})"
+          style="flex:1; padding:13px 8px; border:2px solid var(--c-green); background:var(--c-green); color:#fff; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:700; font-size:13px;">
+          <i data-lucide="check-check" style="width:15px;height:15px;vertical-align:-2px;"></i> Tamamını ödedim<br>
+          <span style="font-weight:500; font-size:11.5px; opacity:.9;">${Number(kalan).toLocaleString("tr-TR")} ₺</span></button>
+        <button type="button" id="hizliKismi" onclick="caHizliSecim('kismi', ${kalan})"
+          style="flex:1; padding:13px 8px; border:2px solid #E2E8F0; background:#fff; color:#475569; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:700; font-size:13px;">
+          <i data-lucide="circle-dashed" style="width:15px;height:15px;vertical-align:-2px;"></i> Kısmi ödedim<br>
+          <span style="font-weight:500; font-size:11.5px; opacity:.75;">tutar gireceğim</span></button>
+      </div>
+
+      <div id="hizliKismiAlan" style="display:none; margin-bottom:14px;">
+        <label style="display:block; font-size:11.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Ödediğiniz tutar (₺)</label>
+        <input type="number" id="hizliTutar" inputmode="numeric" max="${kalan}" placeholder="Örn: 15000"
+          style="width:100%; padding:13px 14px; border:1px solid #E2E8F0; border-radius:11px; font-family:inherit; font-size:16px; font-weight:700;">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:12px;">
+        <div>
+          <label style="display:block; font-size:11.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Tarih</label>
+          <input type="date" id="hizliTarih" value="${bugun}" style="width:100%; padding:11px 12px; border:1px solid #E2E8F0; border-radius:11px; font-family:inherit; font-size:13.5px;"></div>
+        <div>
+          <label style="display:block; font-size:11.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Yöntem</label>
+          <select id="hizliYontem" style="width:100%; padding:11px 12px; border:1px solid #E2E8F0; border-radius:11px; font-family:inherit; font-size:13.5px;">
+            <option value="havale">Havale / EFT</option><option value="kart">Kredi Kartı</option>
+            <option value="nakit">Nakit</option><option value="diger">Diğer</option>
+          </select></div>
+      </div>
+
+      <textarea id="hizliNot" rows="2" placeholder="Not (isteğe bağlı)"
+        style="width:100%; padding:11px 13px; border:1px solid #E2E8F0; border-radius:11px; font-family:inherit; font-size:13.5px; resize:vertical; margin-bottom:14px;"></textarea>
+
+      <button id="hizliGonder" onclick="caHizliOdemeGonder('${ayKod}','${escapeHtml(ayAdi)}',${beklenen})"
+        style="width:100%; padding:14px; border:none; background:var(--c-green); color:#fff; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:700; font-size:14.5px;">
+        <i data-lucide="send" style="width:15px;height:15px;vertical-align:-3px;"></i> Ödemeyi Bildir</button>
+    </div>`;
+  document.body.appendChild(div);
+  window._hizliSecim = "tam";
+  window._hizliKalan = kalan;
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+};
+
+window.caHizliSecim = function(secim, kalan) {
+  const tam = document.getElementById("hizliTam");
+  const kismi = document.getElementById("hizliKismi");
+  const alan = document.getElementById("hizliKismiAlan");
+  const inp = document.getElementById("hizliTutar");
+  const aktif = (b) => { b.style.background = "var(--c-green)"; b.style.color = "#fff"; b.style.borderColor = "var(--c-green)"; };
+  const pasif = (b) => { b.style.background = "#fff"; b.style.color = "#475569"; b.style.borderColor = "#E2E8F0"; };
+  if (secim === "tam") { aktif(tam); pasif(kismi); alan.style.display = "none"; if (inp) inp.value = kalan; }
+  else { aktif(kismi); pasif(tam); alan.style.display = "block"; if (inp) { inp.value = ""; setTimeout(() => inp.focus(), 80); } }
+  window._hizliSecim = secim;
+};
+
+window.caHizliOdemeGonder = async function(ayKod, ayAdi, beklenen) {
+  const btn = document.getElementById("hizliGonder");
+  const secim = window._hizliSecim || "tam";
+  const inp = document.getElementById("hizliTutar");
+  let tutar = parseFloat(inp && inp.value) || 0;
+  if (secim === "tam" && !tutar) tutar = window._hizliKalan || beklenen;
+  if (!tutar || tutar <= 0) { alert("Lütfen ödediğiniz tutarı girin."); if (inp) inp.focus(); return; }
+
+  const tarih = (document.getElementById("hizliTarih") || {}).value || new Date().toISOString().slice(0, 10);
+  const yontem = (document.getElementById("hizliYontem") || {}).value || "havale";
+  const not = ((document.getElementById("hizliNot") || {}).value || "").trim();
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  const veliEmail = (currentUser?.email || "").toLowerCase();
+  const veliAd = currentUser?.displayName || veliEmail.split("@")[0];
+
+  if (btn) { btn.disabled = true; btn.textContent = "Gönderiliyor…"; }
+  try {
+    await addDoc(collection(db, "odemeBildirimleri"), {
+      veliEmail, veliAd,
+      ogrenciId: o ? o.id : "", ogrenciAd: o ? (o.ogrenciAdSoyad || "") : "",
+      kalemTipi: "aidat-" + ayKod, kalemAd: ayAdi + " Aidatı", ayKod,
+      beklenenTutar: beklenen, tutar, tamOdeme: (tutar >= beklenen),
+      odemeTarihi: tarih, yontem, not,
+      durum: "bekliyor", olusturuldu: new Date().toISOString()
+    });
+
+    // Muhasebe + yönetime bildirim
+    try {
+      const pSnap = await getDocs(collection(db, "personeller"));
+      const alicilar = [];
+      pSnap.forEach(d => {
+        const v = d.data() || {};
+        if ((v.durum || "aktif") !== "aktif") return;
+        if (["kurucu_mudur", "mudur", "muhasebe"].includes(v.rol)) alicilar.push(d.id);
+      });
+      await Promise.all(alicilar.map(em => addDoc(collection(db, "bildirimler"), {
+        aliciEmail: (em || "").toLowerCase(), tip: "odeme_bildirim",
+        baslik: "Veli ödeme bildirdi",
+        metin: `${veliAd} · ${ayAdi} · ${tutar.toLocaleString("tr-TR")} ₺`,
+        hedefSayfa: "muhasebe", okundu: false, olusturuldu: new Date().toISOString()
+      })));
+    } catch (e) { console.warn("bildirim", e?.message); }
+
+    // Okula mail
+    try {
+      if (typeof brevoMail === "function") {
+        let okulMail = "eposta@bircicekkoleji.com";
+        try { const ay = await getDoc(doc(db, "ayarlar", "okulBilgileri"));
+          if (ay.exists() && ay.data().eposta) okulMail = ay.data().eposta; } catch (e) {}
+        await brevoMail({
+          to: okulMail,
+          subject: "Ödeme bildirimi · " + (o ? (o.ogrenciAdSoyad || "") : ""),
+          htmlContent: `<h3>Veli Ödeme Bildirimi</h3>
+            <p><b>Veli:</b> ${escapeHtml(veliAd)} (${escapeHtml(veliEmail)})<br>
+            <b>Öğrenci:</b> ${escapeHtml(o ? (o.ogrenciAdSoyad || "") : "—")}<br>
+            <b>Dönem:</b> ${escapeHtml(ayAdi)}<br>
+            <b>Beklenen:</b> ${Number(beklenen).toLocaleString("tr-TR")} ₺<br>
+            <b>Bildirilen:</b> ${tutar.toLocaleString("tr-TR")} ₺ ${tutar < beklenen ? "(kısmi)" : "(tam)"}<br>
+            <b>Tarih:</b> ${escapeHtml(tarih)} · <b>Yöntem:</b> ${escapeHtml(yontem)}</p>
+            ${not ? `<p><b>Veli notu:</b> ${escapeHtml(not)}</p>` : ""}`
+        });
+      }
+    } catch (e) { console.warn("ödeme maili", e?.message); }
+
+    document.getElementById("hizliOdemeArka").remove();
+    if (typeof showToast === "function") showToast("Ödeme bildiriminiz iletildi", "success");
+  } catch (e) {
+    console.error("hızlı ödeme", e);
+    alert("Gönderilemedi: " + (e.message || e));
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="send" style="width:15px;height:15px;vertical-align:-3px;"></i> Ödemeyi Bildir'; }
+  }
+};
+
 async function caHomeOdemeDoldur() {
   const kart = document.getElementById("caHomeOdemeKarti");
+  const bolum = document.getElementById("caHomeOdemeBolum");
   if (!kart) return;
+  const gizle = () => { if (bolum) bolum.style.display = "none"; };
+  const goster = () => { if (bolum) bolum.style.display = "block"; };
   const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
-  if (!o) { kart.style.display = "none"; return; }
+  if (!o) { gizle(); return; }
 
   try {
     const donem = (typeof AKTIF_DONEM !== "undefined" && AKTIF_DONEM) ? AKTIF_DONEM : "2026-2027";
     const d = await getDoc(doc(db, "ogrenciler", o.id, "donemler", donem));
-    if (!d.exists()) { kart.style.display = "none"; return; }
+    if (!d.exists()) { gizle(); return; }
 
     const v = d.data() || {};
     const aylik = v.aylikOdemeler || {};
@@ -17140,7 +17292,7 @@ async function caHomeOdemeDoldur() {
     // Ödenmemiş ay yoksa: "güncel" durumunu göster
     if (!adaylar.length) {
       const toplamAy = Object.keys(aylik).filter(k => /^\d{4}-\d{2}$/.test(k)).length;
-      if (!toplamAy) { kart.style.display = "none"; return; }   // hiç ödeme planı yok
+      if (!toplamAy) { gizle(); return; }   // hiç ödeme planı yok
       kart.innerHTML = `
         <div class="ca-row" style="justify-content:space-between;">
           <span class="ca-pill" style="background:#2D7A2D; color:#fff;"><i data-lucide="circle-check" style="width:13px;height:13px;vertical-align:-2px;"></i> Ödemeler</span>
@@ -17153,7 +17305,7 @@ async function caHomeOdemeDoldur() {
           </div>
           <button class="ca-btn ghost" onclick="veliSwitchTab('odemeler')">Detay</button>
         </div>`;
-      kart.style.display = "block";
+      goster();
       if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
       return;
     }
@@ -17163,7 +17315,7 @@ async function caHomeOdemeDoldur() {
     const beklenen = Number(kayit.beklenenTutar || ayarlar.aylikAidat || 0);
     const odenen = Number(kayit.odenenTutar || 0);
     const kalan = Math.max(0, beklenen - odenen);
-    if (!beklenen) { kart.style.display = "none"; return; }
+    if (!beklenen) { gizle(); return; }
 
     const [yil, ay] = ayKod.split("-");
     const ayAdi = AY_ADLARI[parseInt(ay, 10) - 1] + " " + yil;
@@ -17185,14 +17337,14 @@ async function caHomeOdemeDoldur() {
           <div class="ca-head" style="font-size:22px;">₺${kalan.toLocaleString("tr-TR")}</div>
           <div class="ca-tile-sub">${escapeHtml(ayAdi)} · son ödeme ${sonGun} ${AY_ADLARI[parseInt(ay,10)-1]}${kismi ? " · " + odenen.toLocaleString("tr-TR") + " ₺ ödendi" : ""}</div>
         </div>
-        <button class="ca-btn" style="background:${durum.ana};" onclick="veliSwitchTab('odemeler')">Ödeme Bildir</button>
+        <button class="ca-btn" style="background:${durum.ana};" onclick="caOdemeHizliBildir('${ayKod}','${escapeHtml(ayAdi)}',${beklenen},${kalan})">Ödeme Bildir</button>
       </div>`;
-    kart.style.display = "block";
+    goster();
     if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
   } catch (e) {
-    // Okuma izni yoksa veya hata varsa yanlış bilgi göstermek yerine kartı gizle
+    // Okuma izni yoksa veya hata varsa yanlış bilgi göstermek yerine gizle
     console.warn("[Ödeme kartı]", e?.message);
-    kart.style.display = "none";
+    gizle();
   }
 }
 window.caHomeOdemeDoldur = caHomeOdemeDoldur;
@@ -17267,14 +17419,11 @@ function caHomeHTML() {
           <div class="ca-status"><i data-lucide="sprout" style="width:13px;height:13px;vertical-align:-2px;"></i> Profili ve eğitim gelişimini görmek için dokun</div>
         </div>
 
-        <div class="ca-card ca-pay" id="caHomeOdemeKarti" style="display:none;">
-          <div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
-        </div>
+
       </div>
 
       <!-- Hızlı işlemler -->
       <div>
-        <div id="yonetimTalepUyari"></div>
         <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
         <div class="ca-quick">
           ${caHizliIslemlerHTML()}
@@ -17292,6 +17441,17 @@ function caHomeHTML() {
           </div>
           <div class="ca-card" id="caHomeGunluk">
             <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
+          </div>
+        </div>
+
+        <!-- ÖDEME DURUMU — günlükten sonra, duyurulardan önce -->
+        <div id="caHomeOdemeBolum" style="display:none;">
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">Ödeme Durumu</h3>
+            <button class="ca-link" onclick="veliSwitchTab('odemeler')">Tümü →</button>
+          </div>
+          <div class="ca-card ca-pay" id="caHomeOdemeKarti">
+            <div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
           </div>
         </div>
 
@@ -19124,6 +19284,9 @@ function yonetimHomeHTML(ad) {
 
   return `
     <div class="ozet-v2">
+
+      <!-- BEKLEYEN VELİ RANDEVU TALEPLERİ -->
+      <div id="yonetimTalepUyari"></div>
 
       <!-- ÜST KPI KARTLARI -->
       <div class="ozet-kpi-grid">
@@ -36031,7 +36194,12 @@ window.modulSec = function(modulKey, tabTikla = true) {
   const tanim = MODUL_HARITASI[modulKey];
   if (!tanim) return;
   // YETKİ KONTROLÜ: rolü olmayan modülü açamaz (adres/konsol denemesi dahil)
-  if (typeof modulErisim === "function" && !modulErisim(modulKey)) {
+  // ÖNEMLİ: sayfa açılışında (giriş yapılmadan) modulSec("ozet") çağrılıyor.
+  // O anda rol henüz bilinmediği için uyarı haksız yere görünüyordu.
+  // Oturum yoksa sessizce geç — asıl koruma girişten sonra devreye girer.
+  const oturumVar = (typeof currentUser !== "undefined" && currentUser) ||
+                    (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol);
+  if (oturumVar && typeof modulErisim === "function" && !modulErisim(modulKey)) {
     if (typeof showToast === "function") showToast("Bu bölüme erişim yetkiniz yok", "error");
     return;
   }
