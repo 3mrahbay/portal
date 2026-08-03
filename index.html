@@ -32398,10 +32398,16 @@ let veliGaleriAktifCocuk = "hepsi"; // "hepsi" veya ogrenciId
 window.galeriTeshis = async function() {
   console.log("═══ GALERİ TEŞHİS ═══");
   try {
-    const snap = await getDocs(collection(db, "galeri"));
+    // Veli yalnızca onaylı kayıtları listeleyebilir (Rules şartı).
+    // Personel tümünü görebilir.
+    const personelMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol) ||
+                       (typeof isAdmin !== "undefined" && isAdmin);
+    const snap = personelMi
+      ? await getDocs(collection(db, "galeri"))
+      : await getDocs(query(collection(db, "galeri"), where("durum", "==", "onaylandi")));
     const hepsi = [];
     snap.forEach(d => hepsi.push({ id: d.id, ...d.data() }));
-    console.log("1) galeri koleksiyonundaki kayıt sayısı:", hepsi.length);
+    console.log("1) okunabilen kayıt sayısı:", hepsi.length, personelMi ? "(personel: tümü)" : "(veli: yalnızca onaylı)");
 
     if (!hepsi.length) {
       console.log("   → HİÇ KAYIT YOK. Yükleme Firestore'a hiç yazmamış.");
@@ -32457,7 +32463,11 @@ async function veliRenderGaleri() {
   el.innerHTML = `<div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>`;
 
   try {
-    const snap = await getDocs(collection(db, "galeri"));
+    // ÖNEMLİ: Firestore Rules bu koleksiyonda "durum == onaylandi" şartı koyar.
+    // Liste sorgusunda bu filtre YOKSA Firestore tüm sorguyu reddeder
+    // ("Missing or insufficient permissions") ve veli hiçbir medya göremez.
+    const snap = await getDocs(query(collection(db, "galeri"),
+                                     where("durum", "==", "onaylandi")));
     const tumu = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Velinin çocuklarına göre filtrele
@@ -34662,10 +34672,13 @@ async function veliZamanCizelgesiYukle() {
     let snap;
     try {
       snap = await getDocs(query(collection(db, "galeri"),
+                                 where("durum", "==", "onaylandi"),
                                  where("tarih", ">=", ayBas), where("tarih", "<=", ayBit)));
     } catch (indeksHatasi) {
-      console.warn("galeri tarih sorgusu başarısız, tam okuma:", indeksHatasi?.message);
-      snap = await getDocs(collection(db, "galeri"));
+      console.warn("galeri tarih sorgusu başarısız, onaylı kayıtlara düşülüyor:", indeksHatasi?.message);
+      // Rules gereği filtresiz okuma reddedilir; durum filtresiyle oku
+      snap = await getDocs(query(collection(db, "galeri"),
+                                 where("durum", "==", "onaylandi")));
     }
     snap.forEach(d => {
       const v = d.data() || {};
