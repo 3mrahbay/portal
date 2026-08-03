@@ -10425,6 +10425,14 @@ i[data-lucide] svg { display: block; }
                 <div id="galeriAlbumNot" style="display:none; gap:9px; align-items:flex-start; background:#F3EFFC; border-radius:11px; padding:11px 13px; margin-bottom:10px; font-size:12.5px; color:#5B3FA0; line-height:1.55;"></div>
                 <input type="text" id="galeriEtkinlik" placeholder="Örn: Bahar Şenliği, Doğa Gezisi..." maxlength="100">
               </div>
+              <div class="form-group">
+                <label>Kategori</label>
+                <div style="display:flex; gap:8px;">
+                  <select id="galeriKategori" style="flex:1;"></select>
+                  <button type="button" onclick="galeriYeniKategori()" title="Yeni kategori ekle"
+                    style="padding:0 14px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-weight:700; font-size:18px; line-height:1; color:#2D5E3E;">+</button>
+                </div>
+              </div>
             </div>
 
             <div class="form-grid">
@@ -31444,6 +31452,58 @@ window.galeriKapakYap = async function(medyaId) {
   }
 };
 
+
+// ═══════════════════════════════════════════════════════════════════
+// GALERİ KATEGORİLERİ — ayarlar/galeriKategorileri
+// Veli galerisindeki üst çipleri besler. Yükleme sırasında hızlıca
+// yeni kategori eklenebilir; ayrı bir yönetim ekranı gerekmez.
+// ═══════════════════════════════════════════════════════════════════
+let GALERI_KATEGORILER = [];
+
+async function galeriKategorileriYukle() {
+  if (GALERI_KATEGORILER.length) return GALERI_KATEGORILER;
+  try {
+    const d = await getDoc(doc(db, "ayarlar", "galeriKategorileri"));
+    GALERI_KATEGORILER = (d.exists() && Array.isArray(d.data().liste) && d.data().liste.length)
+      ? d.data().liste
+      : ["Etkinlikler", "Orman", "Sanat", "Oyun"];
+  } catch (e) {
+    GALERI_KATEGORILER = ["Etkinlikler", "Orman", "Sanat", "Oyun"];
+  }
+  return GALERI_KATEGORILER;
+}
+
+async function galeriKategoriSecimDoldur() {
+  const sel = document.getElementById("galeriKategori");
+  if (!sel) return;
+  const liste = await galeriKategorileriYukle();
+  const mevcut = sel.value;
+  sel.innerHTML = `<option value="">Kategorisiz</option>` +
+    liste.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join("");
+  if (mevcut) sel.value = mevcut;
+}
+
+window.galeriYeniKategori = async function() {
+  const ad = (prompt("Yeni kategori adı:") || "").trim();
+  if (!ad) return;
+  await galeriKategorileriYukle();
+  if (GALERI_KATEGORILER.some(k => k.toLocaleLowerCase("tr") === ad.toLocaleLowerCase("tr"))) {
+    if (typeof showToast === "function") showToast("Bu kategori zaten var", "error");
+    return;
+  }
+  GALERI_KATEGORILER = [...GALERI_KATEGORILER, ad];
+  try {
+    await setDoc(doc(db, "ayarlar", "galeriKategorileri"),
+      { liste: GALERI_KATEGORILER, guncellendi: new Date().toISOString() }, { merge: true });
+    await galeriKategoriSecimDoldur();
+    const sel = document.getElementById("galeriKategori");
+    if (sel) sel.value = ad;
+    if (typeof showToast === "function") showToast("Kategori eklendi: " + ad, "success");
+  } catch (e) {
+    alert("Kategori eklenemedi: " + (e.message || e));
+  }
+};
+
 async function renderGaleri() {
   const el = document.getElementById("galeriListesi");
   if (!el) return;
@@ -31672,6 +31732,7 @@ window.openGaleriYuklemeModal = function(mod) {
   const etkInp = document.getElementById("galeriEtkinlik");
   const tarInp = document.getElementById("galeriEtkinlikTarih");
   const hedefSel = document.getElementById("galeriHedefTur");
+  galeriKategoriSecimDoldur().catch(e => console.warn("kategori", e));
   const sinifSel = document.getElementById("galeriHedefSinif");
   const ogrSel = document.getElementById("galeriHedefOgrenci");
   const aciklamaTxt = document.getElementById("galeriAciklama");
@@ -31891,6 +31952,7 @@ window.galeriYukle = async function() {
     try {
       let oge = {
         etkinlikBaslik: etkinlik,
+        kategori: (document.getElementById("galeriKategori") || {}).value || "",
         etkinlikTarih,
         aciklama,
         hedefTur, hedefDeger, hedefOgrenciAd,
@@ -32537,6 +32599,12 @@ window.galeriTeshis = async function() {
   }
 };
 
+
+window.veliGaleriKategoriSec = function(k) {
+  window._veliGaleriKategori = k;
+  veliRenderGaleri();
+};
+
 async function veliRenderGaleri() {
   const el = document.getElementById("veliGaleriListesi");
   if (!el) return;
@@ -32563,12 +32631,30 @@ async function veliRenderGaleri() {
       return false;
     });
 
-    // Sekme filtresi (Tümü / Size Özel / Sınıf / Tüm Okul)
+    // Hedef kitle filtresi (Tümü / Size Özel / Sınıf / Tüm Okul)
     const f = (typeof veliGaleriAktifFiltre !== "undefined" && veliGaleriAktifFiltre) || "tumu";
     let liste = hepsi;
     if (f === "ozel")  liste = hepsi.filter(g => g.hedefTur === "ogrenci");
     if (f === "sinif") liste = hepsi.filter(g => g.hedefTur === "sinif");
     if (f === "okul")  liste = hepsi.filter(g => g.hedefTur === "tumOkul");
+
+    // KATEGORİ filtresi (Tümü / Etkinlikler / Orman / Sanat / Oyun …)
+    const kategoriler = await galeriKategorileriYukle();
+    const kullanilan = kategoriler.filter(k => hepsi.some(g => g.kategori === k));
+    const aktifKat = window._veliGaleriKategori || "tumu";
+    if (aktifKat !== "tumu") liste = liste.filter(g => g.kategori === aktifKat);
+
+    const kategoriSerit = kullanilan.length ? `
+      <div style="display:flex; gap:8px; overflow-x:auto; padding:2px 2px 14px; -webkit-overflow-scrolling:touch;">
+        ${[{ k: "tumu", ad: "Tümü" }, ...kullanilan.map(k => ({ k, ad: k }))].map(x => {
+          const secili = aktifKat === x.k;
+          return `<button onclick="veliGaleriKategoriSec('${escapeHtml(x.k).replace(/'/g, "\\'")}')"
+            style="flex:0 0 auto; padding:9px 18px; border-radius:22px; cursor:pointer; font-family:inherit; font-size:13.5px; font-weight:700;
+                   border:1.5px solid ${secili ? "#2B3674" : "var(--gray-200,#E2E8F0)"};
+                   background:${secili ? "#2B3674" : "#fff"}; color:${secili ? "#fff" : "var(--gray-600,#475569)"};">
+            ${escapeHtml(x.ad)}</button>`;
+        }).join("")}
+      </div>` : "";
 
     if (!liste.length) {
       el.innerHTML = `<div style="padding:40px 20px; text-align:center; color:var(--gray-500);">
@@ -32665,7 +32751,7 @@ async function veliRenderGaleri() {
       </div>`;
 
     window._veliGaleriListe = liste;
-    el.innerHTML = albumSerit + medyaIzgara;
+    el.innerHTML = kategoriSerit + albumSerit + medyaIzgara;
     if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
   } catch (e) {
     console.error("veliRenderGaleri", e);
