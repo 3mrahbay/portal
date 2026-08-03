@@ -3405,6 +3405,29 @@ i[data-lucide] svg { display: block; }
   box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
 }
 
+/* ── MOBİL DÜZELTMELERİ ── */
+@media (max-width: 640px) {
+  /* Finans özet kartı: masaüstü ölçüleri telefonda taşıyordu */
+  .finans-ozet-hero { padding: 18px 16px !important; border-radius: 16px !important; }
+  .finans-ozet-baslik { font-size: 20px !important; margin: 6px 0 3px !important; }
+  .finans-ozet-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .finans-ozet-kart { padding: 14px 15px !important; border-radius: 13px !important; }
+  .finans-ozet-kart div[style*="font-size:24px"],
+  .finans-ozet-kart div[style*="font-size:26px"] { font-size: 19px !important; }
+  .finans-ozet-kart div[style*="font-size:28px"] { font-size: 22px !important; }
+
+  /* Uzun başlıklar taşmasın */
+  .rapor-hero-title, .ozet-hero h2 { font-size: 20px !important; line-height: 1.25 !important; }
+
+  /* Tablolar yatay kaydırılabilir olsun, sütunlar ezilmesin */
+  .tab-panel table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+
+  /* Filtre ve buton grupları alt alta */
+  .randevu-yonetim-bar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+  .randevu-yeni-btn-grup { display: flex !important; gap: 8px !important; flex-wrap: wrap !important; }
+  .randevu-yeni-btn { flex: 1 1 auto !important; }
+}
+
 @media (max-width: 640px) {
   .ilan-ucret-grid { grid-template-columns: 1fr; }
 }
@@ -9089,6 +9112,7 @@ i[data-lucide] svg { display: block; }
         <button class="side-item" data-modul="velilerM" onclick="modulSec('velilerM')"><span class="side-ikon"><i data-lucide="contact"></i></span><span class="side-ad">Veliler</span></button>
         <button class="side-item" data-modul="siniflarM" onclick="modulSec('siniflarM')"><span class="side-ikon"><i data-lucide="layout-grid"></i></span><span class="side-ad">Sınıflar</span></button>
         <button class="side-item" data-modul="oryantasyonM" onclick="modulSec('oryantasyonM')"><span class="side-ikon"><i data-lucide="compass"></i></span><span class="side-ad">İlk Adımlar</span></button>
+        <button class="side-item" data-modul="randevuM" onclick="modulSec('randevuM')"><span class="side-ikon"><i data-lucide="calendar-clock"></i></span><span class="side-ad">Randevular</span></button>
         <button class="side-item" data-modul="basvuru" onclick="modulSec('basvuru')"><span class="side-ikon"><i data-lucide="inbox"></i></span><span class="side-ad">Başvuru Havuzu</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
       </div>
       <div class="side-kategori">KURUM</div>
@@ -9118,6 +9142,7 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="veliler"><i data-lucide="contact"></i> Veli Listesi</button>
       <button class="tab" data-tab="siniflar"><i data-lucide="layout-grid"></i> Sınıf Yönetimi</button>
       <button class="tab" data-tab="oryantasyon"><i data-lucide="compass"></i> İlk Adımlar Programı</button>
+      <button class="tab" data-tab="randevu"><i data-lucide="calendar-clock"></i> Randevu Yönetimi</button>
       <button class="tab" data-tab="ozluk"><i data-lucide="clock"></i> Özlük &amp; Puantaj</button>
       <button class="tab" data-tab="onay" id="tab-onay-btn"><i data-lucide="inbox"></i> Başvuru Havuzu <span class="onay-sayac-rozet" id="onaySayacRozet" style="display:none;">0</span></button>
       <button class="tab" data-tab="finans"><i data-lucide="wallet"></i> Finansal Yönetim</button>
@@ -9248,6 +9273,61 @@ i[data-lucide] svg { display: block; }
       <div id="ozlukIcerik">
         <div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>
       </div>
+    </div>
+
+    <!-- RANDEVU TALEPLERİ & SLOT YÖNETİMİ -->
+    <div class="tab-panel" id="tab-randevu">
+      <div style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#0E7490,#22A6B3); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;">
+        <span style="font-size:20px;">📅</span>
+        <div>
+          <div style="font-family:var(--font-display); font-weight:700; font-size:15px;">Randevu Yönetimi</div>
+          <div style="font-size:11.5px; opacity:.88;">Veli taleplerini onaylayın, görüşme saatleri açın. PDR · Öğretmen · Müdür görüşmeleri.</div>
+        </div>
+      </div>
+          <!-- <i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px;"></i> RANDEVU SLOT SİSTEMİ (FAZ B) -->
+          <div class="randevu-yonetim-bar" style="margin-top:24px;">
+            <div>
+              <h3><i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px;"></i> Randevu Slot'ları</h3>
+              <div style="font-size:12px; color:#0e7490; margin-top:4px;">Velilere randevu açın. Veliler müsait slotlardan birini seçer.</div>
+            </div>
+            <div class="randevu-yeni-btn-grup">
+              <button class="randevu-yeni-btn" onclick="randevuSlotModalAc()">+ Tek Slot</button>
+              <button class="randevu-yeni-btn toplu" onclick="randevuTopluModalAc()">⚡ Toplu Slot Oluştur</button>
+            </div>
+          </div>
+
+          <!-- Filtre çubuğu -->
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; padding:10px 14px; background:white; border:1px solid #e5e7eb; border-radius:10px;">
+            <span style="font-size:12px; color:#6b7280; font-weight:600;">FİLTRE:</span>
+            <select id="randevuFiltreTip" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
+              <option value="">Tüm Tipler</option>
+              <option value="ogretmen_veli">👨‍🏫 Öğretmen-Veli</option>
+              <option value="pdr">🧠 PDR</option>
+              <option value="idare">🏢 İdare</option>
+              <option value="meslek_sunumu">💼 Meslek Sunumu</option>
+              <option value="diger">📌 Diğer</option>
+            </select>
+            <select id="randevuFiltreDurum" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
+              <option value="">Tüm Durumlar</option>
+              <option value="talep">🟠 Onay Bekleyen Talepler</option>
+              <option value="musait">🟢 Sadece Müsait</option>
+              <option value="dolu">🟡 Sadece Dolu</option>
+            </select>
+            <select id="randevuFiltreZaman" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
+              <option value="gelecek">📅 Yaklaşan</option>
+              <option value="tum">📂 Tümü</option>
+              <option value="gecmis">📜 Geçmiş</option>
+            </select>
+            <span style="margin-left:auto; font-size:11px; color:#6b7280;" id="randevuSayac">—</span>
+          </div>
+
+          <!-- BEKLEYEN VELİ TALEPLERİ -->
+          <div id="randevuTalepKutusu" style="display:none; margin-bottom:16px;"></div>
+
+          <!-- Slot listesi -->
+          <div id="randevuListesi">
+            <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
+          </div>
     </div>
 
     <!-- İLK ADIMLAR PROGRAMI TAB (yönetim) -->
@@ -10721,50 +10801,7 @@ i[data-lucide] svg { display: block; }
             <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
           </div>
 
-          <!-- <i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px;"></i> RANDEVU SLOT SİSTEMİ (FAZ B) -->
-          <div class="randevu-yonetim-bar" style="margin-top:24px;">
-            <div>
-              <h3><i data-lucide="phone" style="width:13px;height:13px;vertical-align:-2px;"></i> Randevu Slot'ları</h3>
-              <div style="font-size:12px; color:#0e7490; margin-top:4px;">Velilere randevu açın. Veliler müsait slotlardan birini seçer.</div>
-            </div>
-            <div class="randevu-yeni-btn-grup">
-              <button class="randevu-yeni-btn" onclick="randevuSlotModalAc()">+ Tek Slot</button>
-              <button class="randevu-yeni-btn toplu" onclick="randevuTopluModalAc()">⚡ Toplu Slot Oluştur</button>
-            </div>
-          </div>
 
-          <!-- Filtre çubuğu -->
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; padding:10px 14px; background:white; border:1px solid #e5e7eb; border-radius:10px;">
-            <span style="font-size:12px; color:#6b7280; font-weight:600;">FİLTRE:</span>
-            <select id="randevuFiltreTip" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
-              <option value="">Tüm Tipler</option>
-              <option value="ogretmen_veli">👨‍🏫 Öğretmen-Veli</option>
-              <option value="pdr">🧠 PDR</option>
-              <option value="idare">🏢 İdare</option>
-              <option value="meslek_sunumu">💼 Meslek Sunumu</option>
-              <option value="diger">📌 Diğer</option>
-            </select>
-            <select id="randevuFiltreDurum" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
-              <option value="">Tüm Durumlar</option>
-              <option value="talep">🟠 Onay Bekleyen Talepler</option>
-              <option value="musait">🟢 Sadece Müsait</option>
-              <option value="dolu">🟡 Sadece Dolu</option>
-            </select>
-            <select id="randevuFiltreZaman" onchange="randevuListesiRender()" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:12px;">
-              <option value="gelecek">📅 Yaklaşan</option>
-              <option value="tum">📂 Tümü</option>
-              <option value="gecmis">📜 Geçmiş</option>
-            </select>
-            <span style="margin-left:auto; font-size:11px; color:#6b7280;" id="randevuSayac">—</span>
-          </div>
-
-          <!-- BEKLEYEN VELİ TALEPLERİ -->
-          <div id="randevuTalepKutusu" style="display:none; margin-bottom:16px;"></div>
-
-          <!-- Slot listesi -->
-          <div id="randevuListesi">
-            <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
-          </div>
         </div>
 </div>
     </div>
@@ -18961,13 +18998,13 @@ async function yonetimBekleyenTalepler() {
     const TIP = { pdr:"PDR / Rehberlik", ogretmen_veli:"Sınıf Öğretmeni", idare:"Müdür / İdare", meslek_sunumu:"Meslek Sunumu", diger:"Görüşme" };
     el.innerHTML = `
       <div style="background:#FFF7ED; border:1px solid #FED7AA; border-radius:16px; padding:15px 17px; margin-bottom:14px; cursor:pointer;"
-           onclick="modulSec('etkinlik')">
+           onclick="modulSec('randevuM')">
         <div style="display:flex; align-items:center; gap:9px; margin-bottom:10px;">
           <span style="width:32px; height:32px; border-radius:10px; background:#C2410C; color:#fff; display:flex; align-items:center; justify-content:center;">
             <i data-lucide="bell-ring" style="width:16px;height:16px;"></i></span>
           <div style="flex:1;">
             <div style="font-weight:700; font-size:14.5px; color:#7C2D12;">${liste.length} veli randevu talebi onay bekliyor</div>
-            <div style="font-size:12px; color:#9A3412; margin-top:2px;">Etkinlik &amp; Takvim bölümünden onaylayabilirsiniz</div>
+            <div style="font-size:12px; color:#9A3412; margin-top:2px;">Randevular bölümünden onaylayabilirsiniz</div>
           </div>
           <i data-lucide="chevron-right" style="width:18px;height:18px;color:#C2410C;"></i>
         </div>
@@ -32457,17 +32494,17 @@ function renderFinansalOzet() {
     : { metin: `Başabaş için ${(toplamGider - toplamGelir).toLocaleString("tr-TR")} TL daha gelir gerekli`, renk: "#b45309", bg: "#fef3c7" };
 
   let html = `
-    <div style="background:linear-gradient(135deg, #2d6a4f 0%, #40916c 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; box-shadow:0 6px 20px rgba(45,106,79,0.25);">
+    <div class="finans-ozet-hero" style="background:linear-gradient(135deg, #2d6a4f 0%, #40916c 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; box-shadow:0 6px 20px rgba(45,106,79,0.25);">
       <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:16px; margin-bottom:22px;">
         <div>
           <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;"><i data-lucide="briefcase" style="width:14px;height:14px;vertical-align:-2px;"></i> OKUL YÖNETİM ÖZETİ</div>
-          <h2 style="font-family:var(--font-display); font-size:30px; font-weight:700; margin:8px 0 4px;">${AKTIF_DONEM} Dönemi</h2>
+          <h2 class="finans-ozet-baslik" style="font-family:var(--font-display); font-size:30px; font-weight:700; margin:8px 0 4px;">${AKTIF_DONEM} Dönemi</h2>
           <div style="font-size:13px; opacity:0.9;">${donemLabel} için finansal durum</div>
         </div>
         <button class="btn-mini" style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.3);" onclick="loadFinansalData()"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Yenile</button>
       </div>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
-        <div style="background:#facc15; color:#1f2937; border-radius:16px; padding:18px 20px; box-shadow:0 4px 12px rgba(250,204,21,0.3);">
+      <div class="finans-ozet-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
+        <div class="finans-ozet-kart" style="background:#facc15; color:#1f2937; border-radius:16px; padding:18px 20px; box-shadow:0 4px 12px rgba(250,204,21,0.3);">
           <div style="display:flex; justify-content:space-between; align-items:start;">
             <div style="font-size:26px;">💰</div>
             <div style="background:rgba(0,0,0,0.1); padding:3px 8px; border-radius:10px; font-size:11px; font-weight:700;">%${karOrani}</div>
@@ -32476,13 +32513,13 @@ function renderFinansalOzet() {
           <div style="font-size:24px; font-weight:700; margin-top:6px; font-family:var(--font-display); color:${netKar >= 0 ? '#1a4d2e' : '#991b1b'};">${netKar >= 0 ? '+' : '-'}₺${Math.abs(netKar).toLocaleString("tr-TR")}</div>
           <div style="font-size:11px; color:#374151; margin-top:4px;">Gelir: ₺${toplamGelir.toLocaleString("tr-TR")} · Gider: ₺${toplamGider.toLocaleString("tr-TR")}</div>
         </div>
-        <div style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:18px 20px;">
+        <div class="finans-ozet-kart" style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:18px 20px;">
           <div style="font-size:24px;">👨‍👩‍👧</div>
           <div style="font-size:11px; letter-spacing:1.2px; margin-top:10px; opacity:0.9;">AKTİF ÖĞRENCİ</div>
           <div style="font-size:28px; font-weight:700; margin-top:6px; font-family:var(--font-display);">${aktifOgrenciler.length}</div>
           <div style="font-size:11px; opacity:0.85; margin-top:4px;">${sinifOzetMetin}</div>
         </div>
-        <div style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:18px 20px;">
+        <div class="finans-ozet-kart" style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:16px; padding:18px 20px;">
           <div style="font-size:24px;">🎯</div>
           <div style="font-size:11px; letter-spacing:1.2px; margin-top:10px; opacity:0.9;">TAHSİLAT ORANI</div>
           <div style="font-size:28px; font-weight:700; margin-top:6px; font-family:var(--font-display);">%${tahsilatOrani}</div>
@@ -36172,6 +36209,7 @@ const MODUL_HARITASI = {
   velilerM:    { tablar: ["veliler"],    varsayilan: "veliler", ad: "Veliler" },
   siniflarM:   { tablar: ["siniflar"],   varsayilan: "siniflar", ad: "Sınıflar" },
   oryantasyonM:{ tablar: ["oryantasyon"],varsayilan: "oryantasyon", ad: "İlk Adımlar" },
+  randevuM:    { tablar: ["randevu"],    varsayilan: "randevu", ad: "Randevular" },
   ozlukM:      { tablar: ["ozluk"],      varsayilan: "ozluk", ad: "Özlük & Puantaj" },
   basvuru:     { tablar: ["onay"],       varsayilan: "onay", ad: "Başvuru Havuzu" },
   ogrenci:     { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
@@ -36319,6 +36357,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Özlük & Puantaj sekmesine geçildiyse yükle
     if (tab.dataset.tab === "ozluk") {
       setTimeout(() => { if (typeof ozlukYukle === "function") ozlukYukle(); }, 50);
+    }
+
+    // Randevu Yönetimi sekmesine geçildiyse yükle
+    if (tab.dataset.tab === "randevu") {
+      setTimeout(() => { if (typeof randevuListesiRender === "function") randevuListesiRender(); }, 50);
     }
 
     // İlk Adımlar Programı sekmesine geçildiyse yükle
