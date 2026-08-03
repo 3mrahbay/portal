@@ -15875,7 +15875,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeOdemeDoldur(); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -17104,6 +17104,99 @@ async function veliFotoYukleBaslangic() {
 }
 window.veliFotoYukleBaslangic = veliFotoYukleBaslangic;
 
+
+// ═══════════════════════════════════════════════════════════════════
+// ANA SAYFA · BU AY ÖDEMESİ (GERÇEK VERİ)
+// Kaynak: ogrenciler/{id}/donemler/{AKTIF_DONEM}.aylikOdemeler
+// Sabit "₺4.500 · Nisan 2026" demo değeri kaldırıldı.
+// Ödeme verisi yoksa kart HİÇ gösterilmez — yanlış bilgi verilmez.
+// ═══════════════════════════════════════════════════════════════════
+async function caHomeOdemeDoldur() {
+  const kart = document.getElementById("caHomeOdemeKarti");
+  if (!kart) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  if (!o) { kart.style.display = "none"; return; }
+
+  try {
+    const donem = (typeof AKTIF_DONEM !== "undefined" && AKTIF_DONEM) ? AKTIF_DONEM : "2026-2027";
+    const d = await getDoc(doc(db, "ogrenciler", o.id, "donemler", donem));
+    if (!d.exists()) { kart.style.display = "none"; return; }
+
+    const v = d.data() || {};
+    const aylik = v.aylikOdemeler || {};
+    const ayarlar = v.aidatAyarlari || {};
+
+    // Bu ay + geçmiş aylardan ödenmemiş EN ESKİ olanı bul
+    const bugun = new Date();
+    const buAyKod = bugun.getFullYear() + "-" + String(bugun.getMonth() + 1).padStart(2, "0");
+    const AY_ADLARI = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+
+    const adaylar = Object.keys(aylik)
+      .filter(k => /^\d{4}-\d{2}$/.test(k))
+      .filter(k => k <= buAyKod)
+      .filter(k => { const x = aylik[k] || {}; return x.odendi !== true; })
+      .sort();
+
+    // Ödenmemiş ay yoksa: "güncel" durumunu göster
+    if (!adaylar.length) {
+      const toplamAy = Object.keys(aylik).filter(k => /^\d{4}-\d{2}$/.test(k)).length;
+      if (!toplamAy) { kart.style.display = "none"; return; }   // hiç ödeme planı yok
+      kart.innerHTML = `
+        <div class="ca-row" style="justify-content:space-between;">
+          <span class="ca-pill" style="background:#2D7A2D; color:#fff;"><i data-lucide="circle-check" style="width:13px;height:13px;vertical-align:-2px;"></i> Ödemeler</span>
+          <span class="ca-pill" style="background:#fff; color:#2D7A2D;">Güncel</span>
+        </div>
+        <div class="ca-row" style="justify-content:space-between; margin-top:12px; align-items:flex-end;">
+          <div>
+            <div class="ca-head" style="font-size:18px;">Bekleyen ödemeniz yok</div>
+            <div class="ca-tile-sub">Tüm aidatlarınız güncel</div>
+          </div>
+          <button class="ca-btn ghost" onclick="veliSwitchTab('odemeler')">Detay</button>
+        </div>`;
+      kart.style.display = "block";
+      if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+      return;
+    }
+
+    const ayKod = adaylar[0];
+    const kayit = aylik[ayKod] || {};
+    const beklenen = Number(kayit.beklenenTutar || ayarlar.aylikAidat || 0);
+    const odenen = Number(kayit.odenenTutar || 0);
+    const kalan = Math.max(0, beklenen - odenen);
+    if (!beklenen) { kart.style.display = "none"; return; }
+
+    const [yil, ay] = ayKod.split("-");
+    const ayAdi = AY_ADLARI[parseInt(ay, 10) - 1] + " " + yil;
+    const gecikmis = ayKod < buAyKod;
+    const kismi = odenen > 0 && odenen < beklenen;
+    const sonGun = ayarlar.sonOdemeGunu || 25;
+
+    const durum = gecikmis ? { ad:"Gecikmiş", bg:"#fff", yazi:"#C44569", ana:"#C44569" }
+                : kismi    ? { ad:"Kısmi",    bg:"#fff", yazi:"#8a6d1a", ana:"#B8860B" }
+                : { ad:"Bekliyor", bg:"#fff", yazi:"var(--c-purple-deep)", ana:"var(--c-purple-deep)" };
+
+    kart.innerHTML = `
+      <div class="ca-row" style="justify-content:space-between;">
+        <span class="ca-pill" style="background:${durum.ana}; color:#fff;"><i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i> ${gecikmis ? "Gecikmiş ödeme" : "Bu ay ödemesi"}</span>
+        <span class="ca-pill" style="background:${durum.bg}; color:${durum.yazi};">${durum.ad}</span>
+      </div>
+      <div class="ca-row" style="justify-content:space-between; margin-top:12px; align-items:flex-end;">
+        <div>
+          <div class="ca-head" style="font-size:22px;">₺${kalan.toLocaleString("tr-TR")}</div>
+          <div class="ca-tile-sub">${escapeHtml(ayAdi)} · son ödeme ${sonGun} ${AY_ADLARI[parseInt(ay,10)-1]}${kismi ? " · " + odenen.toLocaleString("tr-TR") + " ₺ ödendi" : ""}</div>
+        </div>
+        <button class="ca-btn" style="background:${durum.ana};" onclick="veliSwitchTab('odemeler')">Ödeme Bildir</button>
+      </div>`;
+    kart.style.display = "block";
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    // Okuma izni yoksa veya hata varsa yanlış bilgi göstermek yerine kartı gizle
+    console.warn("[Ödeme kartı]", e?.message);
+    kart.style.display = "none";
+  }
+}
+window.caHomeOdemeDoldur = caHomeOdemeDoldur;
+
 function caHomeHTML() {
   const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || null;
   const cocukAd = ogr ? (ogr.ogrenciAdSoyad || "Çocuğum") : "Çocuğum";
@@ -17174,18 +17267,8 @@ function caHomeHTML() {
           <div class="ca-status"><i data-lucide="sprout" style="width:13px;height:13px;vertical-align:-2px;"></i> Profili ve eğitim gelişimini görmek için dokun</div>
         </div>
 
-        <div class="ca-card ca-pay">
-          <div class="ca-row" style="justify-content:space-between;">
-            <span class="ca-pill" style="background:var(--c-purple-deep); color:#fff;"><i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i> Bu ay ödemesi</span>
-            <span class="ca-pill" style="background:#fff; color:var(--c-purple-deep);">Bekliyor</span>
-          </div>
-          <div class="ca-row" style="justify-content:space-between; margin-top:12px; align-items:flex-end;">
-            <div>
-              <div class="ca-head" style="font-size:22px;">₺4.500</div>
-              <div class="ca-tile-sub">Nisan 2026 · Son ödeme 25 Nisan</div>
-            </div>
-            <button class="ca-btn" style="background:var(--c-purple-deep);" onclick="veliSwitchTab('odemeler')">Ödeme Bildir</button>
-          </div>
+        <div class="ca-card ca-pay" id="caHomeOdemeKarti" style="display:none;">
+          <div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
         </div>
       </div>
 
