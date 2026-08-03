@@ -32390,6 +32390,66 @@ let veliGaleriVerisi = [];
 let aktifVeliGaleriFilter = "tumu";
 let veliGaleriAktifCocuk = "hepsi"; // "hepsi" veya ogrenciId
 
+
+// ═══════════════════════════════════════════════════════════════════
+// GALERİ TEŞHİS — konsoldan galeriTeshis() ile çalıştırılır
+// Kaydın oluşup oluşmadığını ve veli filtresinin neden elediğini gösterir.
+// ═══════════════════════════════════════════════════════════════════
+window.galeriTeshis = async function() {
+  console.log("═══ GALERİ TEŞHİS ═══");
+  try {
+    const snap = await getDocs(collection(db, "galeri"));
+    const hepsi = [];
+    snap.forEach(d => hepsi.push({ id: d.id, ...d.data() }));
+    console.log("1) galeri koleksiyonundaki kayıt sayısı:", hepsi.length);
+
+    if (!hepsi.length) {
+      console.log("   → HİÇ KAYIT YOK. Yükleme Firestore'a hiç yazmamış.");
+      console.log("   → Sebep: proxy yanıtı okunamıyor (echo 404) veya yükleme hata veriyor.");
+      return;
+    }
+
+    hepsi.sort((a, b) => String(b.yuklenmeTarihi || b.olusturuldu || "").localeCompare(String(a.yuklenmeTarihi || a.olusturuldu || "")));
+    console.log("2) Son 5 kayıt:");
+    hepsi.slice(0, 5).forEach((g, i) => {
+      console.log(`   [${i + 1}]`,
+        "durum:", g.durum,
+        "| hedefTur:", g.hedefTur,
+        "| hedefDeger:", g.hedefDeger || "-",
+        "| albüm:", g.etkinlikBaslik || "-",
+        "| url:", g.bunnyUrl ? "VAR" : "YOK");
+    });
+
+    // Veli tarafı filtresi neden eliyor?
+    const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+    if (!o) {
+      console.log("3) Veli oturumu değil (veliAktifOgrenci yok). Veli hesabıyla tekrar çalıştırın.");
+      return;
+    }
+    const sinifim = o.sinif || o.sinifi || "";
+    console.log("3) Çocuk:", o.ogrenciAdSoyad, "| sınıfı:", sinifim);
+
+    const n = (x) => ((typeof sinifAdiResmiEsle === "function" ? sinifAdiResmiEsle(x) : x) || "")
+      .toString().toLocaleLowerCase("tr").replace(/\s+/g, "");
+
+    console.log("4) Her kayıt için karar:");
+    hepsi.slice(0, 10).forEach(g => {
+      const sebepler = [];
+      if (g.durum !== "onaylandi") sebepler.push("durum=" + g.durum + " (onaylandi değil)");
+      if (g.hedefTur === "sinif" && n(g.hedefDeger) !== n(sinifim))
+        sebepler.push(`sınıf uyuşmuyor ("${g.hedefDeger}" ≠ "${sinifim}")`);
+      if (g.hedefTur === "ogrenci" && g.hedefOgrenciId !== o.id)
+        sebepler.push("başka öğrenciye ait");
+      if (!g.bunnyUrl) sebepler.push("bunnyUrl boş");
+      console.log("   ", (g.etkinlikBaslik || g.id).substring(0, 30),
+        sebepler.length ? "→ GİZLENİYOR: " + sebepler.join(", ") : "→ GÖRÜNMELİ");
+    });
+  } catch (e) {
+    console.error("Teşhis hatası:", e.message);
+    console.log("→ Firestore okuma izni sorunu olabilir.");
+  }
+};
+
 async function veliRenderGaleri() {
   const el = document.getElementById("veliGaleriListesi");
   if (!el) return;
