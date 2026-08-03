@@ -3407,6 +3407,18 @@ i[data-lucide] svg { display: block; }
 
 /* ── MOBİL DÜZELTMELERİ ── */
 @media (max-width: 640px) {
+  /* MOBİL SIRALAMA — Çocuğum · Hızlı İşlemler · Günlük · Ödeme · Duyurular
+     ca-hero-row "display:contents" ile şeffaflaşır; çocuğum ve günlük
+     kartları sayfa akışına doğrudan girer, order ile sıralanır. */
+  .ca-page.ca-stack { display: flex !important; flex-direction: column !important; }
+  .ca-hero-row { display: contents !important; }
+  #caHomeOryBant   { order: 1; }
+  #caCocukBolum    { order: 2; margin-bottom: 14px; }
+  #caHizliBolum    { order: 3; }
+  #caGunlukBolum   { order: 4; }
+  #caHomeOdemeBolum{ order: 5; }
+  .ca-dash         { order: 6; }
+
   /* ANA BAŞLIKLAR — masaüstü punto telefonda taşıyordu */
   .ca-hero-row { grid-template-columns: 1fr !important; }
   .ca-dash { grid-template-columns: 1fr !important; }
@@ -15936,6 +15948,7 @@ function veliRenderYeniApp() {
                  : (caEkran === "yemek") ? caYemekHTML()
                  : caHomeHTML();
   if (caEkran === "menu") { const i = document.getElementById("caMenuSearch"); if (i) i.focus(); }
+  if (caEkran === "gunluk") { try { caGunlukTarih = null; caGunlukYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "pdr") { try { caPdrYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "oryantasyon") { try { caOryantasyonYukle(); } catch(e) { console.warn(e); } }
   if (caEkran === "randevular") { try { caRandevulariYukle(); } catch(e) { console.warn(e); } }
@@ -17492,7 +17505,7 @@ function caHomeHTML() {
       <div id="caHomeOryBant" style="display:none; margin-bottom:14px;"></div>
 
       <div class="ca-hero-row">
-        <div class="ca-card-green" style="cursor:pointer;" onclick="caGo('profil')">
+        <div class="ca-card-green" id="caCocukBolum" style="cursor:pointer;" onclick="caGo('profil')">
           <div class="ca-row" style="justify-content:space-between;">
             <div class="ca-row">
               ${cocukAvatar}
@@ -17508,7 +17521,7 @@ function caHomeHTML() {
         </div>
 
         <!-- BUGÜNÜN GÜNLÜĞÜ — üst sıraya alındı -->
-        <div class="ca-card" style="display:flex; flex-direction:column;">
+        <div class="ca-card" id="caGunlukBolum" style="display:flex; flex-direction:column;">
           <div class="ca-sectionhead" style="margin-bottom:8px;">
             <h3 class="ca-head" style="font-size:15px;">Bugünün günlüğü</h3>
             <button class="ca-link" onclick="caGo('gunluk')">Tümü →</button>
@@ -17520,26 +17533,26 @@ function caHomeHTML() {
       </div>
 
       <!-- Hızlı işlemler -->
-      <div>
+      <div id="caHizliBolum">
         <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
         <div class="ca-quick">
           ${caHizliIslemlerHTML()}
         </div>
       </div>
 
+      <!-- ÖDEME DURUMU — hızlı işlemlerden sonra, duyurulardan önce -->
+      <div id="caHomeOdemeBolum">
+        <div class="ca-sectionhead">
+          <h3 class="ca-head" style="font-size:15px;">Ödeme Durumu</h3>
+          <button class="ca-link" onclick="veliSwitchTab('odemeler')">Tümü →</button>
+        </div>
+        <div class="ca-card ca-pay" id="caHomeOdemeKarti">
+          <div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+        </div>
+      </div>
+
       <!-- Dashboard: değişen yükseklikli kartlar (masonry) -->
       <div class="ca-dash">
-
-        <!-- ÖDEME DURUMU — günlüğün yerine, en üstte -->
-        <div id="caHomeOdemeBolum">
-          <div class="ca-sectionhead">
-            <h3 class="ca-head" style="font-size:15px;">Ödeme Durumu</h3>
-            <button class="ca-link" onclick="veliSwitchTab('odemeler')">Tümü →</button>
-          </div>
-          <div class="ca-card ca-pay" id="caHomeOdemeKarti">
-            <div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
-          </div>
-        </div>
 
         <!-- Duyuru (görselli) -->
         <div>
@@ -18481,68 +18494,149 @@ function caGaleriHTML() {
   `;
 }
 
-// ===== Günlük Rapor ekranı =====
+// ===== Günlük Rapor ekranı — GERÇEK VERİ =====
+// Kaynak: gunlukRaporlar (ogrenciId + tarih). Demo içerik kaldırıldı.
 function caGunlukHTML() {
-  const ogunler = [
-    ["Kahvaltı", "☀️", "#Dff4e3", "Tam buğday tost, peynir, salatalık, süt", "Tamamı", "#Dff4e3", "var(--c-green-deep)"],
-    ["Öğle", "🍱", "var(--c-yellow-soft)", "Mercimek çorbası, köfte, pilav, salata", "Yarısı", "var(--c-yellow-soft)", "#8a6d1a"],
-    ["İkindi", "🍎", "#Dff4e3", "Meyve tabağı, süt", "Tamamı", "#Dff4e3", "var(--c-green-deep)"]
-  ];
-  const ogunRows = ogunler.map(([ad, ikon, bg, items, durum, dBg, dText]) => `
-    <div class="ca-mealrow">
-      <span class="ca-qicon" style="width:42px; height:42px; font-size:18px; background:${bg};">${ikon}</span>
-      <div style="flex:1; min-width:0;"><div style="font-weight:700; color:var(--c-ink);">${ad}</div><div class="ca-tile-sub">${items}</div></div>
-      <span class="ca-pill" style="background:${dBg}; color:${dText};">${durum}</span>
-    </div>`).join("");
   return `
     <div class="ca-page ca-stack">
       <div class="ca-topbar">
         <div class="ca-row">
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
-          <div><div class="ca-tile-sub">GÜNLÜK RAPOR</div><h2 style="font-size:18px;">22 Nisan, Çarşamba</h2></div>
+          <div>
+            <div class="ca-tile-sub">GÜNLÜK RAPOR</div>
+            <h2 style="font-size:18px;" id="caGunlukBaslik">—</h2>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="ca-back" onclick="caGunlukGunDegis(-1)" title="Önceki gün">‹</button>
+          <button class="ca-back" onclick="caGunlukGunDegis(1)" title="Sonraki gün">›</button>
         </div>
       </div>
+      <div id="caGunlukIcerik">
+        <div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
+      </div>
+    </div>`;
+}
 
+let caGunlukTarih = null;   // 'YYYY-MM-DD'
+
+window.caGunlukGunDegis = function(fark) {
+  const d = caGunlukTarih ? new Date(caGunlukTarih + "T00:00:00") : new Date();
+  d.setDate(d.getDate() + fark);
+  const bugun = new Date(); bugun.setHours(0, 0, 0, 0);
+  if (d > bugun) return;                       // geleceğe gitme
+  caGunlukTarih = d.toISOString().slice(0, 10);
+  caGunlukYukle();
+};
+
+async function caGunlukYukle() {
+  const el = document.getElementById("caGunlukIcerik");
+  const baslikEl = document.getElementById("caGunlukBaslik");
+  if (!el) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  if (!o) { el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Öğrenci seçilmedi.</div>`; return; }
+
+  el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>`;
+  try {
+    const snap = await getDocs(query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id)));
+    const liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
+
+    if (!liste.length) {
+      if (baslikEl) baslikEl.textContent = "Kayıt yok";
+      el.innerHTML = `<div class="ca-card" style="padding:34px 20px; text-align:center;">
+        <i data-lucide="notebook-pen" style="width:34px;height:34px;opacity:.3;display:block;margin:0 auto 12px;"></i>
+        <div style="font-weight:700; color:var(--c-ink); font-size:14.5px; margin-bottom:5px;">Henüz günlük rapor yok</div>
+        <div style="color:var(--c-muted); font-size:13px; line-height:1.6;">Öğretmeniniz günlük raporu girdiğinde burada görünecek.</div></div>`;
+      if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+      return;
+    }
+
+    // İlk açılışta en güncel rapor
+    if (!caGunlukTarih) caGunlukTarih = liste[0].tarih;
+    const r = liste.find(x => x.tarih === caGunlukTarih);
+
+    const GUN = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+    const AY = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+    const d = new Date(caGunlukTarih + "T00:00:00");
+    if (baslikEl) baslikEl.textContent = isNaN(d) ? caGunlukTarih : `${d.getDate()} ${AY[d.getMonth()]}, ${GUN[d.getDay()]}`;
+
+    if (!r) {
+      el.innerHTML = `<div class="ca-card" style="padding:30px 20px; text-align:center; color:var(--c-muted); font-size:13px;">
+        Bu gün için rapor girilmemiş.<br>
+        <span style="font-size:12px;">Oklarla diğer günlere bakabilirsiniz.</span></div>`;
+      return;
+    }
+
+    // Nesne değerleri düz metne çevir ([object Object] olmasın)
+    const dz = (v) => {
+      if (v == null) return "";
+      if (typeof v === "string" || typeof v === "number") return String(v);
+      if (typeof v === "object") {
+        const a = v.deger ?? v.miktar ?? v.durum ?? v.metin ?? v.ad ?? v.yuzde ?? v.sure;
+        if (a != null) return String(a);
+        const ilk = Object.values(v).find(x => typeof x === "string" || typeof x === "number");
+        return ilk != null ? String(ilk) : "";
+      }
+      return "";
+    };
+
+    const rozet = (metin, bg, yazi) => metin
+      ? `<span class="ca-pill" style="background:${bg}; color:${yazi};">${escapeHtml(metin)}</span>` : "";
+
+    // Öğünler — kayıtta varsa göster
+    const ogunTanim = [
+      ["Kahvaltı", "sun",      "#Dff4e3", r.kahvalti ?? r.sabah],
+      ["Öğle",     "utensils", "var(--c-yellow-soft)", r.ogle],
+      ["İkindi",   "apple",    "#Dff4e3", r.ikindi]
+    ].filter(x => x[3]);
+
+    const ogunHtml = ogunTanim.length ? `
+      <div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:18px 2px 9px;">Yemekler</div>
+      <div class="ca-card" style="padding:6px 0;">
+        ${ogunTanim.map(([ad, ikon, bg, deger]) => `
+          <div class="ca-mealrow">
+            <span class="ca-qicon" style="width:42px; height:42px; background:${bg};"><i data-lucide="${ikon}" style="width:18px;height:18px;"></i></span>
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:700; color:var(--c-ink);">${ad}</div>
+              <div class="ca-tile-sub">${escapeHtml(dz(deger))}</div>
+            </div>
+          </div>`).join("")}
+      </div>` : "";
+
+    const cocukAd = (o.ogrenciAdSoyad || "").split(" ")[0] || "Çocuğunuz";
+    const mood = dz(r.mood || r.ruhHali);
+
+    el.innerHTML = `
       <div class="ca-card">
-        <div class="ca-row" style="justify-content:space-between;">
+        <div class="ca-row" style="justify-content:space-between; align-items:flex-start;">
           <div class="ca-row">
-            <div class="ca-avatar" style="width:46px; height:46px; font-size:18px; background:var(--c-pink-soft); color:var(--c-ink);">D</div>
+            <div class="ca-avatar" style="width:48px; height:48px; font-size:19px; background:var(--c-pink-soft); color:var(--c-ink);">${escapeHtml((cocukAd[0] || "?").toLocaleUpperCase("tr"))}</div>
             <div>
-              <div style="font-weight:700; color:var(--c-ink);">Defne'nin günü</div>
-              <div class="ca-tile-sub">09:12 → 16:30 · 7s 18dk</div>
+              <div style="font-weight:700; color:var(--c-ink);">${escapeHtml(cocukAd)}'ın günü</div>
+              <div class="ca-tile-sub">${escapeHtml([r.girisSaat, r.cikisSaat].filter(Boolean).join(" → ") || (r.ogretmenAd ? "Öğretmen: " + r.ogretmenAd : ""))}</div>
             </div>
           </div>
-          <span class="ca-pill green">⭐ HARİKA</span>
+          ${mood ? `<span class="ca-pill green">${escapeHtml(mood)}</span>` : ""}
         </div>
-        <div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">
-          Bugün bahçede yapraklarla matematik etkinliği yaptık. Defne çok ilgiliydi ve arkadaşlarına da yardım etti 🌿
-        </div>
+        ${(r.not || r.aciklama) ? `<div style="margin-top:14px; font-size:14px; color:var(--c-body); line-height:1.65;">${escapeHtml(r.not || r.aciklama)}</div>` : ""}
+        ${(dz(r.uyku) || dz(r.yemek)) ? `<div class="ca-statpills" style="margin-top:14px;">
+          ${dz(r.yemek) ? `<div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v">${escapeHtml(dz(r.yemek))}</div><div class="l">Yemek</div></div>` : ""}
+          ${dz(r.uyku) ? `<div class="ca-statpill" style="background:var(--c-purple-soft);"><div class="v">${escapeHtml(dz(r.uyku))}</div><div class="l">Uyku</div></div>` : ""}
+          ${mood ? `<div class="ca-statpill" style="background:#Dff4e3;"><div class="v">${escapeHtml(mood)}</div><div class="l">Mood</div></div>` : ""}
+        </div>` : ""}
       </div>
-
-      <div>
-        <h3 class="ca-head" style="font-size:13px; letter-spacing:.06em; color:var(--c-muted); margin-bottom:8px;">YEMEKLER</h3>
-        <div class="ca-card">${ogunRows}</div>
-      </div>
-
-      <div class="ca-grid-2">
-        <div class="ca-card" style="background:var(--c-purple-soft); border:none;">
-          <div class="ca-statbox">
-            <i data-lucide="moon" style="width:21px;height:21px;"></i>
-            <div><div class="ca-head" style="font-size:18px;">1s 20dk</div><div class="ca-tile-sub">Öğle uykusu</div></div>
-          </div>
-        </div>
-        <div class="ca-card" style="background:var(--c-blue-soft); border:none;">
-          <div class="ca-statbox">
-            <i data-lucide="circle-check" style="width:21px;height:21px;"></i>
-            <div><div class="ca-head" style="font-size:18px;">4 kez</div><div class="ca-tile-sub">Tuvalet</div></div>
-          </div>
-        </div>
-      </div>
-
-      <button class="ca-btn ghost" style="width:100%;" onclick="veliSwitchTab('raporlar')"><i data-lucide="file" style="width:13px;height:13px;vertical-align:-2px;"></i> Geçmiş günlük raporlar</button>
-    </div>
-  `;
+      ${ogunHtml}
+      <button class="ca-btn" style="width:100%; margin-top:16px;" onclick="veliSwitchTab('galeri')">
+        <i data-lucide="camera" style="width:14px;height:14px;vertical-align:-2px;"></i> Tüm fotoğraflar ve videolar</button>`;
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    console.warn("günlük rapor", e?.message);
+    el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Rapor yüklenemedi.</div>`;
+  }
 }
+
 
 // ===== Çocuk Profili ekranı =====
 // GERÇEK VERİ: veliAktifOgrenci (seçili çocuk) + ogrenciGelisim (gelişim yüzdeleri)
