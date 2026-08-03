@@ -14335,20 +14335,54 @@ async function medyaYukle(dosya, klasor = "genel", sadeceResim = true) {
 
   const base64 = await medyaDosyaBase64(dosya);
 
-  const res = await fetch(MEDYA_AYAR.PROXY_URL, {
-    method: "POST",
-    // Apps Script CORS: basit istek için text/plain kullan (preflight'ı önler)
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      anahtar: MEDYA_AYAR.PAYLASIM_ANAHTARI,
-      islem: "yukle",
-      dosyaAdi: dosya.name,
-      klasor: klasor,
-      icerikBase64: base64
-    })
+  const govde = JSON.stringify({
+    anahtar: MEDYA_AYAR.PAYLASIM_ANAHTARI,
+    islem: "yukle",
+    dosyaAdi: dosya.name,
+    klasor: klasor,
+    icerikBase64: base64
   });
 
-  const sonuc = await res.json();
+  // Apps Script yanıtı script.googleusercontent.com'a yönlendirilir.
+  // Bu yönlendirme bazen 404 verir (çoklu Google oturumu / çerez engeli).
+  // Script tarafında yükleme BAŞARILI olmasına rağmen tarayıcı yanıtı
+  // okuyamaz ve dosya kaydı oluşmaz. Bu yüzden bir kez yeniden deniyoruz.
+  async function istekGonder() {
+    const res = await fetch(MEDYA_AYAR.PROXY_URL, {
+      method: "POST",
+      // Basit istek → preflight yok
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      // Google çerezleri yönlendirmede soruna yol açabiliyor
+      credentials: "omit",
+      redirect: "follow",
+      body: govde
+    });
+    const metin = await res.text();
+    if (!metin || metin.trim().charAt(0) === "<") {
+      throw new Error("PROXY_YANIT_OKUNAMADI");
+    }
+    return JSON.parse(metin);
+  }
+
+  let sonuc;
+  try {
+    sonuc = await istekGonder();
+  } catch (ilkHata) {
+    if (String(ilkHata.message).indexOf("PROXY_YANIT") === -1 &&
+        String(ilkHata.message).indexOf("JSON") === -1) throw ilkHata;
+    console.warn("[Medya] Yanıt okunamadı, tekrar deneniyor…");
+    await new Promise(r => setTimeout(r, 800));
+    try {
+      sonuc = await istekGonder();
+    } catch (ikinciHata) {
+      throw new Error(
+        "Medya sunucusundan yanıt alınamadı. Tarayıcıda birden fazla Google " +
+        "hesabıyla oturum açıksa çıkıp tek hesapla deneyin; sorun sürerse " +
+        "yöneticiye bildirin (BCKA-Medya dağıtımı)."
+      );
+    }
+  }
+
   if (!sonuc.ok) throw new Error(sonuc.hata || "Yükleme başarısız");
   return { url: sonuc.url, yol: sonuc.yol };
 }
@@ -31195,7 +31229,7 @@ window.adminEgitimExcelIndir = function() {
 // güvenli medya.js proxy katmanına taşındı (API key artık tarayıcıda yok).
 
 // Fotoğrafları sıkıştır (tarayıcıda, Canvas ile)
-async function resimSikistir(file, maxBoyut = 1920, kalite = 0.85) {
+async function resimSikistir(file, maxBoyut = 1600, kalite = 0.82) {
   if (!file.type.startsWith("image/")) return file; // Sadece resim
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -31831,10 +31865,24 @@ window.galeriYukle = async function() {
     } catch (e) {
       console.error("Yükleme hatası:", e);
       hatali++;
+      // Proxy 404 / HTML dönerse "not valid JSON" hatası gelir.
+      // Kullanıcı sebebini görsün, sessizce kaybolmasın.
+      const m = String(e && e.message || "");
+      if (m.includes("not valid JSON") || m.includes("Unexpected token")) {
+        window._galeriProxyHatasi = true;
+      }
     }
   }
 
   document.getElementById("galeriYuklemeDurum").textContent = `✓ ${basarili} başarılı${hatali > 0 ? `, ${hatali} hatalı` : ''}`;
+  if (window._galeriProxyHatasi) {
+    window._galeriProxyHatasi = false;
+    const du = document.getElementById("galeriYuklemeDurum");
+    if (du) du.innerHTML = `<span style="color:#DC2626;">Medya sunucusuna ulaşılamadı.</span>`;
+    showToast("Medya sunucusuna ulaşılamıyor. Yönetici: BCKA-Medya Apps Script dağıtımını kontrol edin.", "error");
+    if (btn) { btn.disabled = false; btn.textContent = eskiMetin || "Yükle"; }
+    return;
+  }
   showToast(`✓ ${basarili} dosya yüklendi${hatali > 0 ? ` (${hatali} hatalı)` : ''}`);
   // Onay bekleyen yükleme yapıldıysa kullanıcı bunu bilsin
   try {
@@ -34054,6 +34102,12 @@ window.kartTalepOlustur = async function(ogrenciId, borc, gecikenAy) {
 // ADMIN TARAFI: Giriş yapınca yeni talep kontrolü
 window.kontrolEtYeniTalepler = async function() {
   try {
+    // Bu sorgu yalnızca yönetim/muhasebe içindir. Veli oturumunda
+    // filtresiz liste okuması Firestore Rules tarafından reddediliyor
+    // ve konsolu hata ile dolduruyordu.
+    const yetkili = (typeof isAdmin !== "undefined" && isAdmin) ||
+      ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
+    if (!yetkili) return;
     const snap = await getDocs(collection(db, "krediKartiTalepleri"));
     const tumu = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     krediKartiTalepleri = tumu;
