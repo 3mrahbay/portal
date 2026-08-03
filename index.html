@@ -17274,6 +17274,7 @@ function caHomeHTML() {
 
       <!-- Hızlı işlemler -->
       <div>
+        <div id="yonetimTalepUyari"></div>
         <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
         <div class="ca-quick">
           ${caHizliIslemlerHTML()}
@@ -18454,6 +18455,10 @@ function renderAdminHome() {
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
   const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
   root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
+  // Yönetim: bekleyen veli randevu taleplerini üstte göster
+  if (!ogretmenMi && typeof yonetimBekleyenTalepler === "function") {
+    yonetimBekleyenTalepler().catch(e => console.warn("talep uyarısı", e));
+  }
   // Öğretmen ana sayfası: sayıları Firestore'dan doldur (demo veri yok)
   if (ogretmenMi && typeof ogretmenHomeVeriYukle === "function") {
     ogretmenHomeVeriYukle().catch(e => console.warn("öğretmen ana sayfa verisi", e));
@@ -18779,6 +18784,44 @@ window.caGozlemKaydet = async function() {
     caAdminGo("egitim", st.sinif);
   } else if (typeof showToast === "function") showToast("Kaydedilemedi", "error");
 };
+
+
+// Yönetim ana sayfası — bekleyen veli randevu talepleri uyarısı
+async function yonetimBekleyenTalepler() {
+  const el = document.getElementById("yonetimTalepUyari");
+  if (!el) return;
+  try {
+    const q = query(collection(db, "randevuSlotlari"), where("durum", "==", "talep"));
+    const snap = await getDocs(q);
+    const liste = [];
+    snap.forEach(d => { const v = d.data() || {}; if (v.arsiv !== true) liste.push({ id: d.id, ...v }); });
+    if (!liste.length) { el.innerHTML = ""; return; }
+    liste.sort((a, b) => (a.tarih + (a.baslangicSaat || "")).localeCompare(b.tarih + (b.baslangicSaat || "")));
+
+    const TIP = { pdr:"PDR / Rehberlik", ogretmen_veli:"Sınıf Öğretmeni", idare:"Müdür / İdare", meslek_sunumu:"Meslek Sunumu", diger:"Görüşme" };
+    el.innerHTML = `
+      <div style="background:#FFF7ED; border:1px solid #FED7AA; border-radius:16px; padding:15px 17px; margin-bottom:14px; cursor:pointer;"
+           onclick="modulSec('etkinlik')">
+        <div style="display:flex; align-items:center; gap:9px; margin-bottom:10px;">
+          <span style="width:32px; height:32px; border-radius:10px; background:#C2410C; color:#fff; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="bell-ring" style="width:16px;height:16px;"></i></span>
+          <div style="flex:1;">
+            <div style="font-weight:700; font-size:14.5px; color:#7C2D12;">${liste.length} veli randevu talebi onay bekliyor</div>
+            <div style="font-size:12px; color:#9A3412; margin-top:2px;">Etkinlik &amp; Takvim bölümünden onaylayabilirsiniz</div>
+          </div>
+          <i data-lucide="chevron-right" style="width:18px;height:18px;color:#C2410C;"></i>
+        </div>
+        ${liste.slice(0, 3).map(t => `
+          <div style="background:#fff; border-radius:10px; padding:9px 12px; margin-bottom:6px; font-size:12.5px; color:#334155;">
+            <b>${escapeHtml(t.veliAd || t.veliEmail || "Veli")}</b> · ${escapeHtml(TIP[t.tip] || t.tip || "Görüşme")}
+            <span style="color:#64748B;"> · ${escapeHtml(t.tarih || "")} ${escapeHtml(t.baslangicSaat || "")}</span>
+          </div>`).join("")}
+        ${liste.length > 3 ? `<div style="font-size:12px; color:#9A3412; margin-top:4px;">+${liste.length - 3} talep daha</div>` : ""}
+      </div>`;
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) { console.warn("bekleyen talepler", e?.message); el.innerHTML = ""; }
+}
+window.yonetimBekleyenTalepler = yonetimBekleyenTalepler;
 
 function yonetimHomeHTML(ad) {
   // ===== GERÇEK VERİ HESABI (AKTIF_DONEM = 2026-2027) =====
@@ -22656,6 +22699,11 @@ window.randevuTalepReddet = async function(id) {
 };
 
 async function randevuListesiRender() {
+  // Slotlar henüz yüklenmediyse önce yükle — aksi halde bekleyen
+  // talep kutusu boş görünüyordu.
+  if (!randevuSlotlari || !randevuSlotlari.length) {
+    try { await randevuSlotlariYukle(true); } catch (e) { console.warn("slot yükleme", e?.message); }
+  }
   const liste = document.getElementById("randevuListesi");
   if (!liste) return;
 
@@ -22683,7 +22731,9 @@ async function randevuListesiRender() {
   if (sayacEl) {
     const musait = filtreli.filter(s => (s.durum || "musait") === "musait").length;
     const dolu = filtreli.filter(s => s.durum === "dolu").length;
-    sayacEl.textContent = `Toplam ${filtreli.length}  ·  🟢 ${musait} müsait  ·  🟡 ${dolu} dolu`;
+    const talep = (randevuSlotlari || []).filter(s => !s.arsiv && s.durum === "talep").length;
+    sayacEl.textContent = `Toplam ${filtreli.length}  ·  🟢 ${musait} müsait  ·  🟡 ${dolu} dolu` +
+      (talep ? `  ·  🟠 ${talep} onay bekliyor` : "");
   }
 
   if (filtreli.length === 0) {
@@ -23226,9 +23276,12 @@ function veliMusaitSlotlar() {
 function veliBenimSlotlar() {
   if (!currentUser?.email) return [];
   const veliEmail = currentUser.email.toLowerCase();
+  // DÜZELTME: eskiden yalnızca durum === "dolu" alınıyordu; veli kendi
+  // gönderdiği ve henüz ONAYLANMAMIŞ talepleri takvimde göremiyordu.
+  // Artık "talep" durumundakiler de listeleniyor (onay bekliyor rozetiyle).
   return randevuSlotlari.filter(s =>
     !s.arsiv &&
-    s.durum === "dolu" &&
+    (s.durum === "dolu" || s.durum === "talep") &&
     (s.veliEmail || "").toLowerCase() === veliEmail
   ).sort((a, b) => {
     const t1 = a.tarih + (a.baslangicSaat || "00:00");
@@ -23302,7 +23355,8 @@ async function veliBenimRandevularRender() {
   if (slotlar.length === 0) {
     el.innerHTML = `<div class="ca-card" style="padding:30px; text-align:center; color:var(--c-muted); font-size:13px;">
       ⭐ Henüz randevunuz yok.<br>
-      <span style="font-size:11px; color:#9ca3af;">"Randevular" sekmesinden müsait bir slot seçerek randevu alabilirsiniz.</span>
+      <span style="font-size:11px; color:#9ca3af;">"Randevular" sekmesinden müsait bir slot seçebilir<br>veya ana sayfadan yeni randevu talebi oluşturabilirsiniz.</span>
+      <br><button onclick="caRandevuTalepAc()" style="margin-top:14px; padding:10px 20px; border:none; background:var(--c-green,#2D5E3E); color:#fff; border-radius:11px; cursor:pointer; font-family:inherit; font-weight:700; font-size:13px;">Randevu Talep Et</button>
     </div>`;
     return;
   }
@@ -23329,6 +23383,12 @@ function veliRandevuKartHTML(s, benim) {
     ? `<span style="background:#dcfce7; color:#166534;">👶 ${escapeHtmlGelisim(s.ogrenciAd)} için</span>`
     : "";
 
+  // Durum rozeti — veli kendi talebinin onaylanıp onaylanmadığını görsün
+  const durumRozeti = !benim ? "" :
+    s.durum === "talep"
+      ? `<span style="background:#FEF3C7; color:#92400E; font-weight:700;">⏳ Onay bekliyor</span>`
+      : `<span style="background:#D1FAE5; color:#065F46; font-weight:700;">✓ Onaylandı</span>`;
+
   const onclick = benim
     ? `veliRandevuDetayAc('${s.id}', true)`
     : `veliSlotRezerveModalAc('${s.id}')`;
@@ -23346,6 +23406,7 @@ function veliRandevuKartHTML(s, benim) {
           ${ogretmenInfo}
           ${konumInfo}
           ${ogrenciBilgi}
+          ${durumRozeti}
         </div>
       </div>
       <span style="color:#94a3b8; font-size:18px; flex-shrink:0;">›</span>
