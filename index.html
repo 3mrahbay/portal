@@ -16689,8 +16689,10 @@ async function caHomeOryantasyonDoldur() {
             <i data-lucide="compass" style="width:14px;height:14px;"></i> ${escapeHtml(program.programAdi || "İlk Adımlar Programı")}</span>
           <span style="background:rgba(255,255,255,.22); padding:4px 11px; border-radius:12px; font-size:11.5px; font-weight:700; white-space:nowrap;">${escapeHtml(rozet)}</span>
         </div>
+        <div style="font-size:13px; opacity:.92; margin-bottom:7px; line-height:1.4;">${escapeHtml(program.programAdi || "İlk Adımlar")}'na Hoş Geldiniz</div>
         <div style="font-size:18px; font-weight:700; line-height:1.25;">${escapeHtml(baslik)}</div>
         ${detay ? `<div style="font-size:12.5px; opacity:.9; margin-top:5px; line-height:1.5;">${escapeHtml(detay)}</div>` : ""}
+        ${ozetCipleri(program)}
         <div style="height:6px; background:rgba(255,255,255,.22); border-radius:4px; overflow:hidden; margin-top:13px;">
           <div style="height:100%; background:#fff; border-radius:4px; width:${yuzde}%;"></div>
         </div>
@@ -16709,6 +16711,82 @@ async function caHomeOryantasyonDoldur() {
 window.caHomeOryantasyonDoldur = caHomeOryantasyonDoldur;
 
 // ── DETAY EKRANI ──
+
+// Bantta gösterilen kısa özet çipleri (çanta / kitap / seminer)
+function ozetCipleri(program) {
+  const say = (a) => (a && a.length) ? a.length : 0;
+  const parcalar = [];
+  if (say(program.malzemeler)) parcalar.push({ ikon: "backpack",     metin: say(program.malzemeler) + " çanta maddesi" });
+  if (say(program.kitaplar))   parcalar.push({ ikon: "book-marked",  metin: say(program.kitaplar) + " tavsiye kitap" });
+  if (say(program.seminerler)) parcalar.push({ ikon: "presentation", metin: say(program.seminerler) + " aile semineri" });
+  if (!parcalar.length) return "";
+  return `<div style="display:flex; gap:7px; flex-wrap:wrap; margin-top:11px;">
+    ${parcalar.map(x => `<span style="display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.2); padding:4px 10px; border-radius:11px; font-size:11.5px; font-weight:600;">
+      <i data-lucide="${x.ikon}" style="width:12px;height:12px;"></i> ${escapeHtml(x.metin)}</span>`).join("")}
+  </div>`;
+}
+
+// Haftalara pastel tema renkleri — her hafta ayrı renk
+const ORY_HAFTA_RENK = [
+  { bg:"#FDF3D6", kenar:"#F5D97E", yazi:"#8a6d1a", nokta:"#D9A441" },  // 1 · sarı
+  { bg:"#E4F2FB", kenar:"#A8CDE8", yazi:"#2E5C8A", nokta:"#4A8DBF" },  // 2 · mavi
+  { bg:"#EAF6EC", kenar:"#A7D8B0", yazi:"#2D7A2D", nokta:"#4CA55A" },  // 3 · yeşil
+  { bg:"#F6E9F2", kenar:"#E0B4D0", yazi:"#9B3D72", nokta:"#C4629B" }   // 4 · pembe
+];
+
+// İlk girişte karşılama penceresi — tercih Firestore'da tutulur,
+// böylece telefondan kapatınca portalde de tekrar çıkmaz.
+async function oryKarsilamaGoster(program) {
+  try {
+    const eposta = (currentUser?.email || "").toLowerCase();
+    if (!eposta) return;
+    const ref = doc(db, "kullaniciTercihleri", eposta);
+    const d = await getDoc(ref);
+    if (d.exists() && d.data().oryantasyonKarsilamaKapatildi === true) return;
+
+    const eski = document.getElementById("oryKarsilamaArka");
+    if (eski) eski.remove();
+    const div = document.createElement("div");
+    div.id = "oryKarsilamaArka";
+    div.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9600; display:flex; align-items:center; justify-content:center; padding:20px;";
+    div.innerHTML = `
+      <div style="background:#fff; border-radius:22px; max-width:420px; width:100%; overflow:hidden; max-height:88vh; display:flex; flex-direction:column;">
+        <div style="background:linear-gradient(135deg,#2D5E3E,#4A7C59); color:#fff; padding:26px 24px; text-align:center;">
+          <div style="width:56px; height:56px; margin:0 auto 12px; border-radius:50%; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="compass" style="width:27px;height:27px;"></i></div>
+          <div style="font-size:12px; opacity:.85; letter-spacing:1px;">HOŞ GELDİNİZ</div>
+          <div style="font-size:19px; font-weight:700; margin-top:5px; line-height:1.3;">${escapeHtml(program.programAdi || "İlk Adımlar")}</div>
+        </div>
+        <div style="padding:22px 24px; overflow-y:auto;">
+          <p style="margin:0 0 14px; font-size:14px; color:#334155; line-height:1.65;">${escapeHtml(program.ozet || "Okulun ilk ayı, çocuğunuzun okula güvenle ve kendi hızında uyum sağlaması için tasarlanmış kademeli bir programdır.")}</p>
+          <div style="background:#F8FAFC; border-radius:12px; padding:14px 16px; font-size:13px; color:#475569; line-height:1.7;">
+            Bu sayfada <b>her haftanın programını</b>, <b>PDR önerilerini</b>, <b>çantada olması gerekenleri</b> ve <b>aile seminerlerini</b> bulacaksınız.
+            Sorularınız için öğretmeninize veya rehberlik birimimize her zaman ulaşabilirsiniz.
+          </div>
+        </div>
+        <div style="padding:0 24px 22px; display:flex; flex-direction:column; gap:9px;">
+          <button onclick="oryKarsilamaKapat(true)" style="width:100%; padding:13px; border:none; background:#2D5E3E; color:#fff; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:700; font-size:14px;">Okudum, tekrar gösterme</button>
+          <button onclick="oryKarsilamaKapat(false)" style="width:100%; padding:12px; border:1px solid #E2E8F0; background:#fff; color:#64748B; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:600; font-size:13.5px;">Şimdilik kapat</button>
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) { console.warn("karşılama", e?.message); }
+}
+
+window.oryKarsilamaKapat = async function(kalici) {
+  const el = document.getElementById("oryKarsilamaArka");
+  if (el) el.remove();
+  if (!kalici) return;
+  try {
+    const eposta = (currentUser?.email || "").toLowerCase();
+    if (eposta) {
+      await setDoc(doc(db, "kullaniciTercihleri", eposta),
+        { oryantasyonKarsilamaKapatildi: true, guncellendi: new Date().toISOString() }, { merge: true });
+    }
+  } catch (e) { console.warn("tercih kaydedilemedi", e?.message); }
+};
+
 function caOryantasyonHTML() {
   return `
     <div class="ca-page ca-stack">
@@ -16731,66 +16809,148 @@ async function caOryantasyonYukle() {
   const el = document.getElementById("caOryIcerik");
   if (!el) return;
   try {
-    const program = await oryProgramYukle();
+    const program = await oryProgramYukle(true);
     const haftalar = program.haftalar || [];
     const seminerler = program.seminerler || [];
+    const malzemeler = program.malzemeler || [];
+    const kitaplar = program.kitaplar || [];
+    const ipuclari = program.ipuclari || [];
     const aktif = oryAktifHafta(program.baslangicTarihi);
     const bas = document.getElementById("caOryBaslik");
     if (bas) bas.textContent = program.programAdi || "İlk Adımlar";
+
+    // İlk girişte karşılama penceresi
+    oryKarsilamaGoster(program);
 
     if (!haftalar.length) {
       el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Program içeriği henüz tanımlanmamış.</div>`;
       return;
     }
 
-    const haftaKarti = (h) => {
+    const baslik = (metin, ikon) =>
+      `<div style="display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:20px 2px 10px;">
+         <i data-lucide="${ikon}" style="width:14px;height:14px;"></i> ${metin}</div>`;
+
+    // ── HAFTA KUTUCUKLARI (pastel, her hafta ayrı renk) ──
+    const haftaKutusu = (h, i) => {
+      const r = ORY_HAFTA_RENK[i % ORY_HAFTA_RENK.length];
       const durum = aktif === 0 ? "yaklasan" : h.no < aktif ? "tamam" : h.no === aktif ? "aktif" : "yaklasan";
       const t = oryHaftaTarihi(program.baslangicTarihi, h.no);
-      const renk = durum === "tamam" ? { bg:"#DFF4E3", yazi:"#065F46", ad:"Tamamlandı" }
-                 : durum === "aktif" ? { bg:"#2D5E3E", yazi:"#fff", ad:"Bu hafta" }
-                 : { bg:"var(--c-tint)", yazi:"var(--c-muted)", ad:"Yaklaşan" };
-      const etiket = (metin, bg, yazi, ikon) =>
-        `<span style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${yazi}; padding:3px 9px; border-radius:10px; font-size:11.5px; font-weight:600;">
+      const rozet = durum === "tamam"
+          ? `<span style="background:rgba(255,255,255,.75); color:${r.yazi}; padding:3px 10px; border-radius:11px; font-size:11px; font-weight:700;">Tamamlandı</span>`
+        : durum === "aktif"
+          ? `<span style="background:${r.nokta}; color:#fff; padding:3px 10px; border-radius:11px; font-size:11px; font-weight:700;">Bu hafta</span>`
+          : `<span style="background:rgba(255,255,255,.6); color:${r.yazi}; padding:3px 10px; border-radius:11px; font-size:11px; font-weight:700;">Yaklaşan</span>`;
+      const etiket = (metin, ikon) =>
+        `<span style="display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.7); color:${r.yazi}; padding:4px 10px; border-radius:10px; font-size:11.5px; font-weight:600;">
            <i data-lucide="${ikon}" style="width:12px;height:12px;"></i> ${escapeHtml(metin)}</span>`;
+
       return `
-        <div class="ca-card" style="padding:15px 17px; margin-bottom:10px; ${durum === "aktif" ? "border:2px solid #2D5E3E;" : ""}">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
-            <div style="font-weight:700; font-size:15px; color:var(--c-ink);">${h.no}. Hafta · ${escapeHtml(h.ad || "")}</div>
-            <span style="background:${renk.bg}; color:${renk.yazi}; padding:3px 10px; border-radius:11px; font-size:11px; font-weight:700; white-space:nowrap;">${renk.ad}</span>
+        <div style="background:${r.bg}; border:1.5px solid ${durum === "aktif" ? r.nokta : r.kenar}; ${durum === "aktif" ? "border-width:2.5px;" : ""} border-radius:18px; padding:16px 18px; margin-bottom:12px; ${durum === "tamam" ? "opacity:.72;" : ""}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:34px; height:34px; flex-shrink:0; border-radius:11px; background:${r.nokta}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px;">${h.no}</span>
+              <div>
+                <div style="font-weight:700; font-size:15.5px; color:${r.yazi}; line-height:1.25;">${escapeHtml(h.ad || "")}</div>
+                ${t ? `<div style="font-size:11.5px; color:${r.yazi}; opacity:.8; margin-top:2px;">${t.aralik}</div>` : ""}
+              </div>
+            </div>
+            ${rozet}
           </div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;">
-            ${t ? etiket(t.aralik, "var(--c-tint)", "var(--c-body)", "calendar") : ""}
-            ${etiket((h.baslangicSaat || "") + " – " + (h.bitisSaat || ""), "var(--c-tint)", "var(--c-body)", "clock")}
-            ${h.ebeveynli ? etiket("Ebeveynli", "#E8F0FE", "#2E5C8A", "users") : etiket("Ebeveynsiz", "#EAF6EC", "#2D7A2D", "smile")}
-            ${(h.ogunler && h.ogunler.length) ? etiket(h.ogunler.join(" + "), "#FDF3D6", "#8a6d1a", "utensils") : ""}
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:11px;">
+            ${etiket((h.baslangicSaat || "") + " – " + (h.bitisSaat || ""), "clock")}
+            ${h.ebeveynli ? etiket("Ebeveynli", "users") : etiket("Ebeveynsiz", "smile")}
+            ${(h.ogunler && h.ogunler.length) ? etiket(h.ogunler.join(" + "), "utensils") : ""}
           </div>
-          ${h.aciklama ? `<div style="font-size:13px; color:var(--c-body); line-height:1.6; margin-top:11px;">${escapeHtml(h.aciklama)}</div>` : ""}
-          ${h.pdrTavsiye ? `<div style="display:flex; gap:9px; align-items:flex-start; background:#EDF4FA; border-radius:11px; padding:11px 13px; margin-top:11px;">
-            <i data-lucide="lightbulb" style="width:15px;height:15px;color:#2E5C8A;flex-shrink:0;margin-top:1px;"></i>
-            <div style="font-size:12.5px; color:#2E5C8A; line-height:1.55;"><b>PDR önerisi:</b> ${escapeHtml(h.pdrTavsiye)}</div>
+          ${h.aciklama ? `<div style="font-size:13px; color:#334155; line-height:1.6; background:rgba(255,255,255,.6); border-radius:12px; padding:11px 13px;">${escapeHtml(h.aciklama)}</div>` : ""}
+          ${h.pdrTavsiye ? `<div style="display:flex; gap:9px; align-items:flex-start; background:#fff; border-radius:12px; padding:11px 13px; margin-top:9px;">
+            <span style="width:26px; height:26px; flex-shrink:0; border-radius:9px; background:#EDF4FA; color:#2E5C8A; display:flex; align-items:center; justify-content:center;">
+              <i data-lucide="lightbulb" style="width:14px;height:14px;"></i></span>
+            <div style="font-size:12.5px; color:#2E5C8A; line-height:1.55;"><b>PDR önerisi</b><br>${escapeHtml(h.pdrTavsiye)}</div>
           </div>` : ""}
         </div>`;
     };
 
-    el.innerHTML =
-      (program.ozet ? `<div class="ca-card" style="padding:15px 17px; margin-bottom:14px; font-size:13.5px; color:var(--c-body); line-height:1.65;">${escapeHtml(program.ozet)}</div>` : "") +
-      `<div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:2px 2px 9px;">Haftalar</div>` +
-      haftalar.map(haftaKarti).join("") +
-      (seminerler.length ? `
-        <div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:18px 2px 9px;">Aile Seminerleri · her hafta cuma</div>
-        ${seminerler.map(x => {
-          const t = oryHaftaTarihi(program.baslangicTarihi, x.hafta);
-          const gecmis = aktif > x.hafta;
-          return `<div class="ca-card" style="display:flex; gap:12px; padding:13px 15px; margin-bottom:9px; ${gecmis ? "opacity:.6;" : ""}">
-            <span style="width:38px; height:38px; flex-shrink:0; border-radius:11px; background:#F3EFFC; color:#6B4FB6; display:flex; align-items:center; justify-content:center;">
-              <i data-lucide="presentation" style="width:17px;height:17px;"></i></span>
-            <div style="flex:1; min-width:0;">
-              <div style="font-weight:700; font-size:13.5px; color:var(--c-ink);">${escapeHtml(x.baslik || "")}</div>
-              <div style="font-size:12px; color:var(--c-muted); margin-top:3px;">${t ? "Cuma · " + t.cumaTarih : x.hafta + ". hafta cuma"}${x.saat ? " · " + escapeHtml(x.saat) : ""}${x.konusmaci ? " · " + escapeHtml(x.konusmaci) : ""}</div>
-              ${x.aciklama ? `<div style="font-size:12.5px; color:#5A6B62; margin-top:6px; line-height:1.5;">${escapeHtml(x.aciklama)}</div>` : ""}
+    // ── ÇANTA LİSTESİ ──
+    const cantaKutusu = malzemeler.length ? `
+      <div style="background:#FEF6E7; border:1.5px solid #F5D9A8; border-radius:18px; padding:16px 18px;">
+        <div style="display:flex; align-items:center; gap:9px; margin-bottom:12px;">
+          <span style="width:34px; height:34px; border-radius:11px; background:#D9A441; color:#fff; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="backpack" style="width:17px;height:17px;"></i></span>
+          <div style="font-weight:700; font-size:15px; color:#8a6d1a;">Çantada Olması Gerekenler</div>
+        </div>
+        ${malzemeler.map(x => `<div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.7); border-radius:11px; padding:10px 12px; margin-bottom:7px;">
+          <i data-lucide="${escapeHtml(x.ikon || x.ik || "check")}" style="width:15px;height:15px;color:#D9A441;flex-shrink:0;"></i>
+          <span style="font-size:13.5px; color:#334155;">${escapeHtml(x.ad || x.m || "")}</span></div>`).join("")}
+      </div>` : "";
+
+    // ── TAVSİYE KİTAPLAR ──
+    const kitapKutusu = kitaplar.length ? `
+      <div style="background:#F6E9F2; border:1.5px solid #E0B4D0; border-radius:18px; padding:16px 18px;">
+        <div style="display:flex; align-items:center; gap:9px; margin-bottom:12px;">
+          <span style="width:34px; height:34px; border-radius:11px; background:#C4629B; color:#fff; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="book-marked" style="width:17px;height:17px;"></i></span>
+          <div style="font-weight:700; font-size:15px; color:#9B3D72;">Tavsiye Kitaplar</div>
+        </div>
+        ${kitaplar.map(x => `<div style="background:rgba(255,255,255,.7); border-radius:11px; padding:11px 13px; margin-bottom:7px;">
+          <div style="font-weight:700; font-size:13.5px; color:#334155;">${escapeHtml(x.ad || "")}</div>
+          <div style="font-size:12px; color:#64748B; margin-top:2px;">${escapeHtml([x.y || x.yayinevi, x.k || x.kategori].filter(Boolean).join(" · "))}</div></div>`).join("")}
+      </div>` : "";
+
+    // ── UYUM İPUÇLARI ──
+    const ipucuKutusu = ipuclari.length ? `
+      <div style="background:#E4F2FB; border:1.5px solid #A8CDE8; border-radius:18px; padding:16px 18px;">
+        <div style="display:flex; align-items:center; gap:9px; margin-bottom:12px;">
+          <span style="width:34px; height:34px; border-radius:11px; background:#4A8DBF; color:#fff; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="lightbulb" style="width:17px;height:17px;"></i></span>
+          <div style="font-weight:700; font-size:15px; color:#2E5C8A;">Uyum İçin İpuçları</div>
+        </div>
+        ${ipuclari.map(x => `<div style="display:flex; gap:10px; align-items:flex-start; background:rgba(255,255,255,.7); border-radius:11px; padding:11px 13px; margin-bottom:7px;">
+          <i data-lucide="${escapeHtml(x.ikon || x.ik || "check")}" style="width:15px;height:15px;color:#4A8DBF;flex-shrink:0;margin-top:2px;"></i>
+          <div><div style="font-weight:700; font-size:13.5px; color:#334155;">${escapeHtml(x.baslik || x.b || "")}</div>
+          <div style="font-size:12.5px; color:#475569; margin-top:3px; line-height:1.55;">${escapeHtml(x.metin || x.m || "")}</div></div></div>`).join("")}
+      </div>` : "";
+
+    // ── SEMİNERLER (mor kutucuklar) ──
+    const seminerKutulari = seminerler.length ? seminerler.map(x => {
+      const t = oryHaftaTarihi(program.baslangicTarihi, x.hafta);
+      const gecmis = aktif > x.hafta;
+      const suAn = aktif === x.hafta;
+      return `
+        <div style="background:#F1EDFA; border:1.5px solid ${suAn ? "#8B6FC7" : "#CBBEE8"}; ${suAn ? "border-width:2.5px;" : ""} border-radius:18px; padding:15px 17px; margin-bottom:11px; ${gecmis ? "opacity:.65;" : ""}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:9px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:34px; height:34px; flex-shrink:0; border-radius:11px; background:#8B6FC7; color:#fff; display:flex; align-items:center; justify-content:center;">
+                <i data-lucide="presentation" style="width:16px;height:16px;"></i></span>
+              <div>
+                <div style="font-weight:700; font-size:14.5px; color:#5B3FA0; line-height:1.25;">${escapeHtml(x.baslik || "")}</div>
+                <div style="font-size:11.5px; color:#6B4FB6; opacity:.85; margin-top:2px;">
+                  ${t ? "Cuma · " + t.cumaTarih : x.hafta + ". hafta cuma"}${x.saat ? " · " + escapeHtml(x.saat) : ""}</div>
+              </div>
             </div>
-          </div>`;
-        }).join("")}` : "");
+            ${suAn ? `<span style="background:#8B6FC7; color:#fff; padding:3px 10px; border-radius:11px; font-size:11px; font-weight:700; white-space:nowrap;">Bu hafta</span>` : ""}
+          </div>
+          ${x.konusmaci ? `<div style="font-size:12.5px; color:#6B4FB6; margin-bottom:7px;"><i data-lucide="user" style="width:12px;height:12px;vertical-align:-2px;"></i> ${escapeHtml(x.konusmaci)}</div>` : ""}
+          ${x.aciklama ? `<div style="font-size:13px; color:#334155; line-height:1.6; background:rgba(255,255,255,.7); border-radius:12px; padding:11px 13px;">${escapeHtml(x.aciklama)}</div>` : ""}
+        </div>`;
+    }).join("") : "";
+
+    el.innerHTML =
+      // Karşılama kartı
+      `<div style="background:linear-gradient(135deg,#2D5E3E,#4A7C59); color:#fff; border-radius:18px; padding:18px 20px; margin-bottom:16px;">
+        <div style="font-size:11.5px; opacity:.85; letter-spacing:.8px; text-transform:uppercase;">Hoş geldiniz</div>
+        <div style="font-size:17px; font-weight:700; margin-top:5px; line-height:1.3;">${escapeHtml(program.programAdi || "İlk Adımlar")}</div>
+        ${program.ozet ? `<div style="font-size:13px; opacity:.92; margin-top:9px; line-height:1.6;">${escapeHtml(program.ozet)}</div>` : ""}
+      </div>` +
+      baslik("Haftalık Program", "calendar-range") +
+      haftalar.map(haftaKutusu).join("") +
+      (seminerKutulari ? baslik("Aile Seminerleri · her hafta cuma", "presentation") + seminerKutulari : "") +
+      (cantaKutusu ? baslik("Hazırlık", "backpack") + cantaKutusu : "") +
+      (ipucuKutusu ? `<div style="margin-top:12px;">${ipucuKutusu}</div>` : "") +
+      (kitapKutusu ? `<div style="margin-top:12px;">${kitapKutusu}</div>` : "") +
+      `<button onclick="oryKarsilamaTekrarGoster()" style="width:100%; margin-top:16px; padding:12px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:12px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:600; color:var(--c-muted);">
+        <i data-lucide="info" style="width:14px;height:14px;vertical-align:-3px;"></i> Program tanıtımını tekrar göster</button>`;
+
     if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
   } catch (e) {
     console.warn("oryantasyon", e?.message);
@@ -16798,303 +16958,13 @@ async function caOryantasyonYukle() {
   }
 }
 
-
-// ═══════════════════════════════════════════════════════════════════
-// İLK ADIMLAR PROGRAMI — YÖNETİM EKRANI
-// ayarlar/oryantasyon belgesini düzenler. ZEKY app ile ORTAK belge:
-// buradan yapılan değişiklik anında hem portal hem app velisine yansır.
-// ═══════════════════════════════════════════════════════════════════
-const ORY_VARSAYILAN = {
-  programAdi: "İlk Adımlar · Güvenli Başlangıç Programı",
-  ozet: "Okulun ilk ayı, çocuğunuzun okula güvenle ve kendi hızında uyum sağlaması için tasarlanmış 4 haftalık kademeli bir programdır.",
-  baslangicTarihi: "",
-  oryantasyonSinifi: "",
-  haftalar: [
-    { no:1, ad:"Ebeveynli Program",    ikon:"users",    baslangicSaat:"10:30", bitisSaat:"12:00", ebeveynli:true,  ogunler:[], aciklama:"", pdrTavsiye:"" },
-    { no:2, ad:"Ebeveynsiz Program",   ikon:"smile",    baslangicSaat:"10:30", bitisSaat:"12:00", ebeveynli:false, ogunler:[], aciklama:"", pdrTavsiye:"" },
-    { no:3, ad:"Öğle Yemeğine Geçiş",  ikon:"utensils", baslangicSaat:"10:00", bitisSaat:"13:00", ebeveynli:false, ogunler:["Öğle yemeği"], aciklama:"", pdrTavsiye:"" },
-    { no:4, ad:"Tam Güne Geçiş",       ikon:"sun",      baslangicSaat:"09:30", bitisSaat:"13:00", ebeveynli:false, ogunler:["Sabah kahvaltısı","Öğle yemeği"], aciklama:"", pdrTavsiye:"" }
-  ],
-  seminerler: [
-    { hafta:1, baslik:"Okula Uyum ve Ayrılık Kaygısı",     saat:"15:00", konusmaci:"", aciklama:"" },
-    { hafta:2, baslik:"Veda Rutini ve Güvenli Bağlanma",   saat:"15:00", konusmaci:"", aciklama:"" },
-    { hafta:3, baslik:"Beslenme ve Öz Bakım Becerileri",   saat:"15:00", konusmaci:"", aciklama:"" },
-    { hafta:4, baslik:"Tam Güne Geçiş ve Ev Rutini",       saat:"15:00", konusmaci:"", aciklama:"" }
-  ]
-};
-
-let ORY_YONETIM = null;
-
-window.oryYonetimYukle = async function() {
-  const el = document.getElementById("oryYonetimAlan");
-  if (!el) return;
-  el.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>`;
+window.oryKarsilamaTekrarGoster = async function() {
   try {
-    // Sınıf listesi seçici için gerekli
-    if (typeof sinifYonetimListesi === "undefined" || !sinifYonetimListesi.length) {
-      try {
-        const sn = await getDocs(collection(db, "siniflar"));
-        sinifYonetimListesi = [];
-        sn.forEach(x => sinifYonetimListesi.push({ id: x.id, ...x.data() }));
-        sinifYonetimListesi.sort((a, b) => (a.sira || 99) - (b.sira || 99));
-      } catch (e) { console.warn("sınıf listesi", e?.message); }
-    }
-    const d = await getDoc(doc(db, "ayarlar", "oryantasyon"));
-    const v = d.exists() ? (d.data() || {}) : {};
-    ORY_YONETIM = {
-      ...ORY_VARSAYILAN, ...v,
-      haftalar:   (v.haftalar   && v.haftalar.length)   ? v.haftalar   : ORY_VARSAYILAN.haftalar,
-      seminerler: (v.seminerler && v.seminerler.length) ? v.seminerler : ORY_VARSAYILAN.seminerler
-    };
-    ORY_PROGRAM = ORY_YONETIM;   // veli tarafı önbelleğini de tazele
-    oryYonetimCiz();
-  } catch (e) {
-    console.error("oryantasyon", e);
-    el.innerHTML = `<div style="text-align:center; padding:40px; color:#DC2626;"><p>Program yüklenemedi.</p></div>`;
-  }
-};
-
-function oryYonetimCiz() {
-  const el = document.getElementById("oryYonetimAlan");
-  if (!el || !ORY_YONETIM) return;
-  const p = ORY_YONETIM;
-  const aktif = oryAktifHafta(p.baslangicTarihi);
-
-  const durumBandi = !p.baslangicTarihi
-    ? `<div style="background:#FEF3C7; border:1px solid #FDE68A; border-radius:12px; padding:13px 16px; margin-bottom:14px; font-size:13px; color:#78350F;">
-         <b>Başlangıç tarihi girilmemiş.</b> Program velilere görünmüyor. Aşağıdan 1. haftanın pazartesi tarihini girin.</div>`
-    : aktif === 0
-    ? `<div style="background:#EDF4FA; border:1px solid #BFDBFE; border-radius:12px; padding:13px 16px; margin-bottom:14px; font-size:13px; color:#1E40AF;">Program henüz başlamadı. İlk hafta: ${(oryHaftaTarihi(p.baslangicTarihi,1)||{}).aralik || "—"}</div>`
-    : aktif > 4
-    ? `<div style="background:#F1F5F9; border-radius:12px; padding:13px 16px; margin-bottom:14px; font-size:13px; color:#475569;">Program tamamlandı. Veliler normal düzene geçti.</div>`
-    : `<div style="background:#DFF4E3; border:1px solid #86EFAC; border-radius:12px; padding:13px 16px; margin-bottom:14px; font-size:13px; color:#065F46;">
-         <b>Şu an ${aktif}. hafta yürürlükte</b> · ${(oryHaftaTarihi(p.baslangicTarihi,aktif)||{}).aralik || ""}</div>`;
-
-  const gir = (id, etiket, deger, tip, ipucu) => `
-    <div style="margin-bottom:12px;">
-      <label style="display:block; font-size:11.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">${etiket}</label>
-      <input type="${tip || "text"}" id="${id}" value="${escapeHtml(deger || "")}" ${ipucu ? `placeholder="${escapeHtml(ipucu)}"` : ""}
-        style="width:100%; padding:10px 13px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:14px;">
-    </div>`;
-
-  const alan = (id, etiket, deger, satir, ipucu, vurgu) => `
-    <div style="margin-bottom:12px;">
-      <label style="display:block; font-size:11.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">${etiket}</label>
-      <textarea id="${id}" rows="${satir || 2}" ${ipucu ? `placeholder="${escapeHtml(ipucu)}"` : ""}
-        style="width:100%; padding:10px 13px; border:1px solid ${vurgu ? "#BFDBFE" : "var(--c-line,#E2E8F0)"}; ${vurgu ? "background:#F7FBFD;" : ""} border-radius:10px; font-family:inherit; font-size:13.5px; resize:vertical;">${escapeHtml(deger || "")}</textarea>
-    </div>`;
-
-  el.innerHTML = durumBandi + `
-    <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px; padding:16px 18px; margin-bottom:14px;">
-      ${gir("oryAd", "Program Adı", p.programAdi)}
-      ${gir("oryBaslangic", "1. Haftanın Pazartesi Tarihi", p.baslangicTarihi, "date")}
-      <div style="font-size:12px; color:#64748B; margin:-6px 0 14px; line-height:1.5;">Diğer haftaların tarihleri ve seminer günleri buradan otomatik hesaplanır.</div>
-
-      <label style="display:block; font-size:11.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">Oryantasyon Sınıfı</label>
-      <select id="oryHedefSinif" style="width:100%; padding:10px 13px; border:1px solid var(--c-line,#E2E8F0); border-radius:10px; font-family:inherit; font-size:14px;">
-        <option value="">Sınıf seçilmedi — tarih bazlı otomatik karar</option>
-        ${((typeof sinifYonetimListesi !== "undefined" ? sinifYonetimListesi : []) || [])
-          .filter(x => x.durum !== "pasif")
-          .map(x => `<option value="${escapeHtml(x.ad)}" ${p.oryantasyonSinifi === x.ad ? "selected" : ""}>${escapeHtml(x.emoji || "")} ${escapeHtml(x.ad)}</option>`).join("")}
-      </select>
-      <div style="display:flex; gap:9px; align-items:flex-start; background:#EDF4FA; border-radius:10px; padding:11px 13px; margin:9px 0 14px;">
-        <i data-lucide="info" style="width:15px;height:15px;color:#2E5C8A;flex-shrink:0;margin-top:1px;"></i>
-        <div style="font-size:12.5px; color:#2E5C8A; line-height:1.55;">
-          Bu sınıfa atadığınız her çocuğun velisine program ekranı <b>otomatik</b> açılır.
-          Çocuğu normal sınıfına taşıdığınızda ekran kendiliğinden kapanır.
-          Sınıf seçmezseniz sistem okula başlama tarihine bakarak karar verir.</div>
-      </div>
-      ${alan("oryOzet", "Programın Özeti (veliye görünür)", p.ozet, 3)}
-    </div>
-
-    <div style="font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.5px; margin:16px 2px 10px;">Haftalar</div>
-    ${(p.haftalar || []).map((h, i) => {
-      const t = oryHaftaTarihi(p.baslangicTarihi, h.no);
-      const suAn = aktif === h.no;
-      return `
-      <div style="background:#fff; border:1px solid ${suAn ? "#2D5E3E" : "var(--c-line,#E2E8F0)"}; ${suAn ? "border-width:2px;" : ""} border-radius:14px; padding:15px 17px; margin-bottom:11px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:13px;">
-          <div style="font-weight:700; font-size:15px; color:#1E293B;">${h.no}. Hafta ${suAn ? `<span style="background:#DFF4E3;color:#065F46;padding:2px 9px;border-radius:9px;font-size:11px;margin-left:6px;">Bu hafta</span>` : ""}</div>
-          ${t ? `<span style="font-size:12px; color:#64748B;">${t.aralik}</span>` : ""}
-        </div>
-        ${gir("oryHAd" + i, "Hafta Adı", h.ad)}
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:11px;">
-          ${gir("oryHBas" + i, "Başlangıç", h.baslangicSaat, "time")}
-          ${gir("oryHBit" + i, "Bitiş", h.bitisSaat, "time")}
-        </div>
-        <label style="display:flex; align-items:center; gap:9px; font-size:13.5px; margin-bottom:12px; cursor:pointer;">
-          <input type="checkbox" id="oryHEb${i}" ${h.ebeveynli ? "checked" : ""}> Ebeveynli program (ebeveyn sınıfta bulunur)</label>
-        ${gir("oryHOgun" + i, "Öğünler", (h.ogunler || []).join(", "), "text", "Virgülle: Sabah kahvaltısı, Öğle yemeği")}
-        ${alan("oryHAc" + i, "Açıklama", h.aciklama, 2, "Bu haftada neler oluyor?")}
-        ${alan("oryHPdr" + i, "PDR Önerisi", h.pdrTavsiye, 2, "Veliye mavi kutuda gösterilir", true)}
-      </div>`;
-    }).join("")}
-
-    <div style="font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.5px; margin:18px 2px 10px;">Aile Seminerleri · her haftanın cuma günü</div>
-    ${(p.seminerler || []).map((x, i) => {
-      const t = oryHaftaTarihi(p.baslangicTarihi, x.hafta);
-      return `
-      <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px; padding:15px 17px; margin-bottom:11px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div style="font-weight:700; font-size:14.5px; color:#1E293B;">${x.hafta}. Hafta Semineri</div>
-          ${t ? `<span style="font-size:12px; color:#64748B;">Cuma · ${t.cumaTarih}</span>` : ""}
-        </div>
-        ${gir("orySB" + i, "Başlık", x.baslik)}
-        <div style="display:grid; grid-template-columns:1fr 2fr; gap:11px;">
-          ${gir("orySSaat" + i, "Saat", x.saat, "time")}
-          ${gir("orySK" + i, "Konuşmacı", x.konusmaci, "text", "Opsiyonel")}
-        </div>
-        ${alan("orySAc" + i, "Açıklama", x.aciklama, 2)}
-      </div>`;
-    }).join("")}
-
-    <div style="display:flex; gap:10px; margin-top:16px; position:sticky; bottom:14px;">
-      <button onclick="oryYonetimYukle()" style="padding:14px 20px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:600; font-size:14px;">Geri Al</button>
-      <button onclick="oryYonetimKaydet()" id="oryKaydetBtn" style="flex:1; padding:14px 20px; border:none; background:#2D5E3E; color:#fff; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:700; font-size:14.5px; box-shadow:0 4px 14px rgba(45,94,62,.25);">
-        <i data-lucide="check" style="width:16px;height:16px;vertical-align:-3px;"></i> Programı Kaydet</button>
-    </div>`;
-
-  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
-}
-
-window.oryYonetimKaydet = async function() {
-  const btn = document.getElementById("oryKaydetBtn");
-  if (!ORY_YONETIM) return;
-  const v = (id) => { const e = document.getElementById(id); return e ? e.value.trim() : ""; };
-
-  if (btn) { btn.disabled = true; btn.textContent = "Kaydediliyor…"; }
-  try {
-    const yeni = {
-      programAdi: v("oryAd") || ORY_VARSAYILAN.programAdi,
-      baslangicTarihi: v("oryBaslangic"),
-      oryantasyonSinifi: v("oryHedefSinif"),
-      ozet: v("oryOzet"),
-      haftalar: (ORY_YONETIM.haftalar || []).map((h, i) => ({
-        ...h,
-        ad: v("oryHAd" + i) || h.ad,
-        baslangicSaat: v("oryHBas" + i) || h.baslangicSaat,
-        bitisSaat: v("oryHBit" + i) || h.bitisSaat,
-        ebeveynli: !!(document.getElementById("oryHEb" + i) || {}).checked,
-        ogunler: v("oryHOgun" + i) ? v("oryHOgun" + i).split(",").map(x => x.trim()).filter(Boolean) : [],
-        aciklama: v("oryHAc" + i),
-        pdrTavsiye: v("oryHPdr" + i)
-      })),
-      seminerler: (ORY_YONETIM.seminerler || []).map((x, i) => ({
-        ...x,
-        baslik: v("orySB" + i) || x.baslik,
-        saat: v("orySSaat" + i) || x.saat,
-        konusmaci: v("orySK" + i),
-        aciklama: v("orySAc" + i)
-      }))
-    };
-
-    await setDoc(doc(db, "ayarlar", "oryantasyon"), {
-      ...yeni,
-      guncelleyen: currentUser?.email || "",
-      guncellendi: new Date().toISOString()
-    }, { merge: true });
-
-    ORY_YONETIM = { ...ORY_YONETIM, ...yeni };
-    ORY_PROGRAM = ORY_YONETIM;   // veli tarafı önbelleği
-    if (typeof showToast === "function") showToast("Program kaydedildi · velilere yansıdı", "success");
-    oryYonetimCiz();
-  } catch (e) {
-    console.error("oryantasyon kaydet", e);
-    alert("Kaydedilemedi: " + (e.message || e));
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="check" style="width:16px;height:16px;vertical-align:-3px;"></i> Programı Kaydet'; if (window.lucideYenile) window.lucideYenile(); }
-  }
-};
-
-function caPdrHTML() {
-  return `
-    <div class="ca-page ca-stack">
-      <div class="ca-topbar">
-        <div class="ca-row">
-          <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
-          <div>
-            <div class="ca-tile-sub">REHBERLİK</div>
-            <h2 style="font-size:18px;">PDR &amp; Gelişim Tavsiyeleri</h2>
-          </div>
-        </div>
-      </div>
-
-      <div class="ca-card" style="background:linear-gradient(135deg,#2E5C8A,#4A7C9E); border:none; color:#fff; padding:18px 20px; cursor:pointer;" onclick="caRandevuTalepAc()">
-        <div style="display:flex; align-items:center; gap:13px;">
-          <span style="width:44px; height:44px; border-radius:13px; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center;"><i data-lucide="calendar-plus" style="width:21px;height:21px;"></i></span>
-          <div style="flex:1;">
-            <div style="font-weight:700; font-size:15px;">Rehberlik Randevusu Al</div>
-            <div style="font-size:12.5px; opacity:.9; margin-top:2px;">PDR uzmanımızla birebir görüşme talep edin</div>
-          </div>
-          <i data-lucide="chevron-right" style="width:18px;height:18px;"></i>
-        </div>
-      </div>
-
-      <div>
-        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Çocuğuma Özel Notlar</h3></div>
-        <div class="ca-card" id="caPdrOzelNot">
-          <div style="padding:14px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
-        </div>
-      </div>
-
-      <div>
-        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sık Sorulan Sorular</h3></div>
-        <div id="caPdrSSS">
-          <div class="ca-card" style="padding:14px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>
-        </div>
-      </div>
-    </div>`;
-}
-
-async function caPdrYukle() {
-  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
-
-  // Çocuğa özel PDR notu
-  const notEl = document.getElementById("caPdrOzelNot");
-  if (notEl) {
-    try {
-      let metin = "";
-      if (o) {
-        const g = await getDoc(doc(db, "ogrenciGelisim", o.id));
-        if (g.exists()) {
-          const v = g.data() || {};
-          metin = v.pdrNotu || v.rehberlikNotu || v.genelDegerlendirme || "";
-        }
-      }
-      notEl.innerHTML = metin
-        ? `<div style="font-size:13.5px; color:var(--c-body); line-height:1.7; padding:4px 2px;">${escapeHtml(metin)}</div>`
-        : `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz size özel bir rehberlik notu paylaşılmamış.</div>`;
-    } catch (e) {
-      notEl.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Not yüklenemedi.</div>`;
-    }
-  }
-
-  // S.S.S. + tavsiyeler
-  const sssEl = document.getElementById("caPdrSSS");
-  if (sssEl) {
-    try {
-      const d = await getDoc(doc(db, "ayarlar", "pdrSSS"));
-      const liste = (d.exists() ? (d.data().sorular || d.data().liste || []) : []);
-      sssEl.innerHTML = liste.length
-        ? liste.map((x, i) => `
-          <div class="ca-card" style="padding:0; margin-bottom:8px; overflow:hidden;">
-            <button onclick="caPdrAc(${i})" style="width:100%; display:flex; align-items:center; gap:10px; text-align:left; padding:13px 15px; border:none; background:#fff; cursor:pointer; font-family:inherit;">
-              <i data-lucide="circle-help" style="width:16px;height:16px;color:#B8860B;flex-shrink:0;"></i>
-              <span style="flex:1; font-weight:600; font-size:13.5px; color:var(--c-ink);">${escapeHtml(x.soru || x.baslik || "")}</span>
-              <i data-lucide="chevron-down" style="width:16px;height:16px;color:#94A3B8;"></i>
-            </button>
-            <div id="caPdrCevap${i}" style="display:none; padding:0 15px 14px; font-size:13px; color:var(--c-body); line-height:1.7;">${escapeHtml(x.cevap || x.icerik || "")}</div>
-          </div>`).join("")
-        : `<div class="ca-card" style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz içerik eklenmemiş.</div>`;
-      if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
-    } catch (e) {
-      sssEl.innerHTML = `<div class="ca-card" style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">İçerik yüklenemedi.</div>`;
-    }
-  }
-}
-window.caPdrAc = function(i) {
-  const el = document.getElementById("caPdrCevap" + i);
-  if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+    const eposta = (currentUser?.email || "").toLowerCase();
+    if (eposta) await setDoc(doc(db, "kullaniciTercihleri", eposta), { oryantasyonKarsilamaKapatildi: false }, { merge: true });
+  } catch (e) {}
+  const program = await oryProgramYukle();
+  oryKarsilamaGoster(program);
 };
 
 
