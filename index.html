@@ -33102,6 +33102,78 @@ window.showBulkUpload = async function() {
   }
 };
 
+
+// ══════════════════════════════════════════════════════════════
+// FAZ 2 · ÇEKİRDEK KÖPRÜ (window.BCK)
+// --------------------------------------------------------------
+// Amaç: index.html içindeki modül kapsamını dışarıya açmak.
+// Bölünecek modüller (galeri, yemek, takvim, finans...) ayrı .js
+// dosyalarına taşındığında Firebase'e ve ortak yardımcılara
+// buradan erişecek. Bu blok HİÇBİR ŞEYİ TAŞIMAZ, sadece kapı açar.
+//
+// Kullanım (bölünmüş modül dosyasında):
+//   const { db, doc, getDoc } = window.BCK;
+//   const rol = window.BCK.rol();
+//
+// ÖNEMLİ: Rol/dönem/kullanıcı bilgileri FONKSİYON olarak verilir.
+// Çünkü bunlar giriş sonrası dolar; sabit değer verilseydi
+// modüller her zaman null görürdü.
+// ══════════════════════════════════════════════════════════════
+window.BCK = {
+  // ── Firebase çekirdeği ──
+  db, auth, app,
+
+  // ── Firestore API (import edilenler) ──
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+  query, where, orderBy, limit, serverTimestamp, writeBatch,
+  onSnapshot, addDoc, arrayUnion, increment, runTransaction, documentId,
+
+  // ── Oturum & rol (canlı okuma) ──
+  kullanici:  () => currentUser,
+  personel:   () => aktifPersonel,
+  rol:        () => aktifKullaniciRol,
+  siniflari:  () => aktifKullaniciSiniflari,
+  yonetimMi:  () => ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol),
+  ROL_ETIKETLERI,
+  ADMIN_EMAIL,
+
+  // ── Dönem ──
+  donem:      () => AKTIF_DONEM,
+  donemYukle: aktifDonemYukle,
+
+  // ── Yetki kapıları ──
+  sinifGorunur,
+  ogrencileriRoleGoreSuz,
+  modulErisim,
+  sekmeyeErisim,
+  iletisimGorebilir,
+  sinifKisitiVarMi,
+  personelYonetebilirMi,
+  ozellikAktif,
+  personelGetir,
+  personelSiniflariGetir,
+  tumSiniflariGetir,
+
+  // ── Mail (Brevo proxy) ──
+  brevoMail,
+  portalMailSablon,
+
+  // ── Medya (Bunny.net · Apps Script proxy) ──
+  medyaYukle,
+  medyaSil,
+  medyaCokluYukle,
+  medyaDogrula,
+
+  // ── Arayüz yardımcıları ──
+  toast:        (m, t) => window.showToast(m, t),
+  lucideYenile: () => window.lucideYenile(),
+  denetimYaz:   (eylem, detay) => window.zekiDenetim(eylem, detay)
+};
+
+// Bölünmüş modüller "çekirdek hazır mı" diye bunu bekleyebilir.
+window.BCK.hazir = true;
+document.dispatchEvent(new CustomEvent("bck-cekirdek-hazir"));
+console.log("BCK çekirdek köprüsü hazır ·", Object.keys(window.BCK).length, "giriş");
 </script>
 <script src="aidat-donem-genislet.js"></script>
 <script src="pdf-sayfa-bolunmesi.js"></script>
