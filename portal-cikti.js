@@ -112,7 +112,18 @@ function toplaSozlesmeVerisi() {
     servis2: parseFloat(getVal("ayarDigerServis2")) || 0
   };
 
-  const toplamAidat = aylikAidat * taksit;
+  // ══════════════════════════════════════════════════════════
+  // GERÇEK ÖDEME PLANI
+  // Sözleşme artık "aylık × taksit" çarpımı yapmaz; kayıt
+  // ekranında kaydedilmiş planı olduğu gibi okur:
+  //   1) aylık kartta elle girilen tutar varsa o geçerlidir
+  //   2) yoksa I. dönem (Eylül–Ocak) / II. dönem (Şubat–Haziran) aylığı
+  //   3) hiçbiri yoksa düz aylık aidat (eski kayıtlar için)
+  // Peşinat (ön ödeme) ayrı satır olarak plana girer.
+  // ══════════════════════════════════════════════════════════
+  const odemePlani = hesaplaOdemePlani(o, aylikAidat, taksit);
+
+  const toplamAidat = odemePlani.toplam;
   const toplamDiger = Object.values(digerUcretler).reduce((a, b) => a + b, 0);
 
   const odeme = {
@@ -125,6 +136,13 @@ function toplaSozlesmeVerisi() {
     digerUcretler: digerUcretler,
     digerToplam: toplamDiger,
     genelToplam: toplamAidat + toplamDiger,
+    // ── gerçek plan ──
+    onOdeme: odemePlani.onOdeme,
+    taksitler: odemePlani.taksitler,     // [{ayKod, tam, tutar}]
+    gruplar: odemePlani.gruplar,         // [{adet, tutar, ilkAy, sonAy}]
+    planOzet: odemePlani.ozet,           // "5 × 32.500 TL (Eylül–Ocak) + ..."
+    planSatirlari: odemePlani.satirlar,  // çok satırlı döküm
+    taksitAdedi: odemePlani.taksitler.length,
     yariDonemUcret: parseFloat(getVal("sozlesmeYariDonemUcret")) || 0,
     tamDonemUcret: parseFloat(getVal("sozlesmeTamDonemUcret")) || 0,
     burs: getChk("ayarBurs"),
@@ -174,6 +192,99 @@ function toplaSozlesmeVerisi() {
     goster: goster,
     izinler: izinler,
     sablon: B.sozlesmeSablon()
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+// ÖDEME PLANI HESAPLAYICI
+// Kaynak önceliği (kayıt ekranıyla birebir aynı mantık):
+//   1. aylikOdemeler[ayKod].beklenenTutar  → elle düzeltilmiş tutar
+//   2. aidatAyarlari.iDonemAylik / iiDonemAylik → dönem aylığı
+//   3. aylikAidat → düz aylık (eski kayıtlar)
+// Peşinat aidatAyarlari.onOdeme veya ekrandaki alandan okunur.
+// ══════════════════════════════════════════════════════════════
+function hesaplaOdemePlani(ogrenci, aylikAidat, taksit) {
+  const bos = { onOdeme: 0, taksitler: [], gruplar: [], toplam: 0, ozet: "", satirlar: [] };
+  if (!ogrenci) return bos;
+
+  const ayar = (B.ayarlar() || {})[ogrenci.id] || {};
+  const a = ayar.aidatAyarlari || {};
+  const aylikOdemeler = ayar.aylikOdemeler || {};
+
+  const gv = (id) => (document.getElementById(id)?.value || "").trim();
+
+  // Peşinat: ekrandaki alan önce, yoksa kayıtlı değer
+  const onOdeme = parseFloat(gv("ayarOnOdeme")) || Number(a.onOdeme) || 0;
+
+  const iDonemAylik  = Number(a.iDonemAylik)  || aylikAidat;
+  const iiDonemAylik = Number(a.iiDonemAylik) || aylikAidat;
+
+  const baslangic = gv("ayarBaslangic") || a.baslangicAyi || "";
+  const aylar = baslangic ? B.getAyListesi(baslangic, taksit) : [];
+
+  // Ay listesi kurulamıyorsa dönem aylıklarıyla kaba plan üret
+  if (!aylar.length) {
+    const yari = Math.round(taksit / 2);
+    const taksitler = [];
+    for (let i = 0; i < taksit; i++) {
+      taksitler.push({ ayKod: "", tam: "", tutar: i < yari ? iDonemAylik : iiDonemAylik });
+    }
+    return paketle(onOdeme, taksitler);
+  }
+
+  const taksitler = aylar.map(ay => {
+    const od = aylikOdemeler[ay.ayKod] || {};
+    let tutar;
+    if (od.beklenenTutar !== undefined && od.beklenenTutar !== null && od.beklenenTutar !== "") {
+      tutar = parseFloat(od.beklenenTutar) || 0;          // elle düzeltilmiş
+    } else {
+      tutar = (ay.ay >= 9 || ay.ay <= 1) ? iDonemAylik : iiDonemAylik;
+    }
+    return { ayKod: ay.ayKod, tam: ay.tam, isim: ay.isim, tutar: tutar };
+  });
+
+  return paketle(onOdeme, taksitler);
+}
+
+// Ardışık aynı tutarlı ayları gruplayıp özet metin üretir
+function paketle(onOdeme, taksitler) {
+  const gruplar = [];
+  for (const t of taksitler) {
+    const son = gruplar[gruplar.length - 1];
+    if (son && son.tutar === t.tutar) {
+      son.adet++;
+      son.sonAy = t.isim || "";
+    } else {
+      gruplar.push({ adet: 1, tutar: t.tutar, ilkAy: t.isim || "", sonAy: t.isim || "" });
+    }
+  }
+
+  const toplamTaksit = taksitler.reduce((s, t) => s + t.tutar, 0);
+  const toplam = onOdeme + toplamTaksit;
+
+  const parcalar = [];
+  const satirlar = [];
+  if (onOdeme > 0) {
+    parcalar.push(`Peşinat ${formatTL(onOdeme)}`);
+    satirlar.push({ etiket: "Peşinat / Ön Ödeme", deger: formatTL(onOdeme) });
+  }
+  for (const g of gruplar) {
+    const aralik = g.adet > 1 && g.ilkAy && g.sonAy && g.ilkAy !== g.sonAy
+      ? ` (${g.ilkAy}–${g.sonAy})` : (g.ilkAy ? ` (${g.ilkAy})` : "");
+    parcalar.push(`${g.adet} × ${formatTL(g.tutar)}${aralik}`);
+    satirlar.push({
+      etiket: `${g.adet} taksit${aralik}`,
+      deger: `${g.adet} × ${formatTL(g.tutar)} = ${formatTL(g.adet * g.tutar)}`
+    });
+  }
+
+  return {
+    onOdeme: onOdeme,
+    taksitler: taksitler,
+    gruplar: gruplar,
+    toplam: toplam,
+    ozet: parcalar.join(" + "),
+    satirlar: satirlar
   };
 }
 
@@ -245,12 +356,20 @@ function renderCiktiOzet() {
   }
 
   html += `<div class="cikti-ozet-baslik">Ödeme</div>`;
-  html += `<div class="cikti-ozet-row"><strong>Aylık Aidat:</strong><span>${formatTL(veri.odeme.aylikAidat)}</span></div>`;
-  html += `<div class="cikti-ozet-row"><strong>Yıllık (Aidat):</strong><span>${formatTL(veri.odeme.yillikAidat)} (${veri.odeme.taksit} ay)</span></div>`;
+  html += `<div class="cikti-ozet-row"><strong>Aylık Aidat (referans):</strong><span>${formatTL(veri.odeme.aylikAidat)}</span></div>`;
+  if (veri.odeme.onOdeme > 0) {
+    html += `<div class="cikti-ozet-row"><strong>Peşinat / Ön Ödeme:</strong><span>${formatTL(veri.odeme.onOdeme)}</span></div>`;
+  }
+  // Gerçek plan: her tutar grubu ayrı satırda
+  (veri.odeme.planSatirlari || []).forEach(sat => {
+    if (sat.etiket === "Peşinat / Ön Ödeme") return;   // yukarıda gösterildi
+    html += `<div class="cikti-ozet-row"><strong>${escapeHtml(sat.etiket)}:</strong><span>${escapeHtml(sat.deger)}</span></div>`;
+  });
+  html += `<div class="cikti-ozet-row"><strong>Yıllık (Aidat):</strong><span>${formatTL(veri.odeme.yillikAidat)} (${veri.odeme.taksitAdedi || veri.odeme.taksit} ay${veri.odeme.onOdeme > 0 ? " + peşinat" : ""})</span></div>`;
   html += `<div class="cikti-ozet-row"><strong>Diğer Ücretler:</strong><span>${formatTL(veri.odeme.digerToplam)}</span></div>`;
   html += `<div class="cikti-ozet-row"><strong>GENEL TOPLAM:</strong><span style="color:var(--green-deep);font-weight:700;">${formatTL(veri.odeme.genelToplam)}</span></div>`;
   if (veri.odeme.pesinOdeme) html += `<div class="cikti-ozet-row"><strong>Ödeme Şekli:</strong><span>✓ Peşin (%10 indirim)</span></div>`;
-  else html += `<div class="cikti-ozet-row"><strong>Ödeme Şekli:</strong><span>${veri.odeme.taksit} Taksit</span></div>`;
+  else html += `<div class="cikti-ozet-row"><strong>Ödeme Şekli:</strong><span>${escapeHtml(veri.odeme.planOzet || (veri.odeme.taksit + " Taksit"))}</span></div>`;
 
   if (veri.ozelMaddeler.length > 0) {
     html += `<div class="cikti-ozet-baslik">Özel Maddeler (${veri.ozelMaddeler.length})</div>`;
@@ -624,8 +743,9 @@ window.sozlesmeCiktiPDF = async function() {
         const odemeSekilRows = [
           ["Odeme Sekli", pesinCheck],
           ["Taksit Baslangic Tarihi", o.pesinOdeme ? "—" : (formatTarih(o.taksitBaslangicTarihi) || "")],
-          ["Pesinat", o.pesinOdeme ? formatTL(mebGenelToplam) : ""],
-          ["Taksit Sayisi ve Tutari", o.pesinOdeme ? "—" : `${o.taksit} taksit x ${formatTL(o.aylikAidat)}`],
+          ["Pesinat", o.pesinOdeme ? formatTL(mebGenelToplam) : (o.onOdeme > 0 ? formatTL(o.onOdeme) : "")],
+          ["Taksit Sayisi ve Tutari", o.pesinOdeme ? "—"
+            : ((o.planOzet || "").replace(/×/g, "x").replace(/–/g, "-") || `${o.taksit} taksit x ${formatTL(o.aylikAidat)}`)],
           ["Egitim Bursu Aliyor Mu?", bursCheck],
           ["Egitim Bursu Aliyorsa Yuzdesi", o.burs ? `% ${o.bursYuzde}` : "% ..."],
           ["Indirim Yapildi Mi?", indirimCheck]
@@ -1012,8 +1132,9 @@ window.sozlesmeCiktiWord = async function() {
         const odemeDetay = [
           ["Ödeme Şekli", pesinCheck],
           ["Taksit Başlangıç Tarihi", o.pesinOdeme ? "—" : (formatTarih(o.taksitBaslangicTarihi) || "")],
-          ["Peşinat", o.pesinOdeme ? formatTL(mebGenelToplam) : ""],
-          ["Taksit Sayısı ve Tutarı", o.pesinOdeme ? "—" : `${o.taksit} taksit × ${formatTL(o.aylikAidat)}`],
+          ["Peşinat", o.pesinOdeme ? formatTL(mebGenelToplam) : (o.onOdeme > 0 ? formatTL(o.onOdeme) : "")],
+          ["Taksit Sayısı ve Tutarı", o.pesinOdeme ? "—"
+            : (o.planOzet || `${o.taksit} taksit × ${formatTL(o.aylikAidat)}`)],
           ["Eğitim Bursu Alıyor Mu?", bursCheck],
           ["Eğitim Bursu Alıyorsa Yüzdesi", o.burs ? `% ${o.bursYuzde}` : "% ..."],
           ["İndirim Yapıldı Mı?", indirimCheck]
@@ -1291,8 +1412,8 @@ td.label { width: 35%; font-weight: bold; background: #f8f8f8; }
         html += `<table style="margin-top:4px;">`;
         html += `<tr><td class="label" style="width:46%;">Ödeme Şekli</td><td>${pesinCheck}</td></tr>`;
         html += `<tr><td class="label">Taksit Başlangıç Tarihi</td><td>${o.pesinOdeme ? "—" : escapeHtml(formatTarih(o.taksitBaslangicTarihi) || "")}</td></tr>`;
-        html += `<tr><td class="label">Peşinat</td><td>${o.pesinOdeme ? escapeHtml(formatTL(mebGenelToplam)) : ""}</td></tr>`;
-        html += `<tr><td class="label">Taksit Sayısı ve Tutarı</td><td>${o.pesinOdeme ? "—" : `${o.taksit} taksit × ${escapeHtml(formatTL(o.aylikAidat))}`}</td></tr>`;
+        html += `<tr><td class="label">Peşinat</td><td>${o.pesinOdeme ? escapeHtml(formatTL(mebGenelToplam)) : (o.onOdeme > 0 ? escapeHtml(formatTL(o.onOdeme)) : "")}</td></tr>`;
+        html += `<tr><td class="label">Taksit Sayısı ve Tutarı</td><td>${o.pesinOdeme ? "—" : escapeHtml(o.planOzet || `${o.taksit} taksit × ${formatTL(o.aylikAidat)}`)}</td></tr>`;
         html += `<tr><td class="label">Eğitim Bursu Alıyor Mu?</td><td>${bursCheck}</td></tr>`;
         html += `<tr><td class="label">Eğitim Bursu Alıyorsa Yüzdesi</td><td>${o.burs ? `% ${o.bursYuzde}` : "% ..."}</td></tr>`;
         html += `<tr><td class="label">İndirim Yapıldı Mı?</td><td>${indirimCheck}</td></tr>`;
