@@ -12,7 +12,8 @@
 const B = window.BCK;
 const { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
         query, where, escapeHtml, getOgrenciDurum, isoTarih,
-        brevoMail, portalMailSablon, medyaYukle, sinifGorunur } = B;
+        brevoMail, portalMailSablon, medyaYukle, sinifGorunur,
+        resimSikistir, sinifAdiResmiEsle } = B;
 
 // ============ GALERİ SİSTEMİ (Tur 5A) ============
 let galeriListesiVerisi = [];
@@ -74,7 +75,7 @@ async function loadGaleri() {
 
 // ===== FAZ 4b: GALERİ MEDYA ONAY (sadece Müdür/Kurucu Müdür) =====
 window.galeriOnayla = async function(id) {
-  const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(B.rol());
+  const yonetimMi = B.yoneticiMi() || ["kurucu_mudur","mudur"].includes(B.rol());
   if (!yonetimMi) { showToast("Onay yetkiniz yok", "error"); return; }
   try {
     await updateDoc(doc(db, "galeri", id), {
@@ -91,7 +92,7 @@ window.galeriOnayla = async function(id) {
 };
 
 window.galeriReddet = async function(id) {
-  const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(B.rol());
+  const yonetimMi = B.yoneticiMi() || ["kurucu_mudur","mudur"].includes(B.rol());
   if (!yonetimMi) { showToast("Yetkiniz yok", "error"); return; }
   if (!confirm("Bu fotoğraf reddedilecek. Veliler göremeyecek. Onaylıyor musunuz?")) return;
   try {
@@ -195,7 +196,7 @@ async function renderGaleri() {
   await loadGaleri();
 
   // Yönetim ise onay filtre butonunu + rozeti göster
-  const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(B.rol());
+  const yonetimMi = B.yoneticiMi() || ["kurucu_mudur","mudur"].includes(B.rol());
   const onayBtn = document.getElementById("galeriOnayFiltreBtn");
   if (onayBtn) onayBtn.style.display = yonetimMi ? "" : "none";
   const bekleyenSayi = galeriOnayBekleyenSayisi();
@@ -241,7 +242,7 @@ async function renderGaleri() {
         <div style="font-size:12px; font-weight:700; color:#6b21a8;">Video Ekle</div>
       </div>`;
 
-    const yonetimMiG = isAdmin || ["kurucu_mudur","mudur"].includes(B.rol());
+    const yonetimMiG = B.yoneticiMi() || ["kurucu_mudur","mudur"].includes(B.rol());
     for (const d of sirali) {
       const previewUrl = d.dosyaTipi === "video" ? d.kucukResim : d.bunnyUrl;
       const thumbUrl = (d.dosyaTipi === "foto" && d.bunnyUrl) ? d.bunnyUrl + "?width=400" : previewUrl;
@@ -355,7 +356,7 @@ async function renderGaleri() {
       const onayliMi = durum === "onaylandi";
       const reddedildiMi = durum === "reddedildi";
       // Yönetim mi? (onaylama yetkisi)
-      const yonetimMi = (typeof isAdmin !== "undefined" && isAdmin) ||
+      const yonetimMi = B.yoneticiMi() ||
                         (typeof B.rol() !== "undefined" && ["kurucu_mudur","mudur"].includes(B.rol()));
       // Küçük önizleme için Bunny resize (mobil veri tasarrufu)
       const thumbUrl = (d.dosyaTipi === "foto" && d.bunnyUrl) ? d.bunnyUrl + "?width=400" : previewUrl;
@@ -676,7 +677,7 @@ window.galeriYukle = async function() {
       // onay makamı olduğu için doğrudan yayınlanır.
       // Öğretmen KENDİ sınıfına yüklerse de doğrudan yayınlanır — aksi halde
       // fotoğraflar veliye hiç ulaşmıyordu. Diğer tüm durumlar onay bekler.
-      const yonetimRolu = ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(B.rol()) || isAdmin;
+      const yonetimRolu = ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(B.rol()) || B.yoneticiMi();
       const kendiSinifi = B.rol() === "ogretmen" &&
                           hedefTur === "sinif" &&
                           (typeof sinifGorunur === "function" ? sinifGorunur(hedefDeger) : false);
@@ -718,7 +719,7 @@ window.galeriYukle = async function() {
   // Onay bekleyen yükleme yapıldıysa kullanıcı bunu bilsin
   try {
     const sonDurum = document.getElementById("galeriYuklemeDurum");
-    const yonetimR = ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(B.rol()) || isAdmin;
+    const yonetimR = ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(B.rol()) || B.yoneticiMi();
     const kendiS = B.rol() === "ogretmen" && hedefTur === "sinif" &&
                    (typeof sinifGorunur === "function" ? sinifGorunur(hedefDeger) : false);
     if (sonDurum && !(yonetimR || kendiS)) {
@@ -1232,7 +1233,7 @@ window.galeriTeshis = async function() {
     // Veli yalnızca onaylı kayıtları listeleyebilir (Rules şartı).
     // Personel tümünü görebilir.
     const personelMi = (typeof B.rol() !== "undefined" && B.rol()) ||
-                       (typeof isAdmin !== "undefined" && isAdmin);
+                       B.yoneticiMi();
     const snap = personelMi
       ? await getDocs(collection(db, "galeri"))
       : await getDocs(query(collection(db, "galeri"), where("durum", "==", "onaylandi")));
@@ -1258,15 +1259,15 @@ window.galeriTeshis = async function() {
     });
 
     // Veli tarafı filtresi neden eliyor?
-    const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+    const o = B.veliAktifOgrenci() || null;
     if (!o) {
-      console.log("3) Veli oturumu değil (veliAktifOgrenci yok). Veli hesabıyla tekrar çalıştırın.");
+      console.log("3) Veli oturumu değil (aktif öğrenci yok). Veli hesabıyla tekrar çalıştırın.");
       return;
     }
     const sinifim = o.sinif || o.sinifi || "";
     console.log("3) Çocuk:", o.ogrenciAdSoyad, "| sınıfı:", sinifim);
 
-    const n = (x) => ((typeof sinifAdiResmiEsle === "function" ? sinifAdiResmiEsle(x) : x) || "")
+    const n = (x) => (sinifAdiResmiEsle(x) || "")
       .toString().toLocaleLowerCase("tr").replace(/\s+/g, "");
 
     console.log("4) Her kayıt için karar:");
@@ -1309,9 +1310,9 @@ async function veliRenderGaleri() {
     snap.forEach(d => hepsi.push({ id: d.id, ...d.data() }));
 
     // Veliye görünürlük filtresi
-    const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+    const o = B.veliAktifOgrenci() || null;
     const sinifim = o ? (o.sinif || o.sinifi || "") : "";
-    const n = (x) => ((typeof sinifAdiResmiEsle === "function" ? sinifAdiResmiEsle(x) : x) || "")
+    const n = (x) => (sinifAdiResmiEsle(x) || "")
       .toString().toLocaleLowerCase("tr").replace(/\s+/g, "");
 
     hepsi = hepsi.filter(g => {
@@ -1539,7 +1540,7 @@ window.veliGaleriCocukSec = function(id) {
 function renderVeliGaleriCocukFiltre() {
   const el = document.getElementById("veliGaleriCocukFiltre");
   if (!el) return;
-  if (!veliOgrenciler || veliOgrenciler.length <= 1) {
+  if (!B.veliOgrencileri() || B.veliOgrencileri().length <= 1) {
     el.style.display = "none";
     return;
   }
@@ -1547,7 +1548,7 @@ function renderVeliGaleriCocukFiltre() {
   let html = `<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
     <span style="font-size:12px; color:var(--gray-600); font-weight:600;">Çocuk:</span>
     <button class="btn-mini" data-veli-galeri-cocuk="hepsi" onclick="veliGaleriCocukSec('hepsi')" style="background:#9333ea; border:none; color:white;">Tümü</button>`;
-  for (const o of veliOgrenciler) {
+  for (const o of B.veliOgrencileri()) {
     html += `<button class="btn-mini" data-veli-galeri-cocuk="${o.id}" onclick="veliGaleriCocukSec('${o.id}')">${escapeHtml(o.ogrenciAdSoyad || "")}</button>`;
   }
   html += `</div>`;
@@ -1568,7 +1569,7 @@ function renderVeliGaleri() {
   // Filtre: çocuk
   if (veliGaleriAktifCocuk !== "hepsi") {
     // Sadece bu çocuğun sınıfı + özel galerileri
-    const ogr = veliOgrenciler.find(o => o.id === veliGaleriAktifCocuk);
+    const ogr = B.veliOgrencileri().find(o => o.id === veliGaleriAktifCocuk);
     if (ogr) {
       const donemVeri = ogr._donemVeri || {};
       const sinif = (donemVeri.kayit?.sinif) || ogr.sinif || "";
