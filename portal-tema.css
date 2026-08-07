@@ -1127,3 +1127,151 @@
   .rezervasyon-meta-satir { flex-direction: column; gap: 2px; }
   .rezervasyon-meta-satir strong { min-width: auto; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   İLK ADIMLAR ORYANTASYON BANDI — kompakt mor sürüm
+   Hızlı işlemlerin altında durur. Dikeyde yayılmaz; içerik
+   ikonun sağına yatay olarak hizalanır.
+   ══════════════════════════════════════════════════════════════ */
+.cicek-app .ory-bant-mor {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  background: linear-gradient(135deg, #6D51A8 0%, #8367C7 55%, #9B7FD4 100%);
+  color: #fff;
+  border-radius: 16px;
+  padding: 13px 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(109, 81, 168, .24);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.cicek-app .ory-bant-mor:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(109, 81, 168, .32);
+}
+.cicek-app .ory-bant-ikon {
+  flex: 0 0 auto;
+  width: 38px; height: 38px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .18);
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 2px;
+}
+.cicek-app .ory-bant-orta { flex: 1 1 auto; min-width: 0; }
+.cicek-app .ory-bant-ust {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 3px;
+}
+.cicek-app .ory-bant-etiket {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; opacity: .88;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cicek-app .ory-bant-rozet {
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, .24);
+  padding: 2px 9px; border-radius: 10px;
+  font-size: 10.5px; font-weight: 700; white-space: nowrap;
+}
+.cicek-app .ory-bant-baslik {
+  font-size: 15px; font-weight: 700; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cicek-app .ory-bant-detay {
+  font-size: 11.5px; opacity: .9; margin-top: 2px; line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cicek-app .ory-bant-cip-satir {
+  display: flex; flex-wrap: nowrap; gap: 6px;
+  margin-top: 6px; overflow: hidden;
+}
+.cicek-app .ory-bant-cip-satir > * {
+  font-size: 10.5px !important;
+  padding: 2px 8px !important;
+  white-space: nowrap;
+}
+.cicek-app .ory-bant-ilerleme {
+  height: 4px; background: rgba(255, 255, 255, .24);
+  border-radius: 3px; overflow: hidden; margin-top: 8px;
+}
+.cicek-app .ory-bant-ilerleme > div {
+  height: 100%; background: #fff; border-radius: 3px;
+  transition: width .4s ease;
+}
+.cicek-app .ory-bant-alt {
+  font-size: 10.5px; opacity: .88; margin-top: 5px;
+}
+.cicek-app .ory-bant-ok {
+  flex: 0 0 auto; align-self: center; opacity: .85;
+}
+
+/* Dar ekranda ok gizlenir, ikon küçülür */
+@media (max-width: 400px) {
+  .cicek-app .ory-bant-ok { display: none; }
+  .cicek-app .ory-bant-ikon { width: 32px; height: 32px; border-radius: 9px; }
+  .cicek-app .ory-bant-mor { gap: 10px; padding: 12px 13px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ÇOCUK AVATARI — "buraya dokunulabilir" vurgusu
+   Yumuşak nabız halkası. Veli profil alanı olduğunu anlasın.
+   ══════════════════════════════════════════════════════════════ */
+.cicek-app .ca-avatar[data-foto-ogrenci] {
+  position: relative;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, .55);
+  animation: caAvatarNabiz 2.6s ease-out infinite;
+}
+@keyframes caAvatarNabiz {
+  0%   { box-shadow: 0 0 0 0   rgba(255, 255, 255, .55); }
+  55%  { box-shadow: 0 0 0 11px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0   rgba(255, 255, 255, 0); }
+}
+/* Küçük dokunma ipucu rozeti (avatarın sağ altında) */
+.cicek-app .ca-avatar[data-foto-ogrenci]::after {
+  content: "";
+  position: absolute;
+  right: -1px; bottom: -1px;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: #F6D5DC url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232D5E3E' stroke-width='3' stroke-linecap='round'><polyline points='9 18 15 12 9 6'/></svg>") center/8px 8px no-repeat;
+  border: 2px solid #fff;
+  box-sizing: content-box;
+}
+/* Hareketi azaltma tercihi olan kullanıcılar için kapat */
+@media (prefers-reduced-motion: reduce) {
+  .cicek-app .ca-avatar[data-foto-ogrenci] { animation: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   "TÜM MENÜ" İPUCU BALONU — grid ikonunun altında belirir
+   ══════════════════════════════════════════════════════════════ */
+.cicek-app .ca-ipucu-balon {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  background: #2D5E3E;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 9px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+  opacity: 0;
+  transform: translateY(-5px);
+  pointer-events: none;
+  transition: opacity .3s ease, transform .3s ease;
+  z-index: 60;
+}
+.cicek-app .ca-ipucu-balon::before {
+  content: "";
+  position: absolute;
+  top: -5px; right: 15px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid #2D5E3E;
+}
+.cicek-app .ca-ipucu-balon.gorunur {
+  opacity: 1;
+  transform: translateY(0);
+}
