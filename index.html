@@ -10277,7 +10277,7 @@ async function hbEgitimDoldur() {
       ingilizce: await mufredatYukle("ingilizce"),
       degerler: await mufredatYukle("degerler")
     };
-    const tumGel = await tumGelisimYukle();
+    const tumGel = await tumGelisimYukle(typeof ogrenciList !== "undefined" ? ogrenciList : []);
     const liste = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => (o.durum || "aktif") !== "pasif");
     if (liste.length === 0) {
       el.innerHTML = `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Öğrenci verisi yüklenince görünür.</div>`;
@@ -10333,7 +10333,7 @@ async function caAdminEgitimYukle() {
       ingilizce: await mufredatYukle("ingilizce"),
       degerler: await mufredatYukle("degerler")
     };
-    const tumGel = await tumGelisimYukle();
+    const tumGel = await tumGelisimYukle(typeof ogrenciList !== "undefined" ? ogrenciList : []);
     const ogrenciler = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => (o.durum || "aktif") !== "pasif");
     // Öğretmen ise kendi sınıfları, değilse tümü
     const sinifFiltre = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari.length)
@@ -12934,6 +12934,7 @@ async function loadOgrenciler() {
 async function loadAyarlar() {
   ayarListesi = {};
   gelecekDonemKayitlari = {}; // öğrencinin gelecek dönemde kaydı var mı?
+  const ayarOkunamayan = [];  // yetki dışı sınıfların öğrencileri (öğretmen rolü)
   const gelDonem = gelecekDonem(AKTIF_DONEM);
   // Her öğrencinin donem/AKTIF_DONEM subcollection'ını çek
   for (const o of ogrenciList) {
@@ -12950,8 +12951,13 @@ async function loadAyarlar() {
         if (gelSnap.exists()) gelecekDonemKayitlari[o.id] = true;
       }
     } catch (e) {
-      console.warn(`Ayar yüklenemedi: ${o.id}`);
+      // Öğretmen rolünde kendi sınıfı dışındaki öğrencilerin ayarı okunamaz.
+      // Beklenen durum; her biri için ayrı uyarı basmak konsolu boğuyordu.
+      ayarOkunamayan.push(o.id);
     }
+  }
+  if (ayarOkunamayan.length) {
+    console.info(`[Ayarlar] ${ayarOkunamayan.length} öğrencinin ayarı okunamadı (yetki dışı sınıflar).`);
   }
 }
 
@@ -16693,6 +16699,7 @@ async function gelisimYukle(ogrenciId) {
     ingilizce:  { kayitlar:{}, notlar:[] },
     degerler:   { kayitlar:{}, notlar:[] },
     ogretmenYorumlari: [],
+    rozetler: {},
     sonGuncelleme: null
   };
   if (!ogrenciId) return bos;
@@ -16705,6 +16712,7 @@ async function gelisimYukle(ogrenciId) {
         ingilizce:  d.ingilizce  || { kayitlar:{}, notlar:[] },
         degerler:   d.degerler   || { kayitlar:{}, notlar:[] },
         ogretmenYorumlari: d.ogretmenYorumlari || [],
+        rozetler: d.rozetler || {},          // ← eksikti: rozetler hiç okunmuyordu
         sonGuncelleme: d.sonGuncelleme || null
       };
     }
@@ -16749,7 +16757,22 @@ async function gelisimDersGuncelle(ogrenciId, disiplin, alanId, grupAd, dersAd, 
     }
     return true;
   } catch(e) {
-    console.error("Ders güncellenemedi:", e);
+    // Teşhis: hatanın gerçek sebebi (izin / ağ / veri) net görünsün
+    console.error("[Gelişim] Ders güncellenemedi ·", {
+      ogrenciId, disiplin, anahtar,
+      kod: e?.code || "(kod yok)",
+      mesaj: e?.message || String(e)
+    });
+    if (typeof showToast === "function") {
+      const kod = e?.code || "";
+      if (kod.includes("permission")) {
+        showToast("Kayıt reddedildi: Firestore izni yok (ogrenciGelisim)", "error");
+      } else if (kod.includes("unavailable") || kod.includes("network")) {
+        showToast("Kayıt yapılamadı: bağlantı sorunu", "error");
+      } else {
+        showToast("Kayıt hatası: " + (e?.message || "bilinmeyen"), "error");
+      }
+    }
     return false;
   }
 }
@@ -16864,16 +16887,47 @@ function disiplinGenelIlerleme(kayitlarDisiplin, mufredat) {
 }
 
 // Tüm öğrencilerin gelişim verilerini yükle (admin Raporlar için)
-async function tumGelisimYukle() {
+// Tüm öğrencilerin gelişim verisini getirir.
+//
+// ÖNEMLİ: Öğretmen rolünün Firestore'da "koleksiyonu listeleme" izni yok,
+// yalnızca TEK BELGE okuyabiliyor. Liste sorgusu izin hatası verirse
+// öğrencilerin belgelerini tek tek okuyarak devam ediyoruz. Aksi halde
+// matris boş görünüyor ve öğretmen "kaydetmiyor" sanıyor.
+async function tumGelisimYukle(ogrenciler) {
+  // 1) Hızlı yol: tek sorguda tüm koleksiyon (yönetim rolleri için)
   try {
     const snap = await getDocs(collection(db, "ogrenciGelisim"));
     const sonuc = {};
     snap.forEach(d => { sonuc[d.id] = d.data(); });
     return sonuc;
   } catch(e) {
-    console.error("Tüm gelişim yüklenemedi:", e);
-    return {};
+    if (!(e?.code || "").includes("permission")) {
+      console.error("Tüm gelişim yüklenemedi:", e);
+      return {};
+    }
+    console.info("[Gelişim] Koleksiyon listeleme izni yok — öğrenci bazlı okumaya geçiliyor.");
   }
+
+  // 2) Yedek yol: her öğrencinin belgesini ayrı ayrı oku
+  const liste = (ogrenciler && ogrenciler.length)
+    ? ogrenciler
+    : (typeof ogrenciList !== "undefined" ? ogrenciList : []);
+  if (!liste.length) return {};
+
+  const sonuc = {};
+  let basarisiz = 0;
+  for (let i = 0; i < liste.length; i += 10) {   // 10'lu gruplar hâlinde
+    const dilim = liste.slice(i, i + 10);
+    await Promise.all(dilim.map(async o => {
+      try {
+        const d = await getDoc(doc(db, "ogrenciGelisim", o.id));
+        if (d.exists()) sonuc[o.id] = d.data();
+      } catch (err) { basarisiz++; }
+    }));
+  }
+  if (basarisiz) console.warn(`[Gelişim] ${basarisiz} öğrencinin verisi okunamadı.`);
+  console.info(`[Gelişim] ${Object.keys(sonuc).length}/${liste.length} öğrencinin gelişim verisi yüklendi.`);
+  return sonuc;
 }
 
 
@@ -17100,7 +17154,7 @@ async function egitimMatrixVeriYukle() {
   });
 
   // Tüm öğrencilerin gelişim verilerini yükle
-  const tumGelisim = await tumGelisimYukle();
+  const tumGelisim = await tumGelisimYukle(aktifOgrenciler);
 
   egitimMatrixVerisi = {
     ogrenciler: aktifOgrenciler,
@@ -19064,7 +19118,7 @@ window.adminMontessoriYenile = async function() {
 
   try {
     await tumMufredatlariYukle();
-    const tumGelisim = await tumGelisimYukle();
+    const tumGelisim = await tumGelisimYukle(typeof ogrenciList !== "undefined" ? ogrenciList : []);
     let aktifOgrenciler;
     if (typeof getOgrenciDurum === "function") {
       aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi?.[o.id]) === "aktif");
