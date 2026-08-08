@@ -7195,7 +7195,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeOdemeDoldur(); if (window.caMenuIpucuBaslat) window.caMenuIpucuBaslat(); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeOdemeDoldur(); caHomeRozetleriDoldur(); if (window.caMenuIpucuBaslat) window.caMenuIpucuBaslat(); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -8032,6 +8032,24 @@ async function caHomeOryantasyonDoldur() {
 }
 window.caHomeOryantasyonDoldur = caHomeOryantasyonDoldur;
 
+// ── Çocuk kartı altındaki rozet şeridi ──
+// Gelişim verisini bir kez okur, en yeni rozetleri soldan sıralar.
+async function caHomeRozetleriDoldur() {
+  const el = document.getElementById("caCocukRozetleri");
+  if (!el || !window.BCK_ROZET) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  if (!o) { el.innerHTML = ""; return; }
+  try {
+    const veri = await gelisimYukle(o.id);
+    el.innerHTML = window.BCK_ROZET.seritHTML(veri, 4);
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    console.warn("rozet şeridi", e?.message);
+    el.innerHTML = "";
+  }
+}
+window.caHomeRozetleriDoldur = caHomeRozetleriDoldur;
+
 // ── DETAY EKRANI ──
 
 // Bantta gösterilen kısa özet çipleri (çanta / kitap / seminer)
@@ -8761,6 +8779,8 @@ function caHomeHTML() {
             <span style="opacity:.85; font-size:18px;">›</span>
           </div>
           <div class="ca-status"><i data-lucide="sprout" style="width:13px;height:13px;vertical-align:-2px;"></i> Profili ve eğitim gelişimini görmek için dokun</div>
+          <!-- Kazanılan gelişim rozetleri — en yeni en solda -->
+          <div id="caCocukRozetleri"></div>
         </div>
 
         <!-- BUGÜNÜN GÜNLÜĞÜ — üst sıraya alındı -->
@@ -16715,6 +16735,18 @@ async function gelisimDersGuncelle(ogrenciId, disiplin, alanId, grupAd, dersAd, 
       sonGuncelleme: serverTimestamp(),
       sonGuncelleyenEmail: currentUser?.email || "bilinmiyor"
     }, { merge: true });
+
+    // Rozet değerlendirmesi — yeni hak edilen varsa damgalanır + veliye bildirim
+    // (arka planda çalışır, kaydetmeyi bekletmez)
+    if (window.BCK_ROZET) {
+      window.BCK_ROZET.degerlendir(ogrenciId, aktifMufredatlar)
+        .then(yeniler => {
+          if (yeniler && yeniler.length && typeof showToast === "function") {
+            showToast("🎉 Yeni rozet: " + yeniler.map(r => r.ad).join(", "));
+          }
+        })
+        .catch(e => console.warn("rozet", e?.message));
+    }
     return true;
   } catch(e) {
     console.error("Ders güncellenemedi:", e);
@@ -18423,6 +18455,9 @@ function veliRenderRaporDashboard() {
       </div>
     `}
 
+    <!-- ROZETLER (otomatik · gelişim verisinden türetilir) -->
+    ${window.BCK_ROZET ? window.BCK_ROZET.tamListeHTML(veliRaporGelisimVerisi) : ""}
+
     <!-- PDF İNDİR -->
     <div style="margin-top:18px; text-align:center;">
       <button class="veli-btn-primary" onclick="veliRaporPdfIndir()" style="padding:12px 24px; font-size:14px;">
@@ -18430,6 +18465,7 @@ function veliRenderRaporDashboard() {
       </button>
     </div>
   `;
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 50);
 }
 
 window.veliRaporDisiplinAc = function(disiplin) {
@@ -25985,6 +26021,7 @@ console.log("BCK çekirdek köprüsü hazır ·", Object.keys(window.BCK).length
 </script>
 <script type="module" src="portal-yemek.js"></script>
 <script type="module" src="portal-finans-grafik.js"></script>
+<script type="module" src="portal-rozet.js"></script>
 <script type="module" src="portal-takvim.js"></script>
 <script type="module" src="portal-kredikarti.js"></script>
 <script type="module" src="portal-cikti.js"></script>
