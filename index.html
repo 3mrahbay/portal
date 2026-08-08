@@ -12842,7 +12842,22 @@ function ogrenciErisilebilirMi(o) {
   // Öğretmen → sadece atandığı sınıflar
   if (aktifKullaniciRol === "ogretmen") {
     const sinif = ogrenciSinifiAl(o);
-    return aktifKullaniciSiniflari.includes(sinif);
+    const birebir = aktifKullaniciSiniflari.includes(sinif);
+
+    // TEŞHİS: Firestore kuralları sınıf adını BİREBİR karşılaştırıyor
+    // (ogretmenOgrencisi fonksiyonu). Uygulamayı daha esnek yaparsak
+    // ekranda görünen ama Firestore'un reddettiği öğrenciler oluşur.
+    // Bu yüzden burada da birebir bakıyoruz; yalnızca yazım farkından
+    // kaçırılan öğrenci varsa uyarı basıyoruz ki veri düzeltilebilsin.
+    if (!birebir && typeof sinifGorunur === "function" && sinifGorunur(sinif)) {
+      if (!window._sinifAdiUyusmazlik) window._sinifAdiUyusmazlik = [];
+      window._sinifAdiUyusmazlik.push({
+        ogrenci: o.ogrenciAdSoyad || o.id,
+        kayitliSinif: sinif,
+        ogretmeninSiniflari: aktifKullaniciSiniflari
+      });
+    }
+    return birebir;
   }
   // Diğer (tanımsız) → güvenli taraf: erişim yok
   return false;
@@ -12852,8 +12867,16 @@ function ogrenciErisilebilirMi(o) {
 function ogrenciListeyiRoleGoreFiltrele(liste) {
   // Sadece öğretmen için kısıtlama (diğerleri tümünü görür)
   if (aktifKullaniciRol === "ogretmen" && !isAdmin) {
+    window._sinifAdiUyusmazlik = [];
     const filtreli = liste.filter(o => ogrenciErisilebilirMi(o));
     console.log(`[Faz 2a] Öğretmen filtresi: ${liste.length} → ${filtreli.length} öğrenci (sınıflar: ${aktifKullaniciSiniflari.join(", ") || "yok"})`);
+    if (window._sinifAdiUyusmazlik.length) {
+      console.warn(
+        `[Sınıf Adı] ${window._sinifAdiUyusmazlik.length} öğrenci sınıf adı YAZIM FARKI yüzünden dışarıda kaldı. ` +
+        `Öğrenci kaydındaki sınıf adı, öğretmene atanan sınıf adıyla birebir aynı olmalı.`,
+        window._sinifAdiUyusmazlik
+      );
+    }
     return filtreli;
   }
   return liste;
@@ -17138,6 +17161,19 @@ async function egitimMatrixVeriYukle() {
   if (aktifOgrenciler.length === 0 && ogrenciList.length > 0) {
     console.warn("Aktif öğrenci filtresi boş döndü, tüm öğrenciler gösteriliyor.");
     aktifOgrenciler = [...ogrenciList];
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // ROL KISITI — matris kendi listesini mutlaka süzmeli.
+  // ogrenciList arka planda öğretmen filtresinden geçiyor ama bu
+  // fonksiyon filtre tamamlanmadan başlayabiliyor (yarış durumu).
+  // O zaman matris okuldaki TÜM çocukları istiyor, Firestore da
+  // öğretmenin sınıfı dışındakileri reddediyordu.
+  // ══════════════════════════════════════════════════════════════
+  const oncekiSayi = aktifOgrenciler.length;
+  aktifOgrenciler = ogrenciListeyiRoleGoreFiltrele(aktifOgrenciler);
+  if (aktifOgrenciler.length !== oncekiSayi) {
+    console.info(`[Eğitim Matrix] Rol kısıtı: ${oncekiSayi} → ${aktifOgrenciler.length} öğrenci`);
   }
 
   // Her öğrencinin sınıfını _sinif alanına yaz (filtreleme için)
