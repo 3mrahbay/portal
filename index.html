@@ -592,7 +592,13 @@
         <button onclick="sinifYonetimYukle()" style="padding:10px 16px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-size:13.5px; font-weight:600;">
           <i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Yenile
         </button>
+        <button onclick="sinifAdiOnarimAc()" style="padding:10px 16px; border:1px solid #C2860B; background:#FEF6E4; color:#8A5D08; border-radius:10px; cursor:pointer; font-family:inherit; font-size:13.5px; font-weight:700;" title="Öğrenci kayıtlarındaki sınıf adlarını resmi adlara hizalar">
+          <i data-lucide="wrench" style="width:14px;height:14px;vertical-align:-2px;"></i> Sınıf Adı Denetimi
+        </button>
       </div>
+
+      <!-- SINIF ADI ONARIM PANELİ -->
+      <div id="sinifOnarimPanel" style="display:none; margin-bottom:16px;"></div>
 
       <div id="sinifListesi">
         <div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Sınıflar yükleniyor...</p></div>
@@ -26070,6 +26076,10 @@ window.BCK = {
   gelirler: () => finansalGelirler,
   giderler: () => finansalGiderler,
 
+  // ── Veri tazeleme (bakım araçları için) ──
+  ogrencileriYenile: loadOgrenciler,
+  ayarlariYenile: loadAyarlar,
+
   // ── Veli oturumu (canlı okuma) ──
   yoneticiMi:       () => isAdmin,
   veliOgrencileri:  () => veliOgrenciler,
@@ -26112,6 +26122,7 @@ console.log("BCK çekirdek köprüsü hazır ·", Object.keys(window.BCK).length
 <script type="module" src="portal-yemek.js"></script>
 <script type="module" src="portal-finans-grafik.js"></script>
 <script type="module" src="portal-rozet.js"></script>
+<script type="module" src="portal-sinif-onarim.js"></script>
 <script type="module" src="portal-takvim.js"></script>
 <script type="module" src="portal-kredikarti.js"></script>
 <script type="module" src="portal-cikti.js"></script>
