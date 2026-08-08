@@ -1275,3 +1275,101 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   GELİŞİM ROZETLERİ
+   Çocuk kartının altındaki şerit + Gelişim ekranındaki tam liste.
+   En yeni rozet her zaman ilk sırada (soldan).
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Çocuk kartı altındaki kompakt şerit ── */
+.cicek-app .ca-rozet-serit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+.cicek-app .ca-rozet-cip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 100px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #2D3A2E;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+}
+/* En yeni rozet: kısa bir parıltı ile dikkat çeker */
+.cicek-app .ca-rozet-cip.yeni {
+  animation: caRozetParilti 2.8s ease-in-out 3;
+}
+@keyframes caRozetParilti {
+  0%, 100% { box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+  50%      { box-shadow: 0 0 0 4px rgba(255, 255, 255, .38); }
+}
+.cicek-app .ca-rozet-cip.ca-rozet-daha {
+  background: rgba(255, 255, 255, .22);
+  color: #fff;
+}
+.cicek-app .ca-rozet-serit.ca-rozet-bos {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  opacity: .72;
+  cursor: default;
+  line-height: 1.4;
+}
+
+/* ── Gelişim ekranındaki tam liste ── */
+.cicek-app .ca-rozet-liste {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 520px) {
+  .cicek-app .ca-rozet-liste { grid-template-columns: 1fr 1fr; }
+}
+.cicek-app .ca-rozet-kart {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: #fff;
+  border: 1px solid var(--c-line, #E8E5DF);
+  border-radius: 14px;
+  padding: 11px 13px;
+}
+.cicek-app .ca-rozet-kart.kilitli {
+  background: #FAFAF9;
+  opacity: .62;
+}
+.cicek-app .ca-rozet-ikon {
+  flex: 0 0 auto;
+  width: 36px; height: 36px;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  color: #2D3A2E;
+}
+.cicek-app .ca-rozet-bilgi { flex: 1 1 auto; min-width: 0; }
+.cicek-app .ca-rozet-ad {
+  font-size: 13.5px; font-weight: 700; color: var(--c-ink, #2D3A2E);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cicek-app .ca-rozet-aciklama {
+  font-size: 11.5px; color: var(--c-muted, #7A7A72); margin-top: 1px;
+  line-height: 1.35;
+}
+.cicek-app .ca-rozet-tarih {
+  flex: 0 0 auto;
+  font-size: 10.5px; font-weight: 600;
+  color: var(--c-muted, #7A7A72);
+  white-space: nowrap;
+}
+.cicek-app .ca-rozet-kilitli-baslik {
+  font-size: 12px; font-weight: 700;
+  color: var(--c-muted, #7A7A72);
+  margin: 14px 0 7px;
+}
