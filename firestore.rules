@@ -129,6 +129,13 @@ service cloud.firestore {
       allow write: if isContentStaff() || isManagement();
     }
 
+    // Rozet tanımları (Faz 2 · 2026-08-10)
+    // Portal ve ZEKY aynı tanımları okur; yalnızca yönetim düzenler.
+    match /rozetTanimlari/{doc} {
+      allow read:  if signedIn();              // veli de rozet adını/ikonunu görür
+      allow write: if isManagement();
+    }
+
     // ============================================================
     //  İÇERİK: DUYURULAR / ETKİNLİKLER / GALERİ / YEMEK MENÜSÜ
     //  - Giriş yapan herkes (veli dahil) okur
