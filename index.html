@@ -919,13 +919,18 @@
             <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--gray-500);">YÖNETİM PANOSU</div>
             <div style="font-size:12px; color:#9ca3af; margin-top:2px;">Tüm sınıfların program bazlı ilerlemesi tek bakışta</div>
           </div>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:8px;" id="egitimPanoButonlar">
             <button class="btn-mini" id="egitimPanoBtn" onclick="egitimPanoToggle()" style="font-size:12px;">
               <i data-lucide="layout-dashboard" style="width:14px;height:14px;vertical-align:-2px;"></i> Eğitim Panosunu Aç
             </button>
             <button class="btn-mini" onclick="egitimPanoYukle(true)" style="font-size:12px;" title="Verileri yeniden oku">
               <i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i>
             </button>
+            <span id="rozetYonetimBtnKutu" style="display:none;">
+              <button class="btn-mini" onclick="rozetYonetimAc()" style="font-size:12px;">
+                <i data-lucide="award" style="width:14px;height:14px;vertical-align:-2px;"></i> Rozet Tanımları
+              </button>
+            </span>
           </div>
         </div>
         <div id="egitimPanoIcerik" style="display:none;"></div>
@@ -995,6 +1000,17 @@
             <span><span class="stu-rozet stu-U">U</span> Uzmanlaştı — İçselleştirdi</span>
             <span style="color:#6b7280; font-size:11px;"><i data-lucide="lightbulb" style="width:13px;height:13px;vertical-align:-2px;"></i> Hücreye tıklayarak durumu değiştirin</span>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== ROZET TANIMLARI YÖNETİM MODALI (Faz 2) ===== -->
+      <div class="modal-overlay" id="rozetYonetimModal" onclick="if(event.target.id==='rozetYonetimModal') rozetYonetimKapat()">
+        <div class="modal-box" style="max-width:600px;">
+          <div class="modal-header">
+            <h2><i data-lucide="award" style="width:18px;height:18px;vertical-align:-3px;"></i> Rozet Tanımları</h2>
+            <button class="close-btn" onclick="rozetYonetimKapat()">×</button>
+          </div>
+          <div id="rozetYonetimGovde"></div>
         </div>
       </div>
 
@@ -22501,6 +22517,7 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Eğitim sekmesine geçildiyse yönetim panosu görünürlüğünü ayarla
     if (tab.dataset.tab === "egitim") {
       setTimeout(() => { if (typeof window.egitimPanoGorunurluk === "function") window.egitimPanoGorunurluk(); }, 40);
+      setTimeout(() => { if (typeof window.rozetYonetimGorunurluk === "function") window.rozetYonetimGorunurluk(); }, 40);
     }
 
     // Raporlar sekmesine geçildiyse render et
@@ -26198,6 +26215,7 @@ console.log("BCK çekirdek köprüsü hazır ·", Object.keys(window.BCK).length
 <script type="module" src="portal-data.js"></script>
 <script type="module" src="portal-egitim-pano.js"></script>
 <script type="module" src="portal-aciklama.js"></script>
+<script type="module" src="portal-rozet-yonetim.js"></script>
 <script type="module" src="portal-yemek.js"></script>
 <script type="module" src="portal-finans-grafik.js"></script>
 <script type="module" src="portal-rozet.js"></script>
