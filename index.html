@@ -17514,15 +17514,17 @@ function egitimMatrixRender() {
       const alanAdEsc = (alan.ad || "").replace(/'/g, "\\'");
       html += `<tr class="matrix-grup-icerik-tr ${icerikSinif}" data-grup-ad="${grupAdAttr}">`;
       html += `<td class="ders-adi">
-        <span>${escapeHtmlGelisim(d)}</span>
-        <button type="button" class="aciklama-ikon-btn"
-          data-aciklama-disiplin="${escapeHtmlGelisim(egitimAktifDisiplin)}"
-          data-aciklama-alan="${escapeHtmlGelisim(alan.id)}"
-          data-aciklama-anahtar="${escapeHtmlGelisim(aciklamaAnahtar)}"
-          onclick="event.stopPropagation(); aciklamaModalAc('${egitimAktifDisiplin}','${alan.id}','${alanAdEsc}','${grupAdEsc}','${dersEsc}')"
-          title="Açıklama">
-          <i data-lucide="info" style="width:13px;height:13px;"></i>
-        </button>
+        <div class="ders-adi-ic">
+          <span>${escapeHtmlGelisim(d)}</span>
+          <button type="button" class="aciklama-ikon-btn"
+            data-aciklama-disiplin="${escapeHtmlGelisim(egitimAktifDisiplin)}"
+            data-aciklama-alan="${escapeHtmlGelisim(alan.id)}"
+            data-aciklama-anahtar="${escapeHtmlGelisim(aciklamaAnahtar)}"
+            onclick="event.stopPropagation(); aciklamaModalAc('${egitimAktifDisiplin}','${alan.id}','${alanAdEsc}','${grupAdEsc}','${dersEsc}')"
+            title="Açıklama">
+            <i data-lucide="info" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
       </td>`;
       ogrenciler.forEach(o => {
         const kayitlar = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
@@ -17543,6 +17545,9 @@ function egitimMatrixRender() {
   wrap.innerHTML = html;
 
   egitimTumuToggleBtnGuncelle();
+
+  // Faz 2 · Açıklama ikonları Lucide ile SVG'ye çevrilmeli, yoksa görünmezler
+  if (window.lucideYenile) { window.lucideYenile(); setTimeout(window.lucideYenile, 120); }
 
   // Faz 2 · Kazanım açıklamaları: metinleri bir kez oku, ikonları renklendir
   if (typeof window.aciklamalariYukle === "function") {
