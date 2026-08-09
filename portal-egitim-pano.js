@@ -33,7 +33,7 @@ function kutu(baslik, deger, altMetin, ikon) {
       <div style="display:flex; align-items:center; gap:7px; font-size:11px; font-weight:700; letter-spacing:.06em; color:#6b7280; text-transform:uppercase;">
         <i data-lucide="${ikon}" style="width:14px;height:14px;"></i> ${baslik}
       </div>
-      <div style="font-family:var(--font-display); font-size:28px; font-weight:600; color:#2D5E3E; margin-top:6px; line-height:1.1;">${deger}</div>
+      <div style="font-family:var(--font-display); font-size:28px; font-weight:600; color:var(--green-deep); margin-top:6px; line-height:1.1;">${deger}</div>
       ${altMetin ? `<div style="font-size:11px; color:#9ca3af; margin-top:3px;">${altMetin}</div>` : ""}
     </div>`;
 }
@@ -102,7 +102,7 @@ function panoRender() {
         <thead><tr style="border-bottom:2px solid #e5e7eb;">
           <th style="padding:10px 4px; text-align:left; font-size:11px; font-weight:700; color:#6b7280;">SINIF</th>
           ${disiplinBaslik}
-          <th style="padding:10px 8px; font-size:11px; font-weight:700; color:#2D5E3E; text-align:center; border-left:2px solid #e5e7eb;">ORT.</th>
+          <th style="padding:10px 8px; font-size:11px; font-weight:700; color:var(--green-deep); text-align:center; border-left:2px solid #e5e7eb;">ORT.</th>
         </tr></thead>
         <tbody>${satirlar}</tbody>
       </table>

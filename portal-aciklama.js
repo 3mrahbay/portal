@@ -79,11 +79,11 @@ window.aciklamaModalAc = async function(disiplin, alanId, alanAd, grupAd, dersAd
         ${B.escapeHtml(alanAd || "")} › ${B.escapeHtml(grupAd || "")}
       </div>
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
-        <div style="font-size:17px; font-weight:600; color:#2D5E3E;">${B.escapeHtml(dersAd || "")}</div>
+        <div style="font-size:17px; font-weight:600; color:var(--green-deep);">${B.escapeHtml(dersAd || "")}</div>
         ${kaynakRozet}
       </div>
 
-      <div style="background:${coz.metin ? "#f0fdf4" : "#f9fafb"}; border-left:3px solid ${coz.metin ? "#4A7C59" : "#e5e7eb"}; border-radius:10px; padding:16px 18px; font-size:14px; line-height:1.75; color:#374151; white-space:pre-wrap;">
+      <div style="background:${coz.metin ? "var(--green-mist)" : "var(--sand)"}; border-left:3px solid ${coz.metin ? "var(--green-medium)" : "#e5e7eb"}; border-radius:10px; padding:16px 18px; font-size:14px; line-height:1.75; color:#374151; white-space:pre-wrap;">
         ${coz.metin ? B.escapeHtml(coz.metin) : `<span style="color:#9ca3af; font-style:italic;">Bu kazanım için henüz bir açıklama yazılmamış.${yonetim ? " Aşağıdan ekleyebilirsiniz." : ""}</span>`}
       </div>
 
