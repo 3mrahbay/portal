@@ -199,7 +199,7 @@ window.kaydetEtkinlik = async function() {
       data.olusturuldu = new Date().toISOString();
       data.olusturan = B.kullanici().email;
       const ref = doc(collection(db, "etkinlikler"));
-      await setDoc(ref, data);
+      await setDoc(ref, data, { merge: true });
       if (mailGonder) etkinlikMailGonder(data);
       showToast("✓ Etkinlik oluşturuldu");
     }

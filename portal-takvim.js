@@ -386,7 +386,7 @@ window.takvimEtkinlikKaydet = async function() {
       data.olusturan = B.kullanici().email;
       data.olusturuldu = new Date().toISOString();
       const ref = doc(collection(db, "takvim"));
-      await setDoc(ref, data);
+      await setDoc(ref, data, { merge: true });
       showToast("✓ Etkinlik eklendi");
     }
     takvimModalKapat();

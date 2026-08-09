@@ -511,7 +511,7 @@ window.randevuSlotKaydet = async function() {
       data.olusturan = B.kullanici().email;
       data.olusturuldu = new Date().toISOString();
       const ref = doc(collection(db, "randevuSlotlari"));
-      await setDoc(ref, data);
+      await setDoc(ref, data, { merge: true });
       showToast("✓ Slot oluşturuldu");
     }
     randevuSlotModalKapat();
@@ -693,7 +693,7 @@ window.randevuTopluKaydet = async function() {
         guncellendi: new Date().toISOString()
       };
       const ref = doc(collection(db, "randevuSlotlari"));
-      await setDoc(ref, data);
+      await setDoc(ref, data, { merge: true });
       basarili++;
     } catch (e) {
       console.error("Slot kaydedilemedi:", e);

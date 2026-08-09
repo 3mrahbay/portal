@@ -226,7 +226,7 @@ window.kaydetDuyuru = async function() {
       data.okuyanVeliler = [];
       data.popupKapatanVeliler = [];
       const ref = doc(collection(db, "duyurular"));
-      await setDoc(ref, data);
+      await setDoc(ref, data, { merge: true });
 
       // Mail gönderimi
       if (mailGonder) {

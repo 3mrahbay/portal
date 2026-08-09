@@ -117,7 +117,7 @@ window.teshisBaslat = async function() {
       ogrenciId: "", ogrenciAd: "", ogrenciSinif: "",
       sonMesaj: "teşhis", sonMesajTarihi: serverTimestamp(),
       okunmamis: { [benim]: 0 }, olusturuldu: serverTimestamp()
-    });
+    }, { merge: true });
     log("✓ mesajlar YAZMA OK — test thread oluşturuldu: " + testThreadId);
     sonucEkle(`<div class="satir"><span class="ok">✓ Mesaj YAZMA izni VAR</span> — yeni sohbet başlatabilirsin</div>`);
 
@@ -125,7 +125,7 @@ window.teshisBaslat = async function() {
     try {
       await setDoc(doc(db, "mesajlar", testThreadId, "messages", "test1"), {
         gonderen: benim, metin: "teşhis mesajı", tarih: serverTimestamp()
-      });
+      }, { merge: true });
       log("✓ messages alt-koleksiyon YAZMA OK");
       sonucEkle(`<div class="satir"><span class="ok">✓ Mesaj GÖNDERME izni VAR</span></div>`);
     } catch (e) {
