@@ -6311,26 +6311,29 @@ i[data-lucide] svg { display: block; }
 .egitim-matrix-tablosu tbody tr:nth-child(even) td { background-color: #fafbfc; }
 
 /* Faz 2 · Kazanım açıklaması ikonu (ders adının yanında) */
-.egitim-matrix-tablosu tbody td.ders-adi {
+.egitim-matrix-tablosu tbody td.ders-adi .ders-adi-ic {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
+  width: 100%;
 }
 .aciklama-ikon-btn {
   background: none;
   border: none;
-  padding: 2px;
+  padding: 3px;
   cursor: pointer;
-  color: #d1d5db;
+  color: #c3c8d0;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  border-radius: 5px;
+  border-radius: 6px;
   transition: color .15s, background .15s;
 }
+.aciklama-ikon-btn svg { width: 14px; height: 14px; }
 .aciklama-ikon-btn:hover {
-  background: #f3f4f6;
+  background: #eef2f0;
   color: #4A7C59;
 }
 
