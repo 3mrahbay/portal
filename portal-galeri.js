@@ -689,7 +689,7 @@ window.galeriYukle = async function() {
 
       // Firestore'a metadata kaydet
       const ref = doc(collection(db, "galeri"));
-      await setDoc(ref, oge);
+      await setDoc(ref, oge, { merge: true });
       basarili++;
 
       const toplam = ((i + 1) / galeriSecilenDosyalar.length) * 100;
@@ -1129,7 +1129,7 @@ async function galeriGuncellemeBildirimi(grup) {
         tarih: new Date().toISOString(),
         okundu: false,
         donem: B.donem()
-      });
+      }, { merge: true });
     }
 
     showToast(`🔔 ${hedefOgrenciler.length} öğrencinin velisine bildirim gönderildi`);

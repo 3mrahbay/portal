@@ -179,7 +179,7 @@ window.kaydetYemekMenusu = async function() {
   };
 
   try {
-    await setDoc(doc(db, "yemekMenuleri", kod), data);
+    await setDoc(doc(db, "yemekMenuleri", kod), data, { merge: true });
     showToast("✓ Menü kaydedildi");
     closeYemekModal();
     renderYemekMenusu();

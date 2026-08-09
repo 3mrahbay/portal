@@ -148,7 +148,7 @@ window.kartTalepOlustur = async function(ogrenciId, borc, gecikenAy) {
 
   try {
     const ref = doc(collection(db, "krediKartiTalepleri"));
-    await setDoc(ref, talepData);
+    await setDoc(ref, talepData, { merge: true });
 
     // Admin'e bilgilendirme maili
     const adminMail = `

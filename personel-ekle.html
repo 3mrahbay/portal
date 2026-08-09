@@ -865,7 +865,7 @@
           eklenme: serverTimestamp(),
           ekleyen: mevcutKullanici.email,
           sonGuncelleme: serverTimestamp()
-        });
+        }, { merge: true });
 
         mesajGoster('basari', `✅ ${ad} ${soyad} başarıyla eklendi!`);
         formuTemizle();

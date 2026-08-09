@@ -6,7 +6,7 @@
 // ══════════════════════════════════════════════════════════════
 
 const B = window.BCK;
-const { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+const { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField,
         brevoMail, portalMailSablon, escapeHtml, getOgrenciDurum, isoTarih } = B;
 
 let aktifDevamsizlikTarih = null;
@@ -179,9 +179,11 @@ window.devamsizlikIsaretle = async function(ogrenciId, durum) {
 
   // Aynı duruma tekrar tıklanırsa temizle
   const eskiDurum = eski.durum;
+  let kayitSilindi = false;
   if (eskiDurum === durum) {
     // Temizle
     delete aktifDevamsizlikVerisi.kayitlar[ogrenciId];
+    kayitSilindi = true;   // Faz 0: merge:true kaydı geri getirmesin diye aşağıda deleteField
   } else {
     aktifDevamsizlikVerisi.kayitlar = aktifDevamsizlikVerisi.kayitlar || {};
     aktifDevamsizlikVerisi.kayitlar[ogrenciId] = yeni;
@@ -191,7 +193,13 @@ window.devamsizlikIsaretle = async function(ogrenciId, durum) {
   aktifDevamsizlikVerisi.guncellendi = new Date().toISOString();
 
   try {
-    await setDoc(doc(db, "devamsizlik", aktifDevamsizlikTarih), aktifDevamsizlikVerisi);
+    // Faz 0 · merge:true → ZEKY'den (öğretmen yoklaması) gelen alanlar silinmez.
+    // Ama merge silinen anahtarı geri getirir; o yüzden temizleme deleteField ile yapılır.
+    const devRef = doc(db, "devamsizlik", aktifDevamsizlikTarih);
+    await setDoc(devRef, aktifDevamsizlikVerisi, { merge: true });
+    if (kayitSilindi) {
+      await updateDoc(devRef, { [`kayitlar.${ogrenciId}`]: deleteField() });
+    }
     // Bugün için "Gelmedi" işaretlendiyse ve önceden farklıysa, veli mail'i (opsiyonel, sessiz)
     if (durum === "gelmedi" && eskiDurum !== "gelmedi" && aktifDevamsizlikTarih === isoTarih(new Date())) {
       devamsizlikVeliMail(ogrenciId);
@@ -265,7 +273,7 @@ window.kaydetDevamsizlikNot = async function() {
   aktifDevamsizlikVerisi.guncellendi = new Date().toISOString();
 
   try {
-    await setDoc(doc(db, "devamsizlik", aktifDevamsizlikTarih), aktifDevamsizlikVerisi);
+    await setDoc(doc(db, "devamsizlik", aktifDevamsizlikTarih), aktifDevamsizlikVerisi, { merge: true });
     showToast("✓ Not kaydedildi");
     closeDevamsizlikNot();
     renderDevamsizlik();
@@ -290,7 +298,7 @@ window.devamsizlikHepsiGeldi = async function() {
   aktifDevamsizlikVerisi.guncellendi = new Date().toISOString();
 
   try {
-    await setDoc(doc(db, "devamsizlik", aktifDevamsizlikTarih), aktifDevamsizlikVerisi);
+    await setDoc(doc(db, "devamsizlik", aktifDevamsizlikTarih), aktifDevamsizlikVerisi, { merge: true });
     showToast(`✓ ${degisen} öğrenci "Geldi" olarak işaretlendi`);
     renderDevamsizlik();
   } catch (e) {
