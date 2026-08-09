@@ -912,6 +912,25 @@
         </div>
       </div>
 
+      <!-- ===== YÖNETİM EĞİTİM PANOSU (Faz 2) ===== -->
+      <div id="egitimPanoKutu" style="display:none; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div>
+            <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--gray-500);">YÖNETİM PANOSU</div>
+            <div style="font-size:12px; color:#9ca3af; margin-top:2px;">Tüm sınıfların program bazlı ilerlemesi tek bakışta</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-mini" id="egitimPanoBtn" onclick="egitimPanoToggle()" style="font-size:12px;">
+              <i data-lucide="layout-dashboard" style="width:14px;height:14px;vertical-align:-2px;"></i> Eğitim Panosunu Aç
+            </button>
+            <button class="btn-mini" onclick="egitimPanoYukle(true)" style="font-size:12px;" title="Verileri yeniden oku">
+              <i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i>
+            </button>
+          </div>
+        </div>
+        <div id="egitimPanoIcerik" style="display:none;"></div>
+      </div>
+
       <!-- 5 PROGRAM + BRANŞLAR (BCDM) -->
       <div style="margin-bottom:12px;">
         <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--gray-500); margin-bottom:10px;">ANA PROGRAMLAR</div>
@@ -976,6 +995,17 @@
             <span><span class="stu-rozet stu-U">U</span> Uzmanlaştı — İçselleştirdi</span>
             <span style="color:#6b7280; font-size:11px;"><i data-lucide="lightbulb" style="width:13px;height:13px;vertical-align:-2px;"></i> Hücreye tıklayarak durumu değiştirin</span>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== KAZANIM AÇIKLAMA MODALI (Faz 2) ===== -->
+      <div class="modal-overlay" id="aciklamaModal" onclick="if(event.target.id==='aciklamaModal') aciklamaModalKapat()">
+        <div class="modal-box" style="max-width:560px;">
+          <div class="modal-header">
+            <h2><i data-lucide="info" style="width:18px;height:18px;vertical-align:-3px;"></i> <span id="aciklamaModalBaslik">Kazanım</span></h2>
+            <button class="close-btn" onclick="aciklamaModalKapat()">×</button>
+          </div>
+          <div id="aciklamaModalGovde"></div>
         </div>
       </div>
 
@@ -17480,8 +17510,20 @@ function egitimMatrixRender() {
 
     g.dersler.forEach(d => {
       const dersEsc = d.replace(/'/g, "\\'");
+      const aciklamaAnahtar = `${alan.id}__${grupAd}__${d}`;
+      const alanAdEsc = (alan.ad || "").replace(/'/g, "\\'");
       html += `<tr class="matrix-grup-icerik-tr ${icerikSinif}" data-grup-ad="${grupAdAttr}">`;
-      html += `<td class="ders-adi">${escapeHtmlGelisim(d)}</td>`;
+      html += `<td class="ders-adi">
+        <span>${escapeHtmlGelisim(d)}</span>
+        <button type="button" class="aciklama-ikon-btn"
+          data-aciklama-disiplin="${escapeHtmlGelisim(egitimAktifDisiplin)}"
+          data-aciklama-alan="${escapeHtmlGelisim(alan.id)}"
+          data-aciklama-anahtar="${escapeHtmlGelisim(aciklamaAnahtar)}"
+          onclick="event.stopPropagation(); aciklamaModalAc('${egitimAktifDisiplin}','${alan.id}','${alanAdEsc}','${grupAdEsc}','${dersEsc}')"
+          title="Açıklama">
+          <i data-lucide="info" style="width:13px;height:13px;"></i>
+        </button>
+      </td>`;
       ogrenciler.forEach(o => {
         const kayitlar = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
         const k = `${alan.id}__${grupAd}__${d}`;
@@ -17501,6 +17543,13 @@ function egitimMatrixRender() {
   wrap.innerHTML = html;
 
   egitimTumuToggleBtnGuncelle();
+
+  // Faz 2 · Kazanım açıklamaları: metinleri bir kez oku, ikonları renklendir
+  if (typeof window.aciklamalariYukle === "function") {
+    window.aciklamalariYukle(egitimAktifDisiplin)
+      .then(() => window.aciklamaIkonlariniTazele && window.aciklamaIkonlariniTazele())
+      .catch(e => console.warn("açıklama yüklenemedi", e));
+  }
 }
 
 // ============ SINIF RAPORU MODALI ============
@@ -22444,6 +22493,11 @@ document.querySelectorAll(".tab").forEach(tab => {
       setTimeout(() => { if (typeof renderAdminHome === "function") renderAdminHome(); }, 30);
     }
 
+    // Eğitim sekmesine geçildiyse yönetim panosu görünürlüğünü ayarla
+    if (tab.dataset.tab === "egitim") {
+      setTimeout(() => { if (typeof window.egitimPanoGorunurluk === "function") window.egitimPanoGorunurluk(); }, 40);
+    }
+
     // Raporlar sekmesine geçildiyse render et
     if (tab.dataset.tab === "raporlar") {
       setTimeout(() => renderRaporlar(), 50);
@@ -26137,6 +26191,8 @@ document.dispatchEvent(new CustomEvent("bck-cekirdek-hazir"));
 console.log("BCK çekirdek köprüsü hazır ·", Object.keys(window.BCK).length, "giriş");
 </script>
 <script type="module" src="portal-data.js"></script>
+<script type="module" src="portal-egitim-pano.js"></script>
+<script type="module" src="portal-aciklama.js"></script>
 <script type="module" src="portal-yemek.js"></script>
 <script type="module" src="portal-finans-grafik.js"></script>
 <script type="module" src="portal-rozet.js"></script>
