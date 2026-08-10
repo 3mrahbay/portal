@@ -26130,6 +26130,11 @@ window.BCK = {
   donem:      () => AKTIF_DONEM,
   donemYukle: aktifDonemYukle,
 
+  // ── Müfredat (portal-mufredat.js modülü için) ──
+  DISIPLINLER:      () => DISIPLINLER,
+  mufredatCache:    () => aktifMufredatlar,
+  mufredatCacheAta: (disiplin, alanlar) => { aktifMufredatlar[disiplin] = alanlar; },
+
   // ── Ortak veri (canlı okuma — çekirdekte yeniden atanıyor) ──
   ogrenciler: () => ogrenciList,
   ayarlar:    () => ayarListesi,
@@ -26228,6 +26233,7 @@ console.log("BCK çekirdek köprüsü hazır ·", Object.keys(window.BCK).length
 <script type="module" src="portal-etkinlik.js"></script>
 <script type="module" src="portal-devamsizlik.js"></script>
 <script type="module" src="portal-duyurular.js"></script>
+<script type="module" src="portal-mufredat.js"></script>
 <script src="aidat-donem-genislet.js"></script>
 <script src="pdf-sayfa-bolunmesi.js"></script>
 <script src="pdf-estetik-duzeltme.js"></script>  
