@@ -44,7 +44,17 @@ const OLCUTLER = {
   disiplinCalisilan: { ad: "Çalışılan program sayısı", birim: "adet",
                        aciklama: "En az bir işaret bulunan program sayısı" },
   tamamlananAlan:    { ad: "Tamamlanan alan", birim: "adet",
-                       aciklama: "Tüm kazanımları U olan alan (en az 3 kazanımlı)" }
+                       aciklama: "Tüm kazanımları U olan alan (en az 3 kazanımlı)" },
+
+  // ── Orman Okulu beceri kademeleri ──
+  // Orman iki şekilde takip edilir: kazanım (S/T/U) VE beceri kademesi (1-2-3).
+  // İkisi birlikte çalışır; bu ölçütler kademe tarafına bakar.
+  ormanKademe:       { ad: "Orman · toplam kademe", birim: "adet",
+                       aciklama: "Tüm becerilerde kazanılan kademe toplamı (her beceri en fazla 3)" },
+  ormanIlerleyen:    { ad: "Orman · başlanan beceri", birim: "adet",
+                       aciklama: "En az 1. kademeye ulaşılan beceri sayısı" },
+  ormanUsta:         { ad: "Orman · ustalaşılan beceri", birim: "adet",
+                       aciklama: "3. kademeye (Ustalaştı) ulaşılan beceri sayısı" }
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -97,7 +107,17 @@ const VARSAYILAN_ROZETLER = [
     ikon: "circle-check-big", renk: "#7CB97C", olcut: "tamamlananAlan", esik: 1, sira: 14 },
 
   { kod: "alan_tamam_3", ad: "Üç Alan Tamam", aciklama: "Üç gelişim alanı tamamlandı",
-    ikon: "shield-check", renk: "#4A7C59", olcut: "tamamlananAlan", esik: 3, sira: 15 }
+    ikon: "shield-check", renk: "#4A7C59", olcut: "tamamlananAlan", esik: 3, sira: 15 },
+
+  // ── Orman Okulu beceri kademeleri ──
+  { kod: "orman_baslangic", ad: "Ormana İlk Adım", aciklama: "İlk orman becerisinde ilerleme",
+    ikon: "sprout", renk: "#7CB97C", olcut: "ormanIlerleyen", esik: 1, sira: 16 },
+
+  { kod: "orman_kasif", ad: "Orman Kaşifi", aciklama: "Beş orman becerisinde ilerleme",
+    ikon: "compass", renk: "#5C8B5A", olcut: "ormanIlerleyen", esik: 5, sira: 17 },
+
+  { kod: "orman_usta", ad: "Orman Ustası", aciklama: "Üç beceride ustalaştı",
+    ikon: "trees", renk: "#4A7C59", olcut: "ormanUsta", esik: 3, sira: 18 }
 ].map(r => ({ ...r, aktif: true, disiplin: r.disiplin || "" }));
 
 // Yürürlükteki tanımlar. Firestore okunana kadar varsayılanlar geçerli —
@@ -148,6 +168,19 @@ async function rozetTanimiKaydet(kod, veri) {
   await rozetTanimlariniOku({ zorla: true });
 }
 
+// ── Orman beceri listesi (ZEKY'deki yönetim ekranından tanımlanır) ──
+// ayarlar/ormanBecerileri = { beceriler: [{id, ad, aciklama, ikon}] }
+let _ormanBecerileri = [];
+async function ormanBecerileriniOku() {
+  try {
+    const snap = await getDoc(doc(db, "ayarlar", "ormanBecerileri"));
+    if (snap.exists() && Array.isArray(snap.data().beceriler)) {
+      _ormanBecerileri = snap.data().beceriler;
+    }
+  } catch (e) { console.warn("[Rozet] orman becerileri okunamadı:", e?.message); }
+  return _ormanBecerileri;
+}
+
 // ══════════════════════════════════════════════════════════════
 // KOŞUL DEĞERLENDİRME (fonksiyon değil, veri okunur)
 // ══════════════════════════════════════════════════════════════
@@ -160,6 +193,9 @@ function kosulSagladi(tanim, istat) {
     case "toplamUzman":       return istat.toplamUzman >= esik;
     case "disiplinCalisilan": return istat.disiplinCalisilan >= esik;
     case "tamamlananAlan":    return istat.tamamlananAlan >= esik;
+    case "ormanKademe":      return istat.ormanKademe >= esik;
+    case "ormanIlerleyen":   return istat.ormanIlerleyen >= esik;
+    case "ormanUsta":        return istat.ormanUsta >= esik;
     case "disiplinYuzde": {
       if (!tanim.disiplin) return false;
       return (istat.disiplin[tanim.disiplin] || 0) >= esik;
@@ -184,17 +220,32 @@ function kosulMetni(tanim) {
 // İSTATİSTİK ÇIKARIMI
 // Gelişim verisinden rozet koşullarının baktığı sayıları üretir.
 // ══════════════════════════════════════════════════════════════
-function rozetIstatistigiCikar(gelisimVerisi, mufredatlar) {
+function rozetIstatistigiCikar(gelisimVerisi, mufredatlar, ormanBecerileri) {
   const sonuc = {
     toplamCalisilan: 0,      // S + T + U toplamı
     toplamUzman: 0,          // yalnızca U
-    disiplin: { montessori: 0, ingilizce: 0, degerler: 0 },  // uzmanlık yüzdesi
+    disiplin: { montessori: 0, ingilizce: 0, degerler: 0, orman: 0 },  // uzmanlık yüzdesi
     disiplinCalisilan: 0,    // kaç disiplinde en az 1 işaret var
-    tamamlananAlan: 0        // tüm kazanımları U olan alan sayısı
+    tamamlananAlan: 0,       // tüm kazanımları U olan alan sayısı
+    // ── Orman beceri kademeleri ──
+    // Orman İKİ ŞEKİLDE takip edilir: kazanım (S/T/U) VE beceri kademesi (1-2-3).
+    // İkisi birlikte çalışır. Kademeler ogrenciGelisim/{id}.orman.beceriler altında,
+    // ZEKY'deki beceriKademeIsaretle() ile yazılır.
+    ormanKademe: 0,          // tüm becerilerde kazanılan kademe toplamı
+    ormanIlerleyen: 0,       // en az 1. kademeye ulaşılan beceri sayısı
+    ormanUsta: 0             // 3. kademeye ulaşılan beceri sayısı
   };
   if (!gelisimVerisi) return sonuc;
 
-  for (const disiplinId of ["montessori", "ingilizce", "degerler"]) {
+  const kademeler = ((gelisimVerisi.orman || {}).beceriler) || {};
+  (ormanBecerileri || _ormanBecerileri || []).forEach(b => {
+    const seviye = Number(kademeler[b.id]) || 0;
+    sonuc.ormanKademe += seviye;
+    if (seviye > 0) sonuc.ormanIlerleyen++;
+    if (seviye >= 3) sonuc.ormanUsta++;
+  });
+
+  for (const disiplinId of ["montessori", "ingilizce", "degerler", "orman"]) {
     const veri = gelisimVerisi[disiplinId];
     const kayitlar = (veri && veri.kayitlar) || {};
     const mufredat = (mufredatlar && mufredatlar[disiplinId]) || null;
@@ -245,7 +296,8 @@ async function rozetleriDegerlendir(ogrenciId, mufredatlar) {
     if (!snap.exists()) return [];
     const veri = snap.data() || {};
 
-    const istat = rozetIstatistigiCikar(veri, mufredatlar || window.aktifMufredatlar);
+    if (!_ormanBecerileri.length) await ormanBecerileriniOku();
+    const istat = rozetIstatistigiCikar(veri, mufredatlar || window.aktifMufredatlar, _ormanBecerileri);
     const mevcut = veri.rozetler || {};
     const yeniler = [];
     const damga = new Date().toISOString();
@@ -410,6 +462,7 @@ window.BCK_ROZET = {
 
 // Açılışta tanımları arka planda oku. Varsayılanlar zaten yürürlükte olduğu
 // için hiçbir ekran beklemez; okuma bitince yerini alır.
+ormanBecerileriniOku();
 rozetTanimlariniOku().then(() => {
   console.log(`Rozet modülü yüklendi · ${ROZET_TANIMLARI.length} tanım (${_tanimKaynagi === "firestore" ? "Firestore" : "koddan/varsayılan"}).`);
 });
