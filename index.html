@@ -2332,13 +2332,37 @@
 
       <div class="form-group">
         <label>Rol <span style="color:#dc2626;">*</span></label>
+        <!-- ROL LISTESI APP ILE ORTAKTIR (ik-personel-ekle.html) — 11 Ağu 2026.
+             Eski 5'li listede "Öğretmen / Branş" tek kalemdi; oysa Rules'ta
+             branş öğretmeni kazanım YAZAMAZ, sınıf öğretmeni yazar. Portal
+             eski listeyle kayıt açtıkça bu yetki ayrımı deliniyordu. -->
         <select id="personelRol" onchange="personelRolDegisti()">
           <option value="">— Rol seçin —</option>
-          <option value="mudur">Müdür (tüm yetki)</option>
-          <option value="egitim_koordinator">Eğitim Koordinatörü (tüm sınıflar, eğitim)</option>
-          <option value="muhasebe">Muhasebe (mali işler)</option>
-          <option value="ogretmen">Öğretmen / Branş (atanan sınıflar)</option>
-          <option value="kurucu_mudur">Kurucu Müdür (tüm yetki)</option>
+          <optgroup label="Sınıf">
+            <option value="ogretmen">Sınıf Öğretmeni (kazanım + yoklama + rapor)</option>
+            <option value="yardimci_ogretmen">Yardımcı Öğretmen (sınıf öğretmeniyle aynı, kendi sınıfları)</option>
+          </optgroup>
+          <optgroup label="Program Öğretmenleri">
+            <option value="ingilizce_ogretmeni">İngilizce Öğretmeni (yalnız İngilizce kazanımı)</option>
+            <option value="degerler_ogretmeni">Değerler Eğitimi Öğretmeni (yalnız Değerler kazanımı)</option>
+            <option value="orman_ogretmeni">Orman Okulu Eğitmeni (yalnız Orman kazanımı)</option>
+            <option value="brans_ogretmeni">Branş Öğretmeni (kazanım/yoklama yazamaz)</option>
+          </optgroup>
+          <optgroup label="Destek">
+            <option value="pdr">PDR Uzmanı (PDR verisine tam yetki)</option>
+            <option value="egitim_koordinator">Eğitim Koordinatörü (tüm sınıflar, eğitim)</option>
+          </optgroup>
+          <optgroup label="Yönetim">
+            <option value="mudur">Müdür (tüm yetki)</option>
+            <option value="kurucu_mudur">Kurucu Müdür (tüm yetki)</option>
+            <option value="muhasebe">Muhasebe (mali işler)</option>
+          </optgroup>
+          <optgroup label="Diğer">
+            <option value="asci">Aşçı</option>
+            <option value="temizlik">Temizlik</option>
+            <option value="danisma">Danışma / İdari</option>
+            <option value="halkla_iliskiler">Halkla İlişkiler</option>
+          </optgroup>
         </select>
       </div>
 
@@ -4713,7 +4737,17 @@ const ROL_ETIKETLERI = {
   mudur: "Müdür",
   egitim_koordinator: "Eğitim Koordinatörü",
   muhasebe: "Muhasebe",
-  ogretmen: "Öğretmen"
+  ogretmen: "Sınıf Öğretmeni",
+  yardimci_ogretmen: "Yardımcı Öğretmen",
+  ingilizce_ogretmeni: "İngilizce Öğretmeni",
+  degerler_ogretmeni: "Değerler Öğretmeni",
+  orman_ogretmeni: "Orman Öğretmeni",
+  brans_ogretmeni: "Branş Öğretmeni",
+  pdr: "PDR Uzmanı",
+  danisma: "Danışma",
+  asci: "Aşçı",
+  temizlik: "Temizlik",
+  halkla_iliskiler: "Halkla İlişkiler"
 };
 // Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
 const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator"];
@@ -5174,7 +5208,12 @@ window.personelDuzenle = function(email) {
 window.personelRolDegisti = function() {
   const rol = document.getElementById("personelRol").value;
   const grup = document.getElementById("personelSinifAtamaGrup");
-  if (rol === "ogretmen") {
+  // Sınıfla çalışan tüm roller sınıf ataması ister: app (ik-personel-ekle)
+  // ile aynı küme. Program/branş öğretmeni de hangi sınıflara gireceğini
+  // bilmek zorunda; eskiden yalnız 'ogretmen' açılıyordu.
+  const sinifIsteyen = ["ogretmen", "yardimci_ogretmen", "ingilizce_ogretmeni",
+                        "degerler_ogretmeni", "orman_ogretmeni", "brans_ogretmeni"];
+  if (sinifIsteyen.includes(rol)) {
     grup.style.display = "";
     personelSinifChiplariDoldur();
   } else {
@@ -5250,7 +5289,9 @@ window.personelKaydet = async function() {
   if (!emailRaw) return uyariGoster("E-posta zorunludur.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) return uyariGoster("Geçerli bir e-posta girin.");
   if (!rol) return uyariGoster("Rol seçmelisiniz.");
-  if (rol === "ogretmen" && personelSeciliSiniflar.length === 0) {
+  const sinifZorunlu = ["ogretmen", "yardimci_ogretmen", "ingilizce_ogretmeni",
+                        "degerler_ogretmeni", "orman_ogretmeni", "brans_ogretmeni"];
+  if (sinifZorunlu.includes(rol) && personelSeciliSiniflar.length === 0) {
     return uyariGoster("Öğretmen için en az bir sınıf seçmelisiniz.");
   }
 
