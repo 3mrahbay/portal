@@ -13033,6 +13033,17 @@ async function loadOgrenciler() {
     // Dönem ayarlarını ayrı sorgu
     await loadAyarlar();
 
+    // ÖZET KARTI TAZELE: yonetimHomeHTML() aktif öğrenci sayısını ayarListesi
+    // üzerinden hesaplıyor. Ana sayfa, ayarlar yüklenmeden ÖNCE çizildiği için
+    // sayı 0 kalıyordu ve bir daha güncellenmiyordu. Veri geldikten sonra
+    // kartı yeniden çizeriz.
+    try {
+      const kok = document.getElementById("adminHomeRoot");
+      if (kok && kok.offsetParent !== null && typeof renderAdminHome === "function") {
+        renderAdminHome();
+      }
+    } catch (e) { console.warn("özet tazeleme", e); }
+
     // ===== FAZ 2a: ÖĞRETMEN SINIF FİLTRESİ =====
     // Öğretmen sadece atandığı sınıfların öğrencilerini görür
     ogrenciList = ogrenciListeyiRoleGoreFiltrele(ogrenciList);
