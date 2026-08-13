@@ -14,11 +14,16 @@ let aktifDevamsizlikTarih = null;
 window.aktifDevamsizlikTarih = null;
 let aktifDevamsizlikVerisi = null;
 
+// ORTAK SÖZLÜK — ZEKY (zeky-data.js DEVAMSIZLIK_DURUMLARI) ile BİREBİR AYNI.
+// Eskiden ZEKY 'gec' işaretini portale 'geldi' diye yazıp ayrıca gecGeldi:true
+// koyuyordu; portal o alanı okumadığı için geç gelen çocuk normal görünüyordu.
+// Artık iki sistem de aynı beş değeri yazar ve okur — eşleme tablosu YOK.
 const DEVAMSIZLIK_DURUMLAR = {
-  geldi:    { ikon: "✅", label: "Geldi",    renk: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-  gelmedi:  { ikon: "❌", label: "Gelmedi",  renk: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-  izinli:   { ikon: "🏖", label: "İzinli",   renk: "#d97706", bg: "#fffbeb", border: "#fde68a" },
-  hasta:    { ikon: "🤒", label: "Hasta",    renk: "#9333ea", bg: "#faf5ff", border: "#e9d5ff" }
+  geldi:    { ikon: "✅", label: "Geldi",     renk: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+  gec:      { ikon: "🕐", label: "Geç geldi", renk: "#b8860b", bg: "#fffbeb", border: "#fde68a" },
+  gelmedi:  { ikon: "❌", label: "Gelmedi",   renk: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  izinli:   { ikon: "🏖", label: "İzinli",    renk: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+  hasta:    { ikon: "🤒", label: "Hasta",     renk: "#9333ea", bg: "#faf5ff", border: "#e9d5ff" }
 };
 
 window.devamsizlikBugun = function() {
@@ -67,7 +72,7 @@ async function renderDevamsizlik() {
   });
 
   // Özet hesapla
-  const sayaclar = { geldi: 0, gelmedi: 0, izinli: 0, hasta: 0, bilinmeyen: 0 };
+  const sayaclar = { geldi: 0, gec: 0, gelmedi: 0, izinli: 0, hasta: 0, bilinmeyen: 0 };
   const kayitlar = aktifDevamsizlikVerisi.kayitlar || {};
   for (const o of aktif) {
     const k = kayitlar[o.id];
@@ -92,6 +97,10 @@ async function renderDevamsizlik() {
           <div style="background:white; border:1px solid #bbf7d0; border-radius:10px; padding:8px 12px; min-width:75px; text-align:center;">
             <div style="font-size:11px; color:#166534; font-weight:600;">✅ Geldi</div>
             <div style="font-family:var(--font-display); font-size:22px; font-weight:700; color:#14532d;">${sayaclar.geldi}</div>
+          </div>
+          <div style="background:white; border:1px solid #fde68a; border-radius:10px; padding:8px 12px; min-width:75px; text-align:center;">
+            <div style="font-size:11px; color:#92400e; font-weight:600;">🕐 Geç</div>
+            <div style="font-family:var(--font-display); font-size:22px; font-weight:700; color:#78350f;">${sayaclar.gec}</div>
           </div>
           <div style="background:white; border:1px solid #fecaca; border-radius:10px; padding:8px 12px; min-width:75px; text-align:center;">
             <div style="font-size:11px; color:#991b1b; font-weight:600;">❌ Gelmedi</div>
