@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a5e3e">
+<title>ZEKY - Öğrenciler</title>
+<style>
+  :root{--logo-koyu:#2D5E3E;--ana-yesil:#4A7C59;--acik-yesil:#7CB97C;--pastel-yesil:#C5E1B5;--pastel-mavi:#B8D4E8;--pastel-mor:#D4C4E8;--pastel-pembe:#F4C2C2;--pastel-sari:#F9E5A0;--bg:#FAFAF7;--beyaz:#fff;--siyah:#2D2D2D;--gri:#8E8E93;--gri-acik:#E5E5EA;}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{min-height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Quicksand","DM Sans",sans-serif;color:var(--siyah);}
+  body{padding-bottom:32px;}
+  [data-lucide],svg{stroke-width:2;}
+  .ust-bar{display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 16px) 16px 10px;}
+  .geri-btn{width:42px;height:42px;border-radius:13px;background:var(--beyaz);border:1px solid var(--gri-acik);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .geri-btn [data-lucide],.geri-btn svg{width:21px;height:21px;color:var(--siyah);}
+  .ust-baslik{font-size:20px;font-weight:700;}
+  .ust-sayi{margin-left:auto;font-size:12.5px;color:var(--gri);font-weight:700;}
+
+  .arama-sar{padding:6px 16px 10px;}
+  .arama{width:100%;display:flex;align-items:center;gap:9px;background:var(--beyaz);border:1.5px solid var(--gri-acik);border-radius:14px;padding:11px 14px;}
+  .arama [data-lucide],.arama svg{width:18px;height:18px;color:var(--gri);}
+  .arama input{flex:1;border:none;outline:none;font-family:inherit;font-size:15px;background:transparent;color:var(--siyah);}
+
+  .icerik{padding:0 16px;}
+  .grup-baslik{font-size:12px;font-weight:700;color:var(--gri);letter-spacing:.8px;margin:16px 4px 9px;display:flex;align-items:center;gap:7px;}
+  .grup-baslik .say{background:var(--gri-acik);color:var(--siyah);border-radius:20px;padding:1px 9px;font-size:11px;}
+
+  .ogr-kart{display:flex;align-items:center;gap:13px;background:var(--beyaz);border:1px solid var(--gri-acik);border-radius:15px;padding:13px;margin-bottom:9px;cursor:pointer;width:100%;font-family:inherit;text-align:left;}
+  .ogr-kart:active{transform:scale(.98);}
+  .ogr-avatar{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0;color:#fff;}
+  .ogr-bilgi{flex:1;min-width:0;}
+  .ogr-ad{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ogr-alt{font-size:12.5px;color:var(--gri);margin-top:2px;}
+  .ogr-ok{width:18px;height:18px;color:var(--gri);flex-shrink:0;}
+
+  .bos{text-align:center;color:var(--gri);padding:50px 20px;font-size:13.5px;line-height:1.6;}
+  .yukleniyor{text-align:center;color:var(--gri);padding:50px 0;}
+
+  /* DETAY SHEET */
+  .det-arka{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.25s;z-index:300;}
+  .det-arka.acik{opacity:1;pointer-events:auto;}
+  .det-sheet{position:fixed;left:0;right:0;bottom:0;max-width:430px;margin:0 auto;background:var(--bg);border-radius:22px 22px 0 0;z-index:301;transform:translateY(100%);transition:.28s;max-height:88vh;overflow-y:auto;}
+  .det-sheet.acik{transform:translateY(0);}
+  .det-tutamac{width:44px;height:5px;background:var(--gri-acik);border-radius:3px;margin:10px auto 6px;}
+  .det-govde{padding:6px 20px calc(env(safe-area-inset-bottom) + 24px);}
+  .det-ust{display:flex;align-items:center;gap:14px;margin:8px 0 18px;}
+  .det-avatar{width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;}
+  .det-ad{font-size:20px;font-weight:800;}
+  .det-sinif{font-size:13px;color:var(--gri);margin-top:2px;}
+  .det-satir{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--gri-acik);}
+  .det-satir:last-child{border-bottom:none;}
+  .det-ikon{width:36px;height:36px;border-radius:11px;background:var(--pastel-yesil);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .det-ikon [data-lucide],.det-ikon svg{width:18px;height:18px;color:#2D7A2D;}
+  .det-etiket{font-size:11.5px;color:var(--gri);}
+  .det-deger{font-size:14.5px;font-weight:600;margin-top:1px;}
+  .det-veli{background:var(--beyaz);border:1px solid var(--gri-acik);border-radius:14px;padding:13px;margin-top:12px;}
+  .det-veli-ad{font-size:14px;font-weight:700;}
+  .det-veli-ara{display:flex;gap:8px;margin-top:10px;}
+  .veli-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:11px;border:none;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;}
+  .veli-btn.ara{background:var(--ana-yesil);color:#fff;}
+  .veli-btn.mail{background:var(--pastel-mavi);color:#2E5C8A;}
+  .veli-btn [data-lucide],.veli-btn svg{width:16px;height:16px;}
+
+  /* --- MOBIL KALIP (otomatik) --- */
+  /* Web tarayicida da uygulama genisliginde gorunur; ortalanir. */
+  body{max-width:430px;margin-left:auto;margin-right:auto;}
+  .bottom-nav{max-width:430px;margin-left:auto;margin-right:auto;}
+
+  /* --- SEKMELER (Ogrenciler / Veliler) --- */
+  .sekmeler{display:flex;gap:8px;padding:10px 16px 2px;background:var(--beyaz);}
+  .sekmeler button{flex:1;border:1.5px solid var(--gri-acik,#E5E5EA);background:var(--beyaz);
+    color:var(--gri,#8E8E93);border-radius:20px;padding:9px 8px;font-family:inherit;
+    font-weight:700;font-size:12.5px;cursor:pointer;}
+  .sekmeler button.aktif{background:#2D5E3E;border-color:#2D5E3E;color:#fff;}
+
+  /* --- VELI KARTI --- */
+  .veli-kart{display:flex;gap:12px;align-items:center;width:100%;text-align:left;
+    background:var(--beyaz);border:1px solid var(--gri-acik,#E5E5EA);border-radius:14px;
+    padding:12px 13px;margin-bottom:8px;cursor:pointer;font-family:inherit;}
+  .veli-kart:active{transform:scale(.99);}
+  .vk-avatar{width:40px;height:40px;flex-shrink:0;border-radius:50%;color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;}
+  .vk-bilgi{flex:1;min-width:0;}
+  .vk-ad{font-size:14px;font-weight:700;color:#2D2D2D;}
+  .vk-alt{font-size:12px;color:var(--gri,#8E8E93);margin-top:3px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .vk-rozet{display:inline-block;padding:2px 8px;border-radius:11px;font-size:10px;
+    font-weight:700;margin-top:5px;}
+  .vk-rozet.acik{background:#E4F2DC;color:#2D7A2D;}
+  .vk-rozet.kapali{background:#FDECD9;color:#C77E20;}
+  .vk-rozet.yok{background:#F2F2F4;color:#8E8E93;}
+
+  /* --- DETAY: cocuk satiri --- */
+  .det-cocuk{display:flex;gap:10px;align-items:center;background:#F7F9F6;
+    border-radius:11px;padding:10px 12px;margin-top:8px;}
+  .det-cocuk-av{width:32px;height:32px;flex-shrink:0;border-radius:50%;color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+  .det-cocuk-ad{font-size:13.5px;font-weight:700;color:#2D2D2D;}
+  .det-cocuk-alt{font-size:11.5px;color:var(--gri,#8E8E93);margin-top:2px;}
+  .det-etiket{display:block;font-size:11px;font-weight:700;color:var(--gri);letter-spacing:.5px;margin:10px 0 5px;}
+  .det-girdi{width:100%;padding:12px 13px;border:1.5px solid var(--gri-acik);border-radius:12px;
+    font-family:inherit;font-size:14px;color:var(--siyah);background:#fff;}
+  .det-girdi:focus{outline:none;border-color:var(--ana-yesil,#4A7C59);}
+  .det-yakinlik{padding:9px 15px;border:1.5px solid var(--gri-acik);border-radius:18px;background:#fff;
+    font-family:inherit;font-size:12.5px;font-weight:600;color:var(--siyah);cursor:pointer;}
+  .det-yakinlik.secili{background:var(--logo-koyu,#2D5E3E);border-color:var(--logo-koyu,#2D5E3E);color:#fff;}
+  .det-islemler{display:flex;gap:8px;flex-wrap:wrap;}
+  .det-islem{flex:1;min-width:110px;display:flex;align-items:center;justify-content:center;gap:6px;
+    padding:12px 10px;border:1.5px solid var(--gri-acik);border-radius:13px;background:#fff;
+    font-family:inherit;font-size:12.5px;font-weight:700;color:var(--siyah);cursor:pointer;}
+  .det-islem [data-lucide],.det-islem svg{width:16px;height:16px;}
+  .det-islem:active{transform:scale(.97);}
+  .det-islem.arsiv{border-color:#F0C9C4;color:#C0392B;background:#FDF6F5;}
+  .det-islem.geri{border-color:#C5E1B5;color:#2D7A2D;background:#F4FAF4;}
+  .det-sinif-sec{display:block;width:100%;text-align:left;padding:13px 15px;margin-bottom:8px;
+    border:1.5px solid var(--gri-acik);border-radius:13px;background:#fff;font-family:inherit;
+    font-size:13.5px;font-weight:600;color:var(--siyah);cursor:pointer;}
+  .det-sinif-sec:active{transform:scale(.98);}
+  .det-sinif-sec.mevcut{opacity:.5;cursor:default;}
+  .det-uyari{background:#FDF3D6;color:#8A6A0B;border-radius:11px;padding:10px 12px;
+    font-size:12.5px;line-height:1.5;margin-top:10px;}
+  </style>
+</head>
+<body>
+  <div class="ust-bar">
+    <button class="geri-btn" onclick="geriDon()"><i data-lucide="arrow-left"></i></button>
+    <div class="ust-baslik" id="ustBaslik">Veli &amp; Öğrenci</div>
+    <div class="ust-sayi" id="ustSayi"></div>
+  </div>
+
+  <div class="sekmeler" id="sekmeler">
+    <button class="aktif" data-s="ogrenci" onclick="sekmeSec('ogrenci')">Öğrenciler</button>
+    <button data-s="veli" onclick="sekmeSec('veli')">Veliler</button>
+  </div>
+
+  <div class="arama-sar">
+    <div class="arama">
+      <i data-lucide="search"></i>
+      <input type="text" id="arama" placeholder="İsim veya sınıf ara…" oninput="ara(this.value)">
+    </div>
+  </div>
+
+  <div class="icerik" id="liste"><div class="yukleniyor">Yükleniyor…</div></div>
+
+  <!-- DETAY SHEET -->
+  <div class="det-arka" id="detArka" onclick="detayKapat()"></div>
+  <div class="det-sheet" id="detSheet">
+    <div class="det-tutamac"></div>
+    <div class="det-govde" id="detGovde"></div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@0.462.0"></script>
+  <script type="module">
+    import { oturumBekle, aktifKullanici, ogrencileriGetir, velileriGetir,
+             ogrenciVelileri, ogrenciAdi, ogrenciSinifi, rolKontrol } from './js/zeky-data.js';
+
+    const RENKLER = ['#4A7C59','#2E5C8A','#6B4FB6','#C44569','#B8860B','#2D7A2D'];
+    let ogrenciler = [], veliler = [], filtreli = [], filtreliVeli = [];
+    let sekme = 'ogrenci';
+
+    function renk(ad){ let t=0; for(const c of (ad||'')) t+=c.charCodeAt(0); return RENKLER[t % RENKLER.length]; }
+    function yas(dt){
+      if(!dt) return '';
+      // Hem "2023-01-17" hem "17.01.2023" formatini destekle
+      let d = new Date(dt);
+      if(isNaN(d) && /^\d{1,2}\.\d{1,2}\.\d{4}$/.test(dt)){
+        const p = dt.split('.'); d = new Date(+p[2], +p[1]-1, +p[0]);
+      }
+      if(isNaN(d)) return '';
+      const ay = Math.floor((Date.now()-d.getTime())/(30.44*24*3600*1000));
+      return Math.floor(ay/12) + ' yaş ' + (ay%12) + ' ay';
+    }
+    function kacis(t){
+      return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+    function bas1(ad){ return (String(ad||'?')[0]||'?').toLocaleUpperCase('tr'); }
+
+    async function yukle(){
+      try {
+        await oturumBekle();
+        const izinli = await rolKontrol(['kurucu_mudur','kurucu','mudur','mudur_yardimcisi','egitim_koordinatoru','muhasebe']);
+        if(!izinli) return;
+
+        const ham = await ogrencileriGetir();
+
+        // PORTAL UYUM: veli bilgisi ogrenciVelileri() ile okunur.
+        // Boylece veliler[] dizisi + veli1Eposta + veli1Email hepsi yakalanir.
+        ogrenciler = ham.map(o => ({
+          id: o.id,
+          ad: ogrenciAdi(o) || 'İsimsiz',
+          sinif: ogrenciSinifi(o),
+          dogum: o.dogumTarihi || '',
+          program: o.programTuru || '',
+          cinsiyet: o.cinsiyet || '',
+          tc: o.tcKimlik || '',
+          kanGrubu: o.kanGrubu || '',
+          alerji: o.alerjiDurumu || '',
+          boy: o.boy || '', kilo: o.kilo || '',
+          kayitDurumu: o.kayitDurumu || o.durum || '',
+          baslamaTarihi: o.okulaBaslamaTarihi || '',
+          adres: (o.veliler && o.veliler[0] && o.veliler[0].evAdresi) || o.adres || '',
+          notlar: o.notlar || '',
+          veliler: ogrenciVelileri(o),
+          ham: o
+        }));
+        ogrenciler.sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
+
+        // ── VELI LISTESI: ogrencilerden turetilir, veliler/{email} ile zenginlestirilir
+        let whitelist = {};
+        try {
+          const vl = await velileriGetir({ sadeceOnayli:false });
+          vl.forEach(v => { whitelist[(v.email || v.id || '').toLowerCase()] = v; });
+        } catch(e){ console.warn('veliler whitelist okunamadi', e); }
+
+        const harita = new Map();
+        ogrenciler.forEach(o => {
+          o.veliler.forEach(v => {
+            const anahtar = v.email;
+            if(!harita.has(anahtar)){
+              const w = whitelist[anahtar] || null;
+              harita.set(anahtar, {
+                email: anahtar,
+                ad: v.ad,
+                telefon: v.telefon || '',
+                yakinlik: v.yakinlik || '',
+                cocuklar: [],
+                // Portal/app erisimi: veliler/{email} belgesi var mi, onayli mi?
+                kayitli: !!w,
+                onayli: !!(w && w.onaylandi === true)
+              });
+            }
+            const kayit = harita.get(anahtar);
+            if(!kayit.telefon && v.telefon) kayit.telefon = v.telefon;
+            if(kayit.ad.includes('@') && v.ad && !v.ad.includes('@')) kayit.ad = v.ad;
+            kayit.cocuklar.push({ id:o.id, ad:o.ad, sinif:o.sinif });
+          });
+        });
+        veliler = [...harita.values()].sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
+
+        // Velisi hic tanimli olmayan ogrenciler (uyari icin)
+        window._velisizOgrenciler = ogrenciler.filter(o => !o.veliler.length);
+
+        filtreli = ogrenciler; filtreliVeli = veliler;
+        ciz();
+      } catch(e){
+        document.getElementById('liste').innerHTML =
+          '<div class="bos">Liste alınamadı.<br>'+kacis(e.message||e)+'</div>';
+      }
+    }
+
+    function sayiGuncelle(){
+      const el = document.getElementById('ustSayi');
+      el.textContent = sekme === 'ogrenci'
+        ? ogrenciler.length + ' öğrenci'
+        : veliler.length + ' veli';
+    }
+
+    function ciz(){
+      sayiGuncelle();
+      const kap = document.getElementById('liste');
+      const arama = document.getElementById('arama');
+      if(arama) arama.placeholder = sekme === 'ogrenci'
+        ? 'İsim veya sınıf ara…' : 'Veli adı, e-posta veya çocuk ara…';
+
+      if(sekme === 'veli'){ cizVeliler(kap); return; }
+
+      if(!filtreli.length){ kap.innerHTML='<div class="bos">Öğrenci bulunamadı.</div>'; return; }
+      const gruplar = {};
+      filtreli.forEach(o => { const g = o.sinif || '__bos__'; (gruplar[g]=gruplar[g]||[]).push(o); });
+      const sirali = Object.keys(gruplar).sort((a,b)=> a==='__bos__'?1 : b==='__bos__'?-1 : a.localeCompare(b,'tr'));
+      let html='';
+      for(const g of sirali){
+        const isim = g==='__bos__' ? 'Sınıf atanmamış' : g;
+        html += '<div class="grup-baslik">'+kacis(isim)+'<span class="say">'+gruplar[g].length+'</span></div>';
+        html += gruplar[g].map(o=>`
+          <button class="ogr-kart" onclick="detayAc('${kacis(o.id)}')">
+            <div class="ogr-avatar" style="background:${renk(o.ad)}">${bas1(o.ad)}</div>
+            <div class="ogr-bilgi"><div class="ogr-ad">${kacis(o.ad)}</div>
+              <div class="ogr-alt">${kacis([o.sinif||'Sınıf yok', yas(o.dogum), o.program].filter(Boolean).join(' · '))}</div></div>
+            <i class="ogr-ok" data-lucide="chevron-right"></i>
+          </button>`).join('');
+      }
+      kap.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function cizVeliler(kap){
+      if(!filtreliVeli.length){ kap.innerHTML='<div class="bos">Veli bulunamadı.</div>'; return; }
+
+      let html = '';
+
+      // Portal erisimi olmayan veliler icin uyari
+      const erisimsiz = veliler.filter(v => !v.onayli).length;
+      if(erisimsiz){
+        html += '<div class="det-uyari" style="margin:2px 0 12px">' +
+          '<b>'+erisimsiz+' velinin</b> portal/uygulama erişimi yok. ' +
+          'Giriş yapabilmeleri için <i>veliler</i> kaydının oluşturulup onaylanması gerekir.</div>';
+      }
+      const velisiz = (window._velisizOgrenciler || []).length;
+      if(velisiz){
+        html += '<div class="det-uyari" style="margin:2px 0 12px">' +
+          '<b>'+velisiz+' öğrencinin</b> kayıtlı veli bilgisi yok. ' +
+          'Öğrenciler sekmesinden kontrol edebilirsiniz.</div>';
+      }
+
+      // Sinifa gore grupla (velinin ilk cocugunun sinifi)
+      const gruplar = {};
+      filtreliVeli.forEach(v => {
+        const g = (v.cocuklar[0] && v.cocuklar[0].sinif) || '__bos__';
+        (gruplar[g]=gruplar[g]||[]).push(v);
+      });
+      const sirali = Object.keys(gruplar).sort((a,b)=> a==='__bos__'?1 : b==='__bos__'?-1 : a.localeCompare(b,'tr'));
+
+      for(const g of sirali){
+        const isim = g==='__bos__' ? 'Sınıf atanmamış' : g;
+        html += '<div class="grup-baslik">'+kacis(isim)+'<span class="say">'+gruplar[g].length+'</span></div>';
+        html += gruplar[g].map(v => {
+          const rozet = v.onayli
+            ? '<span class="vk-rozet acik">Erişim açık</span>'
+            : v.kayitli
+              ? '<span class="vk-rozet kapali">Onay bekliyor</span>'
+              : '<span class="vk-rozet yok">Kayıt yok</span>';
+          const cocukMetin = v.cocuklar.map(c=>c.ad.split(' ')[0]).join(', ');
+          return `
+          <button class="veli-kart" onclick="veliDetayAc('${kacis(v.email)}')">
+            <div class="vk-avatar" style="background:${renk(v.ad)}">${bas1(v.ad)}</div>
+            <div class="vk-bilgi">
+              <div class="vk-ad">${kacis(v.ad)}</div>
+              <div class="vk-alt">${kacis(v.yakinlik ? v.yakinlik+' · ' : '')}${kacis(cocukMetin)}</div>
+              <div class="vk-alt">${kacis(v.email)}</div>
+              ${rozet}
+            </div>
+            <i class="ogr-ok" data-lucide="chevron-right"></i>
+          </button>`;
+        }).join('');
+      }
+      kap.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    window.sekmeSec = function(s){
+      sekme = s;
+      document.querySelectorAll('#sekmeler button').forEach(b=>b.classList.toggle('aktif', b.dataset.s===s));
+      const a = document.getElementById('arama'); if(a) a.value='';
+      filtreli = ogrenciler; filtreliVeli = veliler;
+      ciz();
+    };
+
+    window.ara = function(q){
+      q=(q||'').toLocaleLowerCase('tr').trim();
+      if(sekme === 'ogrenci'){
+        filtreli = !q ? ogrenciler : ogrenciler.filter(o =>
+          o.ad.toLocaleLowerCase('tr').includes(q) ||
+          o.sinif.toLocaleLowerCase('tr').includes(q) ||
+          o.veliler.some(v => v.ad.toLocaleLowerCase('tr').includes(q) || v.email.includes(q)));
+      } else {
+        filtreliVeli = !q ? veliler : veliler.filter(v =>
+          v.ad.toLocaleLowerCase('tr').includes(q) ||
+          v.email.includes(q) ||
+          (v.telefon||'').includes(q) ||
+          v.cocuklar.some(c => c.ad.toLocaleLowerCase('tr').includes(q) || (c.sinif||'').toLocaleLowerCase('tr').includes(q)));
+      }
+      ciz();
+    };
+
+    function iletisimBtnlari(tel, mail){
+      const t = (tel||'').replace(/\s/g,'');
+      return `<div class="det-veli-ara">
+        ${t?`<a class="veli-btn ara" href="tel:${kacis(t)}"><i data-lucide="phone"></i> Ara</a>`:''}
+        ${t?`<a class="veli-btn ara" href="https://wa.me/${kacis(t.replace(/\D/g,''))}" target="_blank"><i data-lucide="message-circle"></i> WhatsApp</a>`:''}
+        ${mail?`<a class="veli-btn mail" href="mailto:${kacis(mail)}"><i data-lucide="mail"></i> E-posta</a>`:''}
+      </div>`;
+    }
+
+    function satir(ikon, etiket, deger){
+      if(!deger) return '';
+      return `<div class="det-satir"><div class="det-ikon"><i data-lucide="${ikon}"></i></div>
+        <div><div class="det-etiket">${etiket}</div><div class="det-deger">${kacis(deger)}</div></div></div>`;
+    }
+
+    window.detayAc = function(id){
+      const o = ogrenciler.find(x=>x.id===id); if(!o) return;
+      const veliBlok = o.veliler.length
+        ? o.veliler.map(v => `<div class="det-veli">
+            <div class="det-veli-ad">${kacis(v.ad)}${v.yakinlik?' <span style="font-weight:500;color:#8E8E93">· '+kacis(v.yakinlik)+'</span>':''}</div>
+            <div style="font-size:12px;color:#8E8E93;margin-top:2px">${kacis(v.email)}${v.telefon?' · '+kacis(v.telefon):''}</div>
+            ${iletisimBtnlari(v.telefon, v.email)}
+          </div>`).join('')
+        : '<div class="det-uyari">Bu öğrenci için kayıtlı veli bilgisi yok. Veli portal/uygulamaya giriş yapamaz.</div>';
+
+      document.getElementById('detGovde').innerHTML = `
+        <div class="det-ust">
+          <div class="det-avatar" style="background:${renk(o.ad)}">${bas1(o.ad)}</div>
+          <div><div class="det-ad">${kacis(o.ad)}</div><div class="det-sinif">${kacis(o.sinif||'Sınıf atanmamış')}</div></div>
+        </div>
+        ${satir('cake','Doğum · Yaş', [o.dogum, yas(o.dogum)].filter(Boolean).join(' · '))}
+        ${satir('clock','Program', o.program)}
+        ${satir('user','Cinsiyet', o.cinsiyet)}
+        ${satir('credit-card','TC Kimlik', o.tc)}
+        ${satir('droplet','Kan Grubu', o.kanGrubu)}
+        ${satir('triangle-alert','Alerji / Özel Durum', o.alerji)}
+        ${satir('ruler','Boy · Kilo', [o.boy, o.kilo].filter(Boolean).join(' · '))}
+        ${satir('calendar-check','Okula Başlama', o.baslamaTarihi)}
+        ${satir('badge-check','Kayıt Durumu', o.kayitDurumu)}
+        ${satir('map-pin','Adres', o.adres)}
+        ${satir('sticky-note','Notlar', o.notlar)}
+        <div style="font-size:12px;font-weight:700;color:var(--gri);letter-spacing:.8px;margin:18px 0 4px">VELİ İLETİŞİM</div>
+        ${veliBlok}
+
+        <div style="font-size:12px;font-weight:700;color:var(--gri);letter-spacing:.8px;margin:18px 0 6px">İŞLEMLER</div>
+        <div class="det-islemler">
+          <button class="det-islem" onclick="sinifDegistirAc('${kacis(o.id)}')">
+            <i data-lucide="arrow-left-right"></i>Sınıf Değiştir</button>
+          <button class="det-islem" onclick="location.href='egitim.html?ogrenci=${encodeURIComponent(o.id)}'">
+            <i data-lucide="trending-up"></i>Gelişim Süreci</button>
+          <button class="det-islem ${(o.durum==='arsiv'||o.kayitDurumu==='arsiv')?'geri':'arsiv'}" onclick="arsivDegistir('${kacis(o.id)}')">
+            <i data-lucide="${(o.durum==='arsiv'||o.kayitDurumu==='arsiv')?'rotate-ccw':'archive'}"></i>${(o.durum==='arsiv'||o.kayitDurumu==='arsiv')?'Arşivden Çıkar':'Arşive Taşı'}</button>
+        </div>
+      `;
+      document.getElementById('detArka').classList.add('acik');
+      document.getElementById('detSheet').classList.add('acik');
+      lucide.createIcons();
+    };
+
+    // ── SINIF DEĞİŞTİRME ──
+    window.sinifDegistirAc = async function(id){
+      const o = ogrenciler.find(x=>x.id===id); if(!o) return;
+      let siniflar = [];
+      try { siniflar = await siniflariGetir(); } catch(e){}
+      const adlar = siniflar.map(s=>s.ad||s.id).filter(Boolean);
+      if (!adlar.length){ alert('Sınıf listesi okunamadı.'); return; }
+      document.getElementById('detGovde').innerHTML = `
+        <div class="det-ust">
+          <div class="det-avatar" style="background:${renk(o.ad)}">${bas1(o.ad)}</div>
+          <div><div class="det-ad">${kacis(o.ad)}</div>
+          <div class="det-sinif">Şu an: ${kacis(o.sinif||'Sınıf atanmamış')}</div></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--gri);letter-spacing:.8px;margin:14px 0 8px">YENİ SINIFI SEÇİN</div>
+        ${adlar.map(ad=>`
+          <button class="det-sinif-sec ${ad===o.sinif?'mevcut':''}"
+                  onclick="sinifDegistirKaydet('${kacis(id)}','${kacis(ad)}')"
+                  ${ad===o.sinif?'disabled':''}>
+            ${kacis(ad)}${ad===o.sinif?' · mevcut sınıfı':''}
+          </button>`).join('')}
+        <div class="det-uyari" style="margin-top:12px">Sınıf değişince öğretmen listeleri, yoklama ve
+        veli ekranı yeni sınıfa göre çalışır. Geçmiş gelişim kayıtları öğrenciyle birlikte taşınır, kaybolmaz.</div>
+        <button class="det-islem" style="width:100%;margin-top:10px" onclick="detayAc('${kacis(id)}')">
+          <i data-lucide="arrow-left"></i>Vazgeç</button>`;
+      lucide.createIcons();
+    };
+
+    window.sinifDegistirKaydet = async function(id, yeniSinif){
+      const o = ogrenciler.find(x=>x.id===id); if(!o) return;
+      if (!confirm(o.ad + ' → ' + yeniSinif + '\n\nOnaylıyor musunuz?')) return;
+      try {
+        await ogrenciGuncelle(id, { sinif: yeniSinif });
+        o.sinif = yeniSinif;
+        listeCiz();
+        detayAc(id);
+      } catch(e){ console.error(e); alert('Kaydedilemedi: ' + (e.code||e.message)); }
+    };
+
+    // ── ARŞİV ──
+    window.arsivDegistir = async function(id){
+      const o = ogrenciler.find(x=>x.id===id); if(!o) return;
+      const arsivde = o.durum === 'arsiv' || o.kayitDurumu === 'arsiv';
+      const mesaj = arsivde
+        ? o.ad + ' arşivden çıkarılacak ve tekrar aktif öğrenci olacak.\n\nOnaylıyor musunuz?'
+        : o.ad + ' arşive taşınacak.\n\n• Sınıf listelerinde ve yoklamada görünmez\n• Velisi uygulamaya giriş yapamaz\n• Tüm gelişim kayıtları SAKLANIR, silinmez\n\nOnaylıyor musunuz?';
+      if (!confirm(mesaj)) return;
+      try {
+        // IKI ALAN BIRDEN: ZEKY 'durum' ile suzuyor, portal 'kayitDurumu' okuyor.
+        // Yalnizca birini yazmak listelerin farkli sayi gostermesine yol acar.
+        const yeniDurum = arsivde ? 'aktif' : 'arsiv';
+        await ogrenciGuncelle(id, {
+          durum: yeniDurum,
+          kayitDurumu: arsivde ? 'mevcut' : 'arsiv'
+        });
+        o.durum = yeniDurum;
+        o.kayitDurumu = arsivde ? 'mevcut' : 'arsiv';
+        listeCiz();
+        detayAc(id);
+      } catch(e){ console.error(e); alert('Kaydedilemedi: ' + (e.code||e.message)); }
+    };
+
+    window.veliDetayAc = function(email){
+      const v = veliler.find(x=>x.email===email); if(!v) return;
+      const durum = v.onayli
+        ? '<span class="vk-rozet acik">Erişim açık</span>'
+        : v.kayitli
+          ? '<span class="vk-rozet kapali">Onay bekliyor</span>'
+          : '<span class="vk-rozet yok">Portal kaydı yok</span>';
+      const uyari = v.onayli ? '' :
+        '<div class="det-uyari">Bu veli portal ve uygulamaya <b>giriş yapamaz</b>. ' +
+        (v.kayitli ? 'Kaydı var ancak onaylanmamış.' : '<i>veliler</i> koleksiyonunda kaydı yok.') +
+        ' Portal &gt; Öğrenci detayı &gt; Veli ekle bölümünden düzenleyebilirsiniz.</div>';
+
+      document.getElementById('detGovde').innerHTML = `
+        <div class="det-ust">
+          <div class="det-avatar" style="background:${renk(v.ad)}">${bas1(v.ad)}</div>
+          <div><div class="det-ad">${kacis(v.ad)}</div>
+            <div class="det-sinif">${kacis(v.yakinlik||'Veli')}</div></div>
+        </div>
+        <div style="margin:4px 0 2px">${durum}</div>
+        ${uyari}
+        ${satir('mail','E-posta', v.email)}
+        ${satir('phone','Telefon', v.telefon)}
+        ${iletisimBtnlari(v.telefon, v.email)}
+        <div style="font-size:12px;font-weight:700;color:var(--gri);letter-spacing:.8px;margin:18px 0 4px">ÇOCUKLARI (${v.cocuklar.length})</div>
+        ${v.cocuklar.map(c=>`
+          <div class="det-cocuk" onclick="detayAc('${kacis(c.id)}')" style="cursor:pointer">
+            <div class="det-cocuk-av" style="background:${renk(c.ad)}">${bas1(c.ad)}</div>
+            <div><div class="det-cocuk-ad">${kacis(c.ad)}</div>
+              <div class="det-cocuk-alt">${kacis(c.sinif||'Sınıf atanmamış')}</div></div>
+          </div>`).join('')}
+
+        <div style="font-size:12px;font-weight:700;color:var(--gri);letter-spacing:.8px;margin:18px 0 6px">İŞLEMLER</div>
+        <div class="det-islemler">
+          <button class="det-islem" onclick="veliDuzenleAc('${kacis(v.email)}')">
+            <i data-lucide="pencil"></i>Bilgileri Güncelle</button>
+          <button class="det-islem" onclick="location.href='yonetim-odeme.html?veli=${encodeURIComponent(v.email)}'">
+            <i data-lucide="wallet"></i>Ödeme Ekranı</button>
+        </div>
+      `;
+      document.getElementById('detArka').classList.add('acik');
+      document.getElementById('detSheet').classList.add('acik');
+      lucide.createIcons();
+    };
+
+    // ── VELİ BİLGİ GÜNCELLEME ──
+    window.veliDuzenleAc = function(email){
+      const v = veliler.find(x=>x.email===email); if(!v) return;
+      document.getElementById('detGovde').innerHTML = `
+        <div class="det-ust">
+          <div class="det-avatar" style="background:${renk(v.ad)}">${bas1(v.ad)}</div>
+          <div><div class="det-ad">${kacis(v.ad)}</div>
+          <div class="det-sinif">Bilgileri güncelle</div></div>
+        </div>
+        <label class="det-etiket">AD SOYAD</label>
+        <input class="det-girdi" id="vgAd" value="${kacis(v.ad||'')}">
+        <label class="det-etiket">TELEFON</label>
+        <input class="det-girdi" id="vgTel" type="tel" value="${kacis(v.telefon||'')}">
+        <label class="det-etiket">YAKINLIK</label>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
+          ${['Anne','Baba','Vasi','Diğer'].map(y=>`
+            <button class="det-yakinlik ${((v.yakinlik||'')===y)?'secili':''}" data-y="${y}"
+              onclick="document.querySelectorAll('.det-yakinlik').forEach(b=>b.classList.remove('secili'));this.classList.add('secili')">${y}</button>`).join('')}
+        </div>
+        <div class="det-uyari">E-posta değiştirilemez: veli kaydının kimliği e-postadır ve öğrenci
+        eşleşmesi ona bağlıdır. E-posta değişikliği için portalden yeni veli kaydı açılmalıdır.</div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="det-islem" style="flex:1" onclick="veliDetayAc('${kacis(email)}')">
+            <i data-lucide="arrow-left"></i>Vazgeç</button>
+          <button class="det-islem" style="flex:1;background:var(--logo-koyu,#2D5E3E);color:#fff;border-color:transparent"
+            onclick="veliDuzenleKaydet('${kacis(email)}')"><i data-lucide="check"></i>Kaydet</button>
+        </div>`;
+      lucide.createIcons();
+    };
+
+    window.veliDuzenleKaydet = async function(email){
+      const v = veliler.find(x=>x.email===email); if(!v) return;
+      const ad = document.getElementById('vgAd').value.trim();
+      const tel = document.getElementById('vgTel').value.trim();
+      const yak = (document.querySelector('.det-yakinlik.secili')||{}).dataset?.y || v.yakinlik || '';
+      if (!ad){ alert('Ad soyad boş olamaz'); return; }
+      try {
+        await veliGuncelle(email, { ad, adSoyad: ad, telefon: tel, yakinlik: yak });
+        v.ad = ad; v.telefon = tel; v.yakinlik = yak;
+        listeCiz();
+        veliDetayAc(email);
+      } catch(e){ console.error(e); alert('Kaydedilemedi: ' + (e.code||e.message)); }
+    };
+
+    window.detayKapat = function(){
+      document.getElementById('detArka').classList.remove('acik');
+      document.getElementById('detSheet').classList.remove('acik');
+    };
+    window.geriDon = function(){ if(history.length>1) history.back(); else location.href='yonetim-anasayfa.html'; };
+
+    yukle();
+    lucide.createIcons();
+  </script>
+  <script type="module">
+    import { altBarKur } from './js/zeky-altbar.js';
+    altBarKur('yonetim');
+  </script>
+</body>
+</html>
