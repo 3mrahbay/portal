@@ -2332,37 +2332,13 @@
 
       <div class="form-group">
         <label>Rol <span style="color:#dc2626;">*</span></label>
-        <!-- ROL LISTESI APP ILE ORTAKTIR (ik-personel-ekle.html) — 11 Ağu 2026.
-             Eski 5'li listede "Öğretmen / Branş" tek kalemdi; oysa Rules'ta
-             branş öğretmeni kazanım YAZAMAZ, sınıf öğretmeni yazar. Portal
-             eski listeyle kayıt açtıkça bu yetki ayrımı deliniyordu. -->
         <select id="personelRol" onchange="personelRolDegisti()">
           <option value="">— Rol seçin —</option>
-          <optgroup label="Sınıf">
-            <option value="ogretmen">Sınıf Öğretmeni (kazanım + yoklama + rapor)</option>
-            <option value="yardimci_ogretmen">Yardımcı Öğretmen (sınıf öğretmeniyle aynı, kendi sınıfları)</option>
-          </optgroup>
-          <optgroup label="Program Öğretmenleri">
-            <option value="ingilizce_ogretmeni">İngilizce Öğretmeni (yalnız İngilizce kazanımı)</option>
-            <option value="degerler_ogretmeni">Değerler Eğitimi Öğretmeni (yalnız Değerler kazanımı)</option>
-            <option value="orman_ogretmeni">Orman Okulu Eğitmeni (yalnız Orman kazanımı)</option>
-            <option value="brans_ogretmeni">Branş Öğretmeni (kazanım/yoklama yazamaz)</option>
-          </optgroup>
-          <optgroup label="Destek">
-            <option value="pdr">PDR Uzmanı (PDR verisine tam yetki)</option>
-            <option value="egitim_koordinator">Eğitim Koordinatörü (tüm sınıflar, eğitim)</option>
-          </optgroup>
-          <optgroup label="Yönetim">
-            <option value="mudur">Müdür (tüm yetki)</option>
-            <option value="kurucu_mudur">Kurucu Müdür (tüm yetki)</option>
-            <option value="muhasebe">Muhasebe (mali işler)</option>
-          </optgroup>
-          <optgroup label="Diğer">
-            <option value="asci">Aşçı</option>
-            <option value="temizlik">Temizlik</option>
-            <option value="danisma">Danışma / İdari</option>
-            <option value="halkla_iliskiler">Halkla İlişkiler</option>
-          </optgroup>
+          <option value="mudur">Müdür (tüm yetki)</option>
+          <option value="egitim_koordinator">Eğitim Koordinatörü (tüm sınıflar, eğitim)</option>
+          <option value="muhasebe">Muhasebe (mali işler)</option>
+          <option value="ogretmen">Öğretmen / Branş (atanan sınıflar)</option>
+          <option value="kurucu_mudur">Kurucu Müdür (tüm yetki)</option>
         </select>
       </div>
 
@@ -3613,7 +3589,7 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Kayıt (Başlangıç) Ayı</label>
-          <select id="ayarBaslangic">
+          <select id="ayarBaslangic" onchange="if(typeof odemePlaniDegisti==='function') odemePlaniDegisti();">
             <!-- AKTIF_DONEM'e göre JavaScript tarafından doldurulur -->
           </select>
         </div>
@@ -3623,17 +3599,36 @@
         </div>
       </div>
 
+      <!-- ===== ÖDEME PLANI (2026-08 · üç plan) ===== -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label>💳 Ödeme Planı</label>
+          <select id="ayarOdemePlani" onchange="odemePlaniDegisti()">
+            <option value="erken_kayit">1 · Erken Kayıt (ön ödeme + çift dönem)</option>
+            <option value="on_odeme_taksit">2 · Ön Ödeme + Taksitlendirme</option>
+            <option value="sabit">3 · Normal Kayıt (eşit ödeme)</option>
+          </select>
+          <small style="display:block; margin-top:4px; color:#78716c; font-size:11px;" id="odemePlaniIpucu"></small>
+        </div>
+        <div class="form-group" id="donemYontemiKutu">
+          <label>Dönem Dağılımı</label>
+          <select id="ayarDonemYontemi">
+            <option value="cift">Çift dönemli (%48,8 / %51,2)</option>
+            <option value="esit">Eşit (10 aya eşit böl)</option>
+          </select>
+          <small style="display:block; margin-top:4px; color:#78716c; font-size:11px;">I. dönem Eylül–Ocak, II. dönem Şubat–Haziran.</small>
+        </div>
+      </div>
+
       <!-- Peşinat (Ön Ödeme) -->
       <div class="form-grid">
         <div class="form-group">
           <label>🎫 Peşinat / Ön Ödeme (TL)</label>
           <input type="number" id="ayarOnOdeme" placeholder="0" min="0" step="100" oninput="onOdemeElleDegisti()">
-          <small style="display:block; margin-top:4px; color:#78716c; font-size:11px;" id="onOdemeIpucu">Erken kayıtta (Mayıs–Ağustos) önerilir. Eylül ve sonrası genelde 0.</small>
+          <small style="display:block; margin-top:4px; color:#78716c; font-size:11px;" id="onOdemeIpucu">Hesapla'ya bastığınızda yıllık toplamın %10'u olarak önerilir.</small>
         </div>
         <div class="form-group" style="display:flex; align-items:flex-end;">
-          <div style="font-size:11px; color:#78716c; line-height:1.4;">
-            ℹ️ Peşinat girilip kayıt ayı Eylül öncesiyse kalan <strong>çift dönemli</strong> hesaplanır. Eylül ve sonrası <strong>eşit aylık</strong> olur. Tümü <strong>elle düzeltilebilir</strong>.
-          </div>
+          <div style="font-size:11px; color:#78716c; line-height:1.4;" id="odemePlaniAciklama"></div>
         </div>
       </div>
 
@@ -4737,17 +4732,7 @@ const ROL_ETIKETLERI = {
   mudur: "Müdür",
   egitim_koordinator: "Eğitim Koordinatörü",
   muhasebe: "Muhasebe",
-  ogretmen: "Sınıf Öğretmeni",
-  yardimci_ogretmen: "Yardımcı Öğretmen",
-  ingilizce_ogretmeni: "İngilizce Öğretmeni",
-  degerler_ogretmeni: "Değerler Öğretmeni",
-  orman_ogretmeni: "Orman Öğretmeni",
-  brans_ogretmeni: "Branş Öğretmeni",
-  pdr: "PDR Uzmanı",
-  danisma: "Danışma",
-  asci: "Aşçı",
-  temizlik: "Temizlik",
-  halkla_iliskiler: "Halkla İlişkiler"
+  ogretmen: "Öğretmen"
 };
 // Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
 const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator"];
@@ -5208,12 +5193,7 @@ window.personelDuzenle = function(email) {
 window.personelRolDegisti = function() {
   const rol = document.getElementById("personelRol").value;
   const grup = document.getElementById("personelSinifAtamaGrup");
-  // Sınıfla çalışan tüm roller sınıf ataması ister: app (ik-personel-ekle)
-  // ile aynı küme. Program/branş öğretmeni de hangi sınıflara gireceğini
-  // bilmek zorunda; eskiden yalnız 'ogretmen' açılıyordu.
-  const sinifIsteyen = ["ogretmen", "yardimci_ogretmen", "ingilizce_ogretmeni",
-                        "degerler_ogretmeni", "orman_ogretmeni", "brans_ogretmeni"];
-  if (sinifIsteyen.includes(rol)) {
+  if (rol === "ogretmen") {
     grup.style.display = "";
     personelSinifChiplariDoldur();
   } else {
@@ -5289,9 +5269,7 @@ window.personelKaydet = async function() {
   if (!emailRaw) return uyariGoster("E-posta zorunludur.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) return uyariGoster("Geçerli bir e-posta girin.");
   if (!rol) return uyariGoster("Rol seçmelisiniz.");
-  const sinifZorunlu = ["ogretmen", "yardimci_ogretmen", "ingilizce_ogretmeni",
-                        "degerler_ogretmeni", "orman_ogretmeni", "brans_ogretmeni"];
-  if (sinifZorunlu.includes(rol) && personelSeciliSiniflar.length === 0) {
+  if (rol === "ogretmen" && personelSeciliSiniflar.length === 0) {
     return uyariGoster("Öğretmen için en az bir sınıf seçmelisiniz.");
   }
 
@@ -13033,17 +13011,6 @@ async function loadOgrenciler() {
     // Dönem ayarlarını ayrı sorgu
     await loadAyarlar();
 
-    // ÖZET KARTI TAZELE: yonetimHomeHTML() aktif öğrenci sayısını ayarListesi
-    // üzerinden hesaplıyor. Ana sayfa, ayarlar yüklenmeden ÖNCE çizildiği için
-    // sayı 0 kalıyordu ve bir daha güncellenmiyordu. Veri geldikten sonra
-    // kartı yeniden çizeriz.
-    try {
-      const kok = document.getElementById("adminHomeRoot");
-      if (kok && kok.offsetParent !== null && typeof renderAdminHome === "function") {
-        renderAdminHome();
-      }
-    } catch (e) { console.warn("özet tazeleme", e); }
-
     // ===== FAZ 2a: ÖĞRETMEN SINIF FİLTRESİ =====
     // Öğretmen sadece atandığı sınıfların öğrencilerini görür
     ogrenciList = ogrenciListeyiRoleGoreFiltrele(ogrenciList);
@@ -15697,19 +15664,33 @@ window.basvuruOnayla = async function(basvuruId) {
 
     // Eğer başvuru zaten hesaplanmış dönem verisi içeriyorsa onu kullan,
     // yoksa BCK formülüyle otomatik hesapla
-    let iDonemAylik, iiDonemAylik, onOdeme, yillikToplam;
+    // ── ÖDEME PLANI (2026-08) ──────────────────────────────────────────
+    // Plan TARİHE GÖRE seçilmez. Başvuruda plan belirtilmişse o kullanılır,
+    // yoksa plan 2 (ön ödeme + çift dönemli taksit) varsayılır ve
+    // öğrenci kartındaki Aidat sekmesinden istenildiği gibi değiştirilir.
+    let iDonemAylik, iiDonemAylik, onOdeme, yillikToplam, odemePlani, donemYontemi;
+
     if (aidatKaynak.iDonemAylik && aidatKaynak.iiDonemAylik) {
-      // Başvuru (yenikayıt/kayıtyenileme) zaten hesaplamış
+      // Başvuru (yenikayıt/kayıtyenileme) zaten hesaplamış — olduğu gibi alınır
       iDonemAylik = Number(aidatKaynak.iDonemAylik);
       iiDonemAylik = Number(aidatKaynak.iiDonemAylik);
-      onOdeme = Number(aidatKaynak.onOdeme) || aylikAidat;
+      onOdeme = Number(aidatKaynak.onOdeme) || 0;
       yillikToplam = Number(aidatKaynak.yillikToplam) || (aylikAidat * 10);
+      odemePlani = aidatKaynak.odemePlani || (onOdeme > 0 ? "on_odeme_taksit" : "sabit");
+      donemYontemi = aidatKaynak.donemYontemi || (iDonemAylik === iiDonemAylik ? "esit" : "cift");
     } else {
-      // BCK formülü ile hesapla (%48.8/%51.2 + 100 yuvarlama)
+      // Varsayılan: PLAN 2 · ön ödeme yıllığın %10'u + çift dönemli taksit
+      odemePlani = aidatKaynak.odemePlani || "on_odeme_taksit";
+      donemYontemi = aidatKaynak.donemYontemi ||
+                     (odemePlani === "sabit" ? "esit" : "cift");
       yillikToplam = aylikAidat * 10;
-      onOdeme = aylikAidat;
+      onOdeme = (odemePlani === "sabit") ? 0 : Math.round(yillikToplam * 0.10);
       const kalan = yillikToplam - onOdeme;
-      iDonemAylik = Math.round((kalan * 0.488) / 5 / 100) * 100;
+      if (donemYontemi === "cift") {
+        iDonemAylik = Math.round((kalan * 0.488) / 5 / 100) * 100;
+      } else {
+        iDonemAylik = Math.round(kalan / 10 / 100) * 100;
+      }
       iiDonemAylik = Math.round((kalan - iDonemAylik * 5) / 5);
     }
 
@@ -15727,6 +15708,9 @@ window.basvuruOnayla = async function(basvuruId) {
       egitimUcreti: egitimUcreti,
       yemekUcreti: yemekUcreti,
       taksitSayisi: 10,  // Eylül-Haziran (5+5)
+      odemePlani: odemePlani,          // erken_kayit | on_odeme_taksit | sabit
+      donemYontemi: donemYontemi,      // cift | esit
+      hesapTuru: donemYontemi === "cift" ? "cift_donem" : "esit",
       programTuru: aidatKaynak.programTuru || b.kayit?.program || "Tam Gün",
       pesinOdeme: !!aidatKaynak.pesinOdeme,
       indirimOrani: aidatKaynak.indirimOrani || 0
@@ -22980,6 +22964,12 @@ window.openAyarModal = async function(ogrenciId) {
     document.getElementById("ayarIndirimNedeni").value = a.indirimNedeni || "";
     const onOdemeEl = document.getElementById("ayarOnOdeme");
     if (onOdemeEl) onOdemeEl.value = a.onOdeme || "";
+    // Ödeme planı (2026-08). Eski kayıtlarda alan yoksa hesapTuru'ndan türetilir.
+    const planEl = document.getElementById("ayarOdemePlani");
+    if (planEl) planEl.value = a.odemePlani ||
+      (a.hesapTuru === "esit" ? "sabit" : (a.onOdeme > 0 ? "erken_kayit" : "sabit"));
+    const donemEl = document.getElementById("ayarDonemYontemi");
+    if (donemEl) donemEl.value = a.donemYontemi || (a.hesapTuru === "esit" ? "esit" : "cift");
     document.getElementById("ayarPesin").checked = !!a.pesinOdeme;
     document.getElementById("ayarYazOkulu").checked = !!a.yazOkulu;
     document.getElementById("ayarNotlar").value = a.notlar || "";
@@ -23008,6 +22998,12 @@ window.openAyarModal = async function(ogrenciId) {
     document.getElementById("ayarIndirimNedeni").value = "";
     const onOdemeElYeni = document.getElementById("ayarOnOdeme");
     if (onOdemeElYeni) onOdemeElYeni.value = "";
+    // Yeni kayıt: erken kayıt dönemi bittiği için varsayılan plan 2.
+    // Kayıt ayı Eylül+ ise odemePlaniDegisti() bunu plan 3'e çevirir.
+    const planElYeni = document.getElementById("ayarOdemePlani");
+    if (planElYeni) planElYeni.value = "on_odeme_taksit";
+    const donemElYeni = document.getElementById("ayarDonemYontemi");
+    if (donemElYeni) donemElYeni.value = "cift";
     document.getElementById("ayarPesin").checked = false;
     document.getElementById("ayarYazOkulu").checked = false;
     document.getElementById("ayarNotlar").value = "";
@@ -23032,7 +23028,10 @@ window.openAyarModal = async function(ogrenciId) {
   if (typeof updateBursCard === "function") updateBursCard();
   if (typeof syncIndirimNedenCheckboxes === "function") syncIndirimNedenCheckboxes();
   recalcTotals();
-  
+  // Ödeme planı arayüzünü kayıt ayına göre ayarla (Eylül+ ise plan 3'e kilitler)
+  if (typeof odemePlaniDegisti === "function") odemePlaniDegisti();
+  if (typeof onOdemeElleDegisti === "function") onOdemeElleDegisti();
+
   document.getElementById("ayarModal").classList.add("active");
 };
 
@@ -24016,21 +24015,87 @@ function updateAylikOzet(odenen, beklenen, gecikmis) {
 }
 
 // ============ DİĞER ÖDEMELERİN TAKİBİ ============
-// ============ HIZLI ARAÇLAR (Aidat Modalı) ============
-// BCK Ödeme Formülü (kayıtyenileme'nin orijinal formülü - portal'da birleştirildi):
-// - Yıllık Toplam = Aylık × 10
-// - Ön Ödeme = 1 aylık (kayıt anında)
-// - Kalan = Yıllık - Ön Ödeme (yani Aylık × 9)
-// - I. Dönem (Eylül-Ocak, 5 ay): Kalan × %48.8 / 5, 100'e yuvarlanır
-// - II. Dönem (Şubat-Haziran, 5 ay): Kalan'dan I. dönem çıkar, /5
+// ══════════════════════════════════════════════════════════════════════════
+// ÖDEME PLANLARI  (2026-08 · üç plan)
+// ──────────────────────────────────────────────────────────────────────────
+// 1 · erken_kayit      Erken Kayıt        ön ödeme %10 + çift dönem (%48,8/%51,2)
+// 2 · on_odeme_taksit  Ön Ödeme + Taksit  ön ödeme %10 + dönem dağılımı SEÇİLİR
+// 3 · sabit            Normal Kayıt       ön ödeme yok, 10 aya eşit
 //
-// Örnek: Aylık 37.000 TL →
-//   Yıllık 370.000, Ön Ödeme 37.000, Kalan 333.000
-//   I. Dönem aylık: 32.500 TL × 5 = 162.500 TL (%48,8)
-//   II. Dönem aylık: 34.100 TL × 5 = 170.500 TL (%51,2)
-//   Kontrol: 37.000 + 162.500 + 170.500 = 370.000 ✓
+// ÖN ÖDEME KURALI: yıllık toplamın %10'u.
+//   Aylık 35.000 → yıllık 350.000 → ön ödeme 35.000, kalan 315.000
+//
+// DÖNEM DAĞILIMI (plan 1 ve 2):
+//   Çift dönemli → I. dönem (Eylül–Ocak)  = kalan × %48,8 / 5, 100'e yuvarlanır
+//                  II. dönem (Şubat–Haziran) = kalanın gerisi / 5
+//   Eşit         → kalan / 10, yuvarlama farkı II. döneme yansır
+//
+// Örnek (aylık 35.000, plan 2):
+//   Çift: I. dönem 30.700 ₺/ay · II. dönem 32.300 ₺/ay
+//   Eşit: on ayın hepsi 31.500 ₺
+//
+// PLAN SEÇİMİ: Eylül öncesi kayıtlarda 1 veya 2 elle seçilir.
+// Eylül ve sonrasında plan 3 otomatik uygulanır (seçici kilitlenir).
 //
 // Diğer ödemeler (kıyafet, servis vb.) bu hesabın DIŞINDA ayrı tutulur.
+// ══════════════════════════════════════════════════════════════════════════
+
+const ON_ODEME_ORANI = 0.10;      // yıllık toplamın %10'u
+const I_DONEM_AGIRLIK = 0.488;    // çift dönemde I. dönemin payı
+
+// Kayıt ayı Eylül ve sonrası mı? (Eylül–Aralık → 9,10,11,12)
+// Yalnızca ÖNERİ amaçlıdır; planı zorlamaz.
+function sabitDonemMi(baslangicAyi) {
+  const ay = baslangicAyi ? parseInt(baslangicAyi.split("-")[1], 10) : 9;
+  return ay >= 9 && ay <= 12;
+}
+
+// Seçili planı oku. PLAN HER ZAMAN ELLE SEÇİLİR — tarih plana karışmaz.
+// (Kayıt ayı yalnızca ipucu metninde öneri olarak gösterilir.)
+window.aktifOdemePlani = function() {
+  const sec = document.getElementById("ayarOdemePlani");
+  return (sec && sec.value) || "on_odeme_taksit";
+};
+
+// Plan değişince arayüzü uyarla
+window.odemePlaniDegisti = function() {
+  const sec = document.getElementById("ayarOdemePlani");
+  const donemKutu = document.getElementById("donemYontemiKutu");
+  const donemSec = document.getElementById("ayarDonemYontemi");
+  const ipucu = document.getElementById("odemePlaniIpucu");
+  const aciklama = document.getElementById("odemePlaniAciklama");
+  const baslangic = document.getElementById("ayarBaslangic")?.value;
+  const eylulSonrasi = sabitDonemMi(baslangic);
+  const plan = window.aktifOdemePlani();
+
+  // Plan HER ZAMAN seçilebilir; tarih yalnızca öneri verir, kilitlemez.
+  if (sec) sec.disabled = false;
+
+  // Dönem dağılımı yalnızca plan 2'de seçilebilir.
+  // Plan 1 her zaman çift dönemli (mevcut kural değişmedi).
+  if (donemKutu) donemKutu.style.display = (plan === "on_odeme_taksit") ? "" : "none";
+  if (donemSec && plan === "erken_kayit") donemSec.value = "cift";
+
+  if (ipucu) {
+    // Yalnızca öneriyle çelişince uyar; aksi halde sessiz kal.
+    if (eylulSonrasi && plan !== "sabit") {
+      ipucu.textContent = "Kayıt ayı Eylül ve sonrası — genelde plan 3 kullanılır. Seçiminiz korunacak.";
+    } else if (!eylulSonrasi && plan === "sabit") {
+      ipucu.textContent = "Kayıt ayı Eylül öncesi — genelde plan 1 veya 2 kullanılır. Seçiminiz korunacak.";
+    } else {
+      ipucu.textContent = "Plan elle seçilir; kayıt ayı hesabı etkilemez.";
+    }
+  }
+  if (aciklama) {
+    const metin = {
+      erken_kayit:      "Ön ödeme yıllık toplamın %10'u. Kalan tutar I. dönem (Eylül–Ocak) ve II. dönem (Şubat–Haziran) olarak %48,8 / %51,2 bölünür.",
+      on_odeme_taksit:  "Ön ödeme yıllık toplamın %10'u. Kalan 10 aya bölünür — dağılımı çift dönemli ya da eşit seçebilirsiniz.",
+      sabit:            "Ön ödeme alınmaz. Yıllık tutar 10 aya eşit bölünür."
+    }[plan] || "";
+    aciklama.innerHTML = "ℹ️ " + metin + " Tüm tutarlar aylık kartlarda <strong>elle düzeltilebilir</strong>.";
+  }
+};
+
 window.donemFarkiHesaplaOtomatik = function() {
   const aylikInput = document.getElementById("ayarAidat");
   if (!aylikInput) return;
@@ -24041,46 +24106,48 @@ window.donemFarkiHesaplaOtomatik = function() {
     return;
   }
 
-  // Kayıt ayını oku → erken kayıt mı? (Mayıs-Ağustos = 5,6,7,8)
-  const baslangic = document.getElementById("ayarBaslangic").value; // "2026-09"
+  const baslangic = document.getElementById("ayarBaslangic").value;   // "2026-09"
   const taksit = parseInt(document.getElementById("ayarTaksit").value) || 10;
-  const kayitAyNum = baslangic ? parseInt(baslangic.split("-")[1], 10) : 9;
-  const erkenKayit = [5, 6, 7, 8].includes(kayitAyNum);
+  const plan = window.aktifOdemePlani();
+  const onOdemeli = (plan === "erken_kayit" || plan === "on_odeme_taksit");
 
-  // Peşinat: erken kayıtta öneri (1 aylık), kullanıcı elle değiştirebilir
-  const onOdemeInput = document.getElementById("ayarOnOdeme");
-  let onOdeme = parseFloat(onOdemeInput.value) || 0;
-  // Erken kayıt + peşinat hiç girilmemişse 1 aylık öner
-  if (erkenKayit && onOdeme === 0) {
-    onOdeme = aylik;
-    onOdemeInput.value = onOdeme;
+  // Dönem dağılımı: plan 1 her zaman çift, plan 2'de seçilir, plan 3'te eşit
+  let donemYontemi = "esit";
+  if (plan === "erken_kayit") donemYontemi = "cift";
+  else if (plan === "on_odeme_taksit") {
+    donemYontemi = document.getElementById("ayarDonemYontemi")?.value || "cift";
   }
 
   const yillikToplam = aylik * taksit;
+
+  // ── ÖN ÖDEME: yıllık toplamın %10'u ──
+  // Elle bir tutar girilmişse ona dokunulmaz (özel anlaşmalar için).
+  const onOdemeInput = document.getElementById("ayarOnOdeme");
+  let onOdeme = parseFloat(onOdemeInput.value) || 0;
+  if (!onOdemeli) {
+    onOdeme = 0;
+    onOdemeInput.value = 0;
+  } else if (onOdeme === 0) {
+    onOdeme = Math.round(yillikToplam * ON_ODEME_ORANI);
+    onOdemeInput.value = onOdeme;
+  }
+
   const kalan = yillikToplam - onOdeme;
 
-  // Ay listesini al, I. dönem (Eylül-Ocak) ve II. dönem (Şubat-Haziran) aylarını say
+  // I. dönem = Eylül–Ocak, II. dönem = Şubat–Ağustos
   const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, taksit) : [];
-  const iDonemAylar = ayListesi.filter(a => a.ay >= 9 || a.ay <= 1);
-  const iiDonemAylar = ayListesi.filter(a => a.ay >= 2 && a.ay <= 8);
-  const iDonemSayi = iDonemAylar.length || 5;
-  const iiDonemSayi = iiDonemAylar.length || 5;
+  const iDonemSayi = ayListesi.filter(a => a.ay >= 9 || a.ay <= 1).length || 5;
+  const iiDonemSayi = ayListesi.filter(a => a.ay >= 2 && a.ay <= 8).length || 5;
+  const toplamAy = iDonemSayi + iiDonemSayi;
 
-  let iDonemAylik, iiDonemAylik, hesapTuru;
-
-  if (erkenKayit) {
-    // ERKEN KAYIT → çift dönemli (%48,8 / %51,2)
-    hesapTuru = "Çift dönemli (erken kayıt)";
-    iDonemAylik = iDonemSayi > 0 ? Math.round((kalan * 0.488) / iDonemSayi / 100) * 100 : 0;
+  let iDonemAylik, iiDonemAylik;
+  if (donemYontemi === "cift") {
+    iDonemAylik = iDonemSayi > 0 ? Math.round((kalan * I_DONEM_AGIRLIK) / iDonemSayi / 100) * 100 : 0;
     iiDonemAylik = iiDonemSayi > 0 ? Math.round((kalan - iDonemAylik * iDonemSayi) / iiDonemSayi) : 0;
   } else {
-    // EYLÜL VE SONRASI → eşit böl
-    hesapTuru = "Eşit aylık (Eylül ve sonrası)";
-    const toplamAy = iDonemSayi + iiDonemSayi;
-    const esitAylik = toplamAy > 0 ? Math.round(kalan / toplamAy / 100) * 100 : 0;
-    iDonemAylik = esitAylik;
-    iiDonemAylik = toplamAy > 0 ? Math.round((kalan - esitAylik * iDonemSayi) / (iiDonemSayi || 1)) : 0;
-    // Eşit bölünce iki dönem de neredeyse aynı olur; küçük yuvarlama farkı II. döneme yansır
+    // Eşit: yuvarlama farkı II. döneme yansır, toplam bozulmaz
+    iDonemAylik = toplamAy > 0 ? Math.round(kalan / toplamAy / 100) * 100 : 0;
+    iiDonemAylik = iiDonemSayi > 0 ? Math.round((kalan - iDonemAylik * iDonemSayi) / iiDonemSayi) : 0;
   }
 
   const iDonemToplam = iDonemAylik * iDonemSayi;
@@ -24090,12 +24157,10 @@ window.donemFarkiHesaplaOtomatik = function() {
   const egitimKismi = Math.round(yillikToplam * 0.60);
   const yemekKismi = yillikToplam - egitimKismi;
 
-  // Değerleri belleğe yaz
+  // Belleğe yaz
   if (currentOgrenci && ayarListesi[currentOgrenci.id] !== undefined) {
     if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
-    if (!ayarListesi[currentOgrenci.id].aidatAyarlari) {
-      ayarListesi[currentOgrenci.id].aidatAyarlari = {};
-    }
+    if (!ayarListesi[currentOgrenci.id].aidatAyarlari) ayarListesi[currentOgrenci.id].aidatAyarlari = {};
     const a = ayarListesi[currentOgrenci.id].aidatAyarlari;
     a.aylikAidat = aylik;
     a.iDonemAylik = iDonemAylik;
@@ -24104,54 +24169,75 @@ window.donemFarkiHesaplaOtomatik = function() {
     a.yillikToplam = yillikToplam;
     a.egitimUcreti = egitimKismi;
     a.yemekUcreti = yemekKismi;
-    a.hesapTuru = erkenKayit ? "cift_donem" : "esit";
+    a.odemePlani = plan;                                  // erken_kayit | on_odeme_taksit | sabit
+    a.donemYontemi = donemYontemi;                        // cift | esit
+    a.hesapTuru = donemYontemi === "cift" ? "cift_donem" : "esit";   // geriye dönük uyum
   }
 
-  // Kullanıcıya göster
+  const planAdi = {
+    erken_kayit: "1 · Erken Kayıt",
+    on_odeme_taksit: "2 · Ön Ödeme + Taksitlendirme",
+    sabit: "3 · Normal Kayıt (eşit)"
+  }[plan];
+  const yontemAdi = donemYontemi === "cift" ? "çift dönemli (%48,8 / %51,2)" : "eşit dağılım";
   const toplam = onOdeme + iDonemToplam + iiDonemToplam;
-  const mesaj = `🧮 HESAPLAMA SONUCU
-Yöntem: ${hesapTuru}
+  const fark = yillikToplam - toplam;
+
+  const mesaj = `HESAPLAMA SONUCU
+Plan: ${planAdi}
+Dağılım: ${yontemAdi}
 
 Aylık Aidat: ${aylik.toLocaleString("tr-TR")} TL
 Dönem uzunluğu: ${taksit} ay
 Yıllık Toplam: ${yillikToplam.toLocaleString("tr-TR")} TL
 
-─────────────────────────
-🎫 PEŞİNAT / ÖN ÖDEME
-  ${onOdeme.toLocaleString("tr-TR")} TL ${erkenKayit ? "(erken kayıt)" : "(Eylül+ genelde 0)"}
+-------------------------
+PEŞİNAT / ÖN ÖDEME
+  ${onOdeme.toLocaleString("tr-TR")} TL ${onOdemeli ? "(yıllığın %10'u)" : "(bu planda alınmaz)"}
 
-<i data-lucide="pin" style="width:13px;height:13px;vertical-align:-2px;"></i> I. DÖNEM (${iDonemSayi} ay)
+I. DÖNEM (${iDonemSayi} ay · Eylül-Ocak)
   Aylık: ${iDonemAylik.toLocaleString("tr-TR")} TL
   Toplam: ${iDonemToplam.toLocaleString("tr-TR")} TL
 
-<i data-lucide="pin" style="width:13px;height:13px;vertical-align:-2px;"></i> II. DÖNEM (${iiDonemSayi} ay)
+II. DÖNEM (${iiDonemSayi} ay · Şubat-Haziran)
   Aylık: ${iiDonemAylik.toLocaleString("tr-TR")} TL
   Toplam: ${iiDonemToplam.toLocaleString("tr-TR")} TL
 
-─────────────────────────
-✓ Doğrulama: ${onOdeme.toLocaleString("tr-TR")} + ${iDonemToplam.toLocaleString("tr-TR")} + ${iiDonemToplam.toLocaleString("tr-TR")} = ${toplam.toLocaleString("tr-TR")} TL
+-------------------------
+Doğrulama: ${onOdeme.toLocaleString("tr-TR")} + ${iDonemToplam.toLocaleString("tr-TR")} + ${iiDonemToplam.toLocaleString("tr-TR")} = ${toplam.toLocaleString("tr-TR")} TL
+${fark === 0 ? "Yıllık toplamla birebir uyuyor." : "DİKKAT: yıllık toplamdan " + Math.abs(fark).toLocaleString("tr-TR") + " TL " + (fark > 0 ? "eksik" : "fazla") + "."}
 
-─────────────────────────
-<i data-lucide="file" style="width:13px;height:13px;vertical-align:-2px;"></i> MEB SÖZLEŞMESİ
+-------------------------
+MEB SÖZLEŞMESİ
   Eğitim Ücreti (%60): ${egitimKismi.toLocaleString("tr-TR")} TL
   Yemek Ücreti (%40): ${yemekKismi.toLocaleString("tr-TR")} TL
 
-ℹ️ Tüm tutarları aylık ödeme kartlarında elle düzeltebilirsiniz.
-⚠️ "Ayarları Kaydet" butonuna basmayı unutmayın.`;
+Tüm tutarları aylık ödeme kartlarında elle düzeltebilirsiniz.
+"Ayarları Kaydet" butonuna basmayı unutmayın.`;
   alert(mesaj);
-  showToast(`✓ ${hesapTuru} hesaplandı. Kaydet'e basın.`);
+  showToast(`✓ ${planAdi} hesaplandı. Kaydet'e basın.`);
 };
 
 // Peşinat elle değiştirildiğinde ipucu güncelle
 window.onOdemeElleDegisti = function() {
   const ipucu = document.getElementById("onOdemeIpucu");
-  const baslangic = document.getElementById("ayarBaslangic")?.value;
-  const kayitAyNum = baslangic ? parseInt(baslangic.split("-")[1], 10) : 9;
-  const erkenKayit = [5, 6, 7, 8].includes(kayitAyNum);
-  if (ipucu) {
-    ipucu.textContent = erkenKayit
-      ? "Erken kayıt: peşinat sonrası kalan çift dönemli hesaplanır."
-      : "Eylül+ kayıt: peşinat genelde 0, ödemeler eşit bölünür.";
+  if (!ipucu) return;
+  const plan = window.aktifOdemePlani();
+  const girilen = parseFloat(document.getElementById("ayarOnOdeme")?.value) || 0;
+  const aylik = parseFloat(document.getElementById("ayarAidat")?.value) || 0;
+  const taksit = parseInt(document.getElementById("ayarTaksit")?.value) || 10;
+  const onerilen = Math.round(aylik * taksit * ON_ODEME_ORANI);
+
+  if (plan === "sabit") {
+    ipucu.textContent = "Normal kayıt planında peşinat alınmaz, ödemeler eşit bölünür.";
+  } else if (girilen === 0) {
+    ipucu.textContent = onerilen > 0
+      ? `Hesapla'ya basınca ${onerilen.toLocaleString("tr-TR")} TL önerilecek (yıllığın %10'u).`
+      : "Hesapla'ya bastığınızda yıllık toplamın %10'u olarak önerilir.";
+  } else if (onerilen > 0 && Math.abs(girilen - onerilen) > 50) {
+    ipucu.textContent = `Elle girildi. Standart %10 tutarı ${onerilen.toLocaleString("tr-TR")} TL.`;
+  } else {
+    ipucu.textContent = "Yıllık toplamın %10'u — kalan tutar aylara bölünecek.";
   }
 };
 
@@ -25043,8 +25129,14 @@ window.saveAyarlar = async function() {
 
   // ===== PEŞİNAT (ÖN ÖDEME) + DÖNEM AYLIK HESABI =====
   const onOdeme = parseFloat(document.getElementById("ayarOnOdeme")?.value) || 0;
-  const kayitAyNum = baslangic ? parseInt(baslangic.split("-")[1], 10) : 9;
-  const erkenKayit = [5, 6, 7, 8].includes(kayitAyNum);
+  // Ödeme planı seçicisi kaynaktır (2026-08). Eylül+ kayıtlarda plan 3 zorunlu.
+  const secilenPlan = (typeof window.aktifOdemePlani === "function")
+    ? window.aktifOdemePlani()
+    : "sabit";
+  const secilenDonemYontemi = secilenPlan === "erken_kayit" ? "cift"
+    : secilenPlan === "sabit" ? "esit"
+    : (document.getElementById("ayarDonemYontemi")?.value || "cift");
+  const ciftDonemli = (secilenDonemYontemi === "cift");
 
   // Bellekte hesaplanmış değer varsa onu kullan (kullanıcı "Dönem Farkını Hesapla" demiş olabilir),
   // yoksa burada hesapla
@@ -25060,7 +25152,7 @@ window.saveAyarlar = async function() {
   // Eğer dönem aylıkları hiç hesaplanmamışsa otomatik hesapla
   if (!iDonemAylik && !iiDonemAylik && aidat > 0) {
     const _kalan = (aidat * gercekAy) - onOdeme;
-    if (erkenKayit) {
+    if (ciftDonemli) {
       iDonemAylik = _iDonemSayi > 0 ? Math.round((_kalan * 0.488) / _iDonemSayi / 100) * 100 : 0;
       iiDonemAylik = _iiDonemSayi > 0 ? Math.round((_kalan - iDonemAylik * _iDonemSayi) / _iiDonemSayi) : 0;
     } else {
@@ -25077,7 +25169,9 @@ window.saveAyarlar = async function() {
     onOdeme: onOdeme,
     iDonemAylik: iDonemAylik,
     iiDonemAylik: iiDonemAylik,
-    hesapTuru: erkenKayit ? "cift_donem" : "esit",
+    hesapTuru: ciftDonemli ? "cift_donem" : "esit",
+    odemePlani: secilenPlan,              // erken_kayit | on_odeme_taksit | sabit
+    donemYontemi: secilenDonemYontemi,    // cift | esit
     taksitSayisi: taksit,
     gercekAySayisi: gercekAy,
     baslangicAyi: baslangic,
@@ -26182,11 +26276,6 @@ window.BCK = {
   donem:      () => AKTIF_DONEM,
   donemYukle: aktifDonemYukle,
 
-  // ── Müfredat (portal-mufredat.js modülü için) ──
-  DISIPLINLER:      () => DISIPLINLER,
-  mufredatCache:    () => aktifMufredatlar,
-  mufredatCacheAta: (disiplin, alanlar) => { aktifMufredatlar[disiplin] = alanlar; },
-
   // ── Ortak veri (canlı okuma — çekirdekte yeniden atanıyor) ──
   ogrenciler: () => ogrenciList,
   ayarlar:    () => ayarListesi,
@@ -26285,7 +26374,6 @@ console.log("BCK çekirdek köprüsü hazır ·", Object.keys(window.BCK).length
 <script type="module" src="portal-etkinlik.js"></script>
 <script type="module" src="portal-devamsizlik.js"></script>
 <script type="module" src="portal-duyurular.js"></script>
-<script type="module" src="portal-mufredat.js"></script>
 <script src="aidat-donem-genislet.js"></script>
 <script src="pdf-sayfa-bolunmesi.js"></script>
 <script src="pdf-estetik-duzeltme.js"></script>  
