@@ -4153,6 +4153,23 @@
           </button>
         </div>
 
+        <!-- ===== ÖDEME PLANI BELGESİ (2026-08) ===== -->
+        <div class="cikti-intro" style="margin-top:18px;">
+          <div class="cikti-intro-left">
+            <strong><i data-lucide="receipt" style="width:14px;height:14px;vertical-align:-2px;"></i> Ödeme Planı</strong>
+            <small>Veliye verilecek tek sayfalık A4 ödeme dökümü</small>
+          </div>
+        </div>
+        <div class="cikti-buton-grup">
+          <button class="btn-cikti btn-cikti-pdf" onclick="odemePlaniPDF()">
+            <div class="btn-cikti-icon"><i data-lucide="receipt" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
+            <div class="btn-cikti-content">
+              <strong>Ödeme Planı PDF</strong>
+              <small>Aylık taksitler, peşinat ve durum</small>
+            </div>
+          </button>
+        </div>
+
         <div class="cikti-bilgi-karti">
           <strong><i data-lucide="lightbulb" style="width:13px;height:13px;vertical-align:-2px;"></i> Bilgi</strong>
           <p>Çıktıda yalnızca <strong>"Sözleşmede göster"</strong> işaretli bölümler yer alır. Eksik alanlar boş bırakılır — çıktı aldıktan sonra el ile doldurup imzalatabilirsiniz. Önerilen akış: <strong>PDF'yi yazdır → Veliye iki nüsha imzalat → Birini okul dosyasına, birini veliye teslim et.</strong></p>
@@ -26368,7 +26385,9 @@ console.log("BCK çekirdek köprüsü hazır ·", Object.keys(window.BCK).length
 <script type="module" src="portal-sinif-onarim.js"></script>
 <script type="module" src="portal-takvim.js"></script>
 <script type="module" src="portal-kredikarti.js"></script>
+<script src="portal-pdf-font.js"></script>
 <script type="module" src="portal-cikti.js"></script>
+<script type="module" src="portal-odeme-plani.js"></script>
 <script type="module" src="portal-randevu.js"></script>
 <script type="module" src="portal-galeri.js"></script>
 <script type="module" src="portal-etkinlik.js"></script>

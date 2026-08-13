@@ -547,22 +547,22 @@ function pdfHeaderLogolu(pdf, veri, margin, pageW) {
     pdf.addImage(LOGO_MEB_BASE64, "PNG", pageW - margin - mebLogoW, margin - 1, mebLogoW, logoH - 4);
   } catch(e) { console.warn("MEB logo hata:", e); }
 
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(pdfFontAdi(), "bold");
   pdf.setFontSize(11);
   pdf.text("T.C.", pageW / 2, margin, { align: "center" });
   pdf.setFontSize(10);
   pdf.text("MILLI EGITIM BAKANLIGI", pageW / 2, margin + 4, { align: "center" });
   pdf.text("OZEL OGRETIM KURUMLARI GENEL MUDURLUGU", pageW / 2, margin + 8, { align: "center" });
   pdf.text("OGRENCI KAYIT SOZLESMESI", pageW / 2, margin + 12, { align: "center" });
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(pdfFontAdi(), "normal");
   pdf.setFontSize(9);
   pdf.text("(OZEL OKULLAR)", pageW / 2, margin + 16, { align: "center" });
 
   const y = margin + 25;
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(pdfFontAdi(), "bold");
   pdf.setFontSize(10);
   pdf.text(`Ozel Okul Adi: ${tr(veri.okul.adi)}`, margin, y);
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(pdfFontAdi(), "normal");
   pdf.setFontSize(9);
   pdf.text(`| ${veri.okul.donem} EGITIM VE OGRETIM YILI`, margin + 80, y);
 
@@ -570,14 +570,20 @@ function pdfHeaderLogolu(pdf, veri, margin, pageW) {
 }
 
 function pdfHeaderBasit(pdf, veri, margin, pageW) {
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(pdfFontAdi(), "bold");
   pdf.setFontSize(10);
   pdf.text(`${tr(veri.okul.adi)} | ${veri.okul.donem} EGITIM VE OGRETIM YILI`, pageW / 2, margin, { align: "center" });
   return margin + 8;
 }
 
+// Carlito fontu yüklendiyse Türkçe harfler olduğu gibi yazılır.
+// Yüklenemezse eski davranış (sadeleştirme) sürer — belge yine okunabilir.
+let _trFontVar = false;
+function pdfFontAdi() { return _trFontVar ? "Carlito" : "helvetica"; }
+
 function tr(s) {
   if (!s) return "";
+  if (_trFontVar) return String(s);
   return String(s)
     .replace(/Ğ/g, "G").replace(/ğ/g, "g")
     .replace(/Ü/g, "U").replace(/ü/g, "u")
@@ -605,6 +611,9 @@ window.sozlesmeCiktiPDF = async function() {
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    // Türkçe font (Carlito). Başarısızsa helvetica + harf sadeleştirme.
+    _trFontVar = (typeof window.pdfTurkceFont === "function")
+      ? window.pdfTurkceFont(pdf) : false;
 
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
@@ -652,7 +661,7 @@ window.sozlesmeCiktiPDF = async function() {
           head: [[{ content: tr(b.baslik), colSpan: 2, styles: { halign: "center", fillColor: [230, 230, 230], textColor: 20, fontStyle: "bold", fontSize: 10 } }]],
           body: b.satirlar.map(r => [tr(r[0]), tr(r[1] || "")]),
           theme: "grid",
-          styles: { font: "helvetica", fontSize: 9, cellPadding: 2, overflow: "linebreak" },
+          styles: { font: pdfFontAdi(), fontSize: 9, cellPadding: 2, overflow: "linebreak" },
           columnStyles: { 0: { cellWidth: 55, fontStyle: "bold" }, 1: { cellWidth: contentW - 55 } },
           margin: { left: margin, right: margin }
         });
@@ -667,7 +676,7 @@ window.sozlesmeCiktiPDF = async function() {
           head: [[{ content: tr(b.solBaslik), colSpan: 2, styles: { halign: "center", fillColor: [230, 230, 230], textColor: 20, fontStyle: "bold", fontSize: 9 } }]],
           body: b.solSatirlar.map(r => [tr(r[0]), tr(r[1] || "")]),
           theme: "grid",
-          styles: { font: "helvetica", fontSize: 8, cellPadding: 1.5, overflow: "linebreak" },
+          styles: { font: pdfFontAdi(), fontSize: 8, cellPadding: 1.5, overflow: "linebreak" },
           columnStyles: { 0: { cellWidth: 30, fontStyle: "bold" }, 1: { cellWidth: halfW - 30 } },
           margin: { left: margin, right: margin + halfW + 4 },
           tableWidth: halfW
@@ -679,7 +688,7 @@ window.sozlesmeCiktiPDF = async function() {
           head: [[{ content: tr(b.sagBaslik), colSpan: 2, styles: { halign: "center", fillColor: [230, 230, 230], textColor: 20, fontStyle: "bold", fontSize: 9 } }]],
           body: b.sagSatirlar.map(r => [tr(r[0]), tr(r[1] || "")]),
           theme: "grid",
-          styles: { font: "helvetica", fontSize: 8, cellPadding: 1.5, overflow: "linebreak" },
+          styles: { font: pdfFontAdi(), fontSize: 8, cellPadding: 1.5, overflow: "linebreak" },
           columnStyles: { 0: { cellWidth: 30, fontStyle: "bold" }, 1: { cellWidth: halfW - 30 } },
           margin: { left: margin + halfW + 4, right: margin },
           tableWidth: halfW
@@ -736,7 +745,7 @@ window.sozlesmeCiktiPDF = async function() {
              { content: formatTL(mebGenelToplam), styles: { fontStyle: "bold", fillColor: [240, 240, 240] } }]
           ],
           theme: "grid",
-          styles: { font: "helvetica", fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+          styles: { font: pdfFontAdi(), fontSize: 8, cellPadding: 2, overflow: "linebreak" },
           columnStyles: { 0: { cellWidth: contentW * 0.46 }, 1: { cellWidth: contentW * 0.27, halign: "right" }, 2: { cellWidth: contentW * 0.27, halign: "right" } },
           margin: { left: margin, right: margin }
         });
@@ -761,7 +770,7 @@ window.sozlesmeCiktiPDF = async function() {
           startY: y,
           body: odemeSekilRows.map(r => [tr(r[0]), r[1]]),
           theme: "grid",
-          styles: { font: "helvetica", fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+          styles: { font: pdfFontAdi(), fontSize: 8, cellPadding: 2, overflow: "linebreak" },
           columnStyles: { 0: { cellWidth: contentW * 0.46, fontStyle: "bold" }, 1: { cellWidth: contentW * 0.54 } },
           margin: { left: margin, right: margin }
         });
@@ -786,7 +795,7 @@ window.sozlesmeCiktiPDF = async function() {
           head: [[{ content: "Indirim Yapilmissa Nedeni?", colSpan: 2, styles: { halign: "left", fillColor: [245, 245, 245], fontStyle: "bold", fontSize: 8 } }]],
           body: nedenRows.map(r => [tr(r[0]), tr(r[1] || "")]),
           theme: "grid",
-          styles: { font: "helvetica", fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+          styles: { font: pdfFontAdi(), fontSize: 8, cellPadding: 2, overflow: "linebreak" },
           columnStyles: { 0: { cellWidth: contentW * 0.5 }, 1: { cellWidth: contentW * 0.5 } },
           margin: { left: margin, right: margin }
         });
@@ -796,7 +805,7 @@ window.sozlesmeCiktiPDF = async function() {
         newPageIfNeeded(60);
 
         // Başlık
-        pdf.setFont("helvetica", "bold");
+        pdf.setFont(pdfFontAdi(), "bold");
         pdf.setFontSize(10);
         pdf.text(tr("IZINLER VE TAAHHUTLER"), pageW / 2, y + 4, { align: "center" });
         y += 8;
@@ -813,26 +822,26 @@ window.sozlesmeCiktiPDF = async function() {
           startY: y,
           body: izinRows.map(r => [tr(r[0]), tr(r[1])]),
           theme: "grid",
-          styles: { font: "helvetica", fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+          styles: { font: pdfFontAdi(), fontSize: 8, cellPadding: 2, overflow: "linebreak" },
           columnStyles: { 0: { cellWidth: contentW * 0.65, fontStyle: "bold" }, 1: { cellWidth: contentW * 0.35, halign: "center" } },
           margin: { left: margin, right: margin }
         });
         y = pdf.lastAutoTable.finalY + 4;
 
         // Veli imzası açıklama
-        pdf.setFont("helvetica", "italic");
+        pdf.setFont(pdfFontAdi(), "normal");
         pdf.setFontSize(8);
         const note = tr("Lutfen her bir izin icin Evet veya Hayir kutusunu elle isaretleyiniz.");
         pdf.text(note, margin, y);
         y += 6;
       } else if (b.tip === "madde-baslik") {
         newPageIfNeeded(12);
-        pdf.setFont("helvetica", "bold");
+        pdf.setFont(pdfFontAdi(), "bold");
         pdf.setFontSize(11);
         pdf.text(tr(b.metin), pageW / 2, y + 4, { align: "center" });
         y += 8;
       } else if (b.tip === "madde") {
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont(pdfFontAdi(), "normal");
         pdf.setFontSize(9);
         const prefix = `${b.no}. `;
         const wrapped = pdf.splitTextToSize(prefix + tr(b.metin), contentW);
@@ -840,7 +849,7 @@ window.sozlesmeCiktiPDF = async function() {
         pdf.text(wrapped, margin, y);
         y += wrapped.length * 4 + 2;
       } else if (b.tip === "paragraf") {
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont(pdfFontAdi(), "normal");
         pdf.setFontSize(9);
         const wrapped = pdf.splitTextToSize(tr(b.metin), contentW);
         newPageIfNeeded(wrapped.length * 4 + 4);
@@ -849,19 +858,19 @@ window.sozlesmeCiktiPDF = async function() {
       } else if (b.tip === "imza") {
         newPageIfNeeded(45);
         y += 6;
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont(pdfFontAdi(), "normal");
         pdf.setFontSize(9);
         const imzaMetin = `Isbu sozlesme ${b.tarih || "..../..../........"} tarihinde iki nusha olarak duzenlenmis ve imza altina alinmistir.`;
         const wrapped = pdf.splitTextToSize(imzaMetin, contentW);
         pdf.text(wrapped, margin, y);
         y += wrapped.length * 4 + 15;
 
-        pdf.setFont("helvetica", "bold");
+        pdf.setFont(pdfFontAdi(), "bold");
         pdf.setFontSize(10);
         pdf.text("Ogrenci velisi/vasisinin", margin + 20, y);
         pdf.text("Kurumun", pageW - margin - 50, y);
         y += 5;
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont(pdfFontAdi(), "normal");
         pdf.setFontSize(9);
         pdf.text(`(${tr(b.imzalayan)})`, margin + 20, y);
         pdf.text("(Kase, Muhur ve Yetkilinin Imzasi)", pageW - margin - 60, y);
@@ -873,7 +882,7 @@ window.sozlesmeCiktiPDF = async function() {
     const totalPages = pdf.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(pdfFontAdi(), "normal");
       pdf.setFontSize(8);
       pdf.setTextColor(120);
       pdf.text(`Sayfa ${i} / ${totalPages}`, pageW / 2, pageH - 8, { align: "center" });
