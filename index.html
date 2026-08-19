@@ -9097,6 +9097,7 @@ i[data-lucide] svg { display: block; }
         <button class="side-item" data-modul="ozlukM" onclick="modulSec('ozlukM')"><span class="side-ikon"><i data-lucide="clock"></i></span><span class="side-ad">Özlük &amp; Puantaj</span></button>
         <button class="side-item" data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon"><i data-lucide="book-open"></i></span><span class="side-ad">Eğitim</span></button>
         <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon"><i data-lucide="wallet"></i></span><span class="side-ad">Muhasebe</span></button>
+        <button class="side-item" data-modul="raporlar" onclick="modulSec('raporlar')"><span class="side-ikon"><i data-lucide="bar-chart-3"></i></span><span class="side-ad">Raporlar</span></button>
         <button class="side-item" data-modul="denetim" onclick="modulSec('denetim')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">MEB Denetim</span></button>
       </div>
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
@@ -9131,6 +9132,7 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;"><i data-lucide="utensils"></i> Yemek Menüsü</button>
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
+      <button class="tab" data-tab="raporlar" id="tab-raporlar-btn" style="display:none;"><i data-lucide="bar-chart-3"></i> Raporlar</button>
     </div>
 
     <!-- YENİ TASARIM · ANA SAYFA TAB (rol bazlı: yönetim/öğretmen) -->
@@ -13498,6 +13500,7 @@ const SEKME_YETKILERI = {
   ozluk:       ["kurucu_mudur", "mudur", "muhasebe"],
   egitim:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   finans:      ["kurucu_mudur", "mudur", "muhasebe"],
+  raporlar:    ["kurucu_mudur", "mudur", "muhasebe"],
   denetim:     ["kurucu_mudur", "mudur"],
   // İletişim & İşleyiş
   devamsizlik: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
@@ -32292,9 +32295,71 @@ function renderFinansalOzet() {
     .join(" · ");
 
   const donemLabel = aktifFinansView === "buAy" ? "Bu Ay" : aktifFinansView === "buYil" ? "Bu Yıl" : "Dönem Toplamı";
-  const basabasDurum = toplamGelir >= toplamGider
-    ? { metin: "Başabaşa ulaştınız ✓", renk: "#2d6a4f", bg: "#d8f3dc" }
-    : { metin: `Başabaş için ${(toplamGider - toplamGelir).toLocaleString("tr-TR")} TL daha gelir gerekli`, renk: "#b45309", bg: "#fef3c7" };
+
+  // ===== GERÇEK BAŞABAŞ ANALİZİ =====
+  // Sabit gider (personel + sabit) aylığa indirgenir; değişken gider (işletme) öğrenci başına düşer
+  const ayBolen = aktifFinansView === "buYil" ? Math.max(1, new Date().getMonth() + 1)
+                : aktifFinansView === "tumu"  ? Math.max(1, Object.keys(
+                    giderler.reduce((acc, g) => { const ay = (g.tarih || "").slice(0,7); if (ay) acc[ay] = 1; return acc; }, {})
+                  ).length)
+                : 1;
+
+  let sabitGiderToplam = 0, degiskenGiderToplam = 0;
+  for (const g of giderler) {
+    const kat = GIDER_KATEGORILERI[g.kategori];
+    const tutar = parseFloat(g.tutar) || 0;
+    if (!kat) { sabitGiderToplam += tutar; continue; }
+    if (kat.grup === "isletme") degiskenGiderToplam += tutar;
+    else sabitGiderToplam += tutar; // personel + sabit + diger
+  }
+  const aylikSabitGider = sabitGiderToplam / ayBolen;
+
+  // Aktif öğrencilerin ortalama aylık aidatı (indirimler dahil, kayıtlı ayarlardan)
+  let aidatliOgrenciSayisi = 0, aylikAidatToplami = 0;
+  for (const o of ogrenciList) {
+    const ayar = ayarListesi[o.id];
+    if (!ayar || getOgrenciDurum(o, ayar) !== "aktif") continue;
+    const a = ayar.aidatAyarlari || {};
+    const aylik = Number(a.aylikAidat) || 0;
+    if (aylik > 0) { aidatliOgrenciSayisi++; aylikAidatToplami += aylik; }
+  }
+  const ortAylikAidat = aidatliOgrenciSayisi > 0 ? aylikAidatToplami / aidatliOgrenciSayisi : 0;
+  const mevcutOgrSayisi = aktifOgrenciler.length;
+
+  // Öğrenci başına aylık değişken gider
+  const ogrenciBasiDegisken = (mevcutOgrSayisi > 0 && ayBolen > 0)
+    ? (degiskenGiderToplam / ayBolen) / mevcutOgrSayisi : 0;
+
+  // Katkı payı = ortalama aidat - öğrenci başına değişken gider
+  const katkiPayi = ortAylikAidat - ogrenciBasiDegisken;
+  const basabasOgrenciSayisi = katkiPayi > 0 ? Math.ceil(aylikSabitGider / katkiPayi) : 0;
+  const basabasHesaplanabilir = (katkiPayi > 0 && aylikSabitGider > 0 && ortAylikAidat > 0);
+  const ogrenciFarki = basabasOgrenciSayisi - mevcutOgrSayisi;
+
+  let basabasDurum;
+  if (!basabasHesaplanabilir) {
+    basabasDurum = {
+      metin: "Başabaş hesabı için aidat ve gider kayıtları gerekli",
+      detay: "Aktif öğrencilere aylık aidat girin ve gider kaydı ekleyin.",
+      renk: "#6b7280", bg: "#f3f4f6"
+    };
+  } else if (ogrenciFarki <= 0) {
+    basabasDurum = {
+      metin: `Başabaşın üzerindesiniz — ${Math.abs(ogrenciFarki)} öğrenci fazlanız var`,
+      detay: `Başabaş için ${basabasOgrenciSayisi} öğrenci yeterli · şu an ${mevcutOgrSayisi} aktif öğrenci`,
+      renk: "#2d6a4f", bg: "#d8f3dc"
+    };
+  } else {
+    basabasDurum = {
+      metin: `Başabaş için ${ogrenciFarki} öğrenci daha gerekli`,
+      detay: `Başabaş noktası ${basabasOgrenciSayisi} öğrenci · şu an ${mevcutOgrSayisi} aktif öğrenci`,
+      renk: "#b45309", bg: "#fef3c7"
+    };
+  }
+  // Dönemsel nakit durumu (eski gösterge, ayrı satır olarak korunuyor)
+  const nakitDurum = toplamGelir >= toplamGider
+    ? { metin: `${donemLabel}: tahsilat giderleri karşılıyor ✓`, renk: "#2d6a4f" }
+    : { metin: `${donemLabel}: ${(toplamGider - toplamGelir).toLocaleString("tr-TR")} TL açık`, renk: "#b45309" };
 
   let html = `
     <div style="background:linear-gradient(135deg, #2d6a4f 0%, #40916c 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; box-shadow:0 6px 20px rgba(45,106,79,0.25);">
@@ -32342,8 +32407,19 @@ function renderFinansalOzet() {
       </div>
     </div>
 
-    <div style="background:${basabasDurum.bg}; border-radius:12px; padding:14px 18px; margin-bottom:20px; font-size:14px; color:${basabasDurum.renk}; font-weight:600; display:flex; align-items:center; gap:10px;">
-      <span style="font-size:20px;">🎯</span> ${basabasDurum.metin}
+    <div style="background:${basabasDurum.bg}; border-radius:12px; padding:14px 18px; margin-bottom:20px; color:${basabasDurum.renk};">
+      <div style="font-size:14px; font-weight:700; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">🎯</span> ${basabasDurum.metin}
+      </div>
+      <div style="font-size:12px; opacity:.85; margin-top:6px; padding-left:30px;">${basabasDurum.detay || ""}</div>
+      ${basabasHesaplanabilir ? `
+      <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; padding-left:30px; font-size:11.5px; opacity:.9;">
+        <span>Aylık sabit gider: <strong>${Math.round(aylikSabitGider).toLocaleString("tr-TR")} TL</strong></span>
+        <span>Ort. aidat: <strong>${Math.round(ortAylikAidat).toLocaleString("tr-TR")} TL</strong></span>
+        <span>Öğrenci başı değişken: <strong>${Math.round(ogrenciBasiDegisken).toLocaleString("tr-TR")} TL</strong></span>
+        <span>Katkı payı: <strong>${Math.round(katkiPayi).toLocaleString("tr-TR")} TL</strong></span>
+      </div>` : ""}
+      <div style="font-size:11.5px; margin-top:8px; padding-left:30px; color:${nakitDurum.renk}; font-weight:600;">${nakitDurum.metin}</div>
     </div>
 
     ${aidatEksikSayi > 0 ? `
@@ -36025,7 +36101,8 @@ const MODUL_HARITASI = {
   etkinlik:    { tablar: ["etkinlik"],   varsayilan: "etkinlik", ad: "Etkinlik & Takvim" },
   mesaj:       { tablar: ["mesajlasma"], varsayilan: "mesajlasma", ad: "Mesajlaşma" },
   gelisim:     { tablar: ["gelisim"],    varsayilan: "gelisim", ad: "Gelişim & Kalite" },
-  denetim:     { tablar: ["denetim"],    varsayilan: "denetim", ad: "MEB Denetim Hazırlığı" }
+  denetim:     { tablar: ["denetim"],    varsayilan: "denetim", ad: "MEB Denetim Hazırlığı" },
+  raporlar:    { tablar: ["raporlar"],   varsayilan: "raporlar", ad: "Raporlar" }
 };
 let aktifModul = "ozet";
 
