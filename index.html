@@ -24468,8 +24468,11 @@ window.sinifYonetimYukle = async function() {
     sinifOgrenciSayilari = {};
     const eslesmeyen = [];
     ogrenciler.forEach(o => {
-      if (o.arsiv === true || o.kayitDurumu === "arsiv") return;
-      const sinif = (o.sinif || o.sinifi || "").trim();
+      // Standart kural: bu dönemde kaydı olan VE durumu "aktif" olan öğrenciler sayılır
+      const _ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+      if (!_ayar) return;
+      if (typeof getOgrenciDurum === "function" && getOgrenciDurum(o, _ayar) !== "aktif") return;
+      const sinif = ((_ayar.kayit && _ayar.kayit.sinif) || o.sinif || o.sinifi || "").trim();
       if (!sinif) { eslesmeyen.push({ ad: o.ogrenciAdSoyad || "", sinif: "(boş)" }); return; }
       sinifOgrenciSayilari[sinif] = (sinifOgrenciSayilari[sinif] || 0) + 1;
     });
