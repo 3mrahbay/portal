@@ -18859,9 +18859,11 @@ window.caGozlemKaydet = async function() {
 function yonetimHomeHTML(ad) {
   // ===== GERÇEK VERİ HESABI (AKTIF_DONEM = 2026-2027) =====
   const donem = (typeof AKTIF_DONEM !== "undefined") ? AKTIF_DONEM : "2026-2027";
-  // Sadece aktif dönemde dönem dokümanı/aidat ayarı olan öğrenciler sayılır
+  // Sadece aktif dönemde (AKTIF_DONEM) dönem kaydı olan VE durumu aktif olan öğrenciler
+  // (Öğrenciler sekmesindeki sayaçla birebir aynı kural)
   const aktifOgrenciler = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => {
     const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+    if (!ayar) return false; // bu dönemde kaydı yok → sayılmaz
     return getOgrenciDurum(o, ayar) === "aktif";
   });
   const ogrenciSayisi = aktifOgrenciler.length;
@@ -19000,7 +19002,12 @@ function yonetimHomeHTML(ad) {
       ayToplamlari[hedefAy] = (ayToplamlari[hedefAy] || 0) + tutar;
     });
   });
-  const grafikAylar = Object.keys(ayToplamlari).sort().slice(-8); // son 8 ay
+  // Sadece bugüne kadarki aylar (gelecek aylar grafikte gösterilmez)
+  const _buAyKodGrafik = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const grafikAylar = Object.keys(ayToplamlari)
+    .filter(k => k <= _buAyKodGrafik)
+    .sort()
+    .slice(-8); // son 8 ay
   const grafikMax = Math.max(1, ...grafikAylar.map(k => ayToplamlari[k]));
   const KISA_AY = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
   const grafikBarlarHTML = grafikAylar.length === 0
@@ -21870,7 +21877,7 @@ window.takvimHedefDegisti = function() {
 function takvimOgrenciSeciciDoldur() {
   const sel = document.getElementById("takvimHedefOgrenci");
   if (!sel) return;
-  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
   aktif.sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || ""));
   sel.innerHTML = '<option value="">— Öğrenci Seçin —</option>';
   for (const o of aktif) {
@@ -26879,7 +26886,7 @@ window.duyuruHedefDegisti = function() {
 function doldurOgrenciSecici() {
   const sel = document.getElementById("duyuruHedefOgrenci");
   if (!sel) return;
-  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
   aktif.sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || ""));
   sel.innerHTML = '<option value="">-- Öğrenci Seçin --</option>';
   for (const o of aktif) {
@@ -27617,7 +27624,7 @@ async function renderDevamsizlik() {
   }
 
   // Aktif öğrenciler
-  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
   aktif.sort((a, b) => {
     const sA = (ayarListesi[a.id]?.kayit?.sinif) || a.sinif || "";
     const sB = (ayarListesi[b.id]?.kayit?.sinif) || b.sinif || "";
@@ -27837,7 +27844,7 @@ window.devamsizlikHepsiGeldi = async function() {
   if (!confirm("Tüm aktif öğrencileri 'Geldi' olarak işaretlemek istiyor musunuz?\n(Önceki işaretlemeler korunur, sadece boş olanlar 'Geldi' olur)")) return;
 
   aktifDevamsizlikVerisi.kayitlar = aktifDevamsizlikVerisi.kayitlar || {};
-  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
   let degisen = 0;
   for (const o of aktif) {
     if (!aktifDevamsizlikVerisi.kayitlar[o.id] || !aktifDevamsizlikVerisi.kayitlar[o.id].durum) {
@@ -27905,7 +27912,7 @@ async function renderAylikOzet() {
   }
 
   // Aktif öğrenciler
-  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
   aktif.sort((a, b) => {
     const sA = (ayarListesi[a.id]?.kayit?.sinif) || a.sinif || "";
     const sB = (ayarListesi[b.id]?.kayit?.sinif) || b.sinif || "";
@@ -31305,7 +31312,7 @@ function doldurGaleriOgrenciSecici() {
   const sel = document.getElementById("galeriHedefOgrenci");
   if (!sel) return;
   sel.innerHTML = '<option value="">-- Öğrenci Seçin --</option>';
-  const aktif = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
   aktif.sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || ""));
   for (const o of aktif) {
     const sinif = (ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "";
@@ -32286,7 +32293,7 @@ function renderFinansalOzet() {
   const gecikenler = gecikenlerFull.slice(0, 5);
   const toplamGecikenBorc = gecikenlerFull.reduce((s, g) => s + g.toplamBorc, 0);
 
-  const aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const aktifOgrenciler = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
 
   // Aidat ayarı eksik aktif öğrenciler (aylık aidat girilmemiş)
   const aidatEksikOgrenciler = aktifOgrenciler.filter(o => {
@@ -33013,7 +33020,7 @@ function cizSinifDonut() {
   const canvas = document.getElementById("finansSinifDonutChart");
   if (!canvas || typeof Chart === "undefined") return;
 
-  const aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi[o.id]) === "aktif");
+  const aktifOgrenciler = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
   const m2 = aktifOgrenciler.filter(o => {
     const ayar = ayarListesi[o.id] || {};
     const sinif = ((ayar.kayit && ayar.kayit.sinif) || o.sinif || "").toLowerCase();
