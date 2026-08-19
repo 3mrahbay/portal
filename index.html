@@ -18882,8 +18882,8 @@ function yonetimHomeHTML(ad) {
   let odeyenSayisi = 0, bekleyenSayisi = 0, gecikenSayisi = 0;
 
   aktifOgrenciler.forEach(o => {
-    const ayar = ayarListesi[o.id];
-    const aylikOd = (ayar && ayar.aylikOdemeler) || {};
+    const ayar = ayarListesi[o.id] || {};
+    const aylikOd = ayar.aylikOdemeler || {};
     const a = ayar.aidatAyarlari || {};
     const aidat = a.aylikAidat || 0;
     const iDonem = a.iDonemAylik || aidat;
