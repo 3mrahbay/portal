@@ -18521,6 +18521,15 @@ function renderAdminHome() {
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
   const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
   root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
+  // Öğrenci verisi henüz gelmediyse üstte "yükleniyor" şeridi göster (loadOgrenciler bitince yeniden çizilir)
+  if (!ogretmenMi && (typeof ogrenciList === "undefined" || !ogrenciList || ogrenciList.length === 0)) {
+    const banner = document.createElement("div");
+    banner.id = "adminHomeYukleniyor";
+    banner.className = "ca-draft-banner";
+    banner.style.cssText = "margin-bottom:12px;";
+    banner.innerHTML = `<i data-lucide="loader-2" style="width:14px;height:14px;vertical-align:-2px;animation:spin 1s linear infinite;"></i> Öğrenci ve ödeme verileri yükleniyor…`;
+    root.prepend(banner);
+  }
   // Öğretmen ana sayfası: sayıları Firestore'dan doldur (demo veri yok)
   if (ogretmenMi && typeof ogretmenHomeVeriYukle === "function") {
     ogretmenHomeVeriYukle().catch(e => console.warn("öğretmen ana sayfa verisi", e));
@@ -21199,6 +21208,13 @@ async function loadOgrenciler() {
     updateStats();
     updateDurumSayaclari();
     if (typeof topluYenileButonGorunurluk === "function") topluYenileButonGorunurluk();
+
+    // Veriler geldi → Özet (ana sayfa) açıksa yeniden çiz (ilk açılışta boş render ediliyordu)
+    try {
+      const anasayfaPanel = document.getElementById("tab-anasayfa");
+      const anasayfaAcik = anasayfaPanel && anasayfaPanel.classList.contains("active");
+      if (anasayfaAcik && typeof renderAdminHome === "function") renderAdminHome();
+    } catch (e) { console.warn("Özet yeniden çizilemedi:", e); }
   } catch (e) {
     console.error(e);
     wrap.innerHTML = `<div class="empty"><h3>Hata oluştu</h3><p>${e.message}</p></div>`;
