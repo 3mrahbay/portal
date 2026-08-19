@@ -18625,7 +18625,7 @@ async function hbEgitimDoldur() {
       degerler: await mufredatYukle("degerler")
     };
     const tumGel = await tumGelisimYukle();
-    const liste = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => (o.durum || "aktif") !== "pasif");
+    const liste = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => getOgrenciDurum(o, (typeof ayarListesi !== "undefined" ? ayarListesi[o.id] : null)) === "aktif");
     if (liste.length === 0) {
       el.innerHTML = `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Öğrenci verisi yüklenince görünür.</div>`;
       return;
@@ -18681,7 +18681,7 @@ async function caAdminEgitimYukle() {
       degerler: await mufredatYukle("degerler")
     };
     const tumGel = await tumGelisimYukle();
-    const ogrenciler = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => (o.durum || "aktif") !== "pasif");
+    const ogrenciler = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => getOgrenciDurum(o, (typeof ayarListesi !== "undefined" ? ayarListesi[o.id] : null)) === "aktif");
     // Öğretmen ise kendi sınıfları, değilse tümü
     const sinifFiltre = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari.length)
       ? aktifKullaniciSiniflari : null;
@@ -18853,7 +18853,7 @@ function yonetimHomeHTML(ad) {
   // Sadece aktif dönemde dönem dokümanı/aidat ayarı olan öğrenciler sayılır
   const aktifOgrenciler = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => {
     const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
-    return ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.aylikAidat > 0;
+    return getOgrenciDurum(o, ayar) === "aktif";
   });
   const ogrenciSayisi = aktifOgrenciler.length;
 
