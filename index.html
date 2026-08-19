@@ -12260,6 +12260,31 @@ i[data-lucide] svg { display: block; }
         </div>
       </div>
 
+      <!-- HESAP TÜRÜ SEÇİCİ (otomatik hesaplama) -->
+      <div style="margin:14px 0; padding:14px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:12px;">
+        <label style="display:block; font-size:12px; font-weight:700; color:#6d28d9; margin-bottom:10px;"><i data-lucide="calculator" style="width:14px;height:14px;vertical-align:-2px;"></i> Ödeme Planı Türü</label>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <label class="hesap-turu-secenek" style="flex:1; min-width:200px; display:flex; align-items:flex-start; gap:9px; padding:12px; background:white; border:2px solid #e5e7eb; border-radius:10px; cursor:pointer;">
+            <input type="radio" name="ayarHesapTuru" value="esit" checked style="margin-top:2px;" onchange="hesapTuruSecenekVurgu()">
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1f2937;">Önödemesiz Eşit Taksit</div>
+              <div style="font-size:11px; color:#6b7280; margin-top:2px;">Peşinat yok. Tüm aylar eşit tutarda.</div>
+            </div>
+          </label>
+          <label class="hesap-turu-secenek" style="flex:1; min-width:200px; display:flex; align-items:flex-start; gap:9px; padding:12px; background:white; border:2px solid #e5e7eb; border-radius:10px; cursor:pointer;">
+            <input type="radio" name="ayarHesapTuru" value="cift_donem" style="margin-top:2px;" onchange="hesapTuruSecenekVurgu()">
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1f2937;">Önödemeli Erken Kayıt</div>
+              <div style="font-size:11px; color:#6b7280; margin-top:2px;">1 aylık peşinat + I/II dönem farklı taksit.</div>
+            </div>
+          </label>
+        </div>
+        <button type="button" class="btn-mini" onclick="aidatOtomatikDoldur()" style="width:100%; margin-top:12px; padding:12px; background:#6d28d9; color:white; border:none; font-weight:700; font-size:13px;">
+          <i data-lucide="wand-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Aylık Ücrete Göre Otomatik Doldur
+        </button>
+        <div style="font-size:11px; color:#78716c; margin-top:8px; line-height:1.5;">Aylık aidatı girip bu butona basın — peşinat, I. ve II. dönem taksitleri otomatik hesaplanır. Dilerseniz sonra aylık kartlarda elle düzeltebilirsiniz.</div>
+      </div>
+
       <div class="form-grid">
         <div class="form-group">
           <label>Kayıt (Başlangıç) Ayı</label>
@@ -12278,11 +12303,11 @@ i[data-lucide] svg { display: block; }
         <div class="form-group">
           <label>🎫 Peşinat / Ön Ödeme (TL)</label>
           <input type="number" id="ayarOnOdeme" placeholder="0" min="0" step="100" oninput="onOdemeElleDegisti()">
-          <small style="display:block; margin-top:4px; color:#78716c; font-size:11px;" id="onOdemeIpucu">Erken kayıtta (Mayıs–Ağustos) önerilir. Eylül ve sonrası genelde 0.</small>
+          <small style="display:block; margin-top:4px; color:#78716c; font-size:11px;" id="onOdemeIpucu">Eşit taksitte 0. Erken kayıtta 1 aylık önerilir.</small>
         </div>
         <div class="form-group" style="display:flex; align-items:flex-end;">
           <div style="font-size:11px; color:#78716c; line-height:1.4;">
-            ℹ️ Peşinat girilip kayıt ayı Eylül öncesiyse kalan <strong>çift dönemli</strong> hesaplanır. Eylül ve sonrası <strong>eşit aylık</strong> olur. Tümü <strong>elle düzeltilebilir</strong>.
+            ℹ️ Yukarıdan plan türünü seçip <strong>Otomatik Doldur</strong>'a basın. Tüm tutarlar aylık kartlarda <strong>elle düzeltilebilir</strong>.
           </div>
         </div>
       </div>
@@ -12804,6 +12829,13 @@ i[data-lucide] svg { display: block; }
             <div class="btn-cikti-content">
               <strong>Önizleme</strong>
               <small>Yeni sekmede göster</small>
+            </div>
+          </button>
+          <button class="btn-cikti" onclick="odemePlaniPDFCiktisi()" style="border-color:#c4b5fd; background:#faf5ff;">
+            <div class="btn-cikti-icon"><i data-lucide="calendar-days" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
+            <div class="btn-cikti-content">
+              <strong>Ödeme Planı PDF</strong>
+              <small>Aylık ödeme takvimi</small>
             </div>
           </button>
         </div>
@@ -36001,9 +36033,13 @@ let aktifModul = "ozet";
 window.modulSec = function(modulKey, tabTikla = true) {
   const tanim = MODUL_HARITASI[modulKey];
   if (!tanim) return;
+  // Giriş yapılmamışsa sessizce çık (açılış çağrısında yetki uyarısı gösterme)
+  const girisVar = (typeof currentUser !== "undefined" && currentUser)
+    || (typeof isAdmin !== "undefined" && isAdmin);
+  if (!girisVar) return;
   // YETKİ KONTROLÜ: rolü olmayan modülü açamaz (adres/konsol denemesi dahil)
   if (typeof modulErisim === "function" && !modulErisim(modulKey)) {
-    if (typeof showToast === "function") showToast("Bu bölüme erişim yetkiniz yok", "error");
+    if (tabTikla && typeof showToast === "function") showToast("Bu bölüme erişim yetkiniz yok", "error");
     return;
   }
   aktifModul = modulKey;
@@ -36511,6 +36547,11 @@ window.openAyarModal = async function(ogrenciId) {
     document.getElementById("ayarIndirimNedeni").value = a.indirimNedeni || "";
     const onOdemeEl = document.getElementById("ayarOnOdeme");
     if (onOdemeEl) onOdemeEl.value = a.onOdeme || "";
+    // Hesap türü radyosunu ayarla (esit / cift_donem)
+    const htur = a.hesapTuru || ((a.onOdeme > 0) ? "cift_donem" : "esit");
+    const hturRadio = document.querySelector(`input[name="ayarHesapTuru"][value="${htur}"]`);
+    if (hturRadio) hturRadio.checked = true;
+    setTimeout(() => { if (typeof hesapTuruSecenekVurgu === "function") hesapTuruSecenekVurgu(); }, 20);
     document.getElementById("ayarPesin").checked = !!a.pesinOdeme;
     document.getElementById("ayarYazOkulu").checked = !!a.yazOkulu;
     document.getElementById("ayarNotlar").value = a.notlar || "";
@@ -37436,6 +37477,10 @@ function toplaSozlesmeVerisi() {
     indirimOrani: indirimOrani,
     indirimNedeni: indirimNedeni,
     pesinOdeme: pesinOdeme,
+    onOdeme: parseFloat(getVal("ayarOnOdeme")) || 0,
+    hesapTuru: (document.querySelector('input[name="ayarHesapTuru"]:checked')?.value) || ((parseFloat(getVal("ayarOnOdeme")) > 0) ? "cift_donem" : "esit"),
+    iDonemAylik: (currentOgrenci && ayarListesi[currentOgrenci.id]?.aidatAyarlari?.iDonemAylik) || 0,
+    iiDonemAylik: (currentOgrenci && ayarListesi[currentOgrenci.id]?.aidatAyarlari?.iiDonemAylik) || 0,
     digerUcretler: digerUcretler,
     digerToplam: toplamDiger,
     genelToplam: toplamAidat + toplamDiger,
@@ -37783,6 +37828,123 @@ function trObj(o) {
   return o;
 }
 
+// ============ ÖDEME PLANI PDF ÇIKTISI (aylık ödeme takvimi) ============
+window.odemePlaniPDFCiktisi = async function() {
+  try {
+    if (!currentOgrenci) { showToast("Önce bir öğrenci seçin", "error"); return; }
+    if (typeof window.jspdf === "undefined") { showToast("PDF kütüphanesi yüklenemedi", "error"); return; }
+    showToast("Ödeme planı hazırlanıyor...");
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const margin = 15;
+    const pageW = pdf.internal.pageSize.getWidth();
+    const contentW = pageW - margin * 2;
+
+    const tr = (s) => String(s == null ? "" : s)
+      .replace(/ı/g,"i").replace(/İ/g,"I").replace(/ş/g,"s").replace(/Ş/g,"S")
+      .replace(/ğ/g,"g").replace(/Ğ/g,"G").replace(/ü/g,"u").replace(/Ü/g,"U")
+      .replace(/ö/g,"o").replace(/Ö/g,"O").replace(/ç/g,"c").replace(/Ç/g,"C");
+    const formatTL = (n) => (Math.round(Number(n) || 0)).toLocaleString("tr-TR") + " TL";
+
+    const ogrAd = currentOgrenci.ogrenciAdSoyad || currentOgrenci.adSoyad || "Ogrenci";
+    const sinif = currentOgrenci.sinif || "";
+    const a = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aidatAyarlari) || {};
+    const aylikOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
+
+    // Modaldan güncel değerleri de oku (kaydedilmemiş olabilir)
+    const aidat = (parseFloat(document.getElementById("ayarAidat")?.value)) || Number(a.aylikAidat) || 0;
+    const taksit = (parseInt(document.getElementById("ayarTaksit")?.value)) || Number(a.taksitSayisi) || 12;
+    const baslangic = (document.getElementById("ayarBaslangic")?.value) || a.baslangicAyi || "";
+    const onOdeme = (parseFloat(document.getElementById("ayarOnOdeme")?.value)) || Number(a.onOdeme) || 0;
+    const iDonemAylik = Number(a.iDonemAylik) || aidat;
+    const iiDonemAylik = Number(a.iiDonemAylik) || aidat;
+    const secilenTur = document.querySelector('input[name="ayarHesapTuru"]:checked')?.value;
+    const esitTaksit = (secilenTur === "esit") || (a.hesapTuru === "esit") || ((onOdeme <= 0) && (iDonemAylik === iiDonemAylik));
+
+    if (!baslangic || aidat <= 0) {
+      showToast("Aidat ayarlari eksik. Once aidat ve kayit ayini girin.", "error");
+      return;
+    }
+
+    let y = margin;
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(15);
+    pdf.text(tr("BIR CICEK KOLEJI ANAOKULU"), pageW/2, y, { align: "center" }); y += 6;
+    pdf.setFontSize(12);
+    pdf.text(tr((typeof AKTIF_DONEM !== "undefined" ? AKTIF_DONEM : "") + " Odeme Plani"), pageW/2, y, { align: "center" }); y += 8;
+
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
+    pdf.text(tr("Ogrenci: " + ogrAd + (sinif ? "  |  Sinif: " + sinif : "")), margin, y); y += 5;
+    pdf.text(tr("Plan Turu: " + (esitTaksit ? "Onodemesiz Esit Taksit" : "Onodemeli Erken Kayit")), margin, y); y += 5;
+    pdf.text(tr("Aylik Aidat: " + formatTL(aidat) + "  |  Taksit: " + taksit + " ay"), margin, y); y += 7;
+
+    const ayListesi = (typeof getAyListesi === "function") ? getAyListesi(baslangic, taksit) : [];
+    const rows = [];
+    let toplamBeklenen = 0, toplamOdenen = 0;
+
+    if (onOdeme > 0) {
+      const onOd = aylikOdemeler["__onOdeme"] || {};
+      const odenen = parseFloat(onOd.odenenTutar) || (onOd.odendi ? onOdeme : 0);
+      toplamBeklenen += onOdeme; toplamOdenen += odenen;
+      rows.push(["Pesinat / On Odeme", formatTL(onOdeme), formatTL(odenen), onOd.odendi ? "Odendi" : "Bekliyor"]);
+    }
+
+    ayListesi.forEach(ay => {
+      const od = aylikOdemeler[ay.ayKod] || {};
+      let beklenen;
+      if (od.beklenenTutar !== undefined && od.beklenenTutar !== null && od.beklenenTutar !== "") {
+        beklenen = parseFloat(od.beklenenTutar);
+      } else if (esitTaksit) {
+        beklenen = Math.round((aidat * taksit) / taksit / 100) * 100;
+      } else {
+        beklenen = (ay.ay >= 9 || ay.ay <= 1) ? iDonemAylik : iiDonemAylik;
+      }
+      const odenen = parseFloat(od.odenenTutar) || 0;
+      const durum = od.odendi ? "Odendi" : (odenen > 0 ? "Kismi" : "Bekliyor");
+      toplamBeklenen += beklenen; toplamOdenen += odenen;
+      rows.push([tr(ay.tam), formatTL(beklenen), formatTL(odenen), durum]);
+    });
+
+    pdf.autoTable({
+      startY: y,
+      head: [["Donem", "Beklenen", "Odenen", "Durum"]],
+      body: rows,
+      theme: "grid",
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor: [109, 40, 217], textColor: [255,255,255], fontStyle: "bold" },
+      columnStyles: {
+        0: { cellWidth: contentW * 0.40 },
+        1: { cellWidth: contentW * 0.22, halign: "right" },
+        2: { cellWidth: contentW * 0.22, halign: "right" },
+        3: { cellWidth: contentW * 0.16, halign: "center" }
+      },
+      foot: [[
+        { content: "TOPLAM", styles: { fontStyle: "bold", fillColor: [240,240,240] } },
+        { content: formatTL(toplamBeklenen), styles: { fontStyle: "bold", halign: "right", fillColor: [240,240,240] } },
+        { content: formatTL(toplamOdenen), styles: { fontStyle: "bold", halign: "right", fillColor: [240,240,240] } },
+        { content: "", styles: { fillColor: [240,240,240] } }
+      ]],
+      margin: { left: margin, right: margin }
+    });
+
+    y = pdf.lastAutoTable.finalY + 6;
+    const kalan = toplamBeklenen - toplamOdenen;
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(11);
+    pdf.text(tr("Kalan Bakiye: " + formatTL(kalan)), margin, y); y += 8;
+
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
+    pdf.setTextColor(120,120,120);
+    pdf.text(tr("Bu plan bilgilendirme amaclidir. Cikti tarihi: " + new Date().toLocaleString("tr-TR")), margin, y);
+
+    const dosyaAd = tr("Odeme_Plani_" + ogrAd.replace(/\s+/g, "_")) + ".pdf";
+    pdf.save(dosyaAd);
+    showToast("✓ Odeme plani indirildi");
+  } catch (e) {
+    console.error("Ödeme planı PDF hatası:", e);
+    showToast("Odeme plani olusturulamadi: " + e.message, "error");
+  }
+};
+
 window.sozlesmeCiktiPDF = async function() {
   try {
     showToast("PDF hazirlaniyor...");
@@ -37935,15 +38097,33 @@ window.sozlesmeCiktiPDF = async function() {
         const bursCheck = o.burs ? `( x ) Evet    (   ) Hayir` : "(   ) Evet    ( x ) Hayir";
         const indirimCheck = (o.indirimOrani > 0) ? "( x ) Evet    (   ) Hayir" : "(   ) Evet    ( x ) Hayir";
 
-        const odemeSekilRows = [
-          ["Odeme Sekli", pesinCheck],
-          ["Taksit Baslangic Tarihi", o.pesinOdeme ? "—" : (formatTarih(o.taksitBaslangicTarihi) || "")],
-          ["Pesinat", o.pesinOdeme ? formatTL(mebGenelToplam) : ""],
-          ["Taksit Sayisi ve Tutari", o.pesinOdeme ? "—" : `${o.taksit} taksit x ${formatTL(o.aylikAidat)}`],
+        // Ödeme planı: hesap türüne göre (eşit taksit vs. çift dönem)
+        const _esitTaksit = (o.hesapTuru === "esit") || ((!o.onOdeme || o.onOdeme <= 0) && (Number(o.iDonemAylik) === Number(o.iiDonemAylik)));
+        const odemeSekilRows = o.pesinOdeme
+          ? [
+              ["Odeme Sekli", pesinCheck],
+              ["Pesinat", formatTL(mebGenelToplam)],
+              ["Taksit Sayisi ve Tutari", "—"]
+            ]
+          : _esitTaksit
+          ? [
+              ["Odeme Sekli", pesinCheck],
+              ["Taksit Baslangic Tarihi", formatTarih(o.taksitBaslangicTarihi) || ""],
+              ["On Odeme / Pesinat", "—"],
+              ["Taksit Sayisi ve Tutari", `${o.taksit} taksit x ${formatTL(o.aylikAidat)} (esit)`]
+            ]
+          : [
+              ["Odeme Sekli", pesinCheck],
+              ["Taksit Baslangic Tarihi", formatTarih(o.taksitBaslangicTarihi) || ""],
+              ["On Odeme / Pesinat", o.onOdeme > 0 ? formatTL(o.onOdeme) : "—"],
+              ["I. Donem Taksiti (Eylul-Ocak)", `${formatTL(o.iDonemAylik)} / ay`],
+              ["II. Donem Taksiti (Subat-Haziran)", `${formatTL(o.iiDonemAylik)} / ay`]
+            ];
+        odemeSekilRows.push(
           ["Egitim Bursu Aliyor Mu?", bursCheck],
           ["Egitim Bursu Aliyorsa Yuzdesi", o.burs ? `% ${o.bursYuzde}` : "% ..."],
           ["Indirim Yapildi Mi?", indirimCheck]
-        ];
+        );
 
         pdf.autoTable({
           startY: y,
@@ -38323,15 +38503,32 @@ window.sozlesmeCiktiWord = async function() {
         const bursCheck = o.burs ? "( x ) Evet   (   ) Hayır" : "(   ) Evet   ( x ) Hayır";
         const indirimCheck = (o.indirimOrani > 0) ? "( x ) Evet   (   ) Hayır" : "(   ) Evet   ( x ) Hayır";
 
-        const odemeDetay = [
-          ["Ödeme Şekli", pesinCheck],
-          ["Taksit Başlangıç Tarihi", o.pesinOdeme ? "—" : (formatTarih(o.taksitBaslangicTarihi) || "")],
-          ["Peşinat", o.pesinOdeme ? formatTL(mebGenelToplam) : ""],
-          ["Taksit Sayısı ve Tutarı", o.pesinOdeme ? "—" : `${o.taksit} taksit × ${formatTL(o.aylikAidat)}`],
+        const _esitTaksitD = (o.hesapTuru === "esit") || ((!o.onOdeme || o.onOdeme <= 0) && (Number(o.iDonemAylik) === Number(o.iiDonemAylik)));
+        const odemeDetay = o.pesinOdeme
+          ? [
+              ["Ödeme Şekli", pesinCheck],
+              ["Peşinat", formatTL(mebGenelToplam)],
+              ["Taksit Sayısı ve Tutarı", "—"]
+            ]
+          : _esitTaksitD
+          ? [
+              ["Ödeme Şekli", pesinCheck],
+              ["Taksit Başlangıç Tarihi", formatTarih(o.taksitBaslangicTarihi) || ""],
+              ["Ön Ödeme / Peşinat", "—"],
+              ["Taksit Sayısı ve Tutarı", `${o.taksit} taksit × ${formatTL(o.aylikAidat)} (eşit)`]
+            ]
+          : [
+              ["Ödeme Şekli", pesinCheck],
+              ["Taksit Başlangıç Tarihi", formatTarih(o.taksitBaslangicTarihi) || ""],
+              ["Ön Ödeme / Peşinat", o.onOdeme > 0 ? formatTL(o.onOdeme) : "—"],
+              ["I. Dönem Taksiti (Eylül-Ocak)", `${formatTL(o.iDonemAylik)} / ay`],
+              ["II. Dönem Taksiti (Şubat-Haziran)", `${formatTL(o.iiDonemAylik)} / ay`]
+            ];
+        odemeDetay.push(
           ["Eğitim Bursu Alıyor Mu?", bursCheck],
           ["Eğitim Bursu Alıyorsa Yüzdesi", o.burs ? `% ${o.bursYuzde}` : "% ..."],
           ["İndirim Yapıldı Mı?", indirimCheck]
-        ];
+        );
         children.push(docxTablo(docx, odemeDetay));
         children.push(new Paragraph({ text: "" }));
 
@@ -38604,9 +38801,20 @@ td.label { width: 35%; font-weight: bold; background: #f8f8f8; }
 
         html += `<table style="margin-top:4px;">`;
         html += `<tr><td class="label" style="width:46%;">Ödeme Şekli</td><td>${pesinCheck}</td></tr>`;
-        html += `<tr><td class="label">Taksit Başlangıç Tarihi</td><td>${o.pesinOdeme ? "—" : escapeHtml(formatTarih(o.taksitBaslangicTarihi) || "")}</td></tr>`;
-        html += `<tr><td class="label">Peşinat</td><td>${o.pesinOdeme ? escapeHtml(formatTL(mebGenelToplam)) : ""}</td></tr>`;
-        html += `<tr><td class="label">Taksit Sayısı ve Tutarı</td><td>${o.pesinOdeme ? "—" : `${o.taksit} taksit × ${escapeHtml(formatTL(o.aylikAidat))}`}</td></tr>`;
+        const _esitTaksitH = (o.hesapTuru === "esit") || ((!o.onOdeme || o.onOdeme <= 0) && (Number(o.iDonemAylik) === Number(o.iiDonemAylik)));
+        if (o.pesinOdeme) {
+          html += `<tr><td class="label">Peşinat</td><td>${escapeHtml(formatTL(mebGenelToplam))}</td></tr>`;
+          html += `<tr><td class="label">Taksit Sayısı ve Tutarı</td><td>—</td></tr>`;
+        } else if (_esitTaksitH) {
+          html += `<tr><td class="label">Taksit Başlangıç Tarihi</td><td>${escapeHtml(formatTarih(o.taksitBaslangicTarihi) || "")}</td></tr>`;
+          html += `<tr><td class="label">Ön Ödeme / Peşinat</td><td>—</td></tr>`;
+          html += `<tr><td class="label">Taksit Sayısı ve Tutarı</td><td>${o.taksit} taksit × ${escapeHtml(formatTL(o.aylikAidat))} (eşit)</td></tr>`;
+        } else {
+          html += `<tr><td class="label">Taksit Başlangıç Tarihi</td><td>${escapeHtml(formatTarih(o.taksitBaslangicTarihi) || "")}</td></tr>`;
+          html += `<tr><td class="label">Ön Ödeme / Peşinat</td><td>${o.onOdeme > 0 ? escapeHtml(formatTL(o.onOdeme)) : "—"}</td></tr>`;
+          html += `<tr><td class="label">I. Dönem Taksiti (Eylül-Ocak)</td><td>${escapeHtml(formatTL(o.iDonemAylik))} / ay</td></tr>`;
+          html += `<tr><td class="label">II. Dönem Taksiti (Şubat-Haziran)</td><td>${escapeHtml(formatTL(o.iiDonemAylik))} / ay</td></tr>`;
+        }
         html += `<tr><td class="label">Eğitim Bursu Alıyor Mu?</td><td>${bursCheck}</td></tr>`;
         html += `<tr><td class="label">Eğitim Bursu Alıyorsa Yüzdesi</td><td>${o.burs ? `% ${o.bursYuzde}` : "% ..."}</td></tr>`;
         html += `<tr><td class="label">İndirim Yapıldı Mı?</td><td>${indirimCheck}</td></tr>`;
@@ -38901,6 +39109,83 @@ function updateAylikOzet(odenen, beklenen, gecikmis) {
 //   Kontrol: 37.000 + 162.500 + 170.500 = 370.000 ✓
 //
 // Diğer ödemeler (kıyafet, servis vb.) bu hesabın DIŞINDA ayrı tutulur.
+// Hesap türü seçenek görsel vurgusu
+window.hesapTuruSecenekVurgu = function() {
+  document.querySelectorAll('.hesap-turu-secenek').forEach(l => {
+    const r = l.querySelector('input[type=radio]');
+    if (r && r.checked) { l.style.borderColor = "#6d28d9"; l.style.background = "#faf5ff"; }
+    else { l.style.borderColor = "#e5e7eb"; l.style.background = "white"; }
+  });
+};
+
+// Aylık ücrete göre otomatik doldur (seçilen plan türüne göre)
+window.aidatOtomatikDoldur = function() {
+  const aylikInput = document.getElementById("ayarAidat");
+  const aylik = parseFloat(aylikInput?.value) || 0;
+  if (aylik <= 0) { showToast("Önce aylık aidat tutarını girin", "error"); return; }
+
+  const taksit = parseInt(document.getElementById("ayarTaksit")?.value) || 10;
+  const baslangic = document.getElementById("ayarBaslangic")?.value || "";
+  const secenek = document.querySelector('input[name="ayarHesapTuru"]:checked')?.value || "esit";
+
+  const yillikToplam = aylik * taksit;
+
+  // Ay listesinden I. dönem (Eylül-Ocak) ve II. dönem (Şubat-Ağustos) sayıları
+  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, taksit) : [];
+  let iDonemSayi = ayListesi.filter(a => a.ay >= 9 || a.ay <= 1).length;
+  let iiDonemSayi = ayListesi.filter(a => a.ay >= 2 && a.ay <= 8).length;
+  if (iDonemSayi + iiDonemSayi === 0) { iDonemSayi = 5; iiDonemSayi = taksit - 5; }
+
+  let onOdeme, iDonemAylik, iiDonemAylik, hesapTuru;
+
+  if (secenek === "cift_donem") {
+    // ÖNÖDEMELİ ERKEN KAYIT: 1 aylık peşinat + çift dönem (%48.8 / %51.2)
+    onOdeme = aylik;
+    const kalan = yillikToplam - onOdeme;
+    iDonemAylik = iDonemSayi > 0 ? Math.round((kalan * 0.488) / iDonemSayi / 100) * 100 : 0;
+    iiDonemAylik = iiDonemSayi > 0 ? Math.round((kalan - iDonemAylik * iDonemSayi) / iiDonemSayi) : 0;
+    hesapTuru = "cift_donem";
+  } else {
+    // ÖNÖDEMESİZ EŞİT TAKSİT: peşinat yok, tüm aylar eşit
+    onOdeme = 0;
+    const esitAylik = Math.round(yillikToplam / taksit / 100) * 100;
+    iDonemAylik = esitAylik;
+    iiDonemAylik = esitAylik;
+    hesapTuru = "esit";
+  }
+
+  // Alanlara yaz
+  const onOdemeInput = document.getElementById("ayarOnOdeme");
+  if (onOdemeInput) onOdemeInput.value = onOdeme;
+
+  // Belleğe yaz
+  if (currentOgrenci && ayarListesi[currentOgrenci.id] !== undefined) {
+    if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
+    if (!ayarListesi[currentOgrenci.id].aidatAyarlari) ayarListesi[currentOgrenci.id].aidatAyarlari = {};
+    const a = ayarListesi[currentOgrenci.id].aidatAyarlari;
+    a.aylikAidat = aylik;
+    a.iDonemAylik = iDonemAylik;
+    a.iiDonemAylik = iiDonemAylik;
+    a.onOdeme = onOdeme;
+    a.yillikToplam = yillikToplam;
+    a.egitimUcreti = Math.round(yillikToplam * 0.60);
+    a.yemekUcreti = yillikToplam - Math.round(yillikToplam * 0.60);
+    a.hesapTuru = hesapTuru;
+  }
+
+  const turAd = secenek === "cift_donem" ? "Önödemeli Erken Kayıt" : "Önödemesiz Eşit Taksit";
+  const ozet = secenek === "cift_donem"
+    ? `Peşinat: ${onOdeme.toLocaleString("tr-TR")} TL\nI. Dönem: ${iDonemAylik.toLocaleString("tr-TR")} TL/ay (${iDonemSayi} ay)\nII. Dönem: ${iiDonemAylik.toLocaleString("tr-TR")} TL/ay (${iiDonemSayi} ay)`
+    : `Peşinat: yok\nAylık taksit: ${iDonemAylik.toLocaleString("tr-TR")} TL (${taksit} ay eşit)`;
+
+  showToast(`✓ ${turAd} hesaplandı`);
+  alert(`🧮 ${turAd}\n\nAylık Aidat: ${aylik.toLocaleString("tr-TR")} TL\nYıllık Toplam: ${yillikToplam.toLocaleString("tr-TR")} TL\n─────────────\n${ozet}\n─────────────\n⚠️ "Ayarları Kaydet" butonuna basmayı unutmayın.`);
+
+  // Aylık ödeme kartlarını yenile (bellekteki yeni değerlerle)
+  if (typeof renderAylikOdeme === "function") renderAylikOdeme();
+  if (window.lucideYenile) window.lucideYenile();
+};
+
 window.donemFarkiHesaplaOtomatik = function() {
   const aylikInput = document.getElementById("ayarAidat");
   if (!aylikInput) return;
@@ -39914,9 +40199,12 @@ window.saveAyarlar = async function() {
   // ===== PEŞİNAT (ÖN ÖDEME) + DÖNEM AYLIK HESABI =====
   const onOdeme = parseFloat(document.getElementById("ayarOnOdeme")?.value) || 0;
   const kayitAyNum = baslangic ? parseInt(baslangic.split("-")[1], 10) : 9;
-  const erkenKayit = [5, 6, 7, 8].includes(kayitAyNum);
+  // Hesap türü: kullanıcının seçtiği radyo (öncelikli) → yoksa kayıt ayına göre tahmin
+  const secilenHesapTuru = document.querySelector('input[name="ayarHesapTuru"]:checked')?.value
+    || (([5, 6, 7, 8].includes(kayitAyNum)) ? "cift_donem" : "esit");
+  const erkenKayit = (secilenHesapTuru === "cift_donem");
 
-  // Bellekte hesaplanmış değer varsa onu kullan (kullanıcı "Dönem Farkını Hesapla" demiş olabilir),
+  // Bellekte hesaplanmış değer varsa onu kullan (kullanıcı "Otomatik Doldur" demiş olabilir),
   // yoksa burada hesapla
   const mevcutA = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aidatAyarlari) || {};
   let iDonemAylik = mevcutA.iDonemAylik || 0;
@@ -39927,7 +40215,7 @@ window.saveAyarlar = async function() {
   const _iDonemSayi = _ayListesi.filter(a => a.ay >= 9 || a.ay <= 1).length || 5;
   const _iiDonemSayi = _ayListesi.filter(a => a.ay >= 2 && a.ay <= 8).length || 5;
 
-  // Eğer dönem aylıkları hiç hesaplanmamışsa otomatik hesapla
+  // Eğer dönem aylıkları hiç hesaplanmamışsa seçilen türe göre otomatik hesapla
   if (!iDonemAylik && !iiDonemAylik && aidat > 0) {
     const _kalan = (aidat * gercekAy) - onOdeme;
     if (erkenKayit) {
@@ -39947,7 +40235,7 @@ window.saveAyarlar = async function() {
     onOdeme: onOdeme,
     iDonemAylik: iDonemAylik,
     iiDonemAylik: iiDonemAylik,
-    hesapTuru: erkenKayit ? "cift_donem" : "esit",
+    hesapTuru: secilenHesapTuru,
     taksitSayisi: taksit,
     gercekAySayisi: gercekAy,
     baslangicAyi: baslangic,
