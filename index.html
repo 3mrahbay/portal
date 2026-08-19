@@ -21200,6 +21200,10 @@ async function loadOgrenciler() {
     // Dönem ayarlarını ayrı sorgu
     await loadAyarlar();
 
+    // Veriler geldi → Özet (ana sayfa) yeniden çiz (ilk açılışta veri yokken boş render ediliyordu)
+    try { if (typeof renderAdminHome === "function") renderAdminHome(); }
+    catch (e) { console.warn("Özet yeniden çizilemedi:", e); }
+
     // ===== FAZ 2a: ÖĞRETMEN SINIF FİLTRESİ =====
     // Öğretmen sadece atandığı sınıfların öğrencilerini görür
     ogrenciList = ogrenciListeyiRoleGoreFiltrele(ogrenciList);
@@ -21208,13 +21212,6 @@ async function loadOgrenciler() {
     updateStats();
     updateDurumSayaclari();
     if (typeof topluYenileButonGorunurluk === "function") topluYenileButonGorunurluk();
-
-    // Veriler geldi → Özet (ana sayfa) açıksa yeniden çiz (ilk açılışta boş render ediliyordu)
-    try {
-      const anasayfaPanel = document.getElementById("tab-anasayfa");
-      const anasayfaAcik = anasayfaPanel && anasayfaPanel.classList.contains("active");
-      if (anasayfaAcik && typeof renderAdminHome === "function") renderAdminHome();
-    } catch (e) { console.warn("Özet yeniden çizilemedi:", e); }
   } catch (e) {
     console.error(e);
     wrap.innerHTML = `<div class="empty"><h3>Hata oluştu</h3><p>${e.message}</p></div>`;
