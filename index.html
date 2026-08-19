@@ -12831,6 +12831,13 @@ i[data-lucide] svg { display: block; }
               <small>Yeni sekmede göster</small>
             </div>
           </button>
+          <button class="btn-cikti" onclick="odemePlaniPDFCiktisi()" style="border-color:#c4b5fd; background:#faf5ff;">
+            <div class="btn-cikti-icon"><i data-lucide="calendar-days" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
+            <div class="btn-cikti-content">
+              <strong>Ödeme Planı PDF</strong>
+              <small>Aylık ödeme takvimi</small>
+            </div>
+          </button>
         </div>
 
         <div class="cikti-bilgi-karti">
@@ -37821,6 +37828,123 @@ function trObj(o) {
   return o;
 }
 
+// ============ ÖDEME PLANI PDF ÇIKTISI (aylık ödeme takvimi) ============
+window.odemePlaniPDFCiktisi = async function() {
+  try {
+    if (!currentOgrenci) { showToast("Önce bir öğrenci seçin", "error"); return; }
+    if (typeof window.jspdf === "undefined") { showToast("PDF kütüphanesi yüklenemedi", "error"); return; }
+    showToast("Ödeme planı hazırlanıyor...");
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const margin = 15;
+    const pageW = pdf.internal.pageSize.getWidth();
+    const contentW = pageW - margin * 2;
+
+    const tr = (s) => String(s == null ? "" : s)
+      .replace(/ı/g,"i").replace(/İ/g,"I").replace(/ş/g,"s").replace(/Ş/g,"S")
+      .replace(/ğ/g,"g").replace(/Ğ/g,"G").replace(/ü/g,"u").replace(/Ü/g,"U")
+      .replace(/ö/g,"o").replace(/Ö/g,"O").replace(/ç/g,"c").replace(/Ç/g,"C");
+    const formatTL = (n) => (Math.round(Number(n) || 0)).toLocaleString("tr-TR") + " TL";
+
+    const ogrAd = currentOgrenci.ogrenciAdSoyad || currentOgrenci.adSoyad || "Ogrenci";
+    const sinif = currentOgrenci.sinif || "";
+    const a = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aidatAyarlari) || {};
+    const aylikOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
+
+    // Modaldan güncel değerleri de oku (kaydedilmemiş olabilir)
+    const aidat = (parseFloat(document.getElementById("ayarAidat")?.value)) || Number(a.aylikAidat) || 0;
+    const taksit = (parseInt(document.getElementById("ayarTaksit")?.value)) || Number(a.taksitSayisi) || 12;
+    const baslangic = (document.getElementById("ayarBaslangic")?.value) || a.baslangicAyi || "";
+    const onOdeme = (parseFloat(document.getElementById("ayarOnOdeme")?.value)) || Number(a.onOdeme) || 0;
+    const iDonemAylik = Number(a.iDonemAylik) || aidat;
+    const iiDonemAylik = Number(a.iiDonemAylik) || aidat;
+    const secilenTur = document.querySelector('input[name="ayarHesapTuru"]:checked')?.value;
+    const esitTaksit = (secilenTur === "esit") || (a.hesapTuru === "esit") || ((onOdeme <= 0) && (iDonemAylik === iiDonemAylik));
+
+    if (!baslangic || aidat <= 0) {
+      showToast("Aidat ayarlari eksik. Once aidat ve kayit ayini girin.", "error");
+      return;
+    }
+
+    let y = margin;
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(15);
+    pdf.text(tr("BIR CICEK KOLEJI ANAOKULU"), pageW/2, y, { align: "center" }); y += 6;
+    pdf.setFontSize(12);
+    pdf.text(tr((typeof AKTIF_DONEM !== "undefined" ? AKTIF_DONEM : "") + " Odeme Plani"), pageW/2, y, { align: "center" }); y += 8;
+
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
+    pdf.text(tr("Ogrenci: " + ogrAd + (sinif ? "  |  Sinif: " + sinif : "")), margin, y); y += 5;
+    pdf.text(tr("Plan Turu: " + (esitTaksit ? "Onodemesiz Esit Taksit" : "Onodemeli Erken Kayit")), margin, y); y += 5;
+    pdf.text(tr("Aylik Aidat: " + formatTL(aidat) + "  |  Taksit: " + taksit + " ay"), margin, y); y += 7;
+
+    const ayListesi = (typeof getAyListesi === "function") ? getAyListesi(baslangic, taksit) : [];
+    const rows = [];
+    let toplamBeklenen = 0, toplamOdenen = 0;
+
+    if (onOdeme > 0) {
+      const onOd = aylikOdemeler["__onOdeme"] || {};
+      const odenen = parseFloat(onOd.odenenTutar) || (onOd.odendi ? onOdeme : 0);
+      toplamBeklenen += onOdeme; toplamOdenen += odenen;
+      rows.push(["Pesinat / On Odeme", formatTL(onOdeme), formatTL(odenen), onOd.odendi ? "Odendi" : "Bekliyor"]);
+    }
+
+    ayListesi.forEach(ay => {
+      const od = aylikOdemeler[ay.ayKod] || {};
+      let beklenen;
+      if (od.beklenenTutar !== undefined && od.beklenenTutar !== null && od.beklenenTutar !== "") {
+        beklenen = parseFloat(od.beklenenTutar);
+      } else if (esitTaksit) {
+        beklenen = Math.round((aidat * taksit) / taksit / 100) * 100;
+      } else {
+        beklenen = (ay.ay >= 9 || ay.ay <= 1) ? iDonemAylik : iiDonemAylik;
+      }
+      const odenen = parseFloat(od.odenenTutar) || 0;
+      const durum = od.odendi ? "Odendi" : (odenen > 0 ? "Kismi" : "Bekliyor");
+      toplamBeklenen += beklenen; toplamOdenen += odenen;
+      rows.push([tr(ay.tam), formatTL(beklenen), formatTL(odenen), durum]);
+    });
+
+    pdf.autoTable({
+      startY: y,
+      head: [["Donem", "Beklenen", "Odenen", "Durum"]],
+      body: rows,
+      theme: "grid",
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor: [109, 40, 217], textColor: [255,255,255], fontStyle: "bold" },
+      columnStyles: {
+        0: { cellWidth: contentW * 0.40 },
+        1: { cellWidth: contentW * 0.22, halign: "right" },
+        2: { cellWidth: contentW * 0.22, halign: "right" },
+        3: { cellWidth: contentW * 0.16, halign: "center" }
+      },
+      foot: [[
+        { content: "TOPLAM", styles: { fontStyle: "bold", fillColor: [240,240,240] } },
+        { content: formatTL(toplamBeklenen), styles: { fontStyle: "bold", halign: "right", fillColor: [240,240,240] } },
+        { content: formatTL(toplamOdenen), styles: { fontStyle: "bold", halign: "right", fillColor: [240,240,240] } },
+        { content: "", styles: { fillColor: [240,240,240] } }
+      ]],
+      margin: { left: margin, right: margin }
+    });
+
+    y = pdf.lastAutoTable.finalY + 6;
+    const kalan = toplamBeklenen - toplamOdenen;
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(11);
+    pdf.text(tr("Kalan Bakiye: " + formatTL(kalan)), margin, y); y += 8;
+
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
+    pdf.setTextColor(120,120,120);
+    pdf.text(tr("Bu plan bilgilendirme amaclidir. Cikti tarihi: " + new Date().toLocaleString("tr-TR")), margin, y);
+
+    const dosyaAd = tr("Odeme_Plani_" + ogrAd.replace(/\s+/g, "_")) + ".pdf";
+    pdf.save(dosyaAd);
+    showToast("✓ Odeme plani indirildi");
+  } catch (e) {
+    console.error("Ödeme planı PDF hatası:", e);
+    showToast("Odeme plani olusturulamadi: " + e.message, "error");
+  }
+};
+
 window.sozlesmeCiktiPDF = async function() {
   try {
     showToast("PDF hazirlaniyor...");
@@ -39057,9 +39181,9 @@ window.aidatOtomatikDoldur = function() {
   showToast(`✓ ${turAd} hesaplandı`);
   alert(`🧮 ${turAd}\n\nAylık Aidat: ${aylik.toLocaleString("tr-TR")} TL\nYıllık Toplam: ${yillikToplam.toLocaleString("tr-TR")} TL\n─────────────\n${ozet}\n─────────────\n⚠️ "Ayarları Kaydet" butonuna basmayı unutmayın.`);
 
-  // Aylık kartları yenile (varsa)
-  if (typeof aidatAylikKartlariRender === "function") aidatAylikKartlariRender();
-  else if (typeof ayarModalAylikGuncelle === "function") ayarModalAylikGuncelle();
+  // Aylık ödeme kartlarını yenile (bellekteki yeni değerlerle)
+  if (typeof renderAylikOdeme === "function") renderAylikOdeme();
+  if (window.lucideYenile) window.lucideYenile();
 };
 
 window.donemFarkiHesaplaOtomatik = function() {
