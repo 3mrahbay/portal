@@ -37837,7 +37837,7 @@ window.odemePlaniPDFCiktisi = async function() {
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const margin = 15;
+    const margin = 16;
     const pageW = pdf.internal.pageSize.getWidth();
     const contentW = pageW - margin * 2;
 
@@ -37845,99 +37845,178 @@ window.odemePlaniPDFCiktisi = async function() {
       .replace(/ı/g,"i").replace(/İ/g,"I").replace(/ş/g,"s").replace(/Ş/g,"S")
       .replace(/ğ/g,"g").replace(/Ğ/g,"G").replace(/ü/g,"u").replace(/Ü/g,"U")
       .replace(/ö/g,"o").replace(/Ö/g,"O").replace(/ç/g,"c").replace(/Ç/g,"C");
-    const formatTL = (n) => (Math.round(Number(n) || 0)).toLocaleString("tr-TR") + " TL";
+    const fTL = (n) => (Math.round(Number(n) || 0)).toLocaleString("tr-TR") + " TL";
 
-    const ogrAd = currentOgrenci.ogrenciAdSoyad || currentOgrenci.adSoyad || "Ogrenci";
+    // ---- VERİ ----
+    const ogrAd = currentOgrenci.ogrenciAdSoyad || currentOgrenci.adSoyad || "";
     const sinif = currentOgrenci.sinif || "";
-    const a = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aidatAyarlari) || {};
-    const aylikOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
+    const ayarObj = (ayarListesi[currentOgrenci.id]) || {};
+    const a = ayarObj.aidatAyarlari || {};
+    const aylikOdemeler = ayarObj.aylikOdemeler || {};
+    const program = a.programTuru || currentOgrenci.programTuru || "Tam Gun";
+    const veliAd = (ayarObj.anne && ayarObj.anne.adSoyad) || (ayarObj.baba && ayarObj.baba.adSoyad)
+                 || (ayarObj.veli && ayarObj.veli.adSoyad) || currentOgrenci.veliAdi || "-";
 
-    // Modaldan güncel değerleri de oku (kaydedilmemiş olabilir)
-    const aidat = (parseFloat(document.getElementById("ayarAidat")?.value)) || Number(a.aylikAidat) || 0;
-    const taksit = (parseInt(document.getElementById("ayarTaksit")?.value)) || Number(a.taksitSayisi) || 12;
-    const baslangic = (document.getElementById("ayarBaslangic")?.value) || a.baslangicAyi || "";
-    const onOdeme = (parseFloat(document.getElementById("ayarOnOdeme")?.value)) || Number(a.onOdeme) || 0;
+    const gv = (id) => document.getElementById(id)?.value;
+    const aidat = parseFloat(gv("ayarAidat")) || Number(a.aylikAidat) || 0;
+    const taksit = parseInt(gv("ayarTaksit")) || Number(a.taksitSayisi) || 10;
+    const baslangic = gv("ayarBaslangic") || a.baslangicAyi || "";
+    const onOdeme = parseFloat(gv("ayarOnOdeme")) || Number(a.onOdeme) || 0;
     const iDonemAylik = Number(a.iDonemAylik) || aidat;
     const iiDonemAylik = Number(a.iiDonemAylik) || aidat;
-    const secilenTur = document.querySelector('input[name="ayarHesapTuru"]:checked')?.value;
-    const esitTaksit = (secilenTur === "esit") || (a.hesapTuru === "esit") || ((onOdeme <= 0) && (iDonemAylik === iiDonemAylik));
+    const secTur = document.querySelector('input[name="ayarHesapTuru"]:checked')?.value;
+    const esitTaksit = (secTur === "esit") || (a.hesapTuru === "esit")
+                    || ((onOdeme <= 0) && (iDonemAylik === iiDonemAylik));
 
-    if (!baslangic || aidat <= 0) {
-      showToast("Aidat ayarlari eksik. Once aidat ve kayit ayini girin.", "error");
-      return;
-    }
+    if (!baslangic || aidat <= 0) { showToast("Aidat ve kayit ayi bilgisi eksik", "error"); return; }
 
+    // ---- BAŞLIK + LOGO ----
     let y = margin;
-    pdf.setFont("helvetica", "bold"); pdf.setFontSize(15);
-    pdf.text(tr("BIR CICEK KOLEJI ANAOKULU"), pageW/2, y, { align: "center" }); y += 6;
-    pdf.setFontSize(12);
-    pdf.text(tr((typeof AKTIF_DONEM !== "undefined" ? AKTIF_DONEM : "") + " Odeme Plani"), pageW/2, y, { align: "center" }); y += 8;
+    try {
+      if (typeof LOGO_OKUL_BASE64 !== "undefined") pdf.addImage(LOGO_OKUL_BASE64, "PNG", margin, y - 2, 22, 22);
+    } catch(e) {}
 
-    pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
-    pdf.text(tr("Ogrenci: " + ogrAd + (sinif ? "  |  Sinif: " + sinif : "")), margin, y); y += 5;
-    pdf.text(tr("Plan Turu: " + (esitTaksit ? "Onodemesiz Esit Taksit" : "Onodemeli Erken Kayit")), margin, y); y += 5;
-    pdf.text(tr("Aylik Aidat: " + formatTL(aidat) + "  |  Taksit: " + taksit + " ay"), margin, y); y += 7;
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(14); pdf.setTextColor(30,30,30);
+    pdf.text(tr("OZEL BIR CICEK KOLEJI ANAOKULU"), pageW/2, y + 5, { align: "center" });
+    pdf.setFontSize(11.5);
+    pdf.text(tr("ODEME PLANI"), pageW/2, y + 11, { align: "center" });
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.setTextColor(90,90,90);
+    const donemAd = (typeof AKTIF_DONEM !== "undefined" ? AKTIF_DONEM : "");
+    pdf.text(tr(donemAd + " Egitim ve Ogretim Yili"), pageW/2, y + 16.5, { align: "center" });
+    y += 24;
+    pdf.setDrawColor(200,200,200); pdf.setLineWidth(0.3);
+    pdf.line(margin, y, pageW - margin, y); y += 6;
 
+    // ---- ÖĞRENCİ BİLGİ TABLOSU ----
+    const planTuruAd = esitTaksit ? "Normal Kayit (esit odeme)" : "Erken Kayit (on odemeli)";
+    pdf.autoTable({
+      startY: y,
+      body: [
+        ["Ogrenci", tr(ogrAd)],
+        ["Sinif / Program", tr(sinif + "  /  " + program)],
+        ["Veli", tr(veliAd)],
+        ["Odeme Plani", tr(planTuruAd)]
+      ],
+      theme: "grid",
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 2.2, lineColor: [215,215,215], lineWidth: 0.2 },
+      columnStyles: {
+        0: { cellWidth: contentW * 0.28, fontStyle: "bold", fillColor: [250,250,250], textColor: [60,60,60] },
+        1: { cellWidth: contentW * 0.72 }
+      },
+      margin: { left: margin, right: margin }
+    });
+    y = pdf.lastAutoTable.finalY + 6;
+
+    // ---- ÖDEME SATIRLARI ----
     const ayListesi = (typeof getAyListesi === "function") ? getAyListesi(baslangic, taksit) : [];
     const rows = [];
-    let toplamBeklenen = 0, toplamOdenen = 0;
+    let toplamTaksit = 0;
 
     if (onOdeme > 0) {
       const onOd = aylikOdemeler["__onOdeme"] || {};
-      const odenen = parseFloat(onOd.odenenTutar) || (onOd.odendi ? onOdeme : 0);
-      toplamBeklenen += onOdeme; toplamOdenen += odenen;
-      rows.push(["Pesinat / On Odeme", formatTL(onOdeme), formatTL(odenen), onOd.odendi ? "Odendi" : "Bekliyor"]);
+      rows.push(["-", "Pesinat / On Odeme", fTL(onOdeme), onOd.odendi ? "Odendi" : "Bekliyor"]);
     }
-
-    ayListesi.forEach(ay => {
+    ayListesi.forEach((ay, i) => {
       const od = aylikOdemeler[ay.ayKod] || {};
-      let beklenen;
+      let tutar;
       if (od.beklenenTutar !== undefined && od.beklenenTutar !== null && od.beklenenTutar !== "") {
-        beklenen = parseFloat(od.beklenenTutar);
-      } else if (esitTaksit) {
-        beklenen = Math.round((aidat * taksit) / taksit / 100) * 100;
+        tutar = parseFloat(od.beklenenTutar);
       } else {
-        beklenen = (ay.ay >= 9 || ay.ay <= 1) ? iDonemAylik : iiDonemAylik;
+        tutar = (ay.ay >= 9 || ay.ay <= 1) ? iDonemAylik : iiDonemAylik;
       }
-      const odenen = parseFloat(od.odenenTutar) || 0;
-      const durum = od.odendi ? "Odendi" : (odenen > 0 ? "Kismi" : "Bekliyor");
-      toplamBeklenen += beklenen; toplamOdenen += odenen;
-      rows.push([tr(ay.tam), formatTL(beklenen), formatTL(odenen), durum]);
+      toplamTaksit += tutar;
+      const durum = od.odendi ? "Odendi" : ((parseFloat(od.odenenTutar) || 0) > 0 ? "Kismi" : "Bekliyor");
+      rows.push([String(i + 1), tr(ay.tam), fTL(tutar), durum]);
     });
 
     pdf.autoTable({
       startY: y,
-      head: [["Donem", "Beklenen", "Odenen", "Durum"]],
+      head: [["#", "Donem", "Tutar", "Durum"]],
       body: rows,
       theme: "grid",
-      styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5 },
-      headStyles: { fillColor: [109, 40, 217], textColor: [255,255,255], fontStyle: "bold" },
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 2.2, lineColor: [215,215,215], lineWidth: 0.2 },
+      headStyles: { fillColor: [58, 104, 74], textColor: [255,255,255], fontStyle: "bold", halign: "left" },
       columnStyles: {
-        0: { cellWidth: contentW * 0.40 },
-        1: { cellWidth: contentW * 0.22, halign: "right" },
-        2: { cellWidth: contentW * 0.22, halign: "right" },
-        3: { cellWidth: contentW * 0.16, halign: "center" }
+        0: { cellWidth: contentW * 0.08, halign: "center", textColor: [120,120,120] },
+        1: { cellWidth: contentW * 0.52 },
+        2: { cellWidth: contentW * 0.22, halign: "right", fontStyle: "bold" },
+        3: { cellWidth: contentW * 0.18, halign: "center", textColor: [110,110,110] }
       },
-      foot: [[
-        { content: "TOPLAM", styles: { fontStyle: "bold", fillColor: [240,240,240] } },
-        { content: formatTL(toplamBeklenen), styles: { fontStyle: "bold", halign: "right", fillColor: [240,240,240] } },
-        { content: formatTL(toplamOdenen), styles: { fontStyle: "bold", halign: "right", fillColor: [240,240,240] } },
-        { content: "", styles: { fillColor: [240,240,240] } }
-      ]],
       margin: { left: margin, right: margin }
     });
-
     y = pdf.lastAutoTable.finalY + 6;
-    const kalan = toplamBeklenen - toplamOdenen;
-    pdf.setFont("helvetica", "bold"); pdf.setFontSize(11);
-    pdf.text(tr("Kalan Bakiye: " + formatTL(kalan)), margin, y); y += 8;
 
-    pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
-    pdf.setTextColor(120,120,120);
-    pdf.text(tr("Bu plan bilgilendirme amaclidir. Cikti tarihi: " + new Date().toLocaleString("tr-TR")), margin, y);
+    // ---- DİĞER ÜCRETLER ----
+    const dLabels = {
+      egitimMateryali: "Egitim Materyali", okulKiyafeti: "Okul Kiyafeti",
+      ormanKiyafeti: "Orman Kiyafeti", servis1: "Servis (I. Donem)", servis2: "Servis (II. Donem)"
+    };
+    const dUcret = ayarObj.digerUcretler || a.digerUcretler || {};
+    const dRows = []; let dToplam = 0, ilanEdilmeyen = 0;
+    Object.keys(dLabels).forEach(k => {
+      const v = Number(dUcret[k]?.tutar ?? dUcret[k]) || 0;
+      if (v > 0) { dToplam += v; dRows.push([tr(dLabels[k]), fTL(v)]); }
+      else { ilanEdilmeyen++; dRows.push([tr(dLabels[k]), "Henuz ilan edilmedi"]); }
+    });
 
-    const dosyaAd = tr("Odeme_Plani_" + ogrAd.replace(/\s+/g, "_")) + ".pdf";
-    pdf.save(dosyaAd);
+    if (dRows.length) {
+      pdf.autoTable({
+        startY: y,
+        head: [[{ content: tr("DIGER UCRETLER  (egitim ucretine dahil degildir)"), colSpan: 2, styles: { halign: "center" } }]],
+        body: dRows,
+        theme: "grid",
+        styles: { font: "helvetica", fontSize: 8.5, cellPadding: 2, lineColor: [215,215,215], lineWidth: 0.2 },
+        headStyles: { fillColor: [110, 110, 110], textColor: [255,255,255], fontStyle: "bold" },
+        columnStyles: {
+          0: { cellWidth: contentW * 0.70 },
+          1: { cellWidth: contentW * 0.30, halign: "right" }
+        },
+        margin: { left: margin, right: margin }
+      });
+      y = pdf.lastAutoTable.finalY + 6;
+    }
+
+    // ---- AÇIKLAMALAR ----
+    const egitimToplam = onOdeme + toplamTaksit;
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(9); pdf.setTextColor(58,104,74);
+    pdf.text(tr("Aciklamalar"), margin, y); y += 5;
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(8); pdf.setTextColor(70,70,70);
+
+    const notlar = [];
+    if (onOdeme > 0) {
+      notlar.push(`Egitim ucreti toplami ${fTL(egitimToplam)}'dir: ${fTL(onOdeme)} pesinat ve ${taksit} taksit halinde ${fTL(toplamTaksit)}.`);
+    } else {
+      notlar.push(`Egitim ucreti toplami ${fTL(egitimToplam)}'dir: ${taksit} esit taksit halinde odenir.`);
+    }
+    if (dRows.length) {
+      notlar.push(`Ilan edilen diger ucretler toplami ${fTL(dToplam)}'dir${ilanEdilmeyen > 0 ? `; ${ilanEdilmeyen} kalem henuz ilan edilmemistir` : ""}. Bu tutar egitim ucretinden ayridir.`);
+    }
+    notlar.push("Odemeler her ayin 1-5'i (serbest meslek) veya 15-20'si (memur) arasinda yapilir.");
+    notlar.push(`Tutarlar ${donemAd} egitim ve ogretim yili icindir. Bu belge bilgilendirme amaclidir; resmi hukumler imzalanan kayit sozlesmesinde yer alir.`);
+
+    notlar.forEach(n => {
+      const satirlar = pdf.splitTextToSize(tr("• " + n), contentW - 2);
+      satirlar.forEach(s => { pdf.text(s, margin + 1, y); y += 4; });
+      y += 0.8;
+    });
+
+    // ---- İMZA ----
+    y = Math.max(y + 14, pdf.internal.pageSize.getHeight() - 42);
+    pdf.setFontSize(8.5); pdf.setTextColor(70,70,70);
+    pdf.text(tr("Duzenleme Tarihi: " + new Date().toLocaleDateString("tr-TR")), margin, y);
+    y += 16;
+    const sol = margin + contentW * 0.18, sag = margin + contentW * 0.72;
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(9); pdf.setTextColor(40,40,40);
+    pdf.text(tr("Okul Yetkilisi"), sol, y, { align: "center" });
+    pdf.text(tr("Veli"), sag, y, { align: "center" });
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(8); pdf.setTextColor(130,130,130);
+    pdf.text(tr("Ad Soyad / Imza"), sol, y + 4.5, { align: "center" });
+    pdf.text(tr("Ad Soyad / Imza"), sag, y + 4.5, { align: "center" });
+    pdf.setDrawColor(150,150,150); pdf.setLineWidth(0.3);
+    pdf.line(sol - 28, y + 10, sol + 28, y + 10);
+    pdf.line(sag - 28, y + 10, sag + 28, y + 10);
+
+    pdf.save(tr("Odeme-Plani_" + ogrAd.replace(/\s+/g, "-")) + ".pdf");
     showToast("✓ Odeme plani indirildi");
   } catch (e) {
     console.error("Ödeme planı PDF hatası:", e);
