@@ -19111,23 +19111,39 @@ function yonetimHomeHTML(ad) {
       </div>`;
 
   // 2) Son kayıt olan öğrenciler (onayTarihi'ne göre)
+  // Son kayıt olan öğrenciler — en yeni en üstte (birden çok tarih alanı denenir)
+  const _tarihAl = (v) => {
+    if (!v) return "";
+    if (typeof v === "string") return v;
+    if (v.seconds) return new Date(v.seconds * 1000).toISOString();      // Firestore Timestamp
+    if (v.toDate) { try { return v.toDate().toISOString(); } catch(e) { return ""; } }
+    return "";
+  };
   const sonKayitlar = aktifOgrenciler
     .map(o => {
       const ayar = ayarListesi[o.id] || {};
-      return { o, t: ayar.onayTarihi || "", veli: (ayar.anne && ayar.anne.adSoyad) || (ayar.veli && ayar.veli.adSoyad) || o.veliAdi || "" };
+      const kayit = ayar.kayit || {};
+      const t = _tarihAl(ayar.onayTarihi) || _tarihAl(kayit.kayitTarihi) || _tarihAl(ayar.olusturulma)
+             || _tarihAl(ayar.kayitTarihi) || _tarihAl(o.kayitTarihi) || _tarihAl(o.olusturulma)
+             || _tarihAl(o.okulaKayitTarihi) || "";
+      return {
+        o, t,
+        sinif: (kayit.sinif || o.sinif || o.sinifi || ""),
+        veli: (ayar.anne && ayar.anne.adSoyad) || (ayar.baba && ayar.baba.adSoyad) || (ayar.veli && ayar.veli.adSoyad) || o.veliAdi || ""
+      };
     })
     .filter(x => x.t)
     .sort((a, b) => b.t.localeCompare(a.t))
-    .slice(0, 3);
+    .slice(0, 6);
   const sonKayitlarHTML = sonKayitlar.length === 0
     ? `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Kayıt tarihi verisi bulunamadı.</div>`
     : sonKayitlar.map(x => {
         const trh = x.t.substring(0, 10).split("-").reverse().join(".");
         return `<div style="display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid rgba(26,46,31,0.06);">
-          <div style="width:38px; height:38px; border-radius:12px; background:#E9EBF4; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--c-green); font-family:var(--font-display);">${(x.o.adSoyad || "?").charAt(0)}</div>
+          <div style="width:38px; height:38px; border-radius:12px; background:#E9EBF4; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--c-green); font-family:var(--font-display);">${((x.o.ogrenciAdSoyad || x.o.adSoyad || "?").charAt(0)).toUpperCase()}</div>
           <div style="flex:1; min-width:0;">
-            <div style="font-weight:700; color:var(--c-ink); font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(x.o.adSoyad || "İsimsiz").replace(/</g,"&lt;")}</div>
-            <div style="font-size:11.5px; color:var(--c-muted);">${(x.o.sinif || "Sınıf atanmadı").replace(/</g,"&lt;")}${x.veli ? " · " + x.veli.replace(/</g,"&lt;") : ""}</div>
+            <div style="font-weight:700; color:var(--c-ink); font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(x.o.ogrenciAdSoyad || x.o.adSoyad || "İsimsiz").replace(/</g,"&lt;")}</div>
+            <div style="font-size:11.5px; color:var(--c-muted);">${(x.sinif || "Sınıf atanmadı").replace(/</g,"&lt;")}${x.veli ? " · " + x.veli.replace(/</g,"&lt;") : ""}</div>
           </div>
           <div style="font-size:11px; color:var(--c-muted); white-space:nowrap;">${trh}</div>
         </div>`;
@@ -25056,16 +25072,20 @@ function ozlukPersonelAd(email) {
 
 // ── 1) ANLIK DURUM ─────────────────────────────────────────────────
 async function ozlukDurumCiz() {
-  document.getElementById("ozlukAraclar").innerHTML =
-    `<div style="font-size:12.5px; color:var(--c-muted,#64748B);">Bugün: ${new Date().toLocaleDateString("tr-TR")}</div>`;
+  const kap = document.getElementById("ozlukIcerik");
+  if (!kap) return;
+  document.getElementById("ozlukAraclar").innerHTML = `
+    <button onclick="ozlukDurumCiz()" style="padding:8px 13px; border:1px solid var(--c-line,#E2E8F0); background:#fff; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600;">
+      <i data-lucide="refresh-cw" style="width:13px;height:13px;vertical-align:-2px;"></i> Yenile</button>
+    <span style="font-size:11.5px; color:#94A3B8;">Son güncelleme: ${new Date().toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"})}</span>`;
 
+  // ---- VERİ ----
   const durumlar = {};
   try {
     const snap = await getDocs(collection(db, "personelDurum"));
     snap.forEach(d => { durumlar[(d.id || "").toLowerCase()] = d.data(); });
   } catch (e) { console.warn("personelDurum", e); }
 
-  // Bugünün hareketleri
   const hareket = {};
   try {
     const q = query(collection(db, "puantaj"), where("tarih", "==", ozlukBugun()));
@@ -25078,56 +25098,186 @@ async function ozlukDurumCiz() {
     Object.keys(hareket).forEach(e => hareket[e].sort((a, b) => new Date(a.zaman) - new Date(b.zaman)));
   } catch (e) { console.warn("puantaj", e); }
 
-  const say = { iceride: 0, molada: 0, disarida: 0 };
-  ozlukPersoneller.forEach(p => {
-    const d = durumlar[(p.email || "").toLowerCase()];
-    const durum = (d && d.durum) || "disarida";
-    say[durum] = (say[durum] || 0) + 1;
+  // Bugün izinli olanlar
+  const izinliler = {};
+  try {
+    const snap = await getDocs(collection(db, "izinTalepleri"));
+    const bugun = ozlukBugun();
+    snap.forEach(d => {
+      const v = d.data();
+      if ((v.durum || "").toLowerCase() !== "onaylandi" && (v.durum || "").toLowerCase() !== "onaylandı") return;
+      const bas = (v.baslangic || "").substring(0, 10);
+      const bit = (v.bitis || v.baslangic || "").substring(0, 10);
+      if (bas && bit && bugun >= bas && bugun <= bit) {
+        izinliler[(v.personelEmail || "").toLowerCase()] = v;
+      }
+    });
+  } catch (e) { console.warn("izinTalepleri", e); }
+
+  // ---- HESAPLAMALAR ----
+  const simdi = new Date();
+  const dk = (ms) => Math.max(0, Math.round(ms / 60000));
+  const sureMetin = (dakika) => {
+    if (dakika < 60) return dakika + " dk";
+    const s = Math.floor(dakika / 60), k = dakika % 60;
+    return k > 0 ? `${s} sa ${k} dk` : `${s} sa`;
+  };
+
+  // Her personel için bugünkü çalışma/mola süresi
+  const personelVeri = ozlukPersoneller.map(p => {
+    const e = (p.email || "").toLowerCase();
+    const h = hareket[e] || [];
+    const d = durumlar[e];
+    let durum = (d && d.durum) || "disarida";
+    if (izinliler[e]) durum = "izinli";
+
+    let calismaMs = 0, molaMs = 0, molaSayisi = 0;
+    let acikGiris = null, acikMola = null;
+    h.forEach(x => {
+      const t = new Date(x.zaman);
+      if (x.tip === "giris") acikGiris = t;
+      else if (x.tip === "cikis" && acikGiris) { calismaMs += t - acikGiris; acikGiris = null; }
+      else if (x.tip === "mola-basla") { acikMola = t; molaSayisi++; }
+      else if (x.tip === "mola-bitir" && acikMola) { molaMs += t - acikMola; acikMola = null; }
+    });
+    // Devam edenler
+    if (acikGiris) calismaMs += simdi - acikGiris;
+    if (acikMola) molaMs += simdi - acikMola;
+    const netCalisma = Math.max(0, calismaMs - molaMs);
+
+    const ilkGiris = h.find(x => x.tip === "giris");
+    const sonHareket = h.length ? h[h.length - 1] : null;
+    // Mola başlangıcı (devam eden)
+    const molaBaslangic = acikMola;
+
+    return {
+      p, e, h, durum,
+      ad: p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email,
+      rol: p.rol || p.unvan || "",
+      ilkGirisSaat: ilkGiris ? ozlukSaat(ilkGiris.zaman) : null,
+      sonHareketSaat: sonHareket ? ozlukSaat(sonHareket.zaman) : (d && d.sonZaman ? ozlukSaat(d.sonZaman) : null),
+      netCalismaDk: dk(netCalisma),
+      molaDk: dk(molaMs),
+      molaSayisi,
+      molaBaslangic,
+      molaSuresiDk: molaBaslangic ? dk(simdi - molaBaslangic) : 0,
+      izinBilgi: izinliler[e] || null
+    };
   });
 
-  const kutu = (ad, deger, renk) =>
-    `<div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:12px; padding:12px 14px;">
-       <div style="font-size:11px; font-weight:700; color:var(--c-muted,#64748B); text-transform:uppercase; letter-spacing:.4px;">${ad}</div>
-       <div style="font-size:22px; font-weight:700; color:${renk}; margin-top:3px;">${deger}</div></div>`;
+  const say = { iceride: 0, molada: 0, disarida: 0, izinli: 0 };
+  personelVeri.forEach(v => { say[v.durum] = (say[v.durum] || 0) + 1; });
+  const toplam = personelVeri.length || 1;
 
-  document.getElementById("ozlukIcerik").innerHTML = `
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:14px;">
-      ${kutu("Toplam personel", ozlukPersoneller.length, "#2B3674")}
-      ${kutu("İçeride", say.iceride, "#065F46")}
-      ${kutu("Molada", say.molada, "#92400E")}
-      ${kutu("Dışarıda", say.disarida, "#64748B")}
-    </div>
-    <div style="overflow-x:auto; background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px;">
-      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
-        <thead><tr style="background:#F8FAFC; text-align:left;">
-          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Personel</th>
-          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Durum</th>
-          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">İlk Giriş</th>
-          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Son Hareket</th>
-          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Bugünkü Hareket</th>
-        </tr></thead>
-        <tbody>
-          ${ozlukPersoneller.map(p => {
-            const e = (p.email || "").toLowerCase();
-            const d = durumlar[e];
-            const durum = (d && d.durum) || "disarida";
-            const bilgi = OZLUK_DURUM_AD[durum] || OZLUK_DURUM_AD.disarida;
-            const h = hareket[e] || [];
-            const ilkGiris = h.find(x => x.tip === "giris");
-            return `<tr style="border-top:1px solid var(--c-line,#E2E8F0);">
-              <td style="padding:11px 14px;">
-                <div style="font-weight:700; color:#1E293B;">${escapeHtml(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email)}</div>
-                <div style="font-size:12px; color:#64748B;">${escapeHtml(p.rol || p.unvan || "")}</div>
-              </td>
-              <td style="padding:11px 14px;"><span style="background:${bilgi.bg}; color:${bilgi.yazi}; padding:3px 10px; border-radius:11px; font-size:11.5px; font-weight:700;">${bilgi.ad}</span></td>
-              <td style="padding:11px 14px; color:#475569;">${ilkGiris ? ozlukSaat(ilkGiris.zaman) : "—"}</td>
-              <td style="padding:11px 14px; color:#475569;">${d && d.sonZaman ? ozlukSaat(d.sonZaman) : "—"}</td>
-              <td style="padding:11px 14px; color:#475569;">${h.length}</td>
-            </tr>`;
-          }).join("")}
-        </tbody>
-      </table>
+  // ---- ÜST KARTLAR (görsel oranlı) ----
+  const DURUM_STIL = {
+    iceride:  { ad: "Çalışıyor", renk: "#059669", bg: "#ECFDF5", ikon: "user-check" },
+    molada:   { ad: "Molada",    renk: "#D97706", bg: "#FFFBEB", ikon: "coffee" },
+    izinli:   { ad: "İzinli",    renk: "#7C3AED", bg: "#F5F3FF", ikon: "palmtree" },
+    disarida: { ad: "Dışarıda",  renk: "#64748B", bg: "#F8FAFC", ikon: "log-out" }
+  };
+  const kartHTML = Object.entries(DURUM_STIL).map(([k, s]) => {
+    const n = say[k] || 0;
+    const yuzde = Math.round((n / toplam) * 100);
+    return `<div style="background:${s.bg}; border:1px solid ${s.renk}22; border-radius:14px; padding:13px 15px;">
+      <div style="display:flex; align-items:center; gap:7px; margin-bottom:6px;">
+        <i data-lucide="${s.ikon}" style="width:15px;height:15px;color:${s.renk};"></i>
+        <span style="font-size:11px; font-weight:800; color:${s.renk}; text-transform:uppercase; letter-spacing:.5px;">${s.ad}</span>
+      </div>
+      <div style="font-size:26px; font-weight:800; color:${s.renk}; line-height:1;">${n}</div>
+      <div style="height:5px; background:${s.renk}1a; border-radius:100px; margin-top:8px; overflow:hidden;">
+        <div style="width:${yuzde}%; height:100%; background:${s.renk}; border-radius:100px;"></div>
+      </div>
+      <div style="font-size:10.5px; color:${s.renk}; opacity:.75; margin-top:4px;">%${yuzde} · ${personelVeri.length} kişiden</div>
     </div>`;
+  }).join("");
+
+  // ---- ŞU AN MOLADA OLANLAR (öne çıkan uyarı kartı) ----
+  const moladakiler = personelVeri.filter(v => v.durum === "molada").sort((a,b) => b.molaSuresiDk - a.molaSuresiDk);
+  const molaKart = moladakiler.length === 0 ? "" : `
+    <div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:14px; padding:14px 16px; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <i data-lucide="coffee" style="width:16px;height:16px;color:#B45309;"></i>
+        <strong style="font-size:13.5px; color:#92400E;">Şu an molada (${moladakiler.length} kişi)</strong>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        ${moladakiler.map(v => {
+          const uzun = v.molaSuresiDk > 45;
+          return `<div style="background:#fff; border:1px solid ${uzun ? "#FCA5A5" : "#FDE68A"}; border-radius:10px; padding:8px 12px; min-width:170px;">
+            <div style="font-weight:700; font-size:13px; color:#1E293B;">${escapeHtml(v.ad)}</div>
+            <div style="font-size:11.5px; color:${uzun ? "#DC2626" : "#B45309"}; font-weight:600; margin-top:2px;">
+              ${v.molaBaslangic ? ozlukSaat(v.molaBaslangic.toISOString()) : "—"}'den beri · ${sureMetin(v.molaSuresiDk)}${uzun ? " ⚠" : ""}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+
+  // ---- İZİNLİLER ----
+  const izinliListe = personelVeri.filter(v => v.durum === "izinli");
+  const izinKart = izinliListe.length === 0 ? "" : `
+    <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:14px; padding:14px 16px; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <i data-lucide="palmtree" style="width:16px;height:16px;color:#6D28D9;"></i>
+        <strong style="font-size:13.5px; color:#5B21B6;">Bugün izinli (${izinliListe.length} kişi)</strong>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        ${izinliListe.map(v => `<div style="background:#fff; border:1px solid #DDD6FE; border-radius:10px; padding:8px 12px;">
+          <div style="font-weight:700; font-size:13px; color:#1E293B;">${escapeHtml(v.ad)}</div>
+          <div style="font-size:11.5px; color:#6D28D9; margin-top:2px;">${escapeHtml((v.izinBilgi && (v.izinBilgi.tur || v.izinBilgi.izinTuru)) || "İzinli")}${v.izinBilgi && v.izinBilgi.bitis ? " · " + String(v.izinBilgi.bitis).substring(0,10).split("-").reverse().join(".") + "'e kadar" : ""}</div>
+        </div>`).join("")}
+      </div>
+    </div>`;
+
+  // ---- PERSONEL KARTLARI (zaman çizelgeli) ----
+  const siraDurum = { iceride: 0, molada: 1, izinli: 2, disarida: 3 };
+  const sirali = [...personelVeri].sort((a, b) => (siraDurum[a.durum] ?? 9) - (siraDurum[b.durum] ?? 9) || b.netCalismaDk - a.netCalismaDk);
+  const enUzunCalisma = Math.max(1, ...sirali.map(v => v.netCalismaDk));
+
+  const personelKartlari = sirali.map(v => {
+    const s = DURUM_STIL[v.durum] || DURUM_STIL.disarida;
+    const oran = Math.round((v.netCalismaDk / enUzunCalisma) * 100);
+    return `<div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-left:4px solid ${s.renk}; border-radius:12px; padding:12px 14px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+        <div style="width:34px; height:34px; border-radius:10px; background:${s.bg}; color:${s.renk}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">${escapeHtml((v.ad || "?").charAt(0).toUpperCase())}</div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:700; font-size:13.5px; color:#1E293B; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(v.ad)}</div>
+          <div style="font-size:11.5px; color:#64748B;">${escapeHtml(v.rol)}</div>
+        </div>
+        <span style="background:${s.bg}; color:${s.renk}; padding:3px 10px; border-radius:11px; font-size:11px; font-weight:800; white-space:nowrap;">${s.ad}</span>
+      </div>
+      <div style="height:6px; background:#F1F5F9; border-radius:100px; overflow:hidden; margin-bottom:7px;">
+        <div style="width:${oran}%; height:100%; background:${s.renk}; border-radius:100px;"></div>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:11.5px; color:#64748B;">
+        <span><i data-lucide="log-in" style="width:12px;height:12px;vertical-align:-2px;"></i> ${v.ilkGirisSaat || "—"}</span>
+        <span><i data-lucide="timer" style="width:12px;height:12px;vertical-align:-2px;"></i> <strong style="color:#1E293B;">${sureMetin(v.netCalismaDk)}</strong></span>
+        <span><i data-lucide="coffee" style="width:12px;height:12px;vertical-align:-2px;"></i> ${v.molaSayisi > 0 ? `${v.molaSayisi}× · ${sureMetin(v.molaDk)}` : "—"}</span>
+        <span style="margin-left:auto;"><i data-lucide="activity" style="width:12px;height:12px;vertical-align:-2px;"></i> ${v.sonHareketSaat || "—"}</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  kap.innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px;">
+      ${kartHTML}
+    </div>
+    ${molaKart}
+    ${izinKart}
+    <div style="display:flex; align-items:center; gap:8px; margin:16px 0 10px;">
+      <i data-lucide="users" style="width:15px;height:15px;color:#64748B;"></i>
+      <strong style="font-size:13px; color:#334155;">Personel Durumu</strong>
+      <span style="font-size:11.5px; color:#94A3B8;">· çubuklar bugünkü net çalışma süresini gösterir</span>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px;">
+      ${personelKartlari || `<div style="padding:24px; text-align:center; color:#94A3B8; font-size:13px;">Personel kaydı bulunamadı.</div>`}
+    </div>
+    <div style="margin-top:16px; padding:12px 14px; background:#F8FAFC; border-radius:12px; font-size:11.5px; color:#64748B;">
+      <i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i>
+      Süreler QR giriş-çıkış kayıtlarından hesaplanır. Net çalışma = toplam süre − mola. 45 dakikayı aşan molalar kırmızı işaretlenir.
+    </div>`;
+
+  if (window.lucideYenile) window.lucideYenile();
 }
 
 // ── 2) GİRİŞ-ÇIKIŞ KAYDI (QR LOG) ──────────────────────────────────
@@ -25261,49 +25411,145 @@ async function ozlukPuantajCiz() {
     snap.forEach(d => { const v = d.data(); if ((v.tarih || "").startsWith(ay)) kayitlar.push(v); });
   } catch (e) { console.warn("puantaj", e); }
 
-  // Personel × gün matrisi
+  // Onaylı izinler (ay içinde)
+  const izinGun = {};
+  try {
+    const snap = await getDocs(collection(db, "izinTalepleri"));
+    snap.forEach(d => {
+      const v = d.data();
+      const dur = (v.durum || "").toLowerCase();
+      if (dur !== "onaylandi" && dur !== "onaylandı") return;
+      const e = (v.personelEmail || "").toLowerCase();
+      const bas = new Date((v.baslangic || "").substring(0, 10));
+      const bit = new Date((v.bitis || v.baslangic || "").substring(0, 10));
+      if (isNaN(bas) || isNaN(bit)) return;
+      for (let t = new Date(bas); t <= bit; t.setDate(t.getDate() + 1)) {
+        const gun = t.toISOString().substring(0, 10);
+        if (gun.startsWith(ay)) izinGun[e] = (izinGun[e] || 0) + 1;
+      }
+    });
+  } catch (e) { console.warn("izinTalepleri", e); }
+
+  // Gün bazlı net süre hesabı (mola düşülür)
+  const gunNetDakika = (hareketler) => {
+    const h = [...hareketler].sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
+    let calisma = 0, mola = 0, aGiris = null, aMola = null;
+    h.forEach(x => {
+      const t = new Date(x.zaman);
+      if (x.tip === "giris") aGiris = t;
+      else if (x.tip === "cikis" && aGiris) { calisma += t - aGiris; aGiris = null; }
+      else if (x.tip === "mola-basla") aMola = t;
+      else if (x.tip === "mola-bitir" && aMola) { mola += t - aMola; aMola = null; }
+    });
+    return { net: Math.max(0, (calisma - mola) / 60000), mola: mola / 60000 };
+  };
+
+  // Personel × gün
   const ozet = {};
   kayitlar.forEach(k => {
     const e = (k.personelEmail || "").toLowerCase();
-    ozet[e] = ozet[e] || { gunler: {}, toplamDakika: 0 };
+    ozet[e] = ozet[e] || { gunler: {} };
     (ozet[e].gunler[k.tarih] = ozet[e].gunler[k.tarih] || []).push(k);
   });
-  Object.keys(ozet).forEach(e => {
-    Object.keys(ozet[e].gunler).forEach(g => {
-      const h = ozet[e].gunler[g].sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
-      const giris = h.find(x => x.tip === "giris");
-      const cikis = [...h].reverse().find(x => x.tip === "cikis");
-      if (giris && cikis) ozet[e].toplamDakika += Math.max(0, (new Date(cikis.zaman) - new Date(giris.zaman)) / 60000);
+
+  const bugunStr = ozlukBugun();
+  // Bu haftanın pazartesisi
+  const bg = new Date();
+  const gunIdx = (bg.getDay() + 6) % 7; // pazartesi = 0
+  const haftaBas = new Date(bg); haftaBas.setDate(bg.getDate() - gunIdx);
+  const haftaBasStr = haftaBas.toISOString().substring(0, 10);
+
+  const sureMetin = (dakika) => {
+    const d = Math.round(dakika);
+    if (d < 60) return d + " dk";
+    const s = Math.floor(d / 60), k = d % 60;
+    return k > 0 ? `${s}s ${k}dk` : `${s} sa`;
+  };
+
+  const satirlar = ozlukPersoneller.map(p => {
+    const e = (p.email || "").toLowerCase();
+    const gunler = (ozet[e] && ozet[e].gunler) || {};
+    let ayNet = 0, ayMola = 0, haftaNet = 0, gunNet = 0, calisilanGun = 0;
+    Object.keys(gunler).forEach(g => {
+      const r = gunNetDakika(gunler[g]);
+      if (r.net > 0) calisilanGun++;
+      ayNet += r.net; ayMola += r.mola;
+      if (g >= haftaBasStr) haftaNet += r.net;
+      if (g === bugunStr) gunNet += r.net;
     });
-  });
+    return {
+      ad: p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email,
+      rol: p.rol || p.unvan || "",
+      gunNet, haftaNet, ayNet, ayMola, calisilanGun,
+      izin: izinGun[e] || 0,
+      ortalama: calisilanGun > 0 ? ayNet / calisilanGun : 0
+    };
+  }).sort((a, b) => b.ayNet - a.ayNet);
+
+  const toplamAy = satirlar.reduce((s, x) => s + x.ayNet, 0);
+  const toplamHafta = satirlar.reduce((s, x) => s + x.haftaNet, 0);
+  const toplamGun = satirlar.reduce((s, x) => s + x.gunNet, 0);
+  const enUzun = Math.max(1, ...satirlar.map(x => x.ayNet));
+
+  const ustKart = (etiket, deger, renk, ikon) =>
+    `<div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-left:4px solid ${renk}; border-radius:12px; padding:12px 15px;">
+      <div style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:800; color:${renk}; text-transform:uppercase; letter-spacing:.5px;">
+        <i data-lucide="${ikon}" style="width:13px;height:13px;"></i> ${etiket}</div>
+      <div style="font-size:22px; font-weight:800; color:#1E293B; margin-top:5px;">${deger}</div>
+    </div>`;
 
   document.getElementById("ozlukIcerik").innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:14px;">
+      ${ustKart("Bugün toplam", sureMetin(toplamGun), "#059669", "sun")}
+      ${ustKart("Bu hafta toplam", sureMetin(toplamHafta), "#5A6ACF", "calendar-days")}
+      ${ustKart("Bu ay toplam", sureMetin(toplamAy), "#7C3AED", "calendar-range")}
+      ${ustKart("Personel", satirlar.length, "#64748B", "users")}
+    </div>
+
     <div style="overflow-x:auto; background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px;">
-      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
         <thead><tr style="background:#F8FAFC; text-align:left;">
-          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Personel</th>
-          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Çalışılan Gün</th>
-          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Toplam Süre</th>
-          <th style="padding:11px 14px; font-size:11.5px; text-transform:uppercase; color:#64748B;">Ortalama / Gün</th>
+          <th style="padding:11px 14px; font-size:11px; text-transform:uppercase; color:#64748B;">Personel</th>
+          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Bugün</th>
+          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Bu Hafta</th>
+          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Bu Ay (net)</th>
+          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:center;">Gün</th>
+          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Ort./Gün</th>
+          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Mola</th>
+          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:center;">İzin</th>
+          <th style="padding:11px 14px; font-size:11px; text-transform:uppercase; color:#64748B; width:110px;">Aylık Dağılım</th>
         </tr></thead>
         <tbody>
-          ${ozlukPersoneller.map(p => {
-            const e = (p.email || "").toLowerCase();
-            const o = ozet[e] || { gunler: {}, toplamDakika: 0 };
-            const gunSayi = Object.keys(o.gunler).length;
-            const saat = Math.floor(o.toplamDakika / 60), dk = Math.round(o.toplamDakika % 60);
-            const ort = gunSayi ? (o.toplamDakika / gunSayi) : 0;
-            return `<tr style="border-top:1px solid var(--c-line,#E2E8F0);">
-              <td style="padding:11px 14px; font-weight:700; color:#1E293B;">${escapeHtml(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email)}</td>
-              <td style="padding:11px 14px; color:#475569;">${gunSayi}</td>
-              <td style="padding:11px 14px; color:#475569;">${gunSayi ? saat + " sa " + dk + " dk" : "—"}</td>
-              <td style="padding:11px 14px; color:#475569;">${gunSayi ? Math.floor(ort / 60) + " sa " + Math.round(ort % 60) + " dk" : "—"}</td>
-            </tr>`;
-          }).join("")}
+          ${satirlar.length === 0
+            ? `<tr><td colspan="9" style="padding:24px; text-align:center; color:#94A3B8;">Bu ay için puantaj kaydı yok.</td></tr>`
+            : satirlar.map(x => `
+            <tr style="border-top:1px solid var(--c-line,#E2E8F0);">
+              <td style="padding:10px 14px;">
+                <div style="font-weight:700; color:#1E293B;">${escapeHtml(x.ad)}</div>
+                <div style="font-size:11.5px; color:#64748B;">${escapeHtml(x.rol)}</div>
+              </td>
+              <td style="padding:10px; text-align:right; color:${x.gunNet > 0 ? "#059669" : "#94A3B8"}; font-weight:${x.gunNet > 0 ? "700" : "400"};">${x.gunNet > 0 ? sureMetin(x.gunNet) : "—"}</td>
+              <td style="padding:10px; text-align:right; color:#475569;">${x.haftaNet > 0 ? sureMetin(x.haftaNet) : "—"}</td>
+              <td style="padding:10px; text-align:right; font-weight:800; color:#1E293B;">${x.ayNet > 0 ? sureMetin(x.ayNet) : "—"}</td>
+              <td style="padding:10px; text-align:center; color:#475569;">${x.calisilanGun}</td>
+              <td style="padding:10px; text-align:right; color:#475569;">${x.ortalama > 0 ? sureMetin(x.ortalama) : "—"}</td>
+              <td style="padding:10px; text-align:right; color:#B45309;">${x.ayMola > 0 ? sureMetin(x.ayMola) : "—"}</td>
+              <td style="padding:10px; text-align:center;">${x.izin > 0 ? `<span style="background:#F5F3FF; color:#6D28D9; padding:2px 8px; border-radius:10px; font-size:11.5px; font-weight:700;">${x.izin} gün</span>` : "—"}</td>
+              <td style="padding:10px 14px;">
+                <div style="height:7px; background:#F1F5F9; border-radius:100px; overflow:hidden;">
+                  <div style="width:${Math.round((x.ayNet / enUzun) * 100)}%; height:100%; background:linear-gradient(90deg,#7CB97C,#2D5E3E); border-radius:100px;"></div>
+                </div>
+              </td>
+            </tr>`).join("")}
         </tbody>
       </table>
     </div>
-    <div style="margin-top:10px; font-size:12.5px; color:var(--c-muted,#64748B);">Süre, günün ilk girişi ile son çıkışı arasından hesaplanır. Mola düşülmez.</div>`;
+    <div style="margin-top:12px; padding:11px 14px; background:#F8FAFC; border-radius:12px; font-size:11.5px; color:#64748B;">
+      <i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i>
+      Net süre = giriş-çıkış arası toplam − mola süreleri. Hafta pazartesi başlar. İzin günleri onaylı taleplerden alınır.
+    </div>`;
+
+  if (window.lucideYenile) window.lucideYenile();
 }
 window.ozlukPuantajAyDegis = function(v) { window._ozlukPuantajAy = v; ozlukYukle(); };
 
@@ -32775,7 +33021,9 @@ function cizKarZararTrendi() {
   if (!canvas || typeof Chart === "undefined") return;
 
   const bugun = new Date();
-  const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+  const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
+    ? parseInt(AKTIF_DONEM.substring(0, 4), 10)
+    : (bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1);
   const aylar = [];
   for (let i = 0; i < 12; i++) {
     const ay = 9 + i;
@@ -32832,7 +33080,9 @@ function cizAylikTahsilatVsHedef() {
   if (!canvas || typeof Chart === "undefined") return;
 
   const bugun = new Date();
-  const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+  const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
+    ? parseInt(AKTIF_DONEM.substring(0, 4), 10)
+    : (bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1);
   const aylar = [];
   for (let i = 0; i < 12; i++) {
     const ay = 9 + i;
@@ -33045,7 +33295,10 @@ function cizTahsilatTrendi() {
   if (!canvas || typeof Chart === "undefined") return;
 
   const bugun = new Date();
-  const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+  // Dönem başı: AKTIF_DONEM'e göre (örn. "2026-2027" → 2026). Böylece grafik seçili dönemi gösterir.
+  const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
+    ? parseInt(AKTIF_DONEM.substring(0, 4), 10)
+    : (bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1);
   const aylar = [];
   for (let i = 0; i < 12; i++) {
     const ay = 9 + i;
@@ -33163,12 +33416,20 @@ function cizSinifDonut() {
   if (!canvas || typeof Chart === "undefined") return;
 
   const aktifOgrenciler = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
-  const m2 = aktifOgrenciler.filter(o => {
+
+  // Sınıf dağılımı — dinamik (Firestore'daki gerçek sınıf adlarına göre)
+  const sinifSayim = {};
+  aktifOgrenciler.forEach(o => {
     const ayar = ayarListesi[o.id] || {};
-    const sinif = ((ayar.kayit && ayar.kayit.sinif) || o.sinif || "").toLowerCase();
-    return sinif.includes("2");
-  }).length;
-  const m3 = aktifOgrenciler.length - m2;
+    const sn = ((ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "").trim() || "Sınıfsız";
+    sinifSayim[sn] = (sinifSayim[sn] || 0) + 1;
+  });
+  const sinifGirdileri = Object.entries(sinifSayim).sort((a, b) => b[1] - a[1]);
+  const donutEtiketler = sinifGirdileri.map(([ad, n]) => `${ad.replace(/\s*Sınıfı\s*$/i, "")} (${n})`);
+  const donutVeriler = sinifGirdileri.map(([, n]) => n);
+  const DONUT_RENKLER = ["#2B3674", "#C9A227", "#D9A5B8", "#8FBF9F", "#5A6ACF", "#B45309", "#7CB97C", "#9AA3B0"];
+  const donutRenkler = sinifGirdileri.map((_, i) => DONUT_RENKLER[i % DONUT_RENKLER.length]);
+  const donutToplam = donutVeriler.reduce((s, n) => s + n, 0);
 
   // Ortadaki sayıyı güncelle
   const sayiEl = document.getElementById("sinifDonutSayi");
@@ -33176,7 +33437,7 @@ function cizSinifDonut() {
 
   if (finansSinifDonutInst) finansSinifDonutInst.destroy();
 
-  if (m2 + m3 === 0) {
+  if (donutToplam === 0) {
     // Veri yok
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -33186,10 +33447,10 @@ function cizSinifDonut() {
   finansSinifDonutInst = new Chart(canvas, {
     type: "doughnut",
     data: {
-      labels: [`M. 2 (${m2})`, `M. 3 (${m3})`],
+      labels: donutEtiketler,
       datasets: [{
-        data: [m2, m3],
-        backgroundColor: ["#2d6a4f", "#facc15"],
+        data: donutVeriler,
+        backgroundColor: donutRenkler,
         borderWidth: 3,
         borderColor: "#ffffff"
       }]
@@ -33209,7 +33470,7 @@ function cizSinifDonut() {
         tooltip: {
           callbacks: {
             label: (ctx) => {
-              const toplam = m2 + m3;
+              const toplam = donutToplam;
               const pct = toplam > 0 ? Math.round((ctx.parsed / toplam) * 100) : 0;
               return `${ctx.label}: %${pct}`;
             }
@@ -35221,7 +35482,9 @@ function renderRaporlarAltSekme() {
 window.raporIndirAylikTahsilat = function() {
   try {
     const bugun = new Date();
-    const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+    const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
+    ? parseInt(AKTIF_DONEM.substring(0, 4), 10)
+    : (bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1);
     const aylar = [];
     for (let i = 0; i < 12; i++) {
       const ay = 9 + i;
@@ -35266,7 +35529,9 @@ window.raporIndirAylikTahsilat = function() {
 window.raporIndirOdemeDetayi = function() {
   try {
     const bugun = new Date();
-    const donemBasYil = bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1;
+    const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
+    ? parseInt(AKTIF_DONEM.substring(0, 4), 10)
+    : (bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1);
     const aylar = [];
     for (let i = 0; i < 12; i++) {
       const ay = 9 + i;
