@@ -6098,6 +6098,77 @@ i[data-lucide] svg { display: block; }
   gap: 16px;
   margin-bottom: 20px;
 }
+/* ===== PROGRAM KUTUSU GÖRSEL BAŞLIK ===== */
+.edk-gorsel {
+  position: relative;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  height: 92px; margin: -28px -24px 16px -24px;
+  padding: 12px 16px; overflow: hidden;
+}
+.edk-gorsel::after {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    radial-gradient(circle at 82% 22%, rgba(255,255,255,.28) 0, transparent 42%),
+    radial-gradient(circle at 18% 82%, rgba(255,255,255,.16) 0, transparent 38%);
+  pointer-events: none;
+}
+.edk-gorsel-ikon {
+  position: absolute; right: 12px; top: 8px;
+  font-size: 42px; line-height: 1; opacity: .32;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.18));
+}
+.edk-gorsel-ad {
+  position: relative; z-index: 1;
+  font-family: var(--font-display, inherit);
+  font-size: 19px; font-weight: 800; color: #fff;
+  letter-spacing: -.01em; text-shadow: 0 1px 8px rgba(0,0,0,.25);
+}
+.edk-gorsel-kod {
+  position: relative; z-index: 1;
+  align-self: flex-start; margin-top: 4px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .06em;
+  color: #fff; background: rgba(255,255,255,.22);
+  padding: 2px 8px; border-radius: 100px;
+  backdrop-filter: blur(4px);
+}
+
+/* ===== BRANŞ KUTUSU (kompakt dikdörtgen) ===== */
+.egitim-brans-kutu {
+  display: flex; align-items: center; gap: 12px;
+  background: #fff;
+  border: 2px solid var(--b-renk, #7c3aed);
+  border-radius: 14px;
+  padding: 0 14px 0 0;
+  cursor: pointer; transition: all .2s;
+  font-family: inherit; text-align: left;
+  overflow: hidden; min-height: 74px;
+}
+.egitim-brans-kutu:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--b-renk, #7c3aed) 22%, transparent);
+}
+.ebk-gorsel {
+  position: relative; flex-shrink: 0;
+  width: 74px; height: 74px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.ebk-gorsel::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 70% 25%, rgba(255,255,255,.3) 0, transparent 55%);
+}
+.ebk-ikon { font-size: 30px; line-height: 1; position: relative; z-index: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
+.ebk-metin { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ebk-metin strong {
+  font-family: var(--font-display, inherit);
+  font-size: 14px; font-weight: 700; color: #1f2937;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ebk-metin small { font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ebk-ok { font-size: 16px; color: var(--b-renk, #7c3aed); font-weight: 700; flex-shrink: 0; }
+.ebk-ekle { border-style: dashed; }
+#egitimBransSecici { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important; }
+
 .egitim-disiplin-kutu {
   position: relative;
   background: white;
@@ -9680,7 +9751,7 @@ i[data-lucide] svg { display: block; }
         <div style="position:absolute; top:-30%; right:-10%; width:300px; height:300px; background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); pointer-events:none;"></div>
         <div style="position:relative; z-index:1;">
           <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;"><i data-lucide="book-open" style="width:14px;height:14px;vertical-align:-2px;"></i> EĞİTİM TAKİP SİSTEMİ</div>
-          <h2 style="font-family:var(--font-display); font-weight:600; font-size:30px; margin:8px 0 6px 0;">Sınıf Bazlı Gelişim Takibi</h2>
+          <h2 style="font-family:var(--font-display); font-weight:600; font-size:30px; margin:8px 0 6px 0;">Program Bazlı Gelişim Takibi</h2>
           <p style="opacity:0.92; font-size:14px; max-width:780px; margin:0;">BCDM programlarında tüm öğrencileri tek bakışta görüp hızlıca işaretleme yapın. Her hücreye tıklayarak <strong>Sunuldu (S) → Tekrar (T) → Uzmanlaştı (U) → Boş</strong> arasında geçiş yapabilirsiniz.</p>
         </div>
       </div>
@@ -18630,44 +18701,84 @@ function renderAdminHome() {
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 40); setTimeout(window.lucideYenile, 250); }
 }
 
-// Öğretmen Durumu widget'ını gerçek personel verisiyle doldur
+// Personel Durumu widget'ı — ANLIK durum (QR giriş-çıkış kayıtlarından)
 async function hbOgretmenDoldur() {
   const listeEl = document.getElementById("hbOgretmenListe");
   const sayacEl = document.getElementById("hbOgretmenSayac");
   if (!listeEl && !sayacEl) return;
   try {
-    // Personel henüz yüklenmediyse yükle
     if ((typeof personelListesi === "undefined" || personelListesi.length === 0) && typeof loadPersoneller === "function") {
       await loadPersoneller();
     }
-    const tumP = (typeof personelListesi !== "undefined" ? personelListesi : []);
-    const gorevde = tumP.filter(p => !p.durum || p.durum === "aktif").length;
-    const izinli = tumP.filter(p => p.durum === "izinli").length;
-    const raporlu = tumP.filter(p => p.durum === "raporlu").length;
+    let tumP = (typeof personelListesi !== "undefined" ? personelListesi : []);
+    // Ayrılmış/pasif personeli listeleme
+    tumP = tumP.filter(p => p.durum !== "ayrildi" && p.durum !== "pasif" && p.durum !== "arsiv");
+
+    // Anlık durumlar (personelDurum) — QR ile güncellenir
+    const anlik = {};
+    try {
+      const snap = await getDocs(collection(db, "personelDurum"));
+      snap.forEach(d => { anlik[(d.id || "").toLowerCase()] = d.data(); });
+    } catch (e) { /* koleksiyon yoksa herkes dışarıda sayılır */ }
+
+    // Bugün onaylı izinliler
+    const izinliMap = {};
+    try {
+      const bugunStr = new Date().toISOString().substring(0, 10);
+      const snap = await getDocs(collection(db, "izinTalepleri"));
+      snap.forEach(d => {
+        const v = d.data();
+        const dur = (v.durum || "").toLowerCase();
+        if (dur !== "onaylandi" && dur !== "onaylandı") return;
+        const bas = (v.baslangic || "").substring(0, 10);
+        const bit = (v.bitis || v.baslangic || "").substring(0, 10);
+        if (bas && bit && bugunStr >= bas && bugunStr <= bit) izinliMap[(v.personelEmail || "").toLowerCase()] = true;
+      });
+    } catch (e) { /* yoksay */ }
+
+    const durumBul = (p) => {
+      const e = (p.email || "").toLowerCase();
+      if (izinliMap[e]) return "izinli";
+      const a = anlik[e];
+      const d = a && a.durum;
+      if (d === "iceride") return "iceride";
+      if (d === "molada") return "molada";
+      return "disarida";
+    };
+
+    const say = { iceride: 0, molada: 0, izinli: 0, disarida: 0 };
+    tumP.forEach(p => { say[durumBul(p)]++; });
 
     if (sayacEl) {
       sayacEl.innerHTML = `
-        <div class="ozet-ogr-stat"><span class="v">${gorevde}</span><span class="l">Görevde</span></div>
-        <div class="ozet-ogr-stat"><span class="v">${izinli}</span><span class="l">İzinli</span></div>
-        <div class="ozet-ogr-stat"><span class="v">${raporlu}</span><span class="l">Raporlu</span></div>`;
+        <div class="ozet-ogr-stat"><span class="v" style="color:#059669;">${say.iceride}</span><span class="l">Çalışıyor</span></div>
+        <div class="ozet-ogr-stat"><span class="v" style="color:#D97706;">${say.molada}</span><span class="l">Molada</span></div>
+        <div class="ozet-ogr-stat"><span class="v" style="color:#64748B;">${say.disarida + say.izinli}</span><span class="l">Dışarıda</span></div>`;
     }
+
     if (listeEl) {
       if (tumP.length === 0) {
         listeEl.innerHTML = `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Henüz personel eklenmemiş.</div>`;
         return;
       }
-      listeEl.innerHTML = tumP.slice(0, 4).map(p => {
-        const durumBilgi = p.durum === "izinli" ? {t:"İzinli", r:"#c2445a", bg:"#FDECEF"}
-                         : p.durum === "raporlu" ? {t:"Raporlu", r:"#b45309", bg:"#FCF7E1"}
-                         : {t:"Görevde", r:"#3D8A5F", bg:"#E4F0E6"};
-        const bas = (p.adSoyad || p.ad || "?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();
+      const STIL = {
+        iceride:  { t: "Çalışıyor", r: "#059669", bg: "#ECFDF5" },
+        molada:   { t: "Molada",    r: "#D97706", bg: "#FFFBEB" },
+        izinli:   { t: "İzinli",    r: "#7C3AED", bg: "#F5F3FF" },
+        disarida: { t: "Dışarıda",  r: "#64748B", bg: "#F1F5F9" }
+      };
+      const sira = { iceride: 0, molada: 1, izinli: 2, disarida: 3 };
+      const sirali = [...tumP].sort((a, b) => sira[durumBul(a)] - sira[durumBul(b)]);
+      listeEl.innerHTML = sirali.slice(0, 4).map(p => {
+        const s = STIL[durumBul(p)];
+        const bas = (p.adSoyad || p.ad || "?").split(" ").map(x => x[0]).slice(0, 2).join("").toUpperCase();
         return `<div style="display:flex; align-items:center; gap:11px; padding:10px 0; border-bottom:1px solid #F1F2F7;">
-          <div style="width:36px; height:36px; border-radius:50%; background:#E9EBF4; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:var(--c-ink);">${bas}</div>
+          <div style="width:36px; height:36px; border-radius:50%; background:${s.bg}; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:${s.r};">${bas}</div>
           <div style="flex:1; min-width:0;">
             <div style="font-weight:700; font-size:13px; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(p.adSoyad||p.ad||"—").replace(/</g,"&lt;")}</div>
             <div style="font-size:11px; color:var(--c-muted);">${(p.gorev||p.brans||ROL_ETIKETLERI?.[p.rol]||"Personel").toString().replace(/</g,"&lt;")}</div>
           </div>
-          <span style="font-size:11px; font-weight:700; color:${durumBilgi.r}; background:${durumBilgi.bg}; padding:3px 10px; border-radius:100px;">${durumBilgi.t}</span>
+          <span style="font-size:11px; font-weight:700; color:${s.r}; background:${s.bg}; padding:3px 10px; border-radius:100px;">${s.t}</span>
         </div>`;
       }).join("");
     }
@@ -19132,13 +19243,17 @@ function yonetimHomeHTML(ad) {
         veli: (ayar.anne && ayar.anne.adSoyad) || (ayar.baba && ayar.baba.adSoyad) || (ayar.veli && ayar.veli.adSoyad) || o.veliAdi || ""
       };
     })
-    .filter(x => x.t)
-    .sort((a, b) => b.t.localeCompare(a.t))
+    .sort((a, b) => {
+      if (a.t && b.t) return b.t.localeCompare(a.t);
+      if (a.t) return -1;            // tarihi olan üstte
+      if (b.t) return 1;
+      return 0;
+    })
     .slice(0, 6);
   const sonKayitlarHTML = sonKayitlar.length === 0
-    ? `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Kayıt tarihi verisi bulunamadı.</div>`
+    ? `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Aktif öğrenci kaydı bulunamadı.</div>`
     : sonKayitlar.map(x => {
-        const trh = x.t.substring(0, 10).split("-").reverse().join(".");
+        const trh = x.t ? x.t.substring(0, 10).split("-").reverse().join(".") : "—";
         return `<div style="display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid rgba(26,46,31,0.06);">
           <div style="width:38px; height:38px; border-radius:12px; background:#E9EBF4; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--c-green); font-family:var(--font-display);">${((x.o.ogrenciAdSoyad || x.o.adSoyad || "?").charAt(0)).toUpperCase()}</div>
           <div style="flex:1; min-width:0;">
@@ -19401,30 +19516,30 @@ function yonetimHomeHTML(ad) {
           <div class="ozet-donut-legend">${sinifLegendHTML || '<span style="font-size:12px;color:var(--c-muted);">Sınıf verisi yok</span>'}</div>
         </div>
 
-        <!-- Öğretmen Durumu -->
+        <!-- Son Kayıt Olan Öğrenciler -->
         <div class="ozet-panel">
           <div class="ozet-panel-head">
-            <div><span style="font-size:16px; display:inline-flex;"><i data-lucide="users-round" style="width:16px;height:16px;"></i></span><span class="ozet-panel-baslik">Öğretmen Durumu</span></div>
-            <span class="kpi-more">···</span>
-          </div>
-          <div class="ozet-ogr-durum" id="hbOgretmenSayac">
-            <div class="ozet-ogr-stat"><span class="v">${gorevdeSayisi}</span><span class="l">Görevde</span></div>
-            <div class="ozet-ogr-stat"><span class="v">${izinliSayisi}</span><span class="l">İzinli</span></div>
-            <div class="ozet-ogr-stat"><span class="v">${raporluSayisi}</span><span class="l">Raporlu</span></div>
-          </div>
-          <div style="font-size:12px; font-weight:700; color:var(--c-muted); margin:14px 0 4px;">Personel listesi</div>
-          <div id="hbOgretmenListe">${ogretmenListeHTML}</div>
-          <button class="kpi-mini-btn" style="margin-top:12px;" onclick="adminGotoTab('personel')">Tümünü gör →</button>
-        </div>
-
-        <!-- Bugünkü Görüşmeler -->
-        <div class="ozet-panel">
-          <div class="ozet-panel-head">
-            <div><span style="font-size:16px; display:inline-flex;"><i data-lucide="user-plus" style="width:16px;height:16px;"></i></span><span class="ozet-panel-baslik">Son Kayıtlar</span></div>
+            <div><span style="font-size:16px; display:inline-flex;"><i data-lucide="user-plus" style="width:16px;height:16px;"></i></span><span class="ozet-panel-baslik">Son Kayıt Olan Öğrenciler</span></div>
             <span class="kpi-more">···</span>
           </div>
           ${sonKayitlarHTML}
           <button class="kpi-mini-btn" style="margin-top:12px;" onclick="adminGotoTab('ogrenciler')">Öğrenci listesi →</button>
+        </div>
+
+        <!-- Personel Durumu (anlık) -->
+        <div class="ozet-panel">
+          <div class="ozet-panel-head">
+            <div><span style="font-size:16px; display:inline-flex;"><i data-lucide="users-round" style="width:16px;height:16px;"></i></span><span class="ozet-panel-baslik">Personel Durumu</span></div>
+            <span class="kpi-more">···</span>
+          </div>
+          <div class="ozet-ogr-durum" id="hbOgretmenSayac">
+            <div class="ozet-ogr-stat"><span class="v">-</span><span class="l">Çalışıyor</span></div>
+            <div class="ozet-ogr-stat"><span class="v">-</span><span class="l">Molada</span></div>
+            <div class="ozet-ogr-stat"><span class="v">-</span><span class="l">Dışarıda</span></div>
+          </div>
+          <div style="font-size:12px; font-weight:700; color:var(--c-muted); margin:14px 0 4px;">Personel listesi</div>
+          <div id="hbOgretmenListe">${ogretmenListeHTML}</div>
+          <button class="kpi-mini-btn" style="margin-top:12px;" onclick="adminGotoTab('ozluk')">Puantaj ekranı →</button>
         </div>
       </div>
     </div>
@@ -28997,9 +29112,10 @@ window.egitimSekmesiAcildi = async function() {
     return `
       <div class="egitim-program-grup">
         <button type="button" class="egitim-disiplin-kutu" data-disiplin="${d.id}" onclick="egitimDisiplinAc('${d.id}')" style="--d-renk:${d.renk};">
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div class="egitim-disiplin-ikon">${d.ikon}</div>
-            <span style="font-size:10px; font-weight:800; letter-spacing:.05em; color:${d.renk}; background:${d.renk}14; padding:3px 8px; border-radius:100px;">${d.kod || ""}</span>
+          <div class="edk-gorsel" style="background:linear-gradient(135deg, ${d.renk} 0%, ${d.renk}cc 45%, ${d.renk}55 100%);">
+            <span class="edk-gorsel-ikon">${d.ikon}</span>
+            <span class="edk-gorsel-ad">${d.ad}</span>
+            ${d.kod ? `<span class="edk-gorsel-kod">${d.kod}</span>` : ""}
           </div>
           <div class="egitim-disiplin-baslik">${d.ad}</div>
           <div class="egitim-disiplin-aciklama">${d.aciklama}</div>
@@ -29013,18 +29129,31 @@ window.egitimSekmesiAcildi = async function() {
         </button>
       </div>`;
   }
+  // Program kutuları: görsel başlıklı (gradyan + desen) — kutuHTML zaten üstte tanımlı
   if (secici) {
     secici.innerHTML = DISIPLINLER.filter(d => d.tip !== "brans").map(kutuHTML).join("");
     secici.style.display = "grid";
+    secici.style.display = "grid";
   }
+  // Branş kutuları: kompakt dikdörtgen (programın yarısı kadar)
   if (bransSecici) {
     const branslar = DISIPLINLER.filter(d => d.tip === "brans");
-    bransSecici.innerHTML = branslar.map(kutuHTML).join("") + `
-      <button type="button" class="egitim-disiplin-kutu" onclick="yeniBransModalAc()" style="--d-renk:#7c3aed; border-style:dashed;">
-        <div class="egitim-disiplin-ikon">➕</div>
-        <div class="egitim-disiplin-baslik">Yeni Branş Ekle</div>
-        <div class="egitim-disiplin-aciklama">Robotik, müzik, drama gibi yeni branşlar ekleyin</div>
-        <div class="egitim-disiplin-ileri">Ekle →</div>
+    const bransKutu = (d) => `
+      <button type="button" class="egitim-brans-kutu" onclick="egitimDisiplinAc('${d.id}')" style="--b-renk:${d.renk};">
+        <span class="ebk-gorsel" style="background:linear-gradient(135deg, ${d.renk} 0%, ${d.renk}bb 55%, ${d.renk}66 100%);">
+          <span class="ebk-ikon">${d.ikon}</span>
+        </span>
+        <span class="ebk-metin">
+          <strong>${d.ad}</strong>
+          <small>${d.kod ? d.kod + " · " : ""}${(d.takvim || "Branş programı")}</small>
+        </span>
+        <span class="ebk-ok">→</span>
+      </button>`;
+    bransSecici.innerHTML = branslar.map(bransKutu).join("") + `
+      <button type="button" class="egitim-brans-kutu ebk-ekle" onclick="yeniBransModalAc()" style="--b-renk:#7c3aed;">
+        <span class="ebk-gorsel" style="background:linear-gradient(135deg,#7c3aed,#a855f7);"><span class="ebk-ikon">＋</span></span>
+        <span class="ebk-metin"><strong>Yeni Branş Ekle</strong><small>Robotik, müzik, drama…</small></span>
+        <span class="ebk-ok">＋</span>
       </button>`;
     bransSecici.style.display = "grid";
   }
@@ -29040,8 +29169,12 @@ window.egitimDisiplinAc = async function(disiplin) {
   egitimAktifSinif = null; // null = tüm sınıflar (varsayılan)
   egitimGrupAcik = {};
 
-  // Seçici ekranını gizle, matrix'i göster
+  // Seçici ekranlarını gizle (program + branş kutuları), matrix'i göster
   document.getElementById("egitimDisiplinSecici").style.display = "none";
+  const _bransSec = document.getElementById("egitimBransSecici");
+  if (_bransSec) _bransSec.style.display = "none";
+  const _bransBaslik = document.getElementById("egitimBransBaslik");
+  if (_bransBaslik) _bransBaslik.style.display = "none";
   document.getElementById("egitimMatrixContainer").style.display = "block";
 
   // Müfredat ve tüm öğrencilerin gelişimini yükle
