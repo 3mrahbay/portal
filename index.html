@@ -1573,6 +1573,43 @@ i[data-lucide] svg { display: block; }
 .icerik-alt-panel { min-height: 300px; }
 
 /* Search & Filter */
+/* ===== YENİ ÖĞRENCİ FİLTRE ÇUBUĞU ===== */
+.toolbar-yeni {
+  display: block;
+  padding: 14px 16px;
+}
+.toolbar-yeni .tb-satir { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.toolbar-yeni .tb-satir-ust { margin-bottom: 0; }
+.toolbar-yeni .tb-satir-filtre {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid #EEF1F5;
+  gap: 20px; align-items: flex-start;
+}
+.toolbar-yeni .tb-arama { position: relative; }
+.toolbar-yeni .tb-arama-ikon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: #9AA3B0; pointer-events: none;
+}
+.toolbar-yeni .tb-arama input { padding-left: 34px; }
+.tb-grup { display: flex; flex-direction: column; gap: 6px; }
+.tb-grup-etiket {
+  font-size: 10px; font-weight: 800; letter-spacing: .07em;
+  text-transform: uppercase; color: #9AA3B0; padding-left: 2px;
+}
+.tb-cipler { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-chip-uyari { background: #FEF2F2 !important; border-color: #FCA5A5 !important; color: #991B1B !important; }
+.filter-chip-uyari.active { background: #DC2626 !important; border-color: #DC2626 !important; color: #fff !important; }
+.filter-chip .chip-sayi {
+  display: inline-block; margin-left: 5px; padding: 0 5px;
+  background: rgba(0,0,0,.07); border-radius: 100px;
+  font-size: 10.5px; font-weight: 800;
+}
+.filter-chip.active .chip-sayi { background: rgba(255,255,255,.25); }
+@media (max-width: 768px) {
+  .toolbar-yeni .tb-satir-filtre { gap: 12px; }
+  .tb-grup { width: 100%; }
+}
+
 .toolbar {
   background: white;
   border-radius: var(--radius-md);
@@ -9183,21 +9220,15 @@ i[data-lucide] svg { display: block; }
         </button>
       </div>
 
-      <div class="toolbar">
-        <div class="search-box">
-          <input type="text" id="searchInput" placeholder="Öğrenci veya veli ara...">
-        </div>
-        <button class="filter-chip active" data-filter="tumu">Tümü</button>
-        <button class="filter-chip" data-filter="ayarli">✓ Ayarlı</button>
-        <button class="filter-chip" data-filter="eksik">⚠ Eksik Ayar</button>
-        <button class="filter-chip" data-filter="papatyalar">Papatyalar</button>
-        <button class="filter-chip" data-filter="kardelenler">Kardelenler</button>
-        <button class="filter-chip" data-filter="nar">Nar Çiçekleri</button>
-        <button class="filter-chip" data-filter="tamgun">Tam Gün</button>
-        <button class="filter-chip" data-filter="yarimgun">Yarım Gün</button>
-        <button class="filter-chip" data-filter="gecikmis" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b;"><i data-lucide="wallet" style="width:13px;height:13px;vertical-align:-2px;"></i> Gecikmiş</button>
-        <!-- Dönem seçici + CSV yükleme + Öğrenci Ekle (sağa hizalı, tek satır) -->
-        <div class="ogrenci-arac-grubu" id="ogrenciAracGrubu" style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+      <div class="toolbar toolbar-yeni">
+        <!-- 1. satır: arama + araçlar -->
+        <div class="tb-satir tb-satir-ust">
+          <div class="search-box tb-arama">
+            <i data-lucide="search" class="tb-arama-ikon"></i>
+            <input type="text" id="searchInput" placeholder="Öğrenci veya veli ara...">
+          </div>
+          <!-- Dönem seçici + CSV yükleme + Öğrenci Ekle (sağa hizalı, tek satır) -->
+          <div class="ogrenci-arac-grubu" id="ogrenciAracGrubu" style="margin-left:auto; display:flex; gap:8px; align-items:center;">
           <select class="donem-selector" id="donemSelector">
             <option value="2026-2027">2026-2027 Dönemi (Aktif)</option>
             <option value="2025-2026">2025-2026 Dönemi (Arşiv)</option>
@@ -9214,6 +9245,33 @@ i[data-lucide] svg { display: block; }
           <button class="btn-yeni-ogrenci" onclick="yeniOgrenciAc()" title="Manuel öğrenci kaydı oluştur">
             <span>＋</span> Öğrenci Ekle
           </button>
+        </div>
+        </div>
+
+        <!-- 2. satır: gruplu filtreler (sınıflar dinamik) -->
+        <div class="tb-satir tb-satir-filtre">
+          <div class="tb-grup">
+            <span class="tb-grup-etiket">Görünüm</span>
+            <div class="tb-cipler">
+              <button class="filter-chip active" data-filter="tumu">Tümü</button>
+              <button class="filter-chip" data-filter="ayarli"><i data-lucide="check" style="width:12px;height:12px;vertical-align:-1px;"></i> Ayarlı</button>
+              <button class="filter-chip" data-filter="eksik"><i data-lucide="alert-triangle" style="width:12px;height:12px;vertical-align:-1px;"></i> Eksik Ayar</button>
+              <button class="filter-chip filter-chip-uyari" data-filter="gecikmis"><i data-lucide="wallet" style="width:12px;height:12px;vertical-align:-1px;"></i> Gecikmiş</button>
+            </div>
+          </div>
+          <div class="tb-grup">
+            <span class="tb-grup-etiket">Sınıf</span>
+            <div class="tb-cipler" id="sinifFiltreCipler">
+              <!-- Firestore'daki sınıflardan dinamik doldurulur -->
+            </div>
+          </div>
+          <div class="tb-grup">
+            <span class="tb-grup-etiket">Program</span>
+            <div class="tb-cipler">
+              <button class="filter-chip" data-filter="tamgun">Tam Gün</button>
+              <button class="filter-chip" data-filter="yarimgun">Yarım Gün</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -21218,6 +21276,8 @@ async function loadOgrenciler() {
     renderTable();
     updateStats();
     updateDurumSayaclari();
+    // Sınıf filtre çiplerini Firestore'daki sınıflardan doldur (yeni sınıflar otomatik görünür)
+    if (typeof sinifFiltreCipleriDoldur === "function") sinifFiltreCipleriDoldur();
     if (typeof topluYenileButonGorunurluk === "function") topluYenileButonGorunurluk();
   } catch (e) {
     console.error(e);
@@ -23248,6 +23308,51 @@ const SINIF_ESLEME_HAM = {
   "montessori3": "Nar Çiçekleri Sınıfı"
 };
 
+// ===== ÖĞRENCİLER: SINIF FİLTRE ÇİPLERİNİ DİNAMİK DOLDUR =====
+// Firestore'daki "siniflar" koleksiyonundan okur; yeni sınıf eklenince otomatik görünür.
+window.sinifFiltreCipleriDoldur = async function() {
+  const kap = document.getElementById("sinifFiltreCipler");
+  if (!kap) return;
+  try {
+    let siniflar = [];
+    if (typeof sinifYonetimListesi !== "undefined" && sinifYonetimListesi.length) {
+      siniflar = sinifYonetimListesi;
+    } else {
+      const snap = await getDocs(collection(db, "siniflar"));
+      snap.forEach(d => siniflar.push({ id: d.id, ...d.data() }));
+    }
+    siniflar = siniflar
+      .filter(s => s.durum !== "pasif")
+      .sort((a, b) => (a.sira || 99) - (b.sira || 99));
+
+    // Aktif öğrencilerin sınıf dağılımı (çip üzerinde sayı göstermek için)
+    const sayim = {};
+    if (typeof ogrenciList !== "undefined") {
+      for (const o of ogrenciList) {
+        const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+        if (!ayar) continue;
+        if (typeof getOgrenciDurum === "function" && getOgrenciDurum(o, ayar) !== "aktif") continue;
+        const sn = ((ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "").trim();
+        if (sn) sayim[sn] = (sayim[sn] || 0) + 1;
+      }
+    }
+
+    kap.innerHTML = siniflar.map(s => {
+      const ad = (s.ad || "").trim();
+      const kisaAd = ad.replace(/\s*Sınıfı\s*$/i, "");
+      const n = sayim[ad] || 0;
+      return `<button class="filter-chip" data-filter="sinif::${ad.replace(/"/g, "&quot;")}">
+        ${s.emoji ? s.emoji + " " : ""}${kisaAd}<span class="chip-sayi">${n}</span>
+      </button>`;
+    }).join("") || `<span style="font-size:12px; color:#9AA3B0;">Sınıf tanımlı değil</span>`;
+
+    if (window.lucideYenile) window.lucideYenile();
+  } catch (e) {
+    console.warn("Sınıf filtre çipleri yüklenemedi:", e);
+    kap.innerHTML = `<span style="font-size:12px; color:#9AA3B0;">Sınıflar yüklenemedi</span>`;
+  }
+};
+
 function sinifAdiResmiEsle(ham) {
   if (!ham) return "";
   const n = normalizeSinif(ham);
@@ -24478,6 +24583,8 @@ window.sinifYonetimYukle = async function() {
     });
     window._sinifEslesmeyen = eslesmeyen;
     sinifYonetimCiz();
+    // Öğrenciler sekmesindeki sınıf filtre çiplerini de tazele
+    if (typeof sinifFiltreCipleriDoldur === "function") sinifFiltreCipleriDoldur();
   } catch (e) {
     console.error("sınıflar yüklenemedi", e);
     el.innerHTML = `<div style="text-align:center; padding:40px; color:#DC2626;"><p>Sınıflar yüklenemedi.</p></div>`;
@@ -25512,10 +25619,15 @@ function renderTable() {
                           || o.programTuru || "";
     if (activeFilter === "ayarli") return ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.aylikAidat > 0;
     if (activeFilter === "eksik") return !ayar || !ayar.aidatAyarlari || !ayar.aidatAyarlari.aylikAidat;
-    // SINIF FİLTRELERİ — artık resmi sınıf adlarına göre (eski m2/m3 kaldırıldı)
+    // SINIF FİLTRELERİ — dinamik (çipler Firestore'daki sınıflardan üretilir)
     const filtreSinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "";
     const resmiFiltreSinif = (typeof sinifAdiResmiEsle === "function")
       ? sinifAdiResmiEsle(filtreSinif) : filtreSinif;
+    if (activeFilter && activeFilter.startsWith("sinif::")) {
+      const hedefSinif = activeFilter.slice(7).trim();
+      return resmiFiltreSinif === hedefSinif || filtreSinif.trim() === hedefSinif;
+    }
+    // Geriye dönük: eski sabit çipler
     if (activeFilter === "papatyalar")  return resmiFiltreSinif === "Papatyalar Sınıfı";
     if (activeFilter === "kardelenler") return resmiFiltreSinif === "Kardelenler Sınıfı";
     if (activeFilter === "nar")         return resmiFiltreSinif === "Nar Çiçekleri Sınıfı";
@@ -36087,13 +36199,16 @@ document.getElementById("searchInput").addEventListener("input", () => {
   renderTable();
 });
 
-document.querySelectorAll(".filter-chip").forEach(chip => {
-  chip.addEventListener("click", () => {
-    document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
-    chip.classList.add("active");
-    activeFilter = chip.dataset.filter;
-    renderTable();
-  });
+// Filtre çipleri — olay delegasyonu (dinamik eklenen sınıf çipleri de çalışır)
+document.addEventListener("click", (ev) => {
+  const chip = ev.target.closest(".filter-chip");
+  if (!chip) return;
+  // Sadece öğrenciler sekmesindeki araç çubuğu çipleri
+  if (!chip.closest(".toolbar-yeni")) return;
+  document.querySelectorAll(".toolbar-yeni .filter-chip").forEach(c => c.classList.remove("active"));
+  chip.classList.add("active");
+  activeFilter = chip.dataset.filter;
+  renderTable();
 });
 
 // Durum sekmeleri click handler
