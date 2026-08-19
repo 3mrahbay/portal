@@ -36026,9 +36026,13 @@ let aktifModul = "ozet";
 window.modulSec = function(modulKey, tabTikla = true) {
   const tanim = MODUL_HARITASI[modulKey];
   if (!tanim) return;
+  // Giriş yapılmamışsa sessizce çık (açılış çağrısında yetki uyarısı gösterme)
+  const girisVar = (typeof currentUser !== "undefined" && currentUser)
+    || (typeof isAdmin !== "undefined" && isAdmin);
+  if (!girisVar) return;
   // YETKİ KONTROLÜ: rolü olmayan modülü açamaz (adres/konsol denemesi dahil)
   if (typeof modulErisim === "function" && !modulErisim(modulKey)) {
-    if (typeof showToast === "function") showToast("Bu bölüme erişim yetkiniz yok", "error");
+    if (tabTikla && typeof showToast === "function") showToast("Bu bölüme erişim yetkiniz yok", "error");
     return;
   }
   aktifModul = modulKey;
