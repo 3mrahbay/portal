@@ -7549,7 +7549,13 @@ i[data-lucide] svg { display: block; }
 
 /* ============ WHATSAPP TARZI MESAJLAŞMA ============ */
 .wa-katman .mesaj-liste-panel { width: 340px; background: #fff; }
-.wa-katman .mesaj-liste-baslik { background: #F0F2F5; color: #1F2544; border-bottom: 1px solid #E9EBF4; }
+.wa-katman .mesaj-yeni-ogrenci-kart {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 13px; border: 1px solid #E9EBF4; border-radius: 11px;
+  margin-bottom: 8px; cursor: pointer; transition: all .15s; background: #fff;
+}
+.mesaj-yeni-ogrenci-kart:hover { border-color: #4A7C59; background: #F6FAF7; }
+.mesaj-liste-baslik { background: #F0F2F5; color: #1F2544; border-bottom: 1px solid #E9EBF4; }
 .wa-katman .mesaj-yeni-btn { background: #1F5F33; }
 .wa-katman .mesaj-liste-ara { background: #F6F8FA; }
 .wa-katman .mesaj-liste-ara input {
@@ -9777,6 +9783,24 @@ i[data-lucide] svg { display: block; }
 
     </div>
 
+    <!-- YENİ SOHBET MODALI (öğrenci → veli seçimi) -->
+    <div class="modal-overlay" id="mesajYeniModal" onclick="if(event.target.id==='mesajYeniModal') mesajYeniSohbetKapat()">
+      <div class="modal" style="max-width:480px;">
+        <div class="modal-header">
+          <h3><i data-lucide="message-circle-plus" style="width:17px;height:17px;vertical-align:-3px;"></i> Yeni Sohbet</h3>
+          <button class="close-btn" onclick="mesajYeniSohbetKapat()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group" style="margin-bottom:12px;">
+            <input type="text" id="mesajYeniOgrenciAra" placeholder="Öğrenci veya veli adı ara…"
+              oninput="mesajYeniOgrencileriListele()" autocomplete="off"
+              style="width:100%; box-sizing:border-box; padding:11px 14px; border:1px solid #d1d5db; border-radius:10px; font-size:14px; font-family:inherit;">
+          </div>
+          <div id="mesajYeniOgrenciListesi" style="max-height:380px; overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- GİDER TALEBİ MODAL (personel → muhasebe onayı) -->
     <div class="modal-overlay" id="giderTalepModal" onclick="if(event.target.id==='giderTalepModal') giderTalepKapat()">
       <div class="modal" style="max-width:520px;">
@@ -11134,7 +11158,7 @@ i[data-lucide] svg { display: block; }
               <div class="mesaj-kategori-filtre">
                 <button class="mkf-btn active" data-mkf="hepsi" onclick="mesajKategoriFiltrele('hepsi')">Tümü</button>
                 <button class="mkf-btn" data-mkf="veli" onclick="mesajKategoriFiltrele('veli')"><span class="mkf-nokta" style="background:#22C55E;"></span> Veli</button>
-                <button class="mkf-btn" data-mkf="ic" onclick="mesajKategoriFiltrele('ic')"><span class="mkf-nokta" style="background:#5A6ACF;"></span> İç Yazışma</button>
+                <button class="mkf-btn" data-mkf="ic" onclick="mesajKategoriFiltrele('ic')"><span class="mkf-nokta" style="background:#5A6ACF;"></span> <span id="mkfIcEtiket">İç Yazışma</span></button>
               </div>
               <div id="mesajThreadListesi" class="mesaj-thread-listesi">
                 <div style="padding:30px; text-align:center; color:#9ca3af; font-size:13px;">Yükleniyor...</div>
@@ -14989,6 +15013,14 @@ function mesajlasmaBaslat() {
     // Diğer personel: sadece katılımcı olduğu thread'ler
     q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benim), orderBy("sonMesajTarihi", "desc"));
   }
+
+  // Öğretmen/branş için etiketi netleştir: gözetim değil, yönetimle yazışma
+  try {
+    const icEtiket = document.getElementById("mkfIcEtiket");
+    if (icEtiket && !isAdmin && !YONETIM_ROLLERI.includes(aktifKullaniciRol)) {
+      icEtiket.textContent = "Yönetim";
+    }
+  } catch (e) {}
 
   mesajThreadUnsub = onSnapshot(q, (snap) => {
     mesajThreadListesi = [];
@@ -26616,9 +26648,32 @@ window.ogrenciEgitimIslem = function(id, islem) {
     if (mesaj && typeof showToast === "function") setTimeout(() => showToast(mesaj, "info"), 350);
   };
 
-  if (islem === "gozlem" || islem === "gelisim" || islem === "rapor") {
-    window._egitimSeciliOgrenci = id;
-    git("egitim", ad ? ad + " için " + (islem === "gozlem" ? "gözlem" : islem === "rapor" ? "rapor" : "gelişim") + " bölümü açıldı" : "");
+  const ayar = ayarListesi[id] || {};
+  const sinif = (ayar.kayit && ayar.kayit.sinif) || o?.sinif || o?.sinifi || "";
+
+  if (islem === "gozlem") {
+    // Gözlem ekleme penceresi (öğrenciye özel)
+    if (typeof caGozlemAc === "function") caGozlemAc(id, ad || "Öğrenci", sinif);
+    else git("egitim");
+  } else if (islem === "gelisim") {
+    // Öğrenci kartı → Gelişim sekmesi
+    if (typeof openAyarModal === "function") {
+      openAyarModal(id);
+      setTimeout(() => {
+        const tb = document.querySelector('[data-modal-tab="gelisim"]');
+        if (tb) tb.click();
+      }, 420);
+    } else git("egitim");
+  } else if (islem === "rapor") {
+    // Öğrenci bazlı gelişim raporu
+    if (typeof ogrenciGelisimRaporuAc === "function") ogrenciGelisimRaporuAc(id);
+    else if (typeof openAyarModal === "function") {
+      openAyarModal(id);
+      setTimeout(() => {
+        const tb = document.querySelector('[data-modal-tab="gelisim"]');
+        if (tb) tb.click();
+      }, 420);
+    } else git("egitim");
   } else if (islem === "devamsizlik") {
     git("devamsizlik");
   } else if (islem === "galeri") {
