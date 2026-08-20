@@ -9335,6 +9335,7 @@ i[data-lucide] svg { display: block; }
         <button class="side-item" data-modul="ozlukM" onclick="modulSec('ozlukM')"><span class="side-ikon"><i data-lucide="clock"></i></span><span class="side-ad">Özlük &amp; Puantaj</span></button>
         <button class="side-item" data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon"><i data-lucide="book-open"></i></span><span class="side-ad">Eğitim</span></button>
         <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon"><i data-lucide="wallet"></i></span><span class="side-ad">Muhasebe</span></button>
+        <button class="side-item" data-modul="profilim" onclick="modulSec('profilim')"><span class="side-ikon"><i data-lucide="user-circle"></i></span><span class="side-ad">Profilim</span></button>
         <button class="side-item" data-modul="denetim" onclick="modulSec('denetim')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">MEB Denetim</span></button>
       </div>
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
@@ -9369,6 +9370,7 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;"><i data-lucide="utensils"></i> Yemek Menüsü</button>
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
+      <button class="tab" data-tab="profilim" id="tab-profilim-btn" style="display:none;"><i data-lucide="user-circle"></i> Profilim</button>
       <button class="tab" data-tab="raporlar" id="tab-raporlar-btn" style="display:none;"><i data-lucide="bar-chart-3"></i> Raporlar</button>
     </div>
 
@@ -9815,8 +9817,8 @@ i[data-lucide] svg { display: block; }
 
           <div class="form-grid">
             <div class="form-group">
-              <label>Harcama Tarihi *</label>
-              <input type="date" id="gtTarih">
+              <label>Mağaza / Yer *</label>
+              <input type="text" id="gtMagaza" placeholder="Örn: A101, Kırtasiye X">
             </div>
             <div class="form-group">
               <label>Tutar (TL) *</label>
@@ -9824,35 +9826,38 @@ i[data-lucide] svg { display: block; }
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Kategori *</label>
-            <select id="gtKategori"></select>
-          </div>
-
-          <div class="form-group">
-            <label>Açıklama *</label>
-            <input type="text" id="gtAciklama" placeholder="Örn: Sınıf için kırtasiye malzemesi">
-          </div>
-
           <div class="form-grid">
             <div class="form-group">
-              <label>Belge Türü</label>
-              <select id="gtBelgeTuru">
-                <option value="fis">Fiş</option>
-                <option value="fatura">Fatura</option>
-                <option value="makbuz">Makbuz</option>
-                <option value="yok">Belgesiz</option>
+              <label>Kategori</label>
+              <select id="gtKategori">
+                <option>Sınıf malzemesi</option>
+                <option>Sanat</option>
+                <option>Temizlik</option>
+                <option>Gıda</option>
+                <option>Onarım</option>
+                <option>Kırtasiye</option>
+                <option selected>Diğer</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Belge No (opsiyonel)</label>
-              <input type="text" id="gtBelgeNo" placeholder="Fiş/fatura numarası">
+              <label>Ödeme Tipi</label>
+              <select id="gtOdemeTipi">
+                <option>Nakit</option>
+                <option>Kredi Kartı</option>
+                <option>Havale/EFT</option>
+                <option>Okul Kartı</option>
+              </select>
             </div>
           </div>
 
           <div class="form-group">
-            <label>Not (opsiyonel)</label>
-            <input type="text" id="gtNot" placeholder="Muhasebeye iletmek istediğiniz ek bilgi">
+            <label>Harcama Tarihi</label>
+            <input type="date" id="gtTarih">
+          </div>
+
+          <div class="form-group">
+            <label>Açıklama</label>
+            <input type="text" id="gtAciklama" placeholder="Ne alındı, hangi sınıf için?">
           </div>
 
           <div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:10px; padding:11px 13px; font-size:11.5px; color:#92400E; line-height:1.5;">
@@ -10070,6 +10075,14 @@ i[data-lucide] svg { display: block; }
     </div>
 
     <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
+    <!-- ============ PROFİLİM (her personelin kendi özlük ekranı) ============ -->
+    <div class="tab-panel" id="tab-profilim">
+      <div id="profilimIcerik">
+        <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+
+    <!-- ============ PROFİLİM SONU ============ -->
     <!-- ============ GALERİ MODÜLÜ (bağımsız) ============ -->
     <div class="tab-panel" id="tab-galeri">
       <div style="background:linear-gradient(135deg,#7C3AED 0%,#A855F7 100%); border-radius:20px; padding:24px 28px; margin-bottom:20px; color:#fff; position:relative; overflow:hidden;">
@@ -20184,7 +20197,9 @@ function yonetimHomeHTML(ad) {
               <button class="ozet-hizli-btn" onclick="hizliIslem('yoklama')" title="Günlük yoklama al">
                 <i data-lucide="clipboard-check"></i><span>Yoklama</span></button>
               <button class="ozet-hizli-btn" onclick="giderTalepAc()" title="Yaptığınız harcamayı bildirin">
-                <i data-lucide="receipt"></i><span>Gider Bildir</span></button>
+                <i data-lucide="receipt"></i><span>Fiş Bildir</span></button>
+              <button class="ozet-hizli-btn" onclick="modulSec('profilim')" title="Özlük, puantaj, izin">
+                <i data-lucide="user-circle"></i><span>Profilim</span></button>
               <button class="ozet-hizli-btn" onclick="hizliIslem('tahsilat')" title="Geciken ödemeler">
                 <i data-lucide="wallet"></i><span>Tahsilat</span><em class="ozet-hb-rozet uyari" id="hbRozetTahsilat"></em></button>
             </div>
@@ -20302,6 +20317,8 @@ function ogretmenHomeHTML(ad) {
           <button class="ca-qbtn" onclick="modulSec('mesaj')"><span class="ca-qicon" style="background:var(--c-pink-soft);"><i data-lucide="message-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Veli Mesajı</span></button>
           <button class="ca-qbtn" onclick="modulSec('galeri')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Galeri Yükle</span></button>
           <button class="ca-qbtn" onclick="modulSec('egitim')"><span class="ca-qicon" style="background:var(--c-peach-soft);"><i data-lucide="book-open" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Eğitim Takip</span></button>
+          <button class="ca-qbtn" onclick="modulSec('profilim')"><span class="ca-qicon" style="background:var(--c-tint);"><i data-lucide="user-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Profilim</span></button>
+          <button class="ca-qbtn" onclick="izinTalepAc()"><span class="ca-qicon" style="background:var(--c-blue-soft);"><i data-lucide="calendar-x" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">İzin Talebi</span></button>
         </div>
       </div>
 
@@ -33927,23 +33944,9 @@ window.bekleyenTopluHatirlat = async function() {
 let giderTalepListesi = [];
 
 window.giderTalepAc = function() {
-  const bugun = new Date().toISOString().substring(0, 10);
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-  set("gtTarih", bugun); set("gtTutar", ""); set("gtAciklama", ""); set("gtBelgeNo", ""); set("gtNot", "");
-  // Kategori listesini doldur
-  const sel = document.getElementById("gtKategori");
-  if (sel && typeof GIDER_KATEGORILERI !== "undefined") {
-    const gruplar = {};
-    Object.entries(GIDER_KATEGORILERI).forEach(([k, v]) => {
-      (gruplar[v.grup] = gruplar[v.grup] || []).push([k, v]);
-    });
-    const grupAd = { personel: "Personel", sabit: "Sabit Giderler", isletme: "İşletme", diger: "Diğer" };
-    sel.innerHTML = Object.entries(gruplar).map(([g, list]) =>
-      `<optgroup label="${grupAd[g] || g}">${list.map(([k, v]) => `<option value="${k}">${v.ikon} ${v.isim}</option>`).join("")}</optgroup>`
-    ).join("");
-    // Personelin en çok kullanacağı kalem öne gelsin
-    if (GIDER_KATEGORILERI["isletme_kirtasiye"]) sel.value = "isletme_kirtasiye";
-  }
+  set("gtTarih", new Date().toISOString().substring(0, 10));
+  set("gtMagaza", ""); set("gtTutar", ""); set("gtAciklama", "");
   document.getElementById("giderTalepModal").classList.add("active");
   if (window.lucideYenile) window.lucideYenile();
 };
@@ -33954,35 +33957,32 @@ window.giderTalepKapat = function() {
 
 window.giderTalepGonder = async function() {
   const g = (id) => (document.getElementById(id)?.value || "").trim();
-  const tarih = g("gtTarih");
+  const magaza = g("gtMagaza");
   const tutar = parseFloat(g("gtTutar")) || 0;
-  const kategori = g("gtKategori");
-  const aciklama = g("gtAciklama");
 
-  if (!tarih) { showToast("Harcama tarihi gerekli", "error"); return; }
+  if (!magaza) { showToast("Mağaza/yer bilgisi gerekli", "error"); return; }
   if (tutar <= 0) { showToast("Geçerli bir tutar girin", "error"); return; }
-  if (!aciklama) { showToast("Açıklama gerekli", "error"); return; }
 
   try {
-    const kat = (typeof GIDER_KATEGORILERI !== "undefined" && GIDER_KATEGORILERI[kategori]) || {};
-    await addDoc(collection(db, "giderTalepleri"), {
-      tarih, tutar, kategori,
-      kategoriAd: kat.isim || kategori,
-      aciklama,
-      belgeTuru: g("gtBelgeTuru"),
-      belgeNo: g("gtBelgeNo"),
-      not: g("gtNot"),
-      durum: "beklemede",
-      talepEden: currentUser?.email || "",
+    // ZEKY ile ORTAK koleksiyon: fisTalepleri (Rules'da tanımlı)
+    await addDoc(collection(db, "fisTalepleri"), {
+      magaza,
+      kategori: g("gtKategori") || "Diğer",
+      tutar,
+      odemeTipi: g("gtOdemeTipi") || "Nakit",
+      aciklama: g("gtAciklama"),
+      fisUrl: "", fisYol: "",
+      durum: "Beklemede",
+      talepEden: (currentUser?.email || "").toLowerCase(),
       talepEdenAd: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser?.displayName || currentUser?.email || "",
-      talepTarihi: new Date().toISOString(),
+      tarih: g("gtTarih") || new Date().toISOString().substring(0, 10),
       olusturuldu: serverTimestamp()
     });
     giderTalepKapat();
-    showToast("✓ Talebiniz muhasebe onayına gönderildi");
+    showToast("✓ Fiş talebiniz muhasebe onayına gönderildi");
     if (typeof giderTalepleriYukle === "function") giderTalepleriYukle();
   } catch (e) {
-    console.error("Gider talebi:", e);
+    console.error("Fiş talebi:", e);
     showToast("Gönderilemedi: " + e.message, "error");
   }
 };
@@ -33990,12 +33990,12 @@ window.giderTalepGonder = async function() {
 // Muhasebe/yönetim: talepleri yükle
 window.giderTalepleriYukle = async function() {
   try {
-    const snap = await getDocs(collection(db, "giderTalepleri"));
+    const snap = await getDocs(collection(db, "fisTalepleri"));
     giderTalepListesi = [];
     snap.forEach(d => giderTalepListesi.push({ id: d.id, ...d.data() }));
-    giderTalepListesi.sort((a, b) => String(b.talepTarihi || "").localeCompare(String(a.talepTarihi || "")));
+    giderTalepListesi.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
     // Sekme rozeti
-    const bekleyen = giderTalepListesi.filter(t => t.durum === "beklemede").length;
+    const bekleyen = giderTalepListesi.filter(t => t.durum === "Beklemede").length;
     const rozet = document.getElementById("giderTalepRozet");
     if (rozet) {
       if (bekleyen > 0) { rozet.textContent = bekleyen; rozet.style.display = "inline-block"; }
@@ -34003,7 +34003,7 @@ window.giderTalepleriYukle = async function() {
     }
     return giderTalepListesi;
   } catch (e) {
-    console.warn("giderTalepleri:", e.code || e.message);
+    console.warn("fisTalepleri:", e.code || e.message);
     return [];
   }
 };
@@ -34019,33 +34019,35 @@ window.giderTalepleriRender = async function() {
   const tl = (n) => Math.round(Number(n) || 0).toLocaleString("tr-TR") + " ₺";
   const trh = (t) => t ? String(t).substring(0, 10).split("-").reverse().join(".") : "—";
 
-  const bekleyenler = giderTalepListesi.filter(t => t.durum === "beklemede");
-  const gecmis = giderTalepListesi.filter(t => t.durum !== "beklemede").slice(0, 20);
+  const bekleyenler = giderTalepListesi.filter(t => t.durum === "Beklemede");
+  const gecmis = giderTalepListesi.filter(t => t.durum !== "Beklemede").slice(0, 20);
   const bekleyenTutar = bekleyenler.reduce((s, t) => s + (Number(t.tutar) || 0), 0);
 
   const DURUM = {
-    beklemede:  { ad: "Onay bekliyor", renk: "#B45309", bg: "#FFFBEB" },
-    onaylandi:  { ad: "Onaylandı",     renk: "#059669", bg: "#ECFDF5" },
-    reddedildi: { ad: "Reddedildi",    renk: "#DC2626", bg: "#FEF2F2" }
+    "Beklemede":  { ad: "Onay bekliyor", renk: "#B45309", bg: "#FFFBEB" },
+    "Onaylandi":  { ad: "Onaylandı",     renk: "#059669", bg: "#ECFDF5" },
+    "Odendi":     { ad: "Ödendi",        renk: "#059669", bg: "#ECFDF5" },
+    "Reddedildi": { ad: "Reddedildi",    renk: "#DC2626", bg: "#FEF2F2" }
   };
 
   const kart = (t, islemli) => {
-    const s = DURUM[t.durum] || DURUM.beklemede;
+    const s = DURUM[t.durum] || DURUM["Beklemede"];
     return `<div style="background:#fff; border:1px solid #E9EBF4; border-left:4px solid ${s.renk}; border-radius:12px; padding:13px 15px; margin-bottom:9px;">
       <div style="display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap;">
         <div style="flex:1; min-width:200px;">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <strong style="font-size:14px; color:#1E293B;">${esc(t.aciklama)}</strong>
+            <strong style="font-size:14px; color:#1E293B;">${esc(t.magaza || t.aciklama || "Fiş")}</strong>
             <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:2px 8px; border-radius:100px;">${s.ad}</span>
           </div>
           <div style="font-size:11.5px; color:#64748B; margin-top:4px; display:flex; gap:10px; flex-wrap:wrap;">
-            <span>${esc(t.kategoriAd || t.kategori)}</span>
+            <span>${esc(t.kategori || "Diğer")}</span>
             <span>· ${trh(t.tarih)}</span>
             <span>· ${esc(t.talepEdenAd || t.talepEden)}</span>
-            ${t.belgeTuru && t.belgeTuru !== "yok" ? `<span>· ${esc(t.belgeTuru)}${t.belgeNo ? " " + esc(t.belgeNo) : ""}</span>` : `<span>· belgesiz</span>`}
+            ${t.odemeTipi ? `<span>· ${esc(t.odemeTipi)}</span>` : ""}
+            ${t.fisUrl ? `<a href="${esc(t.fisUrl)}" target="_blank" style="color:#5A6ACF; font-weight:700;">· fişi gör</a>` : ""}
           </div>
-          ${t.not ? `<div style="font-size:11.5px; color:#94A3B8; margin-top:4px; font-style:italic;">"${esc(t.not)}"</div>` : ""}
-          ${t.redNedeni ? `<div style="font-size:11.5px; color:#DC2626; margin-top:4px;">Red nedeni: ${esc(t.redNedeni)}</div>` : ""}
+          ${t.aciklama ? `<div style="font-size:11.5px; color:#94A3B8; margin-top:4px; font-style:italic;">"${esc(t.aciklama)}"</div>` : ""}
+          ${t.yonetimNotu ? `<div style="font-size:11.5px; color:#DC2626; margin-top:4px;">Not: ${esc(t.yonetimNotu)}</div>` : ""}
         </div>
         <div style="text-align:right;">
           <div style="font-size:18px; font-weight:800; color:#1E293B;">${tl(t.tutar)}</div>
@@ -34090,29 +34092,29 @@ window.giderTalepleriRender = async function() {
 window.giderTalepOnayla = async function(talepId) {
   const t = giderTalepListesi.find(x => x.id === talepId);
   if (!t) return;
-  if (!confirm(`"${t.aciklama}" · ${Math.round(t.tutar).toLocaleString("tr-TR")} ₺\n\nOnaylanıp gider kayıtlarına işlensin mi?`)) return;
+  if (!confirm(`${t.magaza || t.aciklama || "Fiş"} · ${Math.round(t.tutar).toLocaleString("tr-TR")} ₺\n\nOnaylanıp gider kayıtlarına işlensin mi?`)) return;
 
   try {
     // 1) Gider kaydı oluştur
     await addDoc(collection(db, "giderler"), {
       tarih: t.tarih,
       tutar: Number(t.tutar) || 0,
-      kategori: t.kategori,
-      aciklama: t.aciklama,
-      belgeTuru: t.belgeTuru || "",
-      belgeNo: t.belgeNo || "",
-      kaynak: "personel_talebi",
+      kategori: "isletme_diger",
+      aciklama: [t.magaza, t.kategori, t.aciklama].filter(Boolean).join(" · "),
+      odemeTipi: t.odemeTipi || "",
+      fisUrl: t.fisUrl || "",
+      kaynak: "personel_fis_talebi",
       talepId: talepId,
       talepEden: t.talepEden || "",
       onaylayan: currentUser?.email || "",
       olusturuldu: serverTimestamp()
     });
-    // 2) Talebi güncelle
-    await updateDoc(doc(db, "giderTalepleri", talepId), {
-      durum: "onaylandi",
-      onaylayan: currentUser?.email || "",
-      onayTarihi: new Date().toISOString()
-    });
+    // 2) Talebi güncelle (ZEKY durum değerleri)
+    await setDoc(doc(db, "fisTalepleri", talepId), {
+      durum: "Onaylandi",
+      islemYapan: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    }, { merge: true });
 
     showToast("✓ Onaylandı ve gider kayıtlarına işlendi");
     if (typeof loadFinansalData === "function") await loadFinansalData();
@@ -34128,19 +34130,267 @@ window.giderTalepOnayla = async function(talepId) {
 window.giderTalepReddet = async function(talepId) {
   const t = giderTalepListesi.find(x => x.id === talepId);
   if (!t) return;
-  const neden = prompt(`"${t.aciklama}" talebi reddedilecek.\n\nRed nedeni (personele iletilir):`);
+  const neden = prompt(`${t.magaza || "Fiş"} talebi reddedilecek.\n\nRed nedeni (personele iletilir):`);
   if (neden === null) return;
   try {
-    await updateDoc(doc(db, "giderTalepleri", talepId), {
-      durum: "reddedildi",
-      redNedeni: neden.trim() || "Belirtilmedi",
-      onaylayan: currentUser?.email || "",
-      onayTarihi: new Date().toISOString()
-    });
+    await setDoc(doc(db, "fisTalepleri", talepId), {
+      durum: "Reddedildi",
+      yonetimNotu: neden.trim() || "Belirtilmedi",
+      islemYapan: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    }, { merge: true });
     showToast("Talep reddedildi");
     giderTalepleriRender();
   } catch (e) {
     showToast("İşlem başarısız: " + e.message, "error");
+  }
+};
+
+// ═══════════ PROFİLİM — her personelin kendi özlük ekranı (ZEKY personel-ozluk ile aynı akış) ═══════════
+window.profilimRender = async function() {
+  const el = document.getElementById("profilimIcerik");
+  if (!el) return;
+  const email = (currentUser?.email || "").toLowerCase();
+  if (!email) { el.innerHTML = `<div style="padding:30px; text-align:center; color:#94A3B8;">Oturum bilgisi yok.</div>`; return; }
+
+  el.innerHTML = `<div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>`;
+
+  // Personel kaydı
+  let p = {};
+  try {
+    const snap = await getDoc(doc(db, "personeller", email));
+    if (snap.exists()) p = snap.data();
+  } catch (e) { console.warn("profil:", e.code); }
+
+  const ad = p.adSoyad || currentUser?.displayName || email;
+  const rolAd = (typeof ROL_ETIKETLERI !== "undefined" && ROL_ETIKETLERI[p.rol]) || p.unvan || p.rol || "Personel";
+  const siniflar = p.sinifAtamalari || p.siniflar || [];
+
+  // Bugün + bu ay puantaj (puantaj koleksiyonu, ZEKY ile ortak)
+  const bugun = new Date().toISOString().substring(0, 10);
+  const buAy = bugun.substring(0, 7);
+  let bugunDk = 0, ayDk = 0, ayGun = 0, ayMolaDk = 0;
+  let gunlukKayitlar = {};
+  try {
+    const snap = await getDocs(query(collection(db, "puantaj"), where("personelEmail", "==", email)));
+    const kayitlar = [];
+    snap.forEach(d => { const v = d.data(); if ((v.tarih || "").startsWith(buAy)) kayitlar.push(v); });
+    kayitlar.forEach(k => { (gunlukKayitlar[k.tarih] = gunlukKayitlar[k.tarih] || []).push(k); });
+    Object.keys(gunlukKayitlar).forEach(t => {
+      const h = gunlukKayitlar[t].sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
+      let calisma = 0, mola = 0, aGiris = null, aMola = null;
+      h.forEach(x => {
+        const z = new Date(x.zaman);
+        if (x.tip === "giris") aGiris = z;
+        else if (x.tip === "cikis" && aGiris) { calisma += z - aGiris; aGiris = null; }
+        else if (x.tip === "mola-basla") aMola = z;
+        else if (x.tip === "mola-bitir" && aMola) { mola += z - aMola; aMola = null; }
+      });
+      if (aGiris) calisma += Date.now() - aGiris;
+      if (aMola) mola += Date.now() - aMola;
+      const net = Math.max(0, (calisma - mola) / 60000);
+      gunlukKayitlar[t] = { netDk: net, molaDk: mola / 60000, kayitlar: h };
+      if (net > 0) ayGun++;
+      ayDk += net; ayMolaDk += mola / 60000;
+      if (t === bugun) bugunDk = net;
+    });
+  } catch (e) { console.warn("puantaj:", e.code); }
+
+  // İzinler
+  let izinler = [];
+  try {
+    const snap = await getDocs(query(collection(db, "izinTalepleri"), where("personelEmail", "==", email)));
+    snap.forEach(d => izinler.push({ id: d.id, ...d.data() }));
+    izinler.sort((a, b) => String(b.olusturuldu || "").localeCompare(String(a.olusturuldu || "")));
+  } catch (e) { console.warn("izin:", e.code); }
+
+  // Fişlerim
+  let fisler = [];
+  try {
+    const snap = await getDocs(collection(db, "fisTalepleri"));
+    snap.forEach(d => { const v = d.data(); if ((v.talepEden || "") === email) fisler.push({ id: d.id, ...v }); });
+    fisler.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
+  } catch (e) { console.warn("fis:", e.code); }
+
+  const sure = (dk) => {
+    const d = Math.round(dk);
+    if (d <= 0) return "—";
+    const s = Math.floor(d / 60), k = d % 60;
+    return s ? (s + " sa" + (k ? " " + k + " dk" : "")) : (k + " dk");
+  };
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const trh = (t) => t ? String(t).substring(0, 10).split("-").reverse().join(".") : "—";
+  const izinHakki = Number(p.yillikIzinHakki) || 14;
+  const kullanilanIzin = izinler.filter(i => (i.durum || "").toLowerCase().startsWith("onay")).length;
+
+  const kart = (baslik, ikon, renk, icerik) => `
+    <div style="background:#fff; border:1px solid #E9EBF4; border-radius:14px; padding:15px 17px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+        <i data-lucide="${ikon}" style="width:16px;height:16px;color:${renk};"></i>
+        <strong style="font-size:13.5px; color:#1E293B;">${baslik}</strong>
+      </div>
+      ${icerik}
+    </div>`;
+
+  el.innerHTML = `
+    <!-- Üst özet -->
+    <div style="background:linear-gradient(135deg,#2D5E3E 0%,#4A7C59 100%); border-radius:20px; padding:22px 24px; color:#fff; margin-bottom:16px;">
+      <div style="display:flex; align-items:center; gap:13px; margin-bottom:16px;">
+        <div style="width:48px; height:48px; border-radius:14px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:800;">
+          ${esc(ad.charAt(0).toUpperCase())}
+        </div>
+        <div>
+          <div style="font-size:18px; font-weight:800;">${esc(ad)}</div>
+          <div style="font-size:12.5px; opacity:.88;">${esc(rolAd)}${siniflar.length ? " · " + esc(siniflar.join(", ")) : ""}</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+        <div style="background:rgba(255,255,255,.13); border-radius:13px; padding:11px; text-align:center;">
+          <div style="font-size:17px; font-weight:800;">${sure(bugunDk)}</div>
+          <div style="font-size:10.5px; opacity:.85; margin-top:2px;">Bugün net</div></div>
+        <div style="background:rgba(255,255,255,.13); border-radius:13px; padding:11px; text-align:center;">
+          <div style="font-size:17px; font-weight:800;">${sure(ayDk)}</div>
+          <div style="font-size:10.5px; opacity:.85; margin-top:2px;">Bu ay · ${ayGun} gün</div></div>
+        <div style="background:rgba(255,255,255,.13); border-radius:13px; padding:11px; text-align:center;">
+          <div style="font-size:17px; font-weight:800;">${Math.max(0, izinHakki - kullanilanIzin)}g</div>
+          <div style="font-size:10.5px; opacity:.85; margin-top:2px;">Kalan izin</div></div>
+      </div>
+    </div>
+
+    <!-- Hızlı işlemler -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px;">
+      <button class="btn-mini" onclick="izinTalepAc()" style="padding:13px; background:#EFF6FF; color:#1D4ED8; border-color:#BFDBFE; font-weight:700;">
+        <i data-lucide="calendar-x" style="width:15px;height:15px;vertical-align:-3px;"></i> İzin Talebi</button>
+      <button class="btn-mini" onclick="giderTalepAc()" style="padding:13px; background:#FDF2F8; color:#BE185D; border-color:#FBCFE8; font-weight:700;">
+        <i data-lucide="receipt" style="width:15px;height:15px;vertical-align:-3px;"></i> Fiş / Fatura</button>
+      <button class="btn-mini" onclick="profilimRender()" style="padding:13px; font-weight:700;">
+        <i data-lucide="refresh-cw" style="width:15px;height:15px;vertical-align:-3px;"></i> Yenile</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px;">
+
+      ${kart("Bu Ayki Çalışmam", "clock", "#059669", `
+        <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:#475569; margin-bottom:11px;">
+          <span>Çalışılan gün: <strong style="color:#1E293B;">${ayGun}</strong></span>
+          <span>Net süre: <strong style="color:#1E293B;">${sure(ayDk)}</strong></span>
+          <span>Mola: <strong style="color:#B45309;">${sure(ayMolaDk)}</strong></span>
+        </div>
+        ${Object.keys(gunlukKayitlar).length === 0
+          ? `<div style="font-size:12.5px; color:#94A3B8;">Bu ay QR giriş/çıkış kaydınız yok.</div>`
+          : Object.keys(gunlukKayitlar).sort().reverse().slice(0, 6).map(t => {
+              const g = gunlukKayitlar[t];
+              const ilk = g.kayitlar.find(x => x.tip === "giris");
+              const son = [...g.kayitlar].reverse().find(x => x.tip === "cikis");
+              const st = (z) => z ? new Date(z).toTimeString().slice(0, 5) : null;
+              return `<div style="display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #F1F2F7;">
+                <div style="width:38px; text-align:center; flex-shrink:0;">
+                  <div style="font-weight:800; font-size:14px; color:#2D5E3E;">${new Date(t).getDate()}</div>
+                  <div style="font-size:10px; color:#94A3B8;">${["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][new Date(t).getDay()]}</div>
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:12.5px; color:#334155;">${st(ilk?.zaman) || "—"} → ${st(son?.zaman) || "devam ediyor"}</div>
+                  <div style="font-size:11px; color:#94A3B8;">${g.molaDk > 0 ? "Mola " + sure(g.molaDk) : "Mola yok"}</div>
+                </div>
+                <div style="font-weight:800; font-size:13px; color:#059669;">${sure(g.netDk)}</div>
+              </div>`;
+            }).join("")}
+      `)}
+
+      ${kart("İzinlerim", "calendar-x", "#7C3AED", `
+        <div style="font-size:12.5px; color:#475569; margin-bottom:11px;">
+          Yıllık hak: <strong style="color:#1E293B;">${izinHakki} gün</strong> · Kullanılan: <strong style="color:#7C3AED;">${kullanilanIzin}</strong>
+        </div>
+        ${izinler.length === 0
+          ? `<div style="font-size:12.5px; color:#94A3B8;">Henüz izin talebiniz yok.</div>`
+          : izinler.slice(0, 5).map(i => {
+              const d = (i.durum || "bekliyor").toLowerCase();
+              const s = d.startsWith("onay") ? { a: "Onaylandı", r: "#059669", b: "#ECFDF5" }
+                      : d.startsWith("red") ? { a: "Reddedildi", r: "#DC2626", b: "#FEF2F2" }
+                      : { a: "Bekliyor", r: "#B45309", b: "#FFFBEB" };
+              return `<div style="display:flex; align-items:center; gap:9px; padding:7px 0; border-bottom:1px solid #F1F2F7;">
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:12.5px; font-weight:600; color:#334155;">${esc(i.tur || i.izinTuru || "İzin")}</div>
+                  <div style="font-size:11px; color:#94A3B8;">${trh(i.baslangic)}${i.bitis && i.bitis !== i.baslangic ? " – " + trh(i.bitis) : ""}</div>
+                </div>
+                <span style="font-size:10px; font-weight:800; color:${s.r}; background:${s.b}; padding:3px 9px; border-radius:100px;">${s.a}</span>
+              </div>`;
+            }).join("")}
+      `)}
+
+      ${kart("Fiş / Fatura Taleplerim", "receipt", "#BE185D", `
+        ${fisler.length === 0
+          ? `<div style="font-size:12.5px; color:#94A3B8;">Henüz fiş talebiniz yok.</div>`
+          : fisler.slice(0, 5).map(f => {
+              const d = f.durum || "Beklemede";
+              const s = d === "Onaylandi" || d === "Odendi" ? { r: "#059669", b: "#ECFDF5" }
+                      : d === "Reddedildi" ? { r: "#DC2626", b: "#FEF2F2" }
+                      : { r: "#B45309", b: "#FFFBEB" };
+              return `<div style="display:flex; align-items:center; gap:9px; padding:7px 0; border-bottom:1px solid #F1F2F7;">
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:12.5px; font-weight:600; color:#334155;">${esc(f.magaza || "Fiş")}</div>
+                  <div style="font-size:11px; color:#94A3B8;">${esc(f.kategori || "")} · ${trh(f.tarih)}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-weight:800; font-size:13px; color:#1E293B;">${Math.round(Number(f.tutar) || 0).toLocaleString("tr-TR")} ₺</div>
+                  <span style="font-size:10px; font-weight:800; color:${s.r}; background:${s.b}; padding:2px 7px; border-radius:100px;">${esc(d)}</span>
+                </div>
+              </div>`;
+            }).join("")}
+      `)}
+
+      ${kart("Özlük Bilgilerim", "id-card", "#5A6ACF", `
+        <div style="font-size:12.5px; color:#475569; line-height:2;">
+          <div>E-posta: <strong style="color:#1E293B;">${esc(email)}</strong></div>
+          ${p.telefon ? `<div>Telefon: <strong style="color:#1E293B;">${esc(p.telefon)}</strong></div>` : ""}
+          ${p.iseGirisTarihi ? `<div>İşe giriş: <strong style="color:#1E293B;">${trh(p.iseGirisTarihi)}</strong></div>` : ""}
+          ${p.sgkNo ? `<div>SGK sicil: <strong style="color:#1E293B;">${esc(p.sgkNo)}</strong></div>` : ""}
+          ${p.iban ? `<div>IBAN: <strong style="color:#1E293B;">${esc(p.iban)}</strong></div>` : ""}
+        </div>
+        <div style="font-size:11.5px; color:#94A3B8; margin-top:10px; line-height:1.5;">
+          Bilgilerinizde eksik veya hata varsa yönetime bildirin.
+        </div>
+      `)}
+
+    </div>`;
+
+  if (window.lucideYenile) window.lucideYenile();
+};
+
+// İzin talebi modalı (basit prompt akışı — ZEKY izinTalepleri ile ortak)
+window.izinTalepAc = async function() {
+  const tur = prompt("İzin türü:\n(Yıllık / Mazeret / Rapor / Ücretsiz / Vefat / Doğum)");
+  if (!tur) return;
+  const bas = prompt("Başlangıç tarihi (GG.AA.YYYY):");
+  if (!bas) return;
+  const bit = prompt("Bitiş tarihi (GG.AA.YYYY):", bas);
+  if (!bit) return;
+  const aciklama = prompt("Açıklama (opsiyonel):") || "";
+
+  const isoCevir = (s) => {
+    const p = s.trim().split(/[.\/\-]/);
+    if (p.length !== 3) return null;
+    const [g, a, y] = p;
+    return `${y}-${String(a).padStart(2,"0")}-${String(g).padStart(2,"0")}`;
+  };
+  const basISO = isoCevir(bas), bitISO = isoCevir(bit);
+  if (!basISO || !bitISO) { showToast("Tarih formatı hatalı (GG.AA.YYYY)", "error"); return; }
+
+  try {
+    await addDoc(collection(db, "izinTalepleri"), {
+      personelEmail: (currentUser?.email || "").toLowerCase(),
+      personelAd: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser?.displayName || currentUser?.email || "",
+      tur: tur.trim(),
+      baslangic: basISO,
+      bitis: bitISO,
+      aciklama,
+      durum: "bekliyor",
+      olusturuldu: new Date().toISOString()
+    });
+    showToast("✓ İzin talebiniz yönetime iletildi");
+    if (typeof profilimRender === "function") profilimRender();
+  } catch (e) {
+    console.error("izin talebi:", e);
+    showToast("Gönderilemedi: " + e.message, "error");
   }
 };
 
@@ -38123,7 +38373,8 @@ const MODUL_HARITASI = {
   etkinlik:    { tablar: ["etkinlik"],   varsayilan: "etkinlik", ad: "Etkinlik & Takvim" },
   mesaj:       { tablar: ["mesajlasma"], varsayilan: "mesajlasma", ad: "Mesajlaşma" },
   gelisim:     { tablar: ["gelisim"],    varsayilan: "gelisim", ad: "Gelişim & Kalite" },
-  denetim:     { tablar: ["denetim"],    varsayilan: "denetim", ad: "MEB Denetim Hazırlığı" }
+  denetim:     { tablar: ["denetim"],    varsayilan: "denetim", ad: "MEB Denetim Hazırlığı" },
+  profilim:    { tablar: ["profilim"],   varsayilan: "profilim", ad: "Profilim" }
 };
 let aktifModul = "ozet";
 
@@ -38291,6 +38542,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     }
 
     // İçerik Yönetimi sekmesine geçildiyse aktif alt sekmeyi göster
+    // Profilim sekmesi açıldı
+    if (tab.dataset.tab === "profilim") {
+      setTimeout(() => { if (typeof profilimRender === "function") profilimRender(); }, 50);
+    }
+
     // Galeri bağımsız sekmesi açıldı
     if (tab.dataset.tab === "galeri") {
       setTimeout(() => {
