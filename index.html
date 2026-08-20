@@ -18668,84 +18668,106 @@ window.okulZiliDoldur = async function() {
   const ozetEl = document.getElementById("okulZiliOzet");
   if (!el) return;
 
+  // ZEKY ile ORTAK: pickupBildirimleri/{ogrenciId}__{tarih}
+  // durum akışı: yolda → hazir → teslim   (veliOnay ayrı beyandır)
   const bugun = new Date().toISOString().substring(0, 10);
-  const olasiKoleksiyonlar = ["okulZili", "cikisTalepleri", "okulZiliTalepleri", "veliCikisTalepleri"];
   let kayitlar = [];
+  try {
+    const snap = await getDocs(collection(db, "pickupBildirimleri"));
+    snap.forEach(d => {
+      const v = d.data() || {};
+      if ((v.tarih || "").substring(0, 10) === bugun) kayitlar.push({ id: d.id, ...v });
+    });
+  } catch (e) { console.warn("pickupBildirimleri:", e.code || e.message); }
 
-  for (const kol of olasiKoleksiyonlar) {
-    try {
-      const snap = await getDocs(collection(db, kol));
-      snap.forEach(d => {
-        const v = d.data();
-        const t = (v.tarih || v.gun || "").toString().substring(0, 10);
-        if (!t || t === bugun) kayitlar.push({ id: d.id, ...v });
-      });
-      if (kayitlar.length) break;
-    } catch (e) { /* koleksiyon yoksa sıradakini dene */ }
-  }
-
-  const saatAl = (v) => {
-    if (!v) return null;
-    if (typeof v === "string") {
-      if (/^\d{2}:\d{2}/.test(v)) return v.substring(0, 5);
-      const d = new Date(v);
-      return isNaN(d) ? null : d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-    }
-    if (v.seconds) return new Date(v.seconds * 1000).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-    if (v.toDate) { try { return v.toDate().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }); } catch(e) { return null; } }
-    return null;
+  const saatY = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d)) return null;
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
   };
 
+  // ZEKY pickupBeklemeDk ile aynı mantık: hedef saatten (yoksa bildirimden) başlar
+  const beklemeDk = (b) => {
+    if (!b) return 0;
+    let bas = null;
+    if (b.hedefSaat && /^\d{1,2}:\d{2}$/.test(b.hedefSaat)) {
+      const [h, m] = b.hedefSaat.split(":").map(Number);
+      const d = new Date(); d.setHours(h, m, 0, 0); bas = d.getTime();
+    } else if (b.olusturuldu) {
+      bas = new Date(b.olusturuldu).getTime();
+    }
+    if (!bas || isNaN(bas)) return 0;
+    const bitis = (b.durum === "teslim" && b.teslimZamani) ? new Date(b.teslimZamani).getTime() : Date.now();
+    return Math.max(0, Math.round((bitis - bas) / 60000));
+  };
+  // ZEKY pickupSeviye: 5 / 10 / 15 dk eşikleri
+  const seviyeRenk = (dk) => dk >= 15 ? "#C0392B" : dk >= 10 ? "#E8A92E" : dk >= 5 ? "#B8860B" : "#94A3B8";
+
   if (!kayitlar.length) {
-    if (ozetEl) ozetEl.textContent = "Bugün kayıt yok";
+    if (ozetEl) ozetEl.textContent = "Bugün bildirim yok";
     el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:12px 0; line-height:1.6;">
-      Bugün için çıkış talebi bulunmuyor.<br>
-      <span style="font-size:11.5px; color:#94A3B8;">Veliler ZEKY uygulamasından "Almaya geliyorum" dediğinde talepler burada görünür.</span>
+      Bugün için çıkış bildirimi yok.<br>
+      <span style="font-size:11.5px; color:#94A3B8;">Veliler ZEKY'den "Almaya geliyorum" dediğinde kuyruk burada görünür.</span>
     </div>`;
     return;
   }
 
-  // Zamana göre sırala (en yeni üstte)
+  // Kuyruk sırası: bekleyenler hedef saate göre, teslim edilenler sona
   kayitlar.sort((a, b) => {
-    const ta = a.bildirimZamani || a.talepZamani || a.olusturulma || "";
-    const tb = b.bildirimZamani || b.talepZamani || b.olusturulma || "";
-    return String(tb).localeCompare(String(ta));
+    const at = a.durum === "teslim" ? 1 : 0, bt = b.durum === "teslim" ? 1 : 0;
+    if (at !== bt) return at - bt;
+    return String(a.hedefSaat || "99:99").localeCompare(String(b.hedefSaat || "99:99"));
   });
 
-  const DURUM_STIL = {
-    beklemede:   { ad: "Veli bildirdi", renk: "#B45309", bg: "#FFFBEB", ikon: "bell" },
-    hazirlaniyor:{ ad: "Hazırlanıyor",  renk: "#1D4ED8", bg: "#EFF6FF", ikon: "loader" },
-    gonderildi:  { ad: "Gönderildi",    renk: "#059669", bg: "#ECFDF5", ikon: "check-check" },
-    teslim:      { ad: "Teslim edildi", renk: "#059669", bg: "#ECFDF5", ikon: "check-check" }
+  const bekleyenler = kayitlar.filter(k => k.durum !== "teslim");
+  const teslimler = kayitlar.filter(k => k.durum === "teslim");
+  const gecikenSayisi = bekleyenler.filter(k => beklemeDk(k) >= 10).length;
+  if (ozetEl) {
+    ozetEl.textContent = `${bekleyenler.length} bekliyor · ${teslimler.length} teslim` +
+      (gecikenSayisi ? ` · ${gecikenSayisi} geciken` : "");
+  }
+
+  const DURUM = {
+    yolda:  { ad: "Veli yolda",     renk: "#B45309", bg: "#FFFBEB" },
+    hazir:  { ad: "Hazırlandı",     renk: "#1D4ED8", bg: "#EFF6FF" },
+    teslim: { ad: "Teslim edildi",  renk: "#059669", bg: "#ECFDF5" }
   };
 
-  const bekleyen = kayitlar.filter(k => !k.durum || k.durum === "beklemede" || k.durum === "hazirlaniyor").length;
-  if (ozetEl) ozetEl.textContent = `${kayitlar.length} talep · ${bekleyen} bekliyor`;
+  el.innerHTML = kayitlar.slice(0, 6).map(k => {
+    const durumKey = DURUM[k.durum] ? k.durum : "yolda";
+    const s = DURUM[durumKey];
+    const dk = beklemeDk(k);
+    const renk = seviyeRenk(dk);
+    const siraNo = durumKey === "teslim" ? "✓" : (bekleyenler.indexOf(k) + 1);
+    const ogrAd = k.ogrenciAd || "—";
+    const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
 
-  el.innerHTML = kayitlar.slice(0, 5).map(k => {
-    const s = DURUM_STIL[k.durum] || DURUM_STIL.beklemede;
-    const veliSaat = saatAl(k.bildirimZamani || k.talepZamani || k.olusturulma);
-    const cikisSaat = saatAl(k.cikisZamani || k.teslimZamani || k.gonderimZamani);
-    const plan = k.planlananSaat || k.saat || null;
-    const ogrAd = k.ogrenciAd || k.ogrenciAdSoyad || "—";
-    return `<div style="display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid #F1F2F7;">
-      <div style="width:34px; height:34px; border-radius:10px; background:${s.bg}; color:${s.renk}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px;">
-        ${String(ogrAd).charAt(0).toUpperCase()}
-      </div>
+    // Zaman çizgisi: veli bildirdi → hazırlandı → teslim (+ veli teyidi)
+    const adimlar = [];
+    if (k.olusturuldu) adimlar.push(`<span title="Veli bildirdi">📣 ${saatY(k.olusturuldu)}</span>`);
+    if (k.hazirZamani) adimlar.push(`<span title="Öğretmen hazırladı">📦 ${saatY(k.hazirZamani)}</span>`);
+    if (k.teslimZamani) adimlar.push(`<span title="Teslim edildi">✅ ${saatY(k.teslimZamani)}${k.teslimEden ? " · " + esc(k.teslimEden) : ""}</span>`);
+    if (k.veliOnay) adimlar.push(`<span style="color:#2D7A2D; font-weight:700;" title="Veli teyidi">👍 aldım${k.veliOnayZamani ? " " + saatY(k.veliOnayZamani) : ""}</span>`);
+
+    return `<div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #F1F2F7;">
+      <div style="width:28px; height:28px; border-radius:9px; background:${s.bg}; color:${s.renk}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex-shrink:0;">${siraNo}</div>
+      <div style="min-width:42px; text-align:center; font-weight:800; font-size:13px; color:#2D5E3E; flex-shrink:0;">${esc(k.hedefSaat) || "—"}</div>
       <div style="flex:1; min-width:0;">
         <div style="font-weight:700; font-size:13px; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-          ${String(ogrAd).replace(/</g,"&lt;")}
-          ${k.sinif ? `<span style="font-weight:400; color:#94A3B8; font-size:11.5px;"> · ${String(k.sinif).replace(/</g,"&lt;")}</span>` : ""}
+          ${esc(ogrAd)}${k.sinif ? `<span style="font-weight:400; color:#94A3B8; font-size:11px;"> · ${esc(k.sinif)}</span>` : ""}
         </div>
-        <div style="font-size:11px; color:var(--c-muted); display:flex; gap:9px; flex-wrap:wrap; margin-top:2px;">
-          ${plan ? `<span>🕐 Planlanan ${plan}</span>` : ""}
-          ${veliSaat ? `<span>📣 Veli ${veliSaat}</span>` : ""}
-          ${cikisSaat ? `<span>✅ Çıkış ${cikisSaat}</span>` : ""}
+        <div style="font-size:11px; color:var(--c-muted); display:flex; gap:8px; flex-wrap:wrap; margin-top:2px;">
+          <span>${esc(k.alanKisi || "Veli")} alacak</span>
+          ${adimlar.join("")}
+          ${dk > 0 && durumKey !== "teslim" ? `<span style="color:${renk}; font-weight:700;">⏱ ${dk} dk</span>` : ""}
+          ${dk > 0 && durumKey === "teslim" ? `<span style="color:#94A3B8;">⏱ ${dk} dk sürdü</span>` : ""}
         </div>
       </div>
-      <span style="font-size:10.5px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 9px; border-radius:100px; white-space:nowrap;">${s.ad}</span>
+      <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 8px; border-radius:100px; white-space:nowrap; flex-shrink:0;">${s.ad}</span>
     </div>`;
-  }).join("");
+  }).join("") + (kayitlar.length > 6
+    ? `<div style="font-size:11.5px; color:#94A3B8; padding-top:8px;">+${kayitlar.length - 6} bildirim daha</div>` : "");
 
   if (window.lucideYenile) window.lucideYenile();
 };
