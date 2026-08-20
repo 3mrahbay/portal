@@ -9232,7 +9232,6 @@ i[data-lucide] svg { display: block; }
         <button class="side-item" data-modul="ozlukM" onclick="modulSec('ozlukM')"><span class="side-ikon"><i data-lucide="clock"></i></span><span class="side-ad">Özlük &amp; Puantaj</span></button>
         <button class="side-item" data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon"><i data-lucide="book-open"></i></span><span class="side-ad">Eğitim</span></button>
         <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon"><i data-lucide="wallet"></i></span><span class="side-ad">Muhasebe</span></button>
-        <button class="side-item" data-modul="raporlar" onclick="modulSec('raporlar')"><span class="side-ikon"><i data-lucide="bar-chart-3"></i></span><span class="side-ad">Raporlar</span></button>
         <button class="side-item" data-modul="denetim" onclick="modulSec('denetim')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">MEB Denetim</span></button>
       </div>
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
@@ -18663,6 +18662,94 @@ window.adminGotoTab = function(name) {
   if (t) t.click();
 };
 
+// ═══ OKUL ZİLİ — bugünkü veli çıkış talepleri (ZEKY app ile ortak koleksiyon) ═══
+window.okulZiliDoldur = async function() {
+  const el = document.getElementById("okulZiliListe");
+  const ozetEl = document.getElementById("okulZiliOzet");
+  if (!el) return;
+
+  const bugun = new Date().toISOString().substring(0, 10);
+  const olasiKoleksiyonlar = ["okulZili", "cikisTalepleri", "okulZiliTalepleri", "veliCikisTalepleri"];
+  let kayitlar = [];
+
+  for (const kol of olasiKoleksiyonlar) {
+    try {
+      const snap = await getDocs(collection(db, kol));
+      snap.forEach(d => {
+        const v = d.data();
+        const t = (v.tarih || v.gun || "").toString().substring(0, 10);
+        if (!t || t === bugun) kayitlar.push({ id: d.id, ...v });
+      });
+      if (kayitlar.length) break;
+    } catch (e) { /* koleksiyon yoksa sıradakini dene */ }
+  }
+
+  const saatAl = (v) => {
+    if (!v) return null;
+    if (typeof v === "string") {
+      if (/^\d{2}:\d{2}/.test(v)) return v.substring(0, 5);
+      const d = new Date(v);
+      return isNaN(d) ? null : d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+    }
+    if (v.seconds) return new Date(v.seconds * 1000).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+    if (v.toDate) { try { return v.toDate().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }); } catch(e) { return null; } }
+    return null;
+  };
+
+  if (!kayitlar.length) {
+    if (ozetEl) ozetEl.textContent = "Bugün kayıt yok";
+    el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:12px 0; line-height:1.6;">
+      Bugün için çıkış talebi bulunmuyor.<br>
+      <span style="font-size:11.5px; color:#94A3B8;">Veliler ZEKY uygulamasından "Almaya geliyorum" dediğinde talepler burada görünür.</span>
+    </div>`;
+    return;
+  }
+
+  // Zamana göre sırala (en yeni üstte)
+  kayitlar.sort((a, b) => {
+    const ta = a.bildirimZamani || a.talepZamani || a.olusturulma || "";
+    const tb = b.bildirimZamani || b.talepZamani || b.olusturulma || "";
+    return String(tb).localeCompare(String(ta));
+  });
+
+  const DURUM_STIL = {
+    beklemede:   { ad: "Veli bildirdi", renk: "#B45309", bg: "#FFFBEB", ikon: "bell" },
+    hazirlaniyor:{ ad: "Hazırlanıyor",  renk: "#1D4ED8", bg: "#EFF6FF", ikon: "loader" },
+    gonderildi:  { ad: "Gönderildi",    renk: "#059669", bg: "#ECFDF5", ikon: "check-check" },
+    teslim:      { ad: "Teslim edildi", renk: "#059669", bg: "#ECFDF5", ikon: "check-check" }
+  };
+
+  const bekleyen = kayitlar.filter(k => !k.durum || k.durum === "beklemede" || k.durum === "hazirlaniyor").length;
+  if (ozetEl) ozetEl.textContent = `${kayitlar.length} talep · ${bekleyen} bekliyor`;
+
+  el.innerHTML = kayitlar.slice(0, 5).map(k => {
+    const s = DURUM_STIL[k.durum] || DURUM_STIL.beklemede;
+    const veliSaat = saatAl(k.bildirimZamani || k.talepZamani || k.olusturulma);
+    const cikisSaat = saatAl(k.cikisZamani || k.teslimZamani || k.gonderimZamani);
+    const plan = k.planlananSaat || k.saat || null;
+    const ogrAd = k.ogrenciAd || k.ogrenciAdSoyad || "—";
+    return `<div style="display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid #F1F2F7;">
+      <div style="width:34px; height:34px; border-radius:10px; background:${s.bg}; color:${s.renk}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px;">
+        ${String(ogrAd).charAt(0).toUpperCase()}
+      </div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:700; font-size:13px; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+          ${String(ogrAd).replace(/</g,"&lt;")}
+          ${k.sinif ? `<span style="font-weight:400; color:#94A3B8; font-size:11.5px;"> · ${String(k.sinif).replace(/</g,"&lt;")}</span>` : ""}
+        </div>
+        <div style="font-size:11px; color:var(--c-muted); display:flex; gap:9px; flex-wrap:wrap; margin-top:2px;">
+          ${plan ? `<span>🕐 Planlanan ${plan}</span>` : ""}
+          ${veliSaat ? `<span>📣 Veli ${veliSaat}</span>` : ""}
+          ${cikisSaat ? `<span>✅ Çıkış ${cikisSaat}</span>` : ""}
+        </div>
+      </div>
+      <span style="font-size:10.5px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 9px; border-radius:100px; white-space:nowrap;">${s.ad}</span>
+    </div>`;
+  }).join("");
+
+  if (window.lucideYenile) window.lucideYenile();
+};
+
 function renderAdminHome() {
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
@@ -18696,6 +18783,7 @@ function renderAdminHome() {
     setTimeout(hbDuyurulariDoldur, 60);
     setTimeout(hbEgitimDoldur, 120);
     setTimeout(hbOgretmenDoldur, 90);
+    setTimeout(() => { if (typeof okulZiliDoldur === "function") okulZiliDoldur(); }, 140);
   }
   // Lucide ikonlarını render et (dinamik innerHTML sonrası — widget geç dolabilir)
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 40); setTimeout(window.lucideYenile, 250); }
@@ -19471,6 +19559,20 @@ function yonetimHomeHTML(ad) {
             <span><span class="lg" style="background:#D8DCE9;"></span>Geciken</span>
           </div>
           ${grafikBarlarHTML2}
+
+          <!-- ALT YARIM: Okul Zili — bugünkü çıkış akışı -->
+          <div style="margin-top:16px; padding-top:14px; border-top:1px solid #EEF1F5;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div style="display:flex; align-items:center; gap:7px;">
+                <span style="font-size:16px; display:inline-flex;"><i data-lucide="bell-ring" style="width:16px;height:16px;color:#B45309;"></i></span>
+                <span class="ozet-panel-baslik">Okul Zili · Çıkış Akışı</span>
+              </div>
+              <span class="ozet-panel-etiket" id="okulZiliOzet">Bugün</span>
+            </div>
+            <div id="okulZiliListe">
+              <div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Yükleniyor…</div>
+            </div>
+          </div>
         </div>
 
         <!-- Takvim + Gün Planı -->
@@ -29122,7 +29224,7 @@ window.egitimSekmesiAcildi = async function() {
           <div style="font-size:11px; color:var(--gray-500); margin-top:4px;">📅 ${d.takvim || ""}</div>
           <div class="egitim-disiplin-ileri">Değerlendirme →</div>
         </button>
-        <button type="button" class="egitim-rapor-kutu" onclick="egitimDisiplinAc('${d.id}')" style="--d-renk:${d.renk};" title="${d.ad} gelişim raporu">
+        <button type="button" class="egitim-rapor-kutu" onclick="event.stopPropagation(); egitimRaporAc('${d.id}')" style="--d-renk:${d.renk};" title="${d.ad} raporu">
           <span class="er-ikon" style="background:${d.renk}14; color:${d.renk};"><i data-lucide="bar-chart-3" style="width:15px;height:15px;vertical-align:-2px;"></i></span>
           <span class="er-metin"><strong>${d.ad} Raporu</strong><span>Öğrenci gelişim çıktısı · S/T/U</span></span>
           <span class="er-ok">→</span>
@@ -29162,6 +29264,235 @@ window.egitimSekmesiAcildi = async function() {
 };
 
 // Disiplin kutusuna tıklandı
+// ═══ EĞİTİM RAPORU — matrix'e girmeden detaylı rapor penceresi ═══
+window.egitimRaporAc = async function(disiplin) {
+  try {
+    egitimAktifDisiplin = disiplin;
+    if (typeof showToast === "function") showToast("Rapor hazırlanıyor…");
+    await mufredatYukle(disiplin);
+    await egitimMatrixVeriYukle();
+    const muf = aktifMufredatlar[disiplin];
+    if (!muf || muf.length === 0) {
+      showToast("Bu programın müfredatı henüz tanımlı değil", "error");
+      return;
+    }
+    egitimDetayliRaporGoster(disiplin);
+  } catch (e) {
+    console.error("egitimRaporAc:", e);
+    showToast("Rapor açılamadı: " + e.message, "error");
+  }
+};
+
+// Detaylı rapor penceresi: program özeti + alan bazlı + sınıf bazlı + öğrenci bazlı
+window.egitimDetayliRaporGoster = function(disiplin) {
+  const dInfo = DISIPLINLER.find(x => x.id === disiplin) || { ad: disiplin, renk: "#4f46e5", ikon: "📚" };
+  const mufredat = aktifMufredatlar[disiplin] || [];
+  const gelisim = (egitimMatrixVerisi && egitimMatrixVerisi.gelisim) || {};
+  let ogrenciler = (egitimMatrixVerisi && egitimMatrixVerisi.ogrenciler) || [];
+
+  // Ders anahtarlarını topla
+  const dersAnahtarlari = [];
+  mufredat.forEach(alan => (alan.gruplar || []).forEach(g =>
+    (g.dersler || []).forEach(d => dersAnahtarlari.push({ alan: alan.ad, alanId: alan.id, grup: g.ad, ders: d, key: `${alan.id}__${g.ad}__${d}` }))
+  ));
+  const toplamDers = dersAnahtarlari.length;
+
+  const kayitAl = (ogrId) => ((gelisim[ogrId] || {})[disiplin] || {}).kayitlar || {};
+  const DURUM_RENK = { S: "#3b82f6", T: "#f59e0b", U: "#16a34a" };
+
+  // Genel sayımlar
+  let sayS = 0, sayT = 0, sayU = 0;
+  ogrenciler.forEach(o => {
+    const k = kayitAl(o.id);
+    dersAnahtarlari.forEach(d => {
+      const v = k[d.key];
+      if (v === "S") sayS++; else if (v === "T") sayT++; else if (v === "U") sayU++;
+    });
+  });
+  const toplamHucre = Math.max(1, ogrenciler.length * toplamDers);
+  const islenmis = sayS + sayT + sayU;
+  const genelYuzde = Math.round((islenmis / toplamHucre) * 100);
+
+  // Alan bazlı
+  const alanRapor = mufredat.map(alan => {
+    const dersler = dersAnahtarlari.filter(d => d.alanId === alan.id);
+    let dolu = 0, u = 0;
+    ogrenciler.forEach(o => {
+      const k = kayitAl(o.id);
+      dersler.forEach(d => { if (k[d.key]) { dolu++; if (k[d.key] === "U") u++; } });
+    });
+    const top = Math.max(1, ogrenciler.length * dersler.length);
+    return { ad: alan.ad, ikon: alan.ikon || "📘", dersSayisi: dersler.length,
+             yuzde: Math.round((dolu / top) * 100), ustalik: Math.round((u / top) * 100) };
+  }).sort((a, b) => b.yuzde - a.yuzde);
+
+  // Sınıf bazlı
+  const sinifMap = {};
+  ogrenciler.forEach(o => {
+    const sn = o._sinif || o.sinif || "Sınıfsız";
+    sinifMap[sn] = sinifMap[sn] || { ad: sn, ogr: 0, dolu: 0, u: 0 };
+    sinifMap[sn].ogr++;
+    const k = kayitAl(o.id);
+    dersAnahtarlari.forEach(d => { if (k[d.key]) { sinifMap[sn].dolu++; if (k[d.key] === "U") sinifMap[sn].u++; } });
+  });
+  const sinifRapor = Object.values(sinifMap).map(s => ({
+    ...s, yuzde: Math.round((s.dolu / Math.max(1, s.ogr * toplamDers)) * 100),
+    ustalik: Math.round((s.u / Math.max(1, s.ogr * toplamDers)) * 100)
+  })).sort((a, b) => b.yuzde - a.yuzde);
+
+  // Öğrenci bazlı
+  const ogrRapor = ogrenciler.map(o => {
+    const k = kayitAl(o.id);
+    let s = 0, t = 0, u = 0;
+    dersAnahtarlari.forEach(d => {
+      const v = k[d.key];
+      if (v === "S") s++; else if (v === "T") t++; else if (v === "U") u++;
+    });
+    const dolu = s + t + u;
+    return {
+      ad: o.ogrenciAdSoyad || o.adSoyad || "—",
+      sinif: o._sinif || o.sinif || "",
+      s, t, u, dolu,
+      yuzde: toplamDers ? Math.round((dolu / toplamDers) * 100) : 0,
+      ustalikYuzde: toplamDers ? Math.round((u / toplamDers) * 100) : 0
+    };
+  }).sort((a, b) => b.yuzde - a.yuzde);
+
+  const cubuk = (yuzde, renk) =>
+    `<div style="height:7px; background:#F1F5F9; border-radius:100px; overflow:hidden;"><div style="width:${yuzde}%; height:100%; background:${renk}; border-radius:100px;"></div></div>`;
+
+  const eski = document.getElementById("egitimRaporModal");
+  if (eski) eski.remove();
+  const modal = document.createElement("div");
+  modal.id = "egitimRaporModal";
+  modal.className = "modal-overlay active";
+  modal.onclick = (e) => { if (e.target.id === "egitimRaporModal") modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:900px; max-height:90vh; overflow-y:auto;">
+      <div style="background:linear-gradient(135deg, ${dInfo.renk} 0%, ${dInfo.renk}bb 100%); color:#fff; padding:20px 24px; position:sticky; top:0; z-index:2;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:11px; font-weight:800; letter-spacing:1.4px; opacity:.9;">GELİŞİM RAPORU</div>
+            <h2 style="font-family:var(--font-display,inherit); font-size:23px; font-weight:700; margin:5px 0 0;">${dInfo.ikon} ${escapeHtmlGelisim(dInfo.ad)}</h2>
+          </div>
+          <button onclick="document.getElementById('egitimRaporModal').remove()" style="background:rgba(255,255,255,.2); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;">×</button>
+        </div>
+      </div>
+
+      <div style="padding:20px 24px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:20px;">
+          <div style="background:#F8FAFC; border-radius:12px; padding:12px 14px;">
+            <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase;">Öğrenci</div>
+            <div style="font-size:22px; font-weight:800; color:#1E293B;">${ogrenciler.length}</div></div>
+          <div style="background:#F8FAFC; border-radius:12px; padding:12px 14px;">
+            <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase;">Kazanım</div>
+            <div style="font-size:22px; font-weight:800; color:#1E293B;">${toplamDers}</div></div>
+          <div style="background:#EFF6FF; border-radius:12px; padding:12px 14px;">
+            <div style="font-size:10.5px; font-weight:800; color:#1D4ED8; text-transform:uppercase;">Sunuldu</div>
+            <div style="font-size:22px; font-weight:800; color:#1D4ED8;">${sayS}</div></div>
+          <div style="background:#FFFBEB; border-radius:12px; padding:12px 14px;">
+            <div style="font-size:10.5px; font-weight:800; color:#B45309; text-transform:uppercase;">Tekrar</div>
+            <div style="font-size:22px; font-weight:800; color:#B45309;">${sayT}</div></div>
+          <div style="background:#F0FDF4; border-radius:12px; padding:12px 14px;">
+            <div style="font-size:10.5px; font-weight:800; color:#15803D; text-transform:uppercase;">Uzmanlaştı</div>
+            <div style="font-size:22px; font-weight:800; color:#15803D;">${sayU}</div></div>
+          <div style="background:${dInfo.renk}14; border-radius:12px; padding:12px 14px;">
+            <div style="font-size:10.5px; font-weight:800; color:${dInfo.renk}; text-transform:uppercase;">Genel</div>
+            <div style="font-size:22px; font-weight:800; color:${dInfo.renk};">%${genelYuzde}</div></div>
+        </div>
+
+        <h3 style="font-size:13px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:0 0 10px;">Gelişim Alanları</h3>
+        ${alanRapor.map(a => `
+          <div style="margin-bottom:11px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+              <span style="color:#334155;">${a.ikon} ${escapeHtmlGelisim(a.ad)} <span style="color:#94A3B8; font-size:11.5px;">· ${a.dersSayisi} kazanım</span></span>
+              <span style="font-weight:700; color:${dInfo.renk};">%${a.yuzde} <span style="color:#16a34a; font-size:11.5px;">(U %${a.ustalik})</span></span>
+            </div>
+            ${cubuk(a.yuzde, dInfo.renk)}
+          </div>`).join("") || '<div style="color:#94A3B8; font-size:13px;">Alan verisi yok.</div>'}
+
+        <h3 style="font-size:13px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:22px 0 10px;">Sınıf Karşılaştırması</h3>
+        ${sinifRapor.map(s => `
+          <div style="margin-bottom:11px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+              <span style="color:#334155;">${escapeHtmlGelisim(s.ad)} <span style="color:#94A3B8; font-size:11.5px;">· ${s.ogr} öğrenci</span></span>
+              <span style="font-weight:700; color:#5A6ACF;">%${s.yuzde}</span>
+            </div>
+            ${cubuk(s.yuzde, "#5A6ACF")}
+          </div>`).join("") || '<div style="color:#94A3B8; font-size:13px;">Sınıf verisi yok.</div>'}
+
+        <h3 style="font-size:13px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:22px 0 10px;">Öğrenci Bazlı İlerleme</h3>
+        <div style="overflow-x:auto; border:1px solid #E2E8F0; border-radius:12px;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead><tr style="background:#F8FAFC;">
+              <th style="padding:9px 12px; text-align:left; font-size:10.5px; text-transform:uppercase; color:#64748B;">Öğrenci</th>
+              <th style="padding:9px 8px; text-align:center; font-size:10.5px; color:#1D4ED8;">S</th>
+              <th style="padding:9px 8px; text-align:center; font-size:10.5px; color:#B45309;">T</th>
+              <th style="padding:9px 8px; text-align:center; font-size:10.5px; color:#15803D;">U</th>
+              <th style="padding:9px 12px; text-align:right; font-size:10.5px; text-transform:uppercase; color:#64748B;">Tamamlama</th>
+              <th style="padding:9px 12px; width:110px;"></th>
+            </tr></thead>
+            <tbody>
+              ${ogrRapor.map(o => {
+                const renk = o.yuzde >= 70 ? "#16a34a" : o.yuzde >= 40 ? "#b45309" : "#dc2626";
+                return `<tr style="border-top:1px solid #E2E8F0;">
+                  <td style="padding:8px 12px;">
+                    <div style="font-weight:700; color:#1E293B;">${escapeHtmlGelisim(o.ad)}</div>
+                    <div style="font-size:11px; color:#94A3B8;">${escapeHtmlGelisim(o.sinif)}</div>
+                  </td>
+                  <td style="padding:8px; text-align:center; color:#1D4ED8; font-weight:700;">${o.s}</td>
+                  <td style="padding:8px; text-align:center; color:#B45309; font-weight:700;">${o.t}</td>
+                  <td style="padding:8px; text-align:center; color:#15803D; font-weight:700;">${o.u}</td>
+                  <td style="padding:8px 12px; text-align:right; font-weight:800; color:${renk};">%${o.yuzde}</td>
+                  <td style="padding:8px 12px;">${cubuk(o.yuzde, renk)}</td>
+                </tr>`;
+              }).join("") || '<tr><td colspan="6" style="padding:20px; text-align:center; color:#94A3B8;">Öğrenci verisi yok.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex; gap:9px; margin-top:18px; justify-content:flex-end;">
+          <button class="btn-mini" onclick="egitimRaporExcel('${disiplin}')"><i data-lucide="download" style="width:13px;height:13px;vertical-align:-2px;"></i> Excel</button>
+          <button class="btn-mini" onclick="window.print()"><i data-lucide="printer" style="width:13px;height:13px;vertical-align:-2px;"></i> Yazdır</button>
+          <button class="btn-primary" onclick="document.getElementById('egitimRaporModal').remove(); egitimDisiplinAc('${disiplin}')">Değerlendirmeye Git →</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  if (window.lucideYenile) window.lucideYenile();
+};
+
+// Rapor Excel çıktısı
+window.egitimRaporExcel = function(disiplin) {
+  if (typeof XLSX === "undefined") { showToast("Excel kütüphanesi yüklenemedi", "error"); return; }
+  const dInfo = DISIPLINLER.find(x => x.id === disiplin) || { ad: disiplin };
+  const mufredat = aktifMufredatlar[disiplin] || [];
+  const gelisim = (egitimMatrixVerisi && egitimMatrixVerisi.gelisim) || {};
+  const ogrenciler = (egitimMatrixVerisi && egitimMatrixVerisi.ogrenciler) || [];
+  const anahtar = [];
+  mufredat.forEach(a => (a.gruplar || []).forEach(g => (g.dersler || []).forEach(d =>
+    anahtar.push({ alan: a.ad, grup: g.ad, ders: d, key: `${a.id}__${g.ad}__${d}` }))));
+
+  const satirlar = ogrenciler.map(o => {
+    const k = ((gelisim[o.id] || {})[disiplin] || {}).kayitlar || {};
+    const sat = { "Öğrenci": o.ogrenciAdSoyad || o.adSoyad || "", "Sınıf": o._sinif || o.sinif || "" };
+    let s = 0, t = 0, u = 0;
+    anahtar.forEach(a => {
+      const v = k[a.key] || "";
+      sat[`${a.alan} / ${a.ders}`] = v;
+      if (v === "S") s++; else if (v === "T") t++; else if (v === "U") u++;
+    });
+    sat["Sunuldu"] = s; sat["Tekrar"] = t; sat["Uzmanlaştı"] = u;
+    sat["Tamamlama %"] = anahtar.length ? Math.round(((s + t + u) / anahtar.length) * 100) : 0;
+    return sat;
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(satirlar), "Gelisim");
+  XLSX.writeFile(wb, `${dInfo.ad.replace(/\s+/g, "-")}-Raporu-${new Date().toISOString().substring(0,10)}.xlsx`);
+  showToast("✓ Excel indirildi");
+};
+
 window.egitimDisiplinAc = async function(disiplin) {
   egitimAktifDisiplin = disiplin;
   egitimAktifAlanIdx = 0;
@@ -36664,8 +36995,7 @@ const MODUL_HARITASI = {
   etkinlik:    { tablar: ["etkinlik"],   varsayilan: "etkinlik", ad: "Etkinlik & Takvim" },
   mesaj:       { tablar: ["mesajlasma"], varsayilan: "mesajlasma", ad: "Mesajlaşma" },
   gelisim:     { tablar: ["gelisim"],    varsayilan: "gelisim", ad: "Gelişim & Kalite" },
-  denetim:     { tablar: ["denetim"],    varsayilan: "denetim", ad: "MEB Denetim Hazırlığı" },
-  raporlar:    { tablar: ["raporlar"],   varsayilan: "raporlar", ad: "Raporlar" }
+  denetim:     { tablar: ["denetim"],    varsayilan: "denetim", ad: "MEB Denetim Hazırlığı" }
 };
 let aktifModul = "ozet";
 
