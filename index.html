@@ -7912,6 +7912,52 @@ i[data-lucide] svg { display: block; }
 .ozet-gunplan-baslik { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
 .ozet-gunplan-satir { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: rgba(255,255,255,0.88); padding: 5px 0; }
 .ozet-gunplan-saat { color: rgba(255,255,255,0.6); font-weight: 600; }
+.ozet-hizli-ara { position: relative; margin-top: 12px; }
+.ozet-hizli-ara input {
+  width: 100%; box-sizing: border-box;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 11px; padding: 10px 12px 10px 34px;
+  color: #fff; font-size: 12.5px; font-family: inherit; outline: none;
+}
+.ozet-hizli-ara input::placeholder { color: rgba(255,255,255,0.5); }
+.ozet-hizli-ara input:focus { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.3); }
+.ozet-ara-ikon {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: rgba(255,255,255,0.55); pointer-events: none;
+}
+.ozet-ara-sonuc {
+  position: absolute; left: 0; right: 0; top: calc(100% + 5px); z-index: 30;
+  background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.22);
+  overflow: hidden; display: none; max-height: 240px; overflow-y: auto;
+}
+.ozet-ara-sonuc.acik { display: block; }
+.ozet-ara-satir {
+  display: flex; align-items: center; gap: 9px; padding: 9px 12px; cursor: pointer;
+  border-bottom: 1px solid #F1F2F7;
+}
+.ozet-ara-satir:hover { background: #F6F8FA; }
+.ozet-ara-satir:last-child { border-bottom: none; }
+.ozet-ara-ad { font-size: 13px; font-weight: 700; color: #1F2544; }
+.ozet-ara-alt { font-size: 11px; color: #94A3B8; }
+.ozet-hizli-btn { position: relative; }
+.ozet-hb-rozet {
+  position: absolute; top: 5px; right: 7px; min-width: 17px; height: 17px;
+  padding: 0 4px; border-radius: 100px; background: #5A6ACF; color: #fff;
+  font-size: 9.5px; font-weight: 800; font-style: normal;
+  display: none; align-items: center; justify-content: center; line-height: 1;
+}
+.ozet-hb-rozet.uyari { background: #DC2626; }
+.ozet-hb-rozet.dolu { display: flex; }
+.ozet-yemek {
+  margin-top: 12px; padding: 10px 12px; border-radius: 11px;
+  background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.08);
+}
+.ozet-yemek-baslik {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+  color: rgba(255,255,255,0.6); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+}
+.ozet-yemek-satir { font-size: 12px; color: rgba(255,255,255,0.9); padding: 2px 0; display: flex; gap: 7px; }
+.ozet-yemek-etiket { color: rgba(255,255,255,0.55); min-width: 52px; flex-shrink: 0; }
 .ozet-dogumgun {
   margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.12);
 }
@@ -18831,6 +18877,9 @@ window.hizliIslem = function(tur) {
     case "ogrenci":
       git("ogrencilerM", () => { if (typeof yeniOgrenciAc === "function") yeniOgrenciAc(); });
       break;
+    case "basvuru":
+      git("basvuru");
+      break;
     case "yoklama":
       git("devamsizlik");
       break;
@@ -18923,6 +18972,124 @@ window.dogumGunleriDoldur = function() {
   if (window.lucideYenile) window.lucideYenile();
 };
 
+// ═══ ÖZET: HIZLI ARAMA · BEKLEYEN İŞ ROZETLERİ · BUGÜNÜN MENÜSÜ ═══
+
+// Hızlı öğrenci arama — yazarken öneri, tıklayınca kartı açar
+window.ozetOgrenciAraOner = function(q) {
+  const kutu = document.getElementById("ozetAraSonuc");
+  if (!kutu) return;
+  const ara = (q || "").toLocaleLowerCase("tr").trim();
+  if (ara.length < 2) { kutu.classList.remove("acik"); kutu.innerHTML = ""; return; }
+
+  const sonuc = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o => {
+    const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+    if (!ayar) return false;
+    const ad = (o.ogrenciAdSoyad || o.adSoyad || "").toLocaleLowerCase("tr");
+    const anne = ((ayar.anne && ayar.anne.adSoyad) || "").toLocaleLowerCase("tr");
+    const baba = ((ayar.baba && ayar.baba.adSoyad) || "").toLocaleLowerCase("tr");
+    return ad.includes(ara) || anne.includes(ara) || baba.includes(ara);
+  }).slice(0, 6);
+
+  if (!sonuc.length) {
+    kutu.innerHTML = `<div style="padding:11px 12px; font-size:12.5px; color:#94A3B8;">Sonuç yok</div>`;
+    kutu.classList.add("acik");
+    return;
+  }
+  kutu.innerHTML = sonuc.map(o => {
+    const ayar = ayarListesi[o.id] || {};
+    const sinif = (ayar.kayit && ayar.kayit.sinif) || o.sinif || "";
+    const durum = (typeof getOgrenciDurum === "function") ? getOgrenciDurum(o, ayar) : "";
+    const ad = (o.ogrenciAdSoyad || o.adSoyad || "—");
+    return `<div class="ozet-ara-satir" onclick="ozetOgrenciAc('${o.id}')">
+      <div style="width:28px;height:28px;border-radius:9px;background:#EEF1F5;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#2D5E3E;">${ad.charAt(0).toUpperCase()}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="ozet-ara-ad">${ad.replace(/</g,"&lt;")}</div>
+        <div class="ozet-ara-alt">${String(sinif).replace(/</g,"&lt;")}${durum ? " · " + durum : ""}</div>
+      </div>
+      <span style="color:#94A3B8;font-size:14px;">→</span>
+    </div>`;
+  }).join("");
+  kutu.classList.add("acik");
+};
+
+window.ozetOgrenciAc = function(id) {
+  const kutu = document.getElementById("ozetAraSonuc");
+  const inp = document.getElementById("ozetOgrenciAra");
+  if (kutu) { kutu.classList.remove("acik"); kutu.innerHTML = ""; }
+  if (inp) inp.value = "";
+  if (typeof modulSec === "function") modulSec("ogrencilerM");
+  setTimeout(() => { if (typeof openAyarModal === "function") openAyarModal(id); }, 380);
+};
+
+// Dışarı tıklayınca öneri kutusunu kapat
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".ozet-hizli-ara")) {
+    const k = document.getElementById("ozetAraSonuc");
+    if (k) k.classList.remove("acik");
+  }
+});
+
+// Bekleyen iş rozetleri: okunmamış mesaj · geciken ödeme · bekleyen başvuru
+window.ozetRozetleriGuncelle = function(gecikenSayisi) {
+  const yaz = (id, n) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (n > 0) { el.textContent = n > 99 ? "99+" : n; el.classList.add("dolu"); }
+    else { el.textContent = ""; el.classList.remove("dolu"); }
+  };
+  // Okunmamış mesaj
+  let mesajN = 0;
+  try {
+    const benim = (currentUser?.email || "").toLowerCase();
+    (typeof mesajThreadListesi !== "undefined" ? mesajThreadListesi : []).forEach(t => {
+      mesajN += (t.okunmamis && t.okunmamis[benim]) || 0;
+    });
+  } catch (e) {}
+  yaz("hbRozetMesaj", mesajN);
+
+  // Bekleyen başvuru
+  let basvuruN = 0;
+  try {
+    basvuruN = (typeof basvuruListesi !== "undefined" ? basvuruListesi : [])
+      .filter(b => (b.durum || "beklemede") === "beklemede").length;
+  } catch (e) {}
+  yaz("hbRozetBasvuru", basvuruN);
+
+  // Geciken ödeme (renderAdminHome'dan gelir)
+  yaz("hbRozetTahsilat", gecikenSayisi || 0);
+};
+
+// Bugünün yemek menüsü (yemekMenuleri/{haftaBaslangicISO})
+window.ozetYemekDoldur = async function() {
+  const el = document.getElementById("ozetYemekBugun");
+  if (!el) return;
+  const bugun = new Date();
+  const gunIdx = (bugun.getDay() + 6) % 7; // pazartesi = 0
+  if (gunIdx > 4) { el.innerHTML = ""; return; } // hafta sonu
+
+  try {
+    const kod = (typeof haftaKodu === "function") ? haftaKodu(bugun) : null;
+    if (!kod) { el.innerHTML = ""; return; }
+    const snap = await getDoc(doc(db, "yemekMenuleri", kod));
+    if (!snap.exists()) { el.innerHTML = ""; return; }
+    const veri = snap.data() || {};
+    const gunler = veri.gunler || veri;
+    const g = Array.isArray(gunler) ? gunler[gunIdx] : (gunler[String(gunIdx)] || gunler["gun" + gunIdx]);
+    if (!g) { el.innerHTML = ""; return; }
+
+    const satir = (etiket, deger) => deger
+      ? `<div class="ozet-yemek-satir"><span class="ozet-yemek-etiket">${etiket}</span><span>${String(deger).replace(/</g,"&lt;")}</span></div>` : "";
+    const icerik = satir("Kahvaltı", g.kahvalti) + satir("Öğle", g.ogle || g.anaYemek) + satir("İkindi", g.ikindi);
+    if (!icerik) { el.innerHTML = ""; return; }
+
+    el.innerHTML = `<div class="ozet-yemek">
+      <div class="ozet-yemek-baslik"><i data-lucide="utensils" style="width:13px;height:13px;"></i> Bugünün Menüsü</div>
+      ${icerik}
+    </div>`;
+    if (window.lucideYenile) window.lucideYenile();
+  } catch (e) { el.innerHTML = ""; }
+};
+
 function renderAdminHome() {
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
@@ -18958,6 +19125,16 @@ function renderAdminHome() {
     setTimeout(hbOgretmenDoldur, 90);
     setTimeout(() => { if (typeof okulZiliDoldur === "function") okulZiliDoldur(); }, 140);
     setTimeout(() => { if (typeof dogumGunleriDoldur === "function") dogumGunleriDoldur(); }, 180);
+    setTimeout(() => { if (typeof ozetYemekDoldur === "function") ozetYemekDoldur(); }, 220);
+    setTimeout(() => {
+      if (typeof ozetRozetleriGuncelle === "function") {
+        let gec = 0;
+        try {
+          if (typeof hesaplaFinansGecikenler === "function") gec = hesaplaFinansGecikenler().length;
+        } catch (e) {}
+        ozetRozetleriGuncelle(gec);
+      }
+    }, 260);
   }
   // Lucide ikonlarını render et (dinamik innerHTML sonrası — widget geç dolabilir)
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 40); setTimeout(window.lucideYenile, 250); }
@@ -19767,20 +19944,30 @@ function yonetimHomeHTML(ad) {
               <div class="ozet-gunplan-satir"><span>● ${(yaklasanEtkinlik.baslik||"Etkinlik").replace(/</g,"&lt;")}</span><span class="ozet-gunplan-saat">${yaklasanEtkinlik.baslangicSaat||""}</span></div>
               <div style="font-size:11.5px; color:rgba(255,255,255,0.6); margin-top:4px;">${etkTarihStr}</div>
             ` : `<div style="font-size:12.5px; color:rgba(255,255,255,0.65);">Bugün için planlı etkinlik yok.</div>`}
+            <div id="ozetYemekBugun"></div>
             <div id="ozetDogumGunleri"></div>
+
+            <!-- Hızlı öğrenci arama -->
+            <div class="ozet-hizli-ara">
+              <i data-lucide="search" class="ozet-ara-ikon"></i>
+              <input type="text" id="ozetOgrenciAra" placeholder="Öğrenci ara ve kartını aç…"
+                oninput="ozetOgrenciAraOner(this.value)" autocomplete="off">
+              <div id="ozetAraSonuc" class="ozet-ara-sonuc"></div>
+            </div>
+
             <div class="ozet-hizli-islem">
               <button class="ozet-hizli-btn" onclick="hizliIslem('etkinlik')" title="Yeni etkinlik oluştur">
                 <i data-lucide="calendar-plus"></i><span>Etkinlik</span></button>
               <button class="ozet-hizli-btn" onclick="hizliIslem('duyuru')" title="Yeni duyuru yayınla">
                 <i data-lucide="megaphone"></i><span>Duyuru</span></button>
               <button class="ozet-hizli-btn" onclick="hizliIslem('mesaj')" title="Veliye mesaj gönder">
-                <i data-lucide="message-circle"></i><span>Mesaj</span></button>
-              <button class="ozet-hizli-btn" onclick="hizliIslem('ogrenci')" title="Yeni öğrenci kaydı">
-                <i data-lucide="user-plus"></i><span>Öğrenci</span></button>
+                <i data-lucide="message-circle"></i><span>Mesaj</span><em class="ozet-hb-rozet" id="hbRozetMesaj"></em></button>
+              <button class="ozet-hizli-btn" onclick="hizliIslem('basvuru')" title="Bekleyen başvurular">
+                <i data-lucide="inbox"></i><span>Başvuru</span><em class="ozet-hb-rozet" id="hbRozetBasvuru"></em></button>
               <button class="ozet-hizli-btn" onclick="hizliIslem('yoklama')" title="Günlük yoklama al">
                 <i data-lucide="clipboard-check"></i><span>Yoklama</span></button>
-              <button class="ozet-hizli-btn" onclick="hizliIslem('tahsilat')" title="Ödeme kaydet">
-                <i data-lucide="wallet"></i><span>Tahsilat</span></button>
+              <button class="ozet-hizli-btn" onclick="hizliIslem('tahsilat')" title="Geciken ödemeler">
+                <i data-lucide="wallet"></i><span>Tahsilat</span><em class="ozet-hb-rozet uyari" id="hbRozetTahsilat"></em></button>
             </div>
           </div>
         </div>
