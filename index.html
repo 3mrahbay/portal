@@ -20373,11 +20373,26 @@ function ogretmenHomeHTML(ad) {
           <div class="ca-card" style="padding:12px 16px;" id="ogrHomeMesajlar">
             <div class="ca-tile-sub">Yükleniyor…</div>
           </div>
+
+          <div class="ca-sectionhead" style="margin-top:16px;"><h3 class="ca-head" style="font-size:15px;">Bekleyen Randevular</h3><button class="ca-link" onclick="modulSec('profilim')">Tümü →</button></div>
+          <div class="ca-card" style="padding:12px 16px;" id="ogrHomeRandevu">
+            <div class="ca-tile-sub">Yükleniyor…</div>
+          </div>
+
+          <div class="ca-sectionhead" style="margin-top:16px;"><h3 class="ca-head" style="font-size:15px;">Bugünün Menüsü</h3><button class="ca-link" onclick="modulSec('yemek')">Haftalık →</button></div>
+          <div class="ca-card" style="padding:12px 16px;" id="ogrHomeYemek">
+            <div class="ca-tile-sub">Yükleniyor…</div>
+          </div>
         </div>
 
         <div>
           <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıfım</h3><button class="ca-link" onclick="modulSec('ogrencilerM')">Detay →</button></div>
           <div class="ca-card" id="ogrHomeSinif">
+            <div class="ca-tile-sub">Yükleniyor…</div>
+          </div>
+
+          <div class="ca-sectionhead" style="margin-top:16px;"><h3 class="ca-head" style="font-size:15px;">Duyuru & Etkinlik</h3><button class="ca-link" onclick="modulSec('duyurular')">Tümü →</button></div>
+          <div class="ca-card" style="padding:12px 16px;" id="ogrHomeDuyuru">
             <div class="ca-tile-sub">Yükleniyor…</div>
           </div>
         </div>
@@ -20386,8 +20401,126 @@ function ogretmenHomeHTML(ad) {
   `;
 }
 
+// ═══ ÖĞRETMEN ANA SAYFA: randevu · yemek · duyuru/etkinlik kartları ═══
+window.ogretmenHomeEkKartlar = async function() {
+  const email = (currentUser?.email || "").toLowerCase();
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const trh = (t) => t ? String(t).substring(0, 10).split("-").reverse().join(".") : "";
+
+  // ── 1) Bekleyen randevular ──
+  const rEl = document.getElementById("ogrHomeRandevu");
+  if (rEl) {
+    try {
+      const snap = await getDocs(collection(db, "randevuSlotlari"));
+      const bugun = new Date().toISOString().substring(0, 10);
+      const liste = [];
+      snap.forEach(d => {
+        const v = d.data() || {};
+        const hedef = (v.personelEmail || v.gorusulecekEmail || v.ogretmenEmail || "").toLowerCase();
+        if (hedef !== email) return;
+        const t = (v.tarih || "").substring(0, 10);
+        if (t && t < bugun) return;
+        if (!v.veliEmail && (v.durum || "").toLowerCase() !== "dolu") return; // sadece randevulu olanlar
+        liste.push(v);
+      });
+      liste.sort((a, b) => String(a.tarih || "").localeCompare(String(b.tarih || "")));
+      rEl.innerHTML = liste.length === 0
+        ? `<div class="ca-tile-sub">Bekleyen veli görüşmeniz yok.</div>`
+        : liste.slice(0, 3).map(r => `
+            <div style="display:flex; align-items:center; gap:11px; padding:8px 0; border-bottom:1px solid #F1F2F7;">
+              <div style="min-width:50px; text-align:center;">
+                <div style="font-weight:800; font-size:13px; color:#0891B2;">${esc(r.saat || "—")}</div>
+                <div style="font-size:10.5px; color:#94A3B8;">${trh(r.tarih)}</div>
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:13px; font-weight:600; color:#334155;">${esc(r.veliAd || r.ogrenciAd || "Veli")}</div>
+                ${r.veliNotu ? `<div style="font-size:11px; color:#94A3B8; font-style:italic;">"${esc(r.veliNotu)}"</div>` : ""}
+              </div>
+              <span style="font-size:10px; font-weight:800; color:#0891B2; background:#ECFEFF; padding:3px 9px; border-radius:100px;">Randevulu</span>
+            </div>`).join("");
+    } catch (e) { rEl.innerHTML = `<div class="ca-tile-sub">Randevular yüklenemedi.</div>`; }
+  }
+
+  // ── 2) Bugünün menüsü ──
+  const yEl = document.getElementById("ogrHomeYemek");
+  if (yEl) {
+    try {
+      const bugun = new Date();
+      const gunIdx = (bugun.getDay() + 6) % 7;
+      if (gunIdx > 4) {
+        yEl.innerHTML = `<div class="ca-tile-sub">Hafta sonu · menü yok.</div>`;
+      } else {
+        const kod = (typeof haftaKodu === "function") ? haftaKodu(bugun) : null;
+        const snap = kod ? await getDoc(doc(db, "yemekMenuleri", kod)) : null;
+        if (!snap || !snap.exists()) {
+          yEl.innerHTML = `<div class="ca-tile-sub">Bu hafta için menü eklenmemiş.</div>`;
+        } else {
+          const veri = snap.data() || {};
+          const gunler = veri.gunler || veri;
+          const g = Array.isArray(gunler) ? gunler[gunIdx] : (gunler[String(gunIdx)] || gunler["gun" + gunIdx]);
+          const satir = (et, dg, ikon) => dg
+            ? `<div style="display:flex; gap:9px; padding:6px 0; border-bottom:1px solid #F1F2F7; font-size:12.5px;">
+                 <span style="min-width:62px; color:#94A3B8; font-weight:600;">${ikon} ${et}</span>
+                 <span style="color:#334155;">${esc(dg)}</span></div>` : "";
+          const icerik = g ? (satir("Kahvaltı", g.kahvalti, "🥣") + satir("Öğle", g.ogle || g.anaYemek, "🍽️") + satir("İkindi", g.ikindi, "🍎")) : "";
+          yEl.innerHTML = icerik || `<div class="ca-tile-sub">Bugün için menü girilmemiş.</div>`;
+        }
+      }
+    } catch (e) { yEl.innerHTML = `<div class="ca-tile-sub">Menü yüklenemedi.</div>`; }
+  }
+
+  // ── 3) Son duyuru + yaklaşan etkinlik ──
+  const dEl = document.getElementById("ogrHomeDuyuru");
+  if (dEl) {
+    try {
+      const parcalar = [];
+      // Son duyuru
+      try {
+        const ds = await getDocs(collection(db, "duyurular"));
+        const dl = [];
+        ds.forEach(x => dl.push(x.data()));
+        dl.sort((a, b) => String(b.tarih || b.olusturuldu || "").localeCompare(String(a.tarih || a.olusturuldu || "")));
+        if (dl[0]) {
+          parcalar.push(`<div style="display:flex; gap:10px; padding:8px 0; border-bottom:1px solid #F1F2F7;">
+            <span style="font-size:17px;">📣</span>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:10.5px; font-weight:800; color:#B45309; text-transform:uppercase;">Son Duyuru</div>
+              <div style="font-size:13px; font-weight:700; color:#1E293B;">${esc(dl[0].baslik || "Duyuru")}</div>
+              <div style="font-size:11.5px; color:#94A3B8;">${trh(dl[0].tarih || dl[0].olusturuldu)}</div>
+            </div>
+          </div>`);
+        }
+      } catch (e) {}
+      // Yaklaşan etkinlik
+      try {
+        const es = await getDocs(collection(db, "etkinlikler"));
+        const bugun = new Date().toISOString().substring(0, 10);
+        const el2 = [];
+        es.forEach(x => { const v = x.data(); if ((v.tarih || "") >= bugun) el2.push(v); });
+        el2.sort((a, b) => String(a.tarih || "").localeCompare(String(b.tarih || "")));
+        if (el2[0]) {
+          parcalar.push(`<div style="display:flex; gap:10px; padding:8px 0;">
+            <span style="font-size:17px;">🎪</span>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:10.5px; font-weight:800; color:#0E7490; text-transform:uppercase;">Yaklaşan Etkinlik</div>
+              <div style="font-size:13px; font-weight:700; color:#1E293B;">${esc(el2[0].baslik || el2[0].ad || "Etkinlik")}</div>
+              <div style="font-size:11.5px; color:#94A3B8;">${trh(el2[0].tarih)}${el2[0].saat ? " · " + esc(el2[0].saat) : ""}</div>
+            </div>
+          </div>`);
+        }
+      } catch (e) {}
+
+      dEl.innerHTML = parcalar.length ? parcalar.join("")
+        : `<div class="ca-tile-sub">Yeni duyuru veya etkinlik yok.</div>`;
+    } catch (e) { dEl.innerHTML = `<div class="ca-tile-sub">Yüklenemedi.</div>`; }
+  }
+
+  if (window.lucideYenile) window.lucideYenile();
+};
+
 // Öğretmen ana sayfası verilerini Firestore'dan doldur
 async function ogretmenHomeVeriYukle() {
+  setTimeout(() => { if (typeof ogretmenHomeEkKartlar === "function") ogretmenHomeEkKartlar(); }, 120);
   const bugun = new Date().toISOString().slice(0, 10);
   const siniflarim = aktifKullaniciSiniflari || [];
 
