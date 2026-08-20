@@ -7912,6 +7912,22 @@ i[data-lucide] svg { display: block; }
 .ozet-gunplan-baslik { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
 .ozet-gunplan-satir { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: rgba(255,255,255,0.88); padding: 5px 0; }
 .ozet-gunplan-saat { color: rgba(255,255,255,0.6); font-weight: 600; }
+.ozet-ikili-alt {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid #EEF1F5;
+}
+.ozet-ikili-sag { border-left: 1px solid #EEF1F5; padding-left: 18px; }
+@media (max-width: 900px) {
+  .ozet-ikili-alt { grid-template-columns: 1fr; gap: 14px; }
+  .ozet-ikili-sag { border-left: none; padding-left: 0; border-top: 1px solid #EEF1F5; padding-top: 14px; }
+}
+.ozet-eg-satir { padding: 7px 0; }
+.ozet-eg-ust { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; margin-bottom: 4px; }
+.ozet-eg-ad { color: #334155; font-weight: 600; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.ozet-eg-ad span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ozet-eg-yuzde { font-weight: 800; flex-shrink: 0; }
+.ozet-eg-cubuk { height: 6px; background: #F1F5F9; border-radius: 100px; overflow: hidden; }
+.ozet-eg-cubuk div { height: 100%; border-radius: 100px; }
 .ozet-hizli-ara { position: relative; margin-top: 12px; }
 .ozet-hizli-ara input {
   width: 100%; box-sizing: border-box;
@@ -19090,6 +19106,80 @@ window.ozetYemekDoldur = async function() {
   } catch (e) { el.innerHTML = ""; }
 };
 
+// ═══ ÖZET: GENEL EĞİTİM İLERLEMESİ (tüm programlar) ═══
+window.egitimIlerlemeDoldur = async function() {
+  const el = document.getElementById("egitimIlerlemeListe");
+  const ozetEl = document.getElementById("egitimIlerlemeOzet");
+  if (!el) return;
+
+  try {
+    if (typeof DISIPLINLER === "undefined" || !DISIPLINLER.length) { el.innerHTML = ""; return; }
+    // Özel branşları da yükle
+    if (typeof ozelBranslariYukle === "function" && typeof ozelBranslarYuklendi !== "undefined" && !ozelBranslarYuklendi) {
+      try { await ozelBranslariYukle(); } catch (e) {}
+    }
+    // Müfredatlar + gelişim verisi
+    await Promise.all(DISIPLINLER.map(d => mufredatYukle(d.id).catch(() => null)));
+    await egitimMatrixVeriYukle();
+
+    const gelisim = (egitimMatrixVerisi && egitimMatrixVerisi.gelisim) || {};
+    const ogrenciler = (egitimMatrixVerisi && egitimMatrixVerisi.ogrenciler) || [];
+    if (!ogrenciler.length) {
+      el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Aktif öğrenci verisi yok.</div>`;
+      return;
+    }
+
+    const sonuc = [];
+    for (const d of DISIPLINLER) {
+      const muf = aktifMufredatlar[d.id];
+      if (!muf || !muf.length) continue;
+      const anahtar = [];
+      muf.forEach(a => (a.gruplar || []).forEach(g => (g.dersler || []).forEach(ders =>
+        anahtar.push(`${a.id}__${g.ad}__${ders}`))));
+      if (!anahtar.length) continue;
+
+      let dolu = 0, usta = 0;
+      ogrenciler.forEach(o => {
+        const k = ((gelisim[o.id] || {})[d.id] || {}).kayitlar || {};
+        anahtar.forEach(key => { if (k[key]) { dolu++; if (k[key] === "U") usta++; } });
+      });
+      const toplam = ogrenciler.length * anahtar.length;
+      sonuc.push({
+        ad: d.ad, ikon: d.ikon, renk: d.renk, tip: d.tip,
+        kazanim: anahtar.length,
+        yuzde: toplam ? Math.round((dolu / toplam) * 100) : 0,
+        ustalik: toplam ? Math.round((usta / toplam) * 100) : 0
+      });
+    }
+
+    if (!sonuc.length) {
+      el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Müfredat tanımlı program yok.</div>`;
+      return;
+    }
+
+    sonuc.sort((a, b) => b.yuzde - a.yuzde);
+    const genelOrt = Math.round(sonuc.reduce((s, x) => s + x.yuzde, 0) / sonuc.length);
+    if (ozetEl) ozetEl.textContent = `Genel %${genelOrt} · ${ogrenciler.length} öğrenci`;
+
+    el.innerHTML = sonuc.slice(0, 6).map(x => `
+      <div class="ozet-eg-satir">
+        <div class="ozet-eg-ust">
+          <span class="ozet-eg-ad">${x.ikon} <span>${String(x.ad).replace(/</g,"&lt;")}</span>
+            <span style="color:#94A3B8; font-weight:400; font-size:11px; flex-shrink:0;">${x.kazanim}</span>
+          </span>
+          <span class="ozet-eg-yuzde" style="color:${x.renk};">%${x.yuzde}
+            <span style="color:#16a34a; font-size:10.5px; font-weight:700;">U%${x.ustalik}</span>
+          </span>
+        </div>
+        <div class="ozet-eg-cubuk"><div style="width:${x.yuzde}%; background:${x.renk};"></div></div>
+      </div>`).join("");
+
+  } catch (e) {
+    console.warn("Eğitim ilerlemesi:", e);
+    el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">İlerleme verisi yüklenemedi.</div>`;
+  }
+};
+
 function renderAdminHome() {
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
@@ -19126,6 +19216,7 @@ function renderAdminHome() {
     setTimeout(() => { if (typeof okulZiliDoldur === "function") okulZiliDoldur(); }, 140);
     setTimeout(() => { if (typeof dogumGunleriDoldur === "function") dogumGunleriDoldur(); }, 180);
     setTimeout(() => { if (typeof ozetYemekDoldur === "function") ozetYemekDoldur(); }, 220);
+    setTimeout(() => { if (typeof egitimIlerlemeDoldur === "function") egitimIlerlemeDoldur(); }, 300);
     setTimeout(() => {
       if (typeof ozetRozetleriGuncelle === "function") {
         let gec = 0;
@@ -19911,29 +20002,37 @@ function yonetimHomeHTML(ad) {
           </div>
           ${grafikBarlarHTML2}
 
-          <!-- ALT YARIM: Okul Zili — bugünkü çıkış akışı -->
-          <div style="margin-top:16px; padding-top:14px; border-top:1px solid #EEF1F5;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-              <div style="display:flex; align-items:center; gap:7px;">
-                <span style="font-size:16px; display:inline-flex;"><i data-lucide="bell-ring" style="width:16px;height:16px;color:#B45309;"></i></span>
-                <span class="ozet-panel-baslik">Okul Zili · Çıkış Akışı</span>
+          <!-- ALT YARIM: Okul Zili (sol) + Eğitim İlerlemesi (sağ) -->
+          <div class="ozet-ikili-alt">
+            <div class="ozet-ikili-sol">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span style="font-size:16px; display:inline-flex;"><i data-lucide="bell-ring" style="width:16px;height:16px;color:#B45309;"></i></span>
+                  <span class="ozet-panel-baslik">Okul Zili · Çıkış Akışı</span>
+                </div>
+                <span class="ozet-panel-etiket" id="okulZiliOzet">Bugün</span>
               </div>
-              <span class="ozet-panel-etiket" id="okulZiliOzet">Bugün</span>
+              <div id="okulZiliListe">
+                <div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Yükleniyor…</div>
+              </div>
             </div>
-            <div id="okulZiliListe">
-              <div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Yükleniyor…</div>
+            <div class="ozet-ikili-sag">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span style="font-size:16px; display:inline-flex;"><i data-lucide="graduation-cap" style="width:16px;height:16px;color:#6D28D9;"></i></span>
+                  <span class="ozet-panel-baslik">Eğitim İlerlemesi</span>
+                </div>
+                <span class="ozet-panel-etiket" id="egitimIlerlemeOzet">Tüm programlar</span>
+              </div>
+              <div id="egitimIlerlemeListe">
+                <div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Yükleniyor…</div>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Takvim + Gün Planı -->
         <div class="ozet-panel">
-          <div class="ozet-takvim-head">
-            <button class="ozet-tk-nav">‹</button>
-            <span class="ozet-panel-baslik">${buAyIsim}</span>
-            <button class="ozet-tk-nav">›</button>
-          </div>
-          ${miniTakvimHTML}
           <div class="ozet-gunplan">
             <div class="ozet-gunplan-baslik">${bugunD.getDate()} ${ayNoIsim[bugunD.getMonth()]} · Gün Planı</div>
             ${bugunkuRandevular.length ? bugunkuRandevular.map(r=>`
@@ -19970,6 +20069,14 @@ function yonetimHomeHTML(ad) {
                 <i data-lucide="wallet"></i><span>Tahsilat</span><em class="ozet-hb-rozet uyari" id="hbRozetTahsilat"></em></button>
             </div>
           </div>
+
+          <!-- Takvim (hızlı erişimin altında) -->
+          <div class="ozet-takvim-head" style="margin-top:16px;">
+            <button class="ozet-tk-nav">‹</button>
+            <span class="ozet-panel-baslik">${buAyIsim}</span>
+            <button class="ozet-tk-nav">›</button>
+          </div>
+          ${miniTakvimHTML}
         </div>
       </div>
 
