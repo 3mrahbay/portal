@@ -9669,6 +9669,10 @@ i[data-lucide] svg { display: block; }
         <button class="finans-altsekme-btn" data-finans-alt="giderler" data-renk="kirmizi" onclick="finansSwitchAlt('giderler')">
           <span>💸</span> Giderler
         </button>
+        <button class="finans-altsekme-btn" data-finans-alt="giderTalep" data-renk="turuncu" onclick="finansSwitchAlt('giderTalep')">
+          <span><i data-lucide="receipt" style="width:15px;height:15px;vertical-align:-2px;"></i></span> Gider Talepleri
+          <span id="giderTalepRozet" style="display:none; background:#B45309; color:white; padding:1px 7px; border-radius:9px; font-size:10px; font-weight:700; margin-left:4px;">0</span>
+        </button>
         <button class="finans-altsekme-btn" data-finans-alt="bekleyen" data-renk="kirmizi" onclick="finansSwitchAlt('bekleyen')">
           <span><i data-lucide="alarm-clock" style="width:15px;height:15px;vertical-align:-2px;"></i></span> Bekleyen Ödemeler
           <span id="bekleyenAltSekmeRozet" style="display:none; background:#dc2626; color:white; padding:1px 7px; border-radius:9px; font-size:10px; font-weight:700; margin-left:4px;">0</span>
@@ -9736,6 +9740,12 @@ i[data-lucide] svg { display: block; }
         </div>
       </div>
 
+      <div id="finansAlt-giderTalep" class="finans-alt-panel" style="display:none;">
+        <div id="giderTalepleriIcerik">
+          <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+        </div>
+      </div>
+
       <div id="finansAlt-bekleyen" class="finans-alt-panel" style="display:none;">
         <div id="bekleyenOdemelerIcerik">
           <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
@@ -9765,6 +9775,72 @@ i[data-lucide] svg { display: block; }
 
       </div><!-- /finansAltPanelWrap -->
 
+    </div>
+
+    <!-- GİDER TALEBİ MODAL (personel → muhasebe onayı) -->
+    <div class="modal-overlay" id="giderTalepModal" onclick="if(event.target.id==='giderTalepModal') giderTalepKapat()">
+      <div class="modal" style="max-width:520px;">
+        <div class="modal-header">
+          <h3><i data-lucide="receipt" style="width:17px;height:17px;vertical-align:-3px;"></i> Gider / Fiş Bildir</h3>
+          <button class="close-btn" onclick="giderTalepKapat()">×</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:12.5px; color:#6b7280; margin:0 0 16px;">
+            Okul için yaptığınız harcamayı bildirin. Talebiniz muhasebe onayına düşer; onaylandığında gider kayıtlarına işlenir.
+          </p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Harcama Tarihi *</label>
+              <input type="date" id="gtTarih">
+            </div>
+            <div class="form-group">
+              <label>Tutar (TL) *</label>
+              <input type="number" id="gtTutar" min="0" step="0.01" placeholder="0,00">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Kategori *</label>
+            <select id="gtKategori"></select>
+          </div>
+
+          <div class="form-group">
+            <label>Açıklama *</label>
+            <input type="text" id="gtAciklama" placeholder="Örn: Sınıf için kırtasiye malzemesi">
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Belge Türü</label>
+              <select id="gtBelgeTuru">
+                <option value="fis">Fiş</option>
+                <option value="fatura">Fatura</option>
+                <option value="makbuz">Makbuz</option>
+                <option value="yok">Belgesiz</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Belge No (opsiyonel)</label>
+              <input type="text" id="gtBelgeNo" placeholder="Fiş/fatura numarası">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Not (opsiyonel)</label>
+            <input type="text" id="gtNot" placeholder="Muhasebeye iletmek istediğiniz ek bilgi">
+          </div>
+
+          <div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:10px; padding:11px 13px; font-size:11.5px; color:#92400E; line-height:1.5;">
+            <i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i>
+            Fiş/faturayı fiziksel olarak muhasebeye teslim etmeyi unutmayın. Onaylanan talepler gider kayıtlarına otomatik işlenir.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-mini" onclick="giderTalepKapat()">İptal</button>
+          <button class="btn-primary" onclick="giderTalepGonder()"><i data-lucide="send" style="width:14px;height:14px;vertical-align:-2px;"></i> Onaya Gönder</button>
+        </div>
+      </div>
     </div>
 
     <!-- GİDER EKLE/DÜZENLE MODAL -->
@@ -20075,6 +20151,8 @@ function yonetimHomeHTML(ad) {
                 <i data-lucide="inbox"></i><span>Başvuru</span><em class="ozet-hb-rozet" id="hbRozetBasvuru"></em></button>
               <button class="ozet-hizli-btn" onclick="hizliIslem('yoklama')" title="Günlük yoklama al">
                 <i data-lucide="clipboard-check"></i><span>Yoklama</span></button>
+              <button class="ozet-hizli-btn" onclick="giderTalepAc()" title="Yaptığınız harcamayı bildirin">
+                <i data-lucide="receipt"></i><span>Gider Bildir</span></button>
               <button class="ozet-hizli-btn" onclick="hizliIslem('tahsilat')" title="Geciken ödemeler">
                 <i data-lucide="wallet"></i><span>Tahsilat</span><em class="ozet-hb-rozet uyari" id="hbRozetTahsilat"></em></button>
             </div>
@@ -20171,6 +20249,8 @@ function ogretmenHomeHTML(ad) {
             <div><div style="font-family:var(--c-font-head); font-weight:700; font-size:30px;">—</div><div style="font-size:12px; opacity:.9;">yükleniyor</div></div>
           </div>
           <button class="ca-btn ghost" style="margin-top:14px; width:100%;" onclick="modulSec('devamsizlik')">Yoklamayı düzenle</button>
+          <button class="ca-btn ghost" style="margin-top:8px; width:100%;" onclick="giderTalepAc()">
+            <i data-lucide="receipt" style="width:14px;height:14px;vertical-align:-2px;"></i> Gider / Fiş Bildir</button>
         </div>
 
         <div class="ca-card">
@@ -27807,8 +27887,11 @@ window.finansSwitchAlt = function(alt) {
 };
 
 function renderFinansalAltSekme() {
+  // Rozetler için talep sayısını arka planda tazele
+  if (typeof giderTalepleriYukle === "function") giderTalepleriYukle();
   if (aktifFinansAlt === "ozet") renderFinansalOzet();
   else if (aktifFinansAlt === "bekleyen") bekleyenOdemeleriRender();
+  else if (aktifFinansAlt === "giderTalep") giderTalepleriRender();
   else if (aktifFinansAlt === "gelirler") renderFinansGelirler();
   else if (aktifFinansAlt === "giderler") renderFinansGiderler();
   else if (aktifFinansAlt === "raporlarAlt") renderRaporlarAltSekme();
@@ -33783,6 +33866,227 @@ window.bekleyenTopluHatirlat = async function() {
     } catch (e) { console.warn("hatırlatma:", e); atlanan++; }
   }
   showToast(`✓ ${basarili} hatırlatma gönderildi${atlanan ? ` · ${atlanan} atlandı (e-posta yok)` : ""}`);
+};
+
+// ═══════════ GİDER TALEBİ (personel bildirir → muhasebe onaylar) ═══════════
+let giderTalepListesi = [];
+
+window.giderTalepAc = function() {
+  const bugun = new Date().toISOString().substring(0, 10);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set("gtTarih", bugun); set("gtTutar", ""); set("gtAciklama", ""); set("gtBelgeNo", ""); set("gtNot", "");
+  // Kategori listesini doldur
+  const sel = document.getElementById("gtKategori");
+  if (sel && typeof GIDER_KATEGORILERI !== "undefined") {
+    const gruplar = {};
+    Object.entries(GIDER_KATEGORILERI).forEach(([k, v]) => {
+      (gruplar[v.grup] = gruplar[v.grup] || []).push([k, v]);
+    });
+    const grupAd = { personel: "Personel", sabit: "Sabit Giderler", isletme: "İşletme", diger: "Diğer" };
+    sel.innerHTML = Object.entries(gruplar).map(([g, list]) =>
+      `<optgroup label="${grupAd[g] || g}">${list.map(([k, v]) => `<option value="${k}">${v.ikon} ${v.isim}</option>`).join("")}</optgroup>`
+    ).join("");
+    // Personelin en çok kullanacağı kalem öne gelsin
+    if (GIDER_KATEGORILERI["isletme_kirtasiye"]) sel.value = "isletme_kirtasiye";
+  }
+  document.getElementById("giderTalepModal").classList.add("active");
+  if (window.lucideYenile) window.lucideYenile();
+};
+
+window.giderTalepKapat = function() {
+  document.getElementById("giderTalepModal").classList.remove("active");
+};
+
+window.giderTalepGonder = async function() {
+  const g = (id) => (document.getElementById(id)?.value || "").trim();
+  const tarih = g("gtTarih");
+  const tutar = parseFloat(g("gtTutar")) || 0;
+  const kategori = g("gtKategori");
+  const aciklama = g("gtAciklama");
+
+  if (!tarih) { showToast("Harcama tarihi gerekli", "error"); return; }
+  if (tutar <= 0) { showToast("Geçerli bir tutar girin", "error"); return; }
+  if (!aciklama) { showToast("Açıklama gerekli", "error"); return; }
+
+  try {
+    const kat = (typeof GIDER_KATEGORILERI !== "undefined" && GIDER_KATEGORILERI[kategori]) || {};
+    await addDoc(collection(db, "giderTalepleri"), {
+      tarih, tutar, kategori,
+      kategoriAd: kat.isim || kategori,
+      aciklama,
+      belgeTuru: g("gtBelgeTuru"),
+      belgeNo: g("gtBelgeNo"),
+      not: g("gtNot"),
+      durum: "beklemede",
+      talepEden: currentUser?.email || "",
+      talepEdenAd: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser?.displayName || currentUser?.email || "",
+      talepTarihi: new Date().toISOString(),
+      olusturuldu: serverTimestamp()
+    });
+    giderTalepKapat();
+    showToast("✓ Talebiniz muhasebe onayına gönderildi");
+    if (typeof giderTalepleriYukle === "function") giderTalepleriYukle();
+  } catch (e) {
+    console.error("Gider talebi:", e);
+    showToast("Gönderilemedi: " + e.message, "error");
+  }
+};
+
+// Muhasebe/yönetim: talepleri yükle
+window.giderTalepleriYukle = async function() {
+  try {
+    const snap = await getDocs(collection(db, "giderTalepleri"));
+    giderTalepListesi = [];
+    snap.forEach(d => giderTalepListesi.push({ id: d.id, ...d.data() }));
+    giderTalepListesi.sort((a, b) => String(b.talepTarihi || "").localeCompare(String(a.talepTarihi || "")));
+    // Sekme rozeti
+    const bekleyen = giderTalepListesi.filter(t => t.durum === "beklemede").length;
+    const rozet = document.getElementById("giderTalepRozet");
+    if (rozet) {
+      if (bekleyen > 0) { rozet.textContent = bekleyen; rozet.style.display = "inline-block"; }
+      else rozet.style.display = "none";
+    }
+    return giderTalepListesi;
+  } catch (e) {
+    console.warn("giderTalepleri:", e.code || e.message);
+    return [];
+  }
+};
+
+// Muhasebe: talep listesini çiz
+window.giderTalepleriRender = async function() {
+  const el = document.getElementById("giderTalepleriIcerik");
+  if (!el) return;
+  el.innerHTML = `<div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>`;
+  await giderTalepleriYukle();
+
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const tl = (n) => Math.round(Number(n) || 0).toLocaleString("tr-TR") + " ₺";
+  const trh = (t) => t ? String(t).substring(0, 10).split("-").reverse().join(".") : "—";
+
+  const bekleyenler = giderTalepListesi.filter(t => t.durum === "beklemede");
+  const gecmis = giderTalepListesi.filter(t => t.durum !== "beklemede").slice(0, 20);
+  const bekleyenTutar = bekleyenler.reduce((s, t) => s + (Number(t.tutar) || 0), 0);
+
+  const DURUM = {
+    beklemede:  { ad: "Onay bekliyor", renk: "#B45309", bg: "#FFFBEB" },
+    onaylandi:  { ad: "Onaylandı",     renk: "#059669", bg: "#ECFDF5" },
+    reddedildi: { ad: "Reddedildi",    renk: "#DC2626", bg: "#FEF2F2" }
+  };
+
+  const kart = (t, islemli) => {
+    const s = DURUM[t.durum] || DURUM.beklemede;
+    return `<div style="background:#fff; border:1px solid #E9EBF4; border-left:4px solid ${s.renk}; border-radius:12px; padding:13px 15px; margin-bottom:9px;">
+      <div style="display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <strong style="font-size:14px; color:#1E293B;">${esc(t.aciklama)}</strong>
+            <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:2px 8px; border-radius:100px;">${s.ad}</span>
+          </div>
+          <div style="font-size:11.5px; color:#64748B; margin-top:4px; display:flex; gap:10px; flex-wrap:wrap;">
+            <span>${esc(t.kategoriAd || t.kategori)}</span>
+            <span>· ${trh(t.tarih)}</span>
+            <span>· ${esc(t.talepEdenAd || t.talepEden)}</span>
+            ${t.belgeTuru && t.belgeTuru !== "yok" ? `<span>· ${esc(t.belgeTuru)}${t.belgeNo ? " " + esc(t.belgeNo) : ""}</span>` : `<span>· belgesiz</span>`}
+          </div>
+          ${t.not ? `<div style="font-size:11.5px; color:#94A3B8; margin-top:4px; font-style:italic;">"${esc(t.not)}"</div>` : ""}
+          ${t.redNedeni ? `<div style="font-size:11.5px; color:#DC2626; margin-top:4px;">Red nedeni: ${esc(t.redNedeni)}</div>` : ""}
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:18px; font-weight:800; color:#1E293B;">${tl(t.tutar)}</div>
+          ${islemli ? `
+          <div style="display:flex; gap:6px; margin-top:8px;">
+            <button class="btn-mini" onclick="giderTalepOnayla('${t.id}')" style="background:#DCFCE7; color:#166534; border-color:#86EFAC; font-weight:700;">
+              <i data-lucide="check" style="width:12px;height:12px;vertical-align:-1px;"></i> Onayla</button>
+            <button class="btn-mini" onclick="giderTalepReddet('${t.id}')" style="background:#FEF2F2; color:#991B1B; border-color:#FCA5A5;">
+              <i data-lucide="x" style="width:12px;height:12px;vertical-align:-1px;"></i> Reddet</button>
+          </div>` : ""}
+        </div>
+      </div>
+    </div>`;
+  };
+
+  el.innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:14px;">
+      <div style="background:#fff; border-left:4px solid #B45309; border-radius:12px; padding:12px 15px;">
+        <div style="font-size:10.5px; font-weight:800; color:#B45309; text-transform:uppercase;">Onay Bekleyen</div>
+        <div style="font-size:21px; font-weight:800; color:#1E293B; margin-top:4px;">${bekleyenler.length}</div></div>
+      <div style="background:#fff; border-left:4px solid #DC2626; border-radius:12px; padding:12px 15px;">
+        <div style="font-size:10.5px; font-weight:800; color:#DC2626; text-transform:uppercase;">Bekleyen Tutar</div>
+        <div style="font-size:21px; font-weight:800; color:#1E293B; margin-top:4px;">${tl(bekleyenTutar)}</div></div>
+      <div style="background:#fff; border-left:4px solid #5A6ACF; border-radius:12px; padding:12px 15px; display:flex; align-items:center;">
+        <button class="btn-mini" onclick="giderTalepAc()" style="width:100%; background:#5A6ACF; color:#fff; border:none; font-weight:700; padding:9px;">
+          <i data-lucide="plus" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Gider Bildir</button>
+      </div>
+    </div>
+
+    <div style="font-size:12px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:4px 0 9px;">Onay Bekleyenler</div>
+    ${bekleyenler.length ? bekleyenler.map(t => kart(t, true)).join("")
+      : `<div style="background:#fff; border-radius:12px; padding:26px; text-align:center; color:#94A3B8; font-size:13px;">Onay bekleyen gider talebi yok.</div>`}
+
+    ${gecmis.length ? `
+      <div style="font-size:12px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:20px 0 9px;">Geçmiş Talepler</div>
+      ${gecmis.map(t => kart(t, false)).join("")}` : ""}`;
+
+  if (window.lucideYenile) window.lucideYenile();
+};
+
+// Onayla → giderler koleksiyonuna işle
+window.giderTalepOnayla = async function(talepId) {
+  const t = giderTalepListesi.find(x => x.id === talepId);
+  if (!t) return;
+  if (!confirm(`"${t.aciklama}" · ${Math.round(t.tutar).toLocaleString("tr-TR")} ₺\n\nOnaylanıp gider kayıtlarına işlensin mi?`)) return;
+
+  try {
+    // 1) Gider kaydı oluştur
+    await addDoc(collection(db, "giderler"), {
+      tarih: t.tarih,
+      tutar: Number(t.tutar) || 0,
+      kategori: t.kategori,
+      aciklama: t.aciklama,
+      belgeTuru: t.belgeTuru || "",
+      belgeNo: t.belgeNo || "",
+      kaynak: "personel_talebi",
+      talepId: talepId,
+      talepEden: t.talepEden || "",
+      onaylayan: currentUser?.email || "",
+      olusturuldu: serverTimestamp()
+    });
+    // 2) Talebi güncelle
+    await updateDoc(doc(db, "giderTalepleri", talepId), {
+      durum: "onaylandi",
+      onaylayan: currentUser?.email || "",
+      onayTarihi: new Date().toISOString()
+    });
+
+    showToast("✓ Onaylandı ve gider kayıtlarına işlendi");
+    if (typeof loadFinansalData === "function") await loadFinansalData();
+    giderTalepleriRender();
+    if (typeof renderFinansGiderler === "function") renderFinansGiderler();
+    if (typeof renderFinansalOzet === "function") renderFinansalOzet();
+  } catch (e) {
+    console.error("Onay hatası:", e);
+    showToast("Onaylanamadı: " + e.message, "error");
+  }
+};
+
+window.giderTalepReddet = async function(talepId) {
+  const t = giderTalepListesi.find(x => x.id === talepId);
+  if (!t) return;
+  const neden = prompt(`"${t.aciklama}" talebi reddedilecek.\n\nRed nedeni (personele iletilir):`);
+  if (neden === null) return;
+  try {
+    await updateDoc(doc(db, "giderTalepleri", talepId), {
+      durum: "reddedildi",
+      redNedeni: neden.trim() || "Belirtilmedi",
+      onaylayan: currentUser?.email || "",
+      onayTarihi: new Date().toISOString()
+    });
+    showToast("Talep reddedildi");
+    giderTalepleriRender();
+  } catch (e) {
+    showToast("İşlem başarısız: " + e.message, "error");
+  }
 };
 
 function hesaplaFinansGecikenler() {
