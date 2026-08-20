@@ -7912,6 +7912,28 @@ i[data-lucide] svg { display: block; }
 .ozet-gunplan-baslik { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
 .ozet-gunplan-satir { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: rgba(255,255,255,0.88); padding: 5px 0; }
 .ozet-gunplan-saat { color: rgba(255,255,255,0.6); font-weight: 600; }
+.ozet-dogumgun {
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.12);
+}
+.ozet-dogumgun-baslik {
+  font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+  color: rgba(255,255,255,0.62); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.ozet-dg-satir {
+  display: flex; align-items: center; gap: 9px; padding: 5px 0;
+  font-size: 12.5px; color: rgba(255,255,255,0.9);
+}
+.ozet-dg-pasta {
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+  background: rgba(255,255,255,0.14);
+}
+.ozet-dg-ad { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.ozet-dg-gun {
+  font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 100px; white-space: nowrap;
+}
+.ozet-dg-gun.bugun { background: #F9E5A0; color: #7A5B00; }
+.ozet-dg-gun.yakin { background: rgba(255,255,255,0.18); color: #fff; }
 .ozet-hizli-islem {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 14px;
 }
@@ -18820,6 +18842,87 @@ window.hizliIslem = function(tur) {
   }
 };
 
+// Yaklaşan doğum günleri (bugün + 7 gün) — öğrenci ve personel
+window.dogumGunleriDoldur = function() {
+  const kap = document.getElementById("ozetDogumGunleri");
+  if (!kap) return;
+
+  const bugun = new Date(); bugun.setHours(0, 0, 0, 0);
+  const PENCERE = 7; // gün
+
+  // Doğum tarihinden "bu yılki kutlama gününe kalan gün" hesapla
+  const kalanGun = (dt) => {
+    if (!dt) return null;
+    const d = new Date(dt);
+    if (isNaN(d)) return null;
+    const hedef = new Date(bugun.getFullYear(), d.getMonth(), d.getDate());
+    hedef.setHours(0, 0, 0, 0);
+    if (hedef < bugun) hedef.setFullYear(hedef.getFullYear() + 1);
+    return {
+      gun: Math.round((hedef - bugun) / 86400000),
+      kutlananYas: hedef.getFullYear() - d.getFullYear()   // o gün kaç yaşına girecek
+    };
+  };
+
+  const liste = [];
+
+  // Aktif öğrenciler
+  try {
+    (typeof ogrenciList !== "undefined" ? ogrenciList : []).forEach(o => {
+      const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+      if (!ayar) return;
+      if (typeof getOgrenciDurum === "function" && getOgrenciDurum(o, ayar) !== "aktif") return;
+      const dt = (ayar.ogrenci && ayar.ogrenci.dogumTarihi) || o.dogumTarihi;
+      const k = kalanGun(dt);
+      if (!k || k.gun > PENCERE) return;
+      liste.push({
+        ad: o.ogrenciAdSoyad || o.adSoyad || "—",
+        alt: (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
+        gun: k.gun, yas: k.kutlananYas,
+        tip: "ogrenci"
+      });
+    });
+  } catch (e) { /* sessiz */ }
+
+  // Personel
+  try {
+    (typeof personelListesi !== "undefined" ? personelListesi : []).forEach(p => {
+      if (p.durum === "ayrildi" || p.durum === "pasif" || p.durum === "arsiv") return;
+      const k = kalanGun(p.dogumTarihi);
+      if (!k || k.gun > PENCERE) return;
+      liste.push({
+        ad: p.adSoyad || p.ad || "—",
+        alt: p.unvan || p.gorev || "Personel",
+        gun: k.gun, yas: null, tip: "personel"
+      });
+    });
+  } catch (e) { /* sessiz */ }
+
+  if (!liste.length) { kap.innerHTML = ""; return; }
+
+  liste.sort((a, b) => a.gun - b.gun);
+  const gunMetin = (g) => g === 0 ? "Bugün 🎉" : g === 1 ? "Yarın" : `${g} gün`;
+
+  kap.innerHTML = `
+    <div class="ozet-dogumgun">
+      <div class="ozet-dogumgun-baslik">
+        <i data-lucide="cake" style="width:13px;height:13px;"></i> Yaklaşan Doğum Günleri
+      </div>
+      ${liste.slice(0, 5).map(x => `
+        <div class="ozet-dg-satir">
+          <span class="ozet-dg-pasta">${x.tip === "personel" ? "🧑‍🏫" : "🎂"}</span>
+          <span class="ozet-dg-ad">${String(x.ad).replace(/</g,"&lt;")}
+            <span style="font-weight:400; color:rgba(255,255,255,0.55); font-size:11px;">
+              ${String(x.alt).replace(/</g,"&lt;")}${x.yas ? " · " + x.yas + " yaş" : ""}</span>
+          </span>
+          <span class="ozet-dg-gun ${x.gun === 0 ? "bugun" : "yakin"}">${gunMetin(x.gun)}</span>
+        </div>`).join("")}
+      ${liste.length > 5 ? `<div style="font-size:11px; color:rgba(255,255,255,0.5); padding-top:5px;">+${liste.length - 5} kişi daha</div>` : ""}
+    </div>`;
+
+  if (window.lucideYenile) window.lucideYenile();
+};
+
 function renderAdminHome() {
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
@@ -18854,6 +18957,7 @@ function renderAdminHome() {
     setTimeout(hbEgitimDoldur, 120);
     setTimeout(hbOgretmenDoldur, 90);
     setTimeout(() => { if (typeof okulZiliDoldur === "function") okulZiliDoldur(); }, 140);
+    setTimeout(() => { if (typeof dogumGunleriDoldur === "function") dogumGunleriDoldur(); }, 180);
   }
   // Lucide ikonlarını render et (dinamik innerHTML sonrası — widget geç dolabilir)
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 40); setTimeout(window.lucideYenile, 250); }
@@ -19663,6 +19767,7 @@ function yonetimHomeHTML(ad) {
               <div class="ozet-gunplan-satir"><span>● ${(yaklasanEtkinlik.baslik||"Etkinlik").replace(/</g,"&lt;")}</span><span class="ozet-gunplan-saat">${yaklasanEtkinlik.baslangicSaat||""}</span></div>
               <div style="font-size:11.5px; color:rgba(255,255,255,0.6); margin-top:4px;">${etkTarihStr}</div>
             ` : `<div style="font-size:12.5px; color:rgba(255,255,255,0.65);">Bugün için planlı etkinlik yok.</div>`}
+            <div id="ozetDogumGunleri"></div>
             <div class="ozet-hizli-islem">
               <button class="ozet-hizli-btn" onclick="hizliIslem('etkinlik')" title="Yeni etkinlik oluştur">
                 <i data-lucide="calendar-plus"></i><span>Etkinlik</span></button>
