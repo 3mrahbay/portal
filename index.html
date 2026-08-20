@@ -20588,9 +20588,41 @@ async function ogretmenHomeVeriYukle() {
           return !siniflarim.length || sinifGorunur(e.hedefDeger || "");
         })
         .sort((a, b) => String(a.baslangicSaat || "").localeCompare(String(b.baslangicSaat || "")));
-      planEl.innerHTML = bugunku.length
-        ? bugunku.map(e => `<div class="ca-row"><i data-lucide="pin" style="width:15px;height:15px;color:var(--c-green);"></i><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(e.baslik || "Etkinlik")}</div><div class="ca-tile-sub">${escapeHtml([e.tumGun ? "Tüm gün" : e.baslangicSaat, e.konum].filter(Boolean).join(" · "))}</div></div></div>`).join("")
-        : `<div class="ca-tile-sub">Bugün için planlanmış etkinlik yok.</div>`;
+      // ── Haftalık Plan'daki bugünün etkinlikleri (haftalikPlanlar) ──
+      const planSatirlari = [];
+      try {
+        const gunIdx = (new Date().getDay() + 6) % 7; // pazartesi = 0
+        if (gunIdx <= 4) {
+          const hafta = (typeof hpHaftaKodu === "function") ? hpHaftaKodu() : null;
+          const PROG = (typeof HP_PROGRAMLAR !== "undefined") ? HP_PROGRAMLAR : {};
+          for (const sn of (siniflarim.length ? siniflarim : [])) {
+            if (!hafta) break;
+            const bid = (typeof hpBelgeId === "function") ? hpBelgeId(sn, hafta) : null;
+            if (!bid) continue;
+            const ps = await getDoc(doc(db, "haftalikPlanlar", bid));
+            if (!ps.exists()) continue;
+            const pv = ps.data() || {};
+            const etk = (pv.gunler && pv.gunler[gunIdx]) || [];
+            etk.forEach(x => {
+              const pr = PROG[x.program] || { emoji: "📘", renk: "#64748B", ad: "Genel" };
+              planSatirlari.push(`<div class="ca-row">
+                <span style="font-size:16px;">${pr.emoji}</span>
+                <div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(x.ad || "Etkinlik")}</div>
+                <div class="ca-tile-sub">${escapeHtml([pr.ad, x.sure, siniflarim.length > 1 ? sn : ""].filter(Boolean).join(" · "))}</div></div>
+              </div>`);
+            });
+          }
+        }
+      } catch (e) { console.warn("haftalık plan:", e.code || e.message); }
+
+      // ── Takvim etkinlikleri ──
+      const takvimSatirlari = bugunku.map(e => `<div class="ca-row"><i data-lucide="pin" style="width:15px;height:15px;color:var(--c-green);"></i><div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(e.baslik || "Etkinlik")}</div><div class="ca-tile-sub">${escapeHtml([e.tumGun ? "Tüm gün" : e.baslangicSaat, e.konum].filter(Boolean).join(" · "))}</div></div></div>`);
+
+      const tumu = planSatirlari.concat(takvimSatirlari);
+      planEl.innerHTML = tumu.length
+        ? tumu.join("") + `<button class="ca-btn ghost" style="margin-top:10px; width:100%; font-size:12.5px;" onclick="modulSec('haftalikPlan')">Haftalık planı aç →</button>`
+        : `<div class="ca-tile-sub">Bugün için planlanmış etkinlik yok.</div>
+           <button class="ca-btn ghost" style="margin-top:10px; width:100%; font-size:12.5px;" onclick="modulSec('haftalikPlan')">Haftalık plan oluştur →</button>`;
     } catch (e) { planEl.innerHTML = `<div class="ca-tile-sub">Plan yüklenemedi.</div>`; }
   }
 
