@@ -20532,9 +20532,14 @@ async function ogretmenHomeVeriYukle() {
       const snap = await getDocs(collection(db, "ogrenciler"));
       hepsi = []; snap.forEach(d => hepsi.push({ id: d.id, ...d.data() }));
     }
-    sinifOgrencileri = hepsi.filter(o =>
-      o.arsiv !== true && o.kayitDurumu !== "arsiv" &&
-      (!siniflarim.length || sinifGorunur(o.sinif || o.sinifi || "")));
+    // Standart kural: bu dönemde kaydı olan VE durumu aktif olan öğrenciler
+    sinifOgrencileri = hepsi.filter(o => {
+      const _a = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+      if (!_a) return false;
+      if (typeof getOgrenciDurum === "function" && getOgrenciDurum(o, _a) !== "aktif") return false;
+      const _sinif = (_a.kayit && _a.kayit.sinif) || o.sinif || o.sinifi || "";
+      return !siniflarim.length || sinifGorunur(_sinif);
+    });
   } catch (e) { console.warn("sınıf mevcudu", e); }
 
   const sinifEl = document.getElementById("ogrHomeSinif");
