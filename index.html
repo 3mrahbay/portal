@@ -9669,6 +9669,10 @@ i[data-lucide] svg { display: block; }
         <button class="finans-altsekme-btn" data-finans-alt="giderler" data-renk="kirmizi" onclick="finansSwitchAlt('giderler')">
           <span>💸</span> Giderler
         </button>
+        <button class="finans-altsekme-btn" data-finans-alt="bekleyen" data-renk="kirmizi" onclick="finansSwitchAlt('bekleyen')">
+          <span><i data-lucide="alarm-clock" style="width:15px;height:15px;vertical-align:-2px;"></i></span> Bekleyen Ödemeler
+          <span id="bekleyenAltSekmeRozet" style="display:none; background:#dc2626; color:white; padding:1px 7px; border-radius:9px; font-size:10px; font-weight:700; margin-left:4px;">0</span>
+        </button>
         <button class="finans-altsekme-btn" data-finans-alt="talepler" data-renk="turuncu" onclick="finansSwitchAlt('talepler')">
           <span><i data-lucide="credit-card" style="width:15px;height:15px;vertical-align:-2px;"></i></span> Talepler
           <span id="talepAltSekmeRozet" style="display:none; background:#dc2626; color:white; padding:1px 7px; border-radius:9px; font-size:10px; font-weight:700; margin-left:4px;">0</span>
@@ -9729,6 +9733,12 @@ i[data-lucide] svg { display: block; }
         </div>
         <div id="giderlerListesi">
           <div class="ozel-madde-empty">Yükleniyor...</div>
+        </div>
+      </div>
+
+      <div id="finansAlt-bekleyen" class="finans-alt-panel" style="display:none;">
+        <div id="bekleyenOdemelerIcerik">
+          <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
         </div>
       </div>
 
@@ -27798,6 +27808,7 @@ window.finansSwitchAlt = function(alt) {
 
 function renderFinansalAltSekme() {
   if (aktifFinansAlt === "ozet") renderFinansalOzet();
+  else if (aktifFinansAlt === "bekleyen") bekleyenOdemeleriRender();
   else if (aktifFinansAlt === "gelirler") renderFinansGelirler();
   else if (aktifFinansAlt === "giderler") renderFinansGiderler();
   else if (aktifFinansAlt === "raporlarAlt") renderRaporlarAltSekme();
@@ -33534,6 +33545,245 @@ function renderVeliLightbox() {
     icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:85vh; object-fit:contain;">`;
   }
 }
+
+// ═══════════ BEKLEYEN ÖDEMELER (Muhasebe) ═══════════
+// Ay bazlı bekleyen taksitleri listeler; buradan "Ödendi" işaretlenir veya veliye hatırlatma gider.
+window.bekleyenOdemeleriRender = function() {
+  const el = document.getElementById("bekleyenOdemelerIcerik");
+  if (!el) return;
+
+  const bugun = new Date();
+  const buAyKod = `${bugun.getFullYear()}-${String(bugun.getMonth() + 1).padStart(2, "0")}`;
+  const satirlar = [];
+
+  for (const o of ogrenciList) {
+    const ayar = ayarListesi[o.id];
+    if (!ayar) continue;
+    if (getOgrenciDurum(o, ayar) !== "aktif") continue;
+    const a = ayar.aidatAyarlari || {};
+    if (!a.baslangicAyi) continue;
+    const taksit = a.taksitSayisi || 10;
+    const iD = a.iDonemAylik || a.aylikAidat || 0;
+    const iiD = a.iiDonemAylik || a.aylikAidat || 0;
+    const odemeler = ayar.aylikOdemeler || {};
+    const aylar = (typeof getAyListesi === "function") ? getAyListesi(a.baslangicAyi, taksit) : [];
+
+    // Peşinat
+    if ((a.onOdeme || 0) > 0) {
+      const p = odemeler["__onOdeme"] || {};
+      if (!p.odendi) {
+        satirlar.push({
+          ogrenciId: o.id, ad: o.ogrenciAdSoyad || o.adSoyad || "—",
+          sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
+          ayKod: "__onOdeme", ayAd: "Peşinat / Ön Ödeme",
+          tutar: Number(a.onOdeme) || 0, gecikmis: true, gunFarki: 999
+        });
+      }
+    }
+
+    for (const ay of aylar) {
+      const od = odemeler[ay.ayKod] || {};
+      if (od.odendi) continue;
+      const [yil, ayNo] = ay.ayKod.split("-").map(Number);
+      const vade = new Date(yil, ayNo - 1, 10);
+      // Gelecek ayları listeleme (bu ay ve öncesi)
+      if (ay.ayKod > buAyKod) continue;
+      const beklenen = (ayNo >= 9 || ayNo <= 1) ? iD : iiD;
+      if (beklenen <= 0) continue;
+      const gunFarki = Math.round((bugun - vade) / 86400000);
+      satirlar.push({
+        ogrenciId: o.id, ad: o.ogrenciAdSoyad || o.adSoyad || "—",
+        sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
+        ayKod: ay.ayKod, ayAd: ay.tam || ay.ayKod,
+        tutar: beklenen, gecikmis: gunFarki > 0, gunFarki
+      });
+    }
+  }
+
+  // En çok geciken üstte
+  satirlar.sort((a, b) => b.gunFarki - a.gunFarki);
+
+  const toplamBorc = satirlar.reduce((s, x) => s + x.tutar, 0);
+  const gecikmisSayi = satirlar.filter(x => x.gecikmis).length;
+  const ogrenciSayi = new Set(satirlar.map(x => x.ogrenciId)).size;
+
+  // Sekme rozeti
+  const rozet = document.getElementById("bekleyenAltSekmeRozet");
+  if (rozet) {
+    if (gecikmisSayi > 0) { rozet.textContent = gecikmisSayi; rozet.style.display = "inline-block"; }
+    else rozet.style.display = "none";
+  }
+
+  if (!satirlar.length) {
+    el.innerHTML = `<div style="background:#fff; border-radius:14px; padding:40px 20px; text-align:center;">
+      <div style="font-size:40px; margin-bottom:10px;">🎉</div>
+      <div style="font-size:15px; font-weight:700; color:#166534;">Bekleyen ödeme yok</div>
+      <div style="font-size:12.5px; color:#6b7280; margin-top:5px;">Tüm taksitler tahsil edilmiş görünüyor.</div>
+    </div>`;
+    return;
+  }
+
+  const tl = (n) => Math.round(n).toLocaleString("tr-TR") + " ₺";
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+
+  el.innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px;">
+      <div style="background:#fff; border-left:4px solid #DC2626; border-radius:12px; padding:12px 15px;">
+        <div style="font-size:10.5px; font-weight:800; color:#DC2626; text-transform:uppercase;">Toplam Bekleyen</div>
+        <div style="font-size:21px; font-weight:800; color:#1E293B; margin-top:4px;">${tl(toplamBorc)}</div></div>
+      <div style="background:#fff; border-left:4px solid #B45309; border-radius:12px; padding:12px 15px;">
+        <div style="font-size:10.5px; font-weight:800; color:#B45309; text-transform:uppercase;">Gecikmiş Taksit</div>
+        <div style="font-size:21px; font-weight:800; color:#1E293B; margin-top:4px;">${gecikmisSayi}</div></div>
+      <div style="background:#fff; border-left:4px solid #5A6ACF; border-radius:12px; padding:12px 15px;">
+        <div style="font-size:10.5px; font-weight:800; color:#5A6ACF; text-transform:uppercase;">Öğrenci</div>
+        <div style="font-size:21px; font-weight:800; color:#1E293B; margin-top:4px;">${ogrenciSayi}</div></div>
+      <div style="background:#fff; border-left:4px solid #059669; border-radius:12px; padding:12px 15px; display:flex; align-items:center;">
+        <button class="btn-mini" onclick="bekleyenTopluHatirlat()" style="width:100%; background:#059669; color:#fff; border:none; font-weight:700; padding:9px;">
+          <i data-lucide="send" style="width:13px;height:13px;vertical-align:-2px;"></i> Tümüne Hatırlat</button>
+      </div>
+    </div>
+
+    <div style="background:#fff; border-radius:14px; overflow:hidden; border:1px solid #E9EBF4;">
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead><tr style="background:#F8FAFC; text-align:left;">
+          <th style="padding:11px 14px; font-size:10.5px; text-transform:uppercase; color:#64748B;">Öğrenci</th>
+          <th style="padding:11px 10px; font-size:10.5px; text-transform:uppercase; color:#64748B;">Dönem</th>
+          <th style="padding:11px 10px; font-size:10.5px; text-transform:uppercase; color:#64748B; text-align:right;">Tutar</th>
+          <th style="padding:11px 10px; font-size:10.5px; text-transform:uppercase; color:#64748B; text-align:center;">Durum</th>
+          <th style="padding:11px 14px; font-size:10.5px; text-transform:uppercase; color:#64748B; text-align:right;">İşlem</th>
+        </tr></thead>
+        <tbody>
+          ${satirlar.slice(0, 100).map(x => {
+            const gecikmeRenk = x.gunFarki > 30 ? "#DC2626" : x.gunFarki > 0 ? "#B45309" : "#64748B";
+            const gecikmeMetin = x.ayKod === "__onOdeme" ? "Peşinat bekliyor"
+                              : x.gunFarki > 0 ? `${x.gunFarki} gün gecikti` : "Vadesi yaklaşıyor";
+            return `<tr style="border-top:1px solid #F1F2F7;">
+              <td style="padding:10px 14px;">
+                <div style="font-weight:700; color:#1E293B; cursor:pointer;" onclick="openAyarModal('${x.ogrenciId}')">${esc(x.ad)}</div>
+                <div style="font-size:11px; color:#94A3B8;">${esc(x.sinif)}</div>
+              </td>
+              <td style="padding:10px;">${esc(x.ayAd)}</td>
+              <td style="padding:10px; text-align:right; font-weight:800; color:#1E293B;">${tl(x.tutar)}</td>
+              <td style="padding:10px; text-align:center;">
+                <span style="font-size:11px; font-weight:700; color:${gecikmeRenk};">${gecikmeMetin}</span>
+              </td>
+              <td style="padding:10px 14px; text-align:right; white-space:nowrap;">
+                <button class="btn-mini" onclick="bekleyenOdendiYap('${x.ogrenciId}','${x.ayKod}',${x.tutar})"
+                  style="background:#DCFCE7; color:#166534; border-color:#86EFAC; font-weight:700;">
+                  <i data-lucide="check" style="width:12px;height:12px;vertical-align:-1px;"></i> Ödendi</button>
+                <button class="btn-mini" onclick="bekleyenHatirlat('${x.ogrenciId}','${esc(x.ayAd)}',${x.tutar})"
+                  style="margin-left:5px;">
+                  <i data-lucide="bell" style="width:12px;height:12px;vertical-align:-1px;"></i> Hatırlat</button>
+              </td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+      ${satirlar.length > 100 ? `<div style="padding:12px 14px; font-size:12px; color:#64748B;">İlk 100 kayıt gösteriliyor (toplam ${satirlar.length}).</div>` : ""}
+    </div>`;
+
+  if (window.lucideYenile) window.lucideYenile();
+};
+
+// Ödendi işaretle → Firestore'a yaz → gelir kartları/grafikler yenilensin
+window.bekleyenOdendiYap = async function(ogrenciId, ayKod, tutar) {
+  const ogr = ogrenciList.find(o => o.id === ogrenciId);
+  const ad = ogr ? (ogr.ogrenciAdSoyad || ogr.adSoyad) : "Öğrenci";
+  if (!confirm(`${ad} · ${Math.round(tutar).toLocaleString("tr-TR")} ₺ ödendi olarak işaretlensin mi?`)) return;
+
+  try {
+    if (!ayarListesi[ogrenciId]) ayarListesi[ogrenciId] = {};
+    if (!ayarListesi[ogrenciId].aylikOdemeler) ayarListesi[ogrenciId].aylikOdemeler = {};
+    const mevcut = ayarListesi[ogrenciId].aylikOdemeler[ayKod] || {};
+    const kayit = {
+      ...mevcut,
+      odendi: true,
+      odenenTutar: tutar,
+      beklenenTutar: tutar,
+      odemeTarihi: new Date().toISOString().substring(0, 10),
+      kaydeden: currentUser?.email || ""
+    };
+    ayarListesi[ogrenciId].aylikOdemeler[ayKod] = kayit;
+
+    await setDoc(doc(db, "ogrenciler", ogrenciId, "donemler", AKTIF_DONEM),
+      { aylikOdemeler: { [ayKod]: kayit } }, { merge: true });
+
+    showToast(`✓ ${ad} · ödeme kaydedildi`);
+
+    // Gelir verilerini ve ekranları tazele
+    if (typeof loadFinansalData === "function") await loadFinansalData();
+    bekleyenOdemeleriRender();
+    if (typeof renderFinansalOzet === "function") renderFinansalOzet();
+    if (typeof renderFinansGelirler === "function") renderFinansGelirler();
+  } catch (e) {
+    console.error("Ödeme kaydedilemedi:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+// Tek veliye hatırlatma mesajı
+window.bekleyenHatirlat = async function(ogrenciId, ayAd, tutar) {
+  const ogr = ogrenciList.find(o => o.id === ogrenciId);
+  const ayar = ayarListesi[ogrenciId] || {};
+  const ad = ogr ? (ogr.ogrenciAdSoyad || ogr.adSoyad) : "Öğrenci";
+  const veliMail = (ayar.anne && ayar.anne.email) || (ayar.baba && ayar.baba.email)
+                || (ayar.veli && ayar.veli.email) || ogr?.veliEmail || "";
+  if (!veliMail) { showToast("Bu öğrenci için veli e-postası kayıtlı değil", "error"); return; }
+
+  const metin = `Sayın velimiz, ${ad} için ${ayAd} dönemine ait ${Math.round(tutar).toLocaleString("tr-TR")} ₺ tutarındaki ödeme henüz tarafımıza ulaşmamıştır. Bilginize sunar, iyi günler dileriz.\n\nBir Çiçek Koleji Anaokulu`;
+  if (!confirm(`${ad} velisine (${veliMail}) hatırlatma mesajı gönderilsin mi?`)) return;
+
+  try {
+    const veliAd = (ayar.anne && ayar.anne.adSoyad) || (ayar.baba && ayar.baba.adSoyad) || "Veli";
+    const sinif = (ayar.kayit && ayar.kayit.sinif) || ogr?.sinif || "";
+    const thread = await mesajThreadGetirVeyaOlustur({
+      personel: {
+        email: currentUser.email.toLowerCase(),
+        ad: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser.displayName || currentUser.email,
+        rol: (typeof aktifKullaniciRol !== "undefined" ? aktifKullaniciRol : "personel") || "personel"
+      },
+      veli: { email: veliMail.toLowerCase(), ad: veliAd },
+      ogrenci: { id: ogrenciId, ad: ad, sinif }
+    });
+    await mesajGonder(thread.id, metin);
+    showToast("✓ Hatırlatma mesajı gönderildi");
+  } catch (e) {
+    console.error("Hatırlatma:", e);
+    showToast("Gönderilemedi: " + e.message, "error");
+  }
+};
+
+// Tüm gecikmiş ödemeler için toplu hatırlatma
+window.bekleyenTopluHatirlat = async function() {
+  const gecikenler = (typeof hesaplaFinansGecikenler === "function") ? hesaplaFinansGecikenler() : [];
+  if (!gecikenler.length) { showToast("Gecikmiş ödeme yok"); return; }
+  if (!confirm(`${gecikenler.length} veliye hatırlatma mesajı gönderilecek. Onaylıyor musunuz?`)) return;
+
+  let basarili = 0, atlanan = 0;
+  for (const g of gecikenler) {
+    const ayar = ayarListesi[g.ogrenciId] || {};
+    const ogr = ogrenciList.find(o => o.id === g.ogrenciId);
+    const veliMail = (ayar.anne && ayar.anne.email) || (ayar.baba && ayar.baba.email)
+                  || (ayar.veli && ayar.veli.email) || ogr?.veliEmail || "";
+    if (!veliMail) { atlanan++; continue; }
+    const metin = `Sayın velimiz, ${g.ogrenciAd} için ${g.gecikenAySayisi} döneme ait toplam ${Math.round(g.toplamBorc).toLocaleString("tr-TR")} ₺ tutarındaki ödeme henüz tarafımıza ulaşmamıştır. Bilginize sunar, iyi günler dileriz.\n\nBir Çiçek Koleji Anaokulu`;
+    try {
+      const veliAd = (ayar.anne && ayar.anne.adSoyad) || (ayar.baba && ayar.baba.adSoyad) || "Veli";
+      const thread = await mesajThreadGetirVeyaOlustur({
+        personel: {
+          email: currentUser.email.toLowerCase(),
+          ad: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser.displayName || currentUser.email,
+          rol: (typeof aktifKullaniciRol !== "undefined" ? aktifKullaniciRol : "personel") || "personel"
+        },
+        veli: { email: veliMail.toLowerCase(), ad: veliAd },
+        ogrenci: { id: g.ogrenciId, ad: g.ogrenciAd, sinif: g.sinif || "" }
+      });
+      await mesajGonder(thread.id, metin);
+      basarili++;
+    } catch (e) { console.warn("hatırlatma:", e); atlanan++; }
+  }
+  showToast(`✓ ${basarili} hatırlatma gönderildi${atlanan ? ` · ${atlanan} atlandı (e-posta yok)` : ""}`);
+};
 
 function hesaplaFinansGecikenler() {
   const bugun = new Date();
