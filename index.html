@@ -7912,6 +7912,19 @@ i[data-lucide] svg { display: block; }
 .ozet-gunplan-baslik { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
 .ozet-gunplan-satir { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: rgba(255,255,255,0.88); padding: 5px 0; }
 .ozet-gunplan-saat { color: rgba(255,255,255,0.6); font-weight: 600; }
+.ozet-hizli-islem {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 14px;
+}
+.ozet-hizli-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  background: rgba(255,255,255,0.11); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 11px; padding: 11px 5px; color: #fff;
+  font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: background .15s, transform .12s;
+}
+.ozet-hizli-btn:hover { background: rgba(255,255,255,0.21); transform: translateY(-1px); }
+.ozet-hizli-btn:active { transform: scale(.96); }
+.ozet-hizli-btn [data-lucide], .ozet-hizli-btn svg { width: 17px; height: 17px; }
 .ozet-gunplan-btn { width: 100%; margin-top: 12px; background: rgba(255,255,255,0.12); border: none; border-radius: 10px; padding: 10px; color: #fff; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .15s; }
 .ozet-gunplan-btn:hover { background: rgba(255,255,255,0.2); }
 
@@ -18772,6 +18785,41 @@ window.okulZiliDoldur = async function() {
   if (window.lucideYenile) window.lucideYenile();
 };
 
+// Özet sayfası hızlı işlem butonları
+window.hizliIslem = function(tur) {
+  const git = (modul, sonra) => {
+    if (typeof modulSec === "function") modulSec(modul);
+    else if (typeof adminGotoTab === "function") adminGotoTab(modul);
+    if (sonra) setTimeout(sonra, 420);
+  };
+  switch (tur) {
+    case "etkinlik":
+      git("etkinlik", () => {
+        if (typeof openEtkinlikModal === "function") openEtkinlikModal();
+      });
+      break;
+    case "duyuru":
+      git("duyurular", () => {
+        if (typeof openDuyuruModal === "function") openDuyuruModal();
+      });
+      break;
+    case "mesaj":
+      git("mesaj", () => { if (typeof mesajYeniSohbetAc === "function") mesajYeniSohbetAc(); });
+      break;
+    case "ogrenci":
+      git("ogrencilerM", () => { if (typeof yeniOgrenciAc === "function") yeniOgrenciAc(); });
+      break;
+    case "yoklama":
+      git("devamsizlik");
+      break;
+    case "tahsilat":
+      git("muhasebe", () => { if (typeof finansSwitchAlt === "function") finansSwitchAlt("gelirler"); });
+      break;
+    default:
+      break;
+  }
+};
+
 function renderAdminHome() {
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
@@ -19615,7 +19663,20 @@ function yonetimHomeHTML(ad) {
               <div class="ozet-gunplan-satir"><span>● ${(yaklasanEtkinlik.baslik||"Etkinlik").replace(/</g,"&lt;")}</span><span class="ozet-gunplan-saat">${yaklasanEtkinlik.baslangicSaat||""}</span></div>
               <div style="font-size:11.5px; color:rgba(255,255,255,0.6); margin-top:4px;">${etkTarihStr}</div>
             ` : `<div style="font-size:12.5px; color:rgba(255,255,255,0.65);">Bugün için planlı etkinlik yok.</div>`}
-            <button class="ozet-gunplan-btn" onclick="adminGotoTab('icerik')"><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Etkinlik Ekle</button>
+            <div class="ozet-hizli-islem">
+              <button class="ozet-hizli-btn" onclick="hizliIslem('etkinlik')" title="Yeni etkinlik oluştur">
+                <i data-lucide="calendar-plus"></i><span>Etkinlik</span></button>
+              <button class="ozet-hizli-btn" onclick="hizliIslem('duyuru')" title="Yeni duyuru yayınla">
+                <i data-lucide="megaphone"></i><span>Duyuru</span></button>
+              <button class="ozet-hizli-btn" onclick="hizliIslem('mesaj')" title="Veliye mesaj gönder">
+                <i data-lucide="message-circle"></i><span>Mesaj</span></button>
+              <button class="ozet-hizli-btn" onclick="hizliIslem('ogrenci')" title="Yeni öğrenci kaydı">
+                <i data-lucide="user-plus"></i><span>Öğrenci</span></button>
+              <button class="ozet-hizli-btn" onclick="hizliIslem('yoklama')" title="Günlük yoklama al">
+                <i data-lucide="clipboard-check"></i><span>Yoklama</span></button>
+              <button class="ozet-hizli-btn" onclick="hizliIslem('tahsilat')" title="Ödeme kaydet">
+                <i data-lucide="wallet"></i><span>Tahsilat</span></button>
+            </div>
           </div>
         </div>
       </div>
@@ -29576,7 +29637,11 @@ async function egitimMatrixVeriYukle() {
   // Aktif öğrencileri filtrele - sistemdeki standart fonksiyonu kullan
   let aktifOgrenciler;
   if (typeof getOgrenciDurum === "function") {
-    aktifOgrenciler = ogrenciList.filter(o => getOgrenciDurum(o, ayarListesi?.[o.id]) === "aktif");
+    // Standart kural: bu dönemde kaydı olan VE durumu aktif olan öğrenciler
+    aktifOgrenciler = ogrenciList.filter(o => {
+      const _a = ayarListesi?.[o.id];
+      return _a && getOgrenciDurum(o, _a) === "aktif";
+    });
   } else {
     // Fallback: aktif öğrencileri en geniş anlamda al (iptal/ayrılmış olanları çıkar)
     aktifOgrenciler = ogrenciList.filter(o => {
@@ -35698,7 +35763,8 @@ function renderFinansGelirler() {
   el.innerHTML = html;
 }
 
-window.gelirlerExcel = function() {
+window.gelirlerExcel = async function() {
+  if (!(await xlsxHazirla())) return;
   const liste = finansFiltreleByView(finansalGelirler, "odemeTarihi");
   if (liste.length === 0) return showToast("İndirilecek gelir yok", "error");
   try {
@@ -35777,7 +35843,8 @@ function renderFinansGiderler() {
   el.innerHTML = html;
 }
 
-window.giderlerExcel = function() {
+window.giderlerExcel = async function() {
+  if (!(await xlsxHazirla())) return;
   const liste = finansFiltreleByView(finansalGiderler, "tarih");
   if (liste.length === 0) return showToast("İndirilecek gider yok", "error");
   try {
@@ -35965,7 +36032,8 @@ function renderRaporlarAltSekme() {
 }
 
 // Rapor: Aylık Tahsilat (kümülatif tablo)
-window.raporIndirAylikTahsilat = function() {
+window.raporIndirAylikTahsilat = async function() {
+  if (!(await xlsxHazirla())) return;
   try {
     const bugun = new Date();
     const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
@@ -36012,7 +36080,8 @@ window.raporIndirAylikTahsilat = function() {
 };
 
 // Rapor: Ödeme Detayı (ay ay öğrenci matrisi)
-window.raporIndirOdemeDetayi = function() {
+window.raporIndirOdemeDetayi = async function() {
+  if (!(await xlsxHazirla())) return;
   try {
     const bugun = new Date();
     const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
@@ -36056,7 +36125,8 @@ window.raporIndirOdemeDetayi = function() {
 };
 
 // Rapor: Gelir-Gider (3 sayfalı rapor)
-window.raporIndirGelirGider = function() {
+window.raporIndirGelirGider = async function() {
+  if (!(await xlsxHazirla())) return;
   try {
     const wb = window.XLSX.utils.book_new();
 
@@ -36093,7 +36163,8 @@ window.raporIndirGelirGider = function() {
   } catch (e) { showToast("Hata: " + e.message, "error"); }
 };
 
-window.raporIndirGecikenler = function() {
+window.raporIndirGecikenler = async function() {
+  if (!(await xlsxHazirla())) return;
   const gecikenler = hesaplaFinansGecikenler();
   if (gecikenler.length === 0) return showToast("Geciken öğrenci yok", "error");
   try {
@@ -36111,7 +36182,8 @@ window.raporIndirGecikenler = function() {
   } catch (e) { showToast("Hata: " + e.message, "error"); }
 };
 
-window.raporIndirOgrenciler = function() {
+window.raporIndirOgrenciler = async function() {
+  if (!(await xlsxHazirla())) return;
   try {
     const data = [];
     for (const o of ogrenciList) {
@@ -36934,17 +37006,43 @@ window.raporExcelOdemeDetay = async function() {
   showToast("✓ Excel indiriliyor...");
 };
 
-// SheetJS dinamik yükleyici
+// SheetJS dinamik yükleyici (yedek kaynaklı)
+let _sheetJsPromise = null;
 async function loadSheetJS() {
-  if (window.XLSX) return;
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("SheetJS yüklenemedi"));
-    document.head.appendChild(script);
-  });
+  if (window.XLSX && window.XLSX.utils) return;
+  if (_sheetJsPromise) return _sheetJsPromise;
+  const kaynaklar = [
+    "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
+    "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+  ];
+  _sheetJsPromise = (async () => {
+    for (const src of kaynaklar) {
+      try {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = src;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error("yüklenemedi: " + src));
+          document.head.appendChild(script);
+        });
+        if (window.XLSX && window.XLSX.utils) return;
+      } catch (e) { console.warn("[XLSX]", e.message); }
+    }
+    throw new Error("Excel kütüphanesi yüklenemedi");
+  })();
+  return _sheetJsPromise;
 }
+
+// Rapor fonksiyonları için ortak güvenlik kontrolü
+window.xlsxHazirla = async function() {
+  try {
+    await loadSheetJS();
+    return !!(window.XLSX && window.XLSX.utils);
+  } catch (e) {
+    if (typeof showToast === "function") showToast("Excel kütüphanesi yüklenemedi. İnternet bağlantınızı kontrol edin.", "error");
+    return false;
+  }
+};
 
 function updateStats() {
   // KPI kartları üst bardan kaldırıldı; elementler yoksa sessizce çık
