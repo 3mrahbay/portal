@@ -1576,6 +1576,16 @@ i[data-lucide] svg { display: block; }
 /* ===== YENİ ÖĞRENCİ FİLTRE ÇUBUĞU ===== */
 /* Öğretmen/branş rolünde yönetim aksiyonlarını gizle (görüntüleme serbest) */
 body.rol-ogretmen .yonetim-only { display: none !important; }
+/* Öğretmen: yemek/duyuru/etkinlik ekranlarında düzenleme araçları kapalı */
+body.rol-ogretmen .btn-save,
+body.rol-ogretmen .yemek-duzenle,
+body.rol-ogretmen [onclick*="Kaydet"],
+body.rol-ogretmen [onclick*="Sil"],
+body.rol-ogretmen [onclick*="openDuyuruModal"],
+body.rol-ogretmen [onclick*="openEtkinlikModal"] { display: none !important; }
+/* Kendi eklediği kayıtlarda düzenleme serbest */
+body.rol-ogretmen .kendi-kaydim [onclick*="Sil"],
+body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !important; }
 .toolbar-yeni {
   display: block;
   padding: 10px 12px;
@@ -11185,7 +11195,7 @@ body.rol-ogretmen .yonetim-only { display: none !important; }
               <div class="mesaj-liste-ara">
                 <input type="text" id="mesajListeAra" placeholder="🔍 Ara..." oninput="mesajThreadleriListele()">
               </div>
-              <div class="mesaj-kategori-filtre">
+              <div class="mesaj-kategori-filtre yonetim-only">
                 <button class="mkf-btn active" data-mkf="hepsi" onclick="mesajKategoriFiltrele('hepsi')">Tümü</button>
                 <button class="mkf-btn" data-mkf="veli" onclick="mesajKategoriFiltrele('veli')"><span class="mkf-nokta" style="background:#22C55E;"></span> Veli</button>
                 <button class="mkf-btn" data-mkf="ic" onclick="mesajKategoriFiltrele('ic')"><span class="mkf-nokta" style="background:#5A6ACF;"></span> <span id="mkfIcEtiket">İç Yazışma</span></button>
@@ -11831,10 +11841,10 @@ body.rol-ogretmen .yonetim-only { display: none !important; }
     <div id="modalContent">
 
       <div class="modal-tabs">
-        <button class="modal-tab active" data-modal-tab="ogrenci"><span class="modal-tab-icon">📋</span>Öğrenci</button>
-        <button class="modal-tab" data-modal-tab="veli"><span class="modal-tab-icon">👨‍👩‍👧</span>Veli</button>
-        <button class="modal-tab" data-modal-tab="kayit"><span class="modal-tab-icon">🏫</span>Kayıt</button>
-        <button class="modal-tab" data-modal-tab="aidat"><span class="modal-tab-icon">💰</span>Aidat</button>
+        <button class="modal-tab active yonetim-only" data-modal-tab="ogrenci"><span class="modal-tab-icon">📋</span>Öğrenci</button>
+        <button class="modal-tab yonetim-only" data-modal-tab="veli"><span class="modal-tab-icon">👨‍👩‍👧</span>Veli</button>
+        <button class="modal-tab yonetim-only" data-modal-tab="kayit"><span class="modal-tab-icon">🏫</span>Kayıt</button>
+        <button class="modal-tab yonetim-only" data-modal-tab="aidat"><span class="modal-tab-icon">💰</span>Aidat</button>
         <button class="modal-tab" data-modal-tab="gelisim"><span class="modal-tab-icon">🌱</span>Gelişim</button>
         <button class="modal-tab" data-modal-tab="sozlesme"><span class="modal-tab-icon"><i data-lucide="file" style="width:15px;height:15px;vertical-align:-2px;"></i></span>Sözleşme</button>
         <button class="modal-tab" data-modal-tab="cikti"><span class="modal-tab-icon"><i data-lucide="printer" style="width:14px;height:14px;vertical-align:-2px;"></i></span>Çıktı</button>
@@ -15045,8 +15055,10 @@ function mesajlasmaBaslat() {
   // Bu kullanıcının dahil olduğu thread'leri dinle
   // Yönetim (Müdür/K.Müdür/Admin) → CC gözetimci olduğu thread'ler dahil hepsini görür
   let q;
-  if (isAdmin || YONETIM_ROLLERI.includes(aktifKullaniciRol)) {
-    // Yönetim: hem katılımcı hem gözetimci olduğu thread'ler — basitlik için tümünü çek
+  // Tüm sohbetleri görme yetkisi YALNIZCA kurucu müdür ve müdürde.
+  // Koordinatör/muhasebe/öğretmen dahil herkes sadece kendi katıldığı sohbetleri görür.
+  const tumunuGorebilir = isAdmin || ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol);
+  if (tumunuGorebilir) {
     q = query(collection(db, "mesajlar"), orderBy("sonMesajTarihi", "desc"));
   } else {
     // Diğer personel: sadece katılımcı olduğu thread'ler
@@ -15106,7 +15118,13 @@ function mesajThreadleriListele() {
     return rol === "veli" ? "veli" : "ic";
   }
 
-  // Kategori filtresi (Tümü / Veli / İç Yazışma)
+  // ÖĞRETMEN KISITI: yalnızca veli sohbetleri görünür.
+  // Yönetim gözetim akışı ve personel arası yazışmalar öğretmene KAPALI.
+  if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
+    liste = liste.filter(t => threadKategori(t) === "veli");
+  }
+
+  // Kategori filtresi (Tümü / Veli / İç Yazışma) — sadece yönetim
   if (typeof mesajAktifKategori !== "undefined" && mesajAktifKategori !== "hepsi") {
     liste = liste.filter(t => {
       const kat = threadKategori(t);
@@ -34368,6 +34386,10 @@ window.profilimRender = async function() {
             }).join("")}
       `)}
 
+      ${kart("Veli Görüşmelerim", "calendar-clock", "#0891B2", `
+        <div id="profilRandevular"><div style="font-size:12.5px; color:#94A3B8;">Yükleniyor…</div></div>
+      `)}
+
       ${kart("Özlük Bilgilerim", "id-card", "#5A6ACF", `
         <div style="font-size:12.5px; color:#475569; line-height:2;">
           <div>E-posta: <strong style="color:#1E293B;">${esc(email)}</strong></div>
@@ -34384,7 +34406,57 @@ window.profilimRender = async function() {
     </div>`;
 
   if (typeof devamKartiCiz === "function") devamKartiCiz(gunlukKayitlar[bugun]);
+  if (typeof profilRandevulariYukle === "function") profilRandevulariYukle(email);
   if (window.lucideYenile) window.lucideYenile();
+};
+
+// Personelin kendisiyle yapılacak veli görüşmeleri
+window.profilRandevulariYukle = async function(email) {
+  const el = document.getElementById("profilRandevular");
+  if (!el) return;
+  try {
+    const snap = await getDocs(collection(db, "randevuSlotlari"));
+    const bugun = new Date().toISOString().substring(0, 10);
+    const liste = [];
+    snap.forEach(d => {
+      const v = d.data() || {};
+      // Bu personele ait / bu personelle yapılacak randevular
+      const hedef = (v.personelEmail || v.gorusulecekEmail || v.ogretmenEmail || "").toLowerCase();
+      const tarih = (v.tarih || "").substring(0, 10);
+      if (hedef && hedef !== email) return;
+      if (!hedef) return;                 // hedefi belli olmayanları gösterme
+      if (tarih && tarih < bugun) return; // geçmişi gösterme
+      liste.push({ id: d.id, ...v });
+    });
+    liste.sort((a, b) => String(a.tarih || "").localeCompare(String(b.tarih || "")));
+
+    const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+    const trh = (t) => t ? String(t).substring(0, 10).split("-").reverse().join(".") : "—";
+
+    if (!liste.length) {
+      el.innerHTML = `<div style="font-size:12.5px; color:#94A3B8;">Yaklaşan veli görüşmeniz yok.</div>`;
+      return;
+    }
+
+    el.innerHTML = liste.slice(0, 6).map(r => {
+      const dolu = (r.durum || "").toLowerCase() === "dolu" || !!r.veliEmail;
+      const s = dolu ? { a: "Randevulu", r: "#0891B2", b: "#ECFEFF" } : { a: "Müsait", r: "#64748B", b: "#F8FAFC" };
+      return `<div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #F1F2F7;">
+        <div style="min-width:52px; text-align:center;">
+          <div style="font-weight:800; font-size:13px; color:#0891B2;">${esc(r.saat || "—")}</div>
+          <div style="font-size:10.5px; color:#94A3B8;">${trh(r.tarih)}</div>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; font-weight:600; color:#334155;">${esc(r.veliAd || r.ogrenciAd || "Müsait slot")}</div>
+          ${r.veliNotu ? `<div style="font-size:11px; color:#94A3B8; font-style:italic;">"${esc(r.veliNotu)}"</div>` : ""}
+        </div>
+        <span style="font-size:10px; font-weight:800; color:${s.r}; background:${s.b}; padding:3px 9px; border-radius:100px;">${s.a}</span>
+      </div>`;
+    }).join("");
+    if (window.lucideYenile) window.lucideYenile();
+  } catch (e) {
+    el.innerHTML = `<div style="font-size:12.5px; color:#94A3B8;">Randevular yüklenemedi.</div>`;
+  }
 };
 
 // ── Devam kaydı kartı: giriş / mola / çıkış ──
@@ -34752,6 +34824,25 @@ window.hpMalzemeSil = async function(i) {
   hpPlan.malzemeler.splice(i, 1);
   await hpKaydet();
   haftalikPlanRender();
+};
+
+// Öğretmen rolü kontrolü (tek yerden)
+window.ogretmenRolMu = function() {
+  try {
+    if (isAdmin) return false;
+    return ["ogretmen", "brans_ogretmeni", "yardimci_ogretmen",
+            "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni"]
+      .includes(aktifKullaniciRol);
+  } catch (e) { return false; }
+};
+
+// Öğrenci kartı öğretmende açılınca doğrudan Gelişim sekmesi
+window.ogrenciModalRolAyari = function() {
+  if (!ogretmenRolMu()) return;
+  setTimeout(() => {
+    const gel = document.querySelector('[data-modal-tab="gelisim"]');
+    if (gel && !gel.classList.contains("active")) gel.click();
+  }, 120);
 };
 
 function hesaplaFinansGecikenler() {
@@ -39330,7 +39421,7 @@ window.openAyarModal = async function(ogrenciId) {
   if (typeof syncIndirimNedenCheckboxes === "function") syncIndirimNedenCheckboxes();
   recalcTotals();
   
-  document.getElementById("ayarModal").classList.add("active");
+  document.getElementById("ayarModal").classList.add("active"); if (typeof ogrenciModalRolAyari === "function") ogrenciModalRolAyari();
 };
 
 window.closeAyarModal = function() {
