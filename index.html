@@ -1574,6 +1574,8 @@ i[data-lucide] svg { display: block; }
 
 /* Search & Filter */
 /* ===== YENİ ÖĞRENCİ FİLTRE ÇUBUĞU ===== */
+/* Öğretmen/branş rolünde yönetim aksiyonlarını gizle (görüntüleme serbest) */
+body.rol-ogretmen .yonetim-only { display: none !important; }
 .toolbar-yeni {
   display: block;
   padding: 10px 12px;
@@ -9340,6 +9342,7 @@ i[data-lucide] svg { display: block; }
       </div>
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
+        <button class="side-item" data-modul="haftalikPlan" onclick="modulSec('haftalikPlan')"><span class="side-ikon"><i data-lucide="calendar-range"></i></span><span class="side-ad">Haftalık Plan</span></button>
         <button class="side-item" data-modul="devamsizlik" onclick="modulSec('devamsizlik')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">Devamsızlık</span></button>
         <button class="side-item" data-modul="galeri" onclick="modulSec('galeri')"><span class="side-ikon"><i data-lucide="image"></i></span><span class="side-ad">Galeri</span></button>
         <button class="side-item" data-modul="duyurular" onclick="modulSec('duyurular')"><span class="side-ikon"><i data-lucide="megaphone"></i></span><span class="side-ad">Duyurular</span></button>
@@ -9369,6 +9372,7 @@ i[data-lucide] svg { display: block; }
       <button class="tab" data-tab="duyurular" id="tab-duyurular-btn" style="display:none;"><i data-lucide="megaphone"></i> Duyurular</button>
       <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;"><i data-lucide="utensils"></i> Yemek Menüsü</button>
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
+      <button class="tab" data-tab="haftalikPlan" id="tab-haftalikPlan-btn" style="display:none;"><i data-lucide="calendar-range"></i> Haftalık Plan</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
       <button class="tab" data-tab="profilim" id="tab-profilim-btn" style="display:none;"><i data-lucide="user-circle"></i> Profilim</button>
       <button class="tab" data-tab="raporlar" id="tab-raporlar-btn" style="display:none;"><i data-lucide="bar-chart-3"></i> Raporlar</button>
@@ -10075,6 +10079,19 @@ i[data-lucide] svg { display: block; }
     </div>
 
     <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
+    <!-- ============ HAFTALIK PLAN (ZEKY haftalikPlanlar ile ortak) ============ -->
+    <div class="tab-panel" id="tab-haftalikPlan">
+      <div style="background:linear-gradient(135deg,#7CB97C 0%,#4A7C59 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
+          <i data-lucide="calendar-range" style="width:15px;height:15px;"></i> SINIF PLANI</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Haftalık Plan</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">Haftanın etkinliklerini ve malzeme listesini planlayın. ZEKY uygulamasıyla ortaktır.</p>
+      </div>
+      <div id="haftalikPlanIcerik">
+        <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+
     <!-- ============ PROFİLİM (her personelin kendi özlük ekranı) ============ -->
     <div class="tab-panel" id="tab-profilim">
       <div id="profilimIcerik">
@@ -11064,7 +11081,7 @@ i[data-lucide] svg { display: block; }
               <button class="btn-mini" data-etkinlik-filter="gecmis" onclick="etkinlikFilter('gecmis')">⏮ Geçmiş</button>
               <button class="btn-mini" data-etkinlik-filter="tumu" onclick="etkinlikFilter('tumu')"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
             </div>
-            <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
+            <button class="btn-primary yonetim-only" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
           </div>
 
           <!-- Liste -->
@@ -11230,7 +11247,7 @@ i[data-lucide] svg { display: block; }
               <button class="btn-mini" data-duyuru-filter="arsiv" onclick="duyuruFilter('arsiv')"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> Arşiv</button>
               <button class="btn-mini" data-duyuru-filter="tumu" onclick="duyuruFilter('tumu')"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
             </div>
-            <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
+            <button class="btn-primary yonetim-only" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
           </div>
 
           <!-- Liste -->
@@ -13879,10 +13896,12 @@ const SEKME_YETKILERI = {
   denetim:     ["kurucu_mudur", "mudur"],
   // İletişim & İşleyiş
   devamsizlik: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  haftalikPlan:["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
-  duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator"],
-  yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator"],
-  etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
+  duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   mesajlasma:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   gelisim:     ["kurucu_mudur", "mudur", "egitim_koordinator"],
   icerik:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"]
@@ -13975,6 +13994,13 @@ function sekmeyeErisim(tabAdi) {
 
 // Tüm sekmeleri role göre göster/gizle, aktif sekme gizliyse ilk görünüre geç
 function sekmeleriRoleGoreAyarla() {
+  // Öğretmen/branş rolünde yönetim aksiyonlarını gizlemek için body işareti
+  try {
+    const ogr = !isAdmin && ["ogretmen", "brans_ogretmeni", "yardimci_ogretmen",
+      "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni"].includes(aktifKullaniciRol);
+    document.body.classList.toggle("rol-ogretmen", !!ogr);
+  } catch (e) {}
+
   // Panel başlık etiketini role göre güncelle
   const etiket = document.getElementById("dashPanelEtiket");
   if (etiket) {
@@ -20317,6 +20343,7 @@ function ogretmenHomeHTML(ad) {
           <button class="ca-qbtn" onclick="modulSec('mesaj')"><span class="ca-qicon" style="background:var(--c-pink-soft);"><i data-lucide="message-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Veli Mesajı</span></button>
           <button class="ca-qbtn" onclick="modulSec('galeri')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Galeri Yükle</span></button>
           <button class="ca-qbtn" onclick="modulSec('egitim')"><span class="ca-qicon" style="background:var(--c-peach-soft);"><i data-lucide="book-open" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Eğitim Takip</span></button>
+          <button class="ca-qbtn" onclick="modulSec('haftalikPlan')"><span class="ca-qicon" style="background:var(--c-green-light); color:#fff;"><i data-lucide="calendar-range" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Haftalık Plan</span></button>
           <button class="ca-qbtn" onclick="modulSec('profilim')"><span class="ca-qicon" style="background:var(--c-tint);"><i data-lucide="user-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Profilim</span></button>
           <button class="ca-qbtn" onclick="izinTalepAc()"><span class="ca-qicon" style="background:var(--c-blue-soft);"><i data-lucide="calendar-x" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">İzin Talebi</span></button>
         </div>
@@ -28049,7 +28076,7 @@ async function renderDuyurular() {
         <div style="font-size:48px; margin-bottom:12px;"><i data-lucide="file-text" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
         <div style="font-family:var(--font-display); font-size:17px; color:var(--gray-700); margin-bottom:6px;">${aktifDuyuruFilter === "arsiv" ? "Arşivde duyuru yok" : "Henüz duyuru yok"}</div>
         <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">Velilerinize ilk duyurunuzu gönderin</div>
-        <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru Oluştur</button>
+        <button class="btn-primary yonetim-only" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru Oluştur</button>
       </div>
     `;
     return;
@@ -28616,7 +28643,7 @@ async function renderEtkinlikler() {
         <div style="font-size:48px; margin-bottom:12px;"><i data-lucide="calendar" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
         <div style="font-family:var(--font-display); font-size:17px; color:var(--gray-700); margin-bottom:6px;">${aktifEtkinlikFilter === "gecmis" ? "Geçmiş etkinlik yok" : "Etkinlik bulunamadı"}</div>
         <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">İlk etkinliğinizi oluşturun</div>
-        <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
+        <button class="btn-primary yonetim-only" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
       </div>
     `;
     return;
@@ -34257,6 +34284,9 @@ window.profilimRender = async function() {
       </div>
     </div>
 
+    <!-- Devam kaydı (giriş / mola / çıkış) — ZEKY QR ile ortak puantaj koleksiyonu -->
+    <div id="devamKartAlan" style="margin-bottom:16px;"></div>
+
     <!-- Hızlı işlemler -->
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px;">
       <button class="btn-mini" onclick="izinTalepAc()" style="padding:13px; background:#EFF6FF; color:#1D4ED8; border-color:#BFDBFE; font-weight:700;">
@@ -34353,7 +34383,93 @@ window.profilimRender = async function() {
 
     </div>`;
 
+  if (typeof devamKartiCiz === "function") devamKartiCiz(gunlukKayitlar[bugun]);
   if (window.lucideYenile) window.lucideYenile();
+};
+
+// ── Devam kaydı kartı: giriş / mola / çıkış ──
+window.devamKartiCiz = function(bugunVeri) {
+  const el = document.getElementById("devamKartAlan");
+  if (!el) return;
+  const h = (bugunVeri && bugunVeri.kayitlar) || [];
+
+  // Son duruma göre hangi butonlar aktif
+  let durum = "disarida";
+  let sonGiris = null, molaBaslangic = null;
+  h.forEach(x => {
+    if (x.tip === "giris") { durum = "iceride"; sonGiris = x.zaman; }
+    else if (x.tip === "cikis") { durum = "disarida"; }
+    else if (x.tip === "mola-basla") { durum = "molada"; molaBaslangic = x.zaman; }
+    else if (x.tip === "mola-bitir") { durum = "iceride"; molaBaslangic = null; }
+  });
+
+  const STIL = {
+    iceride:  { ad: "Çalışıyorsunuz", renk: "#059669", bg: "#ECFDF5", ikon: "user-check" },
+    molada:   { ad: "Moladasınız",    renk: "#D97706", bg: "#FFFBEB", ikon: "coffee" },
+    disarida: { ad: "Dışarıdasınız",  renk: "#64748B", bg: "#F8FAFC", ikon: "log-out" }
+  };
+  const s = STIL[durum];
+  const saat = (z) => z ? new Date(z).toTimeString().slice(0, 5) : "—";
+  const molaDk = molaBaslangic ? Math.round((Date.now() - new Date(molaBaslangic)) / 60000) : 0;
+
+  const btn = (tip, metin, ikon, renk, aktif) =>
+    `<button class="btn-mini" ${aktif ? `onclick="devamKaydet('${tip}')"` : "disabled"}
+      style="flex:1; min-width:110px; padding:12px; font-weight:700; ${aktif
+        ? `background:${renk}1a; color:${renk}; border-color:${renk}55;`
+        : "opacity:.4; cursor:not-allowed;"}">
+      <i data-lucide="${ikon}" style="width:15px;height:15px;vertical-align:-3px;"></i> ${metin}</button>`;
+
+  el.innerHTML = `
+    <div style="background:${s.bg}; border:1px solid ${s.renk}33; border-radius:14px; padding:15px 17px;">
+      <div style="display:flex; align-items:center; gap:9px; margin-bottom:11px; flex-wrap:wrap;">
+        <i data-lucide="${s.ikon}" style="width:17px;height:17px;color:${s.renk};"></i>
+        <strong style="font-size:14px; color:${s.renk};">${s.ad}</strong>
+        ${durum === "iceride" && sonGiris ? `<span style="font-size:12px; color:#64748B;">· ${saat(sonGiris)}'ten beri</span>` : ""}
+        ${durum === "molada" ? `<span style="font-size:12px; color:#B45309; font-weight:700;">· ${molaDk} dk</span>` : ""}
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        ${btn("giris", "Giriş Yap", "log-in", "#059669", durum === "disarida")}
+        ${btn("mola-basla", "Molaya Çık", "coffee", "#D97706", durum === "iceride")}
+        ${btn("mola-bitir", "Moladan Dön", "play", "#1D4ED8", durum === "molada")}
+        ${btn("cikis", "Çıkış Yap", "log-out", "#DC2626", durum === "iceride")}
+      </div>
+      <div style="font-size:11px; color:#94A3B8; margin-top:9px;">
+        Kayıtlarınız ZEKY uygulamasıyla ortaktır; QR ile okuttuğunuz hareketler de burada görünür.
+      </div>
+    </div>`;
+  if (window.lucideYenile) window.lucideYenile();
+};
+
+// Devam hareketi kaydet (ZEKY puantajYaz ile aynı şema)
+window.devamKaydet = async function(tip) {
+  const email = (currentUser?.email || "").toLowerCase();
+  if (!email) return;
+  const etiket = { giris: "Giriş", cikis: "Çıkış", "mola-basla": "Mola başlangıcı", "mola-bitir": "Mola bitişi" }[tip] || tip;
+  try {
+    const simdi = new Date();
+    await addDoc(collection(db, "puantaj"), {
+      personelEmail: email,
+      personelAd: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser?.displayName || email,
+      tip,
+      zaman: simdi.toISOString(),
+      tarih: simdi.toISOString().slice(0, 10),
+      yontem: "portal",
+      onayli: true
+    });
+    // Anlık durum (personelDurum) — özet ekranları buradan okur
+    const yeniDurum = tip === "giris" ? "iceride"
+                    : tip === "cikis" ? "disarida"
+                    : tip === "mola-basla" ? "molada" : "iceride";
+    await setDoc(doc(db, "personelDurum", email), {
+      durum: yeniDurum, sonZaman: simdi.toISOString(), sonTip: tip
+    }, { merge: true });
+
+    showToast(`✓ ${etiket} kaydedildi · ${simdi.toTimeString().slice(0, 5)}`);
+    if (typeof profilimRender === "function") profilimRender();
+  } catch (e) {
+    console.error("devam kaydı:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
 };
 
 // İzin talebi modalı (basit prompt akışı — ZEKY izinTalepleri ile ortak)
@@ -34392,6 +34508,250 @@ window.izinTalepAc = async function() {
     console.error("izin talebi:", e);
     showToast("Gönderilemedi: " + e.message, "error");
   }
+};
+
+// İlk Adımlar (oryantasyon): öğretmen sadece okur, düzenleyemez
+window.oryantasyonSaltOkunurAyarla = function() {
+  try {
+    const ogr = !isAdmin && ["ogretmen", "brans_ogretmeni", "yardimci_ogretmen",
+      "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni"].includes(aktifKullaniciRol);
+    if (!ogr) return;
+    const panel = document.getElementById("tab-oryantasyon");
+    if (!panel) return;
+    panel.querySelectorAll("input, textarea, select").forEach(el => {
+      el.disabled = true;
+      el.style.background = "#F8FAFC";
+      el.style.cursor = "default";
+    });
+    panel.querySelectorAll("button").forEach(b => {
+      const t = (b.textContent || "").toLowerCase();
+      if (t.includes("kaydet") || t.includes("ekle") || t.includes("sil") || t.includes("düzenle")) {
+        b.style.display = "none";
+      }
+    });
+    // Bilgi şeridi
+    if (!document.getElementById("oryOkunurNot")) {
+      const not = document.createElement("div");
+      not.id = "oryOkunurNot";
+      not.style.cssText = "background:#EFF6FF; border:1px solid #BFDBFE; border-radius:12px; padding:11px 14px; font-size:12.5px; color:#1D4ED8; margin-bottom:14px;";
+      not.innerHTML = '<i data-lucide="info" style="width:14px;height:14px;vertical-align:-2px;"></i> Bu program yönetim tarafından hazırlanır. Görüntüleme amaçlıdır.';
+      panel.prepend(not);
+      if (window.lucideYenile) window.lucideYenile();
+    }
+  } catch (e) { console.warn("oryantasyon salt okunur:", e); }
+};
+
+// ═══════════ HAFTALIK PLAN (ZEKY haftalikPlanlar ile ortak) ═══════════
+let hpSinif = "", hpHafta = "", hpPlan = { gunler: {}, malzemeler: [] }, hpAktifGun = 0;
+
+const HP_GUN_KISA = ["Pzt", "Sal", "Çar", "Per", "Cum"];
+const HP_GUN_UZUN = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma"];
+const HP_PROGRAMLAR = {
+  montessori: { ad: "Montessori", emoji: "🌿", renk: "#4A7C59" },
+  orman:      { ad: "Orman Okulu", emoji: "🌳", renk: "#E67E22" },
+  degerler:   { ad: "Değerler",   emoji: "💎", renk: "#C44569" },
+  ingilizce:  { ad: "İngilizce",  emoji: "🇬🇧", renk: "#2E5C8A" },
+  diger:      { ad: "Genel",      emoji: "📘", renk: "#64748B" }
+};
+
+function hpHaftaKodu(d = new Date()) {
+  const t = new Date(d);
+  const gun = t.getDay() || 7;
+  t.setDate(t.getDate() - gun + 1);
+  return t.toISOString().substring(0, 10);
+}
+function hpBelgeId(sinif, hafta) {
+  return (sinif + "__" + hafta).replace(/[^\wçğıöşüÇĞİÖŞÜ.\-_]/g, "_");
+}
+
+window.haftalikPlanRender = async function() {
+  const el = document.getElementById("haftalikPlanIcerik");
+  if (!el) return;
+
+  // Sınıf listesi: öğretmen kendi sınıfı, yönetim hepsi
+  let siniflar = [];
+  try {
+    const email = (currentUser?.email || "").toLowerCase();
+    const snap = await getDoc(doc(db, "personeller", email));
+    const p = snap.exists() ? snap.data() : {};
+    const kendi = p.sinifAtamalari || p.siniflar || [];
+    const yonetimMi = isAdmin || (typeof YONETIM_ROLLERI !== "undefined" && YONETIM_ROLLERI.includes(aktifKullaniciRol)) || aktifKullaniciRol === "egitim_koordinator";
+    if (yonetimMi) {
+      const ss = await getDocs(collection(db, "siniflar"));
+      ss.forEach(d => { const v = d.data(); if (v.ad && v.durum !== "pasif") siniflar.push(v.ad); });
+      if (!siniflar.length) siniflar = kendi;
+    } else {
+      siniflar = kendi;
+    }
+  } catch (e) { console.warn("sınıf:", e.code); }
+
+  if (!siniflar.length) {
+    el.innerHTML = `<div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:14px; padding:22px; text-align:center; color:#92400E; font-size:13.5px;">
+      Size sınıf atanmamış. Plan oluşturmak için yönetimden sınıf ataması gerekiyor.</div>`;
+    return;
+  }
+  if (!hpSinif || !siniflar.includes(hpSinif)) hpSinif = siniflar[0];
+  if (!hpHafta) hpHafta = hpHaftaKodu();
+
+  // Planı yükle
+  try {
+    const snap = await getDoc(doc(db, "haftalikPlanlar", hpBelgeId(hpSinif, hpHafta)));
+    hpPlan = snap.exists() ? snap.data() : { sinif: hpSinif, hafta: hpHafta, gunler: {}, malzemeler: [] };
+  } catch (e) { hpPlan = { gunler: {}, malzemeler: [] }; }
+  if (!hpPlan.gunler) hpPlan.gunler = {};
+  if (!hpPlan.malzemeler) hpPlan.malzemeler = [];
+
+  const pzt = new Date(hpHafta);
+  const cum = new Date(pzt); cum.setDate(pzt.getDate() + 4);
+  const AY = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+  const aralik = `${pzt.getDate()} – ${cum.getDate()} ${AY[cum.getMonth()]} ${cum.getFullYear()}`;
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+
+  const etkinlikler = hpPlan.gunler[hpAktifGun] || [];
+
+  el.innerHTML = `
+    <!-- Sınıf + hafta seçici -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+      ${siniflar.length > 1 ? `
+        <select onchange="hpSinifDegis(this.value)" style="padding:9px 13px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13px; font-weight:600;">
+          ${siniflar.map(s => `<option ${s === hpSinif ? "selected" : ""}>${esc(s)}</option>`).join("")}
+        </select>` : `<strong style="font-size:14px; color:#2D5E3E;">${esc(hpSinif)}</strong>`}
+      <div style="display:flex; align-items:center; gap:8px; margin-left:auto; background:#fff; border:1px solid #E2E8F0; border-radius:10px; padding:5px 8px;">
+        <button class="btn-mini" onclick="hpHaftaDegis(-1)" style="padding:4px 9px;">‹</button>
+        <span style="font-size:12.5px; font-weight:700; color:#334155; white-space:nowrap;">${aralik}</span>
+        <button class="btn-mini" onclick="hpHaftaDegis(1)" style="padding:4px 9px;">›</button>
+      </div>
+    </div>
+
+    <!-- Gün sekmeleri -->
+    <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:16px;">
+      ${HP_GUN_KISA.map((g, i) => {
+        const sayi = (hpPlan.gunler[i] || []).length;
+        const aktif = i === hpAktifGun;
+        return `<button class="btn-mini" onclick="hpGunSec(${i})"
+          style="padding:11px 4px; ${aktif ? "background:#2D5E3E; color:#fff; border-color:#2D5E3E;" : ""} font-weight:700;">
+          ${g}${sayi ? `<span style="display:block; font-size:10px; opacity:.75; margin-top:2px;">${sayi} etkinlik</span>` : ""}
+        </button>`;
+      }).join("")}
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px;">
+      <!-- Etkinlikler -->
+      <div style="background:#fff; border:1px solid #E9EBF4; border-radius:14px; padding:15px 17px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <strong style="font-size:13.5px; color:#1E293B;">${HP_GUN_UZUN[hpAktifGun]} · Etkinlikler</strong>
+          <button class="btn-mini yonetim-plan" onclick="hpEtkinlikEkle()" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700;">+ Ekle</button>
+        </div>
+        ${etkinlikler.length === 0
+          ? `<div style="font-size:12.5px; color:#94A3B8; padding:14px 0;">Bu gün için etkinlik yok.</div>`
+          : etkinlikler.map((e, i) => {
+              const pr = HP_PROGRAMLAR[e.program] || HP_PROGRAMLAR.diger;
+              return `<div style="display:flex; align-items:center; gap:11px; padding:10px 0; border-bottom:1px solid #F1F2F7; border-left:3px solid ${pr.renk}; padding-left:11px; margin-bottom:2px;">
+                <span style="font-size:20px;">${pr.emoji}</span>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:11px; font-weight:800; color:${pr.renk};">${pr.ad}</div>
+                  <div style="font-size:13.5px; font-weight:700; color:#1E293B;">${esc(e.ad)}</div>
+                  ${e.sure ? `<div style="font-size:11.5px; color:#94A3B8;">${esc(e.sure)}</div>` : ""}
+                </div>
+                <button class="btn-mini yonetim-plan" onclick="hpEtkinlikSil(${i})" style="background:#FEF2F2; color:#991B1B; border-color:#FCA5A5; padding:5px 9px;">×</button>
+              </div>`;
+            }).join("")}
+      </div>
+
+      <!-- Malzemeler -->
+      <div style="background:#fff; border:1px solid #E9EBF4; border-radius:14px; padding:15px 17px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <strong style="font-size:13.5px; color:#1E293B;">Malzeme Listesi</strong>
+          <button class="btn-mini yonetim-plan" onclick="hpMalzemeEkle()" style="background:#EFF6FF; color:#1D4ED8; border-color:#BFDBFE; font-weight:700;">+ Ekle</button>
+        </div>
+        ${hpPlan.malzemeler.length === 0
+          ? `<div style="font-size:12.5px; color:#94A3B8; padding:14px 0;">Malzeme eklenmemiş.</div>`
+          : hpPlan.malzemeler.map((m, i) => `
+            <div style="display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid #F1F2F7;">
+              <button onclick="hpMalzemeToggle(${i})" style="width:26px; height:26px; border-radius:8px; border:${m.durum === "tamam" ? "none" : "1.5px dashed #CBD5E1"}; background:${m.durum === "tamam" ? "#DCFCE7" : "transparent"}; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#166534; font-weight:800;">
+                ${m.durum === "tamam" ? "✓" : ""}
+              </button>
+              <span style="flex:1; font-size:13.5px; font-weight:600; color:${m.durum === "tamam" ? "#94A3B8" : "#1E293B"}; ${m.durum === "tamam" ? "text-decoration:line-through;" : ""}">${esc(m.ad)}</span>
+              <span style="font-size:11.5px; font-weight:700; color:${m.durum === "tamam" ? "#166534" : "#94A3B8"};">${m.durum === "tamam" ? "Tedarik edildi" : "Eksik"}</span>
+              <button class="btn-mini yonetim-plan" onclick="hpMalzemeSil(${i})" style="background:#FEF2F2; color:#991B1B; border-color:#FCA5A5; padding:4px 8px;">×</button>
+            </div>`).join("")}
+      </div>
+    </div>
+
+    <div style="margin-top:14px; padding:11px 14px; background:#F8FAFC; border-radius:12px; font-size:11.5px; color:#64748B;">
+      <i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i>
+      Bu plan ZEKY uygulamasındaki "Haftalık Plan" ekranıyla ortaktır; iki taraftan da düzenlenebilir.
+    </div>`;
+
+  if (window.lucideYenile) window.lucideYenile();
+};
+
+window.hpSinifDegis = function(s) { hpSinif = s; haftalikPlanRender(); };
+window.hpGunSec = function(i) { hpAktifGun = i; haftalikPlanRender(); };
+window.hpHaftaDegis = function(yon) {
+  const d = new Date(hpHafta);
+  d.setDate(d.getDate() + yon * 7);
+  hpHafta = hpHaftaKodu(d);
+  haftalikPlanRender();
+};
+
+async function hpKaydet() {
+  try {
+    await setDoc(doc(db, "haftalikPlanlar", hpBelgeId(hpSinif, hpHafta)), {
+      sinif: hpSinif, hafta: hpHafta,
+      gunler: hpPlan.gunler || {},
+      malzemeler: hpPlan.malzemeler || [],
+      guncelleyen: (currentUser?.email || "").toLowerCase(),
+      guncellendi: new Date().toISOString()
+    }, { merge: true });
+  } catch (e) {
+    console.error("plan kaydet:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+}
+
+window.hpEtkinlikEkle = async function() {
+  const ad = prompt("Etkinlik adı:");
+  if (!ad || !ad.trim()) return;
+  const prog = (prompt("Program:\nmontessori / orman / degerler / ingilizce / diger", "montessori") || "diger").trim().toLowerCase();
+  const sure = prompt("Süre / yer (örn. 30 dk · halka):", "") || "";
+  if (!hpPlan.gunler[hpAktifGun]) hpPlan.gunler[hpAktifGun] = [];
+  hpPlan.gunler[hpAktifGun].push({
+    program: HP_PROGRAMLAR[prog] ? prog : "diger",
+    ad: ad.trim(), sure: sure.trim()
+  });
+  await hpKaydet();
+  showToast("✓ Etkinlik eklendi");
+  haftalikPlanRender();
+};
+
+window.hpEtkinlikSil = async function(i) {
+  if (!hpPlan.gunler[hpAktifGun]) return;
+  hpPlan.gunler[hpAktifGun].splice(i, 1);
+  await hpKaydet();
+  haftalikPlanRender();
+};
+
+window.hpMalzemeEkle = async function() {
+  const ad = prompt("Malzeme adı:");
+  if (!ad || !ad.trim()) return;
+  hpPlan.malzemeler.push({ ad: ad.trim(), durum: "eksik" });
+  await hpKaydet();
+  haftalikPlanRender();
+};
+
+window.hpMalzemeToggle = async function(i) {
+  const m = hpPlan.malzemeler[i];
+  if (!m) return;
+  m.durum = m.durum === "tamam" ? "eksik" : "tamam";
+  await hpKaydet();
+  haftalikPlanRender();
+};
+
+window.hpMalzemeSil = async function(i) {
+  hpPlan.malzemeler.splice(i, 1);
+  await hpKaydet();
+  haftalikPlanRender();
 };
 
 function hesaplaFinansGecikenler() {
@@ -38367,6 +38727,7 @@ const MODUL_HARITASI = {
   egitim:      { tablar: ["egitim"],     varsayilan: "egitim", ad: "Eğitim" },
   muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
   devamsizlik: { tablar: ["devamsizlik"], varsayilan: "devamsizlik", ad: "Devamsızlık" },
+  haftalikPlan:{ tablar: ["haftalikPlan"], varsayilan: "haftalikPlan", ad: "Haftalık Plan" },
   galeri:      { tablar: ["galeri"],     varsayilan: "galeri", ad: "Galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
@@ -38542,6 +38903,16 @@ document.querySelectorAll(".tab").forEach(tab => {
     }
 
     // İçerik Yönetimi sekmesine geçildiyse aktif alt sekmeyi göster
+    // İlk Adımlar açıldı → öğretmen için salt okunur
+    if (tab.dataset.tab === "oryantasyon") {
+      setTimeout(() => { if (typeof oryantasyonSaltOkunurAyarla === "function") oryantasyonSaltOkunurAyarla(); }, 260);
+    }
+
+    // Haftalık Plan sekmesi açıldı
+    if (tab.dataset.tab === "haftalikPlan") {
+      setTimeout(() => { if (typeof haftalikPlanRender === "function") haftalikPlanRender(); }, 50);
+    }
+
     // Profilim sekmesi açıldı
     if (tab.dataset.tab === "profilim") {
       setTimeout(() => { if (typeof profilimRender === "function") profilimRender(); }, 50);
