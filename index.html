@@ -26194,6 +26194,7 @@ async function ozlukDurumCiz() {
       else if (x.tip === "mola-bitir" && acikMola) { molaMs += t - acikMola; acikMola = null; }
     });
     // Devam edenler
+    // Bugünün açık girişi canlı sayılır; geçmiş günün açık kaydı sayılmaz
     if (acikGiris) calismaMs += simdi - acikGiris;
     if (acikMola) molaMs += simdi - acikMola;
     const netCalisma = Math.max(0, calismaMs - molaMs);
@@ -26484,7 +26485,7 @@ async function ozlukPuantajCiz() {
   } catch (e) { console.warn("izinTalepleri", e); }
 
   // Gün bazlı net süre hesabı (mola düşülür)
-  const gunNetDakika = (hareketler) => {
+  const gunNetDakika = (hareketler, gunTarihi) => {
     const h = [...hareketler].sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
     let calisma = 0, mola = 0, aGiris = null, aMola = null;
     h.forEach(x => {
@@ -26494,7 +26495,12 @@ async function ozlukPuantajCiz() {
       else if (x.tip === "mola-basla") aMola = t;
       else if (x.tip === "mola-bitir" && aMola) { mola += t - aMola; aMola = null; }
     });
-    return { net: Math.max(0, (calisma - mola) / 60000), mola: mola / 60000 };
+    // Açık kalan kayıt sadece BUGÜN canlı sayılır; geçmiş günde eksik çıkış demektir
+    const buGunMu = (gunTarihi === new Date().toISOString().slice(0, 10));
+    let eksik = false;
+    if (aGiris) { if (buGunMu) calisma += Date.now() - aGiris; else eksik = true; }
+    if (aMola)  { if (buGunMu) mola += Date.now() - aMola;     else eksik = true; }
+    return { net: Math.max(0, (calisma - mola) / 60000), mola: mola / 60000, eksikCikis: eksik };
   };
 
   // Personel × gün
@@ -26524,7 +26530,7 @@ async function ozlukPuantajCiz() {
     const gunler = (ozet[e] && ozet[e].gunler) || {};
     let ayNet = 0, ayMola = 0, haftaNet = 0, gunNet = 0, calisilanGun = 0;
     Object.keys(gunler).forEach(g => {
-      const r = gunNetDakika(gunler[g]);
+      const r = gunNetDakika(gunler[g], g);
       if (r.net > 0) calisilanGun++;
       ayNet += r.net; ayMola += r.mola;
       if (g >= haftaBasStr) haftaNet += r.net;
@@ -34401,10 +34407,20 @@ window.profilimRender = async function() {
         else if (x.tip === "mola-basla") aMola = z;
         else if (x.tip === "mola-bitir" && aMola) { mola += z - aMola; aMola = null; }
       });
-      if (aGiris) calisma += Date.now() - aGiris;
-      if (aMola) mola += Date.now() - aMola;
+      // Açık kalan giriş yalnızca BUGÜN için "şu ana kadar" sayılır.
+      // Geçmiş günde çıkış unutulmuşsa süre şişmesin: o gün eksik işaretlenir.
+      const _buGunMu = (t === new Date().toISOString().slice(0, 10));
+      let _eksikCikis = false;
+      if (aGiris) {
+        if (_buGunMu) calisma += Date.now() - aGiris;
+        else _eksikCikis = true;
+      }
+      if (aMola) {
+        if (_buGunMu) mola += Date.now() - aMola;
+        else _eksikCikis = true;
+      }
       const net = Math.max(0, (calisma - mola) / 60000);
-      gunlukKayitlar[t] = { netDk: net, molaDk: mola / 60000, kayitlar: h };
+      gunlukKayitlar[t] = { netDk: net, molaDk: mola / 60000, kayitlar: h, eksikCikis: _eksikCikis };
       if (net > 0) ayGun++;
       ayDk += net; ayMolaDk += mola / 60000;
       if (t === bugun) bugunDk = net;
@@ -34506,10 +34522,15 @@ window.profilimRender = async function() {
                   <div style="font-size:10px; color:#94A3B8;">${["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][new Date(t).getDay()]}</div>
                 </div>
                 <div style="flex:1; min-width:0;">
-                  <div style="font-size:12.5px; color:#334155;">${st(ilk?.zaman) || "—"} → ${st(son?.zaman) || "devam ediyor"}</div>
+                  <div style="font-size:12.5px; color:#334155;">
+                    ${st(ilk?.zaman) || "—"} → ${son ? st(son.zaman) : (g.eksikCikis ? `<span style="color:#DC2626; font-weight:700;">çıkış yapılmadı</span>` : "devam ediyor")}
+                  </div>
                   <div style="font-size:11px; color:#94A3B8;">${g.molaDk > 0 ? "Mola " + sure(g.molaDk) : "Mola yok"}</div>
                 </div>
-                <div style="font-weight:800; font-size:13px; color:#059669;">${sure(g.netDk)}</div>
+                <div style="text-align:right;">
+                  <div style="font-weight:800; font-size:13px; color:${g.eksikCikis ? "#DC2626" : "#059669"};">${g.eksikCikis ? "eksik" : sure(g.netDk)}</div>
+                  ${g.eksikCikis ? `<div style="font-size:10px; color:#DC2626;">yönetime bildirin</div>` : ""}
+                </div>
               </div>`;
             }).join("")}
       `)}
@@ -34689,6 +34710,48 @@ window.devamKaydet = async function(tip) {
   const etiket = { giris: "Giriş", cikis: "Çıkış", "mola-basla": "Mola başlangıcı", "mola-bitir": "Mola bitişi" }[tip] || tip;
   try {
     const simdi = new Date();
+    const buGun = simdi.toISOString().slice(0, 10);
+
+    // ═══ TUTARLILIK KONTROLÜ ═══
+    // Butonlar gizlense de (eski sekme, çift tık, ZEKY'den gelen kayıt) çelişkili
+    // hareket yazılabiliyordu. Kayıttan önce bugünün gerçek durumunu Firestore'dan
+    // okuyup mantıksız hareketi reddediyoruz.
+    let bugunkuDurum = "disarida";
+    let acikGirisVar = false;
+    try {
+      const qs = await getDocs(query(collection(db, "puantaj"),
+        where("personelEmail", "==", email), where("tarih", "==", buGun)));
+      const hareketler = [];
+      qs.forEach(d => hareketler.push(d.data()));
+      hareketler.sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
+      hareketler.forEach(x => {
+        if (x.tip === "giris") { bugunkuDurum = "iceride"; acikGirisVar = true; }
+        else if (x.tip === "cikis") { bugunkuDurum = "disarida"; acikGirisVar = false; }
+        else if (x.tip === "mola-basla") bugunkuDurum = "molada";
+        else if (x.tip === "mola-bitir") bugunkuDurum = "iceride";
+      });
+    } catch (e) { console.warn("durum kontrolü:", e.code || e.message); }
+
+    const hata = (m) => { showToast(m, "error"); if (typeof profilimRender === "function") profilimRender(); };
+
+    if (tip === "giris" && bugunkuDurum !== "disarida") {
+      hata(bugunkuDurum === "molada"
+        ? "Zaten giriş yapmışsınız, şu an moladasınız. Önce moladan dönün."
+        : "Bugün zaten giriş yapmışsınız. Yeni giriş için önce çıkış yapmalısınız.");
+      return;
+    }
+    if (tip === "cikis" && !acikGirisVar) {
+      hata("Açık bir giriş kaydınız yok. Önce giriş yapmalısınız.");
+      return;
+    }
+    if (tip === "mola-basla" && bugunkuDurum !== "iceride") {
+      hata(bugunkuDurum === "molada" ? "Zaten moladasınız." : "Molaya çıkmak için önce giriş yapmalısınız.");
+      return;
+    }
+    if (tip === "mola-bitir" && bugunkuDurum !== "molada") {
+      hata("Molada görünmüyorsunuz.");
+      return;
+    }
     await addDoc(collection(db, "puantaj"), {
       personelEmail: email,
       personelAd: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser?.displayName || email,
