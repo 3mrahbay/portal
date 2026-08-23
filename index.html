@@ -9516,6 +9516,7 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
         <button class="ozluk-tab" data-o="qrlog"  onclick="ozlukSekme('qrlog')"  style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Giriş-Çıkış Kaydı</button>
         <button class="ozluk-tab" data-o="izin"   onclick="ozlukSekme('izin')"   style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">İzin Talepleri</button>
         <button class="ozluk-tab" data-o="puantaj" onclick="ozlukSekme('puantaj')" style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Aylık Puantaj</button>
+        <button class="ozluk-tab" data-o="duzeltme" onclick="ozlukSekme('duzeltme')" style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Düzeltmeler <span id="ozlukDuzeltmeRozet" style="display:none; background:#DC2626; color:#fff; padding:1px 7px; border-radius:9px; font-size:10px; margin-left:4px;">0</span></button>
         <button class="ozluk-tab" data-o="bordro" onclick="ozlukSekme('bordro')" style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Bordro</button>
         <button class="ozluk-tab" data-o="ozluk"  onclick="ozlukSekme('ozluk')"  style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Özlük Bilgileri</button>
       </div>
@@ -26109,6 +26110,7 @@ window.ozlukYukle = async function() {
     else if (ozlukAktifSekme === "qrlog")   await ozlukQrLogCiz();
     else if (ozlukAktifSekme === "izin")    await ozlukIzinCiz();
     else if (ozlukAktifSekme === "puantaj") await ozlukPuantajCiz();
+    else if (ozlukAktifSekme === "duzeltme") await ozlukDuzeltmeCiz();
     else if (ozlukAktifSekme === "bordro")  await ozlukBordroCiz();
     else if (ozlukAktifSekme === "ozluk")   await ozlukBilgiCiz();
   } catch (e) {
@@ -26452,6 +26454,239 @@ window.ozlukIzinKarar = async function(id, karar) {
 };
 
 // ── 4) AYLIK PUANTAJ ───────────────────────────────────────────────
+// ═══════════ PUANTAJ DÜZELTMELERİ (yönetim) ═══════════
+// Eksik çıkışlı günleri tespit eder, düzeltme yapılmasını sağlar ve
+// her düzeltmeyi puantajDuzeltmeleri koleksiyonuna iz olarak yazar.
+let ozlukDuzeltmeAy = null;
+
+async function ozlukDuzeltmeCiz() {
+  const kap = document.getElementById("ozlukIcerik");
+  if (!kap) return;
+  const ay = ozlukDuzeltmeAy || ozlukBuAy();
+  ozlukDuzeltmeAy = ay;
+
+  const yonetimMi = isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(aktifKullaniciRol);
+  if (!yonetimMi) {
+    kap.innerHTML = `<div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:14px; padding:22px; text-align:center; color:#92400E; font-size:13.5px;">
+      Puantaj düzeltmeleri yalnızca yönetim tarafından yapılabilir.</div>`;
+    document.getElementById("ozlukAraclar").innerHTML = "";
+    return;
+  }
+
+  document.getElementById("ozlukAraclar").innerHTML = `
+    <label style="font-size:12.5px; font-weight:600; color:#64748B;">Ay:</label>
+    <input type="month" value="${ay}" onchange="ozlukDuzeltmeAyDegis(this.value)"
+      style="padding:8px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:9px; font-family:inherit; font-size:13px;">
+    <button class="btn-mini" onclick="ozlukDuzeltmeCiz()" style="margin-left:6px;">
+      <i data-lucide="refresh-cw" style="width:13px;height:13px;vertical-align:-2px;"></i> Yenile</button>`;
+
+  kap.innerHTML = `<div class="loading"><div class="spinner"></div><p>Kayıtlar taranıyor...</p></div>`;
+
+  // Ayın tüm puantaj kayıtları
+  const kayitlar = [];
+  try {
+    const snap = await getDocs(collection(db, "puantaj"));
+    snap.forEach(d => { const v = d.data(); if ((v.tarih || "").startsWith(ay)) kayitlar.push({ id: d.id, ...v }); });
+  } catch (e) { console.warn("puantaj:", e.code); }
+
+  // Yapılmış düzeltmeler
+  const duzeltmeler = [];
+  try {
+    const snap = await getDocs(collection(db, "puantajDuzeltmeleri"));
+    snap.forEach(d => { const v = d.data(); if ((v.tarih || "").startsWith(ay)) duzeltmeler.push({ id: d.id, ...v }); });
+    duzeltmeler.sort((a, b) => String(b.olusturuldu || "").localeCompare(String(a.olusturuldu || "")));
+  } catch (e) { console.warn("düzeltmeler:", e.code); }
+
+  // Personel × gün gruplama, sorunlu günleri bul
+  const gruplar = {};
+  kayitlar.forEach(k => {
+    const anahtar = (k.personelEmail || "") + "|" + (k.tarih || "");
+    (gruplar[anahtar] = gruplar[anahtar] || []).push(k);
+  });
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  const sorunlar = [];
+  Object.keys(gruplar).forEach(anahtar => {
+    const [email, tarih] = anahtar.split("|");
+    if (tarih === bugun) return; // bugün henüz devam ediyor olabilir
+    const h = gruplar[anahtar].sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
+    let aGiris = null, aMola = null, girisSayisi = 0;
+    h.forEach(x => {
+      if (x.tip === "giris") { aGiris = x; girisSayisi++; }
+      else if (x.tip === "cikis") aGiris = null;
+      else if (x.tip === "mola-basla") aMola = x;
+      else if (x.tip === "mola-bitir") aMola = null;
+    });
+    const tipler = [];
+    if (aGiris) tipler.push("cikis-yok");
+    if (aMola) tipler.push("mola-acik");
+    if (girisSayisi > 1 && !h.some(x => x.tip === "cikis")) tipler.push("cift-giris");
+    if (!tipler.length) return;
+
+    const p = ozlukPersoneller.find(x => (x.email || "").toLowerCase() === email);
+    sorunlar.push({
+      email, tarih, tipler,
+      ad: (p && (p.adSoyad || p.ad)) || email,
+      girisZamani: aGiris ? aGiris.zaman : null,
+      hareketSayisi: h.length,
+      // Bu gün için düzeltme yapılmış mı?
+      duzeltildi: duzeltmeler.some(d => d.personelEmail === email && d.tarih === tarih)
+    });
+  });
+  sorunlar.sort((a, b) => String(b.tarih).localeCompare(String(a.tarih)));
+
+  const acikSorunlar = sorunlar.filter(s => !s.duzeltildi);
+  const rozet = document.getElementById("ozlukDuzeltmeRozet");
+  if (rozet) {
+    if (acikSorunlar.length) { rozet.textContent = acikSorunlar.length; rozet.style.display = "inline-block"; }
+    else rozet.style.display = "none";
+  }
+
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const trh = (t) => t ? String(t).substring(0, 10).split("-").reverse().join(".") : "—";
+  const saat = (z) => z ? new Date(z).toTimeString().slice(0, 5) : "—";
+  const SORUN_AD = {
+    "cikis-yok":  { ad: "Çıkış yapılmamış", renk: "#DC2626", bg: "#FEF2F2" },
+    "mola-acik":  { ad: "Mola kapatılmamış", renk: "#B45309", bg: "#FFFBEB" },
+    "cift-giris": { ad: "Çift giriş", renk: "#7C3AED", bg: "#F5F3FF" }
+  };
+
+  kap.innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:14px;">
+      <div style="background:#fff; border-left:4px solid #DC2626; border-radius:12px; padding:12px 15px;">
+        <div style="font-size:10.5px; font-weight:800; color:#DC2626; text-transform:uppercase;">Bekleyen Sorun</div>
+        <div style="font-size:21px; font-weight:800; color:#1E293B; margin-top:4px;">${acikSorunlar.length}</div></div>
+      <div style="background:#fff; border-left:4px solid #059669; border-radius:12px; padding:12px 15px;">
+        <div style="font-size:10.5px; font-weight:800; color:#059669; text-transform:uppercase;">Bu Ay Düzeltilen</div>
+        <div style="font-size:21px; font-weight:800; color:#1E293B; margin-top:4px;">${duzeltmeler.length}</div></div>
+      <div style="background:#fff; border-left:4px solid #5A6ACF; border-radius:12px; padding:12px 15px;">
+        <div style="font-size:10.5px; font-weight:800; color:#5A6ACF; text-transform:uppercase;">Toplam Kayıt</div>
+        <div style="font-size:21px; font-weight:800; color:#1E293B; margin-top:4px;">${kayitlar.length}</div></div>
+    </div>
+
+    <div style="font-size:12px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:6px 0 9px;">Düzeltme Bekleyenler</div>
+    ${acikSorunlar.length === 0
+      ? `<div style="background:#fff; border-radius:14px; padding:30px; text-align:center;">
+           <div style="font-size:34px; margin-bottom:8px;">✓</div>
+           <div style="font-size:14px; font-weight:700; color:#166534;">Bu ay düzeltme bekleyen kayıt yok</div>
+           <div style="font-size:12.5px; color:#94A3B8; margin-top:4px;">Tüm giriş-çıkış kayıtları tutarlı görünüyor.</div>
+         </div>`
+      : acikSorunlar.map(s => `
+        <div style="background:#fff; border:1px solid #E9EBF4; border-left:4px solid ${SORUN_AD[s.tipler[0]].renk}; border-radius:12px; padding:13px 15px; margin-bottom:9px;">
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="min-width:52px; text-align:center;">
+              <div style="font-weight:800; font-size:15px; color:#2D5E3E;">${new Date(s.tarih).getDate()}</div>
+              <div style="font-size:10.5px; color:#94A3B8;">${["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"][new Date(s.tarih).getDay()]}</div>
+            </div>
+            <div style="flex:1; min-width:180px;">
+              <div style="font-weight:700; font-size:14px; color:#1E293B;">${esc(s.ad)}</div>
+              <div style="font-size:11.5px; color:#64748B; margin-top:3px; display:flex; gap:7px; flex-wrap:wrap;">
+                ${s.tipler.map(t => `<span style="font-size:10px; font-weight:800; color:${SORUN_AD[t].renk}; background:${SORUN_AD[t].bg}; padding:2px 8px; border-radius:100px;">${SORUN_AD[t].ad}</span>`).join("")}
+                ${s.girisZamani ? `<span>Giriş ${saat(s.girisZamani)}</span>` : ""}
+                <span>· ${s.hareketSayisi} hareket</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn-mini" onclick="ozlukCikisEkle('${s.email}','${s.tarih}')"
+                style="background:#DCFCE7; color:#166534; border-color:#86EFAC; font-weight:700;">
+                <i data-lucide="log-out" style="width:12px;height:12px;vertical-align:-1px;"></i> Çıkış Saati Gir</button>
+              <button class="btn-mini" onclick="ozlukGunuGoster('${s.email}','${s.tarih}')">
+                <i data-lucide="list" style="width:12px;height:12px;vertical-align:-1px;"></i> Hareketler</button>
+            </div>
+          </div>
+        </div>`).join("")}
+
+    ${duzeltmeler.length ? `
+      <div style="font-size:12px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:20px 0 9px;">Yapılan Düzeltmeler</div>
+      ${duzeltmeler.slice(0, 15).map(d => `
+        <div style="background:#fff; border:1px solid #E9EBF4; border-radius:11px; padding:11px 14px; margin-bottom:7px; display:flex; align-items:center; gap:11px; flex-wrap:wrap;">
+          <span style="font-size:15px;">🛠️</span>
+          <div style="flex:1; min-width:170px;">
+            <div style="font-size:13px; font-weight:700; color:#1E293B;">${esc(d.personelAd || d.personelEmail)} · ${trh(d.tarih)}</div>
+            <div style="font-size:11.5px; color:#64748B;">${esc(d.aciklama || d.tur || "Düzeltme")}${d.eklenenSaat ? " · " + esc(d.eklenenSaat) : ""}</div>
+          </div>
+          <div style="font-size:11px; color:#94A3B8; text-align:right;">
+            ${esc(d.duzeltenAd || d.duzelten || "")}<br>${d.olusturuldu ? trh(d.olusturuldu) : ""}
+          </div>
+        </div>`).join("")}` : ""}
+
+    <div style="margin-top:14px; padding:11px 14px; background:#F8FAFC; border-radius:12px; font-size:11.5px; color:#64748B; line-height:1.6;">
+      <i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i>
+      Çıkış saati girildiğinde puantaj kaydına bir çıkış hareketi eklenir ve düzeltme kaydı iz olarak saklanır.
+      Orijinal QR kayıtları silinmez — denetimde geçmiş izlenebilir kalır.
+    </div>`;
+
+  if (window.lucideYenile) window.lucideYenile();
+}
+
+window.ozlukDuzeltmeAyDegis = function(ay) { ozlukDuzeltmeAy = ay; ozlukDuzeltmeCiz(); };
+
+// Eksik çıkış için saat gir → puantaja çıkış hareketi + düzeltme izi
+window.ozlukCikisEkle = async function(email, tarih) {
+  const p = ozlukPersoneller.find(x => (x.email || "").toLowerCase() === email);
+  const ad = (p && (p.adSoyad || p.ad)) || email;
+  const girilen = prompt(`${ad} · ${tarih.split("-").reverse().join(".")}\n\nÇıkış saati (SS:DD):`, "17:00");
+  if (!girilen) return;
+  if (!/^\d{1,2}:\d{2}$/.test(girilen.trim())) { showToast("Saat biçimi hatalı (örn. 17:00)", "error"); return; }
+
+  const [ss, dd] = girilen.trim().split(":").map(Number);
+  if (ss > 23 || dd > 59) { showToast("Geçersiz saat", "error"); return; }
+  const zaman = new Date(`${tarih}T${String(ss).padStart(2,"0")}:${String(dd).padStart(2,"0")}:00`);
+
+  const not = prompt("Düzeltme nedeni (isteğe bağlı):", "Çıkış kaydı unutulmuş") || "";
+
+  try {
+    // 1) Puantaja çıkış hareketi ekle
+    await addDoc(collection(db, "puantaj"), {
+      personelEmail: email,
+      personelAd: ad,
+      tip: "cikis",
+      zaman: zaman.toISOString(),
+      tarih: tarih,
+      yontem: "duzeltme",
+      duzelten: (currentUser?.email || "").toLowerCase(),
+      onayli: true
+    });
+
+    // 2) Düzeltme izi
+    await addDoc(collection(db, "puantajDuzeltmeleri"), {
+      personelEmail: email,
+      personelAd: ad,
+      tarih: tarih,
+      tur: "cikis-eklendi",
+      eklenenSaat: girilen.trim(),
+      aciklama: not || "Eksik çıkış kaydı tamamlandı",
+      duzelten: (currentUser?.email || "").toLowerCase(),
+      duzeltenAd: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser?.displayName || "",
+      olusturuldu: new Date().toISOString()
+    });
+
+    showToast(`✓ ${ad} · ${girilen} çıkışı kaydedildi`);
+    ozlukDuzeltmeCiz();
+  } catch (e) {
+    console.error("düzeltme:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+// O günün tüm hareketlerini göster
+window.ozlukGunuGoster = async function(email, tarih) {
+  try {
+    const qs = await getDocs(query(collection(db, "puantaj"),
+      where("personelEmail", "==", email), where("tarih", "==", tarih)));
+    const h = [];
+    qs.forEach(d => h.push(d.data()));
+    h.sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
+    const TIP = { giris: "Giriş", cikis: "Çıkış", "mola-basla": "Molaya çıktı", "mola-bitir": "Moladan döndü" };
+    const metin = h.length
+      ? h.map(x => `${new Date(x.zaman).toTimeString().slice(0,5)}  ${TIP[x.tip] || x.tip}${x.yontem ? "  (" + x.yontem + ")" : ""}`).join("\n")
+      : "Hareket kaydı yok.";
+    alert(`${tarih.split("-").reverse().join(".")} · Hareketler\n\n${metin}`);
+  } catch (e) {
+    showToast("Hareketler alınamadı: " + e.message, "error");
+  }
+};
+
 async function ozlukPuantajCiz() {
   const ay = window._ozlukPuantajAy || ozlukBuAy();
   document.getElementById("ozlukAraclar").innerHTML = `
