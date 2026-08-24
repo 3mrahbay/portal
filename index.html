@@ -764,11 +764,27 @@ html, body {
 .footer a:hover { color: var(--green-deep); }
 
 /* ============ LOGIN MODAL ============ */
+/* Rapor/branş pencereleri için kutu — .modal ile aynı görünüm */
+.modal-box {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modalIn 0.22s ease-out;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(26, 77, 46, 0.4);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
   z-index: 1000;
   display: none;
   align-items: center;
@@ -30413,22 +30429,47 @@ window.egitimDetayliRaporGoster = function(disiplin) {
       if (v === "S") sayS++; else if (v === "T") sayT++; else if (v === "U") sayU++;
     });
   });
+  // ── ANLAMLI METRİK ──
+  // Ham "işlenmiş / (öğrenci × kazanım)" oranı dönem başında hep %1 çıkıyordu.
+  // Bunun yerine iki ayrı bakış sunuluyor:
+  //   Kapsama  = kaç öğrenciye değerlendirme başlanmış
+  //   İlerleme = değerlendirmesi başlamış öğrenciler arasındaki ortalama
+  const yuzdeYaz = (o) => o >= 10 ? Math.round(o) : Math.round(o * 10) / 10;
+
+  const degerlendirilen = ogrenciler.filter(o => {
+    const k = kayitAl(o.id);
+    return dersAnahtarlari.some(d => k[d.key]);
+  });
   const toplamHucre = Math.max(1, ogrenciler.length * toplamDers);
   const islenmis = sayS + sayT + sayU;
-  const genelYuzde = Math.round((islenmis / toplamHucre) * 100);
+  const genelYuzde = yuzdeYaz((islenmis / toplamHucre) * 100);
+  // Değerlendirilenler arasındaki ortalama ilerleme
+  const aktifYuzde = degerlendirilen.length
+    ? yuzdeYaz((islenmis / (degerlendirilen.length * toplamDers)) * 100) : 0;
+  const kapsamaYuzde = ogrenciler.length
+    ? Math.round((degerlendirilen.length / ogrenciler.length) * 100) : 0;
 
-  // Alan bazlı
+  // Alan bazlı — hem tüm sınıf hem değerlendirilenler üzerinden
   const alanRapor = mufredat.map(alan => {
     const dersler = dersAnahtarlari.filter(d => d.alanId === alan.id);
-    let dolu = 0, u = 0;
+    let dolu = 0, u = 0, dokunulanOgr = 0;
     ogrenciler.forEach(o => {
       const k = kayitAl(o.id);
-      dersler.forEach(d => { if (k[d.key]) { dolu++; if (k[d.key] === "U") u++; } });
+      let buOgrDolu = 0;
+      dersler.forEach(d => { if (k[d.key]) { dolu++; buOgrDolu++; if (k[d.key] === "U") u++; } });
+      if (buOgrDolu > 0) dokunulanOgr++;
     });
     const top = Math.max(1, ogrenciler.length * dersler.length);
-    return { ad: alan.ad, ikon: alan.ikon || "📘", dersSayisi: dersler.length,
-             yuzde: Math.round((dolu / top) * 100), ustalik: Math.round((u / top) * 100) };
-  }).sort((a, b) => b.yuzde - a.yuzde);
+    const aktifTop = Math.max(1, dokunulanOgr * dersler.length);
+    return {
+      ad: alan.ad, ikon: alan.ikon || "📘", dersSayisi: dersler.length,
+      dolu, dokunulanOgr,
+      yuzde: yuzdeYaz((dolu / top) * 100),
+      aktifYuzde: dokunulanOgr ? yuzdeYaz((dolu / aktifTop) * 100) : 0,
+      ustalik: yuzdeYaz((u / top) * 100),
+      baslanmadi: dolu === 0
+    };
+  }).sort((a, b) => b.dolu - a.dolu);
 
   // Sınıf bazlı
   const sinifMap = {};
@@ -30439,10 +30480,21 @@ window.egitimDetayliRaporGoster = function(disiplin) {
     const k = kayitAl(o.id);
     dersAnahtarlari.forEach(d => { if (k[d.key]) { sinifMap[sn].dolu++; if (k[d.key] === "U") sinifMap[sn].u++; } });
   });
-  const sinifRapor = Object.values(sinifMap).map(s => ({
-    ...s, yuzde: Math.round((s.dolu / Math.max(1, s.ogr * toplamDers)) * 100),
-    ustalik: Math.round((s.u / Math.max(1, s.ogr * toplamDers)) * 100)
-  })).sort((a, b) => b.yuzde - a.yuzde);
+  // Sınıf başına değerlendirilen öğrenci sayısı
+  const sinifAktif = {};
+  degerlendirilen.forEach(o => {
+    const sn = o._sinif || o.sinif || "Sınıfsız";
+    sinifAktif[sn] = (sinifAktif[sn] || 0) + 1;
+  });
+  const sinifRapor = Object.values(sinifMap).map(s => {
+    const aktifOgr = sinifAktif[s.ad] || 0;
+    return {
+      ...s, aktifOgr,
+      yuzde: aktifOgr ? yuzdeYaz((s.dolu / Math.max(1, aktifOgr * toplamDers)) * 100) : 0,
+      ustalik: yuzdeYaz((s.u / Math.max(1, s.ogr * toplamDers)) * 100),
+      baslanmadi: s.dolu === 0
+    };
+  }).sort((a, b) => b.dolu - a.dolu);
 
   // Öğrenci bazlı
   const ogrRapor = ogrenciler.map(o => {
@@ -30460,7 +30512,7 @@ window.egitimDetayliRaporGoster = function(disiplin) {
       yuzde: toplamDers ? Math.round((dolu / toplamDers) * 100) : 0,
       ustalikYuzde: toplamDers ? Math.round((u / toplamDers) * 100) : 0
     };
-  }).sort((a, b) => b.yuzde - a.yuzde);
+  }).sort((a, b) => b.dolu - a.dolu);
 
   const cubuk = (yuzde, renk) =>
     `<div style="height:7px; background:#F1F5F9; border-radius:100px; overflow:hidden;"><div style="width:${yuzde}%; height:100%; background:${renk}; border-radius:100px;"></div></div>`;
@@ -30473,7 +30525,7 @@ window.egitimDetayliRaporGoster = function(disiplin) {
   modal.onclick = (e) => { if (e.target.id === "egitimRaporModal") modal.remove(); };
   modal.innerHTML = `
     <div class="modal-box" style="max-width:900px; max-height:90vh; overflow-y:auto;">
-      <div style="background:linear-gradient(135deg, ${dInfo.renk} 0%, ${dInfo.renk}bb 100%); color:#fff; padding:20px 24px; position:sticky; top:0; z-index:2;">
+      <div style="background:linear-gradient(135deg, ${dInfo.renk} 0%, ${dInfo.renk}bb 100%); color:#fff; padding:20px 24px; position:sticky; top:0; z-index:2; border-radius:18px 18px 0 0;">
         <div style="display:flex; align-items:center; justify-content:space-between;">
           <div>
             <div style="font-size:11px; font-weight:800; letter-spacing:1.4px; opacity:.9;">GELİŞİM RAPORU</div>
@@ -30501,28 +30553,67 @@ window.egitimDetayliRaporGoster = function(disiplin) {
             <div style="font-size:10.5px; font-weight:800; color:#15803D; text-transform:uppercase;">Uzmanlaştı</div>
             <div style="font-size:22px; font-weight:800; color:#15803D;">${sayU}</div></div>
           <div style="background:${dInfo.renk}14; border-radius:12px; padding:12px 14px;">
-            <div style="font-size:10.5px; font-weight:800; color:${dInfo.renk}; text-transform:uppercase;">Genel</div>
-            <div style="font-size:22px; font-weight:800; color:${dInfo.renk};">%${genelYuzde}</div></div>
+            <div style="font-size:10.5px; font-weight:800; color:${dInfo.renk}; text-transform:uppercase;">Başlanan Öğrenci</div>
+            <div style="font-size:22px; font-weight:800; color:${dInfo.renk};">${degerlendirilen.length}<span style="font-size:13px; opacity:.65;">/${ogrenciler.length}</span></div></div>
+        </div>
+
+        <!-- İki ayrı bakış: kapsama ve ilerleme -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin-bottom:20px;">
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:14px 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px;">
+              <span style="font-size:12px; font-weight:700; color:#334155;">Kapsama</span>
+              <span style="font-size:17px; font-weight:800; color:${dInfo.renk};">%${kapsamaYuzde}</span>
+            </div>
+            <div style="height:7px; background:#F1F5F9; border-radius:100px; overflow:hidden;">
+              <div style="width:${kapsamaYuzde}%; height:100%; background:${dInfo.renk}; border-radius:100px;"></div>
+            </div>
+            <div style="font-size:11px; color:#94A3B8; margin-top:6px;">${degerlendirilen.length} öğrencide değerlendirme başladı</div>
+          </div>
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:14px 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px;">
+              <span style="font-size:12px; font-weight:700; color:#334155;">Ortalama İlerleme</span>
+              <span style="font-size:17px; font-weight:800; color:#059669;">%${aktifYuzde}</span>
+            </div>
+            <div style="height:7px; background:#F1F5F9; border-radius:100px; overflow:hidden;">
+              <div style="width:${Math.min(100, aktifYuzde)}%; height:100%; background:#059669; border-radius:100px;"></div>
+            </div>
+            <div style="font-size:11px; color:#94A3B8; margin-top:6px;">Başlanan öğrencilerde ortalama · sınıf geneli %${genelYuzde}</div>
+          </div>
         </div>
 
         <h3 style="font-size:13px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:0 0 10px;">Gelişim Alanları</h3>
         ${alanRapor.map(a => `
-          <div style="margin-bottom:11px;">
-            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
-              <span style="color:#334155;">${a.ikon} ${escapeHtmlGelisim(a.ad)} <span style="color:#94A3B8; font-size:11.5px;">· ${a.dersSayisi} kazanım</span></span>
-              <span style="font-weight:700; color:${dInfo.renk};">%${a.yuzde} <span style="color:#16a34a; font-size:11.5px;">(U %${a.ustalik})</span></span>
+          <div style="margin-bottom:11px; ${a.baslanmadi ? "opacity:.55;" : ""}">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; gap:10px;">
+              <span style="color:#334155; min-width:0;">${a.ikon} ${escapeHtmlGelisim(a.ad)}
+                <span style="color:#94A3B8; font-size:11.5px;">· ${a.dersSayisi} kazanım</span></span>
+              <span style="white-space:nowrap;">
+                ${a.baslanmadi
+                  ? `<span style="font-size:11.5px; font-weight:700; color:#94A3B8;">henüz başlanmadı</span>`
+                  : `<span style="font-weight:700; color:${dInfo.renk};">%${a.aktifYuzde}</span>
+                     <span style="color:#94A3B8; font-size:11px;">· ${a.dokunulanOgr} öğr.</span>
+                     <span style="color:#16a34a; font-size:11.5px;">U %${a.ustalik}</span>`}
+              </span>
             </div>
-            ${cubuk(a.yuzde, dInfo.renk)}
+            ${cubuk(a.baslanmadi ? 0 : a.aktifYuzde, dInfo.renk)}
           </div>`).join("") || '<div style="color:#94A3B8; font-size:13px;">Alan verisi yok.</div>'}
+        <div style="font-size:11px; color:#94A3B8; margin-top:6px; line-height:1.5;">
+          Yüzdeler, o alanda değerlendirmesi başlamış öğrenciler üzerinden hesaplanır.
+        </div>
 
         <h3 style="font-size:13px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:22px 0 10px;">Sınıf Karşılaştırması</h3>
         ${sinifRapor.map(s => `
-          <div style="margin-bottom:11px;">
-            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
-              <span style="color:#334155;">${escapeHtmlGelisim(s.ad)} <span style="color:#94A3B8; font-size:11.5px;">· ${s.ogr} öğrenci</span></span>
-              <span style="font-weight:700; color:#5A6ACF;">%${s.yuzde}</span>
+          <div style="margin-bottom:11px; ${s.baslanmadi ? "opacity:.55;" : ""}">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; gap:10px;">
+              <span style="color:#334155; min-width:0;">${escapeHtmlGelisim(s.ad)}
+                <span style="color:#94A3B8; font-size:11.5px;">· ${s.aktifOgr}/${s.ogr} öğrencide başlandı</span></span>
+              <span style="white-space:nowrap;">
+                ${s.baslanmadi
+                  ? `<span style="font-size:11.5px; font-weight:700; color:#94A3B8;">henüz başlanmadı</span>`
+                  : `<span style="font-weight:700; color:#5A6ACF;">%${s.yuzde}</span>`}
+              </span>
             </div>
-            ${cubuk(s.yuzde, "#5A6ACF")}
+            ${cubuk(s.baslanmadi ? 0 : s.yuzde, "#5A6ACF")}
           </div>`).join("") || '<div style="color:#94A3B8; font-size:13px;">Sınıf verisi yok.</div>'}
 
         <h3 style="font-size:13px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:.5px; margin:22px 0 10px;">Öğrenci Bazlı İlerleme</h3>
