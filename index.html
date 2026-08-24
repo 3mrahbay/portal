@@ -6341,7 +6341,10 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
 .egitim-matrix-tablosu {
   border-collapse: separate;
   border-spacing: 0;
-  width: 100%;
+  /* width:100% iken ders sütunu tüm boş alanı yutuyor ve öğrenci sütunları
+     sağa itiliyordu. Az öğrencide tablo içeriği kadar geniş olsun, sola yaslansın. */
+  width: auto;
+  min-width: 100%;
   font-size: 12px;
 }
 .egitim-matrix-tablosu thead th {
@@ -6361,6 +6364,8 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
   z-index: 11;
   background: #f9fafb;
   min-width: 220px;
+  max-width: 340px;
+  width: 340px;
   font-size: 11px;
   letter-spacing: 0.4px;
   color: #6b7280;
@@ -6416,6 +6421,8 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
 }
 
 .egitim-matrix-tablosu tbody td.ders-adi {
+  max-width: 340px;
+  width: 340px;
   padding: 10px 14px;
   border-bottom: 1px solid #f3f4f6;
   font-weight: 500;
