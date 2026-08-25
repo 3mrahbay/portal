@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Öğrenci Veri Teşhisi · ZEKY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --koyu:#2D5E3E; --orta:#4A7C59; --acik:#7CB97C;
+    --kagit:#FBFCFA; --metin:#1F2A22; --soluk:#5C6B60;
+    --cizgi:#E2E8E3; --uyari:#B4531F; --iyi:#2E7D4F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'DM Sans',system-ui,sans-serif;
+    background:var(--kagit); color:var(--metin);
+    line-height:1.6; font-size:15px; padding:0 0 60px;
+  }
+  .sarmal{max-width:1000px;margin:0 auto;padding:0 20px}
+  header{background:var(--koyu);color:#fff;padding:28px 0;margin-bottom:28px}
+  header h1{font-family:'Quicksand',sans-serif;font-weight:700;font-size:24px}
+  header p{color:rgba(255,255,255,.75);font-size:14px;margin-top:6px}
+
+  .dugme{
+    font-family:'Quicksand',sans-serif;font-weight:600;font-size:15px;
+    background:var(--koyu);color:#fff;border:none;
+    padding:13px 26px;border-radius:6px;cursor:pointer;margin:4px 6px 4px 0;
+  }
+  .dugme:hover{background:var(--orta)}
+  .dugme:disabled{background:#B8C4BB;cursor:not-allowed}
+  .dugme.ikincil{background:#fff;color:var(--koyu);border:1.5px solid var(--koyu)}
+  .dugme.ikincil:hover{background:#F1F5F2}
+
+  .kart{
+    background:#fff;border:1px solid var(--cizgi);
+    border-radius:8px;padding:22px;margin-bottom:20px;
+  }
+  .kart h2{
+    font-family:'Quicksand',sans-serif;font-weight:700;font-size:18px;
+    color:var(--koyu);margin-bottom:14px;
+    padding-bottom:10px;border-bottom:2px solid var(--acik);
+  }
+  .kart h3{
+    font-family:'Quicksand',sans-serif;font-weight:600;font-size:15px;
+    color:var(--orta);margin:18px 0 8px;
+  }
+
+  .rozetler{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px}
+  .rozet{
+    background:#F1F5F2;border:1px solid var(--cizgi);
+    border-radius:6px;padding:12px 18px;min-width:130px;
+  }
+  .rozet .sayi{
+    font-family:'Quicksand',sans-serif;font-weight:700;
+    font-size:26px;color:var(--koyu);display:block;line-height:1.2;
+  }
+  .rozet .etiket{font-size:12.5px;color:var(--soluk);margin-top:2px}
+  .rozet.kotu{background:#FDF3EE;border-color:#E8C9B5}
+  .rozet.kotu .sayi{color:var(--uyari)}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  th,td{text-align:left;padding:8px 11px;border:1px solid var(--cizgi);vertical-align:top}
+  th{background:#F1F5F2;font-family:'Quicksand',sans-serif;font-weight:600;color:var(--koyu);font-size:12.5px}
+  .tablo-sarmal{overflow-x:auto;max-height:420px;overflow-y:auto}
+  td.yok{color:var(--uyari);font-weight:500}
+  td.var{color:var(--iyi)}
+
+  pre{
+    background:#F1F5F2;border:1px solid var(--cizgi);border-radius:6px;
+    padding:16px;font-size:12.5px;line-height:1.55;
+    white-space:pre-wrap;word-break:break-word;max-height:400px;overflow-y:auto;
+    font-family:ui-monospace,'SF Mono',Menlo,monospace;
+  }
+
+  .not{
+    background:#FDFBF7;border-left:3px solid var(--uyari);
+    padding:14px 18px;border-radius:4px;margin:14px 0;font-size:14px;
+  }
+  .not strong{color:var(--uyari)}
+  .gizli{display:none}
+  #durumYazi{font-size:14px;color:var(--soluk);margin:10px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sarmal">
+    <h1>Öğrenci Veri Teşhisi</h1>
+    <p>Bu sayfa yalnızca teknik alanları okur. TC kimlik, adres, telefon, fotoğraf ve veli iletişim bilgileri hiç okunmaz.</p>
+  </div>
+</header>
+
+<div class="sarmal">
+
+  <div class="kart">
+    <button class="dugme" id="girisBtn">Google ile Giriş Yap</button>
+    <button class="dugme ikincil gizli" id="taraBtn">Öğrencileri Tara</button>
+    <div id="durumYazi">Başlamak için giriş yapın.</div>
+  </div>
+
+  <div id="sonuclar" class="gizli">
+
+    <div class="kart">
+      <h2>Genel durum</h2>
+      <div class="rozetler" id="rozetler"></div>
+    </div>
+
+    <div class="kart">
+      <h2>Belge şekilleri</h2>
+      <p style="font-size:14px;color:var(--soluk);margin-bottom:6px">
+        Aynı koleksiyonda kaç farklı yapıda belge var? Her satır bir şekil.
+      </p>
+      <div class="tablo-sarmal"><table id="sekilTablo"></table></div>
+    </div>
+
+    <div class="kart">
+      <h2>Alan değerleri</h2>
+      <div id="degerler"></div>
+    </div>
+
+    <div class="kart">
+      <h2>Sorunlu öğrenciler</h2>
+      <p style="font-size:14px;color:var(--soluk);margin-bottom:6px">
+        Bu liste yalnızca sizin ekranınızda. Paylaşmayın.
+      </p>
+      <div class="tablo-sarmal"><table id="sorunTablo"></table></div>
+    </div>
+
+    <div class="kart">
+      <h2>Paylaşılabilir özet</h2>
+      <div class="not">
+        <strong>Bunu kopyalayıp gönderebilirsiniz.</strong> İçinde isim, TC,
+        adres veya telefon yok — sadece sayılar ve alan adları var.
+      </div>
+      <button class="dugme" id="kopyalaBtn">Özeti Kopyala</button>
+      <pre id="ozet"></pre>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
+  authDomain: "bcka-site.firebaseapp.com",
+  projectId: "bcka-site",
+  storageBucket: "bcka-site.firebasestorage.app",
+  messagingSenderId: "736581475783",
+  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// Okunacak teknik alanlar. Hassas alanlar bilinçli olarak yok.
+const TEKNIK = ["id","durum","kayitDurumu","sinif","sinifId","sinifAdi",
+                "donem","donemId","kaynakBasvuruId","programTuru","aktif"];
+
+const $ = s => document.querySelector(s);
+const yaz = t => $("#durumYazi").textContent = t;
+
+$("#girisBtn").onclick = async () => {
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (e) { yaz("Giriş hatası: " + e.message); }
+};
+
+onAuthStateChanged(auth, u => {
+  if (u) {
+    yaz("Giriş yapıldı: " + u.email);
+    $("#girisBtn").classList.add("gizli");
+    $("#taraBtn").classList.remove("gizli");
+  }
+});
+
+$("#taraBtn").onclick = async () => {
+  $("#taraBtn").disabled = true;
+  yaz("Okunuyor…");
+  try {
+    const snap = await getDocs(collection(db, "ogrenciler"));
+    const kayitlar = [];
+    snap.forEach(d => {
+      const ham = d.data();
+      const k = { _belgeKimligi: d.id, _ad: ham.ogrenciAdSoyad || "(isimsiz)" };
+      for (const alan of TEKNIK) {
+        k[alan] = (ham[alan] === undefined || ham[alan] === null || ham[alan] === "")
+          ? null : String(ham[alan]);
+      }
+      k._veliler   = Array.isArray(ham.veliler) && ham.veliler.length > 0;
+      k._veli1     = !!ham.veli1AdSoyad;
+      k._veli2     = !!ham.veli2AdSoyad;
+      k._idEsit    = k.id !== null && k.id === d.id;
+      kayitlar.push(k);
+    });
+    coz(kayitlar);
+    yaz(kayitlar.length + " öğrenci okundu.");
+    $("#sonuclar").classList.remove("gizli");
+  } catch (e) {
+    yaz("Okuma hatası: " + e.message);
+    $("#taraBtn").disabled = false;
+  }
+};
+
+function coz(kayitlar){
+  const n = kayitlar.length;
+  const idYok    = kayitlar.filter(k => k.id === null);
+  const idUyusmaz= kayitlar.filter(k => k.id !== null && !k._idEsit);
+  const veliYok  = kayitlar.filter(k => !k._veliler && !k._veli1 && !k._veli2);
+  const sinifIdYok = kayitlar.filter(k => k.sinifId === null && k.sinifAdi === null);
+
+  // Rozetler
+  const rz = [
+    ["Toplam öğrenci", n, false],
+    ["`id` alanı eksik", idYok.length, idYok.length > 0],
+    ["`id` belge kimliğiyle uyuşmuyor", idUyusmaz.length, idUyusmaz.length > 0],
+    ["Veli bilgisi hiç yok", veliYok.length, veliYok.length > 0],
+    ["`sinifId` yok", sinifIdYok.length, sinifIdYok.length > 0]
+  ];
+  $("#rozetler").innerHTML = rz.map(([e,s,kotu]) =>
+    `<div class="rozet ${kotu?'kotu':''}"><span class="sayi">${s}</span>
+     <div class="etiket">${e}</div></div>`).join("");
+
+  // Belge şekilleri
+  const sekiller = {};
+  kayitlar.forEach(k => {
+    const parmak = TEKNIK.filter(a => k[a] !== null).join(", ")
+      + (k._veliler ? " | veliler[]" : "")
+      + (k._veli1 ? " | veli1" : "") + (k._veli2 ? " | veli2" : "");
+    sekiller[parmak] = (sekiller[parmak] || 0) + 1;
+  });
+  $("#sekilTablo").innerHTML =
+    "<tr><th>Dolu alanlar</th><th>Kaç öğrenci</th></tr>" +
+    Object.entries(sekiller).sort((a,b)=>b[1]-a[1])
+      .map(([p,c]) => `<tr><td>${p||"(hiçbiri)"}</td><td>${c}</td></tr>`).join("");
+
+  // Alan değer dağılımları
+  let html = "";
+  for (const alan of ["durum","kayitDurumu","sinif","donem","kaynakBasvuruId","programTuru"]) {
+    const say = {};
+    kayitlar.forEach(k => { const v = k[alan] === null ? "(boş)" : k[alan];
+      say[v] = (say[v]||0)+1; });
+    html += `<h3>${alan}</h3><div class="tablo-sarmal"><table>
+      <tr><th>Değer</th><th>Adet</th></tr>` +
+      Object.entries(say).sort((a,b)=>b[1]-a[1])
+        .map(([v,c]) => `<tr><td>${v}</td><td>${c}</td></tr>`).join("") +
+      "</table></div>";
+  }
+  $("#degerler").innerHTML = html;
+
+  // Sorunlu öğrenciler (yerel)
+  const sorunlu = kayitlar.filter(k => k.id === null || !k._idEsit ||
+                                  (!k._veliler && !k._veli1 && !k._veli2));
+  $("#sorunTablo").innerHTML =
+    "<tr><th>Öğrenci</th><th>Belge kimliği</th><th>id alanı</th><th>Sınıf</th><th>durum</th><th>kayitDurumu</th><th>Veli</th></tr>" +
+    (sorunlu.length ? sorunlu.map(k => `<tr>
+      <td>${k._ad}</td><td>${k._belgeKimligi}</td>
+      <td class="${k.id?'':'yok'}">${k.id || "YOK"}</td>
+      <td>${k.sinif || "—"}</td><td>${k.durum || "—"}</td>
+      <td>${k.kayitDurumu || "—"}</td>
+      <td class="${(k._veliler||k._veli1||k._veli2)?'var':'yok'}">${(k._veliler||k._veli1||k._veli2)?"var":"YOK"}</td>
+    </tr>`).join("") : "<tr><td colspan='7'>Sorun bulunamadı.</td></tr>");
+
+  // Paylaşılabilir özet
+  const ozet = {
+    toplamOgrenci: n,
+    idAlaniEksik: idYok.length,
+    idBelgeKimligiyleUyusmuyor: idUyusmaz.length,
+    veliBilgisiYok: veliYok.length,
+    sinifIdYok: sinifIdYok.length,
+    belgeSekilleri: sekiller,
+    alanDegerleri: Object.fromEntries(
+      ["durum","kayitDurumu","donem","kaynakBasvuruId","programTuru"].map(alan => {
+        const say = {};
+        kayitlar.forEach(k => { const v = k[alan]===null?"(boş)":k[alan];
+          say[v]=(say[v]||0)+1; });
+        return [alan, say];
+      })),
+    sinifSayisi: new Set(kayitlar.map(k=>k.sinif).filter(Boolean)).size,
+    sorunluOgrenciSayisi: sorunlu.length
+  };
+  $("#ozet").textContent = JSON.stringify(ozet, null, 2);
+}
+
+$("#kopyalaBtn").onclick = () => {
+  navigator.clipboard.writeText($("#ozet").textContent);
+  $("#kopyalaBtn").textContent = "Kopyalandı ✓";
+  setTimeout(()=>$("#kopyalaBtn").textContent="Özeti Kopyala", 2000);
+};
+</script>
+</body>
+</html>
