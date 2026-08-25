@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Öğrenci Veri Düzeltme · ZEKY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --koyu:#2D5E3E; --orta:#4A7C59; --acik:#7CB97C;
+    --kagit:#FBFCFA; --metin:#1F2A22; --soluk:#5C6B60;
+    --cizgi:#E2E8E3; --uyari:#B4531F; --iyi:#2E7D4F; --tehlike:#A32F2F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',system-ui,sans-serif;background:var(--kagit);
+       color:var(--metin);line-height:1.6;font-size:15px;padding:0 0 60px}
+  .sarmal{max-width:1000px;margin:0 auto;padding:0 20px}
+  header{background:var(--koyu);color:#fff;padding:28px 0;margin-bottom:24px}
+  header h1{font-family:'Quicksand',sans-serif;font-weight:700;font-size:24px}
+  header p{color:rgba(255,255,255,.75);font-size:14px;margin-top:6px}
+
+  .dugme{font-family:'Quicksand',sans-serif;font-weight:600;font-size:15px;
+    background:var(--koyu);color:#fff;border:none;padding:13px 26px;
+    border-radius:6px;cursor:pointer;margin:4px 6px 4px 0}
+  .dugme:hover{background:var(--orta)}
+  .dugme:disabled{background:#B8C4BB;cursor:not-allowed}
+  .dugme.ikincil{background:#fff;color:var(--koyu);border:1.5px solid var(--koyu)}
+  .dugme.tehlike{background:var(--tehlike)}
+  .dugme.tehlike:hover{background:#8A2626}
+
+  .kart{background:#fff;border:1px solid var(--cizgi);border-radius:8px;
+        padding:22px;margin-bottom:20px}
+  .kart h2{font-family:'Quicksand',sans-serif;font-weight:700;font-size:18px;
+    color:var(--koyu);margin-bottom:12px;padding-bottom:10px;
+    border-bottom:2px solid var(--acik)}
+  .adim{font-family:'Quicksand',sans-serif;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--acik);font-weight:600;margin-bottom:4px}
+
+  .rozetler{display:flex;flex-wrap:wrap;gap:12px;margin:10px 0}
+  .rozet{background:#F1F5F2;border:1px solid var(--cizgi);border-radius:6px;
+         padding:12px 18px;min-width:120px}
+  .rozet .sayi{font-family:'Quicksand',sans-serif;font-weight:700;font-size:26px;
+    color:var(--koyu);display:block;line-height:1.2}
+  .rozet .etiket{font-size:12.5px;color:var(--soluk)}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  th,td{text-align:left;padding:8px 11px;border:1px solid var(--cizgi)}
+  th{background:#F1F5F2;font-family:'Quicksand',sans-serif;font-weight:600;
+     color:var(--koyu);font-size:12.5px}
+  .tablo-sarmal{overflow-x:auto;max-height:380px;overflow-y:auto}
+  .yeni{color:var(--iyi);font-weight:500}
+  .eski{color:var(--soluk)}
+
+  .not{background:#FDFBF7;border-left:3px solid var(--uyari);padding:14px 18px;
+       border-radius:4px;margin:14px 0;font-size:14px}
+  .not.kritik{border-left-color:var(--tehlike);background:#FDF6F6}
+  .not strong{color:var(--uyari)}
+  .not.kritik strong{color:var(--tehlike)}
+
+  input[type=text]{font-family:ui-monospace,monospace;font-size:15px;
+    padding:11px 14px;border:1.5px solid var(--cizgi);border-radius:6px;
+    width:260px;margin-right:8px}
+  .gizli{display:none}
+  #durumYazi{font-size:14px;color:var(--soluk);margin:10px 0}
+  pre{background:#F1F5F2;border:1px solid var(--cizgi);border-radius:6px;
+    padding:14px;font-size:12.5px;white-space:pre-wrap;max-height:300px;
+    overflow-y:auto;font-family:ui-monospace,monospace;margin-top:10px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sarmal">
+    <h1>Öğrenci Veri Düzeltme</h1>
+    <p>Yalnızca iki alana dokunur: eksik <code>id</code> ve eksik <code>kayitDurumu</code>. Başka hiçbir alan değiştirilmez.</p>
+  </div>
+</header>
+
+<div class="sarmal">
+
+  <div class="kart">
+    <div class="adim">Adım 1</div>
+    <h2>Giriş ve tarama</h2>
+    <button class="dugme" id="girisBtn">Google ile Giriş Yap</button>
+    <button class="dugme ikincil gizli" id="taraBtn">Tara ve Önizle</button>
+    <div id="durumYazi">Başlamak için giriş yapın.</div>
+  </div>
+
+  <div id="onizleme" class="gizli">
+
+    <div class="kart">
+      <div class="adim">Adım 2</div>
+      <h2>Ne değişecek</h2>
+      <div class="rozetler" id="rozetler"></div>
+      <div class="tablo-sarmal"><table id="planTablo"></table></div>
+    </div>
+
+    <div class="kart">
+      <div class="adim">Adım 3</div>
+      <h2>Yedek alın</h2>
+      <div class="not">
+        <strong>Bu adımı atlamayın.</strong> Değişecek belgelerin şu anki hali
+        bir dosyaya indirilir. Bir sorun çıkarsa geri dönmek için tek yolunuz bu.
+      </div>
+      <button class="dugme ikincil" id="yedekBtn">Yedeği İndir</button>
+      <span id="yedekDurum" style="font-size:14px;color:var(--soluk);margin-left:8px"></span>
+    </div>
+
+    <div class="kart">
+      <div class="adim">Adım 4</div>
+      <h2>Uygula</h2>
+      <div class="not kritik">
+        <strong>Bu işlem geri alınamaz.</strong> Onaylamak için aşağıya
+        <code>DUZELT</code> yazın.
+      </div>
+      <input type="text" id="onayKutu" placeholder="DUZELT" autocomplete="off">
+      <button class="dugme tehlike" id="uygulaBtn" disabled>Değişiklikleri Yaz</button>
+      <pre id="gunluk" class="gizli"></pre>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, writeBatch }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
+  authDomain: "bcka-site.firebaseapp.com",
+  projectId: "bcka-site",
+  storageBucket: "bcka-site.firebasestorage.app",
+  messagingSenderId: "736581475783",
+  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const $ = s => document.querySelector(s);
+const yaz = t => $("#durumYazi").textContent = t;
+let plan = [], yedek = [], yedekAlindi = false;
+
+$("#girisBtn").onclick = async () => {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { yaz("Giriş hatası: " + e.message); }
+};
+
+onAuthStateChanged(auth, u => {
+  if (u) {
+    yaz("Giriş yapıldı: " + u.email);
+    $("#girisBtn").classList.add("gizli");
+    $("#taraBtn").classList.remove("gizli");
+  }
+});
+
+$("#taraBtn").onclick = async () => {
+  $("#taraBtn").disabled = true;
+  yaz("Okunuyor…");
+  try {
+    const snap = await getDocs(collection(db, "ogrenciler"));
+    plan = []; yedek = [];
+
+    snap.forEach(d => {
+      const v = d.data();
+      const degisiklik = {};
+
+      // 1) id alanı eksikse belge kimliğini yaz
+      if (v.id === undefined || v.id === null || v.id === "") {
+        degisiklik.id = d.id;
+      }
+
+      // 2) kayitDurumu eksikse durum alanından türet
+      const kdBos = (v.kayitDurumu === undefined || v.kayitDurumu === null || v.kayitDurumu === "");
+      if (kdBos) {
+        if (v.durum === "arsiv")      degisiklik.kayitDurumu = "arsiv";
+        else if (v.durum === "aktif") degisiklik.kayitDurumu = "mevcut";
+      }
+
+      if (Object.keys(degisiklik).length > 0) {
+        plan.push({
+          belgeKimligi: d.id,
+          ad: v.ogrenciAdSoyad || "(isimsiz)",
+          durum: v.durum ?? null,
+          eskiId: v.id ?? null,
+          eskiKayitDurumu: v.kayitDurumu ?? null,
+          degisiklik
+        });
+        yedek.push({
+          belgeKimligi: d.id,
+          oncekiDeğerler: { id: v.id ?? null, kayitDurumu: v.kayitDurumu ?? null }
+        });
+      }
+    });
+
+    ciz(snap.size);
+    yaz(snap.size + " öğrenci okundu, " + plan.length + " tanesi düzeltilecek.");
+    $("#onizleme").classList.remove("gizli");
+  } catch (e) {
+    yaz("Okuma hatası: " + e.message);
+    $("#taraBtn").disabled = false;
+  }
+};
+
+function ciz(toplam){
+  const idSayi = plan.filter(p => p.degisiklik.id !== undefined).length;
+  const kdSayi = plan.filter(p => p.degisiklik.kayitDurumu !== undefined).length;
+
+  $("#rozetler").innerHTML = `
+    <div class="rozet"><span class="sayi">${toplam}</span><div class="etiket">Toplam öğrenci</div></div>
+    <div class="rozet"><span class="sayi">${plan.length}</span><div class="etiket">Düzeltilecek belge</div></div>
+    <div class="rozet"><span class="sayi">${idSayi}</span><div class="etiket"><code>id</code> yazılacak</div></div>
+    <div class="rozet"><span class="sayi">${kdSayi}</span><div class="etiket"><code>kayitDurumu</code> yazılacak</div></div>`;
+
+  $("#planTablo").innerHTML =
+    "<tr><th>Öğrenci</th><th>Belge kimliği</th><th>Alan</th><th>Şu an</th><th>Yazılacak</th></tr>" +
+    (plan.length ? plan.flatMap(p =>
+      Object.entries(p.degisiklik).map(([alan, yeniDeger]) => `<tr>
+        <td>${p.ad}</td>
+        <td style="font-family:ui-monospace,monospace;font-size:12px">${p.belgeKimligi}</td>
+        <td><code>${alan}</code></td>
+        <td class="eski">${alan === "id" ? (p.eskiId ?? "(boş)") : (p.eskiKayitDurumu ?? "(boş)")}</td>
+        <td class="yeni">${yeniDeger}</td>
+      </tr>`)).join("")
+      : "<tr><td colspan='5'>Düzeltilecek belge yok.</td></tr>");
+
+  if (plan.length === 0) $("#uygulaBtn").disabled = true;
+}
+
+$("#yedekBtn").onclick = () => {
+  const veri = JSON.stringify({
+    alindi: new Date().toISOString(),
+    koleksiyon: "ogrenciler",
+    kayitlar: yedek
+  }, null, 2);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([veri], {type:"application/json"}));
+  a.download = "ogrenci-yedek-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  yedekAlindi = true;
+  $("#yedekDurum").textContent = "İndirildi ✓";
+  kontrol();
+};
+
+$("#onayKutu").oninput = kontrol;
+function kontrol(){
+  $("#uygulaBtn").disabled =
+    !(yedekAlindi && $("#onayKutu").value.trim().toUpperCase() === "DUZELT" && plan.length > 0);
+}
+
+$("#uygulaBtn").onclick = async () => {
+  $("#uygulaBtn").disabled = true;
+  const g = $("#gunluk");
+  g.classList.remove("gizli");
+  g.textContent = "Yazılıyor…\n";
+
+  try {
+    // Firestore toplu yazma sınırı 500; parçalara bölüyoruz
+    for (let i = 0; i < plan.length; i += 400) {
+      const dilim = plan.slice(i, i + 400);
+      const toplu = writeBatch(db);
+      dilim.forEach(p => toplu.update(doc(db, "ogrenciler", p.belgeKimligi), p.degisiklik));
+      await toplu.commit();
+      g.textContent += `${i + dilim.length} / ${plan.length} tamamlandı\n`;
+    }
+    g.textContent += "\n✅ Bitti. " + plan.length + " belge güncellendi.\n";
+    g.textContent += "Uygulamayı yenileyip Ahmet Selim'i kontrol edin.";
+  } catch (e) {
+    g.textContent += "\n❌ Hata: " + e.message +
+      "\nYazma izniniz olmayabilir. Firestore kurallarını kontrol edin.";
+    $("#uygulaBtn").disabled = false;
+  }
+};
+</script>
+</body>
+</html>
