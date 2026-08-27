@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kayıt Tarihi Teşhis — BÇKA</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 20px auto; padding: 0 16px; background: #F4F5F9; color: #1F2544; }
+  h1 { font-size: 20px; }
+  .kart { background: #fff; border: 1px solid #E9EBF4; border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  button { background: #2D5E3E; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .5; }
+  pre { background: #1F2544; color: #d1fae5; padding: 14px; border-radius: 10px; overflow-x: auto; font-size: 12px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+  code { background: #F1F2F7; padding: 2px 6px; border-radius: 5px; font-size: 12.5px; }
+  .ok { color: #16a34a; font-weight: 700; }
+  .yok { color: #9ca3af; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #eef1f5; }
+  th { font-size: 11px; text-transform: uppercase; color: #64748b; }
+</style>
+</head>
+<body>
+<h1>📅 Öğrenci Kayıt Tarihi — Alan Teşhisi</h1>
+<div class="kart">
+  <p>Bu araç, öğrenci belgelerinde <strong>hangi tarih alanlarının gerçekten dolu olduğunu</strong> bulur. "Son Kayıt Olan Öğrenciler" sıralaması bu bilgiyle düzeltilecek.</p>
+  <button id="btn" onclick="tara()">Google ile Giriş Yap &amp; Tara</button>
+</div>
+<div class="kart" id="sonucKart" style="display:none;"><div id="sonuc"></div></div>
+<div class="kart" id="logKart" style="display:none;"><strong>Ham Log (Claude'a gönderin):</strong><pre id="log"></pre></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc, query, limit } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
+  authDomain: "bcka-site.firebaseapp.com",
+  projectId: "bcka-site",
+  storageBucket: "bcka-site.firebasestorage.app",
+  messagingSenderId: "736581475783",
+  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+const AKTIF_DONEM = "2026-2027";
+
+const log = (m) => { document.getElementById("log").textContent += m + "\n"; };
+const ekle = (h) => { document.getElementById("sonuc").innerHTML += h; };
+
+// Tarih olabilecek alan adları
+const TARIH_ADAYLARI = [
+  "kayitTarihi", "onayTarihi", "olusturuldu", "olusturulma", "createdAt",
+  "okulaKayitTarihi", "kayitZamani", "gonderimTarihi", "basvuruTarihi",
+  "guncellendi", "guncellemeTarihi", "sonGuncelleme", "tarih"
+];
+
+function tipAnlat(v) {
+  if (v == null) return null;
+  if (typeof v === "string") return { tur: "metin", deger: v };
+  if (v.seconds !== undefined) return { tur: "Timestamp", deger: new Date(v.seconds * 1000).toISOString() };
+  if (typeof v.toDate === "function") { try { return { tur: "Timestamp", deger: v.toDate().toISOString() }; } catch(e) { return null; } }
+  if (v instanceof Date) return { tur: "Date", deger: v.toISOString() };
+  return null;
+}
+
+window.tara = async function() {
+  document.getElementById("btn").disabled = true;
+  document.getElementById("sonucKart").style.display = "block";
+  document.getElementById("logKart").style.display = "block";
+  document.getElementById("sonuc").innerHTML = "<p>Taranıyor…</p>";
+  document.getElementById("log").textContent = "";
+
+  try {
+    const p = new GoogleAuthProvider();
+    p.setCustomParameters({ prompt: "select_account" });
+    const r = await signInWithPopup(auth, p);
+    log("✓ Giriş: " + r.user.email);
+  } catch (e) {
+    document.getElementById("sonuc").innerHTML = `<p style="color:#dc2626;">Giriş başarısız: ${e.message}</p>`;
+    document.getElementById("btn").disabled = false;
+    return;
+  }
+
+  document.getElementById("sonuc").innerHTML = "<h3>Sonuç</h3>";
+
+  // 5 öğrenci örnekle
+  let ogrenciler = [];
+  try {
+    const snap = await getDocs(query(collection(db, "ogrenciler"), limit(5)));
+    snap.forEach(d => ogrenciler.push({ id: d.id, ...d.data() }));
+    log(`✓ ${ogrenciler.length} öğrenci örneklendi`);
+  } catch (e) {
+    log("✗ ogrenciler okunamadı: " + e.code);
+    ekle(`<p style="color:#dc2626;">Öğrenci listesi okunamadı: ${e.code}</p>`);
+    document.getElementById("btn").disabled = false;
+    return;
+  }
+
+  // ── ANA BELGE ──
+  ekle("<h4>1) Öğrenci ana belgesi (ogrenciler/{id})</h4>");
+  const anaSayac = {};
+  for (const o of ogrenciler) {
+    log(`\n── ${o.ogrenciAdSoyad || o.adSoyad || o.id} ──`);
+    log("  tüm alanlar: " + Object.keys(o).join(", "));
+    TARIH_ADAYLARI.forEach(a => {
+      const t = tipAnlat(o[a]);
+      if (t) { anaSayac[a] = (anaSayac[a] || 0) + 1; log(`  ✓ ${a} = ${t.deger}  (${t.tur})`); }
+    });
+  }
+  if (Object.keys(anaSayac).length) {
+    ekle("<table><tr><th>Alan</th><th>Kaç öğrencide dolu</th></tr>" +
+      Object.entries(anaSayac).map(([k, v]) => `<tr><td><code>${k}</code></td><td class="ok">${v}/${ogrenciler.length}</td></tr>`).join("") +
+      "</table>");
+  } else {
+    ekle('<p class="yok">Ana belgede tarih alanı bulunamadı.</p>');
+  }
+
+  // ── DÖNEM BELGESİ ──
+  ekle(`<h4>2) Dönem belgesi (ogrenciler/{id}/donemler/${AKTIF_DONEM})</h4>`);
+  const donemSayac = {};
+  let donemVar = 0;
+  for (const o of ogrenciler) {
+    try {
+      const ds = await getDoc(doc(db, "ogrenciler", o.id, "donemler", AKTIF_DONEM));
+      if (!ds.exists()) { log(`  • ${o.id}: dönem belgesi yok`); continue; }
+      donemVar++;
+      const d = ds.data();
+      log(`\n── DÖNEM: ${o.ogrenciAdSoyad || o.id} ──`);
+      log("  üst alanlar: " + Object.keys(d).join(", "));
+      TARIH_ADAYLARI.forEach(a => {
+        const t = tipAnlat(d[a]);
+        if (t) { donemSayac[a] = (donemSayac[a] || 0) + 1; log(`  ✓ ${a} = ${t.deger}  (${t.tur})`); }
+      });
+      // kayit alt nesnesi
+      if (d.kayit && typeof d.kayit === "object") {
+        log("  kayit.* alanları: " + Object.keys(d.kayit).join(", "));
+        TARIH_ADAYLARI.forEach(a => {
+          const t = tipAnlat(d.kayit[a]);
+          if (t) { const k = "kayit." + a; donemSayac[k] = (donemSayac[k] || 0) + 1; log(`  ✓ kayit.${a} = ${t.deger}  (${t.tur})`); }
+        });
+      }
+    } catch (e) { log(`  ✗ ${o.id} dönem okunamadı: ${e.code}`); }
+  }
+  ekle(`<p style="font-size:13px; color:#64748b;">${donemVar}/${ogrenciler.length} öğrencide ${AKTIF_DONEM} dönem belgesi var.</p>`);
+  if (Object.keys(donemSayac).length) {
+    ekle("<table><tr><th>Alan</th><th>Kaç öğrencide dolu</th></tr>" +
+      Object.entries(donemSayac).map(([k, v]) => `<tr><td><code>${k}</code></td><td class="ok">${v}/${donemVar}</td></tr>`).join("") +
+      "</table>");
+  } else {
+    ekle('<p class="yok">Dönem belgesinde tarih alanı bulunamadı.</p>');
+  }
+
+  ekle("<hr><p><strong>Aşağıdaki ham logu Claude'a kopyala-yapıştır.</strong> Hangi alanın kullanılacağını oradan belirleyip sıralamayı düzeltecek.</p>");
+  document.getElementById("btn").disabled = false;
+};
+</script>
+</body>
+</html>
