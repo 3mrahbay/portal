@@ -764,27 +764,11 @@ html, body {
 .footer a:hover { color: var(--green-deep); }
 
 /* ============ LOGIN MODAL ============ */
-/* Rapor/branş pencereleri için kutu — .modal ile aynı görünüm */
-.modal-box {
-  background: #ffffff;
-  border-radius: 18px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
-  width: 100%;
-  max-width: 560px;
-  max-height: 88vh;
-  overflow-y: auto;
-  position: relative;
-  animation: modalIn 0.22s ease-out;
-}
-@keyframes modalIn {
-  from { opacity: 0; transform: translateY(14px) scale(.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(6px);
+  background: rgba(26, 77, 46, 0.4);
+  backdrop-filter: blur(8px);
   z-index: 1000;
   display: none;
   align-items: center;
@@ -6341,10 +6325,7 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
 .egitim-matrix-tablosu {
   border-collapse: separate;
   border-spacing: 0;
-  /* width:100% iken ders sütunu tüm boş alanı yutuyor ve öğrenci sütunları
-     sağa itiliyordu. Az öğrencide tablo içeriği kadar geniş olsun, sola yaslansın. */
-  width: auto;
-  min-width: 100%;
+  width: 100%;
   font-size: 12px;
 }
 .egitim-matrix-tablosu thead th {
@@ -6364,8 +6345,6 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
   z-index: 11;
   background: #f9fafb;
   min-width: 220px;
-  max-width: 340px;
-  width: 340px;
   font-size: 11px;
   letter-spacing: 0.4px;
   color: #6b7280;
@@ -6421,8 +6400,6 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
 }
 
 .egitim-matrix-tablosu tbody td.ders-adi {
-  max-width: 340px;
-  width: 340px;
   padding: 10px 14px;
   border-bottom: 1px solid #f3f4f6;
   font-weight: 500;
@@ -19963,16 +19940,9 @@ function yonetimHomeHTML(ad) {
     .map(o => {
       const ayar = ayarListesi[o.id] || {};
       const kayit = ayar.kayit || {};
-      // Kayıt zamanı: dönem belgesi → kayit alt nesnesi → ana belge sırasıyla denenir
-      const t = _tarihAl(ayar.onayTarihi)      || _tarihAl(ayar.olusturulma)
-             || _tarihAl(ayar.olusturuldu)     || _tarihAl(ayar.kayitTarihi)
-             || _tarihAl(ayar.guncellendi)     || _tarihAl(ayar.sonGuncelleme)
-             || _tarihAl(kayit.kayitTarihi)    || _tarihAl(kayit.onayTarihi)
-             || _tarihAl(kayit.olusturuldu)    || _tarihAl(kayit.tarih)
-             || _tarihAl(o.kayitTarihi)        || _tarihAl(o.olusturuldu)
-             || _tarihAl(o.olusturulma)        || _tarihAl(o.createdAt)
-             || _tarihAl(o.okulaKayitTarihi)   || _tarihAl(o.basvuruTarihi)
-             || "";
+      const t = _tarihAl(ayar.onayTarihi) || _tarihAl(kayit.kayitTarihi) || _tarihAl(ayar.olusturulma)
+             || _tarihAl(ayar.kayitTarihi) || _tarihAl(o.kayitTarihi) || _tarihAl(o.olusturulma)
+             || _tarihAl(o.okulaKayitTarihi) || "";
       return {
         o, t,
         sinif: (kayit.sinif || o.sinif || o.sinifi || ""),
@@ -30539,7 +30509,7 @@ window.egitimDetayliRaporGoster = function(disiplin) {
   modal.onclick = (e) => { if (e.target.id === "egitimRaporModal") modal.remove(); };
   modal.innerHTML = `
     <div class="modal-box" style="max-width:900px; max-height:90vh; overflow-y:auto;">
-      <div style="background:linear-gradient(135deg, ${dInfo.renk} 0%, ${dInfo.renk}bb 100%); color:#fff; padding:20px 24px; position:sticky; top:0; z-index:2; border-radius:18px 18px 0 0;">
+      <div style="background:linear-gradient(135deg, ${dInfo.renk} 0%, ${dInfo.renk}bb 100%); color:#fff; padding:20px 24px; position:sticky; top:0; z-index:2;">
         <div style="display:flex; align-items:center; justify-content:space-between;">
           <div>
             <div style="font-size:11px; font-weight:800; letter-spacing:1.4px; opacity:.9;">GELİŞİM RAPORU</div>
