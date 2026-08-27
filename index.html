@@ -19963,9 +19963,16 @@ function yonetimHomeHTML(ad) {
     .map(o => {
       const ayar = ayarListesi[o.id] || {};
       const kayit = ayar.kayit || {};
-      const t = _tarihAl(ayar.onayTarihi) || _tarihAl(kayit.kayitTarihi) || _tarihAl(ayar.olusturulma)
-             || _tarihAl(ayar.kayitTarihi) || _tarihAl(o.kayitTarihi) || _tarihAl(o.olusturulma)
-             || _tarihAl(o.okulaKayitTarihi) || "";
+      // Kayıt zamanı: dönem belgesi → kayit alt nesnesi → ana belge sırasıyla denenir
+      const t = _tarihAl(ayar.onayTarihi)      || _tarihAl(ayar.olusturulma)
+             || _tarihAl(ayar.olusturuldu)     || _tarihAl(ayar.kayitTarihi)
+             || _tarihAl(ayar.guncellendi)     || _tarihAl(ayar.sonGuncelleme)
+             || _tarihAl(kayit.kayitTarihi)    || _tarihAl(kayit.onayTarihi)
+             || _tarihAl(kayit.olusturuldu)    || _tarihAl(kayit.tarih)
+             || _tarihAl(o.kayitTarihi)        || _tarihAl(o.olusturuldu)
+             || _tarihAl(o.olusturulma)        || _tarihAl(o.createdAt)
+             || _tarihAl(o.okulaKayitTarihi)   || _tarihAl(o.basvuruTarihi)
+             || "";
       return {
         o, t,
         sinif: (kayit.sinif || o.sinif || o.sinifi || ""),
