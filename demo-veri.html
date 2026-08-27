@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Veri Kurulumu · ZEKY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --koyu:#2D5E3E; --orta:#4A7C59; --acik:#7CB97C;
+    --kagit:#FBFCFA; --metin:#1F2A22; --soluk:#5C6B60;
+    --cizgi:#E2E8E3; --uyari:#B4531F; --tehlike:#A32F2F; --iyi:#2E7D4F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',system-ui,sans-serif;background:var(--kagit);
+       color:var(--metin);line-height:1.6;font-size:15px;padding:0 0 60px}
+  .sarmal{max-width:920px;margin:0 auto;padding:0 20px}
+  header{background:var(--koyu);color:#fff;padding:28px 0;margin-bottom:24px}
+  header h1{font-family:'Quicksand',sans-serif;font-weight:700;font-size:24px}
+  header p{color:rgba(255,255,255,.78);font-size:14px;margin-top:6px}
+
+  .dugme{font-family:'Quicksand',sans-serif;font-weight:600;font-size:15px;
+    background:var(--koyu);color:#fff;border:none;padding:13px 26px;
+    border-radius:6px;cursor:pointer;margin:4px 6px 4px 0}
+  .dugme:hover{background:var(--orta)}
+  .dugme:disabled{background:#B8C4BB;cursor:not-allowed}
+  .dugme.ikincil{background:#fff;color:var(--koyu);border:1.5px solid var(--koyu)}
+  .dugme.tehlike{background:var(--tehlike)}
+  .dugme.tehlike:hover{background:#8A2626}
+
+  .kart{background:#fff;border:1px solid var(--cizgi);border-radius:8px;
+        padding:22px;margin-bottom:20px}
+  .kart h2{font-family:'Quicksand',sans-serif;font-weight:700;font-size:18px;
+    color:var(--koyu);margin-bottom:12px;padding-bottom:10px;
+    border-bottom:2px solid var(--acik)}
+  .adim{font-family:'Quicksand',sans-serif;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--acik);font-weight:600;margin-bottom:4px}
+
+  .not{background:#FDFBF7;border-left:3px solid var(--uyari);padding:14px 18px;
+       border-radius:4px;margin:14px 0;font-size:14px}
+  .not.kritik{border-left-color:var(--tehlike);background:#FDF6F6}
+  .not.iyi{border-left-color:var(--iyi);background:#F4FAF6}
+  .not b{color:var(--uyari)}
+  .not.kritik b{color:var(--tehlike)}
+  .not.iyi b{color:var(--iyi)}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
+  th,td{text-align:left;padding:9px 12px;border:1px solid var(--cizgi)}
+  th{background:#F1F5F2;font-family:'Quicksand',sans-serif;font-weight:600;
+     color:var(--koyu);font-size:13px}
+
+  input[type=text],input[type=email]{font-family:inherit;font-size:15px;
+    padding:11px 14px;border:1.5px solid var(--cizgi);border-radius:6px;
+    width:340px;max-width:100%;margin:4px 8px 4px 0}
+  label{display:block;font-size:13px;color:var(--soluk);margin-top:10px}
+
+  pre{background:#F1F5F2;border:1px solid var(--cizgi);border-radius:6px;
+    padding:14px;font-size:12.5px;white-space:pre-wrap;max-height:320px;
+    overflow-y:auto;font-family:ui-monospace,monospace;margin-top:12px}
+  .gizli{display:none}
+  #durumYazi{font-size:14px;color:var(--soluk);margin:10px 0}
+  code{background:#F1F5F2;padding:2px 6px;border-radius:4px;font-size:13px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sarmal">
+    <h1>Demo Veri Kurulumu</h1>
+    <p>Mağaza ekran görüntüleri, Google incelemesi ve satış demosu için örnek okul verisi. Gerçek kayıtlara dokunmaz.</p>
+  </div>
+</header>
+
+<div class="sarmal">
+
+  <div class="kart">
+    <div class="adim">Adım 1</div>
+    <h2>Giriş</h2>
+    <button class="dugme" id="girisBtn">Google ile Giriş Yap</button>
+    <div id="durumYazi">Yönetici hesabıyla giriş yapın.</div>
+  </div>
+
+  <div id="panel" class="gizli">
+
+    <div class="kart">
+      <div class="adim">Adım 2</div>
+      <h2>Demo hesaplar</h2>
+      <p style="font-size:14px;color:var(--soluk)">
+        Google incelemesi uygulamaya giriş yapabilmek zorunda. Bu iki adresi
+        Play Console'daki <b>Uygulama erişimi</b> formuna yazacaksın. Gerçek
+        Google hesapları olmalı — kendi Gmail adreslerinden ikisini kullanabilirsin.
+      </p>
+      <label>Demo öğretmen e-postası</label>
+      <input type="email" id="ogrEposta" placeholder="demo.ogretmen@gmail.com">
+      <label>Demo veli e-postası</label>
+      <input type="email" id="veliEposta" placeholder="demo.veli@gmail.com">
+      <div class="not">
+        <b>Not:</b> Bu adresler <code>personeller</code> ve <code>veliler</code>
+        koleksiyonlarına yazılır. O adresle Google girişi yapıldığında uygulama
+        onları demo öğretmen ve demo veli olarak tanır.
+      </div>
+    </div>
+
+    <div class="kart">
+      <div class="adim">Adım 3</div>
+      <h2>Neler oluşturulacak</h2>
+      <table>
+        <tr><th>Koleksiyon</th><th>İçerik</th></tr>
+        <tr><td>siniflar</td><td>Örnek Sınıf</td></tr>
+        <tr><td>ogrenciler</td><td>10 örnek öğrenci (uydurma ad, TC yok)</td></tr>
+        <tr><td>veliler</td><td>Demo veli — 2 çocuğa bağlı</td></tr>
+        <tr><td>personeller</td><td>Demo öğretmen — Örnek Sınıf'a atanmış</td></tr>
+        <tr><td>ogrenciGelisim</td><td>Kazanım işaretleri + öğretmen yorumları</td></tr>
+        <tr><td>gunlukRaporlar</td><td>Son 5 gün için günlük raporlar</td></tr>
+        <tr><td>devamsizlik</td><td>Son 5 günün yoklaması</td></tr>
+        <tr><td>duyurular</td><td>3 örnek duyuru</td></tr>
+        <tr><td>yemekMenuleri</td><td>Bu haftanın menüsü</td></tr>
+        <tr><td>bildirimler</td><td>Demo veliye 5 bildirim</td></tr>
+      </table>
+      <div class="not iyi">
+        <b>Her kayda <code>_demo: true</code> etiketi yazılır.</b>
+        Temizleme işlemi yalnızca bu etiketi taşıyan belgeleri siler.
+        Gerçek verilerinize hiçbir koşulda dokunulmaz.
+      </div>
+    </div>
+
+    <div class="kart">
+      <div class="adim">Adım 4</div>
+      <h2>Kur</h2>
+      <button class="dugme" id="kurBtn">Demo Veriyi Oluştur</button>
+      <pre id="gunluk" class="gizli"></pre>
+    </div>
+
+    <div class="kart">
+      <div class="adim">Adım 5</div>
+      <h2>Temizle</h2>
+      <div class="not kritik">
+        <b>Ekran görüntülerini aldıktan ve Google incelemesi bittikten sonra çalıştır.</b>
+        Yalnızca <code>_demo: true</code> etiketli belgeleri siler. Onaylamak için
+        aşağıya <code>SIL</code> yazın.
+      </div>
+      <input type="text" id="silOnay" placeholder="SIL" autocomplete="off" style="width:180px">
+      <button class="dugme tehlike" id="silBtn" disabled>Demo Veriyi Sil</button>
+      <pre id="silGunluk" class="gizli"></pre>
+    </div>
+
+    <div class="kart">
+      <h2>Ekran görüntüsü çekim listesi</h2>
+      <p style="font-size:14px;color:var(--soluk);margin-bottom:8px">
+        Demo öğretmen ve demo veli hesaplarıyla girip şu ekranları çek.
+        Sıra önemli: veri yoğun ekranlar önce gelsin, maskot en sona kalsın.
+      </p>
+      <table>
+        <tr><th>#</th><th>Ekran</th><th>Hangi hesap</th></tr>
+        <tr><td>1</td><td>Veli ana sayfa — günlük rapor kartı</td><td>Demo veli</td></tr>
+        <tr><td>2</td><td>Gelişim takibi — kazanımlar</td><td>Demo veli</td></tr>
+        <tr><td>3</td><td>Öğretmen · Öğrencilerim listesi</td><td>Demo öğretmen</td></tr>
+        <tr><td>4</td><td>Hızlı gözlem</td><td>Demo öğretmen</td></tr>
+        <tr><td>5</td><td>Yoklama / devamsızlık</td><td>Demo öğretmen</td></tr>
+        <tr><td>6</td><td>Yemek menüsü</td><td>Demo veli</td></tr>
+        <tr><td>7</td><td>Duyurular / bildirimler</td><td>Demo veli</td></tr>
+        <tr><td>8</td><td>Giriş ekranı (maskot)</td><td>—</td></tr>
+      </table>
+      <div class="not">
+        <b>Giriş ekranında "Bir Çiçek Koleji" yazıyor.</b> Mağaza görselinde bu
+        görünürse başka okullar "bu bir okulun kendi uygulaması" diye düşünür.
+        8. görseli ya çekme ya da o metni geçici olarak nötr yap.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, setDoc, addDoc, deleteDoc,
+         query, where, writeBatch }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
+  authDomain: "bcka-site.firebaseapp.com",
+  projectId: "bcka-site",
+  storageBucket: "bcka-site.firebasestorage.app",
+  messagingSenderId: "736581475783",
+  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const $ = s => document.querySelector(s);
+const yaz = t => $("#durumYazi").textContent = t;
+const log = (el, t) => { el.classList.remove("gizli"); el.textContent += t + "\n"; };
+
+const SINIF = "Örnek Sınıf";
+const DONEM = "2026-2027";
+
+// Uydurma adlar. Gercek ogrencilerle karisma ihtimali olmayacak kadar farkli.
+const COCUKLAR = [
+  { ad:"Zeynep Yıldız",   dt:"2021-03-14", c:"Kız"   },
+  { ad:"Kerem Aydın",     dt:"2021-07-02", c:"Erkek" },
+  { ad:"Elif Doğan",      dt:"2021-01-28", c:"Kız"   },
+  { ad:"Mert Kavak",      dt:"2020-11-09", c:"Erkek" },
+  { ad:"Nisan Toprak",    dt:"2021-05-21", c:"Kız"   },
+  { ad:"Ali Kaya",        dt:"2020-09-30", c:"Erkek" },
+  { ad:"Duru Şahin",      dt:"2021-02-11", c:"Kız"   },
+  { ad:"Ege Bulut",       dt:"2021-08-17", c:"Erkek" },
+  { ad:"Masal Ekin",      dt:"2020-12-05", c:"Kız"   },
+  { ad:"Poyraz Deniz",    dt:"2021-04-23", c:"Erkek" }
+];
+
+const RUHHALI  = ["Neşeli","Sakin","Meraklı","Enerjik","Keyifli"];
+const YEMEK    = ["Tamamını yedi","Çoğunu yedi","Az yedi"];
+const UYKU     = ["1 saat 20 dk","1 saat","45 dakika","1 saat 30 dk"];
+const ETKINLIK = [
+  "Bahçede yaprak topladı, renklerine göre ayırdı.",
+  "Pembe kule ile çalıştı, sıralamayı tek başına tamamladı.",
+  "Arkadaşlarıyla birlikte hikâye halkasına katıldı.",
+  "Su dökme çalışmasında dikkatini uzun süre korudu.",
+  "Boyama etkinliğinde kendi renk seçimlerini yaptı."
+];
+const YORUMLAR = [
+  { b:"Montessori · Pembe Kule", m:"Sıralama çalışmasını bugün ilk kez yardımsız tamamladı. Odaklanma süresi belirgin şekilde arttı." },
+  { b:"Orman Okulu · Doğa Gözlemi", m:"Bahçede bulduğu yaprakları büyüklüklerine göre dizdi. Kendi sistemini kurdu." },
+  { b:"Değerler · Paylaşma", m:"Oyuncağını arkadaşıyla paylaştı, sırasını bekledi. Grup içinde uyumu güçleniyor." }
+];
+
+function bugunGeri(gun){
+  const d = new Date(); d.setDate(d.getDate() - gun);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function haftaBasi(){
+  const d = new Date(); const g = d.getDay() || 7;
+  d.setDate(d.getDate() - g + 1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+const sec = a => a[Math.floor(Math.random()*a.length)];
+
+$("#girisBtn").onclick = async () => {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { yaz("Giriş hatası: " + e.message); }
+};
+onAuthStateChanged(auth, u => {
+  if (u) { yaz("Giriş yapıldı: " + u.email);
+           $("#girisBtn").classList.add("gizli");
+           $("#panel").classList.remove("gizli"); }
+});
+
+$("#silOnay").oninput = () => {
+  $("#silBtn").disabled = $("#silOnay").value.trim().toUpperCase() !== "SIL";
+};
+
+// ───────────────────────── KURULUM ─────────────────────────
+$("#kurBtn").onclick = async () => {
+  const ogrEposta  = ($("#ogrEposta").value  || "").trim().toLowerCase();
+  const veliEposta = ($("#veliEposta").value || "").trim().toLowerCase();
+  if (!ogrEposta || !veliEposta) { alert("İki demo e-posta adresini de girin."); return; }
+
+  $("#kurBtn").disabled = true;
+  const g = $("#gunluk"); g.textContent = "";
+  log(g, "Başlıyor…\n");
+
+  try {
+    // 1) Sınıf
+    await setDoc(doc(db, "siniflar", "demo_ornek_sinif"), {
+      ad: SINIF, sira: 99, durum: "aktif", _demo: true
+    });
+    log(g, "✓ Sınıf oluşturuldu: " + SINIF);
+
+    // 2) Öğrenciler
+    const ogrIdler = [];
+    for (let i = 0; i < COCUKLAR.length; i++) {
+      const c = COCUKLAR[i];
+      const id = "demo_ogr_" + (i+1);
+      ogrIdler.push({ id, ad: c.ad });
+      await setDoc(doc(db, "ogrenciler", id), {
+        id, ogrenciAdSoyad: c.ad, dogumTarihi: c.dt, cinsiyet: c.c,
+        sinif: SINIF, durum: "aktif", kayitDurumu: "mevcut",
+        programTuru: i % 4 === 0 ? "Yarım Gün" : "Tam Gün",
+        donem: DONEM, kaynakBasvuruId: "demo",
+        veli1AdSoyad: c.ad.split(" ")[1] + " ailesi",
+        veli1Eposta: (i < 2 ? veliEposta : ""),
+        olusturuldu: new Date().toISOString(),
+        _demo: true
+      });
+    }
+    log(g, "✓ " + COCUKLAR.length + " öğrenci oluşturuldu");
+
+    // 3) Demo öğretmen
+    await setDoc(doc(db, "personeller", ogrEposta), {
+      ad: "Demo", soyad: "Öğretmen", adSoyad: "Demo Öğretmen",
+      email: ogrEposta, eposta: ogrEposta,
+      rol: "ogretmen", unvan: "Okul Öncesi Öğretmeni", durum: "aktif",
+      sinifAtamalari: [SINIF], siniflar: [SINIF],
+      _demo: true
+    });
+    log(g, "✓ Demo öğretmen: " + ogrEposta);
+
+    // 4) Demo veli — ilk iki çocuğa bağlı
+    await setDoc(doc(db, "veliler", veliEposta), {
+      adSoyad: "Demo Veli", email: veliEposta, eposta: veliEposta,
+      ogrenciIds: [ogrIdler[0].id, ogrIdler[1].id],
+      durum: "aktif", _demo: true
+    });
+    log(g, "✓ Demo veli: " + veliEposta + " (2 çocuk)");
+
+    // 5) Gelişim kayıtları
+    for (const o of ogrIdler.slice(0, 6)) {
+      await setDoc(doc(db, "ogrenciGelisim", o.id), {
+        _demo: true,
+        montessori: { kayitlar: {
+          "duyu__Boyutlar__Pembe Kule": "U",
+          "duyu__Boyutlar__Kahverengi Merdiven": "T",
+          "pratik__Günlük Yaşam__Su Dökme": "U",
+          "dil__Sesler__Ses Oyunları": "S"
+        }},
+        orman: { kayitlar: { "doga__Gözlem__Yaprak Toplama": "U" }},
+        ogretmenYorumlari: YORUMLAR.map((y, i) => ({
+          tarih: new Date(Date.now() - i*86400000*2).toISOString(),
+          baslik: y.b, metin: y.m, yazar: "Demo Öğretmen", paylas: true
+        }))
+      }, { merge: true });
+    }
+    log(g, "✓ Gelişim kayıtları ve öğretmen yorumları");
+
+    // 6) Günlük raporlar — son 5 gün
+    let rapor = 0;
+    for (let gun = 0; gun < 5; gun++) {
+      const tarih = bugunGeri(gun);
+      for (const o of ogrIdler.slice(0, 6)) {
+        await setDoc(doc(db, "gunlukRaporlar", o.id + "__" + tarih), {
+          ogrenciId: o.id, ogrenciAd: o.ad, sinif: SINIF, tarih,
+          ruhHali: sec(RUHHALI), yemek: sec(YEMEK), uyku: sec(UYKU),
+          etkinlik: sec(ETKINLIK), tuvalet: "Kendi başına",
+          yazan: ogrEposta, yazanAd: "Demo Öğretmen",
+          _demo: true
+        });
+        rapor++;
+      }
+    }
+    log(g, "✓ " + rapor + " günlük rapor (son 5 gün)");
+
+    // 7) Yoklama
+    for (let gun = 0; gun < 5; gun++) {
+      const tarih = bugunGeri(gun);
+      const kayitlar = {};
+      ogrIdler.forEach((o, i) => {
+        kayitlar[o.id] = {
+          durum: (gun === 1 && i === 3) ? "gelmedi" : "geldi",
+          sinif: SINIF, ogrenciAd: o.ad
+        };
+      });
+      await setDoc(doc(db, "devamsizlik", tarih), { kayitlar, _demo: true }, { merge: true });
+    }
+    log(g, "✓ Yoklama kayıtları (son 5 gün)");
+
+    // 8) Duyurular
+    const duyurular = [
+      { baslik: "Veli Toplantısı", metin: "Dönem değerlendirme toplantımız gelecek hafta Perşembe saat 17:00'de yapılacaktır." },
+      { baslik: "Orman Okulu Günü", metin: "Cuma günü orman etkinliğimiz var. Çocuklarımız için yedek kıyafet göndermenizi rica ederiz." },
+      { baslik: "Kütüphane Haftası", metin: "Bu hafta boyunca çocuklarımız evden birer kitap getirebilir." }
+    ];
+    for (let i = 0; i < duyurular.length; i++) {
+      await addDoc(collection(db, "duyurular"), {
+        ...duyurular[i], ts: Date.now() - i*86400000,
+        hedefTur: "tumOkul", hedefDeger: "",
+        olusturan: "Demo Yönetim", tarih: bugunGeri(i),
+        _demo: true
+      });
+    }
+    log(g, "✓ 3 duyuru");
+
+    // 9) Yemek menüsü
+    await setDoc(doc(db, "yemekMenuleri", haftaBasi()), {
+      _demo: true,
+      gunler: [
+        { kahvalti:"Labne peynir · zeytin · haşlanmış yumurta", ogle:"Ezogelin çorbası · fırın köfte · pirinç pilavı", ikindi:"Havuçlu kek · ıhlamur" },
+        { kahvalti:"Beyaz peynir · söğüş · bal & tereyağı",      ogle:"Mercimek çorbası · tavuk sote · bulgur pilavı", ikindi:"Muhallebi · taze meyve" },
+        { kahvalti:"Omlet · domates · zeytin",                    ogle:"Yayla çorbası · karnıyarık · yoğurt",         ikindi:"Poğaça · süt" },
+        { kahvalti:"Menemen · peynir çeşitleri",                  ogle:"Sebze çorbası · fırın tavuk · şehriye pilavı", ikindi:"Meyve tabağı · kefir" },
+        { kahvalti:"Simit · peynir · söğüş",                      ogle:"Tarhana çorbası · köfte · patates",           ikindi:"Kurabiye · ayran" }
+      ]
+    });
+    log(g, "✓ Bu haftanın yemek menüsü");
+
+    // 10) Bildirimler
+    const bildirimler = [
+      { baslik:"Yeni gelişim rozeti", metin:"Zeynep Yıldız \"İlk Adım\" rozetini kazandı 🎉" },
+      { baslik:"Günlük rapor hazır",  metin:"Zeynep'in bugünkü raporu paylaşıldı" },
+      { baslik:"Yeni duyuru",         metin:"Veli Toplantısı · gelecek hafta Perşembe" },
+      { baslik:"Yeni fotoğraf",       metin:"Örnek Sınıf galerisine yeni içerik eklendi" },
+      { baslik:"Randevunuz onaylandı",metin:"Öğretmen görüşmesi · Salı 16:00" }
+    ];
+    for (let i = 0; i < bildirimler.length; i++) {
+      await addDoc(collection(db, "bildirimler"), {
+        aliciEmail: veliEposta, tip: "demo",
+        ...bildirimler[i], okundu: false, hedefSayfa: "",
+        olusturuldu: new Date(Date.now() - i*3600000*5).toISOString(),
+        _demo: true
+      });
+    }
+    log(g, "✓ 5 bildirim (demo veliye)");
+
+    log(g, "\n═══════════════════════════════");
+    log(g, "✅ TAMAMLANDI");
+    log(g, "");
+    log(g, "Play Console → Uygulama erişimi formuna yaz:");
+    log(g, "  Öğretmen: " + ogrEposta);
+    log(g, "  Veli:     " + veliEposta);
+    log(g, "  Not: Google ile giriş yapılır, şifre yoktur.");
+    log(g, "");
+    log(g, "Bu adreslerle uygulamaya girip ekran görüntülerini çek.");
+
+  } catch (e) {
+    log(g, "\n❌ Hata: " + e.message);
+    log(g, "Yönetici hesabıyla giriş yaptığınızdan emin olun.");
+    $("#kurBtn").disabled = false;
+  }
+};
+
+// ───────────────────────── TEMİZLEME ─────────────────────────
+$("#silBtn").onclick = async () => {
+  $("#silBtn").disabled = true;
+  const g = $("#silGunluk"); g.textContent = "";
+  log(g, "Demo kayıtlar aranıyor…\n");
+
+  const kolleksiyonlar = ["siniflar","ogrenciler","personeller","veliler",
+    "ogrenciGelisim","gunlukRaporlar","devamsizlik","duyurular",
+    "yemekMenuleri","bildirimler","galeri"];
+
+  let toplam = 0;
+  for (const kol of kolleksiyonlar) {
+    try {
+      const snap = await getDocs(query(collection(db, kol), where("_demo", "==", true)));
+      if (snap.empty) { log(g, "  " + kol + ": yok"); continue; }
+      let n = 0;
+      for (const d of snap.docs) { await deleteDoc(doc(db, kol, d.id)); n++; }
+      toplam += n;
+      log(g, "  " + kol + ": " + n + " belge silindi");
+    } catch (e) {
+      log(g, "  " + kol + ": okunamadı (" + e.message + ")");
+    }
+  }
+  log(g, "\n✅ Toplam " + toplam + " demo belge silindi.");
+  log(g, "Gerçek verilerinize dokunulmadı.");
+  $("#silOnay").value = "";
+};
+</script>
+</body>
+</html>
