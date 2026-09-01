@@ -11302,7 +11302,7 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
               <button class="btn-mini" data-duyuru-filter="arsiv" onclick="duyuruFilter('arsiv')"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> Arşiv</button>
               <button class="btn-mini" data-duyuru-filter="tumu" onclick="duyuruFilter('tumu')"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
             </div>
-            <button class="btn-primary yonetim-only" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
+            <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
           </div>
 
           <!-- Liste -->
@@ -28631,7 +28631,7 @@ async function renderDuyurular() {
         <div style="font-size:48px; margin-bottom:12px;"><i data-lucide="file-text" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
         <div style="font-family:var(--font-display); font-size:17px; color:var(--gray-700); margin-bottom:6px;">${aktifDuyuruFilter === "arsiv" ? "Arşivde duyuru yok" : "Henüz duyuru yok"}</div>
         <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">Velilerinize ilk duyurunuzu gönderin</div>
-        <button class="btn-primary yonetim-only" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru Oluştur</button>
+        <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru Oluştur</button>
       </div>
     `;
     return;
@@ -28691,6 +28691,7 @@ async function renderDuyurular() {
 // Modal aç
 window.openDuyuruModal = function() {
   document.getElementById("duyuruModal").classList.add("active");
+  if (typeof duyuruRolKisitiUygula === "function") duyuruRolKisitiUygula();
   document.getElementById("duyuruModalBaslik").innerHTML = `📝 Yeni Duyuru`; window.lucideYenile && window.lucideYenile();
   document.getElementById("duyuruDuzenleId").value = "";
   document.getElementById("duyuruBaslik").value = "";
@@ -28754,6 +28755,33 @@ window.duzenleDuyuru = function(id) {
 };
 
 // Kaydet / Yayınla
+// Duyuru: öğretmen yalnızca kendi sınıfına duyuru yapabilir
+window.duyuruRolKisitiUygula = function() {
+  try {
+    if (typeof ogretmenRolMu !== "function" || !ogretmenRolMu()) return;
+    const sel = document.getElementById("duyuruHedefTur");
+    if (sel) {
+      // Okul geneli ve öğrenci bazlı seçenekleri kaldır
+      [...sel.options].forEach(o => {
+        if (o.value === "tumOkul" || o.value === "ogrenci") o.remove();
+      });
+      if (sel.value !== "sinif") {
+        sel.value = "sinif";
+        if (typeof duyuruHedefDegisti === "function") duyuruHedefDegisti();
+      }
+    }
+    // Bilgi şeridi
+    const govde = document.querySelector("#duyuruModal .modal-body");
+    if (govde && !document.getElementById("duyuruOgrNot")) {
+      const not = document.createElement("div");
+      not.id = "duyuruOgrNot";
+      not.style.cssText = "background:#EFF6FF; border:1px solid #BFDBFE; border-radius:10px; padding:10px 13px; font-size:12px; color:#1D4ED8; margin-bottom:12px;";
+      not.textContent = "Duyurunuz yalnızca kendi sınıfınızın velilerine gönderilir.";
+      govde.prepend(not);
+    }
+  } catch (e) { console.warn("duyuru rol kısıtı:", e); }
+};
+
 window.kaydetDuyuru = async function() {
   const id = document.getElementById("duyuruDuzenleId").value;
   const baslik = document.getElementById("duyuruBaslik").value.trim();
@@ -28776,6 +28804,17 @@ window.kaydetDuyuru = async function() {
     if (!hedefDeger) return showToast("Öğrenci seçin", "error");
     const sel = document.getElementById("duyuruHedefOgrenci");
     hedefOgrenciAd = sel.options[sel.selectedIndex]?.dataset?.ad || "";
+  }
+
+  // ── ÖĞRETMEN KISITI: yalnızca kendi sınıfına ──
+  if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
+    if (hedefTur !== "sinif") {
+      return showToast("Yalnızca kendi sınıfınıza duyuru yapabilirsiniz.", "error");
+    }
+    const kendi = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari) || [];
+    if (kendi.length && !kendi.includes(hedefDeger)) {
+      return showToast("Yalnızca kendi sınıfınıza duyuru yapabilirsiniz.", "error");
+    }
   }
 
   const data = {
