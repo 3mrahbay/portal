@@ -7621,11 +7621,17 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
   box-shadow: 0 1px 1px rgba(0,0,0,0.08); word-wrap: break-word;
 }
 .wa-katman .mesaj-balon.giden {
-  background: #D9FDD3; margin-left: auto; border-top-right-radius: 2px;
+  /* Açık yeşil zemin — genel kuraldaki "color:white" burada okunmaz hâle
+     getiriyordu; yazı rengi de birlikte değişmeli. */
+  background: #D9FDD3; color: #111B21;
+  margin-left: auto; border-top-right-radius: 2px;
 }
 .wa-katman .mesaj-balon.gelen {
-  background: #fff; margin-right: auto; border-top-left-radius: 2px;
+  background: #fff; color: #111B21;
+  margin-right: auto; border-top-left-radius: 2px;
 }
+.wa-katman .mesaj-balon.giden .mesaj-balon-saat,
+.wa-katman .mesaj-balon.gelen .mesaj-balon-saat { color: #667781; }
 .wa-katman .mesaj-balon-saat { font-size: 10.5px; color: #667781; text-align: right; margin-top: 2px; }
 /* Giriş alanı - WhatsApp */
 .wa-katman .mesaj-sohbet-giris { background: #F0F2F5; padding: 10px 14px; }
@@ -9361,7 +9367,7 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
         <button class="side-item" data-modul="ogrencilerM" onclick="modulSec('ogrencilerM')"><span class="side-ikon"><i data-lucide="users"></i></span><span class="side-ad">Öğrenciler</span></button>
         <button class="side-item" data-modul="velilerM" onclick="modulSec('velilerM')"><span class="side-ikon"><i data-lucide="contact"></i></span><span class="side-ad">Veliler</span></button>
         <button class="side-item" data-modul="siniflarM" onclick="modulSec('siniflarM')"><span class="side-ikon"><i data-lucide="layout-grid"></i></span><span class="side-ad">Sınıflar</span></button>
-        <button class="side-item" data-modul="oryantasyonM" onclick="modulSec('oryantasyonM')"><span class="side-ikon"><i data-lucide="compass"></i></span><span class="side-ad">İlk Adımlar</span></button>
+        <button class="side-item yonetim-only" data-modul="oryantasyonM" onclick="modulSec('oryantasyonM')"><span class="side-ikon"><i data-lucide="compass"></i></span><span class="side-ad">İlk Adımlar</span></button>
         <button class="side-item" data-modul="basvuru" onclick="modulSec('basvuru')"><span class="side-ikon"><i data-lucide="inbox"></i></span><span class="side-ad">Başvuru Havuzu</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
       </div>
       <div class="side-kategori">KURUM</div>
@@ -9375,6 +9381,7 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
       </div>
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
+        <button class="side-item" data-modul="gunlukRapor" onclick="modulSec('gunlukRapor')"><span class="side-ikon"><i data-lucide="notebook-pen"></i></span><span class="side-ad">Günlük Rapor</span></button>
         <button class="side-item" data-modul="haftalikPlan" onclick="modulSec('haftalikPlan')"><span class="side-ikon"><i data-lucide="calendar-range"></i></span><span class="side-ad">Haftalık Plan</span></button>
         <button class="side-item" data-modul="devamsizlik" onclick="modulSec('devamsizlik')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">Devamsızlık</span></button>
         <button class="side-item" data-modul="galeri" onclick="modulSec('galeri')"><span class="side-ikon"><i data-lucide="image"></i></span><span class="side-ad">Galeri</span></button>
@@ -9406,6 +9413,7 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
       <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;"><i data-lucide="utensils"></i> Yemek Menüsü</button>
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
       <button class="tab" data-tab="haftalikPlan" id="tab-haftalikPlan-btn" style="display:none;"><i data-lucide="calendar-range"></i> Haftalık Plan</button>
+      <button class="tab" data-tab="gunlukRapor" id="tab-gunlukRapor-btn" style="display:none;"><i data-lucide="notebook-pen"></i> Günlük Rapor</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
       <button class="tab" data-tab="profilim" id="tab-profilim-btn" style="display:none;"><i data-lucide="user-circle"></i> Profilim</button>
       <button class="tab" data-tab="raporlar" id="tab-raporlar-btn" style="display:none;"><i data-lucide="bar-chart-3"></i> Raporlar</button>
@@ -10113,6 +10121,19 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
     </div>
 
     <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
+    <!-- ============ GÜNLÜK RAPOR (ZEKY gunlukRaporlar ile ortak) ============ -->
+    <div class="tab-panel" id="tab-gunlukRapor">
+      <div style="background:linear-gradient(135deg,#0E7490 0%,#0891B2 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
+          <i data-lucide="notebook-pen" style="width:15px;height:15px;"></i> GÜNÜN ÖZETİ</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Günlük Rapor</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">Her çocuğun yemek, uyku ve tuvalet kaydını girin. Veliler ZEKY'den görür.</p>
+      </div>
+      <div id="gunlukRaporIcerik">
+        <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+
     <!-- ============ HAFTALIK PLAN (ZEKY haftalikPlanlar ile ortak) ============ -->
     <div class="tab-panel" id="tab-haftalikPlan">
       <div style="background:linear-gradient(135deg,#7CB97C 0%,#4A7C59 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
@@ -13928,9 +13949,12 @@ const SEKME_YETKILERI = {
   finans:      ["kurucu_mudur", "mudur", "muhasebe"],
   raporlar:    ["kurucu_mudur", "mudur", "muhasebe"],
   denetim:     ["kurucu_mudur", "mudur"],
+  // İlk Adımlar programı yönetim tarafından hazırlanır; öğretmene kapalı
+  oryantasyon: ["kurucu_mudur", "mudur", "egitim_koordinator"],
   // İletişim & İşleyiş
   devamsizlik: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   haftalikPlan:["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  gunlukRapor: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
   duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
@@ -18959,6 +18983,55 @@ window.adminGotoTab = function(name) {
 };
 
 // ═══ OKUL ZİLİ — bugünkü veli çıkış talepleri (ZEKY app ile ortak koleksiyon) ═══
+// ═══ OKUL ZİLİ İŞLEMLERİ (ZEKY pickupHazirla / pickupTeslimEt ile ortak) ═══
+// Belge: pickupBildirimleri/{ogrenciId}__{tarih}
+window.pickupHazirla = async function(ogrenciId, tarih) {
+  if (!ogrenciId) { showToast("Öğrenci bilgisi okunamadı", "error"); return; }
+  try {
+    await setDoc(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), {
+      durum: "hazir",
+      hazirZamani: new Date().toISOString(),
+      hazirlayan: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    }, { merge: true });
+    showToast("✓ Hazırlandı olarak işaretlendi");
+    if (typeof okulZiliDoldur === "function") okulZiliDoldur();
+  } catch (e) {
+    console.error("pickup hazırla:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi) {
+  if (!ogrenciId) { showToast("Öğrenci bilgisi okunamadı", "error"); return; }
+  if (!confirm(`${ogrAd || "Öğrenci"}, ${alanKisi || "veliye"} teslim edilecek.\n\nOnaylıyor musunuz?`)) return;
+  try {
+    const ad = (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad)
+            || currentUser?.displayName || currentUser?.email || "";
+    await setDoc(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), {
+      durum: "teslim",
+      teslimZamani: new Date().toISOString(),
+      teslimEden: ad,
+      guncellendi: serverTimestamp()
+    }, { merge: true });
+    // İsimsiz kuyruktan düş (ZEKY ile ortak: pickupKuyruk/{tarih})
+    try {
+      const kRef = doc(db, "pickupKuyruk", tarih);
+      const kSnap = await getDoc(kRef);
+      if (kSnap.exists()) {
+        const sira = (kSnap.data().sira || []).filter(x => (x.ogrenciId || x) !== ogrenciId);
+        await setDoc(kRef, { sira }, { merge: true });
+      }
+    } catch (e) { /* kuyruk yoksa sorun değil */ }
+
+    showToast("✓ Teslim edildi");
+    if (typeof okulZiliDoldur === "function") okulZiliDoldur();
+  } catch (e) {
+    console.error("pickup teslim:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
 window.okulZiliDoldur = async function() {
   const el = document.getElementById("okulZiliListe");
   const ozetEl = document.getElementById("okulZiliOzet");
@@ -19060,7 +19133,11 @@ window.okulZiliDoldur = async function() {
           ${dk > 0 && durumKey === "teslim" ? `<span style="color:#94A3B8;">⏱ ${dk} dk sürdü</span>` : ""}
         </div>
       </div>
-      <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 8px; border-radius:100px; white-space:nowrap; flex-shrink:0;">${s.ad}</span>
+      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+        <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 8px; border-radius:100px; white-space:nowrap;">${s.ad}</span>
+        ${durumKey === "yolda" ? `<button class="btn-mini" onclick="pickupHazirla('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}')" style="background:#FFFBEB; color:#B45309; border-color:#FCD34D; font-weight:700; padding:4px 9px; font-size:11px;">Hazırla</button>` : ""}
+        ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(ogrAd)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}
+      </div>
     </div>`;
   }).join("") + (kayitlar.length > 6
     ? `<div style="font-size:11.5px; color:#94A3B8; padding-top:8px;">+${kayitlar.length - 6} bildirim daha</div>` : "");
@@ -20397,6 +20474,7 @@ function ogretmenHomeHTML(ad) {
           <button class="ca-qbtn" onclick="modulSec('mesaj')"><span class="ca-qicon" style="background:var(--c-pink-soft);"><i data-lucide="message-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Veli Mesajı</span></button>
           <button class="ca-qbtn" onclick="modulSec('galeri')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="camera" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Galeri Yükle</span></button>
           <button class="ca-qbtn" onclick="modulSec('egitim')"><span class="ca-qicon" style="background:var(--c-peach-soft);"><i data-lucide="book-open" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Eğitim Takip</span></button>
+          <button class="ca-qbtn" onclick="modulSec('gunlukRapor')"><span class="ca-qicon" style="background:#CFFAFE; color:#0E7490;"><i data-lucide="notebook-pen" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Günlük Rapor</span></button>
           <button class="ca-qbtn" onclick="modulSec('haftalikPlan')"><span class="ca-qicon" style="background:var(--c-green-light); color:#fff;"><i data-lucide="calendar-range" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Haftalık Plan</span></button>
           <button class="ca-qbtn" onclick="modulSec('profilim')"><span class="ca-qicon" style="background:var(--c-tint);"><i data-lucide="user-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Profilim</span></button>
           <button class="ca-qbtn" onclick="izinTalepAc()"><span class="ca-qicon" style="background:var(--c-blue-soft);"><i data-lucide="calendar-x" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">İzin Talebi</span></button>
@@ -25421,7 +25499,10 @@ window.veliListesiRender = function() {
        <div style="font-size:22px; font-weight:700; color:${renk}; margin-top:3px;">${deger}</div>
      </div>`;
   const ozet = document.getElementById("veliOzetSerit");
-  if (ozet) ozet.innerHTML =
+  // Erişim/onay istatistikleri yönetim bilgisidir — öğretmende gösterilmez
+  const _ogrMu = (typeof ogretmenRolMu === "function") ? ogretmenRolMu() : false;
+  if (ozet && _ogrMu) { ozet.innerHTML = ""; ozet.style.display = "none"; }
+  else if (ozet) ozet.innerHTML =
     kutu("Toplam veli", toplam, "#2B3674") +
     kutu("Erişimi açık", acik, "#2D7A2D") +
     kutu("Onay bekliyor", bekleyen, "#C77E20") +
@@ -25429,7 +25510,8 @@ window.veliListesiRender = function() {
 
   // Uyarılar
   const uy = document.getElementById("veliUyarilar");
-  if (uy) {
+  if (uy && _ogrMu) { uy.innerHTML = ""; }
+  else if (uy) {
     let h = "";
     if (bekleyen + kayitsiz > 0) {
       h += `<div style="background:#FDF3D6; color:#8A6A0B; border-radius:11px; padding:11px 14px; font-size:13px; margin-bottom:10px;">
@@ -25552,6 +25634,8 @@ function mukerrerTespit(ogrenciler) {
 function mukerrerKayitlariCiz() {
   const el = document.getElementById("mukerrerAlan");
   if (!el) return;
+  // Mükerrer kayıt birleştirme bir yönetim işlemidir (arşivleme içerir)
+  if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) { el.innerHTML = ""; return; }
   if (!mukerrerGruplar.length) { el.innerHTML = ""; return; }
 
   const toplamArsiv = mukerrerGruplar.reduce((t, g) => t + g.arsivlenecek.length, 0);
@@ -35191,6 +35275,240 @@ window.oryantasyonSaltOkunurAyarla = function() {
   } catch (e) { console.warn("oryantasyon salt okunur:", e); }
 };
 
+// ═══════════ GÜNLÜK RAPOR (ZEKY gunlukRaporlar ile ortak) ═══════════
+// Belge: gunlukRaporlar/{ogrenciId}__{YYYY-MM-DD}
+let grTarih = null, grSinif = "", grVeriler = {};
+
+const GR_YEMEK = [
+  { d: "tamami", ad: "Tamamını yedi", renk: "#059669" },
+  { d: "yarisi", ad: "Yarısını yedi", renk: "#B45309" },
+  { d: "az",     ad: "Az yedi",       renk: "#D97706" },
+  { d: "yemedi", ad: "Yemedi",        renk: "#DC2626" }
+];
+const GR_UYKU = [
+  { d: "uyudu",    ad: "Uyudu",        renk: "#059669" },
+  { d: "kisa",     ad: "Kısa uyudu",   renk: "#B45309" },
+  { d: "uyumadi",  ad: "Uyumadı",      renk: "#64748B" }
+];
+const GR_TUVALET = [
+  { d: "kendi",    ad: "Kendi yaptı",  renk: "#059669" },
+  { d: "yardimla", ad: "Yardımla",     renk: "#B45309" },
+  { d: "kaza",     ad: "Kaza oldu",    renk: "#DC2626" },
+  { d: "bez",      ad: "Bez",          renk: "#64748B" }
+];
+
+window.gunlukRaporRender = async function() {
+  const el = document.getElementById("gunlukRaporIcerik");
+  if (!el) return;
+  if (!grTarih) grTarih = new Date().toISOString().slice(0, 10);
+
+  // Sınıf listesi (öğretmen kendi sınıfı, yönetim hepsi)
+  let siniflar = [];
+  try {
+    const email = (currentUser?.email || "").toLowerCase();
+    const ps = await getDoc(doc(db, "personeller", email));
+    const p = ps.exists() ? ps.data() : {};
+    const kendi = p.sinifAtamalari || p.siniflar || [];
+    const yonetimMi = isAdmin || ["kurucu_mudur","mudur","egitim_koordinator"].includes(aktifKullaniciRol);
+    if (yonetimMi) {
+      const ss = await getDocs(collection(db, "siniflar"));
+      ss.forEach(d => { const v = d.data(); if (v.ad && v.durum !== "pasif") siniflar.push(v.ad); });
+      if (!siniflar.length) siniflar = kendi;
+    } else siniflar = kendi;
+  } catch (e) { console.warn("sınıf:", e.code); }
+
+  if (!siniflar.length) {
+    el.innerHTML = `<div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:14px; padding:22px; text-align:center; color:#92400E; font-size:13.5px;">
+      Size sınıf atanmamış. Günlük rapor için yönetimden sınıf ataması gerekiyor.</div>`;
+    return;
+  }
+  if (!grSinif || !siniflar.includes(grSinif)) grSinif = siniflar[0];
+
+  // Sınıftaki aktif öğrenciler
+  const ogrenciler = ogrenciList.filter(o => {
+    const a = ayarListesi[o.id];
+    if (!a) return false;
+    if (getOgrenciDurum(o, a) !== "aktif") return false;
+    const sn = (a.kayit && a.kayit.sinif) || o.sinif || o.sinifi || "";
+    return sn === grSinif;
+  }).sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "", "tr"));
+
+  // O günün raporlarını yükle
+  grVeriler = {};
+  try {
+    await Promise.all(ogrenciler.map(async o => {
+      const s = await getDoc(doc(db, "gunlukRaporlar", o.id + "__" + grTarih));
+      if (s.exists()) grVeriler[o.id] = s.data();
+    }));
+  } catch (e) { console.warn("günlük rapor:", e.code); }
+
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const dolduran = ogrenciler.filter(o => grVeriler[o.id]).length;
+  const gunAd = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"][new Date(grTarih).getDay()];
+
+  // Seçenek düğmeleri
+  const secim = (ogrId, alan, altAlan, secenekler, mevcut) => `
+    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+      ${secenekler.map(s => {
+        const aktif = mevcut === s.d;
+        return `<button onclick="grSec('${ogrId}','${alan}','${altAlan || ""}','${s.d}')"
+          style="padding:5px 10px; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit;
+            border:1px solid ${aktif ? s.renk : "#E2E8F0"};
+            background:${aktif ? s.renk : "#fff"}; color:${aktif ? "#fff" : "#64748B"};">${s.ad}</button>`;
+      }).join("")}
+    </div>`;
+
+  el.innerHTML = `
+    <!-- Tarih + sınıf seçici -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+      ${siniflar.length > 1 ? `
+        <select onchange="grSinifDegis(this.value)" style="padding:9px 13px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13px; font-weight:600;">
+          ${siniflar.map(s => `<option ${s === grSinif ? "selected" : ""}>${esc(s)}</option>`).join("")}
+        </select>` : `<strong style="font-size:14px; color:#0E7490;">${esc(grSinif)}</strong>`}
+      <input type="date" value="${grTarih}" onchange="grTarihDegis(this.value)"
+        style="padding:9px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13px;">
+      <span style="font-size:12.5px; color:#64748B;">${gunAd} · <strong style="color:#0E7490;">${dolduran}/${ogrenciler.length}</strong> rapor girildi</span>
+      <button class="btn-mini" onclick="grHepsiniDoldur()" style="margin-left:auto; background:#ECFEFF; color:#0E7490; border-color:#A5F3FC; font-weight:700;">
+        <i data-lucide="wand-2" style="width:13px;height:13px;vertical-align:-2px;"></i> Tümüne "İyi Geçti"</button>
+    </div>
+
+    ${ogrenciler.length === 0
+      ? `<div style="background:#fff; border-radius:14px; padding:30px; text-align:center; color:#94A3B8; font-size:13.5px;">Bu sınıfta aktif öğrenci yok.</div>`
+      : ogrenciler.map(o => {
+          const r = grVeriler[o.id] || {};
+          const y = r.yemek || {};
+          const u = r.uyku || {};
+          const doldu = !!grVeriler[o.id];
+          const ad = o.ogrenciAdSoyad || o.adSoyad || "—";
+          return `
+          <div style="background:#fff; border:1px solid #E9EBF4; border-left:4px solid ${doldu ? "#059669" : "#E2E8F0"}; border-radius:13px; padding:14px 16px; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:11px; margin-bottom:12px;">
+              <div style="width:34px; height:34px; border-radius:10px; background:${doldu ? "#ECFDF5" : "#F1F5F9"}; color:${doldu ? "#059669" : "#94A3B8"}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">
+                ${esc(ad.charAt(0).toUpperCase())}
+              </div>
+              <strong style="flex:1; font-size:14px; color:#1E293B;">${esc(ad)}</strong>
+              ${doldu ? `<span style="font-size:10.5px; font-weight:800; color:#059669; background:#ECFDF5; padding:3px 9px; border-radius:100px;">girildi</span>` : ""}
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px;">
+              <div>
+                <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase; margin-bottom:5px;">🥣 Kahvaltı</div>
+                ${secim(o.id, "yemek", "kahvalti", GR_YEMEK, y.kahvalti)}
+              </div>
+              <div>
+                <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase; margin-bottom:5px;">🍽️ Öğle</div>
+                ${secim(o.id, "yemek", "ogle", GR_YEMEK, y.ogle)}
+              </div>
+              <div>
+                <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase; margin-bottom:5px;">🍎 İkindi</div>
+                ${secim(o.id, "yemek", "ikindi", GR_YEMEK, y.ikindi)}
+              </div>
+              <div>
+                <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase; margin-bottom:5px;">😴 Uyku</div>
+                ${secim(o.id, "uyku", "durum", GR_UYKU, u.durum)}
+              </div>
+              <div>
+                <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase; margin-bottom:5px;">🚻 Tuvalet</div>
+                ${secim(o.id, "tuvalet", "", GR_TUVALET, r.tuvalet)}
+              </div>
+            </div>
+
+            <div style="margin-top:11px;">
+              <input type="text" id="grNot_${o.id}" value="${esc(r.not || "")}" placeholder="Veliye not (isteğe bağlı)…"
+                onchange="grNotKaydet('${o.id}', this.value)"
+                style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #E2E8F0; border-radius:9px; font-family:inherit; font-size:13px;">
+            </div>
+          </div>`;
+        }).join("")}
+
+    <div style="margin-top:14px; padding:11px 14px; background:#F8FAFC; border-radius:12px; font-size:11.5px; color:#64748B;">
+      <i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i>
+      Seçimler anında kaydedilir. Veliler bu raporu ZEKY uygulamasından görür.
+    </div>`;
+
+  if (window.lucideYenile) window.lucideYenile();
+};
+
+window.grSinifDegis = function(s) { grSinif = s; gunlukRaporRender(); };
+window.grTarihDegis = function(t) { grTarih = t; gunlukRaporRender(); };
+
+// Tek bir seçim kaydet
+window.grSec = async function(ogrId, alan, altAlan, deger) {
+  const o = ogrenciList.find(x => x.id === ogrId);
+  if (!o) return;
+  const mevcut = grVeriler[ogrId] || {};
+  const yeni = { ...mevcut };
+  if (altAlan) {
+    yeni[alan] = { ...(mevcut[alan] || {}) };
+    // Aynı değere tekrar basılırsa seçimi kaldır
+    yeni[alan][altAlan] = (mevcut[alan] && mevcut[alan][altAlan] === deger) ? "" : deger;
+  } else {
+    yeni[alan] = (mevcut[alan] === deger) ? "" : deger;
+  }
+  grVeriler[ogrId] = yeni;
+  await grKaydet(o, yeni);
+  gunlukRaporRender();
+};
+
+window.grNotKaydet = async function(ogrId, metin) {
+  const o = ogrenciList.find(x => x.id === ogrId);
+  if (!o) return;
+  const yeni = { ...(grVeriler[ogrId] || {}), not: metin };
+  grVeriler[ogrId] = yeni;
+  await grKaydet(o, yeni);
+  showToast("✓ Not kaydedildi");
+};
+
+async function grKaydet(o, veri) {
+  const ayar = ayarListesi[o.id] || {};
+  const sinif = (ayar.kayit && ayar.kayit.sinif) || o.sinif || "";
+  try {
+    await setDoc(doc(db, "gunlukRaporlar", o.id + "__" + grTarih), {
+      ogrenciId: o.id,
+      ogrenciAd: o.ogrenciAdSoyad || o.adSoyad || "",
+      sinif,
+      tarih: grTarih,
+      yemek: veri.yemek || {},
+      uyku: veri.uyku || {},
+      tuvalet: veri.tuvalet || "",
+      not: veri.not || "",
+      yazan: (currentUser?.email || "").toLowerCase(),
+      yazanAd: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser?.displayName || "",
+      guncellendi: serverTimestamp()
+    }, { merge: true });
+  } catch (e) {
+    console.error("günlük rapor kaydet:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+}
+
+// Hızlı doldurma: sorunsuz geçen gün için tüm sınıfa varsayılan
+window.grHepsiniDoldur = async function() {
+  const ogrenciler = ogrenciList.filter(o => {
+    const a = ayarListesi[o.id];
+    if (!a) return false;
+    if (getOgrenciDurum(o, a) !== "aktif") return false;
+    const sn = (a.kayit && a.kayit.sinif) || o.sinif || o.sinifi || "";
+    return sn === grSinif;
+  });
+  const bos = ogrenciler.filter(o => !grVeriler[o.id]);
+  if (!bos.length) { showToast("Tüm raporlar zaten girilmiş"); return; }
+  if (!confirm(`${bos.length} öğrenci için "tamamını yedi · uyudu · kendi yaptı" olarak doldurulacak.\n\nSonradan tek tek değiştirebilirsiniz. Onaylıyor musunuz?`)) return;
+
+  const varsayilan = {
+    yemek: { kahvalti: "tamami", ogle: "tamami", ikindi: "tamami" },
+    uyku: { durum: "uyudu", dakika: "" },
+    tuvalet: "kendi",
+    not: ""
+  };
+  for (const o of bos) {
+    grVeriler[o.id] = { ...varsayilan };
+    await grKaydet(o, varsayilan);
+  }
+  showToast(`✓ ${bos.length} rapor dolduruldu`);
+  gunlukRaporRender();
+};
+
 // ═══════════ HAFTALIK PLAN (ZEKY haftalikPlanlar ile ortak) ═══════════
 let hpSinif = "", hpHafta = "", hpPlan = { gunler: {}, malzemeler: [] }, hpAktifGun = 0;
 
@@ -39397,6 +39715,7 @@ const MODUL_HARITASI = {
   muhasebe:    { tablar: ["finans"],     varsayilan: "finans", ad: "Muhasebe" },
   devamsizlik: { tablar: ["devamsizlik"], varsayilan: "devamsizlik", ad: "Devamsızlık" },
   haftalikPlan:{ tablar: ["haftalikPlan"], varsayilan: "haftalikPlan", ad: "Haftalık Plan" },
+  gunlukRapor: { tablar: ["gunlukRapor"],  varsayilan: "gunlukRapor",  ad: "Günlük Rapor" },
   galeri:      { tablar: ["galeri"],     varsayilan: "galeri", ad: "Galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
@@ -39575,6 +39894,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // İlk Adımlar açıldı → öğretmen için salt okunur
     if (tab.dataset.tab === "oryantasyon") {
       setTimeout(() => { if (typeof oryantasyonSaltOkunurAyarla === "function") oryantasyonSaltOkunurAyarla(); }, 260);
+    }
+
+    // Günlük Rapor sekmesi açıldı
+    if (tab.dataset.tab === "gunlukRapor") {
+      setTimeout(() => { if (typeof gunlukRaporRender === "function") gunlukRaporRender(); }, 50);
     }
 
     // Haftalık Plan sekmesi açıldı
