@@ -10728,7 +10728,7 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
               <div class="form-group">
                 <label>🎯 Hedef Kitle</label>
                 <select id="galeriHedefTur" onchange="galeriHedefDegisti()">
-                  <option value="tumOkul">🏫 Tüm Okul</option>
+                  <option value="tumOkul" class="yonetim-only-opt">🏫 Tüm Okul</option>
                   <option value="sinif">👥 Belirli Sınıf</option>
                   <option value="ogrenci">👤 Belirli Öğrenci</option>
                 </select>
@@ -11334,7 +11334,7 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
               <button class="btn-mini" onclick="yemekBuHaftaGit()" title="Bu haftaya git"><i data-lucide="calendar" style="width:14px;height:14px;vertical-align:-2px;"></i> Bugün</button>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-primary" onclick="yemekMenusuDuzenle()" style="background:#f97316; border:none; color:white;">✏️ Bu Haftayı Düzenle</button>
+              <button class="btn-primary yonetim-only" onclick="yemekMenusuDuzenle()" style="background:#f97316; border:none; color:white;">✏️ Bu Haftayı Düzenle</button>
             </div>
           </div>
 
@@ -26126,7 +26126,14 @@ async function sinifSecimleriniDoldur() {
       sinifYonetimListesi = liste;
     } catch (e) { console.warn("sınıf listesi alınamadı", e); return; }
   }
-  const aktifler = liste.filter(x => x.durum !== "pasif");
+  let aktifler = liste.filter(x => x.durum !== "pasif");
+  // ÖĞRETMEN KISITI: yalnızca kendi sınıflarını seçebilir (galeri, duyuru, etkinlik…)
+  try {
+    if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
+      const kendi = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari) || [];
+      if (kendi.length) aktifler = aktifler.filter(x => kendi.includes(x.ad));
+    }
+  } catch (e) { /* kısıt uygulanamadıysa listeyi bozma */ }
   if (!aktifler.length) return;   // sınıf yoksa mevcut seçenekleri bozma
 
   SINIF_SECIM_ALANLARI.forEach(alanId => {
@@ -33379,6 +33386,7 @@ window.openGaleriYuklemeModal = function(mod) {
   // "Yeni Yükleme" butonu tıklandıysa (albumEkleMod null ise) sıfırla
   // "Albüme Ekle" çağırmışsa albumEEkle kendi setTimeout'unda doldurur
   document.getElementById("galeriYuklemeModal").classList.add("active");
+  if (typeof galeriRolKisitiUygula === "function") galeriRolKisitiUygula();
   galeriSecilenDosyalar = [];
   document.getElementById("galeriSecilenDosyalar").innerHTML = "";
   document.getElementById("galeriYuklemeIlerleme").style.display = "none";
@@ -33544,7 +33552,39 @@ window.galeriDosyaKaldir = function(index) {
 };
 
 // YÜKLE
+// Galeri yükleme: öğretmen yalnızca kendi sınıfına/öğrencisine yükleyebilir
+window.galeriRolKisitiUygula = function() {
+  try {
+    if (typeof ogretmenRolMu !== "function" || !ogretmenRolMu()) return;
+    const sel = document.getElementById("galeriHedefTur");
+    if (!sel) return;
+    // "Tüm Okul" seçeneğini kaldır
+    [...sel.options].forEach(o => { if (o.value === "tumOkul") o.remove(); });
+    if (sel.value === "tumOkul" || !sel.value) {
+      sel.value = "sinif";
+      if (typeof galeriHedefDegisti === "function") galeriHedefDegisti();
+    }
+  } catch (e) { console.warn("galeri rol kısıtı:", e); }
+};
+
 window.galeriYukle = async function() {
+  // ── ÖĞRETMEN KISITI (sunucu tarafı Rules'a ek olarak arayüz koruması) ──
+  if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
+    const hedef = document.getElementById("galeriHedefTur")?.value;
+    if (hedef === "tumOkul") {
+      showToast("Okul geneline yükleme yetkiniz yok. Sınıf veya öğrenci seçin.", "error");
+      return;
+    }
+    if (hedef === "sinif") {
+      const sec = document.getElementById("galeriHedefSinif")?.value || "";
+      const kendi = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari) || [];
+      if (kendi.length && !kendi.includes(sec)) {
+        showToast("Yalnızca kendi sınıfınıza yükleme yapabilirsiniz.", "error");
+        return;
+      }
+    }
+  }
+
   if (galeriSecilenDosyalar.length === 0) return showToast("Dosya seçin", "error");
 
   const etkinlik = document.getElementById("galeriEtkinlik").value.trim() || "Genel";
