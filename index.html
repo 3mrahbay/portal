@@ -13655,7 +13655,7 @@ import {
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction,
-  documentId
+  documentId, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -16380,7 +16380,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -16514,6 +16514,7 @@ window.caGo = function(ekran) {
 
 // Çocuk (kardeş) değiştirici — aktif çocuğu değiştirir, ana sayfayı tazeler
 window.caCocukDegistir = async function(idx) {
+  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); }, 250);
   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler[idx]) return;
   try { if (typeof setAktifVeliOgrenci === "function") await setAktifVeliOgrenci(veliOgrenciler[idx]); } catch(e) { console.warn(e); }
   caEkran = "home";
@@ -16645,6 +16646,220 @@ window.caHomeMesajlariDoldur = caHomeMesajlariDoldur;
 
 
 // Veli ana sayfası — bugünün günlüğü (GERÇEK VERİ)
+// ═══════════ VELİ — OKUL ZİLİ (ZEKY veli-pickup ile ortak) ═══════════
+// Belge: pickupBildirimleri/{ogrenciId}__{tarih}
+// Akış: veli "Almaya geliyorum" → yolda → öğretmen hazırlar → hazir → teslim → veli teyit
+
+function vzBugun() { return new Date().toISOString().slice(0, 10); }
+function vzSaatY(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d) ? "" : String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+window.veliOkulZiliDoldur = async function() {
+  const el = document.getElementById("veliOkulZiliKart");
+  if (!el) return;
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) { el.innerHTML = ""; return; }
+
+  const tarih = vzBugun();
+  const gunIdx = new Date().getDay();
+  let b = null;
+  try {
+    const s = await getDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih));
+    if (s.exists()) b = s.data();
+  } catch (e) { console.warn("okul zili:", e.code || e.message); }
+
+  // Sıra bilgisi (isimsiz kuyruk)
+  let sira = null;
+  if (b && b.durum !== "teslim") {
+    try {
+      const ks = await getDoc(doc(db, "pickupKuyruk", tarih));
+      if (ks.exists()) {
+        const liste = Object.entries(ks.data().ogrenciler || {})
+          .map(([id, v]) => ({ id, saat: (v && v.saat) || "" }))
+          .sort((x, y) => x.saat.localeCompare(y.saat));
+        const i = liste.findIndex(x => x.id === ogr.id);
+        if (i >= 0) sira = { sira: i + 1, onunde: i, toplam: liste.length };
+      }
+    } catch (e) { /* kuyruk yoksa sorun değil */ }
+  }
+
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const ad = (ogr.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
+
+  // ── Hafta sonu ──
+  if (gunIdx === 0 || gunIdx === 6) {
+    el.innerHTML = `<div style="padding:16px 18px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:26px;">🔔</span>
+      <div><div class="ca-head" style="font-size:14px;">Okul Zili</div>
+      <div class="ca-tile-sub">Hafta sonu · okul kapalı</div></div>
+    </div>`;
+    return;
+  }
+
+  // ── Henüz bildirim yok → "Almaya geliyorum" ──
+  if (!b) {
+    const simdi = new Date();
+    const varsayilan = simdi.getHours() < 15 ? "15:30" : String(Math.min(simdi.getHours()+1, 18)).padStart(2,"0") + ":00";
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#B45309 0%,#F59E0B 100%); color:#fff; padding:14px 18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:24px;">🔔</span>
+          <div style="flex:1;">
+            <div class="ca-head" style="font-size:15px; color:#fff;">Okul Zili</div>
+            <div style="font-size:12px; opacity:.9;">${esc(ad)}'ı almaya geldiğinizde bildirin, öğretmen hazırlasın</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 18px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Varış saati</label>
+          <input type="time" id="vzSaat" value="${varsayilan}"
+            style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Kim alacak</label>
+          <select id="vzKisi" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; margin-top:4px;">
+            <option>Anne</option><option>Baba</option><option>Anneanne</option><option>Babaanne</option>
+            <option>Dede</option><option>Servis</option><option>Diğer yetkili</option>
+          </select>
+        </div>
+      </div>
+      <div style="padding:0 18px 16px;">
+        <button class="ca-btn" style="width:100%; background:#B45309; font-size:14px; padding:13px;" onclick="veliOkulZiliBildir()">
+          🚗 Almaya geliyorum
+        </button>
+      </div>`;
+    return;
+  }
+
+  // ── Bildirim var → durum takibi ──
+  const DURUM = {
+    yolda:  { ad: "Bildirim alındı",   alt: "Öğretmen haberdar, çocuğunuz hazırlanacak", renk: "#B45309", bg: "#FFFBEB", ikon: "🚗" },
+    hazir:  { ad: "Hazır, kapıya geliyor", alt: "Çocuğunuz hazırlandı, kapıda teslim edilecek", renk: "#1D4ED8", bg: "#EFF6FF", ikon: "🎒" },
+    teslim: { ad: "Teslim edildi",      alt: b.teslimEden ? esc(b.teslimEden) + " teslim etti" : "Öğretmen teslim etti", renk: "#059669", bg: "#ECFDF5", ikon: "✅" }
+  };
+  const s = DURUM[b.durum] || DURUM.yolda;
+
+  // Zaman çizelgesi
+  const adimlar = [
+    { ad: "Bildirdiniz", z: b.olusturuldu, ok: true },
+    { ad: "Hazırlandı",  z: b.hazirZamani, ok: !!b.hazirZamani },
+    { ad: "Teslim",      z: b.teslimZamani, ok: !!b.teslimZamani }
+  ];
+
+  el.innerHTML = `
+    <div style="background:${s.bg}; border-bottom:1px solid ${s.renk}22; padding:14px 18px;">
+      <div style="display:flex; align-items:center; gap:11px;">
+        <span style="font-size:26px;">${s.ikon}</span>
+        <div style="flex:1; min-width:0;">
+          <div class="ca-head" style="font-size:15px; color:${s.renk};">${s.ad}</div>
+          <div class="ca-tile-sub">${s.alt}</div>
+        </div>
+        ${sira && b.durum !== "teslim" ? `
+          <div style="text-align:center; background:#fff; border-radius:12px; padding:6px 12px; border:1px solid ${s.renk}33;">
+            <div style="font-size:20px; font-weight:800; color:${s.renk}; line-height:1;">${sira.sira}</div>
+            <div style="font-size:9.5px; color:var(--c-muted); text-transform:uppercase; font-weight:700;">sıra</div>
+          </div>` : ""}
+      </div>
+    </div>
+    <div style="padding:12px 18px; display:flex; gap:0;">
+      ${adimlar.map((a, i) => `
+        <div style="flex:1; text-align:center; position:relative;">
+          ${i > 0 ? `<div style="position:absolute; left:-50%; right:50%; top:9px; height:2px; background:${a.ok ? s.renk : "#E2E8F0"};"></div>` : ""}
+          <div style="width:20px; height:20px; border-radius:50%; margin:0 auto; background:${a.ok ? s.renk : "#E2E8F0"}; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">${a.ok ? "✓" : ""}</div>
+          <div style="font-size:11px; font-weight:700; color:${a.ok ? "#1E293B" : "#94A3B8"}; margin-top:5px;">${a.ad}</div>
+          <div style="font-size:10.5px; color:var(--c-muted);">${vzSaatY(a.z) || "—"}</div>
+        </div>`).join("")}
+    </div>
+    <div style="padding:0 18px 14px; font-size:12px; color:var(--c-muted); display:flex; gap:10px; flex-wrap:wrap;">
+      <span>🕐 Hedef ${esc(b.hedefSaat || "—")}</span>
+      <span>· ${esc(b.alanKisi || "Veli")} alacak</span>
+      ${sira && b.durum !== "teslim" && sira.onunde > 0 ? `<span>· önünüzde ${sira.onunde} kişi</span>` : ""}
+    </div>
+    ${b.durum === "teslim" && !b.veliOnay ? `
+      <div style="padding:0 18px 16px;">
+        <button class="ca-btn" style="width:100%; background:#059669; font-size:14px; padding:12px;" onclick="veliOkulZiliTeyit()">
+          👍 Çocuğumu aldım, teyit ediyorum
+        </button>
+      </div>` : ""}
+    ${b.veliOnay ? `
+      <div style="padding:0 18px 14px; font-size:12px; color:#059669; font-weight:700;">
+        ✓ Teyit ettiniz · ${vzSaatY(b.veliOnayZamani)}
+      </div>` : ""}
+    ${b.durum === "yolda" ? `
+      <div style="padding:0 18px 14px;">
+        <button class="ca-btn ghost" style="width:100%; font-size:12.5px;" onclick="veliOkulZiliIptal()">Vazgeçtim, bildirimi kaldır</button>
+      </div>` : ""}`;
+};
+
+// "Almaya geliyorum" — ZEKY pickupBildir ile aynı belge
+window.veliOkulZiliBildir = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const saat = document.getElementById("vzSaat")?.value || "";
+  const kisi = document.getElementById("vzKisi")?.value || "Veli";
+  const tarih = vzBugun();
+  try {
+    await setDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+      ogrenciId: ogr.id,
+      ogrenciAd: ogr.ogrenciAdSoyad || "",
+      sinif: (ayarListesi?.[ogr.id]?.kayit?.sinif) || ogr.sinif || "",
+      tarih, hedefSaat: saat, alanKisi: kisi,
+      durum: "yolda",
+      veliEmail: (currentUser?.email || "").toLowerCase(),
+      olusturuldu: new Date().toISOString(),
+      guncellendi: serverTimestamp()
+    }, { merge: true });
+    // İsimsiz kuyruk (ZEKY pickupKuyrukGuncelle ile aynı şema)
+    await setDoc(doc(db, "pickupKuyruk", tarih), {
+      tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
+    }, { merge: true });
+    showToast("🔔 Bildiriminiz öğretmene iletildi");
+    veliOkulZiliDoldur();
+  } catch (e) {
+    console.error("okul zili bildir:", e);
+    showToast("Gönderilemedi: " + e.message, "error");
+  }
+};
+
+// Veli teyidi — ZEKY pickupVeliOnayi ile aynı (öğretmenin kaydından AYRI alan)
+window.veliOkulZiliTeyit = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const tarih = vzBugun();
+  try {
+    await setDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+      veliOnay: true,
+      veliOnayZamani: new Date().toISOString(),
+      veliOnayEmail: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    }, { merge: true });
+    showToast("✓ Teyit edildi, iyi günler");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
+};
+
+// Vazgeçme (yalnızca "yolda" durumunda)
+window.veliOkulZiliIptal = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  if (!confirm("Bildirimi kaldırmak istediğinize emin misiniz?")) return;
+  const tarih = vzBugun();
+  try {
+    await setDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani: new Date().toISOString(), guncellendi: serverTimestamp()
+    }, { merge: true });
+    await setDoc(doc(db, "pickupKuyruk", tarih), {
+      ogrenciler: { [ogr.id]: deleteField() }
+    }, { merge: true });
+    showToast("Bildirim kaldırıldı");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
+};
+
 async function caHomeGunlukDoldur() {
   const el = document.getElementById("caHomeGunluk");
   if (!el) return;
@@ -17807,6 +18022,11 @@ function caHomeHTML() {
             <button class="ca-btn" style="background:var(--c-purple-deep);" onclick="veliSwitchTab('odemeler')">Ödeme Bildir</button>
           </div>
         </div>
+      </div>
+
+      <!-- Okul Zili: "Almaya geliyorum" — ZEKY ile ortak akış -->
+      <div id="veliOkulZiliKart" class="ca-card" style="padding:0; overflow:hidden;">
+        <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
 
       <!-- Hızlı işlemler -->
@@ -19009,14 +19229,11 @@ window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi) {
       teslimEden: ad,
       guncellendi: serverTimestamp()
     }, { merge: true });
-    // İsimsiz kuyruktan düş (ZEKY ile ortak: pickupKuyruk/{tarih})
+    // İsimsiz kuyruktan düş — ZEKY pickupKuyrukGuncelle(id, tarih, null) ile aynı şema
     try {
-      const kRef = doc(db, "pickupKuyruk", tarih);
-      const kSnap = await getDoc(kRef);
-      if (kSnap.exists()) {
-        const sira = (kSnap.data().sira || []).filter(x => (x.ogrenciId || x) !== ogrenciId);
-        await setDoc(kRef, { sira }, { merge: true });
-      }
+      await setDoc(doc(db, "pickupKuyruk", tarih), {
+        ogrenciler: { [ogrenciId]: deleteField() }
+      }, { merge: true });
     } catch (e) { /* kuyruk yoksa sorun değil */ }
 
     showToast("✓ Teslim edildi");
