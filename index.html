@@ -9370,6 +9370,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
         <button class="side-item" data-modul="velilerM" onclick="modulSec('velilerM')"><span class="side-ikon"><i data-lucide="contact"></i></span><span class="side-ad">Veliler</span></button>
         <button class="side-item" data-modul="siniflarM" onclick="modulSec('siniflarM')"><span class="side-ikon"><i data-lucide="layout-grid"></i></span><span class="side-ad">Sınıflar</span></button>
         <button class="side-item yonetim-only" data-modul="oryantasyonM" onclick="modulSec('oryantasyonM')"><span class="side-ikon"><i data-lucide="compass"></i></span><span class="side-ad">İlk Adımlar</span></button>
+        <button class="side-item" data-modul="danismaRandevu" onclick="modulSec('danismaRandevu')"><span class="side-ikon"><i data-lucide="calendar-clock"></i></span><span class="side-ad">Aday Randevuları</span></button>
         <button class="side-item" data-modul="basvuru" onclick="modulSec('basvuru')"><span class="side-ikon"><i data-lucide="inbox"></i></span><span class="side-ad">Başvuru Havuzu</span><span class="modul-rozet" id="modulOnayRozet" style="display:none;">0</span></button>
       </div>
       <div class="side-kategori">KURUM</div>
@@ -9416,6 +9417,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
       <button class="tab" data-tab="haftalikPlan" id="tab-haftalikPlan-btn" style="display:none;"><i data-lucide="calendar-range"></i> Haftalık Plan</button>
       <button class="tab" data-tab="gunlukRapor" id="tab-gunlukRapor-btn" style="display:none;"><i data-lucide="notebook-pen"></i> Günlük Rapor</button>
+      <button class="tab" data-tab="danismaRandevu" id="tab-danismaRandevu-btn" style="display:none;"><i data-lucide="calendar-clock"></i> Aday Randevuları</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
       <button class="tab" data-tab="profilim" id="tab-profilim-btn" style="display:none;"><i data-lucide="user-circle"></i> Profilim</button>
       <button class="tab" data-tab="raporlar" id="tab-raporlar-btn" style="display:none;"><i data-lucide="bar-chart-3"></i> Raporlar</button>
@@ -10123,6 +10125,19 @@ body.rol-danisma .danisma-gizle { display: none !important; }
     </div>
 
     <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
+    <!-- ============ ADAY VELİ RANDEVULARI — moduller/danisma-randevulari.js ============ -->
+    <div class="tab-panel" id="tab-danismaRandevu">
+      <div style="background:linear-gradient(135deg,#0E7490 0%,#06B6D4 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
+          <i data-lucide="calendar-clock" style="width:15px;height:15px;"></i> KAYIT HUNİSİ</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Aday Veli Randevuları</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">Okul gezisi ve tanışma randevuları. Kim geldi, kim kayıt oldu, bizi nereden duydular.</p>
+      </div>
+      <div id="danismaRandevuIcerik">
+        <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+
     <!-- ============ GÜNLÜK RAPOR (ZEKY gunlukRaporlar ile ortak) ============ -->
     <div class="tab-panel" id="tab-gunlukRapor">
       <div style="background:linear-gradient(135deg,#0E7490 0%,#0891B2 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
@@ -13683,7 +13698,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v92";
+window.PORTAL_SURUM = "v93";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14003,6 +14018,7 @@ const SEKME_YETKILERI = {
   finans:      ["kurucu_mudur", "mudur", "muhasebe"],
   raporlar:    ["kurucu_mudur", "mudur", "muhasebe"],
   denetim:     ["kurucu_mudur", "mudur"],
+  danismaRandevu: ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma"],
   // İlk Adımlar programı yönetim tarafından hazırlanır; öğretmene kapalı
   oryantasyon: ["kurucu_mudur", "mudur", "egitim_koordinator"],
   // İletişim & İşleyiş
@@ -18116,6 +18132,14 @@ function caHomeHTML() {
         </div>
       </div>
 
+      <!-- Hızlı işlemler -->
+      <div>
+        <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
+        <div class="ca-quick">
+          ${caHizliIslemlerHTML()}
+        </div>
+      </div>
+
       <!-- Sabah Girişi: "Yola çıktık" — moduller/sabah-girisi.js -->
       <div id="veliSabahGirisiKart" class="ca-card" style="padding:0; overflow:hidden;">
         <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
@@ -18136,13 +18160,7 @@ function caHomeHTML() {
         <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
 
-      <!-- Hızlı işlemler -->
-      <div>
-        <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
-        <div class="ca-quick">
-          ${caHizliIslemlerHTML()}
-        </div>
-      </div>
+
 
       <!-- Dashboard: değişen yükseklikli kartlar (masonry) -->
       <div class="ca-dash">
@@ -19839,6 +19857,7 @@ function renderAdminHome() {
     setTimeout(() => { if (typeof egitimIlerlemeDoldur === "function") egitimIlerlemeDoldur(); }, 300);
     setTimeout(() => { if (typeof ozetDevamKartiDoldur === "function") ozetDevamKartiDoldur(); }, 100);
     setTimeout(() => { modulYukle("veli-izinleri").then(m => m && m.ogretmenKart("yonVeliIzinKart")); }, 320);
+    setTimeout(() => { modulYukle("danisma-randevulari").then(m => m && m.ozetKart("ozetDanismaKart")); }, 340);
     setTimeout(() => {
       if (typeof ozetRozetleriGuncelle === "function") {
         let gec = 0;
@@ -20651,6 +20670,14 @@ function yonetimHomeHTML(ad) {
               </div>
             </div>
             <div class="ozet-ikili-sag">
+              <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;">
+                <span style="font-size:16px; display:inline-flex;"><i data-lucide="calendar-clock" style="width:16px;height:16px;color:#0E7490;"></i></span>
+                <span class="ozet-panel-baslik">Aday Veli Randevuları</span>
+                <button class="kpi-mini-btn" style="margin-left:auto; padding:3px 9px; font-size:11px;" onclick="modulSec('danismaRandevu')">Tümü →</button>
+              </div>
+              <div id="ozetDanismaKart" style="margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #EEF1F5;">
+                <div style="font-size:12.5px; color:var(--c-muted);">Yükleniyor…</div>
+              </div>
               <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;">
                 <span style="font-size:16px; display:inline-flex;"><i data-lucide="calendar-x" style="width:16px;height:16px;color:#B45309;"></i></span>
                 <span class="ozet-panel-baslik">İzin Talepleri</span>
@@ -40240,6 +40267,7 @@ const MODUL_HARITASI = {
   siniflarM:   { tablar: ["siniflar"],   varsayilan: "siniflar", ad: "Sınıflar" },
   oryantasyonM:{ tablar: ["oryantasyon"],varsayilan: "oryantasyon", ad: "İlk Adımlar" },
   ozlukM:      { tablar: ["ozluk"],      varsayilan: "ozluk", ad: "Özlük & Puantaj" },
+  danismaRandevu: { tablar: ["danismaRandevu"], varsayilan: "danismaRandevu", ad: "Aday Randevuları" },
   basvuru:     { tablar: ["onay"],       varsayilan: "onay", ad: "Başvuru Havuzu" },
   ogrenci:     { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
   personel:    { tablar: ["personel"],   varsayilan: "personel", ad: "Personel" },
@@ -40426,6 +40454,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // İlk Adımlar açıldı → öğretmen için salt okunur
     if (tab.dataset.tab === "oryantasyon") {
       setTimeout(() => { if (typeof oryantasyonSaltOkunurAyarla === "function") oryantasyonSaltOkunurAyarla(); }, 260);
+    }
+
+    // Aday Randevuları sekmesi açıldı
+    if (tab.dataset.tab === "danismaRandevu") {
+      setTimeout(() => { modulYukle("danisma-randevulari").then(m => m && m.panelRender("danismaRandevuIcerik")); }, 50);
     }
 
     // Günlük Rapor sekmesi açıldı
