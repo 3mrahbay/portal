@@ -9387,6 +9387,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
         <button class="side-item" data-modul="gunlukRapor" onclick="modulSec('gunlukRapor')"><span class="side-ikon"><i data-lucide="notebook-pen"></i></span><span class="side-ad">Günlük Rapor</span></button>
+        <button class="side-item yonetim-only" data-modul="geriBildirim" onclick="modulSec('geriBildirim')"><span class="side-ikon"><i data-lucide="message-square-heart"></i></span><span class="side-ad">Geri Bildirim</span></button>
         <button class="side-item yonetim-only" data-modul="programBelgeleme" onclick="modulSec('programBelgeleme')"><span class="side-ikon"><i data-lucide="folder-check"></i></span><span class="side-ad">Evrak Takibi</span></button>
         <button class="side-item" data-modul="haftalikPlan" onclick="modulSec('haftalikPlan')"><span class="side-ikon"><i data-lucide="calendar-range"></i></span><span class="side-ad">Haftalık Plan</span></button>
         <button class="side-item" data-modul="devamsizlik" onclick="modulSec('devamsizlik')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">Devamsızlık</span></button>
@@ -9421,6 +9422,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
       <button class="tab" data-tab="haftalikPlan" id="tab-haftalikPlan-btn" style="display:none;"><i data-lucide="calendar-range"></i> Haftalık Plan</button>
       <button class="tab" data-tab="gunlukRapor" id="tab-gunlukRapor-btn" style="display:none;"><i data-lucide="notebook-pen"></i> Günlük Rapor</button>
       <button class="tab" data-tab="programBelgeleme" id="tab-programBelgeleme-btn" style="display:none;"><i data-lucide="folder-check"></i> Evrak Takibi</button>
+      <button class="tab" data-tab="geriBildirim" id="tab-geriBildirim-btn" style="display:none;"><i data-lucide="message-square-heart"></i> Geri Bildirim</button>
       <button class="tab" data-tab="danismaRandevu" id="tab-danismaRandevu-btn" style="display:none;"><i data-lucide="calendar-clock"></i> Aday Randevuları</button>
       <button class="tab" data-tab="pdr" id="tab-pdr-btn" style="display:none;"><i data-lucide="brain"></i> PDR</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
@@ -10132,6 +10134,17 @@ body.rol-danisma .danisma-gizle { display: none !important; }
     </div>
 
     <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
+    <!-- ============ GERİ BİLDİRİM — moduller/geri-bildirim.js ============ -->
+    <div class="tab-panel" id="tab-geriBildirim">
+      <div style="background:linear-gradient(135deg,#059669 0%,#34D399 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
+          <i data-lucide="message-square-heart" style="width:15px;height:15px;"></i> DİNLEME</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Veli Memnuniyeti & İhtiyaç Talepleri</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">Haftalık memnuniyet trendi, veli yorumları ve personelin sınıf için ihtiyaç bildirimleri.</p>
+      </div>
+      <div id="geriBildirimIcerik"><div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div></div>
+    </div>
+
     <!-- ============ PROGRAM BELGELEME — moduller/program-belgeleme.js ============ -->
     <div class="tab-panel" id="tab-programBelgeleme">
       <div style="background:linear-gradient(135deg,#1E3A5F 0%,#2E5C8A 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
@@ -13731,7 +13744,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v96";
+window.PORTAL_SURUM = "v97";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14062,6 +14075,7 @@ const SEKME_YETKILERI = {
   haftalikPlan:["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   gunlukRapor: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   programBelgeleme: ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  geriBildirim: ["kurucu_mudur", "mudur", "egitim_koordinator"],
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
   duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
@@ -16493,7 +16507,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => { if (m) { m.veliBelgeOnayKart("veliBelgeOnayKart"); m.veliMemnuniyetKart("veliMemnuniyetKart"); } }); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -16627,7 +16641,7 @@ window.caGo = function(ekran) {
 
 // Çocuk (kardeş) değiştirici — aktif çocuğu değiştirir, ana sayfayı tazeler
 window.caCocukDegistir = async function(idx) {
-  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); }, 250);
+  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => { if (m) { m.veliBelgeOnayKart("veliBelgeOnayKart"); m.veliMemnuniyetKart("veliMemnuniyetKart"); } }); }, 250);
   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler[idx]) return;
   try { if (typeof setAktifVeliOgrenci === "function") await setAktifVeliOgrenci(veliOgrenciler[idx]); } catch(e) { console.warn(e); }
   caEkran = "home";
@@ -18196,6 +18210,10 @@ function caHomeHTML() {
       <div id="veliPickupYetkiKart" class="ca-card" style="padding:0; overflow:hidden;">
         <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
+
+      <!-- Belge onayları + haftalık memnuniyet — moduller/geri-bildirim.js -->
+      <div id="veliBelgeOnayKart" class="ca-card" style="padding:0; overflow:hidden;"></div>
+      <div id="veliMemnuniyetKart" class="ca-card" style="padding:0; overflow:hidden;"></div>
 
 
 
@@ -35582,6 +35600,8 @@ window.profilimRender = async function() {
             }).join("")}
       `)}
 
+      ${kart("İhtiyaç Taleplerim", "package-plus", "#2D5E3E", `<div id="profilIhtiyacKart"><div style="font-size:12.5px; color:#94A3B8;">Yükleniyor…</div></div>`)}
+
       ${kart("Veli Görüşmelerim", "calendar-clock", "#0891B2", `
         <div id="profilRandevular"><div style="font-size:12.5px; color:#94A3B8;">Yükleniyor…</div></div>
       `)}
@@ -35603,6 +35623,7 @@ window.profilimRender = async function() {
 
   if (typeof devamKartiCiz === "function") devamKartiCiz(gunlukKayitlar[bugun]);
   if (typeof profilRandevulariYukle === "function") profilRandevulariYukle(email);
+  modulYukle("geri-bildirim").then(m => m && m.personelIhtiyacKart("profilIhtiyacKart"));
   if (window.lucideYenile) window.lucideYenile();
 };
 
@@ -40326,6 +40347,7 @@ const MODUL_HARITASI = {
   haftalikPlan:{ tablar: ["haftalikPlan"], varsayilan: "haftalikPlan", ad: "Haftalık Plan" },
   gunlukRapor: { tablar: ["gunlukRapor"],  varsayilan: "gunlukRapor",  ad: "Günlük Rapor" },
   programBelgeleme: { tablar: ["programBelgeleme"], varsayilan: "programBelgeleme", ad: "Evrak Takibi" },
+  geriBildirim: { tablar: ["geriBildirim"], varsayilan: "geriBildirim", ad: "Geri Bildirim" },
   galeri:      { tablar: ["galeri"],     varsayilan: "galeri", ad: "Galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
@@ -40504,6 +40526,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // İlk Adımlar açıldı → öğretmen için salt okunur
     if (tab.dataset.tab === "oryantasyon") {
       setTimeout(() => { if (typeof oryantasyonSaltOkunurAyarla === "function") oryantasyonSaltOkunurAyarla(); }, 260);
+    }
+
+    // Geri Bildirim sekmesi açıldı
+    if (tab.dataset.tab === "geriBildirim") {
+      setTimeout(() => { modulYukle("geri-bildirim").then(m => m && m.yonetimPanel("geriBildirimIcerik")); }, 50);
     }
 
     // Orman & Değerler sekmesi açıldı
