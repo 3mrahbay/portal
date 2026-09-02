@@ -13683,7 +13683,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v90";
+window.PORTAL_SURUM = "v91";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16440,7 +16440,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -16574,7 +16574,7 @@ window.caGo = function(ekran) {
 
 // Çocuk (kardeş) değiştirici — aktif çocuğu değiştirir, ana sayfayı tazeler
 window.caCocukDegistir = async function(idx) {
-  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); }, 250);
+  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); }, 250);
   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler[idx]) return;
   try { if (typeof setAktifVeliOgrenci === "function") await setAktifVeliOgrenci(veliOgrenciler[idx]); } catch(e) { console.warn(e); }
   caEkran = "home";
@@ -18118,6 +18118,11 @@ function caHomeHTML() {
 
       <!-- Okul Zili: "Almaya geliyorum" — ZEKY ile ortak akış -->
       <div id="veliOkulZiliKart" class="ca-card" style="padding:0; overflow:hidden;">
+        <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
+      </div>
+
+      <!-- İzin & Bildirim — moduller/veli-izinleri.js -->
+      <div id="veliIzinKart" class="ca-card" style="padding:0; overflow:hidden;">
         <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
 
@@ -19822,6 +19827,7 @@ function renderAdminHome() {
     setTimeout(() => { if (typeof ozetYemekDoldur === "function") ozetYemekDoldur(); }, 220);
     setTimeout(() => { if (typeof egitimIlerlemeDoldur === "function") egitimIlerlemeDoldur(); }, 300);
     setTimeout(() => { if (typeof ozetDevamKartiDoldur === "function") ozetDevamKartiDoldur(); }, 100);
+    setTimeout(() => { modulYukle("veli-izinleri").then(m => m && m.ogretmenKart("yonVeliIzinKart")); }, 320);
     setTimeout(() => {
       if (typeof ozetRozetleriGuncelle === "function") {
         let gec = 0;
@@ -20634,6 +20640,13 @@ function yonetimHomeHTML(ad) {
               </div>
             </div>
             <div class="ozet-ikili-sag">
+              <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;">
+                <span style="font-size:16px; display:inline-flex;"><i data-lucide="calendar-x" style="width:16px;height:16px;color:#B45309;"></i></span>
+                <span class="ozet-panel-baslik">İzin Talepleri</span>
+              </div>
+              <div id="yonVeliIzinKart" style="margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #EEF1F5;">
+                <div style="font-size:12.5px; color:var(--c-muted);">Yükleniyor…</div>
+              </div>
               <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
                 <div style="display:flex; align-items:center; gap:7px;">
                   <span style="font-size:16px; display:inline-flex;"><i data-lucide="graduation-cap" style="width:16px;height:16px;color:#6D28D9;"></i></span>
@@ -20823,6 +20836,14 @@ function ogretmenHomeHTML(ad) {
           </div>
 
           <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">📅 İzin Talepleri</h3>
+            <span class="ca-tile-sub">Onay bekleyenler</span>
+          </div>
+          <div class="ca-card" style="padding:12px 16px; margin-bottom:16px;" id="ogrVeliIzinKart">
+            <div class="ca-tile-sub">Yükleniyor…</div>
+          </div>
+
+          <div class="ca-sectionhead">
             <h3 class="ca-head" style="font-size:15px;">🔔 Okul Zili · Çıkış Kuyruğu</h3>
             <span class="ca-tile-sub" id="okulZiliOzet">Bugün</span>
           </div>
@@ -20984,6 +21005,7 @@ async function ogretmenHomeVeriYukle() {
   setTimeout(() => { if (typeof ogretmenHomeEkKartlar === "function") ogretmenHomeEkKartlar(); }, 120);
   setTimeout(() => { if (typeof okulZiliDoldur === "function") okulZiliDoldur(); }, 160);
   setTimeout(() => { modulYukle("sabah-girisi").then(m => m && m.ogretmenKart("ogrSabahGirisiKart")); }, 180);
+  setTimeout(() => { modulYukle("veli-izinleri").then(m => m && m.ogretmenKart("ogrVeliIzinKart")); }, 200);
   setTimeout(() => { if (typeof ozetDevamKartiDoldur === "function") ozetDevamKartiDoldur(); }, 100);
   const bugun = new Date().toISOString().slice(0, 10);
   const siniflarim = aktifKullaniciSiniflari || [];
@@ -29876,6 +29898,24 @@ async function renderDevamsizlik() {
     if (sA !== sB) return sA.localeCompare(sB);
     return (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "");
   });
+
+  // Onaylı veli izinlerini otomatik "izinli" işaretle (öğretmen elle seçmesin)
+  // Yalnızca henüz kayıt girilmemiş öğrencilere uygulanır; öğretmenin kaydı üstündür.
+  try {
+    const _tarih = aktifDevamsizlikVerisi.tarih || document.getElementById("devamsizlikTarih")?.value;
+    if (_tarih) {
+      const m = await modulYukle("veli-izinleri");
+      if (m && m.izinliOgrenciler) {
+        const izinliler = await m.izinliOgrenciler(_tarih);
+        if (!aktifDevamsizlikVerisi.kayitlar) aktifDevamsizlikVerisi.kayitlar = {};
+        izinliler.forEach(id => {
+          if (!aktifDevamsizlikVerisi.kayitlar[id] || !aktifDevamsizlikVerisi.kayitlar[id].durum) {
+            aktifDevamsizlikVerisi.kayitlar[id] = { durum: "izinli", kaynak: "veli_izni", otomatik: true };
+          }
+        });
+      }
+    }
+  } catch (e) { console.warn("izin eşleme:", e); }
 
   // Özet hesapla
   const sayaclar = { geldi: 0, gelmedi: 0, izinli: 0, hasta: 0, bilinmeyen: 0 };
