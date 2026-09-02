@@ -19244,6 +19244,23 @@ window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi) {
   }
 };
 
+// Okul Zili canlı dinleme — veli bildirim gönderdiğinde kart kendini yeniler
+let _okulZiliUnsub = null;
+window.okulZiliCanliBaslat = function() {
+  if (_okulZiliUnsub) return; // zaten dinliyor
+  if (!document.getElementById("okulZiliListe")) return;
+  try {
+    const bugun = new Date().toISOString().substring(0, 10);
+    const q = query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun));
+    _okulZiliUnsub = onSnapshot(q, () => {
+      if (document.getElementById("okulZiliListe") && typeof okulZiliDoldur === "function") okulZiliDoldur();
+    }, (e) => console.warn("okul zili dinleme:", e.code || e.message));
+  } catch (e) { console.warn("okul zili canlı:", e); }
+};
+window.okulZiliCanliDurdur = function() {
+  if (_okulZiliUnsub) { _okulZiliUnsub(); _okulZiliUnsub = null; }
+};
+
 window.okulZiliDoldur = async function() {
   const el = document.getElementById("okulZiliListe");
   const ozetEl = document.getElementById("okulZiliOzet");
@@ -19257,9 +19274,15 @@ window.okulZiliDoldur = async function() {
     const snap = await getDocs(collection(db, "pickupBildirimleri"));
     snap.forEach(d => {
       const v = d.data() || {};
-      if ((v.tarih || "").substring(0, 10) === bugun) kayitlar.push({ id: d.id, ...v });
+      if ((v.tarih || "").substring(0, 10) === bugun && v.durum !== "iptal") kayitlar.push({ id: d.id, ...v });
     });
   } catch (e) { console.warn("pickupBildirimleri:", e.code || e.message); }
+
+  // ÖĞRETMEN: yalnızca kendi sınıfının çocukları
+  if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
+    const kendi = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari) || [];
+    if (kendi.length) kayitlar = kayitlar.filter(k => kendi.includes(k.sinif));
+  }
 
   const saatY = (iso) => {
     if (!iso) return null;
@@ -19355,6 +19378,7 @@ window.okulZiliDoldur = async function() {
     ? `<div style="font-size:11.5px; color:#94A3B8; padding-top:8px;">+${kayitlar.length - 6} bildirim daha</div>` : "");
 
   if (window.lucideYenile) window.lucideYenile();
+  if (typeof okulZiliCanliBaslat === "function") okulZiliCanliBaslat();
 };
 
 // Özet sayfası hızlı işlem butonları
@@ -20698,6 +20722,14 @@ function ogretmenHomeHTML(ad) {
 
       <div class="ca-dash">
         <div>
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">🔔 Okul Zili · Çıkış Kuyruğu</h3>
+            <span class="ca-tile-sub" id="okulZiliOzet">Bugün</span>
+          </div>
+          <div class="ca-card" style="padding:12px 16px; margin-bottom:16px;" id="okulZiliListe">
+            <div class="ca-tile-sub">Yükleniyor…</div>
+          </div>
+
           <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Bekleyen Veli Mesajları</h3><button class="ca-link" onclick="modulSec('mesaj')">Tümü →</button></div>
           <div class="ca-card" style="padding:12px 16px;" id="ogrHomeMesajlar">
             <div class="ca-tile-sub">Yükleniyor…</div>
@@ -20850,6 +20882,7 @@ window.ogretmenHomeEkKartlar = async function() {
 // Öğretmen ana sayfası verilerini Firestore'dan doldur
 async function ogretmenHomeVeriYukle() {
   setTimeout(() => { if (typeof ogretmenHomeEkKartlar === "function") ogretmenHomeEkKartlar(); }, 120);
+  setTimeout(() => { if (typeof okulZiliDoldur === "function") okulZiliDoldur(); }, 160);
   setTimeout(() => { if (typeof ozetDevamKartiDoldur === "function") ozetDevamKartiDoldur(); }, 100);
   const bugun = new Date().toISOString().slice(0, 10);
   const siniflarim = aktifKullaniciSiniflari || [];
