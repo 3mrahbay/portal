@@ -19488,6 +19488,7 @@ function renderAdminHome() {
     setTimeout(() => { if (typeof dogumGunleriDoldur === "function") dogumGunleriDoldur(); }, 180);
     setTimeout(() => { if (typeof ozetYemekDoldur === "function") ozetYemekDoldur(); }, 220);
     setTimeout(() => { if (typeof egitimIlerlemeDoldur === "function") egitimIlerlemeDoldur(); }, 300);
+    setTimeout(() => { if (typeof ozetDevamKartiDoldur === "function") ozetDevamKartiDoldur(); }, 100);
     setTimeout(() => {
       if (typeof ozetRozetleriGuncelle === "function") {
         let gec = 0;
@@ -20317,6 +20318,7 @@ function yonetimHomeHTML(ad) {
         <!-- Takvim + Gün Planı -->
         <div class="ozet-panel">
           <div class="ozet-gunplan">
+            <div id="ozetDevamKart" style="margin-bottom:12px;"></div>
             <div class="ozet-gunplan-baslik">${bugunD.getDate()} ${ayNoIsim[bugunD.getMonth()]} · Gün Planı</div>
             ${bugunkuRandevular.length ? bugunkuRandevular.map(r=>`
               <div class="ozet-gunplan-satir">
@@ -20448,6 +20450,7 @@ function ogretmenHomeHTML(ad) {
             <div><div style="font-family:var(--c-font-head); font-weight:700; font-size:30px;">—</div><div style="font-size:12px; opacity:.9;">yükleniyor</div></div>
           </div>
           <button class="ca-btn ghost" style="margin-top:14px; width:100%;" onclick="modulSec('devamsizlik')">Yoklamayı düzenle</button>
+          <div id="ozetDevamKart" style="margin-top:12px;"></div>
           <button class="ca-btn ghost" style="margin-top:8px; width:100%;" onclick="giderTalepAc()">
             <i data-lucide="receipt" style="width:14px;height:14px;vertical-align:-2px;"></i> Gider / Fiş Bildir</button>
         </div>
@@ -20630,6 +20633,7 @@ window.ogretmenHomeEkKartlar = async function() {
 // Öğretmen ana sayfası verilerini Firestore'dan doldur
 async function ogretmenHomeVeriYukle() {
   setTimeout(() => { if (typeof ogretmenHomeEkKartlar === "function") ogretmenHomeEkKartlar(); }, 120);
+  setTimeout(() => { if (typeof ozetDevamKartiDoldur === "function") ozetDevamKartiDoldur(); }, 100);
   const bugun = new Date().toISOString().slice(0, 10);
   const siniflarim = aktifKullaniciSiniflari || [];
 
@@ -35175,8 +35179,31 @@ window.profilRandevulariYukle = async function(email) {
 };
 
 // ── Devam kaydı kartı: giriş / mola / çıkış ──
-window.devamKartiCiz = function(bugunVeri) {
-  const el = document.getElementById("devamKartAlan");
+// ═══ ÖZET SAYFASI: devam kartı (giriş / mola / çıkış) ═══
+// Profilim'deki kartın aynısı — sabah panele girer girmez giriş yapılabilsin diye.
+window.ozetDevamKartiDoldur = async function() {
+  const el = document.getElementById("ozetDevamKart");
+  if (!el) return;
+  const email = (currentUser?.email || "").toLowerCase();
+  if (!email) { el.innerHTML = ""; return; }
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  let hareketler = [];
+  try {
+    const qs = await getDocs(query(collection(db, "puantaj"),
+      where("personelEmail", "==", email), where("tarih", "==", bugun)));
+    qs.forEach(d => hareketler.push(d.data()));
+    hareketler.sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
+  } catch (e) { console.warn("özet devam:", e.code || e.message); }
+
+  // devamKartiCiz'in beklediği biçim
+  if (typeof devamKartiCiz === "function") {
+    devamKartiCiz({ kayitlar: hareketler }, "ozetDevamKart");
+  }
+};
+
+window.devamKartiCiz = function(bugunVeri, hedefId) {
+  const el = document.getElementById(hedefId || "devamKartAlan");
   if (!el) return;
   const h = (bugunVeri && bugunVeri.kayitlar) || [];
 
@@ -35294,7 +35321,15 @@ window.devamKaydet = async function(tip) {
     }, { merge: true });
 
     showToast(`✓ ${etiket} kaydedildi · ${simdi.toTimeString().slice(0, 5)}`);
-    if (typeof profilimRender === "function") profilimRender();
+    // Hangi ekrandan basıldıysa oradaki kart tazelensin
+    if (document.getElementById("ozetDevamKart") && typeof ozetDevamKartiDoldur === "function") {
+      ozetDevamKartiDoldur();
+    }
+    if (document.getElementById("devamKartAlan") && typeof profilimRender === "function") {
+      profilimRender();
+    }
+    // Özet'teki Personel Durumu sayaçları da güncellensin
+    if (typeof hbOgretmenDoldur === "function") setTimeout(hbOgretmenDoldur, 300);
   } catch (e) {
     console.error("devam kaydı:", e);
     showToast("Kaydedilemedi: " + e.message, "error");
