@@ -9387,7 +9387,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
         <button class="side-item" data-modul="gunlukRapor" onclick="modulSec('gunlukRapor')"><span class="side-ikon"><i data-lucide="notebook-pen"></i></span><span class="side-ad">Günlük Rapor</span></button>
-        <button class="side-item" data-modul="programBelgeleme" onclick="modulSec('programBelgeleme')"><span class="side-ikon"><i data-lucide="trees"></i></span><span class="side-ad">Orman & Değerler</span></button>
+        <button class="side-item yonetim-only" data-modul="programBelgeleme" onclick="modulSec('programBelgeleme')"><span class="side-ikon"><i data-lucide="folder-check"></i></span><span class="side-ad">Evrak Takibi</span></button>
         <button class="side-item" data-modul="haftalikPlan" onclick="modulSec('haftalikPlan')"><span class="side-ikon"><i data-lucide="calendar-range"></i></span><span class="side-ad">Haftalık Plan</span></button>
         <button class="side-item" data-modul="devamsizlik" onclick="modulSec('devamsizlik')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">Devamsızlık</span></button>
         <button class="side-item" data-modul="galeri" onclick="modulSec('galeri')"><span class="side-ikon"><i data-lucide="image"></i></span><span class="side-ad">Galeri</span></button>
@@ -9420,7 +9420,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
       <button class="tab" data-tab="haftalikPlan" id="tab-haftalikPlan-btn" style="display:none;"><i data-lucide="calendar-range"></i> Haftalık Plan</button>
       <button class="tab" data-tab="gunlukRapor" id="tab-gunlukRapor-btn" style="display:none;"><i data-lucide="notebook-pen"></i> Günlük Rapor</button>
-      <button class="tab" data-tab="programBelgeleme" id="tab-programBelgeleme-btn" style="display:none;"><i data-lucide="trees"></i> Orman & Değerler</button>
+      <button class="tab" data-tab="programBelgeleme" id="tab-programBelgeleme-btn" style="display:none;"><i data-lucide="folder-check"></i> Evrak Takibi</button>
       <button class="tab" data-tab="danismaRandevu" id="tab-danismaRandevu-btn" style="display:none;"><i data-lucide="calendar-clock"></i> Aday Randevuları</button>
       <button class="tab" data-tab="pdr" id="tab-pdr-btn" style="display:none;"><i data-lucide="brain"></i> PDR</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
@@ -10034,6 +10034,8 @@ body.rol-danisma .danisma-gizle { display: none !important; }
 
       <!-- MATRIX SİSTEMİ (gizli, disiplin seçilince açılır) -->
       <div id="egitimMatrixContainer" style="display:none;">
+        <!-- Program belgeleme: orman oturumu / değerler gözlemi (moduller/program-belgeleme.js) -->
+        <div id="egitimBelgelemeKap" style="display:none; margin-bottom:16px;"></div>
         <!-- Geri & başlık -->
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
           <button class="rapor-geri-btn" onclick="egitimDisiplinKapat()">← Disiplin Seçimine Dön</button>
@@ -10132,11 +10134,11 @@ body.rol-danisma .danisma-gizle { display: none !important; }
     <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
     <!-- ============ PROGRAM BELGELEME — moduller/program-belgeleme.js ============ -->
     <div class="tab-panel" id="tab-programBelgeleme">
-      <div style="background:linear-gradient(135deg,#4A7C59 0%,#7CB97C 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+      <div style="background:linear-gradient(135deg,#1E3A5F 0%,#2E5C8A 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
         <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
-          <i data-lucide="trees" style="width:15px;height:15px;"></i> PROGRAM BELGELEME</div>
-        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Orman Oturumu · Değerler · Belgeler</h2>
-        <p style="opacity:.92; font-size:14px; margin:0;">BFLM® orman günü kaydı, BVLM® ayın değeri gözlemi ve öğrenci evrak dosyası. Denetim ve MACTE kanıtı üretir.</p>
+          <i data-lucide="folder-check" style="width:15px;height:15px;"></i> ÖĞRENCİ DOSYASI</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Evrak Takibi</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">Kimlik, aşı kartı, sağlık raporu, sözleşme, KVKK — hangi öğrencinin dosyası eksik, tek bakışta.</p>
       </div>
       <div id="programBelgelemeIcerik">
         <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
@@ -13729,7 +13731,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v95";
+window.PORTAL_SURUM = "v96";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14059,7 +14061,7 @@ const SEKME_YETKILERI = {
   devamsizlik: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   haftalikPlan:["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   gunlukRapor: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
-  programBelgeleme: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  programBelgeleme: ["kurucu_mudur", "mudur", "egitim_koordinator"],
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
   duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
@@ -31335,6 +31337,17 @@ window.egitimDisiplinAc = async function(disiplin) {
   const _bransBaslik = document.getElementById("egitimBransBaslik");
   if (_bransBaslik) _bransBaslik.style.display = "none";
   document.getElementById("egitimMatrixContainer").style.display = "block";
+  // Orman → oturum kaydı, Değerler → aylık gözlem; diğer programlarda alan gizli
+  try {
+    const bk = document.getElementById("egitimBelgelemeKap");
+    if (bk) {
+      if (disiplin === "orman" || disiplin === "degerler") {
+        bk.style.display = "block";
+        bk.innerHTML = '<div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Yükleniyor…</div>';
+        modulYukle("program-belgeleme").then(m => m && m.egitimKart("egitimBelgelemeKap", disiplin));
+      } else { bk.style.display = "none"; bk.innerHTML = ""; }
+    }
+  } catch (e) { console.warn("belgeleme kartı:", e); }
 
   // Müfredat ve tüm öğrencilerin gelişimini yükle
   document.getElementById("egitimMatrixWrap").innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Müfredat ve öğrenci verileri yükleniyor...</div>`;
@@ -40312,7 +40325,7 @@ const MODUL_HARITASI = {
   devamsizlik: { tablar: ["devamsizlik"], varsayilan: "devamsizlik", ad: "Devamsızlık" },
   haftalikPlan:{ tablar: ["haftalikPlan"], varsayilan: "haftalikPlan", ad: "Haftalık Plan" },
   gunlukRapor: { tablar: ["gunlukRapor"],  varsayilan: "gunlukRapor",  ad: "Günlük Rapor" },
-  programBelgeleme: { tablar: ["programBelgeleme"], varsayilan: "programBelgeleme", ad: "Orman & Değerler" },
+  programBelgeleme: { tablar: ["programBelgeleme"], varsayilan: "programBelgeleme", ad: "Evrak Takibi" },
   galeri:      { tablar: ["galeri"],     varsayilan: "galeri", ad: "Galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
@@ -40495,7 +40508,7 @@ document.querySelectorAll(".tab").forEach(tab => {
 
     // Orman & Değerler sekmesi açıldı
     if (tab.dataset.tab === "programBelgeleme") {
-      setTimeout(() => { modulYukle("program-belgeleme").then(m => m && m.panelRender("programBelgelemeIcerik")); }, 50);
+      setTimeout(() => { modulYukle("program-belgeleme").then(m => m && m.panelRender("programBelgelemeIcerik", "belgeler")); }, 50);
     }
 
     // PDR sekmesi açıldı
