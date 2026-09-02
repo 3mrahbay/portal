@@ -13683,7 +13683,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v89";
+window.PORTAL_SURUM = "v90";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16759,6 +16759,17 @@ window.veliOkulZiliDoldur = async function() {
     return;
   }
 
+  // ── Akşam (18:30 sonrası) ve bildirim yoksa → yer kaplamasın ──
+  if (!b) {
+    const _s = new Date();
+    if (_s.getHours() >= 18 && _s.getMinutes() >= 30 || _s.getHours() >= 19) {
+      el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:var(--c-muted);">
+        <span>🔔</span><span>Okul Zili · yarın sabah aktif olacak</span>
+      </div>`;
+      return;
+    }
+  }
+
   // ── Henüz bildirim yok → "Almaya geliyorum" ──
   if (!b) {
     const simdi = new Date();
@@ -16792,6 +16803,16 @@ window.veliOkulZiliDoldur = async function() {
           🚗 Almaya geliyorum
         </button>
       </div>`;
+    return;
+  }
+
+  // ── Teslim + veli teyidi tamam → kompakt özet, yer kaplamasın ──
+  if (b.durum === "teslim" && b.veliOnay) {
+    el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:#166534;">
+      <span>✅</span>
+      <span style="flex:1;"><strong>${esc(ad)}</strong> ${vzSaatY(b.teslimZamani)}'de teslim edildi${b.teslimEden ? " · " + esc(b.teslimEden.split(" ")[0]) : ""}</span>
+      <span style="font-size:11px; color:var(--c-muted);">teyit ${vzSaatY(b.veliOnayZamani)}</span>
+    </div>`;
     return;
   }
 
@@ -17433,8 +17454,14 @@ async function caHomeOryantasyonDoldur() {
       detay = t ? "İlk hafta: " + t.aralik : ""; yuzde = 0;
       ilerlemeMetin = toplam + " haftalık uyum programı";
     } else if (aktif > toplam) {
-      rozet = "Tamamlandı"; baslik = "Uyum programı tamamlandı";
-      detay = "Artık normal okul düzenine geçtiniz."; yuzde = 100;
+      // Program bitti: bir hafta boyunca küçük bir "tamamlandı" şeridi göster, sonra kaldır
+      if (aktif > toplam + 1) { bant.style.display = "none"; ORY_DURUM = { goster: false }; return; }
+      bant.style.display = "";
+      bant.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:#ECFDF5; border-radius:12px; font-size:12.5px; color:#166534;">
+        <span>🎉</span><span style="flex:1;"><strong>Uyum programı tamamlandı</strong> · normal okul düzenine geçtiniz</span>
+        <button onclick="this.closest('div').parentElement.style.display='none'" style="background:none; border:none; color:#166534; cursor:pointer; font-size:16px; padding:0 4px;" title="Kapat">×</button>
+      </div>`;
+      return;
       ilerlemeMetin = toplam + "/" + toplam + " hafta";
     } else {
       rozet = aktif + ". Hafta"; baslik = h.ad || (aktif + ". Hafta");

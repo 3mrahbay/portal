@@ -71,7 +71,17 @@ export async function veliKart(hedefId) {
     return;
   }
 
-  // ── Bildirildi / onaylandı ──
+  // ── Sınıfa girdi → kompakt tek satır, gün boyunca yer kaplamasın ──
+  if (onaylandi) {
+    const kim = k.onaylayanAd ? " · " + esc(k.onaylayanAd.split(" ")[0]) : "";
+    el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:#166534;">
+      <span>🌅</span>
+      <span style="flex:1;"><strong>${esc(ad)}</strong> ${saatY(k.sinifaGirisOnayi)}'de teslim alındı${kim}</span>
+    </div>`;
+    return;
+  }
+
+  // ── Bildirildi, henüz onaylanmadı ──
   const alanKisi = k.onaylayanAd
     ? `${esc(k.onaylayanAd)}${k.onaylayanRol ? " (" + esc(k.onaylayanRol) + ")" : ""} teslim aldı`
     : "Okul teslim aldı";
