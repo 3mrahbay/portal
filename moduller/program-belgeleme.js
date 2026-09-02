@@ -63,10 +63,12 @@ function sinifOgrencileri(sinif) {
 // ───────────────────────────────────────────────────────────────────
 // PANEL İSKELETİ
 // ───────────────────────────────────────────────────────────────────
-export async function panelRender(hedefId) {
+export async function panelRender(hedefId, mod) {
   const el = document.getElementById(hedefId);
   if (!el) return;
   const { esc } = P();
+  if (mod) _sekme = mod;
+  const tekMod = !!mod;   // Evrak Takibi sayfası: sekme çubuğu gizli
   const sn = siniflarim();
   if (!sn.length) {
     el.innerHTML = `<div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:14px; padding:22px; text-align:center; color:#92400E;">Sınıf ataması gerekiyor.</div>`;
@@ -77,7 +79,7 @@ export async function panelRender(hedefId) {
 
   el.innerHTML = `
     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
-      ${[["orman","🌳 Orman Oturumu"],["degerler","💎 Değerler Gözlemi"],["belgeler","📁 Öğrenci Belgeleri"]].map(([k, ad]) =>
+      ${tekMod ? "" : [["orman","🌳 Orman Oturumu"],["degerler","💎 Değerler Gözlemi"],["belgeler","📁 Öğrenci Belgeleri"]].map(([k, ad]) =>
         `<button class="btn-mini" onclick="window._pb.sekme('${k}')" style="${_sekme === k ? "background:#2D5E3E; color:#fff; border-color:#2D5E3E;" : ""} font-weight:700;">${ad}</button>`).join("")}
       <select onchange="window._pb.sinif(this.value)" style="margin-left:auto; padding:8px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13px; font-weight:600;">
         ${sn.map(s => `<option ${s === _sinif ? "selected" : ""}>${esc(s)}</option>`).join("")}
@@ -341,6 +343,48 @@ async function belgeToggle(ogrenciId, tur, teslim) {
   } catch (e) { toast("Kaydedilemedi: " + e.message, "error"); }
 }
 
+
+// ───────────────────────────────────────────────────────────────────
+// EĞİTİM MODÜLÜ İÇİ KART — Orman/Değerler programı açılınca matrisin üstünde
+// Katlanabilir; öğretmen isterse açar, matris görünümünü bozmaz.
+// ───────────────────────────────────────────────────────────────────
+let _egitimAcik = false;
+export async function egitimKart(hedefId, disiplin) {
+  const el = document.getElementById(hedefId);
+  if (!el) return;
+  const { esc } = P();
+  _sekme = disiplin === "orman" ? "orman" : "degerler";
+  if (!_ayKod) _ayKod = P().bugun().substring(0, 7);
+  const sn = siniflarim();
+  if (!sn.length) { el.innerHTML = ""; el.style.display = "none"; return; }
+  if (!_sinif || !sn.includes(_sinif)) _sinif = sn[0];
+
+  const baslik = disiplin === "orman" ? "🌳 Orman Oturumu Kaydı" : "💎 Ayın Değeri Gözlemi";
+  const alt = disiplin === "orman"
+    ? "Bu haftaki orman gününü belgeleyin — hava, saha kontrolü, etkinlik, katılım"
+    : "Bu ay hangi çocukta ayın değerini gözlemlediniz";
+  const renk = disiplin === "orman" ? "#E67E22" : "#C44569";
+
+  el.innerHTML = `
+    <div style="background:#fff; border:1px solid ${renk}44; border-left:4px solid ${renk}; border-radius:14px; overflow:hidden;">
+      <div onclick="window._pb.egitimToggle('${hedefId}','${disiplin}')" style="display:flex; align-items:center; gap:12px; padding:13px 16px; cursor:pointer;">
+        <div style="flex:1;">
+          <div style="font-size:14px; font-weight:800; color:${renk};">${baslik}</div>
+          <div style="font-size:12px; color:var(--c-muted); margin-top:2px;">${alt}</div>
+        </div>
+        ${sn.length > 1 ? `<select onclick="event.stopPropagation()" onchange="window._pb.sinif(this.value); window._pb.egitimYenile('${hedefId}','${disiplin}')" style="padding:6px 10px; border:1px solid #E2E8F0; border-radius:9px; font-family:inherit; font-size:12px;">
+          ${sn.map(s => `<option ${s === _sinif ? "selected" : ""}>${esc(s)}</option>`).join("")}</select>` : ""}
+        <span style="font-size:18px; color:${renk}; transition:transform .2s; transform:rotate(${_egitimAcik ? 90 : 0}deg);">›</span>
+      </div>
+      <div id="pbIcerik" style="display:${_egitimAcik ? "block" : "none"}; padding:0 16px 16px; border-top:1px solid #F1F2F7;"></div>
+    </div>`;
+
+  if (_egitimAcik) {
+    if (_sekme === "orman") await ormanRender(); else await degerlerRender();
+  }
+  P().lucide();
+}
+
 // ───────────────────────────────────────────────────────────────────
 window._pb = {
   sekme: (k) => { _sekme = k; panelRender("programBelgelemeIcerik"); },
@@ -350,8 +394,13 @@ window._pb = {
     const d = new Date(y, a - 1 + yon, 1);
     _ayKod = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
     _hafta = 1;
-    panelRender("programBelgelemeIcerik");
+    // Hangi bağlamdaysak orayı yenile
+    if (document.getElementById("egitimBelgelemeKap")?.contains(document.getElementById("pbIcerik"))) {
+      if (_sekme === "orman") ormanRender(); else degerlerRender();
+    } else panelRender("programBelgelemeIcerik");
   },
   hafta: (h) => { _hafta = h; ormanRender(); },
+  egitimToggle: (hedefId, disiplin) => { _egitimAcik = !_egitimAcik; egitimKart(hedefId, disiplin); },
+  egitimYenile: (hedefId, disiplin) => { egitimKart(hedefId, disiplin); },
   ormanKaydet, degerIsaretle, belgeToggle
 };
