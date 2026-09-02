@@ -13683,7 +13683,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v91";
+window.PORTAL_SURUM = "v92";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16440,7 +16440,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -16574,7 +16574,7 @@ window.caGo = function(ekran) {
 
 // Çocuk (kardeş) değiştirici — aktif çocuğu değiştirir, ana sayfayı tazeler
 window.caCocukDegistir = async function(idx) {
-  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); }, 250);
+  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); }, 250);
   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler[idx]) return;
   try { if (typeof setAktifVeliOgrenci === "function") await setAktifVeliOgrenci(veliOgrenciler[idx]); } catch(e) { console.warn(e); }
   caEkran = "home";
@@ -16725,6 +16725,11 @@ window.veliOkulZiliDoldur = async function() {
 
   const tarih = vzBugun();
   const gunIdx = new Date().getDay();
+  // Yetkili kişi listesi (form açılır menüsü için)
+  try {
+    const py = await modulYukle("pickup-yetkilileri");
+    if (py) window._vzYetkililer = await py.listeGetir(ogr.id);
+  } catch (e) { window._vzYetkililer = null; }
   let b = null;
   try {
     const s = await getDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih));
@@ -16793,9 +16798,9 @@ window.veliOkulZiliDoldur = async function() {
         <div>
           <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Kim alacak</label>
           <select id="vzKisi" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; margin-top:4px;">
-            <option>Anne</option><option>Baba</option><option>Anneanne</option><option>Babaanne</option>
-            <option>Dede</option><option>Servis</option><option>Diğer yetkili</option>
+            ${(window._vzYetkililer || [{ad:"Anne"},{ad:"Baba"}]).map(k => `<option>${esc(k.ad)}</option>`).join("")}
           </select>
+          <div style="font-size:10.5px; color:var(--c-muted); margin-top:4px;">Liste "Teslim Alabilecek Kişiler" kartından gelir.</div>
         </div>
       </div>
       <div style="padding:0 18px 16px;">
@@ -18123,6 +18128,11 @@ function caHomeHTML() {
 
       <!-- İzin & Bildirim — moduller/veli-izinleri.js -->
       <div id="veliIzinKart" class="ca-card" style="padding:0; overflow:hidden;">
+        <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
+      </div>
+
+      <!-- Teslim Alabilecek Kişiler — moduller/pickup-yetkilileri.js -->
+      <div id="veliPickupYetkiKart" class="ca-card" style="padding:0; overflow:hidden;">
         <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
 
@@ -19468,6 +19478,7 @@ window.okulZiliDoldur = async function() {
       <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
         <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 8px; border-radius:100px; white-space:nowrap;">${s.ad}</span>
         ${durumKey === "yolda" ? `<button class="btn-mini" onclick="pickupHazirla('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}')" style="background:#FFFBEB; color:#B45309; border-color:#FCD34D; font-weight:700; padding:4px 9px; font-size:11px;">Hazırla</button>` : ""}
+        ${durumKey !== "teslim" ? `<button class="btn-mini" onclick="modulYukle('pickup-yetkilileri').then(m => m && m.ogretmenPopup('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(ogrAd)}'))" title="Kim teslim alabilir?" style="padding:4px 8px; font-size:11px;">🛡️</button>` : ""}
         ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(ogrAd)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}
       </div>
     </div>`;
