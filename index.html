@@ -1593,15 +1593,10 @@ i[data-lucide] svg { display: block; }
 /* Öğretmen/branş rolünde yönetim aksiyonlarını gizle (görüntüleme serbest) */
 body.rol-ogretmen .yonetim-only { display: none !important; }
 /* Öğretmen: yemek/duyuru/etkinlik ekranlarında düzenleme araçları kapalı */
-body.rol-ogretmen .btn-save,
-body.rol-ogretmen .yemek-duzenle,
-body.rol-ogretmen [onclick*="Kaydet"],
-body.rol-ogretmen [onclick*="Sil"],
-body.rol-ogretmen [onclick*="openDuyuruModal"],
-body.rol-ogretmen [onclick*="openEtkinlikModal"] { display: none !important; }
-/* Kendi eklediği kayıtlarda düzenleme serbest */
-body.rol-ogretmen .kendi-kaydim [onclick*="Sil"],
-body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !important; }
+/* NOT: Buradaki kurallar bir zamanlar [onclick*="Kaydet"] gibi geniş
+   selektörler kullanıyordu; bu, devamKaydet('giris') gibi ilgisiz butonları
+   da gizliyordu. Artık yalnızca .yonetim-only sınıfı esas alınır. */
+body.rol-ogretmen .yemek-duzenle { display: none !important; }
 .toolbar-yeni {
   display: block;
   padding: 10px 12px;
@@ -11136,7 +11131,7 @@ body.rol-ogretmen .kendi-kaydim [onclick*="Duzenle"] { display: inline-flex !imp
               <button class="btn-mini" data-etkinlik-filter="gecmis" onclick="etkinlikFilter('gecmis')">⏮ Geçmiş</button>
               <button class="btn-mini" data-etkinlik-filter="tumu" onclick="etkinlikFilter('tumu')"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
             </div>
-            <button class="btn-primary yonetim-only" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
+            <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
           </div>
 
           <!-- Liste -->
@@ -28677,9 +28672,14 @@ async function renderDuyurular() {
         </div>
         <div style="font-size:13px; color:var(--gray-700); line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(d.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1" target="_blank" style="color:#2d6a4f;">$2</a>')}</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
+          ${(typeof ogretmenRolMu === "function" && ogretmenRolMu()
+             && (d.olusturan || "").toLowerCase() !== (currentUser?.email || "").toLowerCase())
+            ? `<span style="font-size:11.5px; color:var(--gray-500); padding:6px 0;">
+                 <i data-lucide="lock" style="width:12px;height:12px;vertical-align:-2px;"></i> Yönetim duyurusu — düzenlenemez
+               </span>` : `
           <button onclick="duzenleDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Düzenle</button>
           ${!d.arsiv ? `<button onclick="arsivleDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> Arşivle</button>` : `<button onclick="arsivAcDuyuru('${d.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📤 Arşivden Çıkar</button>`}
-          <button onclick="silDuyuruHizli('${d.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
+          <button onclick="silDuyuruHizli('${d.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>`}
         </div>
       </div>
     `;
@@ -29237,7 +29237,7 @@ async function renderEtkinlikler() {
         <div style="font-size:48px; margin-bottom:12px;"><i data-lucide="calendar" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
         <div style="font-family:var(--font-display); font-size:17px; color:var(--gray-700); margin-bottom:6px;">${aktifEtkinlikFilter === "gecmis" ? "Geçmiş etkinlik yok" : "Etkinlik bulunamadı"}</div>
         <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">İlk etkinliğinizi oluşturun</div>
-        <button class="btn-primary yonetim-only" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
+        <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
       </div>
     `;
     return;
@@ -29293,6 +29293,7 @@ async function renderEtkinlikler() {
 
 window.openEtkinlikModal = function() {
   document.getElementById("etkinlikModal").classList.add("active");
+  if (typeof etkinlikRolKisitiUygula === "function") etkinlikRolKisitiUygula();
   document.getElementById("etkinlikModalBaslik").innerHTML = `📅 Yeni Etkinlik`; window.lucideYenile && window.lucideYenile();
   document.getElementById("etkinlikDuzenleId").value = "";
   document.getElementById("etkinlikBaslik").value = "";
@@ -29336,6 +29337,21 @@ window.duzenleEtkinlik = function(id) {
   document.getElementById("etkinlikMailGonder").checked = false;
   document.getElementById("etkinlikSilBtn").style.display = "inline-block";
   etkinlikHedefDegisti();
+};
+
+// Etkinlik: öğretmen yalnızca kendi sınıfına etkinlik oluşturabilir
+window.etkinlikRolKisitiUygula = function() {
+  try {
+    if (typeof ogretmenRolMu !== "function" || !ogretmenRolMu()) return;
+    const sel = document.getElementById("etkinlikHedefTur");
+    if (sel) {
+      [...sel.options].forEach(o => { if (o.value === "tumOkul") o.remove(); });
+      if (sel.value !== "sinif") {
+        sel.value = "sinif";
+        if (typeof etkinlikHedefDegisti === "function") etkinlikHedefDegisti();
+      }
+    }
+  } catch (e) { console.warn("etkinlik rol kısıtı:", e); }
 };
 
 window.kaydetEtkinlik = async function() {
