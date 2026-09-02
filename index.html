@@ -1597,6 +1597,13 @@ body.rol-ogretmen .yonetim-only { display: none !important; }
    selektörler kullanıyordu; bu, devamKaydet('giris') gibi ilgisiz butonları
    da gizliyordu. Artık yalnızca .yonetim-only sınıfı esas alınır. */
 body.rol-ogretmen .yemek-duzenle { display: none !important; }
+/* Danışma: kapı personeli — eğitim/yoklama araçları gizli, sabah girişi + okul zili + mesaj açık */
+body.rol-danisma [data-modul="egitim"],
+body.rol-danisma [data-modul="devamsizlik"],
+body.rol-danisma [data-modul="gunlukRapor"],
+body.rol-danisma [data-modul="haftalikPlan"],
+body.rol-danisma [data-modul="galeri"],
+body.rol-danisma .danisma-gizle { display: none !important; }
 .toolbar-yeni {
   display: block;
   padding: 10px 12px;
@@ -13670,6 +13677,57 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// ═══════════════════════════════════════════════════════════════════
+// MODÜL KÖPRÜSÜ — moduller/*.js dosyaları buradan portalın altyapısına ulaşır.
+// index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
+// Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
+// ═══════════════════════════════════════════════════════════════════
+window.PORTAL_SURUM = "v89";
+window.PortalAPI = {
+  app, auth, db,
+  // Firestore fonksiyonları
+  fb: { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+        query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot,
+        addDoc, arrayUnion, increment, runTransaction, documentId, deleteField },
+  // Portal durumu — her çağrıda güncel değeri verir
+  get state() {
+    return {
+      currentUser: (typeof currentUser !== "undefined") ? currentUser : null,
+      rol: (typeof aktifKullaniciRol !== "undefined") ? aktifKullaniciRol : null,
+      isAdmin: (typeof isAdmin !== "undefined") ? isAdmin : false,
+      siniflar: (typeof aktifKullaniciSiniflari !== "undefined") ? aktifKullaniciSiniflari : [],
+      ogrenciList: (typeof ogrenciList !== "undefined") ? ogrenciList : [],
+      ayarListesi: (typeof ayarListesi !== "undefined") ? ayarListesi : {},
+      veliOgrenciler: (typeof veliOgrenciler !== "undefined") ? veliOgrenciler : [],
+      veliAktifOgrenci: (typeof veliAktifOgrenci !== "undefined") ? veliAktifOgrenci : null,
+      aktifDonem: (typeof AKTIF_DONEM !== "undefined") ? AKTIF_DONEM : "",
+      personel: (typeof aktifPersonel !== "undefined") ? aktifPersonel : null
+    };
+  },
+  // Yardımcılar
+  toast: (m, t) => { if (typeof showToast === "function") showToast(m, t); },
+  lucide: () => { if (window.lucideYenile) window.lucideYenile(); },
+  ogretmenMi: () => (typeof ogretmenRolMu === "function") ? ogretmenRolMu() : false,
+  ogrenciDurum: (o, a) => (typeof getOgrenciDurum === "function") ? getOgrenciDurum(o, a) : "",
+  esc: (t) => String(t == null ? "" : t).replace(/</g, "&lt;").replace(/"/g, "&quot;"),
+  bugun: () => new Date().toISOString().slice(0, 10)
+};
+
+// Modül yükleyici — bir kez yükler, önbellekler
+const _yuklenenModuller = {};
+window.modulYukle = async function(ad) {
+  if (_yuklenenModuller[ad]) return _yuklenenModuller[ad];
+  try {
+    const m = await import(`./moduller/${ad}.js?v=${window.PORTAL_SURUM || Date.now()}`);
+    _yuklenenModuller[ad] = m;
+    return m;
+  } catch (e) {
+    console.error(`Modül yüklenemedi: ${ad}`, e);
+    if (typeof showToast === "function") showToast(`${ad} modülü yüklenemedi`, "error");
+    return null;
+  }
+};
 const provider = new GoogleAuthProvider();
 
 const ADMIN_EMAIL = "emrahby@gmail.com";
@@ -13859,10 +13917,11 @@ const ROL_ETIKETLERI = {
   mudur: "Müdür",
   egitim_koordinator: "Eğitim Koordinatörü",
   muhasebe: "Muhasebe",
-  ogretmen: "Öğretmen"
+  ogretmen: "Öğretmen",
+  danisma: "Danışma"
 };
 // Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
-const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator"];
+const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma"];
 // Yönetim rolleri (her şeye erişir)
 const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
 let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
@@ -13933,7 +13992,7 @@ const SEKME_YETKILERI = {
   // Ana sayfa herkese açık
   anasayfa:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   // Öğrenci & Okul
-  ogrenciler:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  ogrenciler:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma"],
   veliler:     ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   siniflar:    ["kurucu_mudur", "mudur", "egitim_koordinator"],
   onay:        ["kurucu_mudur", "mudur"],
@@ -13952,9 +14011,9 @@ const SEKME_YETKILERI = {
   gunlukRapor: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
-  duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
-  yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
-  etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
+  yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
+  etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
   mesajlasma:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   gelisim:     ["kurucu_mudur", "mudur", "egitim_koordinator"],
   icerik:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"]
@@ -14052,6 +14111,7 @@ function sekmeleriRoleGoreAyarla() {
     const ogr = !isAdmin && ["ogretmen", "brans_ogretmeni", "yardimci_ogretmen",
       "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni"].includes(aktifKullaniciRol);
     document.body.classList.toggle("rol-ogretmen", !!ogr);
+    document.body.classList.toggle("rol-danisma", !isAdmin && aktifKullaniciRol === "danisma");
   } catch (e) {}
 
   // Panel başlık etiketini role göre güncelle
@@ -16380,7 +16440,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -16514,7 +16574,7 @@ window.caGo = function(ekran) {
 
 // Çocuk (kardeş) değiştirici — aktif çocuğu değiştirir, ana sayfayı tazeler
 window.caCocukDegistir = async function(idx) {
-  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); }, 250);
+  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); }, 250);
   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler[idx]) return;
   try { if (typeof setAktifVeliOgrenci === "function") await setAktifVeliOgrenci(veliOgrenciler[idx]); } catch(e) { console.warn(e); }
   caEkran = "home";
@@ -18022,6 +18082,11 @@ function caHomeHTML() {
             <button class="ca-btn" style="background:var(--c-purple-deep);" onclick="veliSwitchTab('odemeler')">Ödeme Bildir</button>
           </div>
         </div>
+      </div>
+
+      <!-- Sabah Girişi: "Yola çıktık" — moduller/sabah-girisi.js -->
+      <div id="veliSabahGirisiKart" class="ca-card" style="padding:0; overflow:hidden;">
+        <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
 
       <!-- Okul Zili: "Almaya geliyorum" — ZEKY ile ortak akış -->
@@ -19704,7 +19769,7 @@ function renderAdminHome() {
   }
   if (caAdminEkran === "gozlem") { caGozlemRender(); return; }
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
-  const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
+  const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && ["ogretmen","danisma"].includes(aktifKullaniciRol));
   root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
   // Öğrenci verisi henüz gelmediyse üstte "yükleniyor" şeridi göster (loadOgrenciler bitince yeniden çizilir)
   if (!ogretmenMi && (typeof ogrenciList === "undefined" || !ogrenciList || ogrenciList.length === 0)) {
@@ -20686,7 +20751,7 @@ function ogretmenHomeHTML(ad) {
 
       <div class="ca-hero-row">
         <div class="ca-card-green">
-          <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">BUGÜN · YOKLAMA</div>
+          <div class="danisma-gizle" style="font-size:11px; letter-spacing:.08em; opacity:.85;">BUGÜN · YOKLAMA</div>
           <div class="ca-row" style="margin-top:10px; gap:18px;" id="ogrHomeYoklama">
             <div><div style="font-family:var(--c-font-head); font-weight:700; font-size:30px;">—</div><div style="font-size:12px; opacity:.9;">yükleniyor</div></div>
           </div>
@@ -20722,6 +20787,14 @@ function ogretmenHomeHTML(ad) {
 
       <div class="ca-dash">
         <div>
+          <div class="ca-sectionhead">
+            <h3 class="ca-head" style="font-size:15px;">🌅 Sabah Girişi</h3>
+            <span class="ca-tile-sub">Bugün</span>
+          </div>
+          <div class="ca-card" style="padding:12px 16px; margin-bottom:16px;" id="ogrSabahGirisiKart">
+            <div class="ca-tile-sub">Yükleniyor…</div>
+          </div>
+
           <div class="ca-sectionhead">
             <h3 class="ca-head" style="font-size:15px;">🔔 Okul Zili · Çıkış Kuyruğu</h3>
             <span class="ca-tile-sub" id="okulZiliOzet">Bugün</span>
@@ -20883,6 +20956,7 @@ window.ogretmenHomeEkKartlar = async function() {
 async function ogretmenHomeVeriYukle() {
   setTimeout(() => { if (typeof ogretmenHomeEkKartlar === "function") ogretmenHomeEkKartlar(); }, 120);
   setTimeout(() => { if (typeof okulZiliDoldur === "function") okulZiliDoldur(); }, 160);
+  setTimeout(() => { modulYukle("sabah-girisi").then(m => m && m.ogretmenKart("ogrSabahGirisiKart")); }, 180);
   setTimeout(() => { if (typeof ozetDevamKartiDoldur === "function") ozetDevamKartiDoldur(); }, 100);
   const bugun = new Date().toISOString().slice(0, 10);
   const siniflarim = aktifKullaniciSiniflari || [];
@@ -36107,7 +36181,7 @@ window.ogretmenRolMu = function() {
   try {
     if (isAdmin) return false;
     return ["ogretmen", "brans_ogretmeni", "yardimci_ogretmen",
-            "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni"]
+            "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni", "danisma"]
       .includes(aktifKullaniciRol);
   } catch (e) { return false; }
 };
