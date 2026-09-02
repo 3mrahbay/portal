@@ -1603,6 +1603,7 @@ body.rol-danisma [data-modul="devamsizlik"],
 body.rol-danisma [data-modul="gunlukRapor"],
 body.rol-danisma [data-modul="haftalikPlan"],
 body.rol-danisma [data-modul="galeri"],
+body.rol-danisma [data-modul="programBelgeleme"],
 body.rol-danisma .danisma-gizle { display: none !important; }
 .toolbar-yeni {
   display: block;
@@ -9378,6 +9379,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
         <button class="side-item" data-modul="personel" onclick="modulSec('personel')"><span class="side-ikon"><i data-lucide="briefcase"></i></span><span class="side-ad">Personel</span></button>
         <button class="side-item" data-modul="ozlukM" onclick="modulSec('ozlukM')"><span class="side-ikon"><i data-lucide="clock"></i></span><span class="side-ad">Özlük &amp; Puantaj</span></button>
         <button class="side-item" data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon"><i data-lucide="book-open"></i></span><span class="side-ad">Eğitim</span></button>
+        <button class="side-item" data-modul="pdr" onclick="modulSec('pdr')"><span class="side-ikon"><i data-lucide="brain"></i></span><span class="side-ad">PDR</span></button>
         <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon"><i data-lucide="wallet"></i></span><span class="side-ad">Muhasebe</span></button>
         <button class="side-item" data-modul="profilim" onclick="modulSec('profilim')"><span class="side-ikon"><i data-lucide="user-circle"></i></span><span class="side-ad">Profilim</span></button>
         <button class="side-item" data-modul="denetim" onclick="modulSec('denetim')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">MEB Denetim</span></button>
@@ -9385,6 +9387,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
         <button class="side-item" data-modul="gunlukRapor" onclick="modulSec('gunlukRapor')"><span class="side-ikon"><i data-lucide="notebook-pen"></i></span><span class="side-ad">Günlük Rapor</span></button>
+        <button class="side-item" data-modul="programBelgeleme" onclick="modulSec('programBelgeleme')"><span class="side-ikon"><i data-lucide="trees"></i></span><span class="side-ad">Orman & Değerler</span></button>
         <button class="side-item" data-modul="haftalikPlan" onclick="modulSec('haftalikPlan')"><span class="side-ikon"><i data-lucide="calendar-range"></i></span><span class="side-ad">Haftalık Plan</span></button>
         <button class="side-item" data-modul="devamsizlik" onclick="modulSec('devamsizlik')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">Devamsızlık</span></button>
         <button class="side-item" data-modul="galeri" onclick="modulSec('galeri')"><span class="side-ikon"><i data-lucide="image"></i></span><span class="side-ad">Galeri</span></button>
@@ -9417,7 +9420,9 @@ body.rol-danisma .danisma-gizle { display: none !important; }
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
       <button class="tab" data-tab="haftalikPlan" id="tab-haftalikPlan-btn" style="display:none;"><i data-lucide="calendar-range"></i> Haftalık Plan</button>
       <button class="tab" data-tab="gunlukRapor" id="tab-gunlukRapor-btn" style="display:none;"><i data-lucide="notebook-pen"></i> Günlük Rapor</button>
+      <button class="tab" data-tab="programBelgeleme" id="tab-programBelgeleme-btn" style="display:none;"><i data-lucide="trees"></i> Orman & Değerler</button>
       <button class="tab" data-tab="danismaRandevu" id="tab-danismaRandevu-btn" style="display:none;"><i data-lucide="calendar-clock"></i> Aday Randevuları</button>
+      <button class="tab" data-tab="pdr" id="tab-pdr-btn" style="display:none;"><i data-lucide="brain"></i> PDR</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
       <button class="tab" data-tab="profilim" id="tab-profilim-btn" style="display:none;"><i data-lucide="user-circle"></i> Profilim</button>
       <button class="tab" data-tab="raporlar" id="tab-raporlar-btn" style="display:none;"><i data-lucide="bar-chart-3"></i> Raporlar</button>
@@ -10125,6 +10130,32 @@ body.rol-danisma .danisma-gizle { display: none !important; }
     </div>
 
     <!-- ============ OKUL-AİLE İÇERİK YÖNETİMİ TAB ============ -->
+    <!-- ============ PROGRAM BELGELEME — moduller/program-belgeleme.js ============ -->
+    <div class="tab-panel" id="tab-programBelgeleme">
+      <div style="background:linear-gradient(135deg,#4A7C59 0%,#7CB97C 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
+          <i data-lucide="trees" style="width:15px;height:15px;"></i> PROGRAM BELGELEME</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Orman Oturumu · Değerler · Belgeler</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">BFLM® orman günü kaydı, BVLM® ayın değeri gözlemi ve öğrenci evrak dosyası. Denetim ve MACTE kanıtı üretir.</p>
+      </div>
+      <div id="programBelgelemeIcerik">
+        <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+
+    <!-- ============ PDR — moduller/pdr.js (KVKK md.6 özel nitelikli veri) ============ -->
+    <div class="tab-panel" id="tab-pdr">
+      <div style="background:linear-gradient(135deg,#5B21B6 0%,#7B5EA7 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
+          <i data-lucide="brain" style="width:15px;height:15px;"></i> PSİKOLOJİK DANIŞMA VE REHBERLİK</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">PDR Gözlem & Test Arşivi</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">Gelişim gözlemleri ve uygulanan test sonuçları. Yalnızca PDR uzmanı ve yönetim görür.</p>
+      </div>
+      <div id="pdrIcerikKap">
+        <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+
     <!-- ============ ADAY VELİ RANDEVULARI — moduller/danisma-randevulari.js ============ -->
     <div class="tab-panel" id="tab-danismaRandevu">
       <div style="background:linear-gradient(135deg,#0E7490 0%,#06B6D4 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
@@ -13698,7 +13729,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v93";
+window.PORTAL_SURUM = "v95";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -13933,10 +13964,11 @@ const ROL_ETIKETLERI = {
   egitim_koordinator: "Eğitim Koordinatörü",
   muhasebe: "Muhasebe",
   ogretmen: "Öğretmen",
-  danisma: "Danışma"
+  danisma: "Danışma",
+  pdr: "PDR Uzmanı"
 };
 // Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
-const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma"];
+const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma", "pdr"];
 // Yönetim rolleri (her şeye erişir)
 const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
 let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
@@ -14005,9 +14037,9 @@ function personelYonetebilirMi() {
 // Öğretmen/Branş: kendi sınıfı + eğitim + iletişim, finans ve İK YOK.
 const SEKME_YETKILERI = {
   // Ana sayfa herkese açık
-  anasayfa:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  anasayfa:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
   // Öğrenci & Okul
-  ogrenciler:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma"],
+  ogrenciler:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
   veliler:     ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
   siniflar:    ["kurucu_mudur", "mudur", "egitim_koordinator"],
   onay:        ["kurucu_mudur", "mudur"],
@@ -14019,18 +14051,21 @@ const SEKME_YETKILERI = {
   raporlar:    ["kurucu_mudur", "mudur", "muhasebe"],
   denetim:     ["kurucu_mudur", "mudur"],
   danismaRandevu: ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma"],
+  // PDR: KVKK md.6 — yalnızca PDR uzmanı ve yönetim (Rules ile birebir)
+  pdr:         ["kurucu_mudur", "mudur", "pdr"],
   // İlk Adımlar programı yönetim tarafından hazırlanır; öğretmene kapalı
   oryantasyon: ["kurucu_mudur", "mudur", "egitim_koordinator"],
   // İletişim & İşleyiş
   devamsizlik: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   haftalikPlan:["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   gunlukRapor: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  programBelgeleme: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
   duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
   yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
   etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
-  mesajlasma:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  mesajlasma:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
   gelisim:     ["kurucu_mudur", "mudur", "egitim_koordinator"],
   icerik:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"]
 };
@@ -40267,6 +40302,7 @@ const MODUL_HARITASI = {
   siniflarM:   { tablar: ["siniflar"],   varsayilan: "siniflar", ad: "Sınıflar" },
   oryantasyonM:{ tablar: ["oryantasyon"],varsayilan: "oryantasyon", ad: "İlk Adımlar" },
   ozlukM:      { tablar: ["ozluk"],      varsayilan: "ozluk", ad: "Özlük & Puantaj" },
+  pdr:         { tablar: ["pdr"],        varsayilan: "pdr",        ad: "PDR" },
   danismaRandevu: { tablar: ["danismaRandevu"], varsayilan: "danismaRandevu", ad: "Aday Randevuları" },
   basvuru:     { tablar: ["onay"],       varsayilan: "onay", ad: "Başvuru Havuzu" },
   ogrenci:     { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
@@ -40276,6 +40312,7 @@ const MODUL_HARITASI = {
   devamsizlik: { tablar: ["devamsizlik"], varsayilan: "devamsizlik", ad: "Devamsızlık" },
   haftalikPlan:{ tablar: ["haftalikPlan"], varsayilan: "haftalikPlan", ad: "Haftalık Plan" },
   gunlukRapor: { tablar: ["gunlukRapor"],  varsayilan: "gunlukRapor",  ad: "Günlük Rapor" },
+  programBelgeleme: { tablar: ["programBelgeleme"], varsayilan: "programBelgeleme", ad: "Orman & Değerler" },
   galeri:      { tablar: ["galeri"],     varsayilan: "galeri", ad: "Galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
@@ -40454,6 +40491,16 @@ document.querySelectorAll(".tab").forEach(tab => {
     // İlk Adımlar açıldı → öğretmen için salt okunur
     if (tab.dataset.tab === "oryantasyon") {
       setTimeout(() => { if (typeof oryantasyonSaltOkunurAyarla === "function") oryantasyonSaltOkunurAyarla(); }, 260);
+    }
+
+    // Orman & Değerler sekmesi açıldı
+    if (tab.dataset.tab === "programBelgeleme") {
+      setTimeout(() => { modulYukle("program-belgeleme").then(m => m && m.panelRender("programBelgelemeIcerik")); }, 50);
+    }
+
+    // PDR sekmesi açıldı
+    if (tab.dataset.tab === "pdr") {
+      setTimeout(() => { modulYukle("pdr").then(m => m && m.panelRender("pdrIcerikKap")); }, 50);
     }
 
     // Aday Randevuları sekmesi açıldı
