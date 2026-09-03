@@ -316,7 +316,111 @@ async function ihtiyacDurum(id, durum, hedefId) {
   } catch (e) { toast("Kaydedilemedi: " + e.message, "error"); }
 }
 
+
+// ───────────────────────────────────────────────────────────────────
+// MEMNUNİYET POPUP — Cuma 19:00 sonrası, hafta başına bir kez
+// Ana sayfada kart olarak yer kaplamaz; haftayı kapatırken sorar.
+// ───────────────────────────────────────────────────────────────────
+export async function memnuniyetPopupKontrol() {
+  const { fb, db, state } = P();
+  const simdi = new Date();
+  const gun = simdi.getDay();          // 5 = Cuma
+  const saat = simdi.getHours();
+
+  // Cuma 19:00'dan pazar gece yarısına kadar açık
+  const zamaniGeldi = (gun === 5 && saat >= 19) || gun === 6 || gun === 0;
+  if (!zamaniGeldi) return;
+
+  const email = (state.currentUser?.email || "").toLowerCase();
+  const ogr = state.veliAktifOgrenci || state.veliOgrenciler[0];
+  if (!email || !ogr) return;
+  const hafta = haftaKodu();
+
+  // Bu hafta zaten dolduruldu mu?
+  try {
+    const s = await fb.getDoc(fb.doc(db, "memnuniyet", email + "__" + hafta));
+    if (s.exists()) return;
+  } catch (e) { return; }
+
+  // Bu hafta "sonra" dendi mi? (tarayıcıda tutulur, sunucuya yazılmaz)
+  try {
+    if (localStorage.getItem("bcka_memnuniyet_ertele") === hafta) return;
+  } catch (e) {}
+
+  memnuniyetPopupAc();
+}
+
+export function memnuniyetPopupAc() {
+  const { esc, state } = P();
+  const ogr = state.veliAktifOgrenci || state.veliOgrenciler[0];
+  const ad = (ogr?.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
+  const eski = document.getElementById("memnuniyetPopup");
+  if (eski) eski.remove();
+
+  const m = document.createElement("div");
+  m.id = "memnuniyetPopup";
+  m.className = "modal-overlay active";
+  m.innerHTML = `
+    <div class="modal-box" style="max-width:440px;">
+      <div style="background:linear-gradient(135deg,#059669,#34D399); color:#fff; padding:18px 22px; border-radius:18px 18px 0 0;">
+        <div style="font-size:11px; font-weight:800; letter-spacing:1.2px; opacity:.85;">HAFTA SONU DEĞERLENDİRMESİ</div>
+        <div style="font-size:19px; font-weight:800; margin-top:5px;">${esc(ad)} için hafta nasıl geçti?</div>
+        <div style="font-size:12.5px; opacity:.92; margin-top:3px;">30 saniye · yanıtlarınız okulu geliştirir</div>
+      </div>
+      <div style="padding:16px 22px;">
+        ${SORULAR.map(s => `
+          <div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #F1F2F7;">
+            <span style="flex:1; font-size:13px; color:#1E293B;">${s.ad}</span>
+            <div style="display:flex; gap:3px;" data-soru="${s.k}">
+              ${[1,2,3,4,5].map(n => `<button onclick="window._gb.puanSec('${s.k}',${n},this)" data-n="${n}"
+                style="width:32px; height:32px; border-radius:8px; border:1.5px solid #E2E8F0; background:#fff; color:#CBD5E1; font-size:17px; cursor:pointer; padding:0;">★</button>`).join("")}
+            </div>
+          </div>`).join("")}
+        <textarea id="gbYorum" rows="2" placeholder="Eklemek istediğiniz bir şey var mı? (isteğe bağlı)"
+          style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13px; margin-top:12px;"></textarea>
+        <label style="display:flex; align-items:center; gap:7px; font-size:11.5px; color:#64748B; margin-top:9px; cursor:pointer;">
+          <input type="checkbox" id="gbGizli"> İsmim görünmesin (anonim)</label>
+        <button class="btn-mini" onclick="window._gb.popupGonder()"
+          style="width:100%; margin-top:12px; padding:12px; background:#059669; color:#fff; border:none; font-weight:700; font-size:14px;">Gönder</button>
+        <button onclick="window._gb.popupErtele()"
+          style="width:100%; margin-top:7px; padding:9px; background:none; border:none; color:#94A3B8; font-size:12.5px; cursor:pointer;">Şimdi değil</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+}
+
+async function popupGonder() {
+  const { fb, db, state, toast } = P();
+  const ogr = state.veliAktifOgrenci || state.veliOgrenciler[0];
+  const email = (state.currentUser?.email || "").toLowerCase();
+  const dolu = Object.keys(_puanlar).length;
+  if (dolu < SORULAR.length) { toast(`${SORULAR.length - dolu} soru daha puanlayın`, "error"); return; }
+  const vals = Object.values(_puanlar);
+  const ort = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+  const gizli = !!document.getElementById("gbGizli")?.checked;
+  try {
+    await fb.setDoc(fb.doc(db, "memnuniyet", email + "__" + haftaKodu()), {
+      veliEmail: email,
+      ogrenciId: ogr?.id || "", ogrenciAd: gizli ? "" : (ogr?.ogrenciAdSoyad || ""),
+      sinif: (state.ayarListesi[ogr?.id]?.kayit?.sinif) || ogr?.sinif || "",
+      hafta: haftaKodu(), puanlar: { ..._puanlar }, puan: ort,
+      yorum: (document.getElementById("gbYorum")?.value || "").trim(), oneri: "",
+      yanitlar: [], gizlilik: gizli ? "anonim" : "acik",
+      tarih: new Date().toISOString(), olusturuldu: fb.serverTimestamp()
+    }, { merge: true });
+    Object.keys(_puanlar).forEach(k => delete _puanlar[k]);
+    document.getElementById("memnuniyetPopup")?.remove();
+    toast("💚 Teşekkürler, değerlendirmeniz alındı");
+  } catch (e) { toast("Gönderilemedi: " + e.message, "error"); }
+}
+
+function popupErtele() {
+  try { localStorage.setItem("bcka_memnuniyet_ertele", haftaKodu()); } catch (e) {}
+  document.getElementById("memnuniyetPopup")?.remove();
+}
+
 window._gb = {
   puanSec, memnuniyetGonder, belgeOnayla, ihtiyacGonder, ihtiyacDurum,
+  popupGonder, popupErtele, popupAc: memnuniyetPopupAc,
   memnuniyetYenidenAc: (id) => { const el = document.getElementById(id); if (el) memnuniyetForm(el, id); }
 };
