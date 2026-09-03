@@ -13744,7 +13744,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v99";
+window.PORTAL_SURUM = "v100";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -19178,66 +19178,128 @@ function caGaleriHTML() {
 
 // ===== Günlük Rapor ekranı =====
 function caGunlukHTML() {
-  const ogunler = [
-    ["Kahvaltı", "☀️", "#Dff4e3", "Tam buğday tost, peynir, salatalık, süt", "Tamamı", "#Dff4e3", "var(--c-green-deep)"],
-    ["Öğle", "🍱", "var(--c-yellow-soft)", "Mercimek çorbası, köfte, pilav, salata", "Yarısı", "var(--c-yellow-soft)", "#8a6d1a"],
-    ["İkindi", "🍎", "#Dff4e3", "Meyve tabağı, süt", "Tamamı", "#Dff4e3", "var(--c-green-deep)"]
-  ];
-  const ogunRows = ogunler.map(([ad, ikon, bg, items, durum, dBg, dText]) => `
-    <div class="ca-mealrow">
-      <span class="ca-qicon" style="width:42px; height:42px; font-size:18px; background:${bg};">${ikon}</span>
-      <div style="flex:1; min-width:0;"><div style="font-weight:700; color:var(--c-ink);">${ad}</div><div class="ca-tile-sub">${items}</div></div>
-      <span class="ca-pill" style="background:${dBg}; color:${dText};">${durum}</span>
-    </div>`).join("");
+  // Gerçek veri gunlukRaporlar/{ogrenciId}__{tarih} belgesinden gelir.
+  // İskelet burada çizilir, içerik caGunlukDoldur() ile doldurulur.
+  const bugun = new Date();
+  const AY = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const GUN = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+  const bugunISO = bugun.toISOString().slice(0, 10);
+  const secili = (typeof caGunlukTarih !== "undefined" && caGunlukTarih) ? caGunlukTarih : bugunISO;
+  const d = new Date(secili + "T12:00:00");
+  const baslik = `${d.getDate()} ${AY[d.getMonth()]}, ${GUN[d.getDay()]}`;
+
+  setTimeout(() => { if (typeof caGunlukDoldur === "function") caGunlukDoldur(secili); }, 60);
+
   return `
     <div class="ca-page ca-stack">
       <div class="ca-topbar">
         <div class="ca-row">
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
-          <div><div class="ca-tile-sub">GÜNLÜK RAPOR</div><h2 style="font-size:18px;">22 Nisan, Çarşamba</h2></div>
+          <div><div class="ca-tile-sub">GÜNLÜK RAPOR</div><h2 style="font-size:18px;">${baslik}</h2></div>
+          <input type="date" value="${secili}" max="${bugunISO}" onchange="caGunlukTarihDegis(this.value)"
+            style="margin-left:auto; padding:7px 10px; border:1px solid var(--c-border); border-radius:10px; font-family:inherit; font-size:12.5px;">
         </div>
       </div>
-
-      <div class="ca-card">
-        <div class="ca-row" style="justify-content:space-between;">
-          <div class="ca-row">
-            <div class="ca-avatar" style="width:46px; height:46px; font-size:18px; background:var(--c-pink-soft); color:var(--c-ink);">D</div>
-            <div>
-              <div style="font-weight:700; color:var(--c-ink);">Defne'nin günü</div>
-              <div class="ca-tile-sub">09:12 → 16:30 · 7s 18dk</div>
-            </div>
-          </div>
-          <span class="ca-pill green">⭐ HARİKA</span>
-        </div>
-        <div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">
-          Bugün bahçede yapraklarla matematik etkinliği yaptık. Defne çok ilgiliydi ve arkadaşlarına da yardım etti 🌿
-        </div>
+      <div id="caGunlukIcerik">
+        <div class="ca-card" style="text-align:center; color:var(--c-muted); font-size:13px; padding:24px;">Yükleniyor…</div>
       </div>
-
-      <div>
-        <h3 class="ca-head" style="font-size:13px; letter-spacing:.06em; color:var(--c-muted); margin-bottom:8px;">YEMEKLER</h3>
-        <div class="ca-card">${ogunRows}</div>
-      </div>
-
-      <div class="ca-grid-2">
-        <div class="ca-card" style="background:var(--c-purple-soft); border:none;">
-          <div class="ca-statbox">
-            <i data-lucide="moon" style="width:21px;height:21px;"></i>
-            <div><div class="ca-head" style="font-size:18px;">1s 20dk</div><div class="ca-tile-sub">Öğle uykusu</div></div>
-          </div>
-        </div>
-        <div class="ca-card" style="background:var(--c-blue-soft); border:none;">
-          <div class="ca-statbox">
-            <i data-lucide="circle-check" style="width:21px;height:21px;"></i>
-            <div><div class="ca-head" style="font-size:18px;">4 kez</div><div class="ca-tile-sub">Tuvalet</div></div>
-          </div>
-        </div>
-      </div>
-
-      <button class="ca-btn ghost" style="width:100%;" onclick="veliSwitchTab('raporlar')"><i data-lucide="file" style="width:13px;height:13px;vertical-align:-2px;"></i> Geçmiş günlük raporlar</button>
-    </div>
-  `;
+    </div>`;
 }
+
+let caGunlukTarih = null;
+window.caGunlukTarihDegis = function(t) { caGunlukTarih = t; veliRenderYeniApp(); };
+
+// Günlük raporu Firestore'dan doldur (öğretmenin Günlük Rapor modülüyle ortak)
+window.caGunlukDoldur = async function(tarih) {
+  const el = document.getElementById("caGunlukIcerik");
+  if (!el) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]);
+  if (!o) { el.innerHTML = ""; return; }
+
+  let r = null;
+  try {
+    const s = await getDoc(doc(db, "gunlukRaporlar", o.id + "__" + tarih));
+    if (s.exists()) r = s.data();
+  } catch (e) { console.warn("günlük rapor:", e.code || e.message); }
+
+  const ilkAd = (o.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+
+  if (!r) {
+    const bugunMu = tarih === new Date().toISOString().slice(0, 10);
+    el.innerHTML = `
+      <div class="ca-card" style="text-align:center; padding:30px 20px;">
+        <div style="font-size:34px; margin-bottom:10px;">📝</div>
+        <div style="font-weight:700; color:var(--c-ink); font-size:15px;">${bugunMu ? "Bugünün raporu henüz girilmedi" : "Bu güne ait rapor yok"}</div>
+        <div class="ca-tile-sub" style="margin-top:5px;">${bugunMu ? "Öğretmen gün içinde dolduracak." : "O gün rapor girilmemiş olabilir."}</div>
+      </div>`;
+    return;
+  }
+
+  // Yemek etiketleri
+  const YEMEK = {
+    tamami: ["Tamamı", "#DFF4E3", "var(--c-green-deep)"],
+    yarisi: ["Yarısı", "#FEF3C7", "#92400E"],
+    az:     ["Az yedi", "#FEF3C7", "#92400E"],
+    yemedi: ["Yemedi", "#FEE2E2", "#991B1B"]
+  };
+  const UYKU = { uyudu: "Uyudu", kisa: "Kısa uyudu", uyumadi: "Uyumadı" };
+  const TUVALET = { kendi: "Kendi yaptı", yardimla: "Yardımla", kaza: "Kaza oldu", bez: "Bez" };
+
+  const y = r.yemek || {};
+  const ogunler = [
+    ["Kahvaltı", "☀️", y.kahvalti],
+    ["Öğle", "🍱", y.ogle || y.anaYemek],
+    ["İkindi", "🍎", y.ikindi]
+  ].filter(([, , v]) => v);
+
+  const menuBul = (tip) => {
+    // Haftalık menüden o günün yemeğini göstermeye çalış (varsa)
+    return "";
+  };
+
+  el.innerHTML = `
+    <div class="ca-card">
+      <div class="ca-row" style="justify-content:space-between;">
+        <div class="ca-row">
+          <div class="ca-avatar" style="width:46px; height:46px; font-size:18px; background:var(--c-pink-soft); color:var(--c-ink);">${esc(ilkAd.charAt(0))}</div>
+          <div>
+            <div style="font-weight:700; color:var(--c-ink);">${esc(ilkAd)}'ın günü</div>
+            <div class="ca-tile-sub">${esc(r.yazanAd || "Öğretmen")}${r.guncellendi?.seconds ? " · " + new Date(r.guncellendi.seconds * 1000).toTimeString().slice(0,5) : ""}</div>
+          </div>
+        </div>
+      </div>
+      ${r.not ? `<p style="margin-top:12px; color:var(--c-ink); font-size:14px; line-height:1.6;">${esc(r.not)}</p>` : ""}
+    </div>
+
+    ${ogunler.length ? `
+      <div class="ca-tile-sub" style="margin:4px 0 -4px 4px; letter-spacing:.06em;">YEMEKLER</div>
+      <div class="ca-card" style="padding:6px 14px;">
+        ${ogunler.map(([ad, ikon, deger]) => {
+          const [et, bg, renk] = YEMEK[deger] || ["—", "#F1F5F9", "#64748B"];
+          return `<div class="ca-mealrow">
+            <div class="ca-avatar" style="width:38px; height:38px; font-size:17px; background:${bg};">${ikon}</div>
+            <div style="flex:1; min-width:0;"><div style="font-weight:700; color:var(--c-ink);">${ad}</div></div>
+            <span style="background:${bg}; color:${renk}; font-size:12px; font-weight:700; padding:5px 12px; border-radius:100px;">${et}</span>
+          </div>`;
+        }).join("")}
+      </div>` : ""}
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
+      ${r.uyku?.durum ? `
+        <div style="background:var(--c-lilac-soft, #EDE9FE); border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:11px;">
+          <span style="font-size:20px;">🌙</span>
+          <div><div style="font-weight:800; font-size:17px; color:var(--c-ink);">${UYKU[r.uyku.durum] || r.uyku.durum}</div>
+          <div class="ca-tile-sub">Öğle uykusu${r.uyku.dakika ? " · " + esc(r.uyku.dakika) + " dk" : ""}</div></div>
+        </div>` : ""}
+      ${r.tuvalet ? `
+        <div style="background:var(--c-blue-soft, #DBEAFE); border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:11px;">
+          <span style="font-size:20px;">✅</span>
+          <div><div style="font-weight:800; font-size:17px; color:var(--c-ink);">${TUVALET[r.tuvalet] || r.tuvalet}</div>
+          <div class="ca-tile-sub">Tuvalet</div></div>
+        </div>` : ""}
+    </div>`;
+};
 
 // ===== Çocuk Profili ekranı =====
 // GERÇEK VERİ: veliAktifOgrenci (seçili çocuk) + ogrenciGelisim (gelişim yüzdeleri)
