@@ -13744,7 +13744,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v98";
+window.PORTAL_SURUM = "v99";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16644,7 +16644,13 @@ window.caGo = function(ekran) {
 
 // Çocuk (kardeş) değiştirici — aktif çocuğu değiştirir, ana sayfayı tazeler
 window.caCocukDegistir = async function(idx) {
-  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); 
+  // Çocuk değişince ana sayfa kartları yenilenir
+  setTimeout(() => {
+    if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur();
+    modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart"));
+    modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart"));
+    modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart"));
+  }, 250);
   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler[idx]) return;
   try { if (typeof setAktifVeliOgrenci === "function") await setAktifVeliOgrenci(veliOgrenciler[idx]); } catch(e) { console.warn(e); }
   caEkran = "home";
