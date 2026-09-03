@@ -13744,7 +13744,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v97";
+window.PORTAL_SURUM = "v98";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16507,7 +16507,10 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => { if (m) { m.veliBelgeOnayKart("veliBelgeOnayKart"); m.veliMemnuniyetKart("veliMemnuniyetKart"); } }); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "profil") {
+    setTimeout(() => { modulYukle("geri-bildirim").then(m => m && m.veliBelgeOnayKart("veliBelgeOnayKart")); }, 100);
+  }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => m && m.memnuniyetPopupKontrol()); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -16641,7 +16644,7 @@ window.caGo = function(ekran) {
 
 // Çocuk (kardeş) değiştirici — aktif çocuğu değiştirir, ana sayfayı tazeler
 window.caCocukDegistir = async function(idx) {
-  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => { if (m) { m.veliBelgeOnayKart("veliBelgeOnayKart"); m.veliMemnuniyetKart("veliMemnuniyetKart"); } }); }, 250);
+  setTimeout(() => { if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); 
   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler[idx]) return;
   try { if (typeof setAktifVeliOgrenci === "function") await setAktifVeliOgrenci(veliOgrenciler[idx]); } catch(e) { console.warn(e); }
   caEkran = "home";
@@ -18211,10 +18214,6 @@ function caHomeHTML() {
         <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
 
-      <!-- Belge onayları + haftalık memnuniyet — moduller/geri-bildirim.js -->
-      <div id="veliBelgeOnayKart" class="ca-card" style="padding:0; overflow:hidden;"></div>
-      <div id="veliMemnuniyetKart" class="ca-card" style="padding:0; overflow:hidden;"></div>
-
 
 
       <!-- Dashboard: değişen yükseklikli kartlar (masonry) -->
@@ -19350,6 +19349,9 @@ function caProfilHTML() {
       </div>
 
       <div>
+        <!-- Belge onayları — moduller/geri-bildirim.js -->
+        <div id="veliBelgeOnayKart" class="ca-card" style="padding:0; overflow:hidden; margin-bottom:14px;"></div>
+
         <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Eğitim Gelişimi</h3><button class="ca-link" onclick="caGo('egitim')">Detay →</button></div>
         <div class="ca-card">
           <div class="ca-rings">${rings}</div>
