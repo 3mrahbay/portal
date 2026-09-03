@@ -13748,7 +13748,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v102";
+window.PORTAL_SURUM = "v103";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -19701,6 +19701,10 @@ window.hizliIslem = function(tur) {
     case "basvuru":
       git("basvuru");
       break;
+    case "galeriOnay":
+      // Galeri modülünü aç ve doğrudan "Onay Bekleyenler" filtresine geç
+      git("galeri", () => { if (typeof galeriFilter === "function") galeriFilter("onayBekliyor"); });
+      break;
     case "yoklama":
       git("devamsizlik");
       break;
@@ -19878,6 +19882,23 @@ window.ozetRozetleriGuncelle = function(gecikenSayisi) {
 
   // Geciken ödeme (renderAdminHome'dan gelir)
   yaz("hbRozetTahsilat", gecikenSayisi || 0);
+
+  // Onay bekleyen galeri medyası — çocuk fotoğrafı, gözden kaçmasın
+  (async () => {
+    try {
+      const yonetimMi = isAdmin || ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol);
+      if (!yonetimMi) return;
+      let n = 0;
+      // Galeri sekmesi hiç açılmadıysa yerel veri boş olur → Firestore'dan say
+      if (typeof galeriListesiVerisi !== "undefined" && galeriListesiVerisi && galeriListesiVerisi.length) {
+        n = galeriOnayBekleyenSayisi();
+      } else {
+        const snap = await getDocs(query(collection(db, "galeri"), where("durum", "==", "onayBekliyor")));
+        n = snap.size;
+      }
+      yaz("hbRozetGaleri", n);
+    } catch (e) { console.warn("galeri onay rozeti:", e.code || e.message); }
+  })();
 };
 
 // Bugünün yemek menüsü (yemekMenuleri/{haftaBaslangicISO})
@@ -20903,6 +20924,8 @@ function yonetimHomeHTML(ad) {
                 <i data-lucide="clipboard-check"></i><span>Yoklama</span></button>
               <button class="ozet-hizli-btn" onclick="giderTalepAc()" title="Yaptığınız harcamayı bildirin">
                 <i data-lucide="receipt"></i><span>Fiş Bildir</span></button>
+              <button class="ozet-hizli-btn yonetim-only" onclick="hizliIslem('galeriOnay')" title="Onay bekleyen fotoğraflar">
+                <i data-lucide="image-check"></i><span>Galeri Onay</span><em class="ozet-hb-rozet uyari" id="hbRozetGaleri"></em></button>
               <button class="ozet-hizli-btn" onclick="modulSec('profilim')" title="Özlük, puantaj, izin">
                 <i data-lucide="user-circle"></i><span>Profilim</span></button>
               <button class="ozet-hizli-btn" onclick="hizliIslem('tahsilat')" title="Geciken ödemeler">
