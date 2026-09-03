@@ -1605,6 +1605,10 @@ body.rol-danisma [data-modul="haftalikPlan"],
 body.rol-danisma [data-modul="galeri"],
 body.rol-danisma [data-modul="programBelgeleme"],
 body.rol-danisma .danisma-gizle { display: none !important; }
+/* Veli galerisi masonry — dikey fotoğraflar kırpılmadan dikey kalır */
+.vg-masonry { column-count: 3; column-gap: 8px; }
+@media (max-width: 700px) { .vg-masonry { column-count: 2; column-gap: 7px; } }
+@media (min-width: 1100px) { .vg-masonry { column-count: 4; } }
 .toolbar-yeni {
   display: block;
   padding: 10px 12px;
@@ -13744,7 +13748,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v100";
+window.PORTAL_SURUM = "v101";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14960,113 +14964,6 @@ function mesajThreadIdUret(email1, email2) {
   return sirali.join("__").replace(/[^a-z0-9_@.\-]/g, "_");
 }
 
-// ═══════════ MESAJLAŞMA: AD-SOYAD GÖSTERİMİ (e-posta gizleme) ═══════════
-// Kural: mesajlaşma arayüzünde hiçbir yerde e-posta adresi gösterilmez.
-// Sıra: kayıtlı ad → sistemden çözümlenen ad → "<Öğrenci> velisi" → rol etiketi.
-
-function mesajEpostaMi(s) {
-  return typeof s === "string" && /\S+@\S+\.\S+/.test(s);
-}
-
-// Bir e-postaya karşılık gelen ad-soyadı sistem verisinden bul
-function mesajAdCozumle(email) {
-  const e = String(email || "").toLowerCase().trim();
-  if (!e) return "";
-
-  // 1) Personel kayıtları (yönetim paneli + veli tarafı cache'leri)
-  try {
-    const kaynaklar = [
-      (typeof personelListesi !== "undefined" && personelListesi) || null,
-      (typeof veliMesajPersonelCache !== "undefined" && veliMesajPersonelCache) || null,
-      (typeof caMsgPersonelCache !== "undefined" && caMsgPersonelCache) || null
-    ];
-    for (const arr of kaynaklar) {
-      if (!Array.isArray(arr)) continue;
-      const p = arr.find(x => String((x && (x.email || x.id)) || "").toLowerCase() === e);
-      if (p && (p.adSoyad || p.ad)) return String(p.adSoyad || p.ad).trim();
-    }
-  } catch (_) {}
-
-  // 2) Öğrenci kayıtlarındaki veli ad-soyadları
-  try {
-    const listeler = [
-      (typeof ogrenciList !== "undefined" && ogrenciList) || null,
-      (typeof veliOgrenciler !== "undefined" && veliOgrenciler) || null
-    ];
-    for (const arr of listeler) {
-      if (!Array.isArray(arr)) continue;
-      for (const o of arr) {
-        if (!o) continue;
-        if (String(o.veli1Eposta || o.veli1Email || "").toLowerCase() === e && o.veli1AdSoyad) return String(o.veli1AdSoyad).trim();
-        if (String(o.veli2Eposta || o.veli2Email || "").toLowerCase() === e && o.veli2AdSoyad) return String(o.veli2AdSoyad).trim();
-      }
-    }
-  } catch (_) {}
-
-  // 3) Dönem ayarlarındaki anne / baba / veli kayıtları
-  try {
-    if (typeof ayarListesi !== "undefined" && ayarListesi) {
-      for (const k in ayarListesi) {
-        const a = ayarListesi[k] || {};
-        for (const kisi of [a.anne, a.baba, a.veli]) {
-          if (kisi && String(kisi.email || kisi.eposta || "").toLowerCase() === e && kisi.adSoyad) {
-            return String(kisi.adSoyad).trim();
-          }
-        }
-      }
-    }
-  } catch (_) {}
-
-  return "";
-}
-
-// Thread kaydına yazılacak temiz ad (e-posta ise boş bırakılır)
-function mesajAdNormalize(ad, email) {
-  const a = String(ad || "").trim();
-  if (a && !mesajEpostaMi(a)) return a;
-  const c = mesajAdCozumle(email);
-  return (c && !mesajEpostaMi(c)) ? c : "";
-}
-
-// Ekranda gösterilecek isim — e-posta ASLA döndürülmez
-function mesajGorunenAd(thread, email, varsayilan) {
-  const e = String(email || "").toLowerCase().trim();
-  const bilgi = (thread && thread.katilimciBilgi && thread.katilimciBilgi[e]) || null;
-
-  const kayitli = bilgi && bilgi.ad ? String(bilgi.ad).trim() : "";
-  if (kayitli && !mesajEpostaMi(kayitli)) return kayitli;
-
-  const cozulen = mesajAdCozumle(e);
-  if (cozulen) return cozulen;
-
-  const rol = (bilgi && bilgi.rol) || "";
-  const tip = (bilgi && bilgi.tip) || "";
-  const ogrAd = (thread && thread.ogrenciAd) ? String(thread.ogrenciAd).trim() : "";
-
-  if (rol === "veli" || tip === "veli") {
-    return ogrAd ? (ogrAd + " velisi") : "Veli";
-  }
-  if (rol && typeof ROL_ETIKETLERI !== "undefined" && ROL_ETIKETLERI[rol]) return ROL_ETIKETLERI[rol];
-  if (rol === "personel" || tip === "personel") return "Okul";
-  if (ogrAd) return ogrAd + " velisi";
-  return varsayilan || "Okul";
-}
-
-// Giriş yapmış velinin kendi ad-soyadı (thread oluştururken kullanılır)
-function mesajKendiVeliAdim() {
-  const benim = String((typeof currentUser !== "undefined" && currentUser && currentUser.email) || "").toLowerCase();
-  const dn = String((typeof currentUser !== "undefined" && currentUser && currentUser.displayName) || "").trim();
-  if (dn && !mesajEpostaMi(dn)) return dn;
-  const c = mesajAdCozumle(benim);
-  if (c) return c;
-  try {
-    const ilk = (typeof veliOgrenciler !== "undefined" && veliOgrenciler && veliOgrenciler[0]) || null;
-    const oAd = ilk && (ilk.ogrenciAdSoyad || ilk.adSoyad);
-    if (oAd) return String(oAd).trim() + " velisi";
-  } catch (_) {}
-  return "";
-}
-
 // Gözetimci e-postalarını getir (Müdür + Kurucu Müdür) — CC için
 async function mesajGozetimcileriGetir() {
   const gozetimciler = [];
@@ -15117,8 +15014,8 @@ async function mesajThreadGetirVeyaOlustur(taraflar) {
   const yeniThread = {
     katilimcilar: [personel.email.toLowerCase(), veli.email.toLowerCase()],
     katilimciBilgi: {
-      [personel.email.toLowerCase()]: { ad: mesajAdNormalize(personel.ad, personel.email), rol: personel.rol || "", tip: "personel" },
-      [veli.email.toLowerCase()]: { ad: mesajAdNormalize(veli.ad, veli.email) || (ogrenci && ogrenci.ad ? ogrenci.ad + " velisi" : ""), rol: "veli", tip: "veli" }
+      [personel.email.toLowerCase()]: { ad: personel.ad || "", rol: personel.rol || "", tip: "personel" },
+      [veli.email.toLowerCase()]: { ad: veli.ad || "", rol: "veli", tip: "veli" }
     },
     ccGozetimciler: gozetimciler,
     ogrenciId: ogrenci?.id || "",
@@ -15415,9 +15312,9 @@ function mesajThreadleriListele() {
   if (arama) {
     liste = liste.filter(t => {
       const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
-      const karsiAd = mesajGorunenAd(t, karsi, "").toLowerCase();
+      const karsiAd = (t.katilimciBilgi?.[karsi]?.ad || "").toLowerCase();
       const ogr = (t.ogrenciAd || "").toLowerCase();
-      return karsiAd.includes(arama) || ogr.includes(arama);
+      return karsiAd.includes(arama) || ogr.includes(arama) || karsi.includes(arama);
     });
   }
 
@@ -15434,13 +15331,13 @@ function mesajThreadleriListele() {
     let adGoster, altGoster;
     if (benimGozetimciMiyim) {
       const k = t.katilimcilar || [];
-      const ad1 = mesajGorunenAd(t, k[0], "Okul");
-      const ad2 = mesajGorunenAd(t, k[1], "Veli");
+      const ad1 = t.katilimciBilgi?.[k[0]]?.ad || k[0] || "?";
+      const ad2 = t.katilimciBilgi?.[k[1]]?.ad || k[1] || "?";
       adGoster = `${ad1} ↔ ${ad2}`;
       altGoster = "👁️ Gözetim";
     } else {
       const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
-      adGoster = mesajGorunenAd(t, karsi, "Okul");
+      adGoster = t.katilimciBilgi?.[karsi]?.ad || karsi || "?";
       const rol = t.katilimciBilgi?.[karsi]?.rol;
       altGoster = rol === "veli" ? "Veli" : (ROL_ETIKETLERI[rol] || "");
     }
@@ -15491,13 +15388,13 @@ window.mesajThreadAc = async function(threadId) {
   let adGoster, altGoster;
   if (benimGozetimciMiyim) {
     const k = thread.katilimcilar || [];
-    const ad1 = mesajGorunenAd(thread, k[0], "Okul");
-    const ad2 = mesajGorunenAd(thread, k[1], "Veli");
+    const ad1 = thread.katilimciBilgi?.[k[0]]?.ad || k[0] || "?";
+    const ad2 = thread.katilimciBilgi?.[k[1]]?.ad || k[1] || "?";
     adGoster = `${ad1} ↔ ${ad2}`;
     altGoster = "👁️ Gözetim modu" + (thread.ogrenciAd ? ` · ${thread.ogrenciAd}` : "");
   } else {
     const karsi = (thread.katilimcilar || []).find(e => e !== benim) || "";
-    adGoster = mesajGorunenAd(thread, karsi, "Okul");
+    adGoster = thread.katilimciBilgi?.[karsi]?.ad || karsi || "?";
     const rol = thread.katilimciBilgi?.[karsi]?.rol;
     altGoster = (rol === "veli" ? "Veli" : (ROL_ETIKETLERI[rol] || "")) + (thread.ogrenciAd ? ` · ${thread.ogrenciAd}` : "");
   }
@@ -15556,7 +15453,7 @@ function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
 
     if (gozetimciMiyim) {
       // Gözetimci: tüm mesajları gönderen adıyla göster
-      const gonderenAd = mesajGorunenAd(mesajAktifThread, gonderenLower, "Okul");
+      const gonderenAd = mesajAktifThread?.katilimciBilgi?.[gonderenLower]?.ad || gonderenLower;
       return `
         <div class="mesaj-balon gelen" style="max-width:85%;">
           <div class="mesaj-gonderen-etiket">${escapeHtmlGelisim(gonderenAd)}</div>
@@ -15781,7 +15678,7 @@ window.mesajYeniBaslat = async function(veliEmail, veliAd, ogrenciId) {
     const thread = await mesajThreadGetirVeyaOlustur({
       personel: {
         email: currentUser.email.toLowerCase(),
-        ad: mesajAdNormalize(aktifPersonel?.adSoyad || currentUser.displayName, currentUser.email),
+        ad: aktifPersonel?.adSoyad || currentUser.displayName || currentUser.email,
         rol: aktifKullaniciRol || "personel"
       },
       veli: { email: veliEmail.toLowerCase(), ad: veliAd },
@@ -16869,7 +16766,7 @@ async function caHomeMesajlariDoldur() {
     el.innerHTML = liste.length
       ? liste.slice(0, 3).map(t => {
           const digerleri = (t.katilimcilar || []).filter(x => x !== benim);
-          const kimAd = mesajGorunenAd(t, digerleri[0], "Okul");
+          const kimAd = (t.katilimciAdlari && t.katilimciAdlari[digerleri[0]]) || digerleri[0] || "Okul";
           const okunmamis = (t.okunmamis && t.okunmamis[benim]) || 0;
           return `<div class="ca-msgitem" onclick="caGo('mesajlar')" style="cursor:pointer;">
             <div class="ca-msgmini" style="background:var(--c-green-light); color:#fff;">${escapeHtml((String(kimAd)[0] || "?").toLocaleUpperCase("tr"))}</div>
@@ -18828,8 +18725,8 @@ function caMsgListele() {
   if (arama) {
     liste = liste.filter(t => {
       const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
-      const karsiAd = mesajGorunenAd(t, karsi, "").toLowerCase();
-      return karsiAd.includes(arama);
+      const karsiAd = (t.katilimciBilgi?.[karsi]?.ad || "").toLowerCase();
+      return karsiAd.includes(arama) || karsi.includes(arama);
     });
   }
   if (liste.length === 0) {
@@ -18841,7 +18738,7 @@ function caMsgListele() {
   const avRenk = ["var(--c-green-light)","var(--c-pink-soft)","var(--c-yellow-soft)","var(--c-purple-soft)","var(--c-blue-soft)"];
   el.innerHTML = liste.map((t, i) => {
     const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
-    const adGoster = mesajGorunenAd(t, karsi, "Okul");
+    const adGoster = t.katilimciBilgi?.[karsi]?.ad || karsi || "?";
     const rol = t.katilimciBilgi?.[karsi]?.rol;
     const altGoster = ROL_ETIKETLERI[rol] || "Okul";
     const initial = (adGoster || "?").charAt(0).toUpperCase();
@@ -18869,7 +18766,7 @@ window.caMsgAc = async function(threadId) {
   caMsgAktif = thread;
   const benim = veliEpostam();
   const karsi = (thread.katilimcilar || []).find(e => e !== benim) || "";
-  const adGoster = mesajGorunenAd(thread, karsi, "Okul");
+  const adGoster = thread.katilimciBilgi?.[karsi]?.ad || karsi || "?";
   const rol = thread.katilimciBilgi?.[karsi]?.rol;
 
   const genisEkran = window.matchMedia("(min-width: 820px)").matches;
@@ -19156,7 +19053,7 @@ async function caMsgPersonelListe() {
     const avRenk = ["var(--c-green-light)","var(--c-pink-soft)","var(--c-yellow-soft)","var(--c-purple-soft)","var(--c-blue-soft)"];
     el.innerHTML = liste.map((p, i) => {
       const email = (p.email || p.id).toLowerCase();
-      const ad = p.adSoyad || ROL_ETIKETLERI[p.rol] || "Okul";
+      const ad = p.adSoyad || email;
       const initial = ad.charAt(0).toUpperCase();
       let etiket = ROL_ETIKETLERI[p.rol] || "Personel";
       if (p.rol === "ogretmen" && p.unvan) etiket = p.unvan;
@@ -19179,7 +19076,7 @@ async function caMsgPersonelListe() {
 
 window.caMsgYeniBaslat = async function(personelEmail, personelAd, personelRol) {
   const benim = veliEpostam();
-  const veliAd = mesajKendiVeliAdim();
+  const veliAd = currentUser?.displayName || benim;
   const ilkCocuk = (typeof veliOgrenciler !== "undefined" && veliOgrenciler && veliOgrenciler[0]) || null;
   const ayar = ilkCocuk && typeof ayarListesi !== "undefined" ? (ayarListesi[ilkCocuk.id] || null) : null;
   const sinif = ilkCocuk ? ((ayar && ayar.kayit && ayar.kayit.sinif) || ilkCocuk.sinif || ilkCocuk._sinif || "") : "";
@@ -19200,56 +19097,8 @@ window.caMsgYeniBaslat = async function(personelEmail, personelAd, personelRol) 
 
 // ===== Galeri ekranı =====
 function caGaleriHTML() {
-  const kategoriler = [["tumu","Tümü"],["etkinlik","Etkinlikler"],["orman","Orman"],["sanat","Sanat"],["oyun","Oyun"]];
-  // Albümler: [ad, kapak, sayı, kategori]
-  const albumler = [
-    ["Bahçe Etkinliği", "linear-gradient(135deg,#F8A6B4,#E86A8A)", "24 medya", "etkinlik"],
-    ["Orman Okulu", "linear-gradient(135deg,#9FE0B0,#4BA651)", "18 fotoğraf", "orman"],
-    ["23 Nisan Şenliği", "linear-gradient(135deg,#FFD66B,#F7B591)", "32 medya", "etkinlik"],
-    ["Sanat Atölyesi", "linear-gradient(135deg,#C9B6F0,#B8A0E8)", "12 fotoğraf", "sanat"],
-    ["Doğa Yürüyüşü", "linear-gradient(135deg,#9CD0EC,#8FC8E5)", "20 medya", "orman"],
-    ["Müzik Saati", "linear-gradient(135deg,#FFC2CE,#F8A6B4)", "9 fotoğraf", "sanat"],
-    ["Bilim Deneyleri", "linear-gradient(135deg,#BFE0F2,#8FC8E5)", "15 medya", "etkinlik"],
-    ["Bahçıvanlık", "linear-gradient(135deg,#C9EFD3,#9FE0B0)", "11 fotoğraf", "orman"],
-    ["Resim Sergisi", "linear-gradient(135deg,#DCC9F5,#C9B6F0)", "27 medya", "sanat"],
-    ["Oyun Bahçesi", "linear-gradient(135deg,#FFD9C2,#F7B591)", "14 fotoğraf", "oyun"]
-  ];
-  const gorunenAlbumler = albumler.filter(a => caGalKat === "tumu" || a[3] === caGalKat);
-  const katChips = kategoriler.map(([k, ad]) =>
-    `<button class="ca-chip ${caGalKat === k ? "active" : ""}" onclick="caGalKatSec('${k}')">${ad}</button>`).join("");
-  const albumCards = gorunenAlbumler.map(([ad, g, sayi]) => `
-    <div class="ca-album" onclick="veliSwitchTab('galeri')">
-      <div class="ca-album-cover" style="background:${g};">
-        <button class="ca-iconbtn ca-album-dl" onclick="caIndir(event, '${ad} albümü')" title="Albümü indir">⬇</button>
-        <span class="ca-album-count">${sayi}</span>
-      </div>
-      <div class="ca-album-info"><span class="ca-album-name">${ad}</span><span class="ca-tile-sub">›</span></div>
-    </div>`).join("");
-  const albumBos = gorunenAlbumler.length === 0
-    ? '<div class="ca-tile-sub" style="padding:12px;">Bu kategoride albüm yok.</div>' : "";
-
-  // Medya: [kapak, yükseklik, video?, buHafta?]
-  const medyaTum = [
-    ["linear-gradient(135deg,#FFD4DC,#FFB7C5)", 180, false, true],
-    ["linear-gradient(135deg,#FFF0B0,#FFD66B)", 120, true, true],
-    ["linear-gradient(135deg,#CDE7F5,#9CD0EC)", 150, false, true],
-    ["linear-gradient(135deg,#C9EFD3,#9FE0B0)", 220, false, true],
-    ["linear-gradient(135deg,#E2D7F8,#C9B6F0)", 130, false, true],
-    ["linear-gradient(135deg,#FFD9C2,#F7B591)", 170, false, false],
-    ["linear-gradient(135deg,#FFE0E6,#FFC2CE)", 140, true, false],
-    ["linear-gradient(135deg,#D9EEF9,#BFE0F2)", 205, false, false],
-    ["linear-gradient(135deg,#EDE3FB,#DCC9F5)", 120, false, false],
-    ["linear-gradient(135deg,#C9EFD3,#9FE0B0)", 160, false, false],
-    ["linear-gradient(135deg,#FFF0B0,#FFD66B)", 190, false, false],
-    ["linear-gradient(135deg,#FFD4DC,#FFB7C5)", 135, false, false]
-  ];
-  const gorunenMedya = medyaTum.filter(m => caGalPeriyot === "ay" || m[3]);
-  const fotolar = gorunenMedya.map(([g, h, video]) => `
-    <div class="ca-gphoto" style="background:${g}; height:${h}px;" onclick="veliSwitchTab('galeri')">
-      <button class="ca-iconbtn ca-gdl" onclick="caIndir(event, 'Medya')" title="İndir">⬇</button>
-      ${video ? '<div class="ca-vbadge">0:18</div><div class="ca-play"><span>▶</span></div>' : ""}
-    </div>`).join("");
-
+  // Gerçek veri moduller/veli-galeri.js içinde galeri koleksiyonundan gelir.
+  setTimeout(() => { modulYukle("veli-galeri").then(m => m && m.render("caGaleriIcerik")); }, 60);
   return `
     <div class="ca-page ca-stack">
       <div class="ca-topbar">
@@ -19257,30 +19106,9 @@ function caGaleriHTML() {
           <button class="ca-back" onclick="caGo('home')" title="Geri">←</button>
           <div><div class="ca-tile-sub">GALERİ</div><h2 style="font-size:18px;">Anılarımız</h2></div>
         </div>
-        <button class="ca-bell" onclick="veliSwitchTab('galeri')" title="Ara"><i data-lucide="search" style="width:15px;height:15px;vertical-align:-2px;"></i></button>
       </div>
-
-      <div class="ca-chips">${katChips}</div>
-
-      <div>
-        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Albümler</h3><span class="ca-tile-sub">← kaydır →</span></div>
-        <div class="ca-albumrow">${albumCards}${albumBos}</div>
-      </div>
-
-      <div>
-        <div class="ca-sectionhead">
-          <h3 class="ca-head" style="font-size:15px;">Medya</h3>
-          <div class="ca-seg">
-            <button class="${caGalPeriyot === "hafta" ? "active" : ""}" onclick="caGalPeriyotSec('hafta')">Haftalık</button>
-            <button class="${caGalPeriyot === "ay" ? "active" : ""}" onclick="caGalPeriyotSec('ay')">Aylık</button>
-          </div>
-        </div>
-        <div class="ca-masonry">${fotolar}</div>
-      </div>
-
-      <button class="ca-btn" style="width:100%;" onclick="veliSwitchTab('galeri')"><i data-lucide="camera" style="width:13px;height:13px;vertical-align:-2px;"></i> Tüm fotoğraflar ve videolar</button>
-    </div>
-  `;
+      <div id="caGaleriIcerik"></div>
+    </div>`;
 }
 
 // ===== Günlük Rapor ekranı =====
@@ -21399,7 +21227,7 @@ async function ogretmenHomeVeriYukle() {
       msjEl.innerHTML = threadler.length
         ? threadler.slice(0, 4).map(t => {
             const digerleri = (t.katilimcilar || []).filter(x => x !== benim);
-            const kimAd = mesajGorunenAd(t, digerleri[0], "Okul");
+            const kimAd = (t.katilimciAdlari && t.katilimciAdlari[digerleri[0]]) || digerleri[0] || "Veli";
             return `<div class="ca-msgitem" onclick="modulSec('mesaj')" style="cursor:pointer;">
               <div class="ca-msgmini" style="background:var(--c-pink-soft);">${escapeHtml((String(kimAd)[0] || "?").toLocaleUpperCase("tr"))}</div>
               <div style="min-width:0;"><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(kimAd)}</div>
@@ -21469,8 +21297,8 @@ function veliMesajThreadleriListele() {
   if (arama) {
     liste = liste.filter(t => {
       const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
-      const karsiAd = mesajGorunenAd(t, karsi, "").toLowerCase();
-      return karsiAd.includes(arama);
+      const karsiAd = (t.katilimciBilgi?.[karsi]?.ad || "").toLowerCase();
+      return karsiAd.includes(arama) || karsi.includes(arama);
     });
   }
 
@@ -21483,7 +21311,7 @@ function veliMesajThreadleriListele() {
 
   el.innerHTML = liste.map(t => {
     const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
-    const adGoster = mesajGorunenAd(t, karsi, "Okul");
+    const adGoster = t.katilimciBilgi?.[karsi]?.ad || karsi || "?";
     const rol = t.katilimciBilgi?.[karsi]?.rol;
     const altGoster = ROL_ETIKETLERI[rol] || "Okul";
     const initial = (adGoster || "?").charAt(0).toUpperCase();
@@ -21515,7 +21343,7 @@ window.veliMesajThreadAc = async function(threadId) {
   veliMesajAktifThread = thread;
   const benim = veliEpostam();
   const karsi = (thread.katilimcilar || []).find(e => e !== benim) || "";
-  const adGoster = mesajGorunenAd(thread, karsi, "Okul");
+  const adGoster = thread.katilimciBilgi?.[karsi]?.ad || karsi || "?";
   const rol = thread.katilimciBilgi?.[karsi]?.rol;
 
   document.getElementById("veliMesajSohbetBos").style.display = "none";
@@ -21700,7 +21528,7 @@ async function veliMesajPersonelleriListele() {
 
     el.innerHTML = liste.map(p => {
       const email = (p.email || p.id).toLowerCase();
-      const ad = p.adSoyad || ROL_ETIKETLERI[p.rol] || "Okul";
+      const ad = p.adSoyad || email;
       const initial = ad.charAt(0).toUpperCase();
       const rolEtiket = ROL_ETIKETLERI[p.rol] || "Personel";
       const emailEsc = email.replace(/'/g, "\\'");
@@ -21728,7 +21556,7 @@ async function veliMesajPersonelleriListele() {
 window.veliMesajYeniBaslat = async function(personelEmail, personelAd, personelRol) {
   // Veli kendi bilgisi
   const benim = veliEpostam();
-  const veliAd = mesajKendiVeliAdim();
+  const veliAd = currentUser?.displayName || benim;
   // İlk çocuğu referans öğrenci olarak ata (gözetim/bağlam için)
   const ilkCocuk = (veliOgrenciler && veliOgrenciler[0]) || null;
   const ayar = ilkCocuk ? (ayarListesi[ilkCocuk.id] || null) : null;
@@ -24787,7 +24615,7 @@ window.randevuYonetimMesajlas = async function(slotId) {
     const thread = await mesajThreadGetirVeyaOlustur({
       personel: {
         email: currentUser.email,
-        ad: mesajAdNormalize(currentUser.displayName, currentUser.email) || "Okul",
+        ad: currentUser.displayName || currentUser.email.split("@")[0],
         rol: aktifKullaniciRol || "yonetim"
       },
       veli: {
@@ -35315,7 +35143,7 @@ window.bekleyenHatirlat = async function(ogrenciId, ayAd, tutar) {
     const thread = await mesajThreadGetirVeyaOlustur({
       personel: {
         email: currentUser.email.toLowerCase(),
-        ad: mesajAdNormalize((typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser.displayName, currentUser.email),
+        ad: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser.displayName || currentUser.email,
         rol: (typeof aktifKullaniciRol !== "undefined" ? aktifKullaniciRol : "personel") || "personel"
       },
       veli: { email: veliMail.toLowerCase(), ad: veliAd },
@@ -35348,7 +35176,7 @@ window.bekleyenTopluHatirlat = async function() {
       const thread = await mesajThreadGetirVeyaOlustur({
         personel: {
           email: currentUser.email.toLowerCase(),
-          ad: mesajAdNormalize((typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser.displayName, currentUser.email),
+          ad: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser.displayName || currentUser.email,
           rol: (typeof aktifKullaniciRol !== "undefined" ? aktifKullaniciRol : "personel") || "personel"
         },
         veli: { email: veliMail.toLowerCase(), ad: veliAd },
