@@ -21,6 +21,64 @@ let aktifGaleriFilter = "tumu";
 let galeriSecilenDosyalar = [];
 let galeriGorunum = "grid"; // "grid" (Instagram) | "album" (gruplu)
 
+const GALERI_EGITIM_PROGRAMLARI = {
+  montessori: "Montessori",
+  orman: "Orman Okulu",
+  degerler: "Değerler Eğitimi",
+  ingilizce: "İngilizce Eğitimi",
+  degerlerPlus: "Değerler+"
+};
+
+function galeriBekliyorMu(durum) {
+  return durum === "beklemede" || durum === "onayBekliyor";
+}
+
+function galeriProgramKodu(g) {
+  const ham = String(g?.program || g?.kategori || g?.etkinlikBaslik || "");
+  if (GALERI_EGITIM_PROGRAMLARI[ham]) return ham;
+  const n = ham.toLocaleLowerCase("tr");
+  if (n.includes("montessori")) return "montessori";
+  if (n.includes("orman")) return "orman";
+  if (n.includes("değerler+") || n.includes("degerler+")) return "degerlerPlus";
+  if (n.includes("değer") || n.includes("deger")) return "degerler";
+  if (n.includes("ingiliz") || n.includes("english")) return "ingilizce";
+  return "";
+}
+
+async function galeriGozlemOnayiEsitle(oge, durum, duzenlenmisMetin = "") {
+  const ogrenciId = oge?.ogrenciId || oge?.hedefOgrenciId ||
+    (oge?.hedefTur === "ogrenci" ? oge.hedefDeger : "");
+  const disiplin = galeriProgramKodu(oge);
+  const anahtar = oge?.kazanimAnahtari || "";
+  if (!ogrenciId || !disiplin || !anahtar) return;
+  try {
+    const ref = doc(db, "ogrenciGelisim", ogrenciId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const tum = snap.data() || {};
+    const dis = tum[disiplin] || {};
+    const detay = { ...(dis.detay || {}) };
+    const onceki = detay[anahtar] || {};
+    detay[anahtar] = {
+      ...onceki,
+      fotoUrl: durum === "onaylandi" ? (oge.bunnyUrl || oge.url || "") : "",
+      fotoDurum: durum,
+      galeriId: oge.id || "",
+      ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
+    };
+    const guncelleme = { [disiplin]: { ...dis, detay, guncellendi:new Date().toISOString() } };
+    if (tum.sonGozlem && tum.sonGozlem.galeriId === oge.id) {
+      guncelleme.sonGozlem = {
+        ...tum.sonGozlem,
+        fotoUrl:detay[anahtar].fotoUrl,
+        fotoDurum:durum,
+        ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
+      };
+    }
+    await setDoc(ref, guncelleme, { merge:true });
+  } catch (e) { console.warn("Gözlem fotoğrafı eşitlenemedi:", e); }
+}
+
 window.galeriGorunumToggle = function() {
   galeriGorunum = galeriGorunum === "grid" ? "album" : "grid";
   const btn = document.getElementById("galeriGorunumBtn");
@@ -49,7 +107,7 @@ window.galeriFilter = function(f) {
     if (window.lucideYenile) setTimeout(window.lucideYenile, 50);
     return;
   }
-  galeriGorunum = "grid";
+  galeriGorunum = f === "egitim" ? "album" : "grid";
   aktifGaleriFilter = f;
   document.querySelectorAll("[data-galeri-filter]").forEach(b => {
     if (b.dataset.galeriFilter === f) {
@@ -78,11 +136,13 @@ window.galeriOnayla = async function(id) {
   const yonetimMi = B.yoneticiMi() || ["kurucu_mudur","mudur"].includes(B.rol());
   if (!yonetimMi) { showToast("Onay yetkiniz yok", "error"); return; }
   try {
+    const oge = galeriListesiVerisi.find(g => g.id === id) || { id };
     await updateDoc(doc(db, "galeri", id), {
       durum: "onaylandi",
       onaylayanEmail: B.kullanici().email,
       onayTarihi: new Date().toISOString()
     });
+    await galeriGozlemOnayiEsitle(oge, "onaylandi");
     showToast("✓ Fotoğraf onaylandı, veliler görebilir");
     await renderGaleri();
   } catch (e) {
@@ -96,11 +156,13 @@ window.galeriReddet = async function(id) {
   if (!yonetimMi) { showToast("Yetkiniz yok", "error"); return; }
   if (!confirm("Bu fotoğraf reddedilecek. Veliler göremeyecek. Onaylıyor musunuz?")) return;
   try {
+    const oge = galeriListesiVerisi.find(g => g.id === id) || { id };
     await updateDoc(doc(db, "galeri", id), {
       durum: "reddedildi",
       onaylayanEmail: B.kullanici().email,
       onayTarihi: new Date().toISOString()
     });
+    await galeriGozlemOnayiEsitle(oge, "reddedildi");
     showToast("Fotoğraf reddedildi");
     await renderGaleri();
   } catch (e) {
@@ -111,7 +173,7 @@ window.galeriReddet = async function(id) {
 
 // Onay bekleyen medya sayısı (rozet için)
 function galeriOnayBekleyenSayisi() {
-  return (galeriListesiVerisi || []).filter(g => (g.durum || "onaylandi") === "onayBekliyor").length;
+  return (galeriListesiVerisi || []).filter(g => galeriBekliyorMu(g.durum)).length;
 }
 
 
@@ -152,9 +214,9 @@ async function galeriKategorileriYukle() {
     const d = await getDoc(doc(db, "ayarlar", "galeriKategorileri"));
     GALERI_KATEGORILER = (d.exists() && Array.isArray(d.data().liste) && d.data().liste.length)
       ? d.data().liste
-      : ["Etkinlikler", "Orman", "Sanat", "Oyun"];
+      : ["Montessori", "Orman Okulu", "Değerler Eğitimi", "İngilizce Eğitimi", "Değerler+", "Etkinlikler", "Sanat", "Oyun"];
   } catch (e) {
-    GALERI_KATEGORILER = ["Etkinlikler", "Orman", "Sanat", "Oyun"];
+    GALERI_KATEGORILER = ["Montessori", "Orman Okulu", "Değerler Eğitimi", "İngilizce Eğitimi", "Değerler+", "Etkinlikler", "Sanat", "Oyun"];
   }
   return GALERI_KATEGORILER;
 }
@@ -209,7 +271,8 @@ async function renderGaleri() {
   let liste = [...galeriListesiVerisi];
   if (aktifGaleriFilter === "foto") liste = liste.filter(g => g.dosyaTipi === "foto");
   else if (aktifGaleriFilter === "video") liste = liste.filter(g => g.dosyaTipi === "video");
-  else if (aktifGaleriFilter === "onayBekliyor") liste = liste.filter(g => (g.durum || "onaylandi") === "onayBekliyor");
+  else if (aktifGaleriFilter === "onayBekliyor") liste = liste.filter(g => galeriBekliyorMu(g.durum));
+  else if (aktifGaleriFilter === "egitim") liste = liste.filter(g => Boolean(galeriProgramKodu(g)));
 
   // ═══ INSTAGRAM GRID GÖRÜNÜMÜ ═══
   if (galeriGorunum === "grid") {
@@ -249,11 +312,11 @@ async function renderGaleri() {
       const durum = d.durum || "onaylandi";
       const reddedildiMi = durum === "reddedildi";
       let rozet = "";
-      if (durum === "onayBekliyor") rozet = `<div style="position:absolute; top:6px; right:6px; background:#f59e0b; color:white; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700;"><i data-lucide="clock" style="width:10px;height:10px;"></i></div>`;
+      if (galeriBekliyorMu(durum)) rozet = `<div style="position:absolute; top:6px; right:6px; background:#f59e0b; color:white; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700;"><i data-lucide="clock" style="width:10px;height:10px;"></i></div>`;
       else if (reddedildiMi) rozet = `<div style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700;">✕</div>`;
 
       let onayBtn = "";
-      if (durum === "onayBekliyor" && yonetimMiG) {
+      if (galeriBekliyorMu(durum) && yonetimMiG) {
         onayBtn = `<div style="position:absolute; bottom:0; left:0; right:0; display:flex; gap:3px; padding:5px; background:rgba(0,0,0,0.55);">
           <button onclick="event.stopPropagation(); galeriOnayla('${d.id}')" style="flex:1; padding:6px; background:#16a34a; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✓</button>
           <button onclick="event.stopPropagation(); galeriReddet('${d.id}')" style="flex:1; padding:6px; background:#dc2626; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✕</button>
@@ -261,7 +324,7 @@ async function renderGaleri() {
       }
 
       gHtml += `
-        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:12px; overflow:hidden; cursor:pointer; ${durum==='onayBekliyor'?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626; opacity:.7;':''}" onclick="acGaleriLightbox('${d.id}')">
+        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:12px; overflow:hidden; cursor:pointer; ${galeriBekliyorMu(durum)?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626; opacity:.7;':''}" onclick="acGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video"
             ? `<img src="${escapeHtml(previewUrl||'')}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center;"><i data-lucide='video'></i></div><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
             : `<img src="${escapeHtml(thumbUrl||'')}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">`
@@ -290,14 +353,21 @@ async function renderGaleri() {
   // Etkinlik/album bazında grupla
   const gruplar = {};
   for (const g of liste) {
-    const anahtar = `${g.etkinlikTarih || "tarihsiz"}|${g.etkinlikBaslik || "Diğer"}|${g.hedefTur || ""}|${g.hedefDeger || ""}`;
+    const programKodu = galeriProgramKodu(g);
+    const egitimAlbumu = aktifGaleriFilter === "egitim" && programKodu;
+    const albumBaslik = egitimAlbumu ? GALERI_EGITIM_PROGRAMLARI[programKodu] : (g.etkinlikBaslik || "Diğer");
+    const albumTarih = egitimAlbumu ? "" : (g.etkinlikTarih || "tarihsiz");
+    const anahtar = egitimAlbumu
+      ? `egitim|${programKodu}`
+      : `${albumTarih}|${albumBaslik}|${g.hedefTur || ""}|${g.hedefDeger || ""}`;
     if (!gruplar[anahtar]) {
       gruplar[anahtar] = {
-        etkinlikTarih: g.etkinlikTarih,
-        etkinlikBaslik: g.etkinlikBaslik || "Diğer",
-        hedefTur: g.hedefTur,
-        hedefDeger: g.hedefDeger,
-        hedefOgrenciAd: g.hedefOgrenciAd,
+        etkinlikTarih: egitimAlbumu ? "" : g.etkinlikTarih,
+        etkinlikBaslik: albumBaslik,
+        hedefTur: egitimAlbumu ? "egitim" : g.hedefTur,
+        hedefDeger: egitimAlbumu ? "" : g.hedefDeger,
+        hedefOgrenciAd: egitimAlbumu ? "" : g.hedefOgrenciAd,
+        programKodu: egitimAlbumu ? programKodu : "",
         dosyalar: []
       };
     }
@@ -320,17 +390,25 @@ async function renderGaleri() {
 
   let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
   for (const grup of gruplarDizi) {
-    const hedefLabel = grup.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
+    const hedefLabel = grup.programKodu ? "📚 Eğitim programı"
+      : grup.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
       : grup.hedefTur === "sinif" ? `👥 ${escapeHtml(grup.hedefDeger)}`
       : `👤 ${escapeHtml(grup.hedefOgrenciAd || grup.hedefDeger || "")}`;
 
-    const tarihStr = grup.etkinlikTarih ? new Date(grup.etkinlikTarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "Tarihsiz";
+    const tarihStr = grup.etkinlikTarih
+      ? new Date(grup.etkinlikTarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })
+      : (grup.programKodu ? "Program albümü" : "Tarihsiz");
 
     const fotoSayi = grup.dosyalar.filter(d => d.dosyaTipi === "foto").length;
     const videoSayi = grup.dosyalar.filter(d => d.dosyaTipi === "video").length;
 
     const zipArgs = `'${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '${grup.etkinlikTarih || ''}', '${grup.hedefTur || ''}', '${(grup.hedefDeger || '').replace(/'/g, "\\'")}'`;
     const eklArgs = `'${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '${grup.etkinlikTarih || ''}', '${grup.hedefTur || ''}', '${(grup.hedefDeger || '').replace(/'/g, "\\'")}', '${(grup.hedefOgrenciAd || '').replace(/'/g, "\\'")}'`;
+    const aksiyonlar = grup.programKodu
+      ? `<button onclick="egitimAlbumuneEkle('${grup.programKodu}')" style="padding:7px 12px; background:#9333ea; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ İçerik Ekle</button>
+         <button onclick="albumZipIndir('${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '', '__egitim__', '${grup.programKodu}')" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> ZIP İndir</button>`
+      : `<button onclick="albumEEkle(${eklArgs})" style="padding:7px 12px; background:#9333ea; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ İçerik Ekle</button>
+         <button onclick="albumZipIndir(${zipArgs})" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> ZIP İndir</button>`;
 
     html += `
       <div style="background:white; border:1px solid var(--gray-200); border-radius:14px; overflow:hidden;">
@@ -341,8 +419,7 @@ async function renderGaleri() {
               <div style="font-size:12px; color:#7c3aed; margin-top:3px;">📅 ${tarihStr} · ${hedefLabel} · ${fotoSayi > 0 ? `🖼 ${fotoSayi}` : ''} ${videoSayi > 0 ? `🎥 ${videoSayi}` : ''}</div>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <button onclick="albumEEkle(${eklArgs})" style="padding:7px 12px; background:#9333ea; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ İçerik Ekle</button>
-              <button onclick="albumZipIndir(${zipArgs})" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> ZIP İndir</button>
+              ${aksiyonlar}
             </div>
           </div>
         </div>
@@ -363,7 +440,7 @@ async function renderGaleri() {
 
       // Durum rozeti (sadece onaylı değilse göster)
       let durumRozet = "";
-      if (durum === "onayBekliyor") {
+      if (galeriBekliyorMu(durum)) {
         durumRozet = `<div style="position:absolute; top:6px; right:6px; background:#f59e0b; color:white; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700;">⏳ Onay Bekliyor</div>`;
       } else if (reddedildiMi) {
         durumRozet = `<div style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700;">✕ Reddedildi</div>`;
@@ -371,7 +448,7 @@ async function renderGaleri() {
 
       // Müdür onay butonları (sadece onay bekleyenlerde + yönetim görür)
       let onayButonlari = "";
-      if (durum === "onayBekliyor" && yonetimMi) {
+      if (galeriBekliyorMu(durum) && yonetimMi) {
         onayButonlari = `
           <div style="position:absolute; bottom:0; left:0; right:0; display:flex; gap:4px; padding:6px; background:rgba(0,0,0,0.55);">
             <button onclick="event.stopPropagation(); galeriOnayla('${d.id}')" style="flex:1; padding:8px; background:#16a34a; color:white; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">✓ Onayla</button>
@@ -383,7 +460,7 @@ async function renderGaleri() {
       const opacity = onayliMi ? "1" : "0.92";
 
       html += `
-        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:10px; overflow:hidden; cursor:pointer; opacity:${opacity}; ${durum==='onayBekliyor'?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626;':''}" onclick="acGaleriLightbox('${d.id}')">
+        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:10px; overflow:hidden; cursor:pointer; opacity:${opacity}; ${galeriBekliyorMu(durum)?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626;':''}" onclick="acGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video" ?
             `<img src="${escapeHtml(previewUrl)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
              <div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center; font-size:24px;">🎥</div>
@@ -419,7 +496,12 @@ window.openGaleriYuklemeModal = function(mod) {
   const etkInp = document.getElementById("galeriEtkinlik");
   const tarInp = document.getElementById("galeriEtkinlikTarih");
   const hedefSel = document.getElementById("galeriHedefTur");
-  galeriKategoriSecimDoldur().catch(e => console.warn("kategori", e));
+  galeriKategoriSecimDoldur().then(() => {
+    if (!albumEkleMod) {
+      const kategoriSel = document.getElementById("galeriKategori");
+      if (kategoriSel) kategoriSel.value = "";
+    }
+  }).catch(e => console.warn("kategori", e));
   const sinifSel = document.getElementById("galeriHedefSinif");
   const ogrSel = document.getElementById("galeriHedefOgrenci");
   const aciklamaTxt = document.getElementById("galeriAciklama");
@@ -637,9 +719,14 @@ window.galeriYukle = async function() {
     document.getElementById("galeriYuklemeSayac").textContent = i + 1;
 
     try {
+      const kategori = (document.getElementById("galeriKategori") || {}).value || "";
+      const program = galeriProgramKodu({ kategori });
       let oge = {
         etkinlikBaslik: etkinlik,
-        kategori: (document.getElementById("galeriKategori") || {}).value || "",
+        kategori,
+        program,
+        albumTuru: program ? "egitim" : "genel",
+        egitimKaydi: Boolean(program),
         etkinlikTarih,
         aciklama,
         hedefTur, hedefDeger, hedefOgrenciAd,
@@ -675,15 +762,11 @@ window.galeriYukle = async function() {
       // MEDYA ONAY SİSTEMİ
       // Kural: Yönetim (kurucu müdür / müdür / koordinatör) yüklerse zaten
       // onay makamı olduğu için doğrudan yayınlanır.
-      // Öğretmen KENDİ sınıfına yüklerse de doğrudan yayınlanır — aksi halde
-      // fotoğraflar veliye hiç ulaşmıyordu. Diğer tüm durumlar onay bekler.
+      // Öğretmen yüklemeleri, hedef kendi sınıfı olsa da, yönetici onayına gider.
       const yonetimRolu = ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(B.rol()) || B.yoneticiMi();
-      const kendiSinifi = B.rol() === "ogretmen" &&
-                          hedefTur === "sinif" &&
-                          (typeof sinifGorunur === "function" ? sinifGorunur(hedefDeger) : false);
-      const dogrudanYayin = yonetimRolu || kendiSinifi;
+      const dogrudanYayin = yonetimRolu;
 
-      oge.durum = dogrudanYayin ? "onaylandi" : "onayBekliyor";
+      oge.durum = dogrudanYayin ? "onaylandi" : "beklemede";
       oge.onaylayanEmail = dogrudanYayin ? (B.kullanici()?.email || "") : "";
       oge.onayTarihi = dogrudanYayin ? new Date().toISOString() : "";
 
@@ -784,12 +867,58 @@ window.acGaleriLightbox = function(id) {
   } else {
     icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:90vh; object-fit:contain;">`;
   }
+  const duzenleBtn = document.getElementById("galeriLightboxDuzenleBtn");
+  const yonetimMi = B.yoneticiMi() || ["kurucu_mudur", "mudur"].includes(B.rol());
+  if (duzenleBtn) duzenleBtn.style.display = yonetimMi ? "inline-flex" : "none";
+  if (window.lucideYenile) setTimeout(window.lucideYenile, 30);
 };
 
 window.closeGaleriLightbox = function() {
   document.getElementById("galeriLightbox").classList.remove("active");
   document.getElementById("galeriLightboxIcerik").innerHTML = "";
   aktifLightboxOge = null;
+};
+
+window.galeriGonderiDuzenle = async function(id) {
+  const yonetimMi = B.yoneticiMi() || ["kurucu_mudur", "mudur"].includes(B.rol());
+  if (!yonetimMi) return showToast("Düzenleme yetkiniz yok", "error");
+  const oge = galeriListesiVerisi.find(g => g.id === id);
+  if (!oge) return showToast("Gönderi bulunamadı", "error");
+
+  const baslik = prompt("Gönderi / etkinlik adı:", oge.etkinlikBaslik || oge.baslik || "");
+  if (baslik === null) return;
+  const aciklama = prompt("Açıklama:", oge.aciklama || "");
+  if (aciklama === null) return;
+  const mevcutProgram = galeriProgramKodu(oge);
+  const programGirisi = prompt(
+    "Program kodu (boş = Genel): montessori, orman, degerler, ingilizce, degerlerPlus",
+    mevcutProgram
+  );
+  if (programGirisi === null) return;
+  const program = galeriProgramKodu({ kategori: programGirisi.trim() });
+  if (programGirisi.trim() && !program) return showToast("Geçersiz program kodu", "error");
+
+  const guncelleme = {
+    etkinlikBaslik: baslik.trim() || "Genel",
+    baslik: baslik.trim() || "Genel",
+    aciklama: aciklama.trim(),
+    kategori: program || (mevcutProgram ? "" : (oge.kategori || "")),
+    program,
+    albumTuru: program ? "egitim" : "genel",
+    egitimKaydi: Boolean(program),
+    guncellendi: new Date().toISOString()
+  };
+  try {
+    await updateDoc(doc(db, "galeri", id), guncelleme);
+    Object.assign(oge, guncelleme);
+    await galeriGozlemOnayiEsitle(oge, oge.durum || "onaylandi", guncelleme.aciklama || guncelleme.etkinlikBaslik);
+    closeGaleriLightbox();
+    showToast("✓ Gönderi güncellendi");
+    await renderGaleri();
+  } catch (e) {
+    console.error("Gönderi düzenleme hatası:", e);
+    showToast("Güncellenemedi: " + e.message, "error");
+  }
 };
 
 window.galeriLightboxIndir = async function() {
@@ -946,17 +1075,36 @@ window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger
   }, 50);
 };
 
+window.egitimAlbumuneEkle = function(programKodu) {
+  albumEkleMod = null;
+  openGaleriYuklemeModal("foto");
+  setTimeout(() => {
+    const programAd = GALERI_EGITIM_PROGRAMLARI[programKodu] || "Eğitim";
+    const header = document.querySelector("#galeriYuklemeModal .modal-header h3");
+    const etkInp = document.getElementById("galeriEtkinlik");
+    const kategoriSel = document.getElementById("galeriKategori");
+    if (header) header.innerHTML = `<i data-lucide="image-plus"></i> ${escapeHtml(programAd)} Albümüne Ekle`;
+    if (etkInp) etkInp.value = programAd;
+    if (kategoriSel) {
+      const secenek = [...kategoriSel.options].find(o => galeriProgramKodu({ kategori:o.value }) === programKodu);
+      kategoriSel.value = secenek ? secenek.value : programKodu;
+    }
+    if (window.lucideYenile) window.lucideYenile();
+  }, 120);
+};
+
 // Eski fonksiyonu güncelle - düzenleme modunu da destekleyecek
 window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger) {
   if (!window.JSZip) return showToast("ZIP kütüphanesi yüklenmedi", "error");
 
   // Bu albüme ait dosyaları bul
-  const dosyalar = (window.galeriListesiVerisi || []).filter(g =>
-    g.etkinlikBaslik === etkinlikBaslik &&
-    g.etkinlikTarih === etkinlikTarih &&
-    g.hedefTur === hedefTur &&
-    g.hedefDeger === (hedefDeger || "")
-  );
+  const dosyalar = (window.galeriListesiVerisi || []).filter(g => {
+    if (hedefTur === "__egitim__") return galeriProgramKodu(g) === hedefDeger;
+    return g.etkinlikBaslik === etkinlikBaslik &&
+      g.etkinlikTarih === etkinlikTarih &&
+      g.hedefTur === hedefTur &&
+      g.hedefDeger === (hedefDeger || "");
+  });
 
   // Veli panelinden çağrılıyorsa veliGaleriVerisi'ne bak
   const dosyalarVeli = (window.veliGaleriVerisi || []).filter(g =>
