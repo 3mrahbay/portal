@@ -50,56 +50,102 @@ async function galeriGozlemOnayiEsitle(oge, durum, duzenlenmisMetin = "") {
     (oge?.hedefTur === "ogrenci" ? oge.hedefDeger : "");
   const disiplin = galeriProgramKodu(oge);
   const anahtar = oge?.kazanimAnahtari || "";
-  if (!ogrenciId || !disiplin || !anahtar) return;
+  if (!ogrenciId || !disiplin || !anahtar) return false;
+
   try {
     const ref = doc(db, "ogrenciGelisim", ogrenciId);
     const snap = await getDoc(ref);
-    if (!snap.exists()) return;
-    const tum = snap.data() || {};
+    if (!snap.exists() && durum !== "onaylandi") return false;
+
+    const tum = snap.exists() ? (snap.data() || {}) : {};
     const dis = tum[disiplin] || {};
+    const kayitlar = { ...(dis.kayitlar || {}) };
+    const tarihler = { ...(dis.tarihler || {}) };
     const detay = { ...(dis.detay || {}) };
     const onceki = detay[anahtar] || {};
     const asamalar = { ...(onceki.asamalar || {}) };
     const asamaKodu = oge?.gozlemDurum ||
       Object.keys(asamalar).find(kod => (asamalar[kod] || {}).galeriId === oge.id) ||
-      (onceki.galeriId === oge.id ? (onceki.durum || "") : "");
+      (onceki.galeriId === oge.id ? (onceki.durum || "") : "") ||
+      (durum === "onaylandi" ? "S" : "");
+    if (!asamaKodu) return false;
+
     const onayliFotoUrl = durum === "onaylandi" ? (oge.bunnyUrl || oge.url || "") : "";
-    let yeniDetay;
-    if (asamaKodu) {
-      const oncekiAsama = asamalar[asamaKodu] || (onceki.durum === asamaKodu ? onceki : {});
-      const yeniAsama = {
-        ...oncekiAsama, durum:asamaKodu, fotoUrl:onayliFotoUrl,
-        fotoDurum:durum, galeriId:oge.id || "",
-        ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
-      };
-      asamalar[asamaKodu] = yeniAsama;
-      const sonAsamaMi = onceki.galeriId === oge.id ||
-        (!onceki.galeriId && onceki.durum === asamaKodu);
-      yeniDetay = {
-        ...onceki,
-        ...(sonAsamaMi ? {
-          fotoUrl:yeniAsama.fotoUrl, fotoDurum:yeniAsama.fotoDurum,
-          galeriId:yeniAsama.galeriId,
-          ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
-        } : {}),
-        asamalar
-      };
-    } else {
-      yeniDetay = {
-        ...onceki, fotoUrl:onayliFotoUrl, fotoDurum:durum,
-        galeriId:oge.id || "", ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
-      };
+    const oncekiAsama = asamalar[asamaKodu] ||
+      (onceki.durum === asamaKodu ? onceki : {});
+    const asamaTarih = oncekiAsama.tarih || oge?.tarih || new Date().toISOString();
+    const dersAd = oncekiAsama.dersAd || oge?.dersAd ||
+      anahtar.split("__").slice(2).join("__");
+    const yeniAsama = {
+      ...oncekiAsama,
+      durum:asamaKodu,
+      not:duzenlenmisMetin || oncekiAsama.not || oge?.aciklama || "",
+      fotoUrl:onayliFotoUrl,
+      fotoDurum:durum,
+      galeriId:oge?.id || "",
+      dersAd,
+      tarih:asamaTarih,
+      yazar:oncekiAsama.yazar || oge?.yukleyenAd || oge?.yukleyen || "",
+      paylas:oncekiAsama.paylas !== false
+    };
+    asamalar[asamaKodu] = yeniAsama;
+
+    const sira = { S:1, T:2, U:3 };
+    const mevcutDurum = kayitlar[anahtar] || onceki.durum || "";
+    const yeniGuncelMi = !mevcutDurum ||
+      (sira[asamaKodu] || 0) >= (sira[mevcutDurum] || 0);
+    if (durum === "onaylandi" && yeniGuncelMi) {
+      kayitlar[anahtar] = asamaKodu;
+      tarihler[anahtar] = String(asamaTarih).slice(0, 10);
     }
-    detay[anahtar] = yeniDetay;
-    const guncelleme = { [disiplin]: { ...dis, detay, guncellendi:new Date().toISOString() } };
-    if (tum.sonGozlem && tum.sonGozlem.galeriId === oge.id) {
+
+    detay[anahtar] = {
+      ...onceki,
+      ...(yeniGuncelMi ? {
+        durum:asamaKodu,
+        not:yeniAsama.not,
+        fotoUrl:yeniAsama.fotoUrl,
+        fotoDurum:yeniAsama.fotoDurum,
+        galeriId:yeniAsama.galeriId,
+        dersAd:yeniAsama.dersAd,
+        tarih:yeniAsama.tarih,
+        yazar:yeniAsama.yazar,
+        paylas:yeniAsama.paylas
+      } : {}),
+      asamalar
+    };
+
+    const guncelleme = {
+      [disiplin]: {
+        ...dis, kayitlar, tarihler, detay, guncellendi:new Date().toISOString()
+      }
+    };
+    const sonTarih = (tum.sonGozlem || {}).tarih || "";
+    const sonGuncelMi = !tum.sonGozlem ||
+      tum.sonGozlem.galeriId === oge?.id ||
+      String(asamaTarih) >= String(sonTarih);
+    if (durum === "onaylandi" && sonGuncelMi) {
       guncelleme.sonGozlem = {
-        ...tum.sonGozlem, fotoUrl:onayliFotoUrl, fotoDurum:durum,
+        disiplin, anahtar, dersAd:yeniAsama.dersAd, not:yeniAsama.not,
+        fotoUrl:onayliFotoUrl, fotoYol:yeniAsama.fotoYol || "",
+        galeriId:oge?.id || "", fotoDurum:durum, durum:asamaKodu,
+        tarih:asamaTarih, yazar:yeniAsama.yazar, paylas:yeniAsama.paylas
+      };
+    } else if (tum.sonGozlem && tum.sonGozlem.galeriId === oge?.id) {
+      guncelleme.sonGozlem = {
+        ...tum.sonGozlem,
+        fotoUrl:onayliFotoUrl,
+        fotoDurum:durum,
         ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
       };
     }
+
     await setDoc(ref, guncelleme, { merge:true });
-  } catch (e) { console.warn("Gözlem fotoğrafı eşitlenemedi:", e); }
+    return true;
+  } catch (e) {
+    console.warn("Gözlem fotoğrafı eşitlenemedi:", e);
+    return false;
+  }
 }
 
 window.galeriGorunumToggle = function() {
