@@ -59,19 +59,42 @@ async function galeriGozlemOnayiEsitle(oge, durum, duzenlenmisMetin = "") {
     const dis = tum[disiplin] || {};
     const detay = { ...(dis.detay || {}) };
     const onceki = detay[anahtar] || {};
-    detay[anahtar] = {
-      ...onceki,
-      fotoUrl: durum === "onaylandi" ? (oge.bunnyUrl || oge.url || "") : "",
-      fotoDurum: durum,
-      galeriId: oge.id || "",
-      ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
-    };
+    const asamalar = { ...(onceki.asamalar || {}) };
+    const asamaKodu = oge?.gozlemDurum ||
+      Object.keys(asamalar).find(kod => (asamalar[kod] || {}).galeriId === oge.id) ||
+      (onceki.galeriId === oge.id ? (onceki.durum || "") : "");
+    const onayliFotoUrl = durum === "onaylandi" ? (oge.bunnyUrl || oge.url || "") : "";
+    let yeniDetay;
+    if (asamaKodu) {
+      const oncekiAsama = asamalar[asamaKodu] || (onceki.durum === asamaKodu ? onceki : {});
+      const yeniAsama = {
+        ...oncekiAsama, durum:asamaKodu, fotoUrl:onayliFotoUrl,
+        fotoDurum:durum, galeriId:oge.id || "",
+        ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
+      };
+      asamalar[asamaKodu] = yeniAsama;
+      const sonAsamaMi = onceki.galeriId === oge.id ||
+        (!onceki.galeriId && onceki.durum === asamaKodu);
+      yeniDetay = {
+        ...onceki,
+        ...(sonAsamaMi ? {
+          fotoUrl:yeniAsama.fotoUrl, fotoDurum:yeniAsama.fotoDurum,
+          galeriId:yeniAsama.galeriId,
+          ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
+        } : {}),
+        asamalar
+      };
+    } else {
+      yeniDetay = {
+        ...onceki, fotoUrl:onayliFotoUrl, fotoDurum:durum,
+        galeriId:oge.id || "", ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
+      };
+    }
+    detay[anahtar] = yeniDetay;
     const guncelleme = { [disiplin]: { ...dis, detay, guncellendi:new Date().toISOString() } };
     if (tum.sonGozlem && tum.sonGozlem.galeriId === oge.id) {
       guncelleme.sonGozlem = {
-        ...tum.sonGozlem,
-        fotoUrl:detay[anahtar].fotoUrl,
-        fotoDurum:durum,
+        ...tum.sonGozlem, fotoUrl:onayliFotoUrl, fotoDurum:durum,
         ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
       };
     }
