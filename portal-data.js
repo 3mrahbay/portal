@@ -44,14 +44,18 @@ export function aktifKullanici() {
 // ══════════════════════════════════════════════════════════════
 // SINIF ADI STANDARDI  (ZEKY ile birebir aynı — kopyalanmadı, TAŞINDI)
 // ══════════════════════════════════════════════════════════════
-export const RESMI_SINIFLAR = ['Papatyalar Sınıfı', 'Kardelenler Sınıfı', 'Nar Çiçekleri Sınıfı'];
+export const RESMI_SINIFLAR = ['İlk Adımlar Sınıfı', 'Mimoza Çiçekleri Sınıfı', 'Yasemin Çiçekleri Sınıfı', 'Lavanta Çiçekleri Sınıfı'];
 
 const SINIF_ESLEME = {
-  papatya: 'Papatyalar Sınıfı', papatyalar: 'Papatyalar Sınıfı',
-  toddler: 'Papatyalar Sınıfı', 'montessori1': 'Papatyalar Sınıfı',
-  kardelen: 'Kardelenler Sınıfı', kardelenler: 'Kardelenler Sınıfı',
-  'montessori2': 'Kardelenler Sınıfı',
-  nar: 'Nar Çiçekleri Sınıfı', 'montessori3': 'Nar Çiçekleri Sınıfı'
+  mimoza: 'Mimoza Çiçekleri Sınıfı', mimozalar: 'Mimoza Çiçekleri Sınıfı',
+  papatya: 'Mimoza Çiçekleri Sınıfı', papatyalar: 'Mimoza Çiçekleri Sınıfı',
+  toddler: 'Mimoza Çiçekleri Sınıfı', toodler: 'Mimoza Çiçekleri Sınıfı',
+  'montessori1': 'Mimoza Çiçekleri Sınıfı',
+  yasemin: 'Yasemin Çiçekleri Sınıfı', yaseminler: 'Yasemin Çiçekleri Sınıfı',
+  kardelen: 'Yasemin Çiçekleri Sınıfı', kardelenler: 'Yasemin Çiçekleri Sınıfı',
+  'montessori2': 'Yasemin Çiçekleri Sınıfı',
+  lavanta: 'Lavanta Çiçekleri Sınıfı', lavantalar: 'Lavanta Çiçekleri Sınıfı',
+  nar: 'Lavanta Çiçekleri Sınıfı', 'montessori3': 'Lavanta Çiçekleri Sınıfı'
 };
 
 export function sinifAnahtar(deger) {
@@ -80,7 +84,8 @@ export function sinifResmiAd(deger) {
 export function sinifEslesirMi(a, b) {
   if (!a || !b) return false;
   if (a === b) return true;
-  const ka = sinifAnahtar(a), kb = sinifAnahtar(b);
+  const ka = sinifAnahtar(sinifResmiAd(a));
+  const kb = sinifAnahtar(sinifResmiAd(b));
   return !!ka && ka === kb;
 }
 
