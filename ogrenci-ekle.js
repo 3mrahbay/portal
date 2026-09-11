@@ -125,9 +125,10 @@ function olusturBuyutonVeModal() {
             <label>Sınıf <span style="color:#dc2626;">*</span></label>
             <select id="yo_sinif">
               <option value="">Seçiniz</option>
-              <option value="Toodler Sınıfı (2-3 Yaş)">Toodler Sınıfı (2-3 Yaş)</option>
-              <option value="Kardelen Çiçekleri Sınıfı">Kardelen Çiçekleri Sınıfı</option>
-              <option value="Nar Çiçekleri Sınıfı">Nar Çiçekleri Sınıfı</option>
+              <option value="İlk Adımlar Sınıfı">İlk Adımlar Sınıfı</option>
+              <option value="Mimoza Çiçekleri Sınıfı">Mimoza Çiçekleri Sınıfı</option>
+              <option value="Yasemin Çiçekleri Sınıfı">Yasemin Çiçekleri Sınıfı</option>
+              <option value="Lavanta Çiçekleri Sınıfı">Lavanta Çiçekleri Sınıfı</option>
             </select>
           </div>
           <div class="form-group">
