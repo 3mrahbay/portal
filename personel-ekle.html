@@ -680,16 +680,20 @@
           <label class="form-label">Sınıf Atamaları</label>
           <div class="sinif-checkboxlar">
             <label class="sinif-checkbox">
-              <input type="checkbox" name="sinif" value="papatyalar">
-              <span>🌼 Papatyalar Sınıfı (Toddler)</span>
+              <input type="checkbox" name="sinif" value="İlk Adımlar Sınıfı">
+              <span>🌱 İlk Adımlar Sınıfı</span>
             </label>
             <label class="sinif-checkbox">
-              <input type="checkbox" name="sinif" value="kardelenler">
-              <span>❄️ Kardelenler Sınıfı</span>
+              <input type="checkbox" name="sinif" value="Mimoza Çiçekleri Sınıfı">
+              <span>🌼 Mimoza Çiçekleri Sınıfı</span>
             </label>
             <label class="sinif-checkbox">
-              <input type="checkbox" name="sinif" value="nar_cicekleri">
-              <span>🌺 Nar Çiçekleri Sınıfı</span>
+              <input type="checkbox" name="sinif" value="Yasemin Çiçekleri Sınıfı">
+              <span>🌷 Yasemin Çiçekleri Sınıfı</span>
+            </label>
+            <label class="sinif-checkbox">
+              <input type="checkbox" name="sinif" value="Lavanta Çiçekleri Sınıfı">
+              <span>🪻 Lavanta Çiçekleri Sınıfı</span>
             </label>
           </div>
         </div>
@@ -1025,9 +1029,13 @@
     // SINIF ADINI GETİR
     function sinifAdiniGetir(sinif) {
       const sinifAdlari = {
-        'papatyalar': '🌼 Papatya',
-        'kardelenler': '❄️ Kardelen',
-        'nar_cicekleri': '🌺 Nar Çiçeği'
+        'İlk Adımlar Sınıfı': '🌱 İlk Adımlar',
+        'Mimoza Çiçekleri Sınıfı': '🌼 Mimoza Çiçekleri',
+        'Yasemin Çiçekleri Sınıfı': '🌷 Yasemin Çiçekleri',
+        'Lavanta Çiçekleri Sınıfı': '🪻 Lavanta Çiçekleri',
+        'papatyalar': '🌼 Mimoza Çiçekleri',
+        'kardelenler': '🌷 Yasemin Çiçekleri',
+        'nar_cicekleri': '🪻 Lavanta Çiçekleri'
       };
       return sinifAdlari[sinif] || sinif;
     }
