@@ -1,0 +1,10 @@
+{
+  "firestore": {
+    "rules": "randevu-firestore.rules.proposal"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8085
+    }
+  }
+}
