@@ -1,0 +1,412 @@
+// DİKKAT: Bu dosya Firebase tarafından otomatik yüklenmez.
+// İnceleme ve Rules Playground/emülatör testleri tamamlandıktan sonra
+// yalnız randevu bölümleri etkin firestore.rules dosyasına taşınmalıdır.
+
+rules_version = '2';
+
+// ============================================================
+//  BİR ÇİÇEK KOLEJİ — PORTAL FIRESTORE GÜVENLİK KURALLARI
+//  --------------------------------------------------------
+//  AMAÇ: Şu an yalnızca tarayıcıda (client-side) yapılan
+//  admin / personel / veli yetki kontrollerini SUNUCU tarafında
+//  zorlamak. Client kodu herkese açıktır; gerçek güvenlik
+//  BURADADIR.
+//
+//  ⚠️ ÖNEMLİ — DEPLOY ETMEDEN ÖNCE OKU:
+//  1) Bu bir TASLAKtır. Firebase Console'daki MEVCUT kurallarınla
+//     karşılaştır. Yanlış kural uygulamayı kilitleyebilir.
+//  2) Önce Firebase Console > Firestore > Rules > "Rules Playground"
+//     ile veya bir test projesinde dene.
+//  3) Varsayım: personeller/{id} ve veliler/{id} döküman ID'leri
+//     KÜÇÜK HARF e-postadır (client login bunu lowercase yapıyor).
+//     Eğer bazı dökümanlar büyük harf içeriyorsa eşleşme bozulur —
+//     önce verideki ID'leri normalize et.
+//  4) Bazı koleksiyonlarda "veli kendi çocuğunu okusun" kuralı,
+//     ogrenci dökümanındaki veli e-postalarının DÜZ METİN dizi
+//     (string array) olarak tutulmasını gerektirir. Aşağıda
+//     ilgili yerde TODO olarak işaretledim.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Yardımcı fonksiyonlar ----------
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+    function userEmail() {
+      // E-postayı küçük harfe çevir (doc ID'leri lowercase tutuluyor)
+      return request.auth.token.email.lower();
+    }
+    function isAdmin() {
+      return signedIn() && userEmail() == 'emrahby@gmail.com';
+    }
+    function staffPath() {
+      return /databases/$(database)/documents/personeller/$(userEmail());
+    }
+    function isStaff() {
+      return signedIn() && exists(staffPath());
+    }
+    function staffDoc() {
+      return get(staffPath()).data;
+    }
+    function isStaffActive() {
+      return isStaff() && staffDoc().durum == 'aktif';
+    }
+    function staffRole() {
+      return isStaff() ? staffDoc().rol : '';
+    }
+    function hasRole(roles) {
+      return isAdmin() || (isStaffActive() && (staffRole() in roles));
+    }
+    // Üst yönetim (tam yetki)
+    function isManagement() {
+      return hasRole([
+        'kurucu_mudur', 'kurucu', 'mudur', 'mudur_yardimcisi',
+        'egitim_koordinator', 'egitim_koordinatoru'
+      ]);
+    }
+    // İçerik üretebilen roller (duyuru/galeri/etkinlik/gelişim)
+    function isContentStaff() {
+      return hasRole(['kurucu_mudur', 'mudur', 'egitim_koordinator', 'ogretmen']);
+    }
+    // Finans/muhasebe yetkisi
+    function isFinance() {
+      return hasRole(['kurucu_mudur', 'mudur', 'muhasebe']);
+    }
+
+    // Randevu sahibini ve hedef personeli kişisel veri açmadan doğrular.
+    function appointmentOwner(data) {
+      return signedIn()
+             && data.veliEmail is string
+             && data.veliEmail.lower() == userEmail();
+    }
+    function appointmentTarget(data) {
+      return signedIn()
+             && data.hedefKodu is string
+             && exists(/databases/$(database)/documents/randevuYetkileri/$(data.hedefKodu))
+             && get(/databases/$(database)/documents/randevuYetkileri/$(data.hedefKodu)).data.aktif == true
+             && get(/databases/$(database)/documents/randevuYetkileri/$(data.hedefKodu)).data.email is string
+             && get(/databases/$(database)/documents/randevuYetkileri/$(data.hedefKodu)).data.email.lower() == userEmail();
+    }
+    function appointmentActive(status) {
+      return status in ['talep', 'dolu', 'onaylandi', 'alternatif_teklif', 'veli_onayi_bekliyor'];
+    }
+    function appointmentParentUpdate() {
+      return appointmentOwner(resource.data)
+             && request.resource.data.veliEmail == resource.data.veliEmail
+             && request.resource.data.hedefKodu == resource.data.hedefKodu
+             && (
+               (
+                 resource.data.durum in ['alternatif_teklif', 'veli_onayi_bekliyor']
+                 && request.resource.data.durum in ['dolu', 'teklif_reddedildi']
+               )
+               || (
+                 appointmentActive(resource.data.durum)
+                 && request.resource.data.durum == 'iptal'
+               )
+             )
+             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+               'guncellendi', 'durum', 'veliYanitTarihi', 'veliYanitNotu',
+               'durumGecmisi', 'tarih', 'saat', 'baslangicSaat', 'bitisSaat',
+               'onayTarihi', 'retGerekcesi', 'iptalNedeni', 'iptalEdenEmail',
+               'iptalTarihi'
+             ]);
+    }
+    function appointmentStaffUpdate() {
+      return isStaffActive()
+             && appointmentTarget(resource.data)
+             && request.resource.data.hedefKodu == resource.data.hedefKodu
+             && (
+               (
+                 request.resource.data.durumDegistirenKodu is string
+                 && request.resource.data.durumDegistirenKodu == resource.data.hedefKodu
+                 && resource.data.durum == 'talep'
+                 && request.resource.data.durum in ['dolu', 'reddedildi', 'alternatif_teklif']
+               )
+               || (
+                 request.resource.data.iptalEdenKodu is string
+                 && request.resource.data.iptalEdenKodu == resource.data.hedefKodu
+                 && appointmentActive(resource.data.durum)
+                 && request.resource.data.durum == 'iptal'
+               )
+             )
+             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+               'guncellendi', 'durum', 'durumDegistirenKodu', 'durumDegistirenAd',
+               'durumZamani', 'durumGecmisi', 'onayTarihi', 'retGerekcesi',
+               'teklifTarih', 'teklifSaat', 'teklifNotu', 'teklifEdenKodu',
+               'iptalNedeni', 'iptalEdenKodu', 'iptalTarihi'
+             ]);
+    }
+
+    // ============================================================
+    //  PERSONEL
+    //  - Kendi dökümanını okuyabilir (login'de rol yüklemek için)
+    //  - Tüm personel listesini aktif personel/yönetim okuyabilir
+    //    (mesajlaşmada öğretmen seçimi vb.)
+    //  - Yalnızca yönetim yazabilir
+    // ============================================================
+    match /personeller/{pid} {
+      allow read:  if isManagement() || (signedIn() && pid == userEmail()) || isStaffActive();
+      allow write: if isManagement();
+    }
+
+    // ============================================================
+    //  VELİLER
+    //  - Veli kendi dökümanını okur/günceller
+    //  - Personel/yönetim hepsini okur, yönetim yazar
+    // ============================================================
+    match /veliler/{vid} {
+      allow read:   if isStaffActive() || (signedIn() && vid == userEmail());
+      allow create, update: if isManagement() || (signedIn() && vid == userEmail());
+      allow delete: if isManagement();
+    }
+
+    // ============================================================
+    //  ÖĞRENCİLER
+    //  - Personel okur/yazar (rol bazlı)
+    //  - TODO(veli erişimi): Veli kendi çocuğunu okuyabilsin diye
+    //    ogrenci dökümanına DÜZ METİN dizi olarak `veliEmails`
+    //    eklenmeli; sonra alttaki satırı aç:
+    //    || (signedIn() && userEmail() in resource.data.veliEmails)
+    // ============================================================
+    match /ogrenciler/{oid} {
+      allow read:  if isStaffActive();
+      allow write: if isContentStaff() || isManagement();
+    }
+
+    // ============================================================
+    //  ÖĞRENCİ GELİŞİM / DEVAMSIZLIK
+    //  - Personel okur/yazar. Veli erişimi için yine veliEmails TODO.
+    // ============================================================
+    match /ogrenciGelisim/{doc} {
+      allow read:  if isStaffActive();
+      allow write: if isContentStaff();
+    }
+    match /devamsizlik/{doc} {
+      allow read:  if isStaffActive();
+      allow write: if isContentStaff();
+    }
+
+    // ============================================================
+    //  SINIF ATAMALARI / MÜFREDAT
+    // ============================================================
+    match /sinifAtamalari/{doc} {
+      allow read:  if isStaffActive();
+      allow write: if isContentStaff() || isManagement();
+    }
+    match /mufredatlar/{doc} {
+      allow read:  if signedIn();              // veliler de program içeriğini görebilir
+      allow write: if isContentStaff() || isManagement();
+    }
+
+    // Rozet tanımları (Faz 2 · 2026-08-10)
+    // Portal ve ZEKY aynı tanımları okur; yalnızca yönetim düzenler.
+    match /rozetTanimlari/{doc} {
+      allow read:  if signedIn();              // veli de rozet adını/ikonunu görür
+      allow write: if isManagement();
+    }
+
+    // ============================================================
+    //  İÇERİK: DUYURULAR / ETKİNLİKLER / GALERİ / YEMEK MENÜSÜ
+    //  - Giriş yapan herkes (veli dahil) okur
+    //  - İçerik personeli yazar
+    // ============================================================
+    match /duyurular/{doc} {
+      allow read:  if signedIn();
+      allow write: if isContentStaff();
+    }
+    match /etkinlikler/{doc} {
+      allow read:  if signedIn();
+      allow write: if isContentStaff();
+    }
+    match /galeri/{doc} {
+      allow read:  if signedIn();
+      allow write: if isContentStaff();
+    }
+    match /yemekMenuleri/{doc} {
+      allow read:  if signedIn();
+      allow write: if isContentStaff() || isManagement();
+    }
+
+    // ============================================================
+    //  MESAJLAR
+    //  - Yalnızca katılımcılar okur/yazar
+    //  - `katilimcilar` alanı, sohbete dahil e-postaların düz metin
+    //    dizisi olmalıdır.
+    // ============================================================
+    match /mesajlar/{mid} {
+      allow read:   if isManagement()
+                    || (signedIn() && userEmail() in resource.data.katilimcilar);
+      allow create: if signedIn() && userEmail() in request.resource.data.katilimcilar;
+      allow update: if signedIn() && userEmail() in resource.data.katilimcilar;
+      allow delete: if isManagement();
+
+      // Alt koleksiyon (sohbet mesajları) varsa:
+      match /{altYol=**} {
+        allow read, write: if isManagement()
+          || (signedIn() && userEmail() in get(/databases/$(database)/documents/mesajlar/$(mid)).data.katilimcilar);
+      }
+    }
+
+    // ============================================================
+    //  KREDİ KARTI ÖDEME TALEPLERİ
+    //  - Veli kendi talebini oluşturur ve okur
+    //  - Finans/yönetim hepsini okur ve günceller
+    //  - `veliEposta` alanı talebi oluşturanın e-postası olmalı
+    // ============================================================
+    match /krediKartiTalepleri/{tid} {
+      allow create: if signedIn()
+                    && request.resource.data.veliEposta.lower() == userEmail();
+      allow read:   if isFinance()
+                    || (signedIn() && resource.data.veliEposta.lower() == userEmail());
+      allow update, delete: if isFinance();
+    }
+
+    // ============================================================
+    //  GİDERLER (FİNANS) — yalnızca finans/yönetim
+    // ============================================================
+    match /giderler/{doc} {
+      allow read, write: if isFinance();
+    }
+
+    // ============================================================
+    //  BAŞVURULAR / YENİ KAYIT / KAYIT YENİLEME
+    //  ⚠️ Bu formlar başka sitelerden (yenikayit, kayityenileme)
+    //  giriş YAPMADAN da gönderiliyor olabilir. O yüzden create
+    //  herkese açık bırakıldı. Spam riski için Firebase App Check
+    //  veya bir Cloud Function doğrulaması ÖNERİLİR.
+    //  Okuma/güncelleme yalnızca yönetimde.
+    // ============================================================
+    match /basvurular/{doc} {
+      allow create: if true;                 // herkese açık form
+      allow read, update, delete: if isManagement();
+    }
+    match /yenikayit/{doc} {
+      allow create: if true;
+      allow read, update, delete: if isManagement();
+    }
+    match /kayitYenileme/{doc} {
+      allow create: if true;
+      allow read, update, delete: if isManagement();
+    }
+
+    // ============================================================
+    //  GÜVENLİ RANDEVU AKIŞI
+    //
+    //  randevuSlotlari: kişisel talep; yalnız veli sahibi, hedef personel
+    //  ve yönetim okuyabilir. Başka bir veli bu belgeyi okuyamaz.
+    //
+    //  randevuDoluluk: kişisel bilgi içermez; yalnız hedef kodu/tarih/saat
+    //  ve dolu-boş durumu içerir. Veli uygun saati buradan hesaplar.
+    //
+    //  randevuYetkileri: hedef kodu -> personel e-postası özel eşlemesi.
+    //  Veli ve personel doğrudan okuyamaz; yalnız kurallar doğrulamada kullanır.
+    // ============================================================
+    match /randevuYetkileri/{kod} {
+      allow read: if false;
+      allow create, update, delete: if isManagement();
+    }
+
+    match /randevuSlotlari/{rid} {
+      allow read: if isManagement()
+                  || appointmentOwner(resource.data)
+                  || (isStaffActive() && appointmentTarget(resource.data));
+
+      allow create: if (
+          appointmentOwner(request.resource.data)
+          && request.resource.data.durum == 'talep'
+          && request.resource.data.hedefKodu is string
+          && exists(/databases/$(database)/documents/randevuYetkileri/$(request.resource.data.hedefKodu))
+          && get(/databases/$(database)/documents/randevuYetkileri/$(request.resource.data.hedefKodu)).data.aktif == true
+        ) || (
+          isStaffActive()
+          && appointmentTarget(request.resource.data)
+          && request.resource.data.durum == 'alternatif_teklif'
+        ) || isManagement();
+
+      allow update: if isManagement()
+                    || appointmentParentUpdate()
+                    || appointmentStaffUpdate();
+
+      allow delete: if isManagement();
+    }
+
+    match /randevuDoluluk/{rid} {
+      allow read: if signedIn();
+
+      allow create, update: if request.resource.data.keys().hasOnly([
+          'randevuId', 'hedefKodu', 'tarih', 'saat', 'baslangicSaat',
+          'bitisSaat', 'durum', 'aktif', 'guncellendi'
+        ])
+        && request.resource.data.randevuId == rid
+        && getAfter(/databases/$(database)/documents/randevuSlotlari/$(rid)).data.hedefKodu == request.resource.data.hedefKodu
+        && getAfter(/databases/$(database)/documents/randevuSlotlari/$(rid)).data.tarih == request.resource.data.tarih
+        && getAfter(/databases/$(database)/documents/randevuSlotlari/$(rid)).data.saat == request.resource.data.saat
+        && getAfter(/databases/$(database)/documents/randevuSlotlari/$(rid)).data.baslangicSaat == request.resource.data.baslangicSaat
+        && getAfter(/databases/$(database)/documents/randevuSlotlari/$(rid)).data.bitisSaat == request.resource.data.bitisSaat
+        && getAfter(/databases/$(database)/documents/randevuSlotlari/$(rid)).data.durum == request.resource.data.durum
+        && (
+          (
+            request.resource.data.aktif == true
+            && appointmentActive(request.resource.data.durum)
+          )
+          || (
+            request.resource.data.aktif == false
+            && !appointmentActive(request.resource.data.durum)
+          )
+        )
+        && (
+          isManagement()
+          || appointmentOwner(getAfter(/databases/$(database)/documents/randevuSlotlari/$(rid)).data)
+          || (
+            isStaffActive()
+            && appointmentTarget(getAfter(/databases/$(database)/documents/randevuSlotlari/$(rid)).data)
+          )
+        );
+
+      allow delete: if isManagement();
+    }
+
+    // Yalnız randevu ekranında gösterilecek açık katalog ve saat ayarları.
+    // Bu belgede e-posta, telefon veya personel özlük alanı tutulamaz.
+    match /ayarlar/randevu {
+      allow read: if signedIn();
+      allow write: if isManagement()
+                   && request.resource.data.keys().hasOnly([
+                     'onceden', 'tatiller', 'kategoriler', 'kisiler',
+                     'sure', 'ara', 'gunler'
+                   ]);
+    }
+
+    // ============================================================
+    //  AYAR / ŞABLON / SİSTEM
+    // ============================================================
+    match /config/{doc} {
+      allow read:  if signedIn();
+      allow write: if isManagement();
+    }
+    match /sozlesme_sablonu/{doc} {
+      allow read:  if signedIn();
+      allow write: if isManagement();
+    }
+    match /mailLoglari/{doc} {
+      allow read:   if isManagement();
+      allow create: if signedIn();            // uygulama mail gönderince log atar
+      allow update, delete: if isManagement();
+    }
+    match /users/{uid} {
+      allow read, write: if signedIn() && uid == userEmail();
+      allow read: if isManagement();
+    }
+
+    // ============================================================
+    //  VARSAYILAN: REDDET
+    //  Yukarıda eşleşmeyen her şey kapalı. Yeni koleksiyon
+    //  eklediğinde buraya ALTINA kuralını yazmayı unutma.
+    // ============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
