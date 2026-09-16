@@ -5,32 +5,158 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <meta name="referrer" content="no-referrer">
-  <title>ZEKY · Randevu Talepleri</title>
+  <title>ZEKY · Randevu Yönetimi</title>
   <style>
-    :root{--koyu:#2d5e3e;--zemin:#f5f7f4;--kart:#fff;--metin:#29332c;--soluk:#7c8a82;--cizgi:#e5ece7;--sari:#fff0c2;--mavi:#e1eef8;--kirmizi:#fbe9e7}
-    *{box-sizing:border-box}body{max-width:430px;margin:auto;padding:18px 16px 80px;background:var(--zemin);color:var(--metin);font:14px system-ui,sans-serif}h1{color:var(--koyu);font-size:24px}.portal-geri{display:inline-block;margin-bottom:8px;color:var(--koyu);font-weight:700;text-decoration:none}.baslik{display:flex;align-items:center;gap:8px}.sayac{min-width:24px;text-align:center;padding:4px 7px;border-radius:20px;background:var(--sari)}.bolum{margin:20px 0 9px;color:var(--soluk);font-size:12px;font-weight:800;text-transform:uppercase}.filtreler,.islemler{display:flex;gap:8px;flex-wrap:wrap}.secim,.islemler button,.form button{border:1px solid var(--cizgi);border-radius:12px;padding:10px 12px;background:#fff;font-weight:700}.secim.aktif,.birincil,.form button{background:var(--koyu)!important;color:#fff}.tehlike{background:var(--kirmizi)!important}.ikincil-buton{background:var(--mavi)!important}.kart,.form{background:#fff;border-radius:16px;padding:14px;margin:10px 0}.kart-ust{display:flex;justify-content:space-between;gap:8px}.rozet{font-size:11px;padding:5px 8px;border-radius:9px;background:var(--sari)}.rozet.dolu{background:#e7f4e9}.rozet.alternatif_teklif,.teklif{background:var(--mavi)}.rozet.reddedildi,.rozet.teklif_reddedildi,.rozet.iptal{background:var(--kirmizi)}.ad{font-weight:800;margin-top:8px}.ikincil,.not,.bos{color:var(--soluk)}.not,.teklif{padding:9px;border-radius:10px}.islemler{margin-top:10px}.form label{display:block;margin:9px 0 5px;font-weight:700}.form select,.form input,.form textarea{width:100%;padding:11px;border:1px solid var(--cizgi);border-radius:11px;background:#fff}.form textarea{min-height:70px}.durum{padding:12px;border-radius:12px;background:var(--sari);margin:12px 0}.durum.hata{background:var(--kirmizi)}[hidden]{display:none!important}
+    :root{
+      --yesil:#2d5e3e;--yesil-koyu:#21472f;--yesil-acik:#e8f2eb;
+      --zemin:#f5f7f4;--kart:#fff;--metin:#243129;--soluk:#718078;
+      --cizgi:#dfe8e1;--turuncu:#fff7ed;--turuncu-cizgi:#fed7aa;
+      --sari:#fef3c7;--mavi:#e9f2fb;--kirmizi:#fbe9e7;--golge:0 12px 32px rgba(33,71,47,.08)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--zemin);color:var(--metin);font:14px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    .sayfa{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:18px 0 72px}
+    .ust-cubuk{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+    .geri,.metin-link{color:var(--yesil);font-weight:800;text-decoration:none}
+    .ust-linkler{display:flex;gap:18px;align-items:center}
+    .hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding:26px 28px;border-radius:22px;background:linear-gradient(135deg,var(--yesil-koyu),#477557);color:#fff;box-shadow:var(--golge)}
+    .etiket{font-size:11px;font-weight:900;letter-spacing:.12em;opacity:.8}
+    h1{font-size:clamp(25px,4vw,36px);line-height:1.1;margin:7px 0 8px}
+    .hero p{max-width:680px;margin:0;opacity:.88}
+    .hero-aksiyon{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+    .buton{border:1px solid var(--cizgi);border-radius:11px;padding:10px 14px;background:#fff;color:var(--metin);font-weight:800;white-space:nowrap}
+    .buton:hover{filter:brightness(.98)}
+    .birincil{background:var(--yesil);border-color:var(--yesil);color:#fff}
+    .hero .birincil{background:#fff;border-color:#fff;color:var(--yesil-koyu)}
+    .hero .ikincil{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.38);color:#fff}
+    .tehlike{background:#fff5f4;border-color:#fecaca;color:#b42318}
+    .mavi{background:var(--mavi);border-color:#c6ddef;color:#24577a}
+    .durum-mesaji{padding:13px 15px;border:1px solid #f3d485;border-radius:13px;background:#fff8dc;margin:14px 0;font-weight:650}
+    .durum-mesaji.hata{border-color:#efbbb5;background:var(--kirmizi);color:#8d241a}
+    .ozet{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+    .ozet-kart{border:1px solid var(--cizgi);border-radius:16px;background:#fff;padding:16px;box-shadow:0 5px 18px rgba(33,71,47,.04);text-align:left}
+    .ozet-kart span{display:block;color:var(--soluk);font-size:12px;font-weight:750}
+    .ozet-kart strong{display:block;margin-top:4px;font-size:25px;color:var(--yesil-koyu)}
+    .ozet-kart.aktif{outline:2px solid var(--yesil);background:var(--yesil-acik)}
+    .panel{background:#fff;border:1px solid var(--cizgi);border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 6px 22px rgba(33,71,47,.04)}
+    .panel-baslik{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+    h2{margin:0;font-size:18px;color:var(--yesil-koyu)}
+    .kapsam{padding:6px 10px;border-radius:20px;background:var(--yesil-acik);color:var(--yesil-koyu);font-size:11px;font-weight:850}
+    .filtreler{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr 1.4fr auto;gap:9px}
+    .filtreler select,.filtreler input,.form select,.form input,.form textarea{width:100%;border:1px solid var(--cizgi);border-radius:11px;background:#fff;padding:10px 11px;color:var(--metin)}
+    .bekleyen-kutu{background:var(--turuncu);border:1px solid var(--turuncu-cizgi);border-radius:17px;padding:15px 17px;margin:15px 0}
+    .bekleyen-baslik{display:flex;align-items:center;gap:8px;color:#8a3d0c;font-weight:850;margin-bottom:10px}
+    .randevu-tarih-grubu{border:1px solid var(--cizgi);border-radius:17px;background:#fff;overflow:hidden;margin:13px 0;box-shadow:0 5px 18px rgba(33,71,47,.04)}
+    .randevu-tarih-baslik{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 15px;background:#edf5ef;color:var(--yesil-koyu);font-weight:850}
+    .randevu-tarih-baslik .sayac{font-size:11px;color:var(--soluk)}
+    .randevu-slot{display:grid;grid-template-columns:116px minmax(0,1fr) auto;gap:15px;align-items:center;padding:14px 15px;border-top:1px solid #edf1ee}
+    .randevu-slot:first-of-type{border-top:0}
+    .randevu-slot.gecmis{opacity:.72}
+    .randevu-saat{font-size:15px;font-weight:900;color:var(--yesil-koyu)}
+    .randevu-sure{display:block;color:var(--soluk);font-size:11px;font-weight:600;margin-top:2px}
+    .randevu-ust{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .randevu-ad{font-weight:850;font-size:14px}
+    .randevu-alt{color:var(--soluk);font-size:12.5px;margin-top:4px}
+    .not{margin:7px 0 0;padding:8px 10px;border-radius:9px;background:#f7f9f7;color:#526058;font-size:12.5px}
+    .teklif-not{background:var(--mavi);color:#24577a}
+    .rozet{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:var(--sari);font-size:10.5px;font-weight:850}
+    .rozet.dolu{background:#e4f3e8;color:#23633a}.rozet.alternatif_teklif{background:var(--mavi);color:#24577a}.rozet.reddedildi,.rozet.teklif_reddedildi,.rozet.iptal{background:var(--kirmizi);color:#9a3329}
+    .tip-rozet{background:#eef2f0;color:#526058}
+    .islemler{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;max-width:315px}
+    .islemler .buton{padding:8px 10px;font-size:12px}
+    .bos{padding:36px 22px;text-align:center;border:1px dashed #cfd9d2;border-radius:16px;background:#fff;color:var(--soluk)}
+    dialog{width:min(540px,calc(100% - 28px));border:0;border-radius:20px;padding:0;box-shadow:0 28px 80px rgba(0,0,0,.25)}
+    dialog::backdrop{background:rgba(15,28,20,.55);backdrop-filter:blur(2px)}
+    .modal-baslik{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--cizgi)}
+    .kapat{border:0;background:transparent;color:var(--soluk);font-size:25px;line-height:1}
+    .form{padding:7px 20px 20px}.form label{display:block;margin:12px 0 6px;font-weight:800}.form textarea{min-height:86px;resize:vertical}.form-alt{display:flex;justify-content:flex-end;gap:9px;margin-top:17px}
+    [hidden]{display:none!important}
+    @media(max-width:850px){.hero{align-items:flex-start;flex-direction:column}.hero-aksiyon{justify-content:flex-start}.filtreler{grid-template-columns:repeat(2,1fr)}.ozet{grid-template-columns:repeat(2,1fr)}.randevu-slot{grid-template-columns:90px minmax(0,1fr)}.islemler{grid-column:1/-1;justify-content:flex-start;max-width:none}}
+    @media(max-width:520px){.sayfa{width:min(100% - 22px,1120px);padding-top:11px}.ust-linkler{gap:10px}.hero{padding:21px 19px}.hero-aksiyon,.hero-aksiyon .buton{width:100%}.filtreler{grid-template-columns:1fr}.ozet{gap:8px}.ozet-kart{padding:13px}.randevu-tarih-baslik{align-items:flex-start;flex-direction:column}.randevu-slot{grid-template-columns:1fr;gap:8px}.islemler{grid-column:auto}.buton{min-height:42px}}
   </style>
 </head>
 <body>
-  <a class="portal-geri" href="./index.html">← Portala dön</a>
-  <a class="portal-geri" href="./randevu-ayarlar.html" style="float:right;">Uygunlukları yönet</a>
-  <header class="baslik"><h1>Randevu Talepleri</h1><span id="bekleyenRozet" class="sayac" hidden></span></header>
-  <div id="durumMesaji" class="durum" role="status" hidden></div>
-  <main id="uygulama" hidden>
+  <div class="sayfa">
+    <nav class="ust-cubuk" aria-label="Randevu gezinme">
+      <a class="geri" href="./index.html">← Portala dön</a>
+      <div class="ust-linkler"><a class="metin-link" href="./randevu-ayarlar.html">Uygunlukları yönet</a></div>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <div class="etiket">ZEKY · GÜVENLİ RANDEVU YÖNETİMİ</div>
+        <h1>Randevular</h1>
+        <p>Veli taleplerini eski, tarih odaklı düzende takip edin; onay, ret, farklı saat ve iptal işlemlerini güvenli servis üzerinden yönetin.</p>
+      </div>
+      <div class="hero-aksiyon">
+        <button id="yeniRandevuAc" class="buton birincil" type="button">+ Veliye randevu öner</button>
+        <a class="buton ikincil" href="./randevu-ayarlar.html">Uygunlukları yönet</a>
+      </div>
+    </header>
+
+    <div id="durumMesaji" class="durum-mesaji" role="status" hidden></div>
+
+    <main id="uygulama" hidden>
+      <section class="ozet" aria-label="Randevu özeti">
+        <button class="ozet-kart aktif" type="button" data-ozet-filtre="pending"><span>Onay bekleyen</span><strong id="ozetBekleyen">0</strong></button>
+        <button class="ozet-kart" type="button" data-ozet-filtre="approved"><span>Onaylanan</span><strong id="ozetOnaylanan">0</strong></button>
+        <button class="ozet-kart" type="button" data-ozet-filtre="proposal"><span>Veli yanıtı beklenen</span><strong id="ozetTeklif">0</strong></button>
+        <button class="ozet-kart" type="button" data-ozet-filtre="all"><span>Tüm kayıtlar</span><strong id="ozetTum">0</strong></button>
+      </section>
+
+      <section class="panel">
+        <div class="panel-baslik">
+          <h2>Randevu listesi</h2>
+          <span id="kapsamRozeti" class="kapsam">Kişisel randevular</span>
+        </div>
+        <div class="filtreler">
+          <select id="durumFiltre" aria-label="Duruma göre filtrele">
+            <option value="pending">Onay bekleyen</option>
+            <option value="approved">Onaylanan</option>
+            <option value="proposal">Veli yanıtı beklenen</option>
+            <option value="closed">Ret / İptal</option>
+            <option value="all">Tüm durumlar</option>
+          </select>
+          <select id="hedefFiltre" aria-label="Personele göre filtrele"><option value="">Tüm personel</option></select>
+          <select id="tipFiltre" aria-label="Randevu türüne göre filtrele">
+            <option value="">Tüm görüşmeler</option>
+            <option value="ogretmen_veli">Öğretmen–Veli</option>
+            <option value="pdr">PDR / Rehberlik</option>
+            <option value="idare">Müdür / İdare</option>
+          </select>
+          <select id="zamanFiltre" aria-label="Zamana göre filtrele">
+            <option value="future">Bugün ve sonrası</option>
+            <option value="past">Geçmiş</option>
+            <option value="all">Tüm tarihler</option>
+          </select>
+          <input id="aramaFiltre" type="search" maxlength="100" placeholder="Öğrenci, veli veya personel ara">
+          <button id="yenileBtn" class="buton" type="button">Yenile</button>
+        </div>
+      </section>
+
+      <section id="bekleyenKutusu"></section>
+      <section id="randevuListesi" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <dialog id="yeniRandevuModal">
+    <div class="modal-baslik"><h2>Veliye randevu öner</h2><button id="yeniRandevuKapat" class="kapat" type="button" aria-label="Kapat">×</button></div>
     <form id="yeniForm" class="form">
-      <h2>Veliye randevu öner</h2>
       <label for="ogrenciSec">Öğrenci</label>
-      <select id="ogrenciSec"></select>
+      <select id="ogrenciSec" required></select>
       <label for="yeniZaman">Tarih ve saat</label>
       <input id="yeniZaman" type="datetime-local" step="1800" required>
       <label for="yeniNot">Görüşme konusu</label>
-      <textarea id="yeniNot" maxlength="1000"></textarea>
-      <button id="yeniRandevu" type="submit">Veli onayına gönder</button>
-      <p class="ikincil">Personel önerileri iş saatleriyle sınırlanmaz; gelecek bir yarım saat seçilir.</p>
+      <textarea id="yeniNot" maxlength="1000" placeholder="Veliye iletilecek kısa açıklama"></textarea>
+      <div class="form-alt">
+        <button id="modalVazgec" class="buton" type="button">Vazgeç</button>
+        <button id="yeniRandevu" class="buton birincil" type="submit">Veli onayına gönder</button>
+      </div>
     </form>
-    <div id="filtreler" class="filtreler"></div>
-    <section id="randevuListesi"></section>
-  </main>
+  </dialog>
+
   <script type="module" src="./js/zeky-randevu-staff-page.js"></script>
 </body>
 </html>

@@ -7,13 +7,14 @@
   <meta name="referrer" content="no-referrer">
   <title>ZEKY · Randevu Uygunlukları</title>
   <style>
-    :root{--koyu:#2d5e3e;--zemin:#f5f7f4;--kart:#fff;--metin:#29332c;--soluk:#748078;--cizgi:#dfe8e1;--uyari:#fff0c2;--hata:#fbe9e7}
-    *{box-sizing:border-box}body{max-width:620px;margin:auto;padding:18px 16px 80px;background:var(--zemin);color:var(--metin);font:14px system-ui,sans-serif}h1{font-size:24px;color:var(--koyu);margin:12px 0 18px}.portal-geri{color:var(--koyu);font-weight:700;text-decoration:none}.kart{background:var(--kart);border-radius:16px;padding:16px;margin:12px 0}.form-satir{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}.alan label{display:block;margin:0 0 6px;font-weight:700}.alan select,.alan input,button{width:100%;padding:11px;border:1px solid var(--cizgi);border-radius:11px;background:#fff;font:inherit}button{width:auto;font-weight:800;cursor:pointer}.birincil{background:var(--koyu);color:#fff}.tehlike{color:#9b1c1c;background:var(--hata)}.satir{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--cizgi);padding:12px 0}.satir:first-child{border-top:0}.ikincil{color:var(--soluk)}.durum{padding:12px;border-radius:12px;background:var(--uyari);margin:12px 0}.durum.hata{background:var(--hata)}.grup-kutu{display:flex;flex-wrap:wrap;gap:8px}.secenek{display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border:1px solid var(--cizgi);border-radius:20px;background:#fff;cursor:pointer;font-weight:600;user-select:none}.secenek input{width:auto;padding:0;margin:0}.secenek.secili{background:var(--koyu);color:#fff;border-color:var(--koyu)}[hidden]{display:none!important}@media(max-width:560px){.form-satir{grid-template-columns:1fr}.form-satir button{width:100%}}
+    :root{--koyu:#2d5e3e;--koyu2:#21472f;--zemin:#f5f7f4;--kart:#fff;--metin:#29332c;--soluk:#748078;--cizgi:#dfe8e1;--uyari:#fff0c2;--hata:#fbe9e7;--acik:#e8f2eb;--golge:0 12px 32px rgba(33,71,47,.08)}
+    *{box-sizing:border-box}body{margin:0;background:var(--zemin);color:var(--metin);font:14px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.sayfa{width:min(980px,calc(100% - 32px));margin:auto;padding:18px 0 80px}.ust-cubuk{display:flex;justify-content:space-between;gap:16px;margin-bottom:14px}.portal-geri{color:var(--koyu);font-weight:800;text-decoration:none}.hero{padding:25px 28px;border-radius:22px;background:linear-gradient(135deg,var(--koyu2),#477557);color:#fff;box-shadow:var(--golge)}.hero h1{font-size:clamp(25px,4vw,34px);margin:4px 0 7px}.hero p{margin:0;opacity:.88}.etiket{font-size:11px;font-weight:900;letter-spacing:.12em;opacity:.8}.kart{background:var(--kart);border:1px solid var(--cizgi);border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 6px 22px rgba(33,71,47,.04)}.kart h2{color:var(--koyu2);margin:0 0 5px}.form-satir{display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:end}.alan{margin-top:13px}.alan label{display:block;margin:0 0 6px;font-weight:800}.alan select,.alan input,button{width:100%;padding:11px;border:1px solid var(--cizgi);border-radius:11px;background:#fff;font:inherit}button{width:auto;font-weight:800;cursor:pointer}.birincil{background:var(--koyu);border-color:var(--koyu);color:#fff}.tehlike{color:#9b1c1c;background:#fff5f4;border-color:#fecaca}.tarih-grubu{border:1px solid var(--cizgi);border-radius:14px;overflow:hidden;margin:11px 0}.tarih-baslik{display:flex;justify-content:space-between;gap:10px;padding:10px 13px;background:var(--acik);color:var(--koyu2);font-weight:850}.satir{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--cizgi);padding:12px 13px}.satir:first-child{border-top:0}.ikincil{color:var(--soluk)}.durum{padding:12px 14px;border:1px solid #f3d485;border-radius:12px;background:var(--uyari);margin:14px 0;font-weight:650}.durum.hata{background:var(--hata);border-color:#efbbb5}.grup-kutu{display:flex;flex-wrap:wrap;gap:8px}.secenek{display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border:1px solid var(--cizgi);border-radius:20px;background:#fff;cursor:pointer;font-weight:650;user-select:none}.secenek input{width:auto;padding:0;margin:0}.secenek.secili{background:var(--koyu);color:#fff;border-color:var(--koyu)}[hidden]{display:none!important}@media(max-width:650px){.sayfa{width:min(100% - 22px,980px);padding-top:11px}.hero{padding:21px 19px}.form-satir{grid-template-columns:1fr}.form-satir button{width:100%}.tarih-baslik{flex-direction:column}}
   </style>
 </head>
 <body>
-  <a class="portal-geri" href="./index.html">← Portala dön</a>
-  <h1>Randevu Uygunlukları</h1>
+  <div class="sayfa">
+  <nav class="ust-cubuk"><a class="portal-geri" href="./index.html">← Portala dön</a><a class="portal-geri" href="./randevu-talepleri.html">Randevulara dön</a></nav>
+  <header class="hero"><div class="etiket">ZEKY · GÜVENLİ YÖNETİM</div><h1>Randevu Uygunlukları</h1><p>Personelin tekli veya haftalık görüşme saatlerini güvenli biçimde planlayın.</p></header>
   <div id="durumMesaji" class="durum" role="status" hidden></div>
   <main id="uygulama" hidden>
     <form id="uygunlukForm" class="kart">
@@ -53,6 +54,7 @@
     </form>
     <section class="kart"><h2>Aktif uygunluklar</h2><div id="uygunlukListesi"></div></section>
   </main>
+  </div>
   <script type="module">
     import {
       callableCutoverAcikMi, guvenliId, istanbulMillis,
@@ -104,12 +106,34 @@
         const bos = document.createElement('p'); bos.className = 'ikincil';
         bos.textContent = 'Bu personel için aktif uygunluk bulunmuyor.'; alan.append(bos); return;
       }
+      const tarihAnahtari = millis => new Intl.DateTimeFormat('en-CA', {
+        timeZone:'Europe/Istanbul', year:'numeric', month:'2-digit', day:'2-digit'
+      }).format(new Date(Number(millis)));
+      const tarihYazi = millis => new Intl.DateTimeFormat('tr-TR', {
+        timeZone:'Europe/Istanbul', day:'numeric', month:'long', year:'numeric', weekday:'long'
+      }).format(new Date(Number(millis)));
+      const gruplar = new Map();
       for (const saat of durum.saatler) {
-        const satir = document.createElement('div'); satir.className = 'satir';
-        const yazi = document.createElement('strong'); yazi.textContent = zamanYazi(saat.baslangicMillis);
-        const sil = document.createElement('button'); sil.type = 'button'; sil.className = 'tehlike';
-        sil.textContent = 'Sil'; sil.addEventListener('click', () => uygunlukSil(saat));
-        satir.append(yazi, sil); alan.append(satir);
+        const anahtar = tarihAnahtari(saat.baslangicMillis);
+        if (!gruplar.has(anahtar)) gruplar.set(anahtar, []);
+        gruplar.get(anahtar).push(saat);
+      }
+      for (const grupSaatleri of gruplar.values()) {
+        const grup = document.createElement('section'); grup.className = 'tarih-grubu';
+        const baslik = document.createElement('div'); baslik.className = 'tarih-baslik';
+        const tarih = document.createElement('span');
+        tarih.textContent = '📅 ' + tarihYazi(grupSaatleri[0].baslangicMillis);
+        const sayac = document.createElement('span'); sayac.className = 'ikincil';
+        sayac.textContent = grupSaatleri.length + ' uygun saat';
+        baslik.append(tarih, sayac); grup.append(baslik);
+        for (const saat of grupSaatleri) {
+          const satir = document.createElement('div'); satir.className = 'satir';
+          const yazi = document.createElement('strong'); yazi.textContent = zamanYazi(saat.baslangicMillis);
+          const sil = document.createElement('button'); sil.type = 'button'; sil.className = 'tehlike';
+          sil.textContent = 'Sil'; sil.addEventListener('click', () => uygunlukSil(saat));
+          satir.append(yazi, sil); grup.append(satir);
+        }
+        alan.append(grup);
       }
     }
     async function saatleriYukle() {
@@ -222,7 +246,7 @@
       if (!kisi) { alan.textContent = 'Önce kişi seçin.'; return; }
       if (!slotlar.length) { alan.textContent = 'Seçilen gün ve saatlerde uygun dilim yok.'; return; }
       alan.textContent = kisi + ' kişi × ' + slotlar.length + ' saat = ' +
-        toplam + ' uygunluk' + (toplam > 180 ? '  ⚠ tek seferde en fazla 180' : '');
+        toplam + ' uygunluk' + (toplam > 100 ? '  ⚠ tek seferde en fazla 100' : '');
     }
 
     async function topluEkle(event) {
@@ -233,8 +257,8 @@
       if (!kodlar.length || !slotlar.length) {
         mesaj('Kişi, gün ve saat aralığı seçin.', true); return;
       }
-      if (kodlar.length * slotlar.length > 180) {
-        mesaj('Tek seferde en fazla 180 uygunluk eklenebilir. Hafta sayısını azaltın.', true);
+      if (kodlar.length * slotlar.length > 100) {
+        mesaj('Tek seferde en fazla 100 uygunluk eklenebilir. Hafta sayısını veya kişi sayısını azaltın.', true);
         return;
       }
       const payload = kodlar.join(',') + '|' + slotlar.join(',');

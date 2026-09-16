@@ -48,6 +48,8 @@ export function randevuCallableAdapter(functions) {
 
     personelKutusu: () => query({ op: 'inbox' }),
 
+    yonetimKutusu: () => query({ op: 'management_inbox' }),
+
     personelBaglami: () => query({ op: 'staff_context' }).then(x => {
       if (!['ogretmen_veli', 'pdr', 'idare'].includes(x.tip)) {
         throw new Error('Personel randevu bağlamı geçersiz.');
