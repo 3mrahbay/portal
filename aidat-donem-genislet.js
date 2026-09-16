@@ -27,15 +27,17 @@
     if (typeof window.caGo === 'function' && !window.caGo.__zekyRandevuV3) {
       const oncekiCaGo = window.caGo;
       const yeniCaGo = function(ekran) {
-        if (ekran === 'randevular') return window.zekyVeliRandevuAc();
+        // 'randevular' ekrani portalin kendi listesinde kalir;
+        // talep olusturma popup uzerinden callable'a gider.
         return oncekiCaGo.apply(this, arguments);
       };
       yeniCaGo.__zekyRandevuV3 = true;
       window.caGo = yeniCaGo;
     }
 
-    window.caRandevuTalepAc = window.zekyVeliRandevuAc;
-    window.caRandevuTalepGonder = window.zekyVeliRandevuAc;
+    // caRandevuTalepAc / caRandevuTalepGonder artik
+    // js/zeky-randevu-modal-koprusu.js tarafindan callable backend'e
+    // baglaniyor; veli ayri sayfaya gonderilmiyor, eski popup aciliyor.
     window.caRandevuIptal = window.zekyVeliRandevuAc;
     window.randevuSlotModalAc = window.zekyRandevuAyarlariAc;
     window.randevuTopluModalAc = window.zekyRandevuAyarlariAc;
