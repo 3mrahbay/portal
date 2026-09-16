@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>ZEKY · Güvenli Randevu Talepleri</title>
+</head>
+<body>
+  <p>Güvenli randevu kutusu açılıyor…</p>
+  <p><a href="./index.html">← Portala dön</a></p>
+  <script type="module">
+    const destination = new URL('./randevu-talepleri-callable.html', location.href);
+    destination.search = location.search;
+    location.replace(destination.href);
+  </script>
+</body>
+</html>
