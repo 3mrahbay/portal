@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>ZEKY · Randevu</title>
+  <style>
+    :root{--koyu:#2d5e3e;--yesil:#4a7c59;--zemin:#fafaf7;--kart:#fff;--metin:#2d2d2d;--soluk:#7c8a82;--cizgi:#e5ece7;--sari:#fff0c2;--mavi:#e2eff8;--kirmizi:#fbe9e7}
+    *{box-sizing:border-box}body{max-width:430px;margin:auto;padding:18px 18px 80px;background:var(--zemin);color:var(--metin);font:14px system-ui,sans-serif}h1{color:var(--koyu);font-size:24px}.portal-geri{color:var(--koyu);font-weight:700;text-decoration:none}.bolum{margin:20px 0 9px;color:var(--soluk);font-weight:800;text-transform:uppercase;font-size:12px}.secim{width:100%;padding:12px;border:1px solid var(--cizgi);border-radius:12px;background:#fff}.satir,.islemler,.slot-butonlar{display:flex;gap:8px;flex-wrap:wrap}.secim,.hedef,.saat,.islemler button{padding:10px 12px;border:1px solid var(--cizgi);border-radius:12px;background:#fff;font-weight:700}.secim.aktif,.hedef.aktif,.birincil{background:var(--koyu)!important;color:#fff}.kart,.slot-gun{background:var(--kart);border-radius:16px;padding:14px;margin-bottom:10px}.kart-ust{display:flex;justify-content:space-between;gap:8px}.rozet{font-size:11px;padding:5px 8px;border-radius:9px;background:var(--sari)}.rozet.dolu{background:#e7f4e9}.rozet.alternatif_teklif,.teklif{background:var(--mavi)}.rozet.reddedildi,.rozet.teklif_reddedildi,.rozet.iptal,.tehlike{background:var(--kirmizi)!important}.ikincil,.not,.bos{color:var(--soluk)}.not,.teklif{padding:9px;border-radius:10px}.islemler{margin-top:10px}.durum{padding:12px;border-radius:12px;background:var(--sari);margin:12px 0}.durum.hata{background:var(--kirmizi)}[hidden]{display:none!important}
+  </style>
+</head>
+<body>
+  <header><a class="portal-geri" href="./index.html">← Portala dön</a><h1>Randevu Al</h1></header>
+  <div id="durumMesaji" class="durum" role="status" hidden></div>
+  <main id="talepAlani" hidden>
+    <div class="bolum">Çocuk</div>
+    <select id="cocukSec" class="secim" aria-label="Çocuk seçimi"></select>
+    <div class="bolum">Randevularım</div>
+    <section id="randevuListesi"></section>
+    <div class="bolum">Kimden randevu almak istiyorsunuz?</div>
+    <div id="tipler" class="satir"></div>
+    <div class="bolum">Görüşülecek kişi</div>
+    <div id="hedefler" class="satir"></div>
+    <div class="bolum">Uygun saatler</div>
+    <div id="slotlar"></div>
+  </main>
+  <script type="module" src="./js/zeky-randevu-parent-page.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>ZEKY · Randevu Talepleri</title>
+  <style>
+    :root{--koyu:#2d5e3e;--zemin:#f5f7f4;--kart:#fff;--metin:#29332c;--soluk:#7c8a82;--cizgi:#e5ece7;--sari:#fff0c2;--mavi:#e1eef8;--kirmizi:#fbe9e7}
+    *{box-sizing:border-box}body{max-width:430px;margin:auto;padding:18px 16px 80px;background:var(--zemin);color:var(--metin);font:14px system-ui,sans-serif}h1{color:var(--koyu);font-size:24px}.portal-geri{display:inline-block;margin-bottom:8px;color:var(--koyu);font-weight:700;text-decoration:none}.baslik{display:flex;align-items:center;gap:8px}.sayac{min-width:24px;text-align:center;padding:4px 7px;border-radius:20px;background:var(--sari)}.bolum{margin:20px 0 9px;color:var(--soluk);font-size:12px;font-weight:800;text-transform:uppercase}.filtreler,.islemler{display:flex;gap:8px;flex-wrap:wrap}.secim,.islemler button,.form button{border:1px solid var(--cizgi);border-radius:12px;padding:10px 12px;background:#fff;font-weight:700}.secim.aktif,.birincil,.form button{background:var(--koyu)!important;color:#fff}.tehlike{background:var(--kirmizi)!important}.ikincil-buton{background:var(--mavi)!important}.kart,.form{background:#fff;border-radius:16px;padding:14px;margin:10px 0}.kart-ust{display:flex;justify-content:space-between;gap:8px}.rozet{font-size:11px;padding:5px 8px;border-radius:9px;background:var(--sari)}.rozet.dolu{background:#e7f4e9}.rozet.alternatif_teklif,.teklif{background:var(--mavi)}.rozet.reddedildi,.rozet.teklif_reddedildi,.rozet.iptal{background:var(--kirmizi)}.ad{font-weight:800;margin-top:8px}.ikincil,.not,.bos{color:var(--soluk)}.not,.teklif{padding:9px;border-radius:10px}.islemler{margin-top:10px}.form label{display:block;margin:9px 0 5px;font-weight:700}.form select,.form input,.form textarea{width:100%;padding:11px;border:1px solid var(--cizgi);border-radius:11px;background:#fff}.form textarea{min-height:70px}.durum{padding:12px;border-radius:12px;background:var(--sari);margin:12px 0}.durum.hata{background:var(--kirmizi)}[hidden]{display:none!important}
+  </style>
+</head>
+<body>
+  <a class="portal-geri" href="./index.html">← Portala dön</a>
+  <a class="portal-geri" href="./randevu-ayarlar.html" style="float:right;">Uygunlukları yönet</a>
+  <header class="baslik"><h1>Randevu Talepleri</h1><span id="bekleyenRozet" class="sayac" hidden></span></header>
+  <div id="durumMesaji" class="durum" role="status" hidden></div>
+  <main id="uygulama" hidden>
+    <form id="yeniForm" class="form">
+      <h2>Veliye randevu öner</h2>
+      <label for="ogrenciSec">Öğrenci</label>
+      <select id="ogrenciSec"></select>
+      <label for="yeniZaman">Tarih ve saat</label>
+      <input id="yeniZaman" type="datetime-local" step="1800" required>
+      <label for="yeniNot">Görüşme konusu</label>
+      <textarea id="yeniNot" maxlength="1000"></textarea>
+      <button id="yeniRandevu" type="submit">Veli onayına gönder</button>
+      <p class="ikincil">Personel önerileri iş saatleriyle sınırlanmaz; gelecek bir yarım saat seçilir.</p>
+    </form>
+    <div id="filtreler" class="filtreler"></div>
+    <section id="randevuListesi"></section>
+  </main>
+  <script type="module" src="./js/zeky-randevu-staff-page.js"></script>
+</body>
+</html>
