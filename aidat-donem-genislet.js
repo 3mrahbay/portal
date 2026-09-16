@@ -78,11 +78,12 @@
   document.addEventListener('click', (event) => {
     const tetikleyici = event.target.closest('[onclick]');
     const komut = tetikleyici?.getAttribute('onclick') || '';
-    if (/caRandevuTalepAc|caGo\(['\"]randevular|veliTakvimSekmeDegistir\(['\"](?:randevular|benim)/.test(komut)) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      window.zekyVeliRandevuAc();
-    } else if (/randevu(?:Slot|Toplu)ModalAc/.test(komut)) {
+    // Veli desenleri bilincli olarak cikarildi. Veli randevu tiklamalari
+    // artik window.caRandevuTalepAc'a ulasiyor; onu
+    // js/zeky-randevu-modal-koprusu.js devraliyor ve eski popup'i
+    // callable backend'e bagli olarak aciyor.
+    // Personel/yonetim ekranlari ayri sayfada kalmaya devam eder.
+    if (/randevu(?:Slot|Toplu)ModalAc/.test(komut)) {
       event.preventDefault();
       event.stopImmediatePropagation();
       window.zekyRandevuAyarlariAc();
