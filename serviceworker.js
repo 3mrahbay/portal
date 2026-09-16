@@ -10,13 +10,24 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v103";
+const CACHE_VERSION = "v107";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 // Açılışta önceden cache'lenecek temel kabuk varlıkları
 const PRECACHE = [
   "./",
   "./index.html",
+  "./aidat-donem-genislet.js",
+  "./veli-randevu.html",
+  "./veli-randevu-callable.html",
+  "./randevu-talepleri.html",
+  "./randevu-talepleri-callable.html",
+  "./randevu-ayarlar.html",
+  "./js/zeky-randevu-cutover-config.js",
+  "./js/zeky-randevu-cutover-runtime.js",
+  "./js/zeky-randevu-callable-adapter.js",
+  "./js/zeky-randevu-parent-page.js",
+  "./js/zeky-randevu-staff-page.js",
   "./moduller/sabah-girisi.js",
   "./moduller/veli-izinleri.js",
   "./moduller/pickup-yetkilileri.js",
@@ -33,6 +44,8 @@ const PRECACHE = [
 const NO_CACHE_HOSTS = [
   "firestore.googleapis.com",
   "firebaseinstallations.googleapis.com",
+  "firebaseappcheck.googleapis.com",
+  "recaptchaenterprise.googleapis.com",
   "identitytoolkit.googleapis.com",
   "securetoken.googleapis.com",
   "www.googleapis.com",
@@ -42,9 +55,7 @@ const NO_CACHE_HOSTS = [
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(PRECACHE).catch(() => {})
-    )
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
   );
 });
 

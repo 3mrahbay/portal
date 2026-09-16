@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>ZEKY · Randevu Uygunlukları</title>
+  <style>
+    :root{--koyu:#2d5e3e;--zemin:#f5f7f4;--kart:#fff;--metin:#29332c;--soluk:#748078;--cizgi:#dfe8e1;--uyari:#fff0c2;--hata:#fbe9e7}
+    *{box-sizing:border-box}body{max-width:620px;margin:auto;padding:18px 16px 80px;background:var(--zemin);color:var(--metin);font:14px system-ui,sans-serif}h1{font-size:24px;color:var(--koyu);margin:12px 0 18px}.portal-geri{color:var(--koyu);font-weight:700;text-decoration:none}.kart{background:var(--kart);border-radius:16px;padding:16px;margin:12px 0}.form-satir{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}.alan label{display:block;margin:0 0 6px;font-weight:700}.alan select,.alan input,button{width:100%;padding:11px;border:1px solid var(--cizgi);border-radius:11px;background:#fff;font:inherit}button{width:auto;font-weight:800;cursor:pointer}.birincil{background:var(--koyu);color:#fff}.tehlike{color:#9b1c1c;background:var(--hata)}.satir{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--cizgi);padding:12px 0}.satir:first-child{border-top:0}.ikincil{color:var(--soluk)}.durum{padding:12px;border-radius:12px;background:var(--uyari);margin:12px 0}.durum.hata{background:var(--hata)}[hidden]{display:none!important}@media(max-width:560px){.form-satir{grid-template-columns:1fr}.form-satir button{width:100%}}
+  </style>
+</head>
+<body>
+  <a class="portal-geri" href="./index.html">← Portala dön</a>
+  <h1>Randevu Uygunlukları</h1>
+  <div id="durumMesaji" class="durum" role="status" hidden></div>
+  <main id="uygulama" hidden>
+    <form id="uygunlukForm" class="kart">
+      <div class="form-satir">
+        <div class="alan"><label for="hedefSec">Personel</label><select id="hedefSec" required></select></div>
+        <div class="alan"><label for="zamanSec">Tarih ve saat</label><input id="zamanSec" type="datetime-local" step="1800" required></div>
+        <button id="ekleBtn" class="birincil" type="submit">Uygunluk ekle</button>
+      </div>
+      <p class="ikincil">Yarım saatlik, gelecek 90 gün içindeki saatler eklenebilir.</p>
+    </form>
+    <section class="kart"><h2>Aktif uygunluklar</h2><div id="uygunlukListesi"></div></section>
+  </main>
+  <script type="module">
+    import {
+      callableCutoverAcikMi, guvenliId, istanbulMillis,
+      istekIzleyiciOlustur, randevuOturumDegisimiDinle,
+      randevuServisiGetir, zamanYazi
+    } from './js/zeky-randevu-cutover-runtime.js';
+
+    const durum = { api:null, hedefler:[], saatler:[], hedefKodu:'', aktif:true, surum:0, mesgul:false };
+    const istekler = istekIzleyiciOlustur();
+    const node = id => {
+      const value = document.getElementById(id);
+      if (!value) throw new Error(`Eksik sayfa öğesi: ${id}`);
+      return value;
+    };
+    const mesaj = (text, hata=false) => {
+      const alan = node('durumMesaji');
+      alan.textContent = text;
+      alan.classList.toggle('hata', hata);
+      alan.hidden = !text;
+    };
+    const hataMetni = error => {
+      const code = String(error?.code || '');
+      if (code.includes('permission-denied')) return 'Bu ekran için yönetim yetkisi gerekli.';
+      if (code.includes('failed-precondition')) return 'Uygunluk işlemi şu anda kullanılamıyor.';
+      if (code.includes('unauthenticated')) return 'Oturum doğrulanamadı.';
+      return 'İşlem güvenli biçimde tamamlanamadı.';
+    };
+    function oturumuKapat() {
+      durum.aktif = false; durum.surum += 1; durum.api = null;
+      durum.hedefler = []; durum.saatler = []; durum.hedefKodu = '';
+      node('hedefSec').replaceChildren(); node('uygunlukListesi').replaceChildren();
+      node('uygulama').hidden = true;
+      mesaj('Oturum değişti. Uygunluk verileri temizlendi; sayfayı yeniden açın.', true);
+    }
+    function hedefleriCiz() {
+      const select = node('hedefSec'); select.replaceChildren();
+      for (const hedef of durum.hedefler) {
+        const option = document.createElement('option');
+        option.value = hedef.kod; option.textContent = hedef.ad;
+        option.selected = hedef.kod === durum.hedefKodu; select.append(option);
+      }
+    }
+    function saatleriCiz() {
+      const alan = node('uygunlukListesi'); alan.replaceChildren();
+      if (!durum.saatler.length) {
+        const bos = document.createElement('p'); bos.className = 'ikincil';
+        bos.textContent = 'Bu personel için aktif uygunluk bulunmuyor.'; alan.append(bos); return;
+      }
+      for (const saat of durum.saatler) {
+        const satir = document.createElement('div'); satir.className = 'satir';
+        const yazi = document.createElement('strong'); yazi.textContent = zamanYazi(saat.baslangicMillis);
+        const sil = document.createElement('button'); sil.type = 'button'; sil.className = 'tehlike';
+        sil.textContent = 'Sil'; sil.addEventListener('click', () => uygunlukSil(saat));
+        satir.append(yazi, sil); alan.append(satir);
+      }
+    }
+    async function saatleriYukle() {
+      if (!durum.aktif || !durum.api || !durum.hedefKodu) return;
+      const surum = durum.surum; const hedefKodu = durum.hedefKodu;
+      const rows = await durum.api.musaitlikleriGetir(hedefKodu);
+      if (!durum.aktif || durum.surum !== surum || durum.hedefKodu !== hedefKodu) return;
+      durum.saatler = rows; saatleriCiz(); mesaj('');
+    }
+    async function hedefDegisti() {
+      const kod = guvenliId(node('hedefSec').value);
+      if (!durum.hedefler.some(row => row.kod === kod) || durum.mesgul) return;
+      const surum = durum.surum;
+      durum.hedefKodu = kod; durum.saatler = []; saatleriCiz();
+      try { await saatleriYukle(); } catch (error) {
+        if (durum.aktif && durum.surum === surum) mesaj(hataMetni(error), true);
+      }
+    }
+    async function uygunlukEkle(event) {
+      event.preventDefault(); if (durum.mesgul || !durum.api) return;
+      const hedefKodu = guvenliId(node('hedefSec').value);
+      const millis = istanbulMillis(node('zamanSec').value);
+      if (!durum.hedefler.some(row => row.kod === hedefKodu) ||
+          !Number.isSafeInteger(millis) || millis <= Date.now() ||
+          millis > Date.now() + 90 * 24 * 60 * 60_000) {
+        mesaj('Personel ile gelecekte, yarım saatlik bir saat seçin.', true); return;
+      }
+      const payload = `${hedefKodu}|${millis}`;
+      const requestId = istekler.anahtar('availability_create', hedefKodu, payload);
+      const surum = durum.surum;
+      durum.mesgul = true;
+      try {
+        await durum.api.musaitlikOlustur({requestId, hedefKodu, baslangicMillis:millis});
+        if (!durum.aktif || durum.surum !== surum) return;
+        istekler.tamamla('availability_create', hedefKodu, payload);
+        node('zamanSec').value = ''; mesaj('Uygunluk eklendi.'); await saatleriYukle();
+      } catch (error) {
+        if (durum.aktif && durum.surum === surum) mesaj(hataMetni(error), true);
+      }
+      finally { durum.mesgul = false; }
+    }
+    async function uygunlukSil(saat) {
+      if (durum.mesgul || !durum.api || !globalThis.confirm('Bu uygunluk silinsin mi?')) return;
+      const hedefKodu = durum.hedefKodu; const millis = Number(saat.baslangicMillis);
+      if (!guvenliId(hedefKodu) || !Number.isSafeInteger(millis)) return;
+      const payload = `${hedefKodu}|${millis}`;
+      const requestId = istekler.anahtar('availability_delete', hedefKodu, payload);
+      const surum = durum.surum;
+      durum.mesgul = true;
+      try {
+        await durum.api.musaitlikSil({requestId, hedefKodu, baslangicMillis:millis});
+        if (!durum.aktif || durum.surum !== surum) return;
+        istekler.tamamla('availability_delete', hedefKodu, payload);
+        mesaj('Uygunluk silindi.'); await saatleriYukle();
+      } catch (error) {
+        if (durum.aktif && durum.surum === surum) mesaj(hataMetni(error), true);
+      }
+      finally { durum.mesgul = false; }
+    }
+    async function baslat() {
+      if (!callableCutoverAcikMi()) {
+        mesaj('Randevu sistemi üretim backend ve App Check doğrulanana kadar kapalıdır.', true); return;
+      }
+      const surum = durum.surum;
+      try {
+        const api = await randevuServisiGetir();
+        if (!durum.aktif || durum.surum !== surum) return;
+        durum.api = api; randevuOturumDegisimiDinle(oturumuKapat);
+        if (!durum.aktif || durum.surum !== surum) return;
+        const rows = await api.musaitlikHedefleri();
+        if (!durum.aktif || durum.surum !== surum) return;
+        durum.hedefler = rows.filter(row => guvenliId(row.kod) && typeof row.ad === 'string');
+        durum.hedefKodu = durum.hedefler[0]?.kod || ''; hedefleriCiz();
+        node('uygulama').hidden = false;
+        node('uygunlukForm').addEventListener('submit', uygunlukEkle);
+        node('hedefSec').addEventListener('change', hedefDegisti);
+        if (durum.hedefKodu) await saatleriYukle(); else mesaj('Yönetilebilir aktif personel bulunmuyor.', true);
+      } catch (error) {
+        if (!durum.aktif || durum.surum !== surum) return;
+        node('uygulama').hidden = true; mesaj(hataMetni(error), true);
+      }
+    }
+    baslat();
+  </script>
+</body>
+</html>
