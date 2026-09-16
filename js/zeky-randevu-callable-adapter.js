@@ -82,6 +82,9 @@ export function randevuCallableAdapter(functions) {
       ogrenciId, baslangicMillis, not
     }),
 
+    musaitlikTopluOlustur: ({ requestId, hedefKodlari, baslangicMillisListesi }) => command({
+      action: 'availability_bulk_create', requestId, hedefKodlari, baslangicMillisListesi
+    }),
     musaitlikOlustur: ({ requestId, hedefKodu, baslangicMillis }) => command({
       action: 'availability_create', requestId, hedefKodu, baslangicMillis
     }),
