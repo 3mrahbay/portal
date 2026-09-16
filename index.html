@@ -1871,6 +1871,15 @@ body.rol-danisma .danisma-gizle { display: none !important; }
   display: block;
 }
 
+/* Son satirlarda menu asagi acilinca tablo kapsayicisinin disina tasip
+   kirpiliyordu (Arsive Tasi maddesi gorunmuyordu). Yer yoksa yukari acilir. */
+.durum-menu.yukari {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+
 .durum-menu-item {
   display: block;
   width: 100%;
@@ -25965,7 +25974,17 @@ window.toggleDurumMenu = function(ogrenciId, event) {
     if (m.dataset.ogrenciId !== ogrenciId) m.classList.remove("open");
   });
   const menu = document.querySelector(`.durum-menu[data-ogrenci-id="${ogrenciId}"]`);
-  if (menu) menu.classList.toggle("open");
+  if (!menu) return;
+  menu.classList.remove("yukari");
+  const acilacak = !menu.classList.contains("open");
+  menu.classList.toggle("open");
+  if (!acilacak) return;
+  // Asagida yeterli yer yoksa yukari ac. Olcum menu gorunur hale geldikten
+  // SONRA yapilmali; display:none iken yukseklik 0 olur.
+  const btn = menu.parentElement?.querySelector(".madde-action-btn");
+  const btnAlt = btn ? btn.getBoundingClientRect().bottom : 0;
+  const gerekli = menu.offsetHeight + 12;
+  if (btnAlt + gerekli > window.innerHeight) menu.classList.add("yukari");
 };
 
 // Herhangi bir yere tıklanırsa menüler kapansın
