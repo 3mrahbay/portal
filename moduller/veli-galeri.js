@@ -2,7 +2,8 @@
 // VELİ GALERİSİ — moduller/veli-galeri.js
 // Koleksiyon: galeri/{otoId}
 //   { etkinlikBaslik, etkinlikTarih, aciklama, hedefTur, hedefDeger,
-//     hedefOgrenciAd, bunnyUrl, kucukResim, dosyaTipi, durum, yuklemeZamani }
+//     hedefOgrenciAd, bunnyUrl, kucukResim, dosyaTipi, durum, yuklemeZamani,
+//     albumId?, albumSira?, albumToplam? }
 //
 // KVKK: yalnızca durum === "onaylandi" olan medya veliye gösterilir.
 // Kapsam: tumOkul + velinin çocuğunun sınıfı + o çocuğa özel medya.
@@ -33,6 +34,29 @@ const ALBUM_RENK = [
 ];
 const AY = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
 
+// Eski sınıf adlarıyla yeni resmi adları aynı anahtara indirger.
+// Böylece sınıf bazlı paylaşım, veri taşıması tamamlanmamış öğrencilerde de görünür.
+function sinifAnahtar(deger) {
+  let n = String(deger || "").toLocaleLowerCase("tr").trim();
+  n = n
+    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i")
+    .replace(/ö/g, "o").replace(/ş/g, "s").replace(/ü/g, "u")
+    .replace(/[^a-z0-9]/g, "");
+  if (n.includes("ilkadim")) return "ilkadimlar";
+  if (n.includes("mimoza") || n.includes("papatya") || n.includes("montessori1") || n.includes("toddler")) return "mimoza";
+  if (n.includes("yasemin") || n.includes("kardelen") || n.includes("montessori2")) return "yasemin";
+  if (n.includes("lavanta") || n.includes("narcice") || n === "nar" || n.includes("montessori3")) return "lavanta";
+  return n
+    .replace(/ciceklerisinifi/g, "")
+    .replace(/cicekler/g, "")
+    .replace(/sinifi/g, "")
+    .replace(/sinif/g, "");
+}
+function sinifEslesir(a, b) {
+  const aa = sinifAnahtar(a), bb = sinifAnahtar(b);
+  return !!aa && aa === bb;
+}
+
 // Bunny CDN thumbnail — genişlik parametresiyle küçük sürüm ister
 function kucuk(url, w = 600) {
   if (!url) return "";
@@ -60,6 +84,11 @@ function zamanEtiket(key) {
   const d = new Date(key + "T12:00:00");
   return isNaN(d) ? key : `${d.getDate()} ${AY[d.getMonth()]} ${d.getFullYear()}`;
 }
+function albumAnahtar(m) {
+  if (m.albumId) return `id:${m.albumId}`;
+  const tarih = String(m.etkinlikTarih || (m.yuklemeZamani || "").substring(0, 10) || "tarihsiz");
+  return `legacy:${tarih}|${(m.etkinlikBaslik || "").trim() || "Diğer"}`;
+}
 
 // ───────────────────────────────────────────────────────────────────
 async function yukle() {
@@ -71,40 +100,42 @@ async function yukle() {
   _medya = [];
   try {
     // Firestore kuralları veliye yalnızca onaylanmış belgeleri açar.
-// Koleksiyonun tamamını isteyip tarayıcıda filtrelemek, tek bir bekleyen
-// kayıt olduğunda sorgunun bütünüyle reddedilmesine neden olur.
-const snap = await fb.getDocs(fb.query(
-  fb.collection(db, "galeri"),
-  fb.where("durum", "==", "onaylandi")
-));
+    // Koleksiyonun tamamını isteyip tarayıcıda filtrelemek, tek bir bekleyen
+    // kayıt olduğunda sorgunun bütünüyle reddedilmesine neden olur.
+    const snap = await fb.getDocs(fb.query(
+      fb.collection(db, "galeri"),
+      fb.where("durum", "==", "onaylandi")
+    ));
     snap.forEach(d => {
       const v = d.data() || {};
-      if (v.durum !== "onaylandi") return;               // KVKK: onaysız medya gösterilmez
+      if (v.durum !== "onaylandi") return;
       if (v.dosyaTipi === "video" && !v.bunnyUrl) return;
-      // Kapsam kontrolü
       const kapsamda =
         v.hedefTur === "tumOkul" ||
-        (v.hedefTur === "sinif" && v.hedefDeger === sinif) ||
-        (v.hedefTur === "ogrenci" && v.hedefDeger === ogr.id);
+        (v.hedefTur === "sinif" && sinifEslesir(v.hedefDeger, sinif)) ||
+        (v.hedefTur === "ogrenci" && (v.hedefOgrenciId || v.hedefDeger) === ogr.id);
       if (!kapsamda) return;
       _medya.push({ id: d.id, ...v });
     });
   } catch (e) { console.warn("galeri:", e.code || e.message); }
 
-  // En yeni önce
   _medya.sort((a, b) => String(b.etkinlikTarih || b.yuklemeZamani || "")
     .localeCompare(String(a.etkinlikTarih || a.yuklemeZamani || "")));
 
-  // Albümler = etkinlik başlığına göre grup, en yeni albüm en üstte
+  // Yalnızca birden fazla öğesi olan gruplar klasör/albüm olarak gösterilir.
+  // Yeni kayıtlarda albumId, eski kayıtlarda tarih+başlık geriye uyumluluk anahtarıdır.
   const grup = {};
   _medya.forEach(m => {
+    const key = albumAnahtar(m);
     const ad = (m.etkinlikBaslik || "").trim() || "Diğer";
-    if (!grup[ad]) grup[ad] = { ad, medya: [], tarih: m.etkinlikTarih || m.yuklemeZamani || "" };
-    grup[ad].medya.push(m);
+    if (!grup[key]) grup[key] = { id:key, ad, medya:[], tarih:m.etkinlikTarih || m.yuklemeZamani || "" };
+    grup[key].medya.push(m);
     const t = m.etkinlikTarih || m.yuklemeZamani || "";
-    if (t > grup[ad].tarih) grup[ad].tarih = t;
+    if (t > grup[key].tarih) grup[key].tarih = t;
   });
-  _albumler = Object.values(grup).sort((a, b) => String(b.tarih).localeCompare(String(a.tarih)));
+  _albumler = Object.values(grup)
+    .filter(a => a.medya.length > 1 || a.medya.some(m => !!m.albumId))
+    .sort((a, b) => String(b.tarih).localeCompare(String(a.tarih)));
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -125,20 +156,16 @@ export async function render(hedefId) {
     return;
   }
 
-  // Albüm açıksa detay
   if (_acikAlbum) { albumDetay(el, hedefId); lucide(); return; }
 
-  // Filtreye göre medya
   let liste = _medya;
   if (_filtre !== "tumu") liste = _medya.filter(m => kategoriEsle(m) === _filtre);
 
-  // Zaman gruplaması
   const zaman = {};
   liste.forEach(m => { const k = zamanKey(m); (zaman[k] = zaman[k] || []).push(m); });
   const zamanlar = Object.keys(zaman).sort().reverse();
 
   el.innerHTML = `
-    <!-- Kategori çipleri -->
     <div class="ca-chips" style="overflow-x:auto; padding-bottom:4px;">
       ${KATEGORILER.map(k => {
         const n = k.k === "tumu" ? _medya.length : _medya.filter(m => kategoriEsle(m) === k.k).length;
@@ -147,7 +174,6 @@ export async function render(hedefId) {
       }).join("")}
     </div>
 
-    <!-- Albümler -->
     ${_albumler.length ? `
       <div class="ca-sectionhead" style="margin-top:14px;">
         <h3 class="ca-head" style="font-size:15px;">Albümler</h3>
@@ -156,24 +182,24 @@ export async function render(hedefId) {
       <div style="display:flex; gap:11px; overflow-x:auto; padding:2px 2px 8px;">
         ${_albumler.map((a, i) => {
           const [c1, c2] = ALBUM_RENK[i % ALBUM_RENK.length];
-          const kapak = a.medya.find(m => m.dosyaTipi !== "video");
-          return `<button onclick="window._vg.albumAc('${esc(a.ad).replace(/'/g, "")}','${hedefId}')"
+          const kapak = a.medya.find(m => m.kapak === true && m.dosyaTipi !== "video")
+            || a.medya.find(m => m.dosyaTipi !== "video");
+          return `<button onclick="window._vg.albumAc('${esc(a.id).replace(/'/g, "")}','${hedefId}')"
             style="flex-shrink:0; width:158px; border:none; padding:0; background:none; cursor:pointer; text-align:left;">
             <div style="height:104px; border-radius:14px 14px 0 0; overflow:hidden; position:relative;
               background:linear-gradient(135deg,${c1},${c2});">
               ${kapak?.bunnyUrl ? `<img src="${esc(kucuk(kapak.kucukResim || kapak.bunnyUrl, 320))}" loading="lazy"
                 style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'">` : ""}
-              <span style="position:absolute; left:9px; bottom:8px; color:#fff; font-size:11.5px; font-weight:800; text-shadow:0 1px 4px rgba(0,0,0,.45);">${a.medya.length} medya</span>
+              <span style="position:absolute; left:9px; bottom:8px; color:#fff; font-size:11.5px; font-weight:800; text-shadow:0 1px 4px rgba(0,0,0,.45);">📁 ${a.medya.length} medya</span>
             </div>
             <div style="background:#fff; border:1px solid var(--c-border); border-top:none; border-radius:0 0 14px 14px; padding:9px 11px;">
               <div style="font-size:13px; font-weight:700; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(a.ad)}</div>
-              <div class="ca-tile-sub" style="font-size:10.5px;">${a.tarih ? zamanEtiket(a.tarih.substring(0, 7)) : ""}</div>
+              <div class="ca-tile-sub" style="font-size:10.5px;">${a.tarih ? zamanEtiket(String(a.tarih).substring(0, 7)) : ""}</div>
             </div>
           </button>`;
         }).join("")}
       </div>` : ""}
 
-    <!-- Medya -->
     <div class="ca-sectionhead" style="margin-top:6px;">
       <h3 class="ca-head" style="font-size:15px;">Medya</h3>
       <div style="display:flex; gap:4px; background:var(--c-tint, #F1F5F9); border-radius:100px; padding:3px;">
@@ -191,7 +217,6 @@ export async function render(hedefId) {
   lucide();
 }
 
-// Masonry: CSS columns — dikey fotoğraflar dikey kalır, kırpılmaz
 function masonry(liste, hedefId) {
   const { esc } = P();
   return `<div style="column-count:3; column-gap:8px;" class="vg-masonry">
@@ -211,7 +236,7 @@ function masonry(liste, hedefId) {
 
 function albumDetay(el, hedefId) {
   const { esc } = P();
-  const a = _albumler.find(x => x.ad === _acikAlbum);
+  const a = _albumler.find(x => x.id === _acikAlbum);
   if (!a) { _acikAlbum = null; render(hedefId); return; }
   el.innerHTML = `
     <div class="ca-row" style="margin-bottom:12px;">
@@ -222,10 +247,10 @@ function albumDetay(el, hedefId) {
     ${masonry(a.medya, hedefId)}`;
 }
 
-// Tam ekran görüntüleyici
+// Tam ekran görüntüleyici — albüm içindeyse yalnız o albümde önceki/sonraki gezer.
 function buyut(id, hedefId) {
   const { esc } = P();
-  const havuz = _acikAlbum ? (_albumler.find(a => a.ad === _acikAlbum)?.medya || []) : _medya;
+  const havuz = _acikAlbum ? (_albumler.find(a => a.id === _acikAlbum)?.medya || []) : _medya;
   const i = havuz.findIndex(m => m.id === id);
   if (i < 0) return;
   const m = havuz[i];
@@ -254,7 +279,7 @@ function buyut(id, hedefId) {
 window._vg = {
   filtre: (k, h) => { _filtre = k; _acikAlbum = null; render(h); },
   gruplama: (k, h) => { _gruplama = k; render(h); },
-  albumAc: (ad, h) => { _acikAlbum = ad; render(h); },
+  albumAc: (id, h) => { _acikAlbum = id; render(h); },
   albumKapat: (h) => { _acikAlbum = null; render(h); },
   buyut
 };
