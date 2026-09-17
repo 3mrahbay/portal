@@ -3,7 +3,7 @@
 // Kaynaklar:
 //   ogrenciGelisim/{ogrenciId}
 //   mufredatlar/{montessori|orman|degerler|ingilizce}
-//   galeri (yalnız onaylı ve seçili çocuğa görünür kayıtlar)
+//   galeri (yalnız onaylı + seçili öğrencinin gözlem kayıtları)
 //
 // Hedef akış: Program → Alan → Kazanım → Sunuldu / Tekrar ediyor / Ustalaştı
 // Her aşama kendi tarih, not, öğretmen ve fotoğrafını taşır.
@@ -29,7 +29,6 @@ const SIRA = ['S','T','U'];
 let hedefId = 'cicekAppRoot';
 let veri = null;
 let ekran = { tur:'programlar', program:'', alanId:'', anahtar:'' };
-let fotoHavuzu = [], fotoIndex = 0;
 
 function esc(t) {
   const p = P();
@@ -40,9 +39,6 @@ function esc(t) {
 function attr(t) { return esc(t); }
 function ikonYenile() {
   try { if (P()?.lucide) P().lucide(); else if (window.lucideYenile) window.lucideYenile(); } catch (_) {}
-}
-function toast(m, tur='basari') {
-  try { if (P()?.toast) P().toast(m, tur); else if (window.showToast) window.showToast(m, tur === 'hata' ? 'error' : tur); } catch (_) {}
 }
 function programBilgi(id) { return PROGRAMLAR.find(x => x.id === id) || PROGRAMLAR[0]; }
 function trTarih(iso) {
@@ -64,36 +60,34 @@ function programKodu(m) {
 function fotoOnayli(x) {
   return !x?.galeriId || !x?.fotoDurum || x.fotoDurum === 'onaylandi' || x.fotoDurum === 'onayli';
 }
-function sinifEslesir(a,b) {
-  if (D()?.sinifEslesirMi) return D().sinifEslesirMi(a,b);
-  return String(a||'').toLocaleLowerCase('tr') === String(b||'').toLocaleLowerCase('tr');
-}
 
+// Eğitim kazanımı için galeri yedeği yalnız SEÇİLİ ÇOCUĞUN gözlem kayıtlarını ister.
+// Sınıf / tüm okul galeri kayıtları burada sorgulanmaz; eğitim aşamasına fotoğraf
+// bağlamak için öğrenciye özel kazanimAnahtari + gozlemDurum kaydı gerekir.
 async function galeriGetir(ogr) {
   const p = P();
   if (!p?.fb || !p?.db || !ogr?.id) return [];
   const { fb, db } = p;
-  const sinif = ogrSinif(ogr);
   try {
-    const q = fb.query(fb.collection(db,'galeri'), fb.where('durum','==','onaylandi'));
+    const q = fb.query(
+      fb.collection(db,'galeri'),
+      fb.where('durum','==','onaylandi'),
+      fb.where('ogrenciId','==',ogr.id)
+    );
     const snap = await fb.getDocs(q);
     const liste = [];
     snap.forEach(d => {
       const v = d.data() || {};
-      const tur = v.hedefTur || (v.hedefOgrenciId || v.ogrenciId ? 'ogrenci' : (v.sinif ? 'sinif' : 'tumOkul'));
-      const hedefOgr = v.hedefOgrenciId || (tur === 'ogrenci' ? v.hedefDeger : '') || v.ogrenciId || '';
-      const hedefSinif = v.sinif || (tur === 'sinif' ? v.hedefDeger : '');
-      const gorunur = tur === 'tumOkul' || tur === 'okul' || tur === 'tum' ||
-        (tur === 'ogrenci' && hedefOgr === ogr.id) ||
-        (tur === 'sinif' && sinifEslesir(hedefSinif, sinif));
-      if (!gorunur) return;
+      if (v.ogrenciId !== ogr.id) return;
       const url = v.url || v.bunnyUrl || '';
-      if (!url) return;
+      if (!url || !v.kazanimAnahtari || !SIRA.includes(v.gozlemDurum || '')) return;
       liste.push({ id:d.id, ...v, url });
     });
     return liste;
   } catch (e) {
-    console.warn('veli eğitim galerisi', e);
+    // Fotoğraf yedeği okunamazsa gelişim belgesindeki onaylı fotoğraflar yine çalışır.
+    // Geniş galeri sorgusuna geri düşülmez: gizlilik, eski veri kurtarmadan önceliklidir.
+    console.warn('veli eğitim öğrenci galerisi', e);
     return [];
   }
 }
@@ -137,7 +131,8 @@ function asamalariCoz(program, anahtar) {
     };
   }
 
-  // Galeri onayı gerçek yayın kaynağıdır: onaylı fotoğrafı doğru aşamaya bağla.
+  // Galeri onayı gerçek yayın kaynağıdır: yalnız seçili öğrencinin onaylı
+  // kazanım fotoğrafı doğru aşamaya bağlanır.
   galeriFotolari.forEach(m => {
     const kod = m.gozlemDurum || '';
     if (!SIRA.includes(kod)) return;
@@ -279,7 +274,7 @@ function geri() {
   if(typeof window.caGo==='function') window.caGo('home');
 }
 function fotoAc(url) {
-  fotoHavuzu=[url];fotoIndex=0;document.getElementById('vegPhotoModal')?.remove();
+  document.getElementById('vegPhotoModal')?.remove();
   const d=document.createElement('div');d.id='vegPhotoModal';d.className='veg-photo-modal';d.innerHTML=`<button class="veg-photo-close" aria-label="Kapat">×</button><img src="${attr(url)}" alt="Eğitim aşaması fotoğrafı">`;d.onclick=e=>{if(e.target===d)d.remove()};d.querySelector('button').onclick=()=>d.remove();document.body.appendChild(d);
 }
 function bagla(root) {
