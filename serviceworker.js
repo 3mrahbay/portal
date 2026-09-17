@@ -31,6 +31,9 @@ const PRECACHE = [
   "./js/zeky-randevu-staff-page.js",
   "./js/zeky-randevu-modal-koprusu.js",
   "./js/zeky-veli-odeme-ozeti.js",
+  // Üst randevu köprüsü halen ?v=1 URL'sini ister. Bu URL de son içerikle cache'lenir;
+  // dosyanın içi eğitim zincirini ?v=2 ile yükler.
+  "./js/zeky-galeri-filigran-koprusu.js?v=1",
   "./js/zeky-galeri-filigran-koprusu.js?v=2",
   "./js/zeky-veli-egitim-koprusu.js?v=2",
   "./moduller/veli-egitim-gelisim.js?v=2",
