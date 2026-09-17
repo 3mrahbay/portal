@@ -1,7 +1,13 @@
 // Portal Eğitim ekranını ZEKY mobildeki ayrıntılı gelişim yolculuğuna bağlar.
 // Büyük index.html'e dokunmadan mevcut caEgitimYukle çağrı noktasını değiştirir.
+// Ortak PortalData katmanını burada da garanti eder; yükleme sırasına bağımlı kalmaz.
+import * as PortalDataModulu from '../portal-data.js?v=1';
 import { render as veliEgitimRender } from '../moduller/veli-egitim-gelisim.js?v=1';
 import { kur as gelismisGozlemKur } from '../moduller/ogretmen-egitim-gozlem.js?v=1';
+
+if (typeof window !== 'undefined' && !window.PortalData) {
+  window.PortalData = PortalDataModulu;
+}
 
 const KURULUM = '__zekyVeliEgitimKoprusuV1';
 
