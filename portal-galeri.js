@@ -45,6 +45,92 @@ function galeriProgramKodu(g) {
   return "";
 }
 
+// Galeri hedeflerinde eski/yeni sınıf adlarını aynı resmi sınıfa indirger.
+function galeriSinifEslesir(a, b) {
+  const norm = (x) => String(sinifAdiResmiEsle(x) || x || "")
+    .toLocaleLowerCase("tr").replace(/\s+/g, "").trim();
+  const aa = norm(a), bb = norm(b);
+  return !!aa && aa === bb;
+}
+
+// Aynı albüme sonradan içerik eklendiğinde de aynı kimlik üretilsin.
+function galeriAlbumIdUret(tarih, baslik, hedefTur, hedefDeger) {
+  const ham = [tarih, baslik, hedefTur, hedefDeger].map(x => String(x || "").trim().toLocaleLowerCase("tr")).join("|");
+  let h = 2166136261;
+  for (let i = 0; i < ham.length; i++) {
+    h ^= ham.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return "alb_" + (h >>> 0).toString(36);
+}
+
+// Yüklemeden önce fotoğrafın fiziksel piksel verisine filigran işler.
+// %60 saydamlık = %40 görünürlük (alpha 0.40).
+async function galeriFiligranEkle(dosya, dosyaAdi = "foto.jpg") {
+  if (!dosya || !(dosya instanceof Blob)) return dosya;
+  return new Promise((resolve) => {
+    let objectUrl = "";
+    try {
+      objectUrl = URL.createObjectURL(dosya);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx || !canvas.width || !canvas.height) throw new Error("Canvas hazırlanamadı");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          const kisa = Math.min(canvas.width, canvas.height);
+          const ustBoy = Math.max(14, Math.round(kisa * 0.055));
+          const altBoy = Math.max(8, Math.round(ustBoy * 0.34));
+          const pay = Math.max(10, Math.round(kisa * 0.035));
+          const alpha = 0.40;
+          const altMetin = "Bir Çiçek Koleji Anaokulu";
+
+          ctx.textAlign = "right";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
+          ctx.shadowColor = "rgba(0,0,0," + (alpha * 0.8) + ")";
+          ctx.shadowBlur = Math.max(2, Math.round(ustBoy * 0.12));
+
+          const sagX = canvas.width - pay;
+          const altY = canvas.height - pay;
+          ctx.font = "600 " + altBoy + "px -apple-system, Helvetica Neue, Arial, sans-serif";
+          const altGen = ctx.measureText(altMetin).width;
+          const altSon = altGen > canvas.width - pay * 2
+            ? Math.max(7, Math.floor(altBoy * (canvas.width - pay * 2) / altGen))
+            : altBoy;
+          ctx.font = "600 " + altSon + "px -apple-system, Helvetica Neue, Arial, sans-serif";
+          ctx.fillText(altMetin, sagX, altY);
+          ctx.font = "800 " + ustBoy + "px -apple-system, Helvetica Neue, Arial, sans-serif";
+          ctx.fillText("BÇKA", sagX, altY - altSon - Math.round(ustBoy * 0.18));
+
+          canvas.toBlob((blob) => {
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            if (!blob) return resolve(dosya);
+            const kok = String(dosyaAdi || "foto").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+            resolve(new File([blob], kok + ".jpg", { type: "image/jpeg", lastModified: Date.now() }));
+          }, "image/jpeg", 0.90);
+        } catch (e) {
+          if (objectUrl) URL.revokeObjectURL(objectUrl);
+          console.warn("Galeri filigranı uygulanamadı; özgün dosya kullanılacak:", e);
+          resolve(dosya);
+        }
+      };
+      img.onerror = () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        resolve(dosya);
+      };
+      img.src = objectUrl;
+    } catch (e) {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      resolve(dosya);
+    }
+  });
+}
+
 async function galeriGozlemOnayiEsitle(oge, durum, duzenlenmisMetin = "") {
   const ogrenciId = oge?.ogrenciId || oge?.hedefOgrenciId ||
     (oge?.hedefTur === "ogrenci" ? oge.hedefDeger : "");
@@ -183,10 +269,12 @@ window.galeriKapakYap = async function(medyaId) {
     const hepsi = (typeof galeriVerisi !== "undefined" ? galeriVerisi : []);
     const secilen = hepsi.find(x => x.id === medyaId);
     if (!secilen) return;
+    const albumId = secilen.albumId || "";
     const albumAdi = secilen.etkinlikBaslik || "Diğer";
 
-    // Aynı albümdeki eski kapağı kaldır
-    const eskiler = hepsi.filter(x => (x.etkinlikBaslik || "Diğer") === albumAdi && x.kapak && x.id !== medyaId);
+    // Yeni kayıtlarda albumId, eski kayıtlarda başlık geriye uyum anahtarıdır.
+    const eskiler = hepsi.filter(x => x.kapak && x.id !== medyaId &&
+      (albumId ? x.albumId === albumId : (x.etkinlikBaslik || "Diğer") === albumAdi));
     await Promise.all(eskiler.map(x => updateDoc(doc(db, "galeri", x.id), { kapak: false })));
 
     await updateDoc(doc(db, "galeri", medyaId), { kapak: true });
@@ -359,7 +447,9 @@ async function renderGaleri() {
     const albumTarih = egitimAlbumu ? "" : (g.etkinlikTarih || "tarihsiz");
     const anahtar = egitimAlbumu
       ? `egitim|${programKodu}`
-      : `${albumTarih}|${albumBaslik}|${g.hedefTur || ""}|${g.hedefDeger || ""}`;
+      : (g.albumId
+          ? `album|${g.albumId}`
+          : `${albumTarih}|${albumBaslik}|${g.hedefTur || ""}|${g.hedefDeger || ""}`);
     if (!gruplar[anahtar]) {
       gruplar[anahtar] = {
         etkinlikTarih: egitimAlbumu ? "" : g.etkinlikTarih,
@@ -687,12 +777,13 @@ window.galeriYukle = async function() {
 
   let hedefDeger = "", hedefOgrenciAd = "";
   if (hedefTur === "sinif") {
-    hedefDeger = document.getElementById("galeriHedefSinif").value;
-    if (!hedefDeger) return showToast("Sınıf seçin", "error");
-    // Öğretmen yalnızca atandığı sınıfa yükleyebilir
-    if (B.rol() === "ogretmen" && typeof sinifGorunur === "function" && !sinifGorunur(hedefDeger)) {
+    const secilenSinif = document.getElementById("galeriHedefSinif").value;
+    if (!secilenSinif) return showToast("Sınıf seçin", "error");
+    // Yetki kontrolünü ekrandaki sınıf adıyla yap; kayıtta resmi adı sakla.
+    if (B.rol() === "ogretmen" && typeof sinifGorunur === "function" && !sinifGorunur(secilenSinif)) {
       return showToast("Yalnızca kendi sınıfınıza medya yükleyebilirsiniz", "error");
     }
+    hedefDeger = sinifAdiResmiEsle(secilenSinif) || secilenSinif;
   } else if (hedefTur === "ogrenci") {
     hedefDeger = document.getElementById("galeriHedefOgrenci").value;
     if (!hedefDeger) return showToast("Öğrenci seçin", "error");
@@ -711,6 +802,9 @@ window.galeriYukle = async function() {
     : `${hedefTur}/${hedefDeger}`.replace(/\s+/g, "-");
   const etkinlikSlug = (etkinlikTarih + "-" + etkinlik).replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\-]/g, "-").replace(/-+/g, "-").toLowerCase();
   const klasorPath = `galeri/${hedefPath}/${etkinlikSlug}`;
+
+  const albumOlustur = Boolean(albumEkleMod) || galeriSecilenDosyalar.length > 1 || window._galeriYuklemeMod === "album";
+  const albumId = albumOlustur ? galeriAlbumIdUret(etkinlikTarih, etkinlik, hedefTur, hedefDeger) : "";
 
   let basarili = 0, hatali = 0;
   for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
@@ -732,6 +826,10 @@ window.galeriYukle = async function() {
         hedefTur, hedefDeger, hedefOgrenciAd,
         // Öğrenci hedefliyse id'yi ayrıca yaz — okuma tarafı iki adı da destekler
         hedefOgrenciId: (hedefTur === "ogrenci" ? hedefDeger : ""),
+        albumId,
+        albumSira: i + 1,
+        albumToplam: galeriSecilenDosyalar.length,
+        albumMu: albumOlustur,
         yukleyen: B.kullanici().email,
         yuklemeZamani: new Date().toISOString(),
         dosyaBoyutu: f.size,
@@ -745,15 +843,22 @@ window.galeriYukle = async function() {
         hatali++;
         continue;
       } else if (f.type.startsWith("image/")) {
-        // FOTOĞRAF - sıkıştır ve GÜVENLİ proxy üzerinden yükle (medya.js)
+        // FOTOĞRAF - sıkıştır, filigranı fiziksel dosyaya işle ve güvenli proxy üzerinden yükle.
         const sikistirilmis = await resimSikistir(f, 1920, 0.85);
-        // medyaYukle proxy'ye gönderir, API key tarayıcıda görünmez
-        const sonuc = await medyaYukle(sikistirilmis, klasorPath);
+        const filigranli = await galeriFiligranEkle(sikistirilmis, f.name);
+        const sonuc = await medyaYukle(filigranli, klasorPath);
         oge.dosyaTipi = "foto";
         oge.bunnyUrl = sonuc.url;
-        oge.kucukResim = sonuc.url; // fotoğraf için aynı (thumbnail Bunny ?width ile)
+        oge.kucukResim = sonuc.url;
         oge.bunnyPath = sonuc.yol;
-        oge.dosyaBoyutu = sikistirilmis.size;
+        oge.dosyaBoyutu = filigranli.size;
+        oge.filigran = {
+          uygulandi: true,
+          ustMetin: "BÇKA",
+          altMetin: "Bir Çiçek Koleji Anaokulu",
+          saydamlik: 0.60,
+          gorunurluk: 0.40
+        };
       } else {
         hatali++;
         continue;
@@ -803,9 +908,7 @@ window.galeriYukle = async function() {
   try {
     const sonDurum = document.getElementById("galeriYuklemeDurum");
     const yonetimR = ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(B.rol()) || B.yoneticiMi();
-    const kendiS = B.rol() === "ogretmen" && hedefTur === "sinif" &&
-                   (typeof sinifGorunur === "function" ? sinifGorunur(hedefDeger) : false);
-    if (sonDurum && !(yonetimR || kendiS)) {
+    if (sonDurum && !yonetimR) {
       sonDurum.innerHTML = `✓ ${basarili} dosya yüklendi · <span style="color:#B45309;">yönetim onayından sonra velilere görünecek</span>`;
     } else if (sonDurum) {
       sonDurum.innerHTML = `✓ ${basarili} dosya yüklendi · <span style="color:#2D7A2D;">veliler görebiliyor</span>`;
@@ -1245,7 +1348,7 @@ async function galeriGuncellemeBildirimi(grup) {
 
       let dahil = false;
       if (hedefTur === "tumOkul") dahil = true;
-      else if (hedefTur === "sinif" && ogrSinif === hedefDeger) dahil = true;
+      else if (hedefTur === "sinif" && galeriSinifEslesir(ogrSinif, hedefDeger)) dahil = true;
       else if (hedefTur === "ogrenci" && o.id === hedefDeger) dahil = true;
 
       if (dahil) hedefOgrenciler.push(o);
@@ -1300,7 +1403,7 @@ async function galeriBildirimMailGonder(grup) {
 
       let dahil = false;
       if (hedefTur === "tumOkul") dahil = true;
-      else if (hedefTur === "sinif" && ogrSinif === hedefDeger) dahil = true;
+      else if (hedefTur === "sinif" && galeriSinifEslesir(ogrSinif, hedefDeger)) dahil = true;
       else if (hedefTur === "ogrenci" && o.id === hedefDeger) dahil = true;
 
       if (!dahil) continue;
@@ -1723,7 +1826,7 @@ function renderVeliGaleri() {
       const sinif = (donemVeri.kayit?.sinif) || ogr.sinif || "";
       liste = liste.filter(g => {
         if (g.hedefTur === "tumOkul") return true;
-        if (g.hedefTur === "sinif" && g.hedefDeger === sinif) return true;
+        if (g.hedefTur === "sinif" && galeriSinifEslesir(g.hedefDeger, sinif)) return true;
         if (g.hedefTur === "ogrenci" && g.hedefDeger === veliGaleriAktifCocuk) return true;
         return false;
       });
