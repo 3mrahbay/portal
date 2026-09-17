@@ -1,45 +1,85 @@
 // Portal Eğitim ekranını ZEKY mobildeki ayrıntılı gelişim yolculuğuna bağlar.
-// Büyük index.html'e dokunmadan mevcut caEgitimYukle çağrı noktasını değiştirir.
-// Ortak PortalData katmanını burada da garanti eder; yükleme sırasına bağımlı kalmaz.
-import * as PortalDataModulu from '../portal-data.js?v=1';
-import { render as veliEgitimRender } from '../moduller/veli-egitim-gelisim.js?v=1';
-import { kur as gelismisGozlemKur } from '../moduller/ogretmen-egitim-gozlem.js?v=1';
+// Ana portal <script type="module"> içinde çalıştığı için caEgitimYukle window'a
+// açılmaz. Bu köprü doğru global giriş noktası olan window.caGo'yu sarar.
+// Ayrıca BCK hazır olana kadar bekler ve alt modülleri sürümlü dinamik import eder.
 
-if (typeof window !== 'undefined' && !window.PortalData) {
-  window.PortalData = PortalDataModulu;
+const KURULUM = '__zekyVeliEgitimKoprusuV2';
+const SURUM = 'v2';
+let baslatiliyor = false;
+
+function bekle(kosul, deneme = 120, aralik = 100) {
+  return new Promise((resolve, reject) => {
+    let n = 0;
+    const bak = () => {
+      try { if (kosul()) return resolve(true); } catch (_) {}
+      n += 1;
+      if (n >= deneme) return reject(new Error('Portal eğitim köprüsü için gerekli çekirdek hazır olmadı.'));
+      setTimeout(bak, aralik);
+    };
+    bak();
+  });
 }
 
-const KURULUM = '__zekyVeliEgitimKoprusuV1';
+async function modulleriYukle(win) {
+  await bekle(() => !!win.BCK && typeof win.caGo === 'function');
 
-export function veliEgitimKoprusunuKur(win = window) {
-  if (!win || win[KURULUM]) return false;
-  let deneme = 0;
-  const dene = () => {
-    const egitimHazir = typeof win.caEgitimYukle === 'function';
-    if (egitimHazir) {
-      const eski = win.caEgitimYukle;
-      const yeni = async function () {
-        try {
-          return await veliEgitimRender('cicekAppRoot');
-        } catch (e) {
-          console.error('ZEKY ayrıntılı eğitim ekranı açılamadı; eski ekrana dönülüyor.', e);
-          return eski.apply(this, arguments);
-        }
-      };
-      yeni.__zekyDetayliEgitim = true;
-      yeni.__eski = eski;
-      win.caEgitimYukle = yeni;
-      win.zekyVeliEgitimRender = veliEgitimRender;
-      win[KURULUM] = true;
-      return true;
-    }
-    deneme += 1;
-    if (deneme < 80) win.setTimeout(dene, 100);
-    return false;
+  const PortalDataModulu = await import(`../portal-data.js?${SURUM}`);
+  if (!win.PortalData) win.PortalData = PortalDataModulu;
+
+  const [veliModulu, gozlemModulu] = await Promise.all([
+    import(`../moduller/veli-egitim-gelisim.js?${SURUM}`),
+    import(`../moduller/ogretmen-egitim-gozlem.js?${SURUM}`)
+  ]);
+
+  return {
+    veliEgitimRender: veliModulu.render,
+    gelismisGozlemKur: gozlemModulu.kur
   };
-  dene();
-  gelismisGozlemKur(win);
-  return true;
 }
 
-veliEgitimKoprusunuKur();
+export async function veliEgitimKoprusunuKur(win = window) {
+  if (!win || win[KURULUM]) return true;
+  if (baslatiliyor) return false;
+  baslatiliyor = true;
+
+  try {
+    const { veliEgitimRender, gelismisGozlemKur } = await modulleriYukle(win);
+
+    // Öğretmen tarafı: mevcut global caGozlemAc doğrudan gelişmiş pencereye çevrilir.
+    gelismisGozlemKur(win);
+
+    // Veli tarafı: caEgitimYukle modül-içi olduğu için window.caGo yakalanır.
+    const eskiCaGo = win.caGo;
+    if (!eskiCaGo.__zekyEgitimV2) {
+      const yeniCaGo = function (ekran, ...args) {
+        if (ekran === 'egitim') {
+          // Eski caGo çağrılmaz; aksi halde modül-içi eski async eğitim ekranı
+          // yeni ekranı sonradan tekrar ezebilir.
+          Promise.resolve()
+            .then(() => veliEgitimRender('cicekAppRoot'))
+            .catch((e) => {
+              console.error('ZEKY ayrıntılı eğitim ekranı açılamadı.', e);
+              try { eskiCaGo.call(this, ekran, ...args); } catch (_) {}
+            });
+          return;
+        }
+        return eskiCaGo.call(this, ekran, ...args);
+      };
+      yeniCaGo.__zekyEgitimV2 = true;
+      yeniCaGo.__eski = eskiCaGo;
+      win.caGo = yeniCaGo;
+    }
+
+    win.zekyVeliEgitimRender = veliEgitimRender;
+    win.__zekyEgitimKoprusuSurum = SURUM;
+    win[KURULUM] = true;
+    return true;
+  } catch (e) {
+    console.error('Portal eğitim köprüsü kurulamadı:', e);
+    return false;
+  } finally {
+    baslatiliyor = false;
+  }
+}
+
+if (typeof window !== 'undefined') veliEgitimKoprusunuKur(window);
