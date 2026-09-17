@@ -5,6 +5,8 @@ let _medya = [];
 let _albumler = [];
 let _tekiller = [];
 let _acikAlbum = '';
+let _lbHavuz = [];
+let _lbIndex = 0;
 
 const KATEGORILER = [
   { k:'tumu', ad:'Tümü' },
@@ -22,6 +24,7 @@ function sinifEslesir(a,b){return !!a&&!!b&&sinifAnahtar(a)===sinifAnahtar(b);}
 function albumKey(m){return String(m.albumId||'').trim()||[String(m.etkinlikTarih||'').slice(0,10),(m.etkinlikBaslik||'Diğer').trim(),m.hedefTur||'',m.hedefDeger||''].join('|');}
 function tarih(m){return String(m.etkinlikTarih||m.yuklemeZamani||'').slice(0,10);}
 function tarihYazi(t){if(!t)return'';const d=new Date(t+'T12:00:00');return isNaN(d)?t:d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});}
+function dosyaAdi(m){const ad=String(m.orjinalAd||m.etkinlikBaslik||'bircicek-galeri').replace(/[\\/:*?"<>|]+/g,'-');return /\.[a-z0-9]{2,5}$/i.test(ad)?ad:ad+'.jpg';}
 
 async function yukle(){
   const {fb,db,state}=P();
@@ -40,9 +43,9 @@ async function yukle(){
   }catch(e){console.warn('veli galeri',e.code||e.message);}
   _medya.sort((a,b)=>String(b.etkinlikTarih||b.yuklemeZamani||'').localeCompare(String(a.etkinlikTarih||a.yuklemeZamani||'')));
   const gruplar=new Map();
-  _medya.forEach(m=>{const k=albumKey(m);if(!gruplar.has(k))gruplar.set(k,{id:k,ad:(m.etkinlikBaslik||'Albüm').trim()||'Albüm',tarih:tarih(m),medya:[]});gruplar.get(k).medya.push(m);});
+  _medya.forEach(m=>{const k=albumKey(m);if(!gruplar.has(k))gruplar.set(k,{id:k,ad:(m.albumAdi||m.etkinlikBaslik||'Albüm').trim()||'Albüm',tarih:tarih(m),medya:[]});gruplar.get(k).medya.push(m);});
   _albumler=[];_tekiller=[];
-  gruplar.forEach(g=>{if(g.medya.length>1)_albumler.push(g);else _tekiller.push(g.medya[0]);});
+  gruplar.forEach(g=>{g.medya.sort((a,b)=>(a.albumSira||0)-(b.albumSira||0));if(g.medya.length>1)_albumler.push(g);else _tekiller.push(g.medya[0]);});
   _albumler.sort((a,b)=>String(b.tarih).localeCompare(String(a.tarih)));
 }
 
@@ -64,5 +67,46 @@ export async function render(hedefId){
 function albumKart(a,i,hedefId,esc){const[c1,c2]=RENK[i%RENK.length];const kapak=a.medya.find(m=>m.dosyaTipi!=='video')||a.medya[0];return`<button onclick="window._vg.albumAc('${String(a.id).replace(/'/g,'')}','${hedefId}')" style="border:0;background:#fff;border-radius:16px;overflow:hidden;padding:0;text-align:left;box-shadow:0 2px 10px rgba(15,23,42,.06);cursor:pointer"><div style="height:126px;background:linear-gradient(135deg,${c1},${c2});position:relative;overflow:hidden">${kapak?.bunnyUrl?`<img src="${esc(kucuk(kapak.kucukResim||kapak.bunnyUrl,420))}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`:''}<span style="position:absolute;right:9px;top:9px;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800">📁 ${a.medya.length}</span></div><div style="padding:10px 11px"><div style="font-size:13px;font-weight:800;color:var(--c-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.ad)}</div><div class="ca-tile-sub" style="font-size:10.5px;margin-top:2px">${tarihYazi(a.tarih)}</div></div></button>`;}
 function masonry(liste,hedefId){const{esc}=P();return`<div style="column-count:3;column-gap:8px" class="vg-masonry">${liste.map(m=>`<div style="break-inside:avoid;margin-bottom:8px;border-radius:12px;overflow:hidden;background:var(--c-tint,#F1F5F9);cursor:pointer" onclick="window._vg.buyut('${m.id}','${hedefId}')"><img src="${esc(kucuk(m.kucukResim||m.bunnyUrl,700))}" loading="lazy" alt="${esc(m.etkinlikBaslik||'Anı')}" style="width:100%;display:block" onerror="this.style.display='none';this.parentElement.style.minHeight='120px'"></div>`).join('')}</div>`;}
 function albumDetay(el,hedefId){const{esc}=P();const a=_albumler.find(x=>x.id===_acikAlbum);if(!a){_acikAlbum='';render(hedefId);return;}el.innerHTML=`<div class="ca-row" style="margin-bottom:12px"><button class="ca-back" onclick="window._vg.albumKapat('${hedefId}')">←</button><div><div class="ca-tile-sub">ALBÜM</div><h3 class="ca-head" style="font-size:16px">${esc(a.ad)}</h3><div class="ca-tile-sub">${tarihYazi(a.tarih)}</div></div><span class="ca-tile-sub" style="margin-left:auto">${a.medya.length} fotoğraf</span></div>${masonry(a.medya,hedefId)}`;}
-function buyut(id,hedefId){const{esc}=P();const havuz=_acikAlbum?(_albumler.find(a=>a.id===_acikAlbum)?.medya||[]):_medya;const i=havuz.findIndex(m=>m.id===id);if(i<0)return;const m=havuz[i];document.getElementById('vgLightbox')?.remove();const d=document.createElement('div');d.id='vgLightbox';d.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.96);z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px';d.onclick=e=>{if(e.target===d)d.remove()};d.innerHTML=`<img src="${esc(m.bunnyUrl)}" style="max-width:100%;max-height:76vh;border-radius:12px;object-fit:contain"><div style="color:#fff;text-align:center;margin-top:12px"><div style="font-weight:800">${esc(m.etkinlikBaslik||'')}</div><div style="font-size:11.5px;opacity:.65;margin-top:4px">${tarihYazi(tarih(m))} · ${i+1}/${havuz.length}</div></div><div style="display:flex;gap:10px;margin-top:14px">${i>0?`<button onclick="window._vg.buyut('${havuz[i-1].id}','${hedefId}')" class="ca-back">‹</button>`:''}<button onclick="document.getElementById('vgLightbox').remove()" class="ca-back">×</button>${i<havuz.length-1?`<button onclick="window._vg.buyut('${havuz[i+1].id}','${hedefId}')" class="ca-back">›</button>`:''}</div>`;document.body.appendChild(d);}
-window._vg={filtre:(k,h)=>{_filtre=k;_acikAlbum='';render(h)},albumAc:(id,h)=>{_acikAlbum=id;render(h)},albumKapat:h=>{_acikAlbum='';render(h)},buyut};
+
+function lightboxStil(){
+  if(document.getElementById('vgLightboxStyle'))return;
+  const s=document.createElement('style');s.id='vgLightboxStyle';s.textContent=`
+  #vgLightbox{position:fixed;inset:0;background:rgba(5,10,8,.97);z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 12px 94px;touch-action:pan-y}
+  #vgLightbox .vg-media{width:100%;max-width:900px;max-height:76vh;display:flex;align-items:center;justify-content:center;position:relative}
+  #vgLightbox .vg-media img,#vgLightbox .vg-media video{max-width:100%;max-height:76vh;border-radius:12px;object-fit:contain;background:#111;display:block}
+  #vgLightbox .vg-wm{position:absolute;right:22px;bottom:18px;text-align:right;color:rgba(255,255,255,.75);text-shadow:0 1px 4px rgba(0,0,0,.9),0 0 1px #000;pointer-events:none;line-height:1.08}
+  #vgLightbox .vg-wm b{display:block;font-size:clamp(19px,5vw,28px);font-weight:900;letter-spacing:.5px}#vgLightbox .vg-wm span{display:block;margin-top:3px;font-size:clamp(8px,2.4vw,11px);font-weight:700}
+  #vgLightbox .vg-info{color:#fff;text-align:center;margin-top:12px;padding:0 20px}#vgLightbox .vg-info b{display:block;font-size:14px}#vgLightbox .vg-info span{display:block;font-size:11.5px;opacity:.68;margin-top:4px}
+  #vgLightbox .vg-controls{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);display:flex;gap:10px;padding:9px 11px;background:rgba(20,25,22,.62);backdrop-filter:blur(12px);border-radius:999px;box-shadow:0 8px 28px rgba(0,0,0,.3)}
+  #vgLightbox .vg-btn{width:56px;height:56px;border:0;border-radius:50%;background:#fff;color:#172019;display:grid;place-items:center;font-size:28px;font-weight:800;box-shadow:0 4px 14px rgba(0,0,0,.24);cursor:pointer}#vgLightbox .vg-btn:disabled{opacity:.28}#vgLightbox .vg-btn.download{background:#2D5E3E;color:#fff;font-size:22px}#vgLightbox .vg-btn.close{background:#D94A3E;color:#fff;font-size:29px}
+  @media(max-width:360px){#vgLightbox .vg-controls{gap:7px;padding:8px}#vgLightbox .vg-btn{width:51px;height:51px}}
+  `;document.head.appendChild(s);
+}
+function lightboxKapat(){document.getElementById('vgLightbox')?.remove();document.body.style.overflow='';}
+function lightboxCiz(hedefId){
+  const{esc}=P();const d=document.getElementById('vgLightbox');if(!d)return;const m=_lbHavuz[_lbIndex];if(!m){lightboxKapat();return;}
+  const video=m.dosyaTipi==='video';
+  d.querySelector('.vg-media').innerHTML=(video?`<video src="${esc(m.bunnyUrl)}" controls autoplay playsinline></video>`:`<img src="${esc(m.bunnyUrl)}" alt="${esc(m.etkinlikBaslik||'Anı')}">`)+`<div class="vg-wm"><b>BÇKA</b><span>Bir Çiçek Koleji Anaokulu</span></div>`;
+  d.querySelector('.vg-info b').textContent=m.albumAdi||m.etkinlikBaslik||'Anı';
+  d.querySelector('.vg-info span').textContent=`${tarihYazi(tarih(m))} · ${_lbIndex+1}/${_lbHavuz.length}`;
+  d.querySelector('[data-a="prev"]').disabled=_lbIndex<=0;d.querySelector('[data-a="next"]').disabled=_lbIndex>=_lbHavuz.length-1;
+  d.querySelector('[data-a="prev"]').onclick=()=>{if(_lbIndex>0){_lbIndex--;lightboxCiz(hedefId)}};
+  d.querySelector('[data-a="next"]').onclick=()=>{if(_lbIndex<_lbHavuz.length-1){_lbIndex++;lightboxCiz(hedefId)}};
+}
+async function indirAktif(){
+  const m=_lbHavuz[_lbIndex];if(!m?.bunnyUrl)return;
+  try{const r=await fetch(m.bunnyUrl,{mode:'cors',cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const blob=await r.blob(),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=dosyaAdi(m);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);window.showToast?.('İndirme başlatıldı','success');}
+  catch(e){const a=document.createElement('a');a.href=m.bunnyUrl;a.target='_blank';a.rel='noopener';a.download=dosyaAdi(m);document.body.appendChild(a);a.click();a.remove();window.showToast?.('Fotoğraf açıldı · cihaz menüsünden kaydedebilirsiniz','warn');}
+}
+function buyut(id,hedefId){
+  const havuz=_acikAlbum?(_albumler.find(a=>a.id===_acikAlbum)?.medya||[]):_medya;const i=havuz.findIndex(m=>m.id===id);if(i<0)return;
+  _lbHavuz=havuz;_lbIndex=i;lightboxStil();lightboxKapat();
+  const d=document.createElement('div');d.id='vgLightbox';d.innerHTML=`<div class="vg-media"></div><div class="vg-info"><b></b><span></span></div><div class="vg-controls"><button class="vg-btn" data-a="prev" aria-label="Önceki">‹</button><button class="vg-btn download" data-a="download" aria-label="İndir">⇩</button><button class="vg-btn close" data-a="close" aria-label="Kapat">×</button><button class="vg-btn" data-a="next" aria-label="Sonraki">›</button></div>`;
+  d.onclick=e=>{if(e.target===d)lightboxKapat()};document.body.appendChild(d);document.body.style.overflow='hidden';
+  d.querySelector('[data-a="close"]').onclick=lightboxKapat;d.querySelector('[data-a="download"]').onclick=indirAktif;
+  let sx=0,sy=0;d.addEventListener('touchstart',e=>{const t=e.changedTouches?.[0];if(t){sx=t.clientX;sy=t.clientY}},{passive:true});d.addEventListener('touchend',e=>{const t=e.changedTouches?.[0];if(!t)return;const dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)<48||Math.abs(dx)<=Math.abs(dy))return;if(dx<0&&_lbIndex<_lbHavuz.length-1)_lbIndex++;else if(dx>0&&_lbIndex>0)_lbIndex--;else return;lightboxCiz(hedefId);},{passive:true});
+  lightboxCiz(hedefId);
+}
+
+document.addEventListener('keydown',e=>{if(!document.getElementById('vgLightbox'))return;if(e.key==='Escape')lightboxKapat();else if(e.key==='ArrowLeft'&&_lbIndex>0){_lbIndex--;lightboxCiz('')}else if(e.key==='ArrowRight'&&_lbIndex<_lbHavuz.length-1){_lbIndex++;lightboxCiz('')}});
+window._vg={filtre:(k,h)=>{_filtre=k;_acikAlbum='';render(h)},albumAc:(id,h)=>{_acikAlbum=id;render(h)},albumKapat:h=>{_acikAlbum='';render(h)},buyut,indir:indirAktif,kapat:lightboxKapat};
