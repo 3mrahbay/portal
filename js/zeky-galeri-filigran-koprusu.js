@@ -1,6 +1,9 @@
 // Canli portal galeri yuklemesine BCKA filigrani ekler.
 // Eski galeri kodu index.html icindeki modul kapsamina kapali oldugu icin,
 // yalnizca galeriYukle calisirken JPEG canvas ciktisini guvenle isaretler.
+// Ayrintili veli egitim + gelismis ogretmen gozlem koprusu de bu ortak
+// son-yuklenen modul uzerinden devreye girer; buyuk index.html'e dokunulmaz.
+import './zeky-veli-egitim-koprusu.js?v=1';
 
 const KOPRU_ANAHTARI = '__zekyGaleriFiligranKoprusuV1';
 
