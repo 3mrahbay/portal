@@ -70,7 +70,13 @@ async function yukle() {
 
   _medya = [];
   try {
-    const snap = await fb.getDocs(fb.collection(db, "galeri"));
+    // Firestore kuralları veliye yalnızca onaylanmış belgeleri açar.
+// Koleksiyonun tamamını isteyip tarayıcıda filtrelemek, tek bir bekleyen
+// kayıt olduğunda sorgunun bütünüyle reddedilmesine neden olur.
+const snap = await fb.getDocs(fb.query(
+  fb.collection(db, "galeri"),
+  fb.where("durum", "==", "onaylandi")
+));
     snap.forEach(d => {
       const v = d.data() || {};
       if (v.durum !== "onaylandi") return;               // KVKK: onaysız medya gösterilmez
