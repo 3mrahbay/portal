@@ -26,14 +26,16 @@ async function modulleriYukle(win) {
   const PortalDataModulu = await import(`../portal-data.js?${SURUM}`);
   if (!win.PortalData) win.PortalData = PortalDataModulu;
 
-  const [veliModulu, guvenlikModulu] = await Promise.all([
+  const [veliModulu, guvenlikModulu, donemModulu] = await Promise.all([
     import(`../moduller/veli-egitim-gelisim.js?${SURUM}`),
-    import('./zeky-ogrenci-guvenlik-koprusu.js?v=1')
+    import('./zeky-ogrenci-guvenlik-koprusu.js?v=1'),
+    import('./zeky-aktif-donem-senkron.js?v=1')
   ]);
 
   return {
     veliEgitimRender: veliModulu.render,
-    guvenlikKur: guvenlikModulu.kur
+    guvenlikKur: guvenlikModulu.kur,
+    aktifDonemSenkronla: donemModulu.aktifDonemSenkronla
   };
 }
 
@@ -43,8 +45,8 @@ export async function veliEgitimKoprusunuKur(win = window) {
   baslatiliyor = true;
 
   try {
-    const { veliEgitimRender, guvenlikKur } = await modulleriYukle(win);
-    await guvenlikKur();
+    const { veliEgitimRender, guvenlikKur, aktifDonemSenkronla } = await modulleriYukle(win);
+    await Promise.allSettled([guvenlikKur(), aktifDonemSenkronla()]);
 
     const eskiCaGo = win.caGo;
     if (!eskiCaGo.__zekyEgitimV3) {
