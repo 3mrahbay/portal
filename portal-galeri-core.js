@@ -803,9 +803,7 @@ window.galeriYukle = async function() {
   try {
     const sonDurum = document.getElementById("galeriYuklemeDurum");
     const yonetimR = ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(B.rol()) || B.yoneticiMi();
-    const kendiS = B.rol() === "ogretmen" && hedefTur === "sinif" &&
-                   (typeof sinifGorunur === "function" ? sinifGorunur(hedefDeger) : false);
-    if (sonDurum && !(yonetimR || kendiS)) {
+    if (sonDurum && !yonetimR) {
       sonDurum.innerHTML = `✓ ${basarili} dosya yüklendi · <span style="color:#B45309;">yönetim onayından sonra velilere görünecek</span>`;
     } else if (sonDurum) {
       sonDurum.innerHTML = `✓ ${basarili} dosya yüklendi · <span style="color:#2D7A2D;">veliler görebiliyor</span>`;
@@ -1245,7 +1243,8 @@ async function galeriGuncellemeBildirimi(grup) {
 
       let dahil = false;
       if (hedefTur === "tumOkul") dahil = true;
-      else if (hedefTur === "sinif" && ogrSinif === hedefDeger) dahil = true;
+      else if (hedefTur === "sinif" &&
+               (sinifAdiResmiEsle(ogrSinif) || ogrSinif) === (sinifAdiResmiEsle(hedefDeger) || hedefDeger)) dahil = true;
       else if (hedefTur === "ogrenci" && o.id === hedefDeger) dahil = true;
 
       if (dahil) hedefOgrenciler.push(o);
@@ -1300,7 +1299,8 @@ async function galeriBildirimMailGonder(grup) {
 
       let dahil = false;
       if (hedefTur === "tumOkul") dahil = true;
-      else if (hedefTur === "sinif" && ogrSinif === hedefDeger) dahil = true;
+      else if (hedefTur === "sinif" &&
+               (sinifAdiResmiEsle(ogrSinif) || ogrSinif) === (sinifAdiResmiEsle(hedefDeger) || hedefDeger)) dahil = true;
       else if (hedefTur === "ogrenci" && o.id === hedefDeger) dahil = true;
 
       if (!dahil) continue;
