@@ -13,7 +13,6 @@
 const CACHE_VERSION = "v117";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
-// Açılışta önceden cache'lenecek temel kabuk varlıkları
 const PRECACHE = [
   "./",
   "./index.html",
@@ -31,11 +30,11 @@ const PRECACHE = [
   "./js/zeky-randevu-staff-page.js",
   "./js/zeky-randevu-modal-koprusu.js",
   "./js/zeky-veli-odeme-ozeti.js",
-  // Üst randevu köprüsü halen ?v=1 URL'sini çağırıyor; bu URL son içerikle cache'lenir.
   "./js/zeky-galeri-filigran-koprusu.js?v=1",
   "./js/zeky-galeri-filigran-koprusu.js?v=3",
   "./js/zeky-veli-egitim-koprusu.js?v=3",
   "./js/zeky-ogrenci-guvenlik-koprusu.js?v=1",
+  "./js/zeky-aktif-donem-senkron.js?v=1",
   "./moduller/veli-egitim-gelisim.js?v=3",
   "./moduller/ogretmen-egitim-gozlem.js?v=3",
   "./moduller/sabah-girisi.js",
@@ -50,7 +49,6 @@ const PRECACHE = [
   "./manifest.json",
 ];
 
-// Asla cache'lenmeyecek host'lar (canlı veri / kimlik)
 const NO_CACHE_HOSTS = [
   "firestore.googleapis.com",
   "firebaseinstallations.googleapis.com",
@@ -59,22 +57,18 @@ const NO_CACHE_HOSTS = [
   "identitytoolkit.googleapis.com",
   "securetoken.googleapis.com",
   "www.googleapis.com",
-  "script.google.com", // Brevo mail proxy
+  "script.google.com",
 ];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)));
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      )
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -82,21 +76,14 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
-
-  // Sadece GET'i yönet; POST vb. doğrudan ağa gider
   if (req.method !== "GET") return;
-
-  // Canlı veri / kimlik istekleri: dokunma
   if (NO_CACHE_HOSTS.some((h) => url.hostname.includes(h))) return;
 
   const isNavigation =
-    req.mode === "navigate" ||
-    (req.destination === "document") ||
-    url.pathname.endsWith(".html") ||
-    url.pathname.endsWith(".js");
+    req.mode === "navigate" || req.destination === "document" ||
+    url.pathname.endsWith(".html") || url.pathname.endsWith(".js");
 
   if (isNavigation) {
-    // NETWORK-FIRST: güncel sürüm önce, yoksa cache
     event.respondWith(
       fetch(req)
         .then((res) => {
@@ -111,7 +98,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // CACHE-FIRST: statik varlıklar (resim, font, css, CDN)
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
