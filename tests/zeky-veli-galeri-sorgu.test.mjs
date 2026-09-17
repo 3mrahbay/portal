@@ -6,7 +6,7 @@ const kok = new URL('../', import.meta.url);
 
 test('veli galeri modülü yalnızca onaylanmış medyayı Firestore’dan ister', async () => {
   const kaynak = await readFile(new URL('moduller/veli-galeri.js', kok), 'utf8');
-  assert.match(kaynak, /fb\.where\(["']durum["'],\s*["']==["'],\s*["']onaylandi["']\)/);
+  assert.match(kaynak, /fb\.where\(\s*["']durum["']\s*,\s*["']==["']\s*,\s*["']onaylandi["']\s*\)/);
   assert.doesNotMatch(kaynak, /getDocs\(fb\.collection\(db,\s*["']galeri["']\)\)/);
 });
 
