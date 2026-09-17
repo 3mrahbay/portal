@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v108";
+const CACHE_VERSION = "v109";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 // Açılışta önceden cache'lenecek temel kabuk varlıkları
@@ -29,6 +29,7 @@ const PRECACHE = [
   "./js/zeky-randevu-parent-page.js",
   "./js/zeky-randevu-staff-page.js",
   "./js/zeky-randevu-modal-koprusu.js",
+  "./js/zeky-veli-odeme-ozeti.js",
   "./moduller/sabah-girisi.js",
   "./moduller/veli-izinleri.js",
   "./moduller/pickup-yetkilileri.js",
