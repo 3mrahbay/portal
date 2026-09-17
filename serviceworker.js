@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v115";
+const CACHE_VERSION = "v116";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 // Açılışta önceden cache'lenecek temel kabuk varlıkları
@@ -23,7 +23,7 @@ const PRECACHE = [
   "./randevu-talepleri.html",
   "./randevu-talepleri-callable.html",
   "./randevu-ayarlar.html",
-  "./portal-data.js?v=1",
+  "./portal-data.js?v=2",
   "./js/zeky-randevu-cutover-config.js",
   "./js/zeky-randevu-cutover-runtime.js",
   "./js/zeky-randevu-callable-adapter.js",
@@ -31,10 +31,13 @@ const PRECACHE = [
   "./js/zeky-randevu-staff-page.js",
   "./js/zeky-randevu-modal-koprusu.js",
   "./js/zeky-veli-odeme-ozeti.js",
+  // Üst randevu köprüsü halen ?v=1 URL'sini ister. Bu URL de son içerikle cache'lenir;
+  // dosyanın içi eğitim zincirini ?v=2 ile yükler.
   "./js/zeky-galeri-filigran-koprusu.js?v=1",
-  "./js/zeky-veli-egitim-koprusu.js?v=1",
-  "./moduller/veli-egitim-gelisim.js?v=1",
-  "./moduller/ogretmen-egitim-gozlem.js?v=1",
+  "./js/zeky-galeri-filigran-koprusu.js?v=2",
+  "./js/zeky-veli-egitim-koprusu.js?v=2",
+  "./moduller/veli-egitim-gelisim.js?v=2",
+  "./moduller/ogretmen-egitim-gozlem.js?v=2",
   "./moduller/sabah-girisi.js",
   "./moduller/veli-izinleri.js",
   "./moduller/pickup-yetkilileri.js",
