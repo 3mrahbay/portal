@@ -81,20 +81,20 @@ async function galeriFiligranEkle(dosya, dosyaAdi = "foto.jpg") {
 
           ctx.textAlign = "right";
           ctx.textBaseline = "alphabetic";
-          ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-          ctx.shadowColor = `rgba(0,0,0,${alpha * 0.8})`;
+          ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
+          ctx.shadowColor = "rgba(0,0,0," + (alpha * 0.8) + ")";
           ctx.shadowBlur = Math.max(2, Math.round(ustBoy * 0.12));
 
           const sagX = canvas.width - pay;
           const altY = canvas.height - pay;
-          ctx.font = `600 ${altBoy}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
+          ctx.font = "600 " + altBoy + "px -apple-system, Helvetica Neue, Arial, sans-serif";
           const altGen = ctx.measureText(altMetin).width;
           const altSon = altGen > canvas.width - pay * 2
             ? Math.max(7, Math.floor(altBoy * (canvas.width - pay * 2) / altGen))
             : altBoy;
-          ctx.font = `600 ${altSon}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
+          ctx.font = "600 " + altSon + "px -apple-system, Helvetica Neue, Arial, sans-serif";
           ctx.fillText(altMetin, sagX, altY);
-          ctx.font = `800 ${ustBoy}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
+          ctx.font = "800 " + ustBoy + "px -apple-system, Helvetica Neue, Arial, sans-serif";
           ctx.fillText("BÇKA", sagX, altY - altSon - Math.round(ustBoy * 0.18));
 
           canvas.toBlob((blob) => {
