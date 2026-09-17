@@ -1,10 +1,10 @@
 // Portal Eğitim ekranını ZEKY mobildeki ayrıntılı gelişim yolculuğuna bağlar.
-// Ana portal <script type="module"> içinde çalıştığı için caEgitimYukle window'a
-// açılmaz. Bu köprü doğru global giriş noktası olan window.caGo'yu sarar.
-// Ayrıca BCK hazır olana kadar bekler ve alt modülleri sürümlü dinamik import eder.
+// Veli tarafında caGo('egitim') derin gelişim ekranına yönlenir.
+// Öğretmen/personel tarafındaki gözlem + aktif öğrenci + iletişim gizliliği
+// ayrı güvenlik köprüsüyle kurulur.
 
-const KURULUM = '__zekyVeliEgitimKoprusuV2';
-const SURUM = 'v2';
+const KURULUM = '__zekyVeliEgitimKoprusuV3';
+const SURUM = 'v3';
 let baslatiliyor = false;
 
 function bekle(kosul, deneme = 120, aralik = 100) {
@@ -26,14 +26,14 @@ async function modulleriYukle(win) {
   const PortalDataModulu = await import(`../portal-data.js?${SURUM}`);
   if (!win.PortalData) win.PortalData = PortalDataModulu;
 
-  const [veliModulu, gozlemModulu] = await Promise.all([
+  const [veliModulu, guvenlikModulu] = await Promise.all([
     import(`../moduller/veli-egitim-gelisim.js?${SURUM}`),
-    import(`../moduller/ogretmen-egitim-gozlem.js?${SURUM}`)
+    import('./zeky-ogrenci-guvenlik-koprusu.js?v=1')
   ]);
 
   return {
     veliEgitimRender: veliModulu.render,
-    gelismisGozlemKur: gozlemModulu.kur
+    guvenlikKur: guvenlikModulu.kur
   };
 }
 
@@ -43,29 +43,24 @@ export async function veliEgitimKoprusunuKur(win = window) {
   baslatiliyor = true;
 
   try {
-    const { veliEgitimRender, gelismisGozlemKur } = await modulleriYukle(win);
+    const { veliEgitimRender, guvenlikKur } = await modulleriYukle(win);
+    await guvenlikKur();
 
-    // Öğretmen tarafı: mevcut global caGozlemAc doğrudan gelişmiş pencereye çevrilir.
-    gelismisGozlemKur(win);
-
-    // Veli tarafı: caEgitimYukle modül-içi olduğu için window.caGo yakalanır.
     const eskiCaGo = win.caGo;
-    if (!eskiCaGo.__zekyEgitimV2) {
+    if (!eskiCaGo.__zekyEgitimV3) {
       const yeniCaGo = function (ekran, ...args) {
         if (ekran === 'egitim') {
-          // Eski caGo çağrılmaz; aksi halde modül-içi eski async eğitim ekranı
-          // yeni ekranı sonradan tekrar ezebilir.
           Promise.resolve()
             .then(() => veliEgitimRender('cicekAppRoot'))
             .catch((e) => {
-              console.error('ZEKY ayrıntılı eğitim ekranı açılamadı.', e);
+              console.error('ZEKY ayrıntılı veli eğitim ekranı açılamadı.', e);
               try { eskiCaGo.call(this, ekran, ...args); } catch (_) {}
             });
           return;
         }
         return eskiCaGo.call(this, ekran, ...args);
       };
-      yeniCaGo.__zekyEgitimV2 = true;
+      yeniCaGo.__zekyEgitimV3 = true;
       yeniCaGo.__eski = eskiCaGo;
       win.caGo = yeniCaGo;
     }
