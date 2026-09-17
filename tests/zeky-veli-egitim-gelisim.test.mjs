@@ -43,23 +43,49 @@ test('portal öğretmen gözlemi aşama, not ve fotoğrafı aynı kazanım zinci
   assert.match(kaynak, /BÇKA/);
 });
 
-test('eğitim köprüsü modül-içi caEgitimYukle yerine global caGo girişini kullanır', async () => {
+test('eğitim köprüsü v3 global caGo, güvenlik ve aktif dönem senkronunu yükler', async () => {
   const kopru = await readFile(new URL('js/zeky-veli-egitim-koprusu.js', kok), 'utf8');
   const baslangic = await readFile(new URL('js/zeky-galeri-filigran-koprusu.js', kok), 'utf8');
   assert.match(kopru, /typeof win\.caGo === 'function'/);
   assert.match(kopru, /ekran === 'egitim'/);
   assert.match(kopru, /veliEgitimRender\('cicekAppRoot'\)/);
-  assert.match(kopru, /gelismisGozlemKur/);
+  assert.match(kopru, /zeky-ogrenci-guvenlik-koprusu\.js\?v=1/);
+  assert.match(kopru, /zeky-aktif-donem-senkron\.js\?v=1/);
   assert.match(kopru, /__zekyEgitimKoprusuSurum/);
   assert.doesNotMatch(kopru, /typeof win\.caEgitimYukle/);
-  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=2/);
+  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=3/);
 });
 
-test('PWA cache eğitim zincirinin v2 dosyalarını taşır', async () => {
+test('öğrenci güvenlik köprüsü aktif dönem, gözlem ve e-posta gizliliğini uygular', async () => {
+  const kaynak = await readFile(new URL('js/zeky-ogrenci-guvenlik-koprusu.js', kok), 'utf8');
+  assert.match(kaynak, /aktifDonemDurum/);
+  assert.match(kaynak, /aktifDonem:/);
+  assert.match(kaynak, /ogrenciEgitimIslem/);
+  assert.match(kaynak, /islem==='gozlem'/);
+  assert.match(kaynak, /islem==='mesaj'/);
+  assert.match(kaynak, /zekyGelismisGozlemAc/);
+  assert.match(kaynak, /Yeni Eğitim Gözlemi/);
+  assert.match(kaynak, /btn\.onclick=.*mesajYeniBaslat/);
+  assert.doesNotMatch(kaynak, /Mesajlaşma bölümünden .*email/);
+  assert.doesNotMatch(kaynak, /onclick=.{0,120}v\.email/);
+});
+
+test('aktif dönem senkronu yalnız güvenli dönem işaretlerini ana öğrenci kaydına yazar', async () => {
+  const kaynak = await readFile(new URL('js/zeky-aktif-donem-senkron.js', kok), 'utf8');
+  assert.match(kaynak, /aktifDonem:donem/);
+  assert.match(kaynak, /aktifDonemDurum:durum/);
+  assert.match(kaynak, /for\(let deneme=0;deneme<15;deneme\+\+\)/);
+  assert.doesNotMatch(kaynak, /aidat/);
+  assert.doesNotMatch(kaynak, /veli1Eposta/);
+});
+
+test('PWA cache eğitim ve güvenlik zincirinin v3 dosyalarını taşır', async () => {
   const sw = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(sw, /CACHE_VERSION = "v116"/);
-  assert.match(sw, /portal-data\.js\?v=2/);
-  assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=2/);
-  assert.match(sw, /veli-egitim-gelisim\.js\?v=2/);
-  assert.match(sw, /ogretmen-egitim-gozlem\.js\?v=2/);
+  assert.match(sw, /CACHE_VERSION = "v117"/);
+  assert.match(sw, /portal-data\.js\?v=3/);
+  assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=3/);
+  assert.match(sw, /zeky-ogrenci-guvenlik-koprusu\.js\?v=1/);
+  assert.match(sw, /zeky-aktif-donem-senkron\.js\?v=1/);
+  assert.match(sw, /veli-egitim-gelisim\.js\?v=3/);
+  assert.match(sw, /ogretmen-egitim-gozlem\.js\?v=3/);
 });
