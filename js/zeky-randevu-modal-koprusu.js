@@ -28,6 +28,7 @@ import {
   callableCutoverAcikMi, randevuServisiGetir, istekIzleyiciOlustur,
   guvenliId, gunAnahtari, zamanYazi
 } from './zeky-randevu-cutover-runtime.js';
+import { veliOdemeOzetiHesapla } from './zeky-veli-odeme-ozeti.js?v=1';
 
 const istekler = istekIzleyiciOlustur();
 let apiOnbellek = null;
@@ -367,3 +368,100 @@ window.caRandevuTalepAc = async function () {
   }
   modalAc(ogrenciId);
 };
+
+// ── Veli ana sayfasındaki ödeme özeti ──────────────────────────────
+// Ana sayfanın HTML iskeleti eski görünümü korur. Bu köprü, kart ekrana
+// geldiğinde yalnızca oturumdaki velinin seçili çocuğuna ait dönem belgesini
+// okur ve demo tutarı gerçek ödeme özetiyle değiştirir. Firestore kuralları
+// başka bir veliye ait öğrenci belgesinin okunmasına ayrıca izin vermez.
+const ODEME_GORUNUMLERI = Object.freeze({
+  plansiz:     { arkaPlan: '#fff', renk: 'var(--c-purple-deep)' },
+  tamamlandi: { arkaPlan: '#DFF4E3', renk: 'var(--c-green-deep)' },
+  odendi:      { arkaPlan: '#DFF4E3', renk: 'var(--c-green-deep)' },
+  kismi:       { arkaPlan: 'var(--c-yellow-soft)', renk: '#8a6d1a' },
+  bekliyor:    { arkaPlan: '#fff', renk: 'var(--c-purple-deep)' },
+  gecikmis:    { arkaPlan: '#FFE3E9', renk: 'var(--c-pink-deep)' }
+});
+
+let odemeKartIstekNo = 0;
+let odemeKartGuncellemePlanli = false;
+
+function odemeKartiniYaz(kart, ozet) {
+  const gorunum = ODEME_GORUNUMLERI[ozet.durum] || ODEME_GORUNUMLERI.bekliyor;
+  const tutar = ozet.tutar === null
+    ? '—'
+    : `₺${Math.round(ozet.tutar).toLocaleString('tr-TR')}`;
+  kart.style.border = ozet.durum === 'gecikmis' ? '1px solid #f9a8d4' : '';
+  kart.innerHTML = `
+    <div class="ca-row" style="justify-content:space-between;">
+      <span class="ca-pill" style="background:var(--c-purple-deep); color:#fff;">
+        <i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i>
+        ${kacar(ozet.baslik)}
+      </span>
+      <span class="ca-pill" style="background:${gorunum.arkaPlan}; color:${gorunum.renk};">${kacar(ozet.rozet)}</span>
+    </div>
+    <div class="ca-row" style="justify-content:space-between; margin-top:12px; align-items:flex-end;">
+      <div>
+        <div class="ca-head" style="font-size:22px;">${tutar}</div>
+        <div class="ca-tile-sub">${kacar(ozet.aciklama)}</div>
+      </div>
+      <button type="button" class="ca-btn" data-zeky-odeme-detay style="background:var(--c-purple-deep);">${kacar(ozet.eylem)}</button>
+    </div>`;
+  kart.querySelector('[data-zeky-odeme-detay]')?.addEventListener('click', () => {
+    if (typeof window.veliSwitchTab === 'function') window.veliSwitchTab('odemeler');
+  });
+  kart.dataset.zekyOdemeDurum = 'hazir';
+  if (window.lucideYenile) window.lucideYenile();
+}
+
+async function veliOdemeKartiniGuncelle() {
+  const kart = document.querySelector('.ca-page .ca-pay');
+  const portal = window.PortalAPI;
+  const durum = portal?.state || {};
+  const ogrenciId = String(durum.veliAktifOgrenci?.id || '');
+  const donem = String(durum.aktifDonem || '');
+  if (!kart || !portal?.db || !portal?.fb?.doc || !portal?.fb?.getDoc || !guvenliId(ogrenciId) || !donem) return;
+
+  const anahtar = `${ogrenciId}|${donem}`;
+  if (kart.dataset.zekyOdemeAnahtar === anahtar &&
+      (kart.dataset.zekyOdemeDurum === 'yukleniyor' || kart.dataset.zekyOdemeDurum === 'hazir')) return;
+
+  const istekNo = ++odemeKartIstekNo;
+  kart.dataset.zekyOdemeAnahtar = anahtar;
+  kart.dataset.zekyOdemeDurum = 'yukleniyor';
+  odemeKartiniYaz(kart, {
+    durum: 'plansiz', baslik: 'Ödeme durumu', rozet: 'Yükleniyor', tutar: null,
+    aciklama: 'Gerçek ödeme bilgileriniz alınıyor.', eylem: 'Ödemeleri Gör'
+  });
+  kart.dataset.zekyOdemeDurum = 'yukleniyor';
+
+  try {
+    const referans = portal.fb.doc(portal.db, 'ogrenciler', ogrenciId, 'donemler', donem);
+    const belge = await portal.fb.getDoc(referans);
+    const guncelKart = document.querySelector('.ca-page .ca-pay');
+    const guncelOgrenciId = String(window.PortalAPI?.state?.veliAktifOgrenci?.id || '');
+    if (istekNo !== odemeKartIstekNo || guncelKart !== kart || guncelOgrenciId !== ogrenciId) return;
+    odemeKartiniYaz(kart, veliOdemeOzetiHesapla(belge.exists() ? belge.data() : null, new Date()));
+  } catch (error) {
+    console.warn('[Veli ödeme özeti]', error?.code || error?.message || error);
+    if (istekNo !== odemeKartIstekNo || !kart.isConnected) return;
+    odemeKartiniYaz(kart, {
+      durum: 'plansiz', baslik: 'Ödeme durumu', rozet: 'Alınamadı', tutar: null,
+      aciklama: 'Ödeme bilgilerinizi ayrıntılar ekranından kontrol edebilirsiniz.',
+      eylem: 'Ödemeleri Gör'
+    });
+  }
+}
+
+function veliOdemeKartiniPlanla() {
+  if (odemeKartGuncellemePlanli) return;
+  odemeKartGuncellemePlanli = true;
+  queueMicrotask(() => {
+    odemeKartGuncellemePlanli = false;
+    veliOdemeKartiniGuncelle();
+  });
+}
+
+const veliOdemeKartGozlemcisi = new MutationObserver(veliOdemeKartiniPlanla);
+veliOdemeKartGozlemcisi.observe(document.documentElement, { childList: true, subtree: true });
+veliOdemeKartiniPlanla();
