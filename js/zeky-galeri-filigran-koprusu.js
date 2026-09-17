@@ -3,9 +3,9 @@
 // yalnizca galeriYukle calisirken JPEG canvas ciktisini guvenle isaretler.
 // Ayrintili veli egitim + gelismis ogretmen gozlem koprusu de bu ortak
 // son-yuklenen modul uzerinden devreye girer; buyuk index.html'e dokunulmaz.
-import './zeky-veli-egitim-koprusu.js?v=2';
+import './zeky-veli-egitim-koprusu.js?v=3';
 
-const KOPRU_ANAHTARI = '__zekyGaleriFiligranKoprusuV2';
+const KOPRU_ANAHTARI = '__zekyGaleriFiligranKoprusuV3';
 
 export function galeriFiligraniCiz(canvas) {
   const ctx = canvas?.getContext?.('2d');
