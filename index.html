@@ -35049,7 +35049,12 @@ async function veliRenderGaleri() {
   el.innerHTML = `<div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>`;
 
   try {
-    const snap = await getDocs(collection(db, "galeri"));
+    // Veli sorgusu Firestore güvenlik kuralıyla aynı kapsamı istemeli.
+// Aksi halde koleksiyondaki tek bir onaysız kayıt tüm sorguyu reddeder.
+const snap = await getDocs(query(
+  collection(db, "galeri"),
+  where("durum", "==", "onaylandi")
+));
     const tumu = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Velinin çocuklarına göre filtrele
