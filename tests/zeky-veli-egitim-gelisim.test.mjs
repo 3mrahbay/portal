@@ -43,11 +43,23 @@ test('portal öğretmen gözlemi aşama, not ve fotoğrafı aynı kazanım zinci
   assert.match(kaynak, /BÇKA/);
 });
 
-test('eğitim köprüsü mevcut portal eğitim ve gözlem giriş noktalarını kullanır', async () => {
+test('eğitim köprüsü modül-içi caEgitimYukle yerine global caGo girişini kullanır', async () => {
   const kopru = await readFile(new URL('js/zeky-veli-egitim-koprusu.js', kok), 'utf8');
   const baslangic = await readFile(new URL('js/zeky-galeri-filigran-koprusu.js', kok), 'utf8');
-  assert.match(kopru, /caEgitimYukle/);
+  assert.match(kopru, /typeof win\.caGo === 'function'/);
+  assert.match(kopru, /ekran === 'egitim'/);
   assert.match(kopru, /veliEgitimRender\('cicekAppRoot'\)/);
   assert.match(kopru, /gelismisGozlemKur/);
-  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=1/);
+  assert.match(kopru, /__zekyEgitimKoprusuSurum/);
+  assert.doesNotMatch(kopru, /typeof win\.caEgitimYukle/);
+  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=2/);
+});
+
+test('PWA cache eğitim zincirinin v2 dosyalarını taşır', async () => {
+  const sw = await readFile(new URL('serviceworker.js', kok), 'utf8');
+  assert.match(sw, /CACHE_VERSION = "v116"/);
+  assert.match(sw, /portal-data\.js\?v=2/);
+  assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=2/);
+  assert.match(sw, /veli-egitim-gelisim\.js\?v=2/);
+  assert.match(sw, /ogretmen-egitim-gozlem\.js\?v=2/);
 });
