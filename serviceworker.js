@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v117";
+const CACHE_VERSION = "v118";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -37,6 +37,8 @@ const PRECACHE = [
   "./js/zeky-aktif-donem-senkron.js?v=1",
   "./moduller/veli-egitim-gelisim.js?v=3",
   "./moduller/ogretmen-egitim-gozlem.js?v=3",
+  "./portal-data.js?v=4",
+  "./moduller/ogretmen-egitim-gozlem.js?v=4",
   "./moduller/sabah-girisi.js",
   "./moduller/veli-izinleri.js",
   "./moduller/pickup-yetkilileri.js",
