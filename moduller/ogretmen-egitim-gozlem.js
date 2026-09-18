@@ -123,7 +123,7 @@ async function kaydet(){
   catch(e){console.error('gelişmiş gözlem',e);toast('Gözlem kaydedilemedi: '+(e.message||e),'error');if(btn)btn.disabled=false;if(pr){pr.textContent='Kayıt tamamlanamadı.';}}
 }
 
-async function ac(ogrId,ogrAdValue,sinif){
+export async function gozlemAc(ogrId,ogrAdValue,sinif){
   if(!ogrId)return;stil();S={ogrId,ogrAd:ogrAdValue||'Öğrenci',sinif:sinif||'',program:'montessori',alanlar:[],alanIdx:0,grupIdx:0,dersIdx:0,durum:'',not:'',foto:null,fotoOniz:''};
   const d=document.createElement('div');d.id='zegoArka';d.className='zego-arka';d.innerHTML='<div class="zego-kart"><div style="padding:30px;text-align:center;color:#7C8882">Müfredat yükleniyor…</div></div>';d.onclick=e=>{if(e.target===d)kapat()};document.body.appendChild(d);
   try{await mufredatYukle();ciz();}catch(e){console.error(e);toast('Eğitim programı yüklenemedi.','error');kapat();}
@@ -131,7 +131,7 @@ async function ac(ogrId,ogrAdValue,sinif){
 
 export function kur(win=window){
   if(!win||win[KURULUM])return false;
-  let deneme=0;const dene=()=>{if(typeof win.caGozlemAc==='function'){eskiCaGozlemAc=win.caGozlemAc;win.caGozlemAc=ac;win[KURULUM]=true;return;}deneme++;if(deneme<60)setTimeout(dene,100);};dene();return true;
+  let deneme=0;const dene=()=>{if(typeof win.caGozlemAc==='function'){eskiCaGozlemAc=win.caGozlemAc;win.caGozlemAc=gozlemAc;win[KURULUM]=true;return;}deneme++;if(deneme<60)setTimeout(dene,100);};dene();return true;
 }
 
 kur();
