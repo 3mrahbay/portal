@@ -5,9 +5,20 @@ let _medya = [];
 let _albumler = [];
 let _tekiller = [];
 let _acikAlbum = '';
+let _egitimProgram = '';
+let _egitimAlan = '';
+
+const PROGRAMLAR = {
+  montessori:{ ad:'Montessori', renk:'#4A7C59', acik:'#EAF3EC' },
+  orman:{ ad:'Orman Okulu', renk:'#5C8B5A', acik:'#EDF4ED' },
+  degerler:{ ad:'Değerler Eğitimi', renk:'#7B5EA7', acik:'#F0EAF6' },
+  ingilizce:{ ad:'İngilizce Eğitimi', renk:'#2E5C8A', acik:'#E4EEF6' }
+};
+const ASAMA = { S:'Sunuldu', T:'Tekrar ediyor', U:'Ustalaştı' };
 
 const KATEGORILER = [
   { k:'tumu', ad:'Tümü' },
+  { k:'egitim', ad:'Eğitim' },
   { k:'orman', ad:'Orman', esle:['orman','doğa','doga','bahçe','bahce','yürüyüş'] },
   { k:'sanat', ad:'Sanat', esle:['sanat','atölye','atolye','boya','resim','el işi'] },
   { k:'oyun', ad:'Oyun', esle:['oyun','hareket','jimnastik','dans','müzik','muzik'] },
@@ -16,12 +27,35 @@ const KATEGORILER = [
 const RENK = [['#F9A8D4','#EC4899'],['#86EFAC','#22C55E'],['#FDE68A','#F59E0B'],['#C4B5FD','#8B5CF6'],['#93C5FD','#3B82F6'],['#FCA5A5','#EF4444']];
 
 function kucuk(url,w=600){if(!url)return'';return url.includes('?')?`${url}&width=${w}`:`${url}?width=${w}`;}
-function kategoriEsle(m){const s=((m.etkinlikBaslik||'')+' '+(m.kategori||'')+' '+(m.aciklama||'')).toLocaleLowerCase('tr');for(const k of KATEGORILER){if(k.esle?.some(x=>s.includes(x)))return k.k;}return'etkinlik';}
+function programKodu(m){const s=String(m?.program||m?.kategori||m?.etkinlikBaslik||'').toLocaleLowerCase('tr');if(s.includes('montessori'))return'montessori';if(s.includes('orman'))return'orman';if(s.includes('değer')||s.includes('deger'))return'degerler';if(s.includes('ingiliz')||s.includes('english'))return'ingilizce';return PROGRAMLAR[s]?s:'';}
+function egitimMi(m){return m?.egitimKaydi===true||m?.albumTuru==='egitim'||Boolean(m?.kazanimAnahtari&&programKodu(m));}
+function kategoriEsle(m){if(egitimMi(m))return'egitim';const s=((m.etkinlikBaslik||'')+' '+(m.kategori||'')+' '+(m.aciklama||'')).toLocaleLowerCase('tr');for(const k of KATEGORILER){if(k.esle?.some(x=>s.includes(x)))return k.k;}return'etkinlik';}
 function sinifAnahtar(v){let s=String(v||'').toLocaleLowerCase('tr').replace(/ı/g,'i').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]/g,'');s=s.replace(/ciceklerisinifi|cicekler|sinifi|sinif/g,'');if(s.includes('papatya')||s.includes('mimoza')||s==='montessori1'||s==='toddler')return'mimoza';if(s.includes('kardelen')||s.includes('yasemin')||s==='montessori2')return'yasemin';if(s.includes('nar')||s.includes('lavanta')||s==='montessori3')return'lavanta';if(s.includes('ilkadim'))return'ilkadimlar';return s;}
 function sinifEslesir(a,b){return !!a&&!!b&&sinifAnahtar(a)===sinifAnahtar(b);}
+function sinifAdaylari(s){const h={mimoza:['Mimoza Çiçekleri Sınıfı','Mimoza','Papatyalar Sınıfı','Montessori 1','Toddler'],yasemin:['Yasemin Çiçekleri Sınıfı','Yasemin','Kardelenler Sınıfı','Montessori 2'],lavanta:['Lavanta Çiçekleri Sınıfı','Lavanta','Nar Çiçekleri Sınıfı','Montessori 3'],ilkadimlar:['İlk Adımlar','İlk Adımlar Sınıfı']};return[...new Set([s,...(h[sinifAnahtar(s)]||[])].filter(Boolean))];}
 function albumKey(m){return String(m.albumId||'').trim()||[String(m.etkinlikTarih||'').slice(0,10),(m.etkinlikBaslik||'Diğer').trim(),m.hedefTur||'',m.hedefDeger||''].join('|');}
 function tarih(m){return String(m.etkinlikTarih||m.yuklemeZamani||'').slice(0,10);}
 function tarihYazi(t){if(!t)return'';const d=new Date(t+'T12:00:00');return isNaN(d)?t:d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});}
+function alanKodu(m){return String(m?.alanId||m?.kazanimAnahtari||'').split('__')[0]||'genel';}
+function alanAdi(m){const ad=String(m?.alanAd||'').trim();if(ad)return ad;return alanKodu(m).replace(/[-_]+/g,' ').replace(/\b\w/g,x=>x.toLocaleUpperCase('tr'));}
+
+async function hedefliGaleriOku(fb,db,ogr,sinif){
+  const ortak=[fb.where('durum','==','onaylandi')];
+  const sorgular=[
+    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','tumOkul')),
+    ...sinifAdaylari(sinif).map(ad=>fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','sinif'),fb.where('hedefDeger','==',ad))),
+    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','ogrenci'),fb.where('hedefDeger','==',ogr.id)),
+    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefOgrenciId','==',ogr.id)),
+    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('ogrenciId','==',ogr.id))
+  ];
+  const sonuclar=await Promise.allSettled(sorgular.map(q=>fb.getDocs(q)));
+  const benzersiz=new Map();
+  sonuclar.forEach(r=>{
+    if(r.status!=='fulfilled'){console.warn('veli galeri hedefli sorgu',r.reason?.code||r.reason?.message);return;}
+    r.value.forEach(d=>{const v=d.data()||{};if(v.durum!=='onaylandi')return;benzersiz.set(d.id,{id:d.id,...v,bunnyUrl:v.bunnyUrl||v.url||''});});
+  });
+  return [...benzersiz.values()];
+}
 
 async function yukle(){
   const {fb,db,state}=P();
@@ -30,12 +64,10 @@ async function yukle(){
   const sinif=(state.ayarListesi[ogr.id]?.kayit?.sinif)||ogr.sinif||'';
   _medya=[];
   try{
-    const snap=await fb.getDocs(fb.query(fb.collection(db,'galeri'),fb.where('durum','==','onaylandi')));
-    snap.forEach(d=>{
-      const v=d.data()||{};
-      const kapsam=v.hedefTur==='tumOkul'||(v.hedefTur==='sinif'&&sinifEslesir(v.hedefDeger,sinif))||(v.hedefTur==='ogrenci'&&(v.hedefDeger===ogr.id||v.hedefOgrenciId===ogr.id));
-      if(!kapsam||!v.bunnyUrl)return;
-      _medya.push({id:d.id,...v});
+    const hedefli=await hedefliGaleriOku(fb,db,ogr,sinif);
+    _medya=hedefli.filter(v=>{
+      const kapsam=v.hedefTur==='tumOkul'||(v.hedefTur==='sinif'&&sinifEslesir(v.hedefDeger,sinif))||(v.hedefTur==='ogrenci'&&(v.hedefDeger===ogr.id||v.hedefOgrenciId===ogr.id||v.ogrenciId===ogr.id));
+      return kapsam&&Boolean(v.bunnyUrl);
     });
   }catch(e){console.warn('veli galeri',e.code||e.message);}
   _medya.sort((a,b)=>String(b.etkinlikTarih||b.yuklemeZamani||'').localeCompare(String(a.etkinlikTarih||a.yuklemeZamani||'')));
@@ -51,8 +83,10 @@ export async function render(hedefId){
   const {esc,lucide}=P();
   el.innerHTML='<div class="ca-card" style="text-align:center;padding:24px;color:var(--c-muted);font-size:13px">Yükleniyor…</div>';
   await yukle();
+  if(window.__zekyGaleriBaslangicFiltre==='egitim'){_filtre='egitim';_egitimProgram='';_egitimAlan='';window.__zekyGaleriBaslangicFiltre='';}
   if(!_medya.length){el.innerHTML='<div class="ca-card" style="text-align:center;padding:36px 22px"><div style="font-size:38px">📷</div><div style="font-weight:700;margin-top:8px">Henüz paylaşılan anı yok</div><div class="ca-tile-sub" style="margin-top:5px">Öğretmenler fotoğraf paylaştığında ve yönetim onayladığında burada görünecek.</div></div>';return;}
   if(_acikAlbum){albumDetay(el,hedefId);lucide();return;}
+  if(_filtre==='egitim'){egitimKlasorleri(el,hedefId);lucide();return;}
   const medyaFiltre=m=>_filtre==='tumu'||kategoriEsle(m)===_filtre;
   const albumler=_albumler.map(a=>({...a,medya:a.medya.filter(medyaFiltre)})).filter(a=>a.medya.length>1);
   const tekiller=_tekiller.filter(medyaFiltre);
@@ -61,8 +95,19 @@ export async function render(hedefId){
   ${tekiller.length?`<div class="ca-sectionhead" style="margin-top:16px"><h3 class="ca-head" style="font-size:15px">Fotoğraflar</h3><span class="ca-tile-sub">${tekiller.length} tek içerik</span></div>${masonry(tekiller,hedefId)}`:''}`;
   lucide();
 }
+
+function klasorKart(ad,alt,sayi,renk,acik,onclick,kapak){const{esc}=P();return`<button type="button" onclick="${onclick}" style="border:0;background:#fff;border-radius:18px;overflow:hidden;padding:0;text-align:left;box-shadow:0 2px 12px rgba(15,23,42,.07);cursor:pointer"><div style="height:118px;background:${kapak?`#E8EEEA url('${esc(kucuk(kapak,480))}') center/cover no-repeat`:`linear-gradient(135deg,${acik},#fff)`};position:relative"><span style="position:absolute;left:13px;bottom:12px;width:42px;height:42px;border-radius:14px;background:${renk};color:#fff;display:grid;place-items:center;font-size:20px">📁</span><span style="position:absolute;right:10px;top:10px;background:rgba(15,23,42,.68);color:#fff;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800">${sayi}</span></div><div style="padding:11px 13px"><div style="font-size:13.5px;font-weight:850;color:var(--c-ink)">${esc(ad)}</div><div class="ca-tile-sub" style="font-size:10.5px;margin-top:3px">${esc(alt)}</div></div></button>`;}
+function egitimKlasorleri(el,hedefId){
+  const {esc}=P(),liste=_medya.filter(egitimMi);
+  if(!liste.length){el.innerHTML='<div class="ca-card" style="text-align:center;padding:34px 20px"><div style="font-size:34px">📚</div><div style="font-weight:800;margin-top:8px">Eğitim galerisi henüz boş</div><div class="ca-tile-sub" style="margin-top:5px">Onaylanan gözlem fotoğrafları burada program ve alan klasörlerine ayrılır.</div></div>';return;}
+  const ust=`<div class="ca-row" style="margin-bottom:13px">${_egitimProgram?`<button class="ca-back" onclick="window._vg.egitimGeri('${hedefId}')">←</button>`:''}<div><div class="ca-tile-sub">EĞİTİM GALERİSİ</div><h3 class="ca-head" style="font-size:17px">${_egitimProgram?esc(PROGRAMLAR[_egitimProgram]?.ad||_egitimProgram):'Programlar ve gelişim alanları'}</h3><div class="ca-tile-sub">Yalnızca yönetimce onaylanan fotoğraflar</div></div>${!_egitimProgram?`<button class="ca-link" style="margin-left:auto" onclick="window._vg.filtre('tumu','${hedefId}')">Tüm Galeri</button>`:''}</div>`;
+  if(!_egitimProgram){const gr=new Map();liste.forEach(m=>{const k=programKodu(m)||'diger';if(!gr.has(k))gr.set(k,[]);gr.get(k).push(m);});el.innerHTML=ust+`<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px">${[...gr].map(([k,ms])=>{const p=PROGRAMLAR[k]||{ad:'Diğer Eğitimler',renk:'#64748B',acik:'#F1F5F9'};return klasorKart(p.ad,`${new Set(ms.map(alanKodu)).size} gelişim alanı`,ms.length,p.renk,p.acik,`window._vg.egitimProgramAc('${k}','${hedefId}')`,ms[0]?.bunnyUrl);}).join('')}</div>`;return;}
+  const programListe=liste.filter(m=>(programKodu(m)||'diger')===_egitimProgram);
+  if(!_egitimAlan){const gr=new Map();programListe.forEach(m=>{const k=alanKodu(m);if(!gr.has(k))gr.set(k,[]);gr.get(k).push(m);});const p=PROGRAMLAR[_egitimProgram]||{renk:'#64748B',acik:'#F1F5F9'};el.innerHTML=ust+`<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px">${[...gr].map(([k,ms])=>klasorKart(alanAdi(ms[0]),`${ms.length} aşama fotoğrafı`,ms.length,p.renk,p.acik,`window._vg.egitimAlanAc('${k}','${hedefId}')`,ms[0]?.bunnyUrl)).join('')}</div>`;return;}
+  const alanListe=programListe.filter(m=>alanKodu(m)===_egitimAlan);el.innerHTML=ust+`<div class="ca-row" style="justify-content:space-between;margin:2px 0 10px"><strong style="font-size:14px">${esc(alanAdi(alanListe[0]))}</strong><span class="ca-tile-sub">${alanListe.length} kayıt</span></div>${masonry(alanListe,hedefId)}`;
+}
 function albumKart(a,i,hedefId,esc){const[c1,c2]=RENK[i%RENK.length];const kapak=a.medya.find(m=>m.dosyaTipi!=='video')||a.medya[0];return`<button onclick="window._vg.albumAc('${String(a.id).replace(/'/g,'')}','${hedefId}')" style="border:0;background:#fff;border-radius:16px;overflow:hidden;padding:0;text-align:left;box-shadow:0 2px 10px rgba(15,23,42,.06);cursor:pointer"><div style="height:126px;background:linear-gradient(135deg,${c1},${c2});position:relative;overflow:hidden">${kapak?.bunnyUrl?`<img src="${esc(kucuk(kapak.kucukResim||kapak.bunnyUrl,420))}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`:''}<span style="position:absolute;right:9px;top:9px;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800">📁 ${a.medya.length}</span></div><div style="padding:10px 11px"><div style="font-size:13px;font-weight:800;color:var(--c-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.ad)}</div><div class="ca-tile-sub" style="font-size:10.5px;margin-top:2px">${tarihYazi(a.tarih)}</div></div></button>`;}
 function masonry(liste,hedefId){const{esc}=P();return`<div style="column-count:3;column-gap:8px" class="vg-masonry">${liste.map(m=>`<div style="break-inside:avoid;margin-bottom:8px;border-radius:12px;overflow:hidden;background:var(--c-tint,#F1F5F9);cursor:pointer" onclick="window._vg.buyut('${m.id}','${hedefId}')"><img src="${esc(kucuk(m.kucukResim||m.bunnyUrl,700))}" loading="lazy" alt="${esc(m.etkinlikBaslik||'Anı')}" style="width:100%;display:block" onerror="this.style.display='none';this.parentElement.style.minHeight='120px'"></div>`).join('')}</div>`;}
 function albumDetay(el,hedefId){const{esc}=P();const a=_albumler.find(x=>x.id===_acikAlbum);if(!a){_acikAlbum='';render(hedefId);return;}el.innerHTML=`<div class="ca-row" style="margin-bottom:12px"><button class="ca-back" onclick="window._vg.albumKapat('${hedefId}')">←</button><div><div class="ca-tile-sub">ALBÜM</div><h3 class="ca-head" style="font-size:16px">${esc(a.ad)}</h3><div class="ca-tile-sub">${tarihYazi(a.tarih)}</div></div><span class="ca-tile-sub" style="margin-left:auto">${a.medya.length} fotoğraf</span></div>${masonry(a.medya,hedefId)}`;}
-function buyut(id,hedefId){const{esc}=P();const havuz=_acikAlbum?(_albumler.find(a=>a.id===_acikAlbum)?.medya||[]):_medya;const i=havuz.findIndex(m=>m.id===id);if(i<0)return;const m=havuz[i];document.getElementById('vgLightbox')?.remove();const d=document.createElement('div');d.id='vgLightbox';d.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.96);z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px';d.onclick=e=>{if(e.target===d)d.remove()};d.innerHTML=`<img src="${esc(m.bunnyUrl)}" style="max-width:100%;max-height:76vh;border-radius:12px;object-fit:contain"><div style="color:#fff;text-align:center;margin-top:12px"><div style="font-weight:800">${esc(m.etkinlikBaslik||'')}</div><div style="font-size:11.5px;opacity:.65;margin-top:4px">${tarihYazi(tarih(m))} · ${i+1}/${havuz.length}</div></div><div style="display:flex;gap:10px;margin-top:14px">${i>0?`<button onclick="window._vg.buyut('${havuz[i-1].id}','${hedefId}')" class="ca-back">‹</button>`:''}<button onclick="document.getElementById('vgLightbox').remove()" class="ca-back">×</button>${i<havuz.length-1?`<button onclick="window._vg.buyut('${havuz[i+1].id}','${hedefId}')" class="ca-back">›</button>`:''}</div>`;document.body.appendChild(d);}
-window._vg={filtre:(k,h)=>{_filtre=k;_acikAlbum='';render(h)},albumAc:(id,h)=>{_acikAlbum=id;render(h)},albumKapat:h=>{_acikAlbum='';render(h)},buyut};
+function buyut(id,hedefId){const{esc}=P();const havuz=_egitimAlan?_medya.filter(m=>egitimMi(m)&&programKodu(m)===_egitimProgram&&alanKodu(m)===_egitimAlan):_acikAlbum?(_albumler.find(a=>a.id===_acikAlbum)?.medya||[]):_medya;const i=havuz.findIndex(m=>m.id===id);if(i<0)return;const m=havuz[i],eg=egitimMi(m);document.getElementById('vgLightbox')?.remove();const d=document.createElement('div');d.id='vgLightbox';d.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.96);z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px';d.onclick=e=>{if(e.target===d)d.remove()};d.innerHTML=`<img src="${esc(m.bunnyUrl)}" style="max-width:100%;max-height:${eg?'67':'76'}vh;border-radius:12px;object-fit:contain"><div style="color:#fff;text-align:center;margin-top:12px;max-width:720px"><div style="font-weight:800">${esc(m.baslik||m.etkinlikBaslik||'')}</div>${eg?`<div style="font-size:11.5px;opacity:.78;margin-top:4px">${esc(PROGRAMLAR[programKodu(m)]?.ad||m.programAd||'Eğitim')} · ${esc(alanAdi(m))}${m.gozlemDurum?` · ${esc(ASAMA[m.gozlemDurum]||m.gozlemDurum)}`:''}</div>${m.aciklama?`<div style="font-size:13px;line-height:1.55;margin-top:8px">${esc(m.aciklama)}</div>`:''}`:''}<div style="font-size:11.5px;opacity:.65;margin-top:4px">${tarihYazi(tarih(m))} · ${i+1}/${havuz.length}</div></div><div style="display:flex;gap:10px;margin-top:14px">${i>0?`<button onclick="window._vg.buyut('${havuz[i-1].id}','${hedefId}')" class="ca-back">‹</button>`:''}<button onclick="document.getElementById('vgLightbox').remove()" class="ca-back">×</button>${i<havuz.length-1?`<button onclick="window._vg.buyut('${havuz[i+1].id}','${hedefId}')" class="ca-back">›</button>`:''}</div>`;document.body.appendChild(d);}
+window._vg={filtre:(k,h)=>{_filtre=k;_acikAlbum='';_egitimProgram='';_egitimAlan='';render(h)},albumAc:(id,h)=>{_acikAlbum=id;render(h)},albumKapat:h=>{_acikAlbum='';render(h)},egitimProgramAc:(k,h)=>{_egitimProgram=k;_egitimAlan='';render(h)},egitimAlanAc:(k,h)=>{_egitimAlan=k;render(h)},egitimGeri:h=>{if(_egitimAlan)_egitimAlan='';else _egitimProgram='';render(h)},buyut};

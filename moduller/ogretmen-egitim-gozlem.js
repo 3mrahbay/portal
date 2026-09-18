@@ -86,22 +86,24 @@ function kapat(){if(S?.fotoOniz)try{URL.revokeObjectURL(S.fotoOniz)}catch(_){};d
 
 async function blobResim(blob){return new Promise((resolve,reject)=>{const u=URL.createObjectURL(blob),img=new Image();img.onload=()=>{URL.revokeObjectURL(u);resolve(img)};img.onerror=e=>{URL.revokeObjectURL(u);reject(e)};img.src=u;});}
 async function filigranla(blob){
-  try{const img=await blobResim(blob),c=document.createElement('canvas');c.width=img.naturalWidth||img.width;c.height=img.naturalHeight||img.height;const x=c.getContext('2d');x.drawImage(img,0,0,c.width,c.height);const k=Math.min(c.width,c.height),pay=Math.max(12,Math.round(k*.035)),ust=Math.max(16,Math.round(k*.055));let alt=Math.max(9,Math.round(ust*.36));x.globalAlpha=.40;x.fillStyle='#fff';x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=Math.max(2,Math.round(ust*.10));x.textAlign='right';x.textBaseline='alphabetic';x.font=`600 ${alt}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`;const met='Bir Çiçek Koleji Anaokulu',max=Math.max(80,c.width-pay*2),ol=x.measureText(met).width;if(ol>max)alt=Math.max(8,Math.floor(alt*max/ol));x.font=`600 ${alt}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`;x.fillText(met,c.width-pay,c.height-pay);x.font=`800 ${ust}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`;x.fillText('BÇKA',c.width-pay,c.height-pay-alt-Math.round(ust*.18));x.globalAlpha=1;return await new Promise(r=>c.toBlob(b=>r(b||blob),'image/jpeg',.9));}catch(e){console.warn('gözlem filigranı',e);return blob;}
+  try{const img=await blobResim(blob),c=document.createElement('canvas');c.width=img.naturalWidth||img.width;c.height=img.naturalHeight||img.height;const x=c.getContext('2d');x.drawImage(img,0,0,c.width,c.height);const k=Math.min(c.width,c.height),pay=Math.max(12,Math.round(k*.035)),ust=Math.max(18,Math.round(k*.06));let alt=Math.max(10,Math.round(ust*.38));const tip='-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif',met='Bir Çiçek Koleji Anaokulu',max=Math.max(80,c.width-pay*2);x.font=`650 ${alt}px ${tip}`;const ol=x.measureText(met).width;if(ol>max)alt=Math.max(9,Math.floor(alt*max/ol));x.font=`650 ${alt}px ${tip}`;const gen=Math.max(x.measureText(met).width,x.measureText('BÇKA').width);const bos=Math.max(10,Math.round(ust*.34)),yuk=ust+alt+bos*2+Math.round(ust*.18),sol=c.width-pay-gen-bos*2,ustY=c.height-pay-yuk;
+    x.save();x.globalAlpha=.34;x.fillStyle='#10251A';if(typeof x.roundRect==='function'){x.beginPath();x.roundRect(sol,ustY,gen+bos*2,yuk,Math.max(8,Math.round(ust*.28)));x.fill();}else{x.fillRect(sol,ustY,gen+bos*2,yuk);}x.restore();
+    x.save();x.globalAlpha=.40;x.fillStyle='#fff';x.shadowColor='rgba(0,0,0,.82)';x.shadowBlur=Math.max(3,Math.round(ust*.14));x.shadowOffsetY=Math.max(1,Math.round(ust*.04));x.textAlign='right';x.textBaseline='alphabetic';x.font=`650 ${alt}px ${tip}`;x.fillText(met,c.width-pay-bos,c.height-pay-bos);x.font=`850 ${ust}px ${tip}`;x.fillText('BÇKA',c.width-pay-bos,c.height-pay-bos-alt-Math.round(ust*.18));x.restore();return await new Promise(r=>c.toBlob(b=>r(b||blob),'image/jpeg',.9));}catch(e){console.warn('gözlem filigranı',e);return blob;}
 }
 
-async function fotoYukle(anahtar,ders){
+async function fotoYukle(anahtar,ders,alan,grup){
   if(!S.foto)return null;const b=B();
   if(!b?.resimSikistir||!b?.medyaYukle)throw new Error('Medya yükleyici hazır değil.');
   const sik=await b.resimSikistir(S.foto,1920,.85);const isaretli=await filigranla(sik);
-  const tarih=new Date().toISOString().slice(0,10),klasor=`galeri/ogrenci/${S.ogrId}/${S.program}/${tarih}`;
+  const tarih=new Date().toISOString().slice(0,10),alanId=alan?.id||'genel',klasor=`galeri/ogrenci/${S.ogrId}/egitim/${S.program}/${alanId}/${tarih}`;
   const sonuc=await b.medyaYukle(isaretli,klasor);const dogrudan=yonetimMi(),durum=dogrudan?'onaylandi':'beklemede';
   const ref=b.doc(b.collection(b.db,'galeri'));
-  const p=programBilgi(S.program),simdi=new Date().toISOString();
-  await b.setDoc(ref,{url:sonuc.url,bunnyUrl:sonuc.url,bunnyPath:sonuc.yol||'',dosyaTipi:'foto',tip:'image',baslik:ders,etkinlikBaslik:p.ad,aciklama:(S.not||'').trim(),sinif:S.sinif||'',hedefTur:'ogrenci',hedefDeger:S.ogrId,hedefOgrenciId:S.ogrId,hedefOgrenciAd:ogrAd(),kategori:S.program,program:S.program,albumTuru:'egitim',egitimKaydi:true,durum,kazanimAnahtari:anahtar,gozlemDurum:S.durum,ogrenciId:S.ogrId,yukleyen:b.kullanici?.()?.email||'',yukleyenAd:personelAd(),tarih:simdi,yuklemeZamani:simdi,olusturuldu:b.serverTimestamp?b.serverTimestamp():simdi},{merge:true});
+  const p=programBilgi(S.program),simdi=new Date().toISOString(),donem=window.PortalAPI?.state?.aktifDonem||'';
+  await b.setDoc(ref,{url:sonuc.url,bunnyUrl:sonuc.url,bunnyPath:sonuc.yol||'',dosyaTipi:'foto',tip:'image',baslik:ders,kazanimAdi:ders,etkinlikBaslik:p.ad,aciklama:(S.not||'').trim(),sinif:S.sinif||'',hedefTur:'ogrenci',hedefDeger:S.ogrId,hedefOgrenciId:S.ogrId,hedefOgrenciAd:ogrAd(),kategori:S.program,program:S.program,programAd:p.ad,alanId,alanAd:alan?.ad||'',grupAd:grup?.ad||'',albumId:`egitim|${S.program}|${alanId}`,albumTuru:'egitim',egitimKaydi:true,durum,kazanimAnahtari:anahtar,gozlemDurum:S.durum,ogrenciId:S.ogrId,donem,filigran:'BÇKA · Bir Çiçek Koleji Anaokulu',filigranVersiyon:2,yukleyen:b.kullanici?.()?.email||'',yukleyenAd:personelAd(),tarih:simdi,yuklemeZamani:simdi,olusturuldu:b.serverTimestamp?b.serverTimestamp():simdi},{merge:true});
   return {id:ref.id,url:sonuc.url,durum,yol:sonuc.yol||''};
 }
 
-async function gelisimKaydet(anahtar,ders,foto){
+async function gelisimKaydet(anahtar,ders,alan,grup,foto){
   const b=B(),ref=b.doc(b.db,'ogrenciGelisim',S.ogrId),snap=await b.getDoc(ref),tum=snap.exists()?(snap.data()||{}):{},dis=tum[S.program]||{};
   const kayitlar={...(dis.kayitlar||{})},tarihler={...(dis.tarihler||{})},detay={...(dis.detay||{})},onceki=detay[anahtar]||{},asamalar={...(onceki.asamalar||{})},eski=asamalar[S.durum]||{};
   const simdi=new Date().toISOString(),not=(S.not||'').trim(),onayli=!foto||foto.durum==='onaylandi';
@@ -110,8 +112,15 @@ async function gelisimKaydet(anahtar,ders,foto){
   if(guncel){kayitlar[anahtar]=S.durum;tarihler[anahtar]=simdi.slice(0,10);}
   detay[anahtar]={...onceki,...(guncel?{durum:S.durum,not:yeni.not,tarih:yeni.tarih,yazar:yeni.yazar,paylas:true,fotoUrl:yeni.fotoUrl||'',fotoDurum:yeni.fotoDurum||'',galeriId:yeni.galeriId||'',dersAd:ders}:{}),asamalar};
   const yaz={[S.program]:{...dis,kayitlar,tarihler,detay,guncellendi:b.serverTimestamp?b.serverTimestamp():simdi}};
-  if(guncel)yaz.sonGozlem={disiplin:S.program,anahtar,dersAd:ders,not:yeni.not,fotoUrl:yeni.fotoUrl||'',fotoDurum:yeni.fotoDurum||'',galeriId:yeni.galeriId||'',durum:S.durum,tarih:simdi,yazar:yeni.yazar,paylas:true};
+  if(guncel)yaz.sonGozlem={disiplin:S.program,programAd:programBilgi(S.program).ad,anahtar,dersAd:ders,alanId:alan?.id||'',alanAd:alan?.ad||'',grupAd:grup?.ad||'',not:yeni.not,fotoUrl:yeni.fotoUrl||'',fotoDurum:yeni.fotoDurum||'',galeriId:yeni.galeriId||'',durum:S.durum,tarih:simdi,yazar:yeni.yazar,paylas:true};
   await b.setDoc(ref,yaz,{merge:true});
+}
+
+async function bildirimOlustur(anahtar,ders,alan,grup,foto){
+  const b=B();if(!b?.collection||!b?.doc||!b?.setDoc||!b?.db)return;
+  const d=DURUMLAR.find(x=>x.kod===S.durum),p=programBilgi(S.program),simdi=new Date().toISOString();
+  const ref=b.doc(b.collection(b.db,'ogrenciler',S.ogrId,'bildirimler'));
+  await b.setDoc(ref,{tip:'egitim_gelisim',baslik:`${ders} · ${d?.ad||'Yeni aşama'}`,icerik:(S.not||'').trim()||`${p.ad} programında yeni bir gelişim aşaması kaydedildi.`,program:S.program,programAd:p.ad,alanId:alan?.id||'',alanAd:alan?.ad||'',grupAd:grup?.ad||'',kazanimAnahtari:anahtar,kazanimAdi:ders,gozlemDurum:S.durum,galeriId:foto?.id||'',fotoDurum:foto?.durum||'',tarih:simdi,olusturuldu:simdi,gonderenAd:personelAd(),okundu:false,donem:window.PortalAPI?.state?.aktifDonem||''},{merge:true});
 }
 
 async function kaydet(){
@@ -119,7 +128,7 @@ async function kaydet(){
   const {alan,grup,ders}=secenekler();if(!alan||!grup||!ders){toast('Bir eğitim/kazanım seçin.','error');return;}
   const root=document.getElementById('zegoArka'),btn=root?.querySelector('[data-act="kaydet"]'),pr=root?.querySelector('#zegoProgress');if(btn)btn.disabled=true;if(pr){pr.classList.add('on');pr.textContent=S.foto?'Fotoğraf işleniyor ve gözlem kaydediliyor…':'Gözlem kaydediliyor…';}
   const anahtar=`${alan.id}__${grup.ad||''}__${ders}`;
-  try{const foto=await fotoYukle(anahtar,ders);await gelisimKaydet(anahtar,ders,foto);toast(foto&&foto.durum==='beklemede'?'Gözlem kaydedildi · fotoğraf yönetim onayında':'✓ Gözlem kaydedildi','success');const geriSinif=S.sinif;kapat();try{if(typeof window.caAdminGo==='function')window.caAdminGo('egitim',geriSinif);}catch(_){}}
+  try{const foto=await fotoYukle(anahtar,ders,alan,grup);await gelisimKaydet(anahtar,ders,alan,grup,foto);await bildirimOlustur(anahtar,ders,alan,grup,foto).catch(e=>console.warn('eğitim bildirimi',e));toast(foto&&foto.durum==='beklemede'?'Gözlem kaydedildi · fotoğraf yönetim onayında':'✓ Gözlem kaydedildi','success');const geriSinif=S.sinif;kapat();try{if(typeof window.caAdminGo==='function')window.caAdminGo('egitim',geriSinif);}catch(_){}}
   catch(e){console.error('gelişmiş gözlem',e);toast('Gözlem kaydedilemedi: '+(e.message||e),'error');if(btn)btn.disabled=false;if(pr){pr.textContent='Kayıt tamamlanamadı.';}}
 }
 
