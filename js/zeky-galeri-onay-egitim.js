@@ -1,0 +1,35 @@
+// Yönetim galeri onayında eğitim fotoğrafını kazanım bağlamıyla gösterir.
+
+const KURULUM='__zekyGaleriOnayEgitimV1';
+const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi'};
+const ASAMA={S:'Sunuldu',T:'Tekrar ediyor',U:'Ustalaştı'};
+let gozlemci=null;
+
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function programKodu(m){const s=String(m?.program||m?.kategori||m?.etkinlikBaslik||'').toLocaleLowerCase('tr');if(s.includes('montessori'))return'montessori';if(s.includes('orman'))return'orman';if(s.includes('değer')||s.includes('deger'))return'degerler';if(s.includes('ingiliz')||s.includes('english'))return'ingilizce';return PROGRAM[s]?s:'';}
+function egitimMi(m){return m?.egitimKaydi===true||m?.albumTuru==='egitim'||Boolean(m?.kazanimAnahtari&&programKodu(m));}
+function bekliyor(m){return m?.durum==='beklemede'||m?.durum==='onayBekliyor';}
+function yonetimMi(){const s=window.PortalAPI?.state||{};return!!s.isAdmin||['kurucu_mudur','mudur'].includes(String(s.rol||''));}
+function veri(id){return(window.galeriListesiVerisi||[]).find(x=>x.id===id)||null;}
+function kartId(k){const x=String(k?.getAttribute?.('onclick')||'').match(/acGaleriLightbox\('([^']+)'\)/);return x?.[1]||'';}
+function tarih(m){const d=new Date(m?.tarih||m?.yuklemeZamani||m?.olusturmaTarihi||'');return isNaN(d)?'':d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});}
+
+function stil(){if(document.getElementById('zeky-galeri-onay-egitim-stil'))return;const s=document.createElement('style');s.id='zeky-galeri-onay-egitim-stil';s.textContent=`.zgo-kisa{position:absolute;left:0;right:0;bottom:45px;padding:24px 8px 7px;background:linear-gradient(transparent,rgba(7,20,13,.86));color:#fff;pointer-events:none}.zgo-kisa b{display:block;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zgo-kisa span{display:block;font-size:9px;opacity:.82;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zgo-detay{width:min(390px,36vw);min-width:290px;padding:22px;overflow:auto;background:#fff;color:#26382E}.zgo-detay h3{font-size:18px;line-height:1.35;margin:6px 0 0}.zgo-rozetler{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}.zgo-rozet{font-size:10.5px;font-weight:800;padding:5px 9px;border-radius:999px;background:#EAF3EC;color:#2D6A45}.zgo-aciklama{font-size:13px;line-height:1.65;color:#526158;background:#F5F8F6;border-radius:13px;padding:12px;margin-top:14px}.zgo-bilgi{display:grid;grid-template-columns:92px 1fr;gap:7px;font-size:11.5px;margin-top:14px}.zgo-bilgi span{color:#89958E}.zgo-bilgi b{color:#35463C;overflow-wrap:anywhere}.zgo-actions{display:flex;gap:8px;margin-top:18px}.zgo-actions button{flex:1;border:0;border-radius:11px;padding:11px;color:#fff;font-weight:800;cursor:pointer}@media(max-width:760px){#galeriLightboxIcerik.zgo-grid{display:flex!important;flex-direction:column;overflow:auto!important;max-height:88vh!important}.zgo-detay{width:100%;min-width:0;box-sizing:border-box}.zgo-medya{min-height:42vh}.zgo-medya img{max-height:52vh!important}}`;document.head.appendChild(s);}
+
+function kartlariZenginlestir(){
+  const liste=document.getElementById('galeriListesi');if(!liste)return;
+  liste.querySelectorAll("[onclick*='acGaleriLightbox(']").forEach(k=>{const id=kartId(k),m=veri(id);if(!m||!egitimMi(m)||!bekliyor(m)||k.querySelector('.zgo-kisa'))return;const d=document.createElement('div');d.className='zgo-kisa';d.innerHTML=`<b>${esc(m.baslik||m.kazanimAdi||'Eğitim kazanımı')}</b><span>${esc(PROGRAM[programKodu(m)]||m.programAd||'Eğitim')} · ${esc(ASAMA[m.gozlemDurum]||'Aşama')} ${m.aciklama?'· açıklamalı':''}</span>`;k.appendChild(d);});
+}
+
+function detayHTML(m){const p=PROGRAM[programKodu(m)]||m.programAd||'Eğitim',a=ASAMA[m.gozlemDurum]||m.gozlemDurum||'Gelişim aşaması';return`<aside class="zgo-detay"><div style="font-size:10px;font-weight:850;letter-spacing:.8px;color:#738279">EĞİTİM ONAYI</div><h3>${esc(m.baslik||m.kazanimAdi||m.etkinlikBaslik||'Eğitim kazanımı')}</h3><div class="zgo-rozetler"><span class="zgo-rozet">${esc(p)}</span><span class="zgo-rozet" style="background:#FFF5D8;color:#9A6800">${esc(a)}</span>${m.alanAd?`<span class="zgo-rozet" style="background:#EEF2F7;color:#536274">${esc(m.alanAd)}</span>`:''}</div>${m.aciklama?`<div class="zgo-aciklama"><b style="display:block;font-size:11px;color:#2D6A45;margin-bottom:5px">Gözlem açıklaması</b>${esc(m.aciklama)}</div>`:'<div class="zgo-aciklama" style="color:#8B9690">Bu gözlem için açıklama girilmemiş.</div>'}<div class="zgo-bilgi"><span>Öğrenci</span><b>${esc(m.hedefOgrenciAd||'—')}</b><span>Gelişim alanı</span><b>${esc(m.alanAd||m.alanId||'—')}</b><span>Grup</span><b>${esc(m.grupAd||'—')}</b><span>Öğretmen</span><b>${esc(m.yukleyenAd||'—')}</b><span>Tarih</span><b>${esc(tarih(m)||'—')}</b></div>${bekliyor(m)&&yonetimMi()?`<div class="zgo-actions"><button type="button" data-zgo-red style="background:#DC2626">Reddet</button><button type="button" data-zgo-onay style="background:#168447">Onayla</button></div>`:''}</aside>`;}
+
+function lightboxZenginlestir(id){
+  const m=veri(id),icerik=document.getElementById('galeriLightboxIcerik');if(!m||!icerik||!egitimMi(m))return;
+  const medya=icerik.innerHTML;icerik.classList.add('zgo-grid');icerik.style.cssText='background:white;border-radius:16px;overflow:hidden;max-height:92vh;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;justify-content:center;max-width:94vw';icerik.innerHTML=`<div class="zgo-medya" style="min-width:0;background:#111;display:grid;place-items:center;overflow:hidden">${medya}</div>${detayHTML(m)}`;const img=icerik.querySelector('.zgo-medya img');if(img)img.style.cssText='width:100%;height:100%;max-width:min(64vw,980px);max-height:92vh;object-fit:contain';icerik.querySelector('[data-zgo-onay]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriOnayla?.(id);});icerik.querySelector('[data-zgo-red]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriReddet?.(id);});
+}
+
+function fonksiyonlariSar(){const eski=window.acGaleriLightbox;if(typeof eski!=='function'||eski.__zekyEgitimDetay)return false;const yeni=function(id,...args){const r=eski.call(this,id,...args);setTimeout(()=>lightboxZenginlestir(id),0);return r;};yeni.__zekyEgitimDetay=true;yeni.__eski=eski;window.acGaleriLightbox=yeni;return true;}
+
+export function kur(win=window){if(!win||win[KURULUM])return false;stil();let n=0;const dene=()=>{if(fonksiyonlariSar())return;if(++n<80)setTimeout(dene,100);};dene();gozlemci=new MutationObserver(kartlariZenginlestir);gozlemci.observe(document.body,{childList:true,subtree:true});setTimeout(kartlariZenginlestir,800);win[KURULUM]=true;return true;}
+
+if(typeof window!=='undefined')kur();
