@@ -33,7 +33,15 @@ test('öğretmen mesaj arayüzünde e-posta toast veya inline veli hedefi üretm
 
 test('PWA çekirdek hotfix v118 ve v4 gözlem dosyasını taşır', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v118"/);
+  assert.match(s, /CACHE_VERSION = "v119"/);
   assert.match(s, /portal-data\.js\?v=4/);
   assert.match(s, /ogretmen-egitim-gozlem\.js\?v=4/);
+});
+
+test('öğretmen dönem işaretleri tamamlanmadıysa Yoklama ile aynı aktiflik fallbackini kullanır', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  assert.match(s, /masterDonemIsaretleriHazir/);
+  assert.match(s, /ogrenciList\.every/);
+  assert.match(s, /getOgrenciDurum\(o, donemVerisi\) !== "aktif"/);
+  assert.match(s, /Yoklama ekranının kullandığı aktiflik mantığıyla aynı fallback/);
 });
