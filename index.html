@@ -13785,7 +13785,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v105";
+window.PORTAL_SURUM = "v106";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16000,8 +16000,10 @@ onAuthStateChanged(auth, async (user) => {
       try { sekmeleriRoleGoreAyarla(); } catch(e) { console.warn(e); }
       try { solMenuyuRoleGoreAyarla(); } catch(e) { console.warn(e); }
 
-      // Yeni Tasarım ana sayfasını (rol bazlı) render et — varsayılan açılış sekmesi
-      try { renderAdminHome(); } catch(e) { console.warn("renderAdminHome:", e); }
+      // Ana sayfanın ağır kartlarını öğrenci/dönem verileri gelmeden başlatma.
+      // Önce yalnızca hafif yükleme görünümü gösterilir; loadOgrenciler tamamlanınca
+      // gerçek ana sayfa tek seferde çizilip kart sorguları başlatılır.
+      try { adminHomeYukleniyorGoster(); } catch(e) { console.warn("adminHomeYukleniyorGoster:", e); }
 
       // ZEKY denetim kaydı: personel/yönetim girişi
       try { zekiDenetim("personel_giris", { rol: aktifKullaniciRol }); } catch(e) {}
@@ -20048,9 +20050,76 @@ window.egitimIlerlemeDoldur = async function() {
   }
 };
 
+// Ana sayfa görevleri aynı anda yalnızca güncel render için çalışır.
+// Bu koruma; hızlı sekme geçişlerinde veya veri yenilemelerinde eski render'ın
+// zamanlayıcılarının aynı Firestore sorgularını ikinci kez başlatmasını önler.
+let adminHomeRenderSurumu = 0;
+let adminHomeZamanlayicilari = [];
+let adminHomeVeriHazirMi = false;
+
+function adminHomeSekmesiAktifMi() {
+  return document.getElementById("tab-anasayfa")?.classList.contains("active") === true;
+}
+
+function adminHomeZamanlayicilariniTemizle() {
+  adminHomeZamanlayicilari.forEach(zamanlayici => clearTimeout(zamanlayici));
+  adminHomeZamanlayicilari = [];
+}
+
+function adminHomeArkaPlanCalismasiniDurdur() {
+  adminHomeRenderSurumu++;
+  adminHomeZamanlayicilariniTemizle();
+  if (typeof window.okulZiliCanliDurdur === "function") window.okulZiliCanliDurdur();
+}
+
+function adminHomeGorevPlanla(gorev, gecikme, renderSurumu, etiket) {
+  const zamanlayici = setTimeout(() => {
+    adminHomeZamanlayicilari = adminHomeZamanlayicilari.filter(id => id !== zamanlayici);
+    if (renderSurumu !== adminHomeRenderSurumu || !adminHomeSekmesiAktifMi()) return;
+    try {
+      const sonuc = gorev();
+      if (sonuc && typeof sonuc.catch === "function") {
+        sonuc.catch(e => console.warn(`Ana sayfa görevi (${etiket || "kart"}):`, e));
+      }
+    } catch (e) {
+      console.warn(`Ana sayfa görevi (${etiket || "kart"}):`, e);
+    }
+  }, gecikme);
+  adminHomeZamanlayicilari.push(zamanlayici);
+  return zamanlayici;
+}
+
+function adminHomeYukleniyorGoster() {
+  adminHomeVeriHazirMi = false;
+  adminHomeArkaPlanCalismasiniDurdur();
+  const root = document.getElementById("adminHomeRoot");
+  if (!root) return;
+  root.innerHTML = `<div class="ca-page ca-stack">
+    <div class="ca-card" style="min-height:180px; display:flex; align-items:center; justify-content:center; text-align:center;">
+      <div>
+        <div class="spinner" style="margin:0 auto 14px;"></div>
+        <div class="ca-head" style="font-size:16px;">Ana sayfa hazırlanıyor</div>
+        <div class="ca-tile-sub" style="margin-top:6px;">Öğrenci ve dönem bilgileri güvenli biçimde yükleniyor…</div>
+      </div>
+    </div>
+  </div>`;
+  if (typeof caTemaUygula === "function") caTemaUygula();
+}
+
+function adminHomeVeriYuklemesiTamamlandi() {
+  adminHomeVeriHazirMi = true;
+  if (adminHomeSekmesiAktifMi()) renderAdminHome();
+}
+
 function renderAdminHome() {
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
+  if (!adminHomeVeriHazirMi) {
+    adminHomeYukleniyorGoster();
+    return;
+  }
+  adminHomeZamanlayicilariniTemizle();
+  const renderSurumu = ++adminHomeRenderSurumu;
   // Faz 1b: admin iç-navigasyon (eğitim takibi gerçek veri)
   if (caAdminEkran === "egitim") {
     root.innerHTML = `<div class="ca-page ca-stack"><div class="ca-draft-banner"><i data-lucide="book-open" style="width:14px;height:14px;vertical-align:-2px;"></i> Sınıf eğitim verileri yükleniyor…</div></div>`;
@@ -20062,33 +20131,24 @@ function renderAdminHome() {
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
   const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && ["ogretmen","danisma"].includes(aktifKullaniciRol));
   root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
-  // Öğrenci verisi henüz gelmediyse üstte "yükleniyor" şeridi göster (loadOgrenciler bitince yeniden çizilir)
-  if (!ogretmenMi && (typeof ogrenciList === "undefined" || !ogrenciList || ogrenciList.length === 0)) {
-    const banner = document.createElement("div");
-    banner.id = "adminHomeYukleniyor";
-    banner.className = "ca-draft-banner";
-    banner.style.cssText = "margin-bottom:12px;";
-    banner.innerHTML = `<i data-lucide="loader-2" style="width:14px;height:14px;vertical-align:-2px;animation:spin 1s linear infinite;"></i> Öğrenci ve ödeme verileri yükleniyor…`;
-    root.prepend(banner);
-  }
   // Öğretmen ana sayfası: sayıları Firestore'dan doldur (demo veri yok)
   if (ogretmenMi && typeof ogretmenHomeVeriYukle === "function") {
-    ogretmenHomeVeriYukle().catch(e => console.warn("öğretmen ana sayfa verisi", e));
+    adminHomeGorevPlanla(() => ogretmenHomeVeriYukle(), 0, renderSurumu, "öğretmen verileri");
   }
   if (typeof caTemaUygula === "function") caTemaUygula();
   // HUB: hızlı bakış widget'larını async doldur (duyurular + eğitim + öğretmen)
   if (!ogretmenMi) {
-    setTimeout(hbDuyurulariDoldur, 60);
-    setTimeout(hbEgitimDoldur, 120);
-    setTimeout(hbOgretmenDoldur, 90);
-    setTimeout(() => { if (typeof okulZiliDoldur === "function") okulZiliDoldur(); }, 140);
-    setTimeout(() => { if (typeof dogumGunleriDoldur === "function") dogumGunleriDoldur(); }, 180);
-    setTimeout(() => { if (typeof ozetYemekDoldur === "function") ozetYemekDoldur(); }, 220);
-    setTimeout(() => { if (typeof egitimIlerlemeDoldur === "function") egitimIlerlemeDoldur(); }, 300);
-    setTimeout(() => { if (typeof ozetDevamKartiDoldur === "function") ozetDevamKartiDoldur(); }, 100);
-    setTimeout(() => { modulYukle("veli-izinleri").then(m => m && m.ogretmenKart("yonVeliIzinKart")); }, 320);
-    setTimeout(() => { modulYukle("danisma-randevulari").then(m => m && m.ozetKart("ozetDanismaKart")); }, 340);
-    setTimeout(() => {
+    adminHomeGorevPlanla(hbDuyurulariDoldur, 60, renderSurumu, "duyurular");
+    adminHomeGorevPlanla(hbEgitimDoldur, 120, renderSurumu, "eğitim özeti");
+    adminHomeGorevPlanla(hbOgretmenDoldur, 90, renderSurumu, "personel özeti");
+    adminHomeGorevPlanla(() => { if (typeof okulZiliDoldur === "function") return okulZiliDoldur(); }, 140, renderSurumu, "okul zili");
+    adminHomeGorevPlanla(() => { if (typeof dogumGunleriDoldur === "function") return dogumGunleriDoldur(); }, 180, renderSurumu, "doğum günleri");
+    adminHomeGorevPlanla(() => { if (typeof ozetYemekDoldur === "function") return ozetYemekDoldur(); }, 220, renderSurumu, "yemek");
+    adminHomeGorevPlanla(() => { if (typeof egitimIlerlemeDoldur === "function") return egitimIlerlemeDoldur(); }, 300, renderSurumu, "eğitim ilerlemesi");
+    adminHomeGorevPlanla(() => { if (typeof ozetDevamKartiDoldur === "function") return ozetDevamKartiDoldur(); }, 100, renderSurumu, "devam");
+    adminHomeGorevPlanla(() => modulYukle("veli-izinleri").then(m => m && m.ogretmenKart("yonVeliIzinKart")), 320, renderSurumu, "veli izinleri");
+    adminHomeGorevPlanla(() => modulYukle("danisma-randevulari").then(m => m && m.ozetKart("ozetDanismaKart")), 340, renderSurumu, "danışma randevuları");
+    adminHomeGorevPlanla(() => {
       if (typeof ozetRozetleriGuncelle === "function") {
         let gec = 0;
         try {
@@ -20096,10 +20156,13 @@ function renderAdminHome() {
         } catch (e) {}
         ozetRozetleriGuncelle(gec);
       }
-    }, 260);
+    }, 260, renderSurumu, "özet rozetleri");
   }
   // Lucide ikonlarını render et (dinamik innerHTML sonrası — widget geç dolabilir)
-  if (window.lucideYenile) { setTimeout(window.lucideYenile, 40); setTimeout(window.lucideYenile, 250); }
+  if (window.lucideYenile) {
+    adminHomeGorevPlanla(window.lucideYenile, 40, renderSurumu, "ikonlar");
+    adminHomeGorevPlanla(window.lucideYenile, 250, renderSurumu, "ikonlar");
+  }
 }
 
 // Personel Durumu widget'ı — ANLIK durum (QR giriş-çıkış kayıtlarından)
@@ -23298,6 +23361,8 @@ async function loadOgrenciler() {
     const snap = await getDocs(collection(db, "ogrenciler"));
     
     if (snap.empty) {
+      ogrenciList = [];
+      ayarListesi = {};
       // İlk kez yükleme - toplu veri yükleme teklifi
       wrap.innerHTML = `
         <div class="empty">
@@ -23330,10 +23395,6 @@ async function loadOgrenciler() {
     // Dönem ayarlarını ayrı sorgu
     await loadAyarlar();
 
-    // Veriler geldi → Özet (ana sayfa) yeniden çiz (ilk açılışta veri yokken boş render ediliyordu)
-    try { if (typeof renderAdminHome === "function") renderAdminHome(); }
-    catch (e) { console.warn("Özet yeniden çizilemedi:", e); }
-
     // ===== FAZ 2a: ÖĞRETMEN SINIF FİLTRESİ =====
     // Öğretmen sadece atandığı sınıfların öğrencilerini görür
     ogrenciList = ogrenciListeyiRoleGoreFiltrele(ogrenciList);
@@ -23347,6 +23408,11 @@ async function loadOgrenciler() {
   } catch (e) {
     console.error(e);
     wrap.innerHTML = `<div class="empty"><h3>Hata oluştu</h3><p>${e.message}</p></div>`;
+  } finally {
+    // İlk ağır ana sayfa render'ı yalnızca öğrenci ve dönem zinciri bittikten
+    // sonra yapılır. Hata/boş veri durumunda da yükleme görünümü takılı kalmaz.
+    try { adminHomeVeriYuklemesiTamamlandi(); }
+    catch (e) { console.warn("Ana sayfa hazırlanamadı:", e); }
   }
 }
 
@@ -41264,6 +41330,9 @@ document.querySelectorAll(".tab").forEach(tab => {
     }
     if (tab.dataset.tab !== "egitim") {
       egitimArkaPlanCalismasiniDurdur(true);
+    }
+    if (tab.dataset.tab !== "anasayfa") {
+      adminHomeArkaPlanCalismasiniDurdur();
     }
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
