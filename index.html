@@ -13785,7 +13785,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v103";
+window.PORTAL_SURUM = "v104";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -20372,7 +20372,7 @@ function caAdminSinifHTML(sinif, ogrenciler, tumGel, mufler) {
 let caGozlemState = null;
 
 function caGozlemProgramAdi(id) {
-  return ({ montessori:"Montessori", orman:"Orman Okulu", degerler:"Değerler Eğitimi", ingilizce:"İngilizce" })[id] || id;
+  return ({ montessori:"Montessori", orman:"Orman Okulu", degerler:"Değerler Eğitimi", ingilizce:"İngilizce", degerlerPlus:"Değerler+" })[id] || id;
 }
 
 window.caGozlemKapat = function() {
@@ -20552,33 +20552,85 @@ async function caGozlemFotoYukle(st, anahtar, ders, notMetin) {
 async function caGozlemDetayKaydet(st, alan, grup, ders, notMetin, foto) {
   const anahtar = `${alan.id}__${grup.ad}__${ders}`;
   const ref = doc(db, "ogrenciGelisim", st.ogrId);
-  const snap = await getDoc(ref);
-  const tum = snap.exists() ? (snap.data() || {}) : {};
-  const dis = tum[st.disiplin] || {};
-  const detay = { ...(dis.detay || {}) };
-  const onceki = detay[anahtar] || {};
-  const asamalar = { ...(onceki.asamalar || {}) };
   const simdi = new Date().toISOString();
   const yazar = aktifPersonel?.adSoyad || currentUser?.displayName || "Öğretmen";
-  const yeniAsama = {
-    ...(asamalar[st.seviye] || {}), durum:st.seviye, not:notMetin || "",
-    tarih:simdi, yazar, paylas:true,
-    fotoUrl: foto && foto.durum==="onaylandi" ? foto.url : "",
-    fotoDurum: foto ? foto.durum : "",
-    galeriId: foto ? foto.id : "",
-    fotoYol: foto ? foto.yol : ""
-  };
-  asamalar[st.seviye] = yeniAsama;
-  detay[anahtar] = {
-    ...onceki, durum:st.seviye, not:yeniAsama.not, tarih:simdi, yazar, paylas:true,
-    fotoUrl:yeniAsama.fotoUrl, fotoDurum:yeniAsama.fotoDurum, galeriId:yeniAsama.galeriId,
-    dersAd:ders, asamalar
-  };
-  await setDoc(ref, {
-    [st.disiplin]: { ...dis, detay, guncellendi:serverTimestamp() },
-    sonGozlem: { disiplin:st.disiplin, anahtar, dersAd:ders, durum:st.seviye, not:yeniAsama.not,
-      tarih:simdi, yazar, paylas:true, fotoUrl:yeniAsama.fotoUrl, fotoDurum:yeniAsama.fotoDurum, galeriId:yeniAsama.galeriId }
-  }, { merge:true });
+  let kaydedilen = null;
+
+  // Durum, tarih, açıklama ve fotoğraf bağı aynı transaction içinde yazılır.
+  // Böylece portal matrisi ile ZEKY uygulamasının okuduğu ortak kayıt hiçbir
+  // aşamada birbirinden kopmaz; eşzamanlı bir kayıt da eski veriyi ezemez.
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    const tum = snap.exists() ? (snap.data() || {}) : {};
+    const dis = tum[st.disiplin] || {};
+    const kayitlar = { ...(dis.kayitlar || {}) };
+    const tarihler = { ...(dis.tarihler || {}) };
+    const detay = { ...(dis.detay || {}) };
+    const onceki = detay[anahtar] || {};
+    const asamalar = { ...(onceki.asamalar || {}) };
+    const notlar = Array.isArray(dis.notlar) ? [...dis.notlar] : [];
+
+    kayitlar[anahtar] = st.seviye;
+    tarihler[anahtar] = simdi.slice(0, 10);
+
+    const yeniAsama = {
+      ...(asamalar[st.seviye] || {}), durum:st.seviye, not:notMetin || "",
+      tarih:simdi, yazar, paylas:true,
+      fotoUrl: foto && foto.durum==="onaylandi" ? foto.url : "",
+      fotoDurum: foto ? foto.durum : "",
+      galeriId: foto ? foto.id : "",
+      fotoYol: foto ? foto.yol : ""
+    };
+    asamalar[st.seviye] = yeniAsama;
+    detay[anahtar] = {
+      ...onceki, durum:st.seviye, not:yeniAsama.not, tarih:simdi, yazar, paylas:true,
+      fotoUrl:yeniAsama.fotoUrl, fotoDurum:yeniAsama.fotoDurum, galeriId:yeniAsama.galeriId,
+      fotoYol:yeniAsama.fotoYol, dersAd:ders, alanId:alan.id, alanAd:alan.ad || "",
+      grupAd:grup.ad, asamalar
+    };
+    if (notMetin) {
+      notlar.push({ tarih:simdi, metin:notMetin, yazarEmail:currentUser?.email || "bilinmiyor", anahtar });
+      if (notlar.length > 50) notlar.splice(0, notlar.length - 50);
+    }
+
+    const yeniDis = {
+      ...dis, kayitlar, tarihler, detay, notlar,
+      guncellendi:serverTimestamp()
+    };
+    tx.set(ref, {
+      [st.disiplin]: yeniDis,
+      sonGozlem: { disiplin:st.disiplin, anahtar, dersAd:ders, alanId:alan.id,
+        alanAd:alan.ad || "", grupAd:grup.ad, durum:st.seviye, not:yeniAsama.not,
+        tarih:simdi, yazar, paylas:true, fotoUrl:yeniAsama.fotoUrl,
+        fotoYol:yeniAsama.fotoYol, fotoDurum:yeniAsama.fotoDurum,
+        galeriId:yeniAsama.galeriId },
+      sonGuncelleme:serverTimestamp(),
+      sonGuncelleyenEmail:currentUser?.email || "bilinmiyor"
+    }, { merge:true });
+    kaydedilen = { anahtar, yeniDis, sonGozlem:detay[anahtar] };
+  });
+  return kaydedilen;
+}
+
+function caGozlemEgitimGorunumunuGuncelle(st, kaydedilen) {
+  if (!kaydedilen) return;
+  const { anahtar, yeniDis } = kaydedilen;
+
+  // Aynı sayfada açık olan sınıf matrisi, Firestore dinleyicisini beklemeden
+  // anında hareket etsin. Dinleyici daha sonra sunucudaki kesin veriyle doğrular.
+  if (typeof egitimMatrixVerisi !== "undefined" && egitimMatrixVerisi?.gelisim) {
+    if (!egitimMatrixVerisi.gelisim[st.ogrId]) egitimMatrixVerisi.gelisim[st.ogrId] = {};
+    egitimMatrixVerisi.gelisim[st.ogrId][st.disiplin] = yeniDis;
+    if (egitimAktifDisiplin === st.disiplin && typeof egitimMatrixRender === "function") {
+      egitimMatrixRender();
+    }
+  }
+
+  // Öğrenci kartındaki eski gelişim sekmesi açıksa onun belleğini de güncelle.
+  if (typeof aktifGelisimVerisi !== "undefined" && aktifGelisimVerisi &&
+      typeof currentOgrenci !== "undefined" && currentOgrenci?.id === st.ogrId) {
+    aktifGelisimVerisi[st.disiplin] = yeniDis;
+  }
 }
 
 window.caGozlemKaydet = async function() {
@@ -20594,16 +20646,14 @@ window.caGozlemKaydet = async function() {
   const btn=document.getElementById("caGozlemKaydetBtn"), pr=document.getElementById("caGozlemProgress");
   if(btn) btn.disabled=true; if(pr){pr.style.display="block";pr.textContent=st.foto?"Gözlem ve fotoğraf kaydediliyor…":"Gözlem kaydediliyor…";}
   try {
-    const ok = await gelisimDersGuncelle(st.ogrId, st.disiplin, alan.id, grup.ad, ders, st.seviye);
-    if (!ok) throw new Error("Gelişim kaydı yazılamadı.");
-    if (notMetin) { try { await gelisimNotEkle(st.ogrId, st.disiplin, notMetin); } catch (_) {} }
     const anahtar = `${alan.id}__${grup.ad}__${ders}`;
     let foto = null, fotoHata = null;
     if (st.foto) {
       try { foto = await caGozlemFotoYukle(st, anahtar, ders, notMetin); }
       catch (e) { fotoHata = e; console.error("Gözlem fotoğrafı yüklenemedi:", e); }
     }
-    await caGozlemDetayKaydet(st, alan, grup, ders, notMetin, foto);
+    const kaydedilen = await caGozlemDetayKaydet(st, alan, grup, ders, notMetin, foto);
+    caGozlemEgitimGorunumunuGuncelle(st, kaydedilen);
     try { zekiDenetim("gozlem_kayit", { ogr:st.ogrId, disiplin:st.disiplin, ders, seviye:st.seviye }); } catch (_) {}
     window.caGozlemKapat();
     if (fotoHata) showToast("✓ Gözlem kaydedildi; fotoğraf yüklenemedi: " + (fotoHata.message || fotoHata), "warn");
@@ -31193,25 +31243,22 @@ async function mufredatKaydet(disiplin) {
 
 // Bir öğrencinin gelişim verilerini yükle (tüm disiplinler)
 async function gelisimYukle(ogrenciId) {
-  const bos = {
-    montessori: { kayitlar:{}, notlar:[] },
-    ingilizce:  { kayitlar:{}, notlar:[] },
-    degerler:   { kayitlar:{}, notlar:[] },
-    ogretmenYorumlari: [],
-    sonGuncelleme: null
-  };
+  const programlar = (typeof DISIPLINLER !== "undefined" ? DISIPLINLER.map(d => d.id) :
+    ["montessori","orman","degerler","ingilizce","degerlerPlus"]);
+  const bos = { ogretmenYorumlari: [], sonGuncelleme: null };
+  programlar.forEach(id => { bos[id] = { kayitlar:{}, tarihler:{}, detay:{}, notlar:[] }; });
   if (!ogrenciId) return bos;
   try {
     const snap = await getDoc(doc(db, "ogrenciGelisim", ogrenciId));
     if (snap.exists()) {
       const d = snap.data();
-      return {
-        montessori: d.montessori || { kayitlar:{}, notlar:[] },
-        ingilizce:  d.ingilizce  || { kayitlar:{}, notlar:[] },
-        degerler:   d.degerler   || { kayitlar:{}, notlar:[] },
-        ogretmenYorumlari: d.ogretmenYorumlari || [],
-        sonGuncelleme: d.sonGuncelleme || null
-      };
+      const sonuc = { ...d };
+      programlar.forEach(id => {
+        sonuc[id] = d[id] || { kayitlar:{}, tarihler:{}, detay:{}, notlar:[] };
+      });
+      sonuc.ogretmenYorumlari = d.ogretmenYorumlari || [];
+      sonuc.sonGuncelleme = d.sonGuncelleme || null;
+      return sonuc;
     }
     return bos;
   } catch(e) {
@@ -31226,20 +31273,24 @@ async function gelisimDersGuncelle(ogrenciId, disiplin, alanId, grupAd, dersAd, 
   const anahtar = `${alanId}__${grupAd}__${dersAd}`;
   try {
     const ref = doc(db, "ogrenciGelisim", ogrenciId);
-    const snap = await getDoc(ref);
-    let mevcutDisiplin = (snap.exists() && snap.data()[disiplin]) ? snap.data()[disiplin] : { kayitlar:{}, notlar:[] };
-    let kayitlar = mevcutDisiplin.kayitlar || {};
-    if (durum === null || durum === "") {
-      delete kayitlar[anahtar];
-    } else {
-      kayitlar[anahtar] = durum;
-    }
-    mevcutDisiplin.kayitlar = kayitlar;
-    await setDoc(ref, {
-      [disiplin]: mevcutDisiplin,
-      sonGuncelleme: serverTimestamp(),
-      sonGuncelleyenEmail: currentUser?.email || "bilinmiyor"
-    }, { merge: true });
+    await runTransaction(db, async tx => {
+      const snap = await tx.get(ref);
+      const mevcutDisiplin = (snap.exists() && snap.data()[disiplin]) ? snap.data()[disiplin] : {};
+      const kayitlar = { ...(mevcutDisiplin.kayitlar || {}) };
+      const tarihler = { ...(mevcutDisiplin.tarihler || {}) };
+      if (durum === null || durum === "") {
+        delete kayitlar[anahtar];
+        delete tarihler[anahtar];
+      } else {
+        kayitlar[anahtar] = durum;
+        tarihler[anahtar] = new Date().toISOString().slice(0, 10);
+      }
+      tx.set(ref, {
+        [disiplin]: { ...mevcutDisiplin, kayitlar, tarihler, guncellendi:serverTimestamp() },
+        sonGuncelleme: serverTimestamp(),
+        sonGuncelleyenEmail: currentUser?.email || "bilinmiyor"
+      }, { merge: true });
+    });
     return true;
   } catch(e) {
     console.error("Ders güncellenemedi:", e);
@@ -31380,6 +31431,25 @@ let egitimAktifSinif = null;     // null = tüm sınıflar, string = belirli sı
 let egitimMatrixVerisi = null;   // { ogrenciler: [...], gelisim: { ogrId: { ... } } } — TÜM aktif öğrenciler
 let egitimGrupAcik = {};         // { 'GrupAd1': true, 'GrupAd2': false } — açılır/kapanır state
 let egitimTumuKapaliMi = false;  // "Tümünü Kapat/Aç" düğmesinin durumu
+let egitimGelisimDinleyici = null;
+
+function egitimGelisimCanliDinlemeyiDurdur() {
+  if (typeof egitimGelisimDinleyici === "function") egitimGelisimDinleyici();
+  egitimGelisimDinleyici = null;
+}
+
+function egitimGelisimCanliDinlemeyiBaslat() {
+  egitimGelisimCanliDinlemeyiDurdur();
+  egitimGelisimDinleyici = onSnapshot(collection(db, "ogrenciGelisim"), snap => {
+    if (!egitimMatrixVerisi) return;
+    const gelisim = {};
+    snap.forEach(d => { gelisim[d.id] = d.data(); });
+    egitimMatrixVerisi.gelisim = gelisim;
+    if (egitimAktifDisiplin && typeof egitimMatrixRender === "function") {
+      egitimMatrixRender();
+    }
+  }, e => console.warn("Eğitim gelişimi canlı yenilenemedi:", e?.code || e?.message || e));
+}
 
 // Sekme açıldığında çağrılır
 // ============ YENİ BRANŞ EKLEME ============
@@ -31880,9 +31950,11 @@ window.egitimDisiplinAc = async function(disiplin) {
   egitimAlanSeciciDoldur();
   egitimGrupSeciciDoldur();
   egitimMatrixRender();
+  egitimGelisimCanliDinlemeyiBaslat();
 };
 
 window.egitimDisiplinKapat = function() {
+  egitimGelisimCanliDinlemeyiDurdur();
   egitimSekmesiAcildi();
 };
 
@@ -34145,40 +34217,76 @@ async function galeriGozlemOnayiEsitle(oge, durum, duzenlenmisMetin = "") {
   if (!ogrenciId || !disiplin || !anahtar) return;
   try {
     const ref = doc(db, "ogrenciGelisim", ogrenciId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return;
-    const tum = snap.data() || {};
-    const dis = tum[disiplin] || {};
-    const detay = { ...(dis.detay || {}) };
-    const onceki = detay[anahtar] || {};
-    const asamalar = { ...(onceki.asamalar || {}) };
-    const asamaKod = oge?.gozlemDurum || onceki.durum || "";
-    const fotoUrl = durum === "onaylandi" ? (oge.bunnyUrl || oge.url || "") : "";
-    if (asamaKod) {
-      asamalar[asamaKod] = {
-        ...(asamalar[asamaKod] || {}),
+    await runTransaction(db, async tx => {
+      const snap = await tx.get(ref);
+      const tum = snap.exists() ? (snap.data() || {}) : {};
+      const dis = tum[disiplin] || {};
+      const kayitlar = { ...(dis.kayitlar || {}) };
+      const tarihler = { ...(dis.tarihler || {}) };
+      const detay = { ...(dis.detay || {}) };
+      const onceki = detay[anahtar] || {};
+      const asamalar = { ...(onceki.asamalar || {}) };
+      const asamaKod = oge?.gozlemDurum || onceki.durum || (durum === "onaylandi" ? "S" : "");
+      if (!asamaKod) return;
+
+      const simdi = new Date().toISOString();
+      const fotoUrl = durum === "onaylandi" ? (oge.bunnyUrl || oge.url || "") : "";
+      const eskiAsama = asamalar[asamaKod] || (onceki.durum === asamaKod ? onceki : {});
+      const asamaTarih = eskiAsama.tarih || oge.tarih || oge.yuklemeZamani || simdi;
+      const dersAd = eskiAsama.dersAd || oge.kazanimAdi || oge.baslik ||
+        anahtar.split("__").slice(2).join("__");
+      const yeniAsama = {
+        ...eskiAsama, durum:asamaKod,
+        not:duzenlenmisMetin || eskiAsama.not || oge.aciklama || "",
+        tarih:asamaTarih,
+        yazar:eskiAsama.yazar || oge.yukleyenAd || oge.yukleyen || "",
+        paylas:eskiAsama.paylas !== false,
         fotoUrl, fotoDurum:durum, galeriId:oge.id || "",
-        ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
+        fotoYol:eskiAsama.fotoYol || oge.bunnyPath || ""
       };
-    }
-    detay[anahtar] = {
-      ...onceki,
-      fotoUrl,
-      fotoDurum: durum,
-      galeriId: oge.id || "",
-      asamalar,
-      ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
-    };
-    const guncelleme = { [disiplin]: { ...dis, detay, guncellendi:new Date().toISOString() } };
-    if (tum.sonGozlem && tum.sonGozlem.galeriId === oge.id) {
-      guncelleme.sonGozlem = {
-        ...tum.sonGozlem,
-        fotoUrl:detay[anahtar].fotoUrl,
-        fotoDurum:durum,
-        ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
+      asamalar[asamaKod] = yeniAsama;
+
+      const sira = { S:1, T:2, U:3 };
+      const mevcutDurum = kayitlar[anahtar] || onceki.durum || "";
+      const yeniGuncelMi = !mevcutDurum || (sira[asamaKod] || 0) >= (sira[mevcutDurum] || 0);
+      if (durum === "onaylandi" && yeniGuncelMi) {
+        kayitlar[anahtar] = asamaKod;
+        tarihler[anahtar] = String(asamaTarih).slice(0, 10);
+      }
+
+      detay[anahtar] = {
+        ...onceki,
+        ...(yeniGuncelMi ? {
+          durum:asamaKod, not:yeniAsama.not, tarih:asamaTarih, yazar:yeniAsama.yazar,
+          paylas:yeniAsama.paylas, fotoUrl, fotoDurum:durum, galeriId:oge.id || "",
+          fotoYol:yeniAsama.fotoYol, dersAd,
+          alanId:oge.alanId || onceki.alanId || "",
+          alanAd:oge.alanAd || onceki.alanAd || "",
+          grupAd:oge.grupAd || onceki.grupAd || ""
+        } : {}),
+        asamalar
       };
-    }
-    await setDoc(ref, guncelleme, { merge:true });
+
+      const guncelleme = {
+        [disiplin]: { ...dis, kayitlar, tarihler, detay, guncellendi:serverTimestamp() },
+        sonGuncelleme:serverTimestamp()
+      };
+      const sonTarih = tum.sonGozlem?.tarih || "";
+      if (durum === "onaylandi" &&
+          (!tum.sonGozlem || tum.sonGozlem.galeriId === oge.id || String(asamaTarih) >= String(sonTarih))) {
+        guncelleme.sonGozlem = {
+          disiplin, anahtar, dersAd, durum:asamaKod, not:yeniAsama.not,
+          tarih:asamaTarih, yazar:yeniAsama.yazar, paylas:yeniAsama.paylas,
+          fotoUrl, fotoYol:yeniAsama.fotoYol, fotoDurum:durum, galeriId:oge.id || ""
+        };
+      } else if (tum.sonGozlem?.galeriId === oge.id) {
+        guncelleme.sonGozlem = {
+          ...tum.sonGozlem, fotoUrl, fotoDurum:durum,
+          ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
+        };
+      }
+      tx.set(ref, guncelleme, { merge:true });
+    });
   } catch (e) { console.warn("Gözlem fotoğrafı eşitlenemedi:", e); }
 }
 
@@ -46413,6 +46521,6 @@ window.showBulkUpload = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=7"></script>
 </body>
 </html>
