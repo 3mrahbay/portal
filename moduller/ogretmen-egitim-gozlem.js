@@ -118,6 +118,9 @@ async function gelisimKaydet(anahtar,ders,alan,grup,foto){
 
 async function bildirimOlustur(anahtar,ders,alan,grup,foto){
   const b=B();if(!b?.collection||!b?.doc||!b?.setDoc||!b?.db)return;
+  // Fotoğraflı öğretmen gözlemi yönetim onayından önce veliye bildirilmez.
+  // Onay köprüsü aynı galeri kimliğiyle deterministik bildirimi oluşturur.
+  if(foto&&['beklemede','onayBekliyor'].includes(foto.durum||''))return;
   const d=DURUMLAR.find(x=>x.kod===S.durum),p=programBilgi(S.program),simdi=new Date().toISOString();
   const ref=b.doc(b.collection(b.db,'ogrenciler',S.ogrId,'bildirimler'));
   await b.setDoc(ref,{tip:'egitim_gelisim',baslik:`${ders} · ${d?.ad||'Yeni aşama'}`,icerik:(S.not||'').trim()||`${p.ad} programında yeni bir gelişim aşaması kaydedildi.`,program:S.program,programAd:p.ad,alanId:alan?.id||'',alanAd:alan?.ad||'',grupAd:grup?.ad||'',kazanimAnahtari:anahtar,kazanimAdi:ders,gozlemDurum:S.durum,galeriId:foto?.id||'',fotoDurum:foto?.durum||'',tarih:simdi,olusturuldu:simdi,gonderenAd:personelAd(),okundu:false,donem:window.PortalAPI?.state?.aktifDonem||''},{merge:true});

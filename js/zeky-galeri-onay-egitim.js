@@ -1,6 +1,6 @@
 // Yönetim galeri onayında eğitim fotoğrafını kazanım bağlamıyla gösterir.
 
-const KURULUM='__zekyGaleriOnayEgitimV1';
+const KURULUM='__zekyGaleriOnayEgitimV2';
 const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi'};
 const ASAMA={S:'Sunuldu',T:'Tekrar ediyor',U:'Ustalaştı'};
 let gozlemci=null;
@@ -30,6 +30,37 @@ function lightboxZenginlestir(id){
 
 function fonksiyonlariSar(){const eski=window.acGaleriLightbox;if(typeof eski!=='function'||eski.__zekyEgitimDetay)return false;const yeni=function(id,...args){const r=eski.call(this,id,...args);setTimeout(()=>lightboxZenginlestir(id),0);return r;};yeni.__zekyEgitimDetay=true;yeni.__eski=eski;window.acGaleriLightbox=yeni;return true;}
 
-export function kur(win=window){if(!win||win[KURULUM])return false;stil();let n=0;const dene=()=>{if(fonksiyonlariSar())return;if(++n<80)setTimeout(dene,100);};dene();gozlemci=new MutationObserver(kartlariZenginlestir);gozlemci.observe(document.body,{childList:true,subtree:true});setTimeout(kartlariZenginlestir,800);win[KURULUM]=true;return true;}
+function api(){const p=window.PortalAPI||{},b=window.BCK||{};return{db:p.db||b.db,fb:p.fb||b};}
+async function galeriBelgesi(id){const{db,fb}=api();if(!db||!fb?.getDoc||!fb?.doc)return null;const s=await fb.getDoc(fb.doc(db,'galeri',id));return s.exists()?{id,...(s.data()||{})}:null;}
+async function egitimOnayiniEsitle(id,durum){
+  const{db,fb}=api();if(!db||!fb?.getDoc||!fb?.setDoc||!fb?.doc)return;
+  const m=await galeriBelgesi(id);if(!m||m.durum!==durum||!egitimMi(m))return;
+  const ogrenciId=m.ogrenciId||m.hedefOgrenciId||(m.hedefTur==='ogrenci'?m.hedefDeger:''),program=programKodu(m),anahtar=m.kazanimAnahtari||'',kod=m.gozlemDurum||'';
+  if(!ogrenciId||!program||!anahtar||!ASAMA[kod])return;
+  const ref=fb.doc(db,'ogrenciGelisim',ogrenciId),snap=await fb.getDoc(ref),tum=snap.exists()?(snap.data()||{}):{},dis=tum[program]||{},detay={...(dis.detay||{})},onceki=detay[anahtar]||{},asamalar={...(onceki.asamalar||{})},eski=asamalar[kod]||{};
+  const fotoUrl=durum==='onaylandi'?(m.url||m.bunnyUrl||''):'',simdi=new Date().toISOString(),tarih=m.tarih||m.yuklemeZamani||eski.tarih||simdi,not=m.aciklama||eski.not||onceki.not||'';
+  asamalar[kod]={...eski,durum:kod,tarih,not,yazar:m.yukleyenAd||eski.yazar||'',paylas:durum==='onaylandi',fotoUrl,fotoDurum:durum,galeriId:id};
+  detay[anahtar]={...onceki,durum:kod,dersAd:m.kazanimAdi||m.baslik||onceki.dersAd||'',alanId:m.alanId||onceki.alanId||'',alanAd:m.alanAd||onceki.alanAd||'',grupAd:m.grupAd||onceki.grupAd||'',not,tarih,yazar:m.yukleyenAd||onceki.yazar||'',paylas:durum==='onaylandi',fotoUrl,fotoDurum:durum,galeriId:id,asamalar};
+  const kayitlar={...(dis.kayitlar||{}),[anahtar]:kod},tarihler={...(dis.tarihler||{}),[anahtar]:String(tarih).slice(0,10)};
+  const yaz={[program]:{...dis,kayitlar,tarihler,detay,guncellendi:fb.serverTimestamp?fb.serverTimestamp():simdi}};
+  if(durum==='onaylandi'&&(!tum.sonGozlem||tum.sonGozlem.galeriId===id||String(tarih)>=String(tum.sonGozlem.tarih||''))){yaz.sonGozlem={...(tum.sonGozlem||{}),disiplin:program,programAd:PROGRAM[program]||m.programAd||'Eğitim',anahtar,dersAd:m.kazanimAdi||m.baslik||'',alanId:m.alanId||'',alanAd:m.alanAd||'',grupAd:m.grupAd||'',not,fotoUrl,fotoDurum:durum,galeriId:id,durum:kod,tarih,yazar:m.yukleyenAd||'',paylas:true};}
+  await fb.setDoc(ref,yaz,{merge:true});
+  if(durum==='onaylandi'){
+    const bildirimRef=fb.doc(db,'ogrenciler',ogrenciId,'bildirimler',`egitim_${id}`);
+    await fb.setDoc(bildirimRef,{tip:'egitim_gelisim',baslik:`${m.kazanimAdi||m.baslik||'Eğitim sunumu'} · ${ASAMA[kod]}`,icerik:not||`${PROGRAM[program]||'Eğitim'} programında yeni bir gelişim aşaması onaylandı.`,program,programAd:PROGRAM[program]||m.programAd||'',alanId:m.alanId||'',alanAd:m.alanAd||'',grupAd:m.grupAd||'',kazanimAnahtari:anahtar,kazanimAdi:m.kazanimAdi||m.baslik||'',gozlemDurum:kod,galeriId:id,fotoDurum:'onaylandi',fotoUrl,tarih,olusturuldu:m.onayTarihi||simdi,gonderenAd:m.yukleyenAd||'',okundu:false,donem:m.donem||''},{merge:true});
+  }
+}
+
+function onayFonksiyonlariniSar(){
+  let hazir=true;
+  for(const [ad,durum] of [['galeriOnayla','onaylandi'],['galeriReddet','reddedildi']]){
+    const eski=window[ad];if(typeof eski!=='function'){hazir=false;continue;}if(eski.__zekyEgitimOnayEsitle)continue;
+    const yeni=async function(id,...args){const r=await eski.call(this,id,...args);try{await egitimOnayiniEsitle(id,durum);}catch(e){console.warn('Eğitim onayı veliye eşitlenemedi',e?.code||e?.message||e);}return r;};
+    yeni.__zekyEgitimOnayEsitle=true;yeni.__eski=eski;window[ad]=yeni;
+  }
+  return hazir;
+}
+
+export function kur(win=window){if(!win||win[KURULUM])return false;stil();let n=0;const dene=()=>{const a=fonksiyonlariSar()||Boolean(win.acGaleriLightbox?.__zekyEgitimDetay),b=onayFonksiyonlariniSar();if(a&&b)return;if(++n<120)setTimeout(dene,100);};dene();gozlemci=new MutationObserver(kartlariZenginlestir);gozlemci.observe(document.body,{childList:true,subtree:true});setTimeout(kartlariZenginlestir,800);win[KURULUM]=true;return true;}
 
 if(typeof window!=='undefined')kur();
