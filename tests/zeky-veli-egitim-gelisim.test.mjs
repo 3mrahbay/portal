@@ -82,7 +82,7 @@ test('aktif dönem senkronu yalnız güvenli dönem işaretlerini ana öğrenci 
 
 test('PWA cache eğitim, güvenlik ve modern gözlem zincirini taşır', async () => {
   const sw = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(sw, /CACHE_VERSION = "v122"/);
+  assert.match(sw, /CACHE_VERSION = "v123"/);
   assert.match(sw, /portal-data\.js\?v=3/);
   assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=4/);
   assert.match(sw, /zeky-veli-ogrenme-deneyimi\.js\?v=1/);
