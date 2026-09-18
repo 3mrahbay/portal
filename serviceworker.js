@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v125";
+const CACHE_VERSION = "v126";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -28,10 +28,10 @@ const PRECACHE = [
   "./js/zeky-randevu-callable-adapter.js",
   "./js/zeky-randevu-parent-page.js",
   "./js/zeky-randevu-staff-page.js",
-  "./js/zeky-randevu-modal-koprusu.js?v=6",
+  "./js/zeky-randevu-modal-koprusu.js?v=7",
   "./js/zeky-veli-odeme-ozeti.js",
-  "./js/zeky-galeri-filigran-koprusu.js?v=6",
-  "./js/zeky-galeri-onay-egitim.js?v=3",
+  "./js/zeky-galeri-filigran-koprusu.js?v=7",
+  "./js/zeky-galeri-onay-egitim.js?v=4",
   "./js/zeky-veli-egitim-koprusu.js?v=6",
   "./js/zeky-veli-ogrenme-deneyimi.js?v=3",
   "./js/zeky-egitim-portfolyo.js?v=2",
