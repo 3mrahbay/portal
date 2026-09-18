@@ -70,8 +70,53 @@ test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', a
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('PWA dönem ve gözlem çekirdek sürümü v127', async () => {
+test('PWA dönem, gözlem ve ana sayfa performans sürümü v128', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v127"/);
+  assert.match(s, /CACHE_VERSION = "v128"/);
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
+});
+
+test('ana sayfa öğrenci ve dönem verisi tamamlandıktan sonra yalnız bir kez çizilir', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+
+  const girisBas = s.indexOf('if (personelMi) {');
+  const girisSon = s.indexOf('// Onay bekleyenler sayacını arka planda yükle', girisBas);
+  const giris = s.slice(girisBas, girisSon);
+  assert.match(giris, /adminHomeYukleniyorGoster\(\)/);
+  assert.doesNotMatch(giris, /renderAdminHome\(\)/);
+  assert.ok(giris.indexOf('adminHomeYukleniyorGoster()') < giris.indexOf('await loadOgrenciler()'));
+
+  const yuklemeBas = s.indexOf('async function loadOgrenciler()');
+  const yuklemeSon = s.indexOf('async function loadAyarlar()', yuklemeBas);
+  const yukleme = s.slice(yuklemeBas, yuklemeSon);
+  assert.doesNotMatch(yukleme, /renderAdminHome\(\)/);
+  assert.match(yukleme, /finally\s*\{[\s\S]*adminHomeVeriYuklemesiTamamlandi\(\)/);
+  assert.ok(yukleme.indexOf('ogrenciListeyiRoleGoreFiltrele') < yukleme.indexOf('adminHomeVeriYuklemesiTamamlandi()'));
+});
+
+test('ana sayfa kart görevleri eski render ve gizli sekmede yeniden sorgu başlatmaz', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+
+  const planBas = s.indexOf('function adminHomeGorevPlanla');
+  const planSon = s.indexOf('function adminHomeYukleniyorGoster', planBas);
+  const planlayici = s.slice(planBas, planSon);
+  assert.match(planlayici, /renderSurumu !== adminHomeRenderSurumu/);
+  assert.match(planlayici, /!adminHomeSekmesiAktifMi\(\)/);
+  assert.match(planlayici, /sonuc && typeof sonuc\.catch === "function"/);
+
+  const renderBas = s.indexOf('function renderAdminHome()');
+  const renderSon = s.indexOf('// Personel Durumu widget', renderBas);
+  const render = s.slice(renderBas, renderSon);
+  assert.match(render, /adminHomeZamanlayicilariniTemizle\(\)/);
+  assert.match(render, /const renderSurumu = \+\+adminHomeRenderSurumu/);
+  assert.doesNotMatch(render, /setTimeout\(/);
+  assert.match(render, /adminHomeGorevPlanla\(hbDuyurulariDoldur/);
+  assert.match(render, /adminHomeGorevPlanla\(hbEgitimDoldur/);
+  assert.match(render, /adminHomeGorevPlanla\(hbOgretmenDoldur/);
+
+  const sekmeBas = s.indexOf('document.querySelectorAll(".tab").forEach');
+  const sekmeSon = s.indexOf('// Etkinlik & Takvim iç alt-sekme geçişi', sekmeBas);
+  const sekmeler = s.slice(sekmeBas, sekmeSon);
+  assert.match(sekmeler, /tab\.dataset\.tab !== "anasayfa"/);
+  assert.match(sekmeler, /adminHomeArkaPlanCalismasiniDurdur\(\)/);
 });
