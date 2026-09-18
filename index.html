@@ -28094,6 +28094,12 @@ window.zekyGelismisGozlemAcCore = function(ogrenciId, ogrenciAd, sinif) {
 function zekiAktifDonemOgrencisi(o) {
   if (!o || !o.id) return false;
   const ayar = ayarListesi[o.id];
+  const ogretmenDonemBelgeleriOkundu =
+    ((typeof finansGorebilir === "function") && !finansGorebilir())
+    && Object.keys(ayarListesi || {}).length > 0;
+  if (ogretmenDonemBelgeleriOkundu) {
+    return !!ayar && getOgrenciDurum(o, ayar) === "aktif";
+  }
   if (ayar) return getOgrenciDurum(o, ayar) === "aktif";
   const d = String(o.aktifDonemDurum || "").toLocaleLowerCase("tr");
   return String(o.aktifDonem || "") === String(AKTIF_DONEM)
