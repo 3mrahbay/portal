@@ -1,14 +1,14 @@
 // Yönetim galeri onayında eğitim fotoğrafını kazanım bağlamıyla gösterir.
 
 const KURULUM='__zekyGaleriOnayEgitimV3';
-const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi'};
+const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi',degerlerPlus:'Değerler+'};
 const ASAMA={S:'Sunuldu',T:'Tekrar ediyor',U:'Ustalaştı'};
 let gozlemci=null;
 let onarimZamanlayici=0,onarimCalisiyor=false;
 const onarilanKayitlar=new Set();
 
 function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function programKodu(m){const s=String(m?.program||m?.kategori||m?.etkinlikBaslik||'').toLocaleLowerCase('tr');if(s.includes('montessori'))return'montessori';if(s.includes('orman'))return'orman';if(s.includes('değer')||s.includes('deger'))return'degerler';if(s.includes('ingiliz')||s.includes('english'))return'ingilizce';return PROGRAM[s]?s:'';}
+function programKodu(m){const ham=String(m?.program||m?.kategori||m?.etkinlikBaslik||'');if(PROGRAM[ham])return ham;const s=ham.toLocaleLowerCase('tr');if(s.includes('montessori'))return'montessori';if(s.includes('orman'))return'orman';if(s.includes('değerler+')||s.includes('degerler+')||s.includes('degerlerplus'))return'degerlerPlus';if(s.includes('değer')||s.includes('deger'))return'degerler';if(s.includes('ingiliz')||s.includes('english'))return'ingilizce';return'';}
 function egitimMi(m){return m?.egitimKaydi===true||m?.albumTuru==='egitim'||Boolean(m?.kazanimAnahtari&&programKodu(m));}
 function bekliyor(m){return m?.durum==='beklemede'||m?.durum==='onayBekliyor';}
 function yonetimMi(){const s=window.PortalAPI?.state||{};return!!s.isAdmin||['kurucu_mudur','mudur'].includes(String(s.rol||''));}
@@ -41,9 +41,18 @@ export async function egitimOnayiniEsitle(id,durum){
   if(!ogrenciId||!program||!anahtar||!ASAMA[kod])return false;
   const ref=fb.doc(db,'ogrenciGelisim',ogrenciId),snap=await fb.getDoc(ref),tum=snap.exists()?(snap.data()||{}):{},dis=tum[program]||{},detay={...(dis.detay||{})},onceki=detay[anahtar]||{},asamalar={...(onceki.asamalar||{})},eski=asamalar[kod]||{};
   const fotoUrl=durum==='onaylandi'?(m.url||m.bunnyUrl||''):'',simdi=new Date().toISOString(),tarih=m.tarih||m.yuklemeZamani||eski.tarih||simdi,not=m.aciklama||eski.not||onceki.not||'';
-  asamalar[kod]={...eski,durum:kod,tarih,not,yazar:m.yukleyenAd||eski.yazar||'',paylas:durum==='onaylandi',fotoUrl,fotoDurum:durum,galeriId:id};
-  detay[anahtar]={...onceki,durum:kod,dersAd:m.kazanimAdi||m.baslik||onceki.dersAd||'',alanId:m.alanId||onceki.alanId||'',alanAd:m.alanAd||onceki.alanAd||'',grupAd:m.grupAd||onceki.grupAd||'',not,tarih,yazar:m.yukleyenAd||onceki.yazar||'',paylas:durum==='onaylandi',fotoUrl,fotoDurum:durum,galeriId:id,asamalar};
-  const kayitlar={...(dis.kayitlar||{}),[anahtar]:kod},tarihler={...(dis.tarihler||{}),[anahtar]:String(tarih).slice(0,10)};
+  // Fotoğraf moderasyonu eğitim aşamasını gizlemez. Ayrıca eski bir S/T
+  // fotoğrafının geç onayı, öğrencinin daha ileri aşamasını geriye düşürmez.
+  asamalar[kod]={...eski,durum:kod,tarih,not,yazar:m.yukleyenAd||eski.yazar||'',paylas:eski.paylas!==false,fotoUrl,fotoDurum:durum,galeriId:id};
+  const kayitlar={...(dis.kayitlar||{})},tarihler={...(dis.tarihler||{})};
+  const sira={S:1,T:2,U:3},mevcut=kayitlar[anahtar]||onceki.durum||'';
+  const yeniGuncelMi=!mevcut||(sira[kod]||0)>=(sira[mevcut]||0);
+  if(durum==='onaylandi'&&yeniGuncelMi){kayitlar[anahtar]=kod;tarihler[anahtar]=String(tarih).slice(0,10);}
+  detay[anahtar]={
+    ...onceki,
+    ...(yeniGuncelMi?{durum:kod,dersAd:m.kazanimAdi||m.baslik||onceki.dersAd||'',alanId:m.alanId||onceki.alanId||'',alanAd:m.alanAd||onceki.alanAd||'',grupAd:m.grupAd||onceki.grupAd||'',not,tarih,yazar:m.yukleyenAd||onceki.yazar||'',paylas:onceki.paylas!==false,fotoUrl,fotoDurum:durum,galeriId:id}:{}),
+    asamalar
+  };
   const yaz={[program]:{...dis,kayitlar,tarihler,detay,guncellendi:fb.serverTimestamp?fb.serverTimestamp():simdi}};
   if(durum==='onaylandi'&&(!tum.sonGozlem||tum.sonGozlem.galeriId===id||String(tarih)>=String(tum.sonGozlem.tarih||''))){yaz.sonGozlem={...(tum.sonGozlem||{}),disiplin:program,programAd:PROGRAM[program]||m.programAd||'Eğitim',anahtar,dersAd:m.kazanimAdi||m.baslik||'',alanId:m.alanId||'',alanAd:m.alanAd||'',grupAd:m.grupAd||'',not,fotoUrl,fotoDurum:durum,galeriId:id,durum:kod,tarih,yazar:m.yukleyenAd||'',paylas:true};}
   await fb.setDoc(ref,yaz,{merge:true});
