@@ -17,7 +17,7 @@ test('portal galeri uyumluluk katmanı BÇKA filigranını ve %60 saydamlığı 
   assert.match(kopru, /globalAlpha\s*=\s*0\.40/);
   assert.match(kopru, /Bir Çiçek Koleji Anaokulu/);
   assert.match(kopru, /BÇKA/);
-  assert.match(yukleyici, /zeky-galeri-filigran-koprusu\.js\?v=5/);
+  assert.match(yukleyici, /zeky-galeri-filigran-koprusu\.js\?v=6/);
 });
 
 test('veli galerisi yalnız onaylı medyayı ister ve sınıf adlarını güvenli eşler', async () => {
