@@ -281,7 +281,7 @@ function bagla(root) {
   root.querySelectorAll('[data-act]').forEach(btn=>btn.addEventListener('click',()=>{
     const a=btn.dataset.act;
     if(a==='geri') geri();
-    else if(a==='galeri') { if(typeof window.caGo==='function') window.caGo('galeri'); }
+    else if(a==='galeri') { window.__zekyGaleriBaslangicFiltre='egitim'; if(typeof window.caGo==='function') window.caGo('galeri'); }
     else if(a==='program'){ekran={tur:'program',program:btn.dataset.program,alanId:'',anahtar:''};ciz();}
     else if(a==='alan'){ekran={tur:'alan',program:btn.dataset.program,alanId:btn.dataset.alan,anahtar:''};ciz();}
     else if(a==='kazanim'){ekran={tur:'detay',program:btn.dataset.program,alanId:'',anahtar:btn.dataset.key};ciz();}
@@ -292,7 +292,7 @@ function bagla(root) {
 export async function render(id='cicekAppRoot') {
   hedefId=id;stilEkle();const root=document.getElementById(hedefId);if(!root)return;
   root.innerHTML=loading();ikonYenile();
-  try { veri=await veriYukle(); ekran={tur:'programlar',program:'',alanId:'',anahtar:''}; ciz(); }
+  try { veri=await veriYukle();const bas=window.__zekyEgitimBaslangic||null;window.__zekyEgitimBaslangic=null;ekran=bas?.program&&bas?.anahtar&&kazanimiBul(bas.program,bas.anahtar)?{tur:'detay',program:bas.program,alanId:'',anahtar:bas.anahtar}:{tur:'programlar',program:'',alanId:'',anahtar:''};ciz(); }
   catch(e){console.error('veli eğitim gelişimi',e);root.innerHTML=`<div class="veg"><div class="veg-empty">${esc(e.message||'Eğitim gelişimi yüklenemedi.')}</div></div>`;}
 }
 

@@ -3,8 +3,8 @@
 // Öğretmen/personel tarafındaki gözlem + aktif öğrenci + iletişim gizliliği
 // ayrı güvenlik köprüsüyle kurulur.
 
-const KURULUM = '__zekyVeliEgitimKoprusuV3';
-const SURUM = 'v3';
+const KURULUM = '__zekyVeliEgitimKoprusuV4';
+const SURUM = 'v4';
 let baslatiliyor = false;
 
 function bekle(kosul, deneme = 120, aralik = 100) {
@@ -26,16 +26,18 @@ async function modulleriYukle(win) {
   const PortalDataModulu = await import(`../portal-data.js?${SURUM}`);
   if (!win.PortalData) win.PortalData = PortalDataModulu;
 
-  const [veliModulu, guvenlikModulu, donemModulu] = await Promise.all([
+  const [veliModulu, guvenlikModulu, donemModulu, deneyimModulu] = await Promise.all([
     import(`../moduller/veli-egitim-gelisim.js?${SURUM}`),
-    import('./zeky-ogrenci-guvenlik-koprusu.js?v=1'),
-    import('./zeky-aktif-donem-senkron.js?v=1')
+    import('./zeky-ogrenci-guvenlik-koprusu.js?v=2'),
+    import('./zeky-aktif-donem-senkron.js?v=1'),
+    import('./zeky-veli-ogrenme-deneyimi.js?v=1')
   ]);
 
   return {
     veliEgitimRender: veliModulu.render,
     guvenlikKur: guvenlikModulu.kur,
-    aktifDonemSenkronla: donemModulu.aktifDonemSenkronla
+    aktifDonemSenkronla: donemModulu.aktifDonemSenkronla,
+    veliOgrenmeKur: deneyimModulu.kur
   };
 }
 
@@ -45,11 +47,11 @@ export async function veliEgitimKoprusunuKur(win = window) {
   baslatiliyor = true;
 
   try {
-    const { veliEgitimRender, guvenlikKur, aktifDonemSenkronla } = await modulleriYukle(win);
-    await Promise.allSettled([guvenlikKur(), aktifDonemSenkronla()]);
+    const { veliEgitimRender, guvenlikKur, aktifDonemSenkronla, veliOgrenmeKur } = await modulleriYukle(win);
+    await Promise.allSettled([guvenlikKur(), aktifDonemSenkronla(), veliOgrenmeKur(win)]);
 
     const eskiCaGo = win.caGo;
-    if (!eskiCaGo.__zekyEgitimV3) {
+    if (!eskiCaGo.__zekyEgitimV4) {
       const yeniCaGo = function (ekran, ...args) {
         if (ekran === 'egitim') {
           Promise.resolve()
@@ -62,7 +64,7 @@ export async function veliEgitimKoprusunuKur(win = window) {
         }
         return eskiCaGo.call(this, ekran, ...args);
       };
-      yeniCaGo.__zekyEgitimV3 = true;
+      yeniCaGo.__zekyEgitimV4 = true;
       yeniCaGo.__eski = eskiCaGo;
       win.caGo = yeniCaGo;
     }
