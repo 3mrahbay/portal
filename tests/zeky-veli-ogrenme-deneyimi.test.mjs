@@ -54,4 +54,6 @@ test('galeri onayı kazanım açıklaması, aşama ve öğrenci bağlamını gö
   assert.match(s, /gozlemDurum/);
   assert.match(s, /galeriOnayla/);
   assert.match(s, /galeriReddet/);
+  assert.match(s, /onayliKayitlariOnar/);
+  assert.match(s, /m\.durum==='onaylandi'/);
 });
