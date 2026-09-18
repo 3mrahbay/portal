@@ -20368,89 +20368,252 @@ function caAdminSinifHTML(sinif, ogrenciler, tumGel, mufler) {
     </div>`;
 }
 
-// ===== Faz 1b+: Gözlem Girişi (yeni tasarım → gerçek yazma) =====
+// ===== Faz 1b+: Gözlem Girişi — DOĞRUDAN MODAL / S-T-U + NOT + FOTOĞRAF =====
 let caGozlemState = null;
-window.caGozlemAc = function(ogrId, ogrAd, sinif) {
-  caGozlemState = { ogrId, ogrAd: ogrAd || "Öğrenci", sinif: sinif || null, disiplin: "montessori", alanIdx: 0, grupIdx: 0, dersIdx: 0, seviye: null, not: "" };
-  caAdminEkran = "gozlem";
-  renderAdminHome();
+
+function caGozlemProgramAdi(id) {
+  return ({ montessori:"Montessori", orman:"Orman Okulu", degerler:"Değerler Eğitimi", ingilizce:"İngilizce" })[id] || id;
+}
+
+window.caGozlemKapat = function() {
+  if (caGozlemState?.fotoOniz) {
+    try { URL.revokeObjectURL(caGozlemState.fotoOniz); } catch (_) {}
+  }
+  document.getElementById("caGozlemModalArka")?.remove();
+  caGozlemState = null;
 };
-window.caGozlemSet = function(field, val) {
-  const st = caGozlemState; if (!st) return;
-  if (field === "disiplin") { st.disiplin = val; st.alanIdx = 0; st.grupIdx = 0; st.dersIdx = 0; renderAdminHome(); }
-  else if (field === "alanIdx") { st.alanIdx = +val; st.grupIdx = 0; st.dersIdx = 0; renderAdminHome(); }
-  else if (field === "grupIdx") { st.grupIdx = +val; st.dersIdx = 0; renderAdminHome(); }
-  else if (field === "dersIdx") { st.dersIdx = +val; }
-  else if (field === "not") { st.not = val; }
+
+window.caGozlemAc = async function(ogrId, ogrAd, sinif) {
+  if (!ogrId) return;
+  window.caGozlemKapat();
+  caGozlemState = {
+    ogrId, ogrAd: ogrAd || "Öğrenci", sinif: sinif || "",
+    disiplin: "montessori", alanIdx:0, grupIdx:0, dersIdx:0,
+    seviye:null, not:"", foto:null, fotoOniz:"", kaydediliyor:false
+  };
+  const arka = document.createElement("div");
+  arka.id = "caGozlemModalArka";
+  arka.style.cssText = "position:fixed;inset:0;z-index:9900;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(3px);";
+  arka.innerHTML = '<div id="caGozlemModalRoot" style="width:min(680px,100%);max-height:92vh;overflow:auto;background:#FAFAF7;border-radius:22px;box-shadow:0 24px 70px rgba(0,0,0,.28);padding:20px;"><div style="padding:34px;text-align:center;color:#64748B;">Eğitim programı yükleniyor…</div></div>';
+  arka.onclick = e => { if (e.target === arka) window.caGozlemKapat(); };
+  document.body.appendChild(arka);
+  await caGozlemRender();
 };
+
+window.caGozlemSet = async function(field, val) {
+  const st = caGozlemState; if (!st || st.kaydediliyor) return;
+  if (field === "disiplin") {
+    st.disiplin = val; st.alanIdx = 0; st.grupIdx = 0; st.dersIdx = 0; st.seviye = null;
+    await caGozlemRender();
+  } else if (field === "alanIdx") {
+    st.alanIdx = +val; st.grupIdx = 0; st.dersIdx = 0; await caGozlemRender();
+  } else if (field === "grupIdx") {
+    st.grupIdx = +val; st.dersIdx = 0; await caGozlemRender();
+  } else if (field === "dersIdx") st.dersIdx = +val;
+  else if (field === "not") st.not = val;
+};
+
 window.caGozlemSeviye = function(s) {
-  if (!caGozlemState) return;
+  if (!caGozlemState || caGozlemState.kaydediliyor) return;
   caGozlemState.seviye = s;
-  document.querySelectorAll("#adminHomeRoot .ca-sev").forEach(b => b.classList.toggle("on", b.dataset.s === s));
+  document.querySelectorAll("#caGozlemModalRoot .ca-sev").forEach(b => b.classList.toggle("on", b.dataset.s === s));
 };
-async function caGozlemRender() {
-  const root = document.getElementById("adminHomeRoot");
-  if (!root || !caGozlemState) { caAdminGo("home"); return; }
-  const st = caGozlemState;
-  const muf = await mufredatYukle(st.disiplin);
-  const alan = muf[st.alanIdx] || muf[0];
-  const grup = (alan && (alan.gruplar[st.grupIdx] || alan.gruplar[0])) || null;
-  const dersler = (grup && grup.dersler) || [];
-  root.innerHTML = caGozlemHTML(st, muf, alan, grup, dersler);
-  if (typeof caTemaUygula === "function") caTemaUygula();
-}
-function caGozlemHTML(st, muf, alan, grup, dersler) {
-  const disChips = [["montessori","Montessori"],["ingilizce","İngilizce"],["degerler","Değerler"]]
-    .map(([id, ad]) => `<button class="ca-chip ${st.disiplin === id ? "active" : ""}" onclick="caGozlemSet('disiplin','${id}')">${ad}</button>`).join("");
-  const alanOpts = muf.map((a, i) => `<option value="${i}" ${i === st.alanIdx ? "selected" : ""}>${escapeHtml(a.ad)}</option>`).join("");
-  const grupOpts = ((alan && alan.gruplar) || []).map((g, i) => `<option value="${i}" ${i === st.grupIdx ? "selected" : ""}>${escapeHtml(g.ad)}</option>`).join("");
-  const dersOpts = dersler.map((d, i) => `<option value="${i}" ${i === st.dersIdx ? "selected" : ""}>${escapeHtml(d)}</option>`).join("");
-  return `
-    <div class="ca-page ca-stack">
-      <div class="ca-topbar">
-        <div class="ca-row"><button class="ca-back" onclick="caAdminGo('egitim', ${escapeHtml(JSON.stringify(st.sinif))})" title="Geri">←</button>
-          <div><div class="ca-tile-sub">YENİ GÖZLEM</div><h2 style="font-size:19px;">${escapeHtml(st.ogrAd)}</h2></div>
-        </div>
-        <button class="ca-btn" onclick="caGozlemKaydet()">Kaydet</button>
-      </div>
-      <div class="ca-card ca-stack" style="gap:10px;">
-        <div class="ca-formlbl">PROGRAM</div>
-        <div class="ca-chips">${disChips}</div>
-        <div class="ca-formlbl">ALAN</div>
-        <select class="ca-select" onchange="caGozlemSet('alanIdx', this.value)">${alanOpts}</select>
-        <div class="ca-formlbl">GRUP</div>
-        <select class="ca-select" onchange="caGozlemSet('grupIdx', this.value)">${grupOpts}</select>
-        <div class="ca-formlbl">KAZANIM</div>
-        <select class="ca-select" onchange="caGozlemSet('dersIdx', this.value)">${dersOpts}</select>
-        <div class="ca-formlbl">SEVİYE</div>
-        <div class="ca-sevgrid">
-          <div class="ca-sev ${st.seviye === "S" ? "on" : ""}" data-s="S" onclick="caGozlemSeviye('S')"><i data-lucide="sprout" style="width:13px;height:13px;vertical-align:-2px;"></i> Sunuldu</div>
-          <div class="ca-sev ${st.seviye === "T" ? "on" : ""}" data-s="T" onclick="caGozlemSeviye('T')"><i data-lucide="leaf" style="width:13px;height:13px;vertical-align:-2px;"></i> Tekrar</div>
-          <div class="ca-sev ${st.seviye === "U" ? "on" : ""}" data-s="U" onclick="caGozlemSeviye('U')"><i data-lucide="trees" style="width:13px;height:13px;vertical-align:-2px;"></i> Uzmanlaştı</div>
-        </div>
-        <div class="ca-formlbl">ÖĞRETMEN NOTU (opsiyonel)</div>
-        <textarea id="caGozlemNot" class="ca-area" rows="4" placeholder="Gözleminizi yazın…" oninput="caGozlemSet('not', this.value)">${escapeHtml(st.not || "")}</textarea>
-      </div>
-      <div class="ca-tile-sub" style="text-align:center;">Kaydedince veli ve sınıf görünümüne anında yansır.</div>
-    </div>`;
-}
-window.caGozlemKaydet = async function() {
+
+window.caGozlemFotoSec = function() {
+  document.getElementById("caGozlemFotoInput")?.click();
+};
+
+window.caGozlemFotoDegisti = function(ev) {
   const st = caGozlemState; if (!st) return;
-  if (!st.seviye) { if (typeof showToast === "function") showToast("Önce seviye seçin", "error"); return; }
+  const f = ev?.target?.files?.[0]; if (!f) return;
+  if (!f.type.startsWith("image/")) return showToast("Yalnızca fotoğraf seçebilirsiniz.", "error");
+  if (f.size > 10 * 1024 * 1024) return showToast("Fotoğraf en fazla 10 MB olabilir.", "error");
+  if (st.fotoOniz) try { URL.revokeObjectURL(st.fotoOniz); } catch (_) {}
+  st.foto = f;
+  st.fotoOniz = URL.createObjectURL(f);
+  caGozlemRender();
+};
+
+window.caGozlemFotoTemizle = function() {
+  const st = caGozlemState; if (!st) return;
+  if (st.fotoOniz) try { URL.revokeObjectURL(st.fotoOniz); } catch (_) {}
+  st.foto = null; st.fotoOniz = "";
+  caGozlemRender();
+};
+
+async function caGozlemRender() {
+  const root = document.getElementById("caGozlemModalRoot");
+  const st = caGozlemState;
+  if (!root || !st) return;
+  try {
+    const muf = await mufredatYukle(st.disiplin);
+    const alan = muf[st.alanIdx] || muf[0] || null;
+    if (!alan) {
+      root.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px;"><div><b style="font-size:18px;color:#2D5E3E;">${escapeHtml(st.ogrAd)} · Eğitim Gözlemi</b><div style="font-size:12px;color:#64748B;">${escapeHtml(caGozlemProgramAdi(st.disiplin))} müfredatı tanımlı değil.</div></div><button onclick="caGozlemKapat()" style="border:0;background:#EEF2F0;border-radius:50%;width:40px;height:40px;font-size:22px;cursor:pointer;">×</button></div>`;
+      return;
+    }
+    if (st.alanIdx >= muf.length) st.alanIdx = 0;
+    const secAlan = muf[st.alanIdx] || muf[0];
+    const gruplar = secAlan.gruplar || [];
+    if (st.grupIdx >= gruplar.length) st.grupIdx = 0;
+    const grup = gruplar[st.grupIdx] || null;
+    const dersler = grup?.dersler || [];
+    if (st.dersIdx >= dersler.length) st.dersIdx = 0;
+
+    const programlar = [["montessori","Montessori"],["orman","Orman Okulu"],["degerler","Değerler"],["ingilizce","İngilizce"]];
+    const fotoHtml = st.fotoOniz
+      ? `<div style="position:relative;"><img src="${escapeHtml(st.fotoOniz)}" style="width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:#F1F5F9;"><button type="button" onclick="caGozlemFotoTemizle()" style="position:absolute;right:8px;top:8px;border:0;background:rgba(15,23,42,.72);color:#fff;border-radius:999px;padding:6px 10px;cursor:pointer;">Kaldır</button></div>`
+      : `<button type="button" onclick="caGozlemFotoSec()" style="width:100%;border:2px dashed #BFD0C4;background:#F4F8F5;border-radius:14px;padding:18px;cursor:pointer;font-family:inherit;color:#2D5E3E;"><span style="font-size:24px;display:block;margin-bottom:5px;">📷</span><b>Fotoğraf ekle</b><span style="display:block;font-size:11px;color:#718079;margin-top:4px;">İlgili eğitim aşamasına ve Eğitim Galerisi’ne bağlanır.</span></button>`;
+
+    root.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;">
+        <div style="flex:1;"><div style="font-weight:800;font-size:18px;color:#2D5E3E;">${escapeHtml(st.ogrAd)} · Eğitim Gözlemi</div><div style="font-size:12px;color:#64748B;margin-top:3px;">${escapeHtml(st.sinif)} · Aşama, açıklama ve fotoğrafı birlikte kaydedin.</div></div>
+        <button type="button" onclick="caGozlemKapat()" style="border:0;background:#EEF2F0;border-radius:50%;width:40px;height:40px;font-size:22px;cursor:pointer;">×</button>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;">${programlar.map(([id,ad]) => `<button type="button" onclick="caGozlemSet('disiplin','${id}')" style="border:1px solid ${st.disiplin===id?'#2D5E3E':'#D9E1DC'};background:${st.disiplin===id?'#2D5E3E':'#fff'};color:${st.disiplin===id?'#fff':'#475569'};border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px;">${ad}</button>`).join("")}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <label style="font-size:11px;font-weight:800;color:#64748B;">ALAN<select class="ca-select" onchange="caGozlemSet('alanIdx',this.value)" style="display:block;margin-top:5px;">${muf.map((a,i)=>`<option value="${i}" ${i===st.alanIdx?'selected':''}>${escapeHtml(a.ad)}</option>`).join("")}</select></label>
+        <label style="font-size:11px;font-weight:800;color:#64748B;">GRUP<select class="ca-select" onchange="caGozlemSet('grupIdx',this.value)" style="display:block;margin-top:5px;">${gruplar.map((g,i)=>`<option value="${i}" ${i===st.grupIdx?'selected':''}>${escapeHtml(g.ad)}</option>`).join("")}</select></label>
+      </div>
+      <label style="display:block;font-size:11px;font-weight:800;color:#64748B;margin-top:12px;">EĞİTİM / KAZANIM<select class="ca-select" onchange="caGozlemSet('dersIdx',this.value)" style="display:block;margin-top:5px;">${dersler.map((d,i)=>`<option value="${i}" ${i===st.dersIdx?'selected':''}>${escapeHtml(d)}</option>`).join("")}</select></label>
+      <div style="font-size:11px;font-weight:800;color:#64748B;margin:14px 0 7px;">AŞAMA</div>
+      <div class="ca-sevgrid">
+        <div class="ca-sev ${st.seviye==="S"?"on":""}" data-s="S" onclick="caGozlemSeviye('S')">🌱 Sunuldu</div>
+        <div class="ca-sev ${st.seviye==="T"?"on":""}" data-s="T" onclick="caGozlemSeviye('T')">🔁 Tekrar Ediyor</div>
+        <div class="ca-sev ${st.seviye==="U"?"on":""}" data-s="U" onclick="caGozlemSeviye('U')">✓ Ustalaştı</div>
+      </div>
+      <label style="display:block;font-size:11px;font-weight:800;color:#64748B;margin-top:14px;">GÖZLEM AÇIKLAMASI<textarea id="caGozlemNot" class="ca-area" rows="4" placeholder="Bu aşamada gözlemlediğiniz gelişimi yazın…" oninput="caGozlemSet('not',this.value)" style="display:block;width:100%;margin-top:5px;">${escapeHtml(st.not||"")}</textarea></label>
+      <div style="font-size:11px;font-weight:800;color:#64748B;margin:14px 0 7px;">FOTOĞRAF (OPSİYONEL)</div>
+      <input type="file" id="caGozlemFotoInput" accept="image/*" hidden onchange="caGozlemFotoDegisti(event)">
+      ${fotoHtml}
+      <div style="margin-top:12px;background:#F0EAF6;color:#5B4189;border-radius:11px;padding:10px 12px;font-size:11.5px;line-height:1.5;">${isAdmin || ["kurucu_mudur","mudur","egitim_koordinator"].includes(aktifKullaniciRol) ? "Yönetim hesabından eklenen fotoğraf doğrudan yayınlanır." : "Öğretmen fotoğrafı yönetim onayından sonra veliye ve Eğitim Galerisi’ne açılır."}</div>
+      <div id="caGozlemProgress" style="display:none;margin-top:10px;background:#EAF3EC;color:#2D5E3E;border-radius:10px;padding:9px 11px;font-size:12px;font-weight:700;">Kaydediliyor…</div>
+      <div style="display:flex;gap:9px;margin-top:14px;"><button type="button" onclick="caGozlemKapat()" style="flex:1;border:0;border-radius:13px;min-height:46px;background:#EEF1EF;color:#526059;font-weight:750;cursor:pointer;">Vazgeç</button><button id="caGozlemKaydetBtn" type="button" onclick="caGozlemKaydet()" style="flex:1;border:0;border-radius:13px;min-height:46px;background:#2D5E3E;color:#fff;font-weight:800;cursor:pointer;">Gözlemi Kaydet</button></div>
+    `;
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 30);
+  } catch (e) {
+    console.error("Gözlem render hatası:", e);
+    root.innerHTML = `<div style="padding:24px;text-align:center;color:#991B1B;">Eğitim programı yüklenemedi: ${escapeHtml(e?.message||"Bilinmeyen hata")}<br><button onclick="caGozlemKapat()" style="margin-top:12px;padding:9px 14px;">Kapat</button></div>`;
+  }
+}
+
+async function caGozlemFiligranliDosya(file) {
+  const sik = await resimSikistir(file, 1920, 0.86);
+  return new Promise((resolve, reject) => {
+    const rd = new FileReader();
+    rd.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height;
+        const x = c.getContext("2d"); x.drawImage(img,0,0,c.width,c.height);
+        const k=Math.min(c.width,c.height), pay=Math.max(14,Math.round(k*.035)), ust=Math.max(18,Math.round(k*.055));
+        let alt=Math.max(9,Math.round(ust*.36)); const met="Bir Çiçek Koleji Anaokulu";
+        x.save(); x.globalAlpha=.40; x.fillStyle="#fff"; x.shadowColor="rgba(0,0,0,.55)"; x.shadowBlur=Math.max(2,Math.round(ust*.10)); x.textAlign="right"; x.textBaseline="alphabetic";
+        x.font=`600 ${alt}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`;
+        const max=Math.max(80,c.width-pay*2), ol=x.measureText(met).width; if(ol>max) alt=Math.max(8,Math.floor(alt*max/ol));
+        x.font=`600 ${alt}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`; x.fillText(met,c.width-pay,c.height-pay);
+        x.font=`800 ${ust}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`; x.fillText("BÇKA",c.width-pay,c.height-pay-alt-Math.round(ust*.18)); x.restore();
+        c.toBlob(blob => blob ? resolve(new File([blob], (file.name||"gozlem").replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg"})) : reject(new Error("Fotoğraf işlenemedi.")), "image/jpeg", .9);
+      };
+      img.onerror = () => reject(new Error("Fotoğraf okunamadı."));
+      img.src = e.target.result;
+    };
+    rd.onerror = () => reject(new Error("Fotoğraf okunamadı."));
+    rd.readAsDataURL(sik);
+  });
+}
+
+async function caGozlemFotoYukle(st, anahtar, ders, notMetin) {
+  if (!st.foto) return null;
+  const isaretli = await caGozlemFiligranliDosya(st.foto);
+  const tarih = new Date().toISOString().slice(0,10);
+  const sonuc = await medyaYukle(isaretli, `galeri/ogrenci/${st.ogrId}/${st.disiplin}/${tarih}`);
+  const yonetimYuklemesi = isAdmin || ["kurucu_mudur","mudur","egitim_koordinator"].includes(aktifKullaniciRol);
+  const durum = yonetimYuklemesi ? "onaylandi" : "beklemede";
+  const simdi = new Date().toISOString();
+  const ref = doc(collection(db, "galeri"));
+  const oge = {
+    id: ref.id, etkinlikBaslik: caGozlemProgramAdi(st.disiplin), baslik: ders,
+    etkinlikTarih:tarih, aciklama:notMetin || "", hedefTur:"ogrenci", hedefDeger:st.ogrId,
+    hedefOgrenciId:st.ogrId, hedefOgrenciAd:st.ogrAd, ogrenciId:st.ogrId, sinif:st.sinif || "",
+    kategori:st.disiplin, program:st.disiplin, albumTuru:"egitim", egitimKaydi:true,
+    kazanimAnahtari:anahtar, gozlemDurum:st.seviye, dosyaTipi:"foto", tip:"image",
+    bunnyUrl:sonuc.url, kucukResim:sonuc.url, bunnyPath:sonuc.yol || "",
+    dosyaBoyutu:isaretli.size, orjinalAd:isaretli.name, donem:AKTIF_DONEM,
+    yukleyen:currentUser?.email || "", yuklemeZamani:simdi, tarih:simdi, durum,
+    onaylayanEmail:yonetimYuklemesi ? (currentUser?.email || "") : "",
+    onayTarihi:yonetimYuklemesi ? simdi : ""
+  };
+  await setDoc(ref, oge);
+  return { id:ref.id, url:sonuc.url, yol:sonuc.yol||"", durum };
+}
+
+async function caGozlemDetayKaydet(st, alan, grup, ders, notMetin, foto) {
+  const anahtar = `${alan.id}__${grup.ad}__${ders}`;
+  const ref = doc(db, "ogrenciGelisim", st.ogrId);
+  const snap = await getDoc(ref);
+  const tum = snap.exists() ? (snap.data() || {}) : {};
+  const dis = tum[st.disiplin] || {};
+  const detay = { ...(dis.detay || {}) };
+  const onceki = detay[anahtar] || {};
+  const asamalar = { ...(onceki.asamalar || {}) };
+  const simdi = new Date().toISOString();
+  const yazar = aktifPersonel?.adSoyad || currentUser?.displayName || "Öğretmen";
+  const yeniAsama = {
+    ...(asamalar[st.seviye] || {}), durum:st.seviye, not:notMetin || "",
+    tarih:simdi, yazar, paylas:true,
+    fotoUrl: foto && foto.durum==="onaylandi" ? foto.url : "",
+    fotoDurum: foto ? foto.durum : "",
+    galeriId: foto ? foto.id : "",
+    fotoYol: foto ? foto.yol : ""
+  };
+  asamalar[st.seviye] = yeniAsama;
+  detay[anahtar] = {
+    ...onceki, durum:st.seviye, not:yeniAsama.not, tarih:simdi, yazar, paylas:true,
+    fotoUrl:yeniAsama.fotoUrl, fotoDurum:yeniAsama.fotoDurum, galeriId:yeniAsama.galeriId,
+    dersAd:ders, asamalar
+  };
+  await setDoc(ref, {
+    [st.disiplin]: { ...dis, detay, guncellendi:serverTimestamp() },
+    sonGozlem: { disiplin:st.disiplin, anahtar, dersAd:ders, durum:st.seviye, not:yeniAsama.not,
+      tarih:simdi, yazar, paylas:true, fotoUrl:yeniAsama.fotoUrl, fotoDurum:yeniAsama.fotoDurum, galeriId:yeniAsama.galeriId }
+  }, { merge:true });
+}
+
+window.caGozlemKaydet = async function() {
+  const st = caGozlemState; if (!st || st.kaydediliyor) return;
+  if (!st.seviye) return showToast("Sunuldu, Tekrar Ediyor veya Ustalaştı aşamasını seçin.", "error");
   const muf = await mufredatYukle(st.disiplin);
   const alan = muf[st.alanIdx];
-  const grup = alan && alan.gruplar[st.grupIdx];
-  const ders = grup && grup.dersler[st.dersIdx];
-  if (!ders) { if (typeof showToast === "function") showToast("Kazanım seçin", "error"); return; }
-  const notEl = document.getElementById("caGozlemNot");
-  const notMetin = notEl ? notEl.value.trim() : (st.not || "").trim();
-  const ok = await gelisimDersGuncelle(st.ogrId, st.disiplin, alan.id, grup.ad, ders, st.seviye);
-  if (ok && notMetin) { try { await gelisimNotEkle(st.ogrId, st.disiplin, notMetin); } catch(e) {} }
-  if (ok) {
-    if (typeof showToast === "function") showToast("✓ Gözlem kaydedildi");
-    try { zekiDenetim("gozlem_kayit", { ogr: st.ogrId, disiplin: st.disiplin, ders }); } catch(e) {}
-    caAdminGo("egitim", st.sinif);
-  } else if (typeof showToast === "function") showToast("Kaydedilemedi", "error");
+  const grup = alan?.gruplar?.[st.grupIdx];
+  const ders = grup?.dersler?.[st.dersIdx];
+  if (!alan || !grup || !ders) return showToast("Bir eğitim/kazanım seçin.", "error");
+  const notMetin = (document.getElementById("caGozlemNot")?.value || st.not || "").trim();
+  st.not = notMetin; st.kaydediliyor = true;
+  const btn=document.getElementById("caGozlemKaydetBtn"), pr=document.getElementById("caGozlemProgress");
+  if(btn) btn.disabled=true; if(pr){pr.style.display="block";pr.textContent=st.foto?"Gözlem ve fotoğraf kaydediliyor…":"Gözlem kaydediliyor…";}
+  try {
+    const ok = await gelisimDersGuncelle(st.ogrId, st.disiplin, alan.id, grup.ad, ders, st.seviye);
+    if (!ok) throw new Error("Gelişim kaydı yazılamadı.");
+    if (notMetin) { try { await gelisimNotEkle(st.ogrId, st.disiplin, notMetin); } catch (_) {} }
+    const anahtar = `${alan.id}__${grup.ad}__${ders}`;
+    let foto = null, fotoHata = null;
+    if (st.foto) {
+      try { foto = await caGozlemFotoYukle(st, anahtar, ders, notMetin); }
+      catch (e) { fotoHata = e; console.error("Gözlem fotoğrafı yüklenemedi:", e); }
+    }
+    await caGozlemDetayKaydet(st, alan, grup, ders, notMetin, foto);
+    try { zekiDenetim("gozlem_kayit", { ogr:st.ogrId, disiplin:st.disiplin, ders, seviye:st.seviye }); } catch (_) {}
+    window.caGozlemKapat();
+    if (fotoHata) showToast("✓ Gözlem kaydedildi; fotoğraf yüklenemedi: " + (fotoHata.message || fotoHata), "warn");
+    else if (foto && foto.durum === "beklemede") showToast("✓ Gözlem kaydedildi · fotoğraf yönetim onayında");
+    else showToast("✓ Gözlem kaydedildi");
+  } catch (e) {
+    console.error("Gözlem kayıt hatası:", e);
+    st.kaydediliyor=false; if(btn)btn.disabled=false; if(pr){pr.textContent="Kayıt tamamlanamadı.";}
+    showToast("Gözlem kaydedilemedi: " + (e?.message || e), "error");
+  }
 };
 
 function yonetimHomeHTML(ad) {
@@ -27921,29 +28084,22 @@ window.ogrenciEgitimPopup = function(id) {
 };
 
 // ZEKY çekirdek gözlem girişi — köprüye bağlı değildir.
-window.zekyGelismisGozlemAcCore = async function(ogrenciId, ogrenciAd, sinif) {
-  try {
-    if (!window.PortalData || !window.PortalData.hazir) {
-      await import("./portal-data.js?v=4");
-    }
-    const mod = await import("./moduller/ogretmen-egitim-gozlem.js?v=4");
-    if (typeof mod.gozlemAc === "function") {
-      return await mod.gozlemAc(ogrenciId, ogrenciAd || "Öğrenci", sinif || "");
-    }
-    if (typeof mod.kur === "function") mod.kur(window);
-    if (typeof window.caGozlemAc === "function") {
-      return window.caGozlemAc(ogrenciId, ogrenciAd || "Öğrenci", sinif || "");
-    }
-    throw new Error("Gözlem modülü hazır değil.");
-  } catch (e) {
-    console.error("Gelişmiş gözlem açılamadı:", e);
-    if (typeof showToast === "function") showToast("Gözlem ekranı açılamadı. Sayfayı yenileyip tekrar deneyin.", "error");
+window.zekyGelismisGozlemAcCore = function(ogrenciId, ogrenciAd, sinif) {
+  if (typeof window.caGozlemAc === "function") {
+    return window.caGozlemAc(ogrenciId, ogrenciAd || "Öğrenci", sinif || "");
   }
+  if (typeof showToast === "function") showToast("Gözlem ekranı hazır değil.", "error");
 };
 
 function zekiAktifDonemOgrencisi(o) {
   if (!o || !o.id) return false;
   const ayar = ayarListesi[o.id];
+  const ogretmenDonemBelgeleriOkundu =
+    ((typeof finansGorebilir === "function") && !finansGorebilir())
+    && Object.keys(ayarListesi || {}).length > 0;
+  if (ogretmenDonemBelgeleriOkundu) {
+    return !!ayar && getOgrenciDurum(o, ayar) === "aktif";
+  }
   if (ayar) return getOgrenciDurum(o, ayar) === "aktif";
   const d = String(o.aktifDonemDurum || "").toLocaleLowerCase("tr");
   return String(o.aktifDonem || "") === String(AKTIF_DONEM)
@@ -28057,14 +28213,12 @@ function renderTable() {
   const searchVal = document.getElementById("searchInput").value.toLowerCase().trim();
   
   // Filtre uygula
-  // Öğretmen dönem alt belgelerini okuyamadığında listeyi tamamen boşaltma:
-  // master aktif-dönem işaretlerini ancak TÜM görünür öğrenciler için hazırsa
-  // kesin kaynak olarak kullan. Senkron tamamlanmamışsa Yoklama ile aynı
-  // legacy aktiflik kuralına geri düş.
-  const masterDonemIsaretleriHazir = ogrenciList.length > 0 && ogrenciList.every(x => {
-    const d = String(x.aktifDonemDurum || "").trim();
-    return String(x.aktifDonem || "") === String(AKTIF_DONEM) && !!d;
-  });
+  // Öğretmen oturumunda ayarListesi yalnız okunabilen AKTİF DÖNEM belgelerini içerir.
+  // Sınıf çiplerindeki sayaçlar da aynı kaynağı kullanır. En az bir dönem belgesi
+  // okunabiliyorsa, öğrenciler ekranı yalnız ayarListesi'nde bulunan çocukları gösterir.
+  const ogretmenDonemBelgeleriOkundu =
+    ((typeof finansGorebilir === "function") && !finansGorebilir())
+    && Object.keys(ayarListesi || {}).length > 0;
 
   filteredList = ogrenciList.filter(o => {
     // ===== ROL KISITI =====
@@ -28091,12 +28245,14 @@ function renderTable() {
 
     if (donemSartiAra) {
       if (!donemVerisi) return false;
-    } else if (masterDonemIsaretleriHazir) {
+    } else if (ogretmenDonemBelgeleriOkundu) {
+      // Güncel dönemde belgesi olmayan öğrenci bu döneme kayıtlı değildir.
+      if (!donemVerisi) return false;
+      if (getOgrenciDurum(o, donemVerisi) !== "aktif") return false;
+    } else if (String(o.aktifDonem || "") === String(AKTIF_DONEM)) {
       if (!masterDonemAktif) return false;
     } else {
-      // Yoklama ekranının kullandığı aktiflik mantığıyla aynı fallback.
-      // Böylece dönem master senkronu henüz tamamlanmadıysa güncel öğrenciler
-      // öğretmen listesinden kaybolmaz.
+      // Dönem belgesi hiç okunamayan eski kurulumlar için son güvenlik ağı.
       if (getOgrenciDurum(o, donemVerisi) !== "aktif") return false;
     }
 
@@ -28116,9 +28272,11 @@ function renderTable() {
     const ayar = ayarListesi[o.id];
     const durum = donemVerisi
       ? getOgrenciDurum(o, ayar)
-      : (masterDonemIsaretleriHazir
-          ? (["arsiv","arşiv","pasif","ayrildi","ayrıldı"].includes(masterDurum) ? "arsiv" : "aktif")
-          : getOgrenciDurum(o, ayar));
+      : (ogretmenDonemBelgeleriOkundu
+          ? "arsiv"
+          : (String(o.aktifDonem || "") === String(AKTIF_DONEM)
+              ? (["arsiv","arşiv","pasif","ayrildi","ayrıldı"].includes(masterDurum) ? "arsiv" : "aktif")
+              : getOgrenciDurum(o, ayar)));
     if (activeDurum !== "tumu" && durum !== activeDurum) return false;
 
     // Alt filtre (tüm öğrenciler üzerinde)
@@ -33993,11 +34151,22 @@ async function galeriGozlemOnayiEsitle(oge, durum, duzenlenmisMetin = "") {
     const dis = tum[disiplin] || {};
     const detay = { ...(dis.detay || {}) };
     const onceki = detay[anahtar] || {};
+    const asamalar = { ...(onceki.asamalar || {}) };
+    const asamaKod = oge?.gozlemDurum || onceki.durum || "";
+    const fotoUrl = durum === "onaylandi" ? (oge.bunnyUrl || oge.url || "") : "";
+    if (asamaKod) {
+      asamalar[asamaKod] = {
+        ...(asamalar[asamaKod] || {}),
+        fotoUrl, fotoDurum:durum, galeriId:oge.id || "",
+        ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
+      };
+    }
     detay[anahtar] = {
       ...onceki,
-      fotoUrl: durum === "onaylandi" ? (oge.bunnyUrl || oge.url || "") : "",
+      fotoUrl,
       fotoDurum: durum,
       galeriId: oge.id || "",
+      asamalar,
       ...(duzenlenmisMetin ? { not:duzenlenmisMetin } : {})
     };
     const guncelleme = { [disiplin]: { ...dis, detay, guncellendi:new Date().toISOString() } };
