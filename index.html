@@ -28057,6 +28057,15 @@ function renderTable() {
   const searchVal = document.getElementById("searchInput").value.toLowerCase().trim();
   
   // Filtre uygula
+  // Öğretmen dönem alt belgelerini okuyamadığında listeyi tamamen boşaltma:
+  // master aktif-dönem işaretlerini ancak TÜM görünür öğrenciler için hazırsa
+  // kesin kaynak olarak kullan. Senkron tamamlanmamışsa Yoklama ile aynı
+  // legacy aktiflik kuralına geri düş.
+  const masterDonemIsaretleriHazir = ogrenciList.length > 0 && ogrenciList.every(x => {
+    const d = String(x.aktifDonemDurum || "").trim();
+    return String(x.aktifDonem || "") === String(AKTIF_DONEM) && !!d;
+  });
+
   filteredList = ogrenciList.filter(o => {
     // ===== ROL KISITI =====
     // Öğretmen SADECE kendi atandığı sınıfın öğrencilerini görür.
@@ -28082,8 +28091,13 @@ function renderTable() {
 
     if (donemSartiAra) {
       if (!donemVerisi) return false;
-    } else if (!masterDonemAktif) {
-      return false;
+    } else if (masterDonemIsaretleriHazir) {
+      if (!masterDonemAktif) return false;
+    } else {
+      // Yoklama ekranının kullandığı aktiflik mantığıyla aynı fallback.
+      // Böylece dönem master senkronu henüz tamamlanmadıysa güncel öğrenciler
+      // öğretmen listesinden kaybolmaz.
+      if (getOgrenciDurum(o, donemVerisi) !== "aktif") return false;
     }
 
     // Arama
@@ -28102,7 +28116,9 @@ function renderTable() {
     const ayar = ayarListesi[o.id];
     const durum = donemVerisi
       ? getOgrenciDurum(o, ayar)
-      : (["arsiv","arşiv","pasif","ayrildi","ayrıldı"].includes(masterDurum) ? "arsiv" : "aktif");
+      : (masterDonemIsaretleriHazir
+          ? (["arsiv","arşiv","pasif","ayrildi","ayrıldı"].includes(masterDurum) ? "arsiv" : "aktif")
+          : getOgrenciDurum(o, ayar));
     if (activeDurum !== "tumu" && durum !== activeDurum) return false;
 
     // Alt filtre (tüm öğrenciler üzerinde)
