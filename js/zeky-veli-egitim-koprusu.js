@@ -3,8 +3,8 @@
 // Öğretmen/personel tarafındaki gözlem + aktif öğrenci + iletişim gizliliği
 // ayrı güvenlik köprüsüyle kurulur.
 
-const KURULUM = '__zekyVeliEgitimKoprusuV4';
-const SURUM = 'v4';
+const KURULUM = '__zekyVeliEgitimKoprusuV5';
+const SURUM = 'v5';
 let baslatiliyor = false;
 
 function bekle(kosul, deneme = 120, aralik = 100) {
@@ -28,9 +28,9 @@ async function modulleriYukle(win) {
 
   const [veliModulu, guvenlikModulu, donemModulu, deneyimModulu] = await Promise.all([
     import(`../moduller/veli-egitim-gelisim.js?${SURUM}`),
-    import('./zeky-ogrenci-guvenlik-koprusu.js?v=2'),
+    import('./zeky-ogrenci-guvenlik-koprusu.js?v=3'),
     import('./zeky-aktif-donem-senkron.js?v=1'),
-    import('./zeky-veli-ogrenme-deneyimi.js?v=1')
+    import('./zeky-veli-ogrenme-deneyimi.js?v=2')
   ]);
 
   return {
@@ -51,7 +51,7 @@ export async function veliEgitimKoprusunuKur(win = window) {
     await Promise.allSettled([guvenlikKur(), aktifDonemSenkronla(), veliOgrenmeKur(win)]);
 
     const eskiCaGo = win.caGo;
-    if (!eskiCaGo.__zekyEgitimV4) {
+    if (!eskiCaGo.__zekyEgitimV5) {
       const yeniCaGo = function (ekran, ...args) {
         if (ekran === 'egitim') {
           Promise.resolve()
@@ -64,7 +64,7 @@ export async function veliEgitimKoprusunuKur(win = window) {
         }
         return eskiCaGo.call(this, ekran, ...args);
       };
-      yeniCaGo.__zekyEgitimV4 = true;
+      yeniCaGo.__zekyEgitimV5 = true;
       yeniCaGo.__eski = eskiCaGo;
       win.caGo = yeniCaGo;
     }

@@ -17,11 +17,12 @@ test('veli eğitim modülü ZEKY S/T/U yolculuğunu ve açıklama/fotoğraf mode
   assert.match(kaynak, /Bu kazanım neden önemli/);
 });
 
-test('veli eğitim fotoğraf fallback sorgusu yalnız seçili öğrenciyi ister', async () => {
+test('veli eğitim fotoğraf fallback sorgusu onaylı kapsamı ister ve seçili öğrenciyi istemcide ayırır', async () => {
   const kaynak = await readFile(new URL('moduller/veli-egitim-gelisim.js', kok), 'utf8');
-  assert.match(kaynak, /where\('durum','==','onaylandi'\)/);
-  assert.match(kaynak, /where\('ogrenciId','==',ogr\.id\)/);
-  assert.match(kaynak, /if \(v\.ogrenciId !== ogr\.id\) return/);
+  const portfolyo = await readFile(new URL('js/zeky-egitim-portfolyo.js', kok), 'utf8');
+  assert.match(portfolyo, /where\('durum','==','onaylandi'\)/);
+  assert.match(portfolyo, /hedef !== ogrenciId/);
+  assert.doesNotMatch(portfolyo, /where\('ogrenciId'/);
   assert.doesNotMatch(kaynak, /URLSearchParams/);
   assert.match(kaynak, /state\.veliAktifOgrenci/);
 });
@@ -43,18 +44,18 @@ test('portal öğretmen gözlemi aşama, not ve fotoğrafı aynı kazanım zinci
   assert.match(kaynak, /BÇKA/);
 });
 
-test('eğitim köprüsü v4 global caGo, güvenlik, veli deneyimi ve aktif dönem senkronunu yükler', async () => {
+test('eğitim köprüsü v5 global caGo, güvenlik, veli deneyimi ve aktif dönem senkronunu yükler', async () => {
   const kopru = await readFile(new URL('js/zeky-veli-egitim-koprusu.js', kok), 'utf8');
   const baslangic = await readFile(new URL('js/zeky-galeri-filigran-koprusu.js', kok), 'utf8');
   assert.match(kopru, /typeof win\.caGo === 'function'/);
   assert.match(kopru, /ekran === 'egitim'/);
   assert.match(kopru, /veliEgitimRender\('cicekAppRoot'\)/);
-  assert.match(kopru, /zeky-ogrenci-guvenlik-koprusu\.js\?v=2/);
+  assert.match(kopru, /zeky-ogrenci-guvenlik-koprusu\.js\?v=3/);
   assert.match(kopru, /zeky-aktif-donem-senkron\.js\?v=1/);
-  assert.match(kopru, /zeky-veli-ogrenme-deneyimi\.js\?v=1/);
+  assert.match(kopru, /zeky-veli-ogrenme-deneyimi\.js\?v=2/);
   assert.match(kopru, /__zekyEgitimKoprusuSurum/);
   assert.doesNotMatch(kopru, /typeof win\.caEgitimYukle/);
-  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=4/);
+  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=5/);
 });
 
 test('öğrenci güvenlik köprüsü aktif dönem, gözlem ve e-posta gizliliğini uygular', async () => {
@@ -82,14 +83,17 @@ test('aktif dönem senkronu yalnız güvenli dönem işaretlerini ana öğrenci 
 
 test('PWA cache eğitim, güvenlik ve modern gözlem zincirini taşır', async () => {
   const sw = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(sw, /CACHE_VERSION = "v123"/);
+  assert.match(sw, /CACHE_VERSION = "v124"/);
   assert.match(sw, /portal-data\.js\?v=3/);
-  assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=4/);
-  assert.match(sw, /zeky-veli-ogrenme-deneyimi\.js\?v=1/);
-  assert.match(sw, /zeky-galeri-onay-egitim\.js\?v=1/);
-  assert.match(sw, /zeky-ogrenci-guvenlik-koprusu\.js\?v=2/);
+  assert.match(sw, /portal-data\.js\?v=5/);
+  assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=5/);
+  assert.match(sw, /zeky-veli-ogrenme-deneyimi\.js\?v=2/);
+  assert.match(sw, /zeky-galeri-onay-egitim\.js\?v=2/);
+  assert.match(sw, /zeky-egitim-portfolyo\.js\?v=1/);
+  assert.match(sw, /zeky-veli-donem-raporu\.js\?v=1/);
+  assert.match(sw, /zeky-ogrenci-guvenlik-koprusu\.js\?v=3/);
   assert.match(sw, /zeky-aktif-donem-senkron\.js\?v=1/);
-  assert.match(sw, /veli-egitim-gelisim\.js\?v=4/);
-  assert.match(sw, /ogretmen-egitim-gozlem\.js\?v=5/);
+  assert.match(sw, /veli-egitim-gelisim\.js\?v=5/);
+  assert.match(sw, /ogretmen-egitim-gozlem\.js\?v=6/);
   assert.match(sw, /zeky-gozlem-modal-modern\.js\?v=1/);
 });

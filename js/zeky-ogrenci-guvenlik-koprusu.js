@@ -218,7 +218,7 @@ function navigasyonKur(){
 async function gozlemKur(){
   try{
     delete window.__zekyGelismisGozlemV1;
-    const m=await import('../moduller/ogretmen-egitim-gozlem.js?v5');
+    const m=await import('../moduller/ogretmen-egitim-gozlem.js?v6');
     m.kur(window);
     await bekle(()=>window.__zekyGelismisGozlemV1===true&&typeof window.caGozlemAc==='function',80,100);
     gozlemAc=window.caGozlemAc;
