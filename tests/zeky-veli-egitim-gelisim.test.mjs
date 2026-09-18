@@ -79,13 +79,14 @@ test('aktif dönem senkronu yalnız güvenli dönem işaretlerini ana öğrenci 
   assert.doesNotMatch(kaynak, /veli1Eposta/);
 });
 
-test('PWA cache eğitim ve güvenlik zincirinin v3 dosyalarını taşır', async () => {
+test('PWA cache eğitim, güvenlik ve modern gözlem zincirini taşır', async () => {
   const sw = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(sw, /CACHE_VERSION = "v117"/);
+  assert.match(sw, /CACHE_VERSION = "v121"/);
   assert.match(sw, /portal-data\.js\?v=3/);
   assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=3/);
   assert.match(sw, /zeky-ogrenci-guvenlik-koprusu\.js\?v=1/);
   assert.match(sw, /zeky-aktif-donem-senkron\.js\?v=1/);
   assert.match(sw, /veli-egitim-gelisim\.js\?v=3/);
   assert.match(sw, /ogretmen-egitim-gozlem\.js\?v=3/);
+  assert.match(sw, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
