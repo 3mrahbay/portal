@@ -1,7 +1,9 @@
+import { onayliGaleriGetir, portfolyoOlustur, bugununSunumlari } from './zeky-egitim-portfolyo.js?v=1';
+
 // Veli ana sayfası: son eğitim sunumu, günlük akış ve çocuk bildirimleri.
 // Yalnız seçili çocuğun doğrudan belgelerini / alt koleksiyonunu okur.
 
-const KURULUM = '__zekyVeliOgrenmeDeneyimiV1';
+const KURULUM = '__zekyVeliOgrenmeDeneyimiV2';
 const PROGRAM = {
   montessori:{ ad:'Montessori', renk:'#2D6A45', acik:'#EAF3EC' },
   orman:{ ad:'Orman Okulu', renk:'#4E7A4B', acik:'#EDF4ED' },
@@ -17,6 +19,7 @@ const ASAMA = {
 let gozlemci = null;
 let bildirimYukleme = null;
 let bildirimCache = [];
+let bildirimCacheOgrenciId = '';
 let bildirimZenginlestirme = false;
 let anaSayfaIstek = 0;
 let anaSayfaPlanli = false;
@@ -41,25 +44,34 @@ function stil(){
 
 async function gelisimGetir(o){const p=P();if(!p?.fb||!p?.db||!o?.id)return{};const s=await p.fb.getDoc(p.fb.doc(p.db,'ogrenciGelisim',o.id));return s.exists()?(s.data()||{}):{};}
 
-function sonSunumHTML(gel){
-  const g=gel?.sonGozlem;if(!g||g.paylas===false)return`<div class="zvo-son" style="cursor:default"><div style="padding:18px;text-align:center;color:#7C8B82;font-size:12.5px"><div style="font-size:28px;margin-bottom:6px">🌱</div>Henüz veliyle paylaşılan bir eğitim sunumu yok.</div></div>`;
-  const pr=PROGRAM[g.disiplin]||{ad:g.programAd||'Eğitim',renk:'#2D6A45',acik:'#EAF3EC'},as=ASAMA[g.durum]||{ad:'Gelişim kaydı',renk:'#64748B',acik:'#F1F5F9'};
-  const foto=(!g.galeriId||!g.fotoDurum||g.fotoDurum==='onaylandi')?(g.fotoUrl||''):'';
-  return`<div class="zvo-son" role="button" tabindex="0" data-zvo-son data-program="${esc(g.disiplin||'')}" data-key="${esc(g.anahtar||'')}"><div class="zvo-son-ic"><div class="zvo-son-gorsel" style="background:${pr.acik}">${foto?`<img src="${esc(foto)}" alt="${esc(g.dersAd||'Son eğitim sunumu')}" loading="lazy">`:`<div style="height:100%;display:grid;place-items:center;color:${pr.renk};font-size:34px">🌿</div>`}</div><div class="zvo-son-govde"><div class="zvo-ustetiket">SON EĞİTİM SUNUMU</div><div class="zvo-baslik">${esc(g.dersAd||'Yeni kazanım')}</div><div class="zvo-meta"><span class="zvo-pill" style="background:${pr.acik};color:${pr.renk}">${esc(pr.ad)}</span><span class="zvo-pill" style="background:${as.acik};color:${as.renk}">${esc(as.ad)}</span></div>${g.not?`<div class="zvo-not">${esc(g.not)}</div>`:''}<div class="zvo-ac">Sunumu ve tüm aşamaları gör →</div></div></div></div>`;
+function sonSunumHTML(g){
+  if(!g)return`<div class="zvo-son" style="cursor:default"><div style="padding:18px;text-align:center;color:#7C8B82;font-size:12.5px"><div style="font-size:28px;margin-bottom:6px">🌱</div>Henüz veliyle paylaşılan bir eğitim sunumu yok.</div></div>`;
+  const pr=PROGRAM[g.program]||{ad:g.programAd||'Eğitim',renk:'#2D6A45',acik:'#EAF3EC'},as=ASAMA[g.durum]||{ad:'Gelişim kaydı',renk:'#64748B',acik:'#F1F5F9'};
+  return`<div class="zvo-son" role="button" tabindex="0" data-zvo-son data-program="${esc(g.program||'')}" data-key="${esc(g.anahtar||'')}"><div class="zvo-son-ic"><div class="zvo-son-gorsel" style="background:${pr.acik}">${g.fotoUrl?`<img src="${esc(g.fotoUrl)}" alt="${esc(g.dersAd||'Son eğitim sunumu')}" loading="lazy">`:`<div style="height:100%;display:grid;place-items:center;color:${pr.renk};font-size:34px">🌿</div>`}</div><div class="zvo-son-govde"><div class="zvo-ustetiket">SON EĞİTİM SUNUMU</div><div class="zvo-baslik">${esc(g.dersAd||'Yeni kazanım')}</div><div class="zvo-meta"><span class="zvo-pill" style="background:${pr.acik};color:${pr.renk}">${esc(pr.ad)}</span><span class="zvo-pill" style="background:${as.acik};color:${as.renk}">${esc(as.ad)}</span>${g.alanAd?`<span class="zvo-pill" style="background:#F2F5F3;color:#536159">${esc(g.alanAd)}</span>`:''}</div>${g.not?`<div class="zvo-not">${esc(g.not)}</div>`:''}<div class="zvo-ac">Sunumu ve tüm aşamaları gör →</div></div></div></div>`;
 }
 
 function duz(v){if(v==null)return'';if(typeof v==='string'||typeof v==='number')return String(v);if(typeof v==='object'){const x=v.deger??v.miktar??v.durum??v.metin??v.ad??v.yuzde??v.sure;if(x!=null)return String(x);const ilk=Object.values(v).find(y=>typeof y==='string'||typeof y==='number');return ilk==null?'':String(ilk);}return'';}
 const YEMEK={tamami:'Tamamını yedi',yarisi:'Yarısını yedi',az:'Az yedi',yemedi:'Yemedi'};
 const UYKU={uyudu:'Uyudu',kisa:'Kısa uyudu',uyumadi:'Uyumadı'};
 const TUVALET={kendi:'Kendi yaptı',yardimla:'Yardımla yaptı',kaza:'Kaza oldu',bez:'Bez'};
-function akisAdimlari(rapor,gel,etkinlikler){
-  const a=[];(etkinlikler||[]).forEach(e=>a.push({b:e.baslik||'Bugünün etkinliği',m:[e.baslangicSaat,e.konum].filter(Boolean).join(' · ')||e.aciklama||'Takvim etkinliği'}));
+function akisAdimlari(rapor,sunumlar,etkinlikler,bildirimler,hareketler){
+  const a=[],gorulen=new Set(),ekle=x=>{const k=x.k||`${x.b}|${x.m}`;if(!x.b||gorulen.has(k))return;gorulen.add(k);a.push(x);};
+  (hareketler||[]).forEach(ekle);
+  (etkinlikler||[]).forEach(e=>ekle({b:e.baslik||'Bugünün etkinliği',m:[e.baslangicSaat,e.konum].filter(Boolean).join(' · ')||e.aciklama||'Takvim etkinliği'}));
   const y=rapor?.yemek||{};[['Kahvaltı',y.kahvalti],['Öğle yemeği',y.ogle||y.anaYemek],['İkindi',y.ikindi]].forEach(([b,v])=>{v=duz(v);if(v)a.push({b,m:YEMEK[v]||v});});
   const u=duz(rapor?.uyku?.durum??rapor?.uyku);if(u)a.push({b:'Dinlenme ve uyku',m:UYKU[u]||u});
   const t=duz(rapor?.tuvalet);if(t)a.push({b:'Tuvalet',m:TUVALET[t]||t});
-  const g=gel?.sonGozlem;if(g&&g.paylas!==false&&bugunMu(g.tarih)){const p=PROGRAM[g.disiplin]?.ad||g.programAd||'Eğitim';a.push({b:`${p} · ${ASAMA[g.durum]?.ad||'Yeni aşama'}`,m:g.dersAd||g.not||'Yeni kazanım kaydı'});}
+  (sunumlar||[]).forEach(g=>{const p=PROGRAM[g.program]?.ad||g.programAd||'Eğitim';ekle({k:`egitim:${g.galeriId||g.id}`,b:`${p} · ${ASAMA[g.durum]?.ad||'Yeni aşama'}`,m:[g.dersAd,g.not].filter(Boolean).join(' · ')||'Yeni kazanım kaydı'});});
+  (bildirimler||[]).filter(b=>bugunMu(b.olusturuldu||b.tarih)&&b.tip!=='egitim_gelisim').forEach(b=>ekle({k:`bildirim:${b.id}`,b:b.baslik||'Yeni hareket',m:b.icerik||'Çocuğunuzla ilgili yeni bir kayıt var.'}));
   if(rapor?.not)a.push({b:'Öğretmen notu',m:rapor.not});
   return a;
+}
+
+async function gunlukHareketleriGetir(o){
+  const p=P();if(!o?.id||!p?.fb||!p?.db)return[];const sonuc=[];
+  try{const s=await p.fb.getDoc(p.fb.doc(p.db,'sabahGirisleri',`${o.id}__${bugun()}`));if(s.exists()){const v=s.data()||{};if(v.veliBildirdi)sonuc.push({k:'sabah:veli',b:'Veli bildirimi · Okula geliş',m:`Yola çıktık bildirimi${tarihYazi(v.veliBildirimSaati,true)?' · '+tarihYazi(v.veliBildirimSaati,true):''}`});if(v.sinifaGirisOnayi)sonuc.push({k:'sabah:onay',b:'Okula giriş tamamlandı',m:[v.onaylayanAd?`${v.onaylayanAd} teslim aldı`: 'Okul teslim aldı',tarihYazi(v.sinifaGirisOnayi,true)].filter(Boolean).join(' · ')});}}catch(e){console.warn('günlük akış sabah girişi',e?.code||e?.message);}
+  try{const q=p.fb.query(p.fb.collection(p.db,'veliIzinleri'),p.fb.where('ogrenciId','==',o.id)),s=await p.fb.getDocs(q);s.forEach(d=>{const v=d.data()||{},tarih=v.olusturuldu||v.tarih||v.baslangic||'';if(!bugunMu(tarih))return;const aralik=v.baslangic?[v.baslangic,v.bitis&&v.bitis!==v.baslangic?v.bitis:''].filter(Boolean).join(' – '):'';sonuc.push({k:`izin:${d.id}`,b:'Veli izin bildirimi',m:[v.sebepAd||v.sebep||v.tur||v.izinTuru||v.neden||'İzin kaydı',aralik,v.durum&&`Durum: ${v.durum}`].filter(Boolean).join(' · ')});});}catch(e){console.warn('günlük akış veli izni',e?.code||e?.message);}
+  return sonuc;
 }
 
 function etkinlikUygun(e,o){const h=e?.hedefTur||'tumOkul';return h==='tumOkul'||(h==='ogrenci'&&(e.hedefDeger===o.id||e.hedefOgrenciId===o.id))||(h==='sinif'&&String(e.hedefDeger||'')===String(sinif(o)));}
@@ -76,8 +88,8 @@ async function anaSayfayiZenginlestir(){
   son.innerHTML='<div class="zvo-son" style="cursor:default;padding:18px;text-align:center;color:#7C8B82;font-size:12px">Son eğitim sunumu yükleniyor…</div>';
   akis.innerHTML='<div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px">Günlük Akış</h3></div><div class="ca-card" style="padding:18px;text-align:center;color:var(--c-muted);font-size:12px">Bugünün adımları yükleniyor…</div>';
   try{
-    const [gel,raporS,etkinlikler]=await Promise.all([gelisimGetir(o),p.fb.getDoc(p.fb.doc(p.db,'gunlukRaporlar',`${o.id}__${bugun()}`)).catch(()=>null),bugununEtkinlikleri(o)]);if(istek!==anaSayfaIstek||ogrenci()?.id!==o.id)return;
-    son.innerHTML=sonSunumHTML(gel);const r=raporS?.exists?.()?raporS.data():null,adimlar=akisAdimlari(r,gel,etkinlikler);
+    const [gel,galeri,raporS,etkinlikler,bildirimler,hareketler]=await Promise.all([gelisimGetir(o),onayliGaleriGetir(o.id,p),p.fb.getDoc(p.fb.doc(p.db,'gunlukRaporlar',`${o.id}__${bugun()}`)).catch(()=>null),bugununEtkinlikleri(o),ogrenciBildirimleriGetir(true),gunlukHareketleriGetir(o)]);if(istek!==anaSayfaIstek||ogrenci()?.id!==o.id)return;
+    const sunumlar=portfolyoOlustur(gel,galeri),bugunSunum=bugununSunumlari(sunumlar,bugun());son.innerHTML=sonSunumHTML(sunumlar[0]);const r=raporS?.exists?.()?raporS.data():null,adimlar=akisAdimlari(r,bugunSunum,etkinlikler,bildirimler,hareketler);
     akis.innerHTML=`<div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px">Günlük Akış</h3><button class="ca-link" data-zvo-gunluk>Tüm gün →</button></div><div class="ca-card" style="padding:15px 16px">${adimlar.length?`<div class="zvo-akis">${adimlar.map(x=>`<div class="zvo-adim"><i class="zvo-nokta"></i><b>${esc(x.b)}</b><span>${esc(x.m)}</span></div>`).join('')}</div>`:`<div style="text-align:center;padding:12px;color:#7D8A83;font-size:12.5px">Bugünün akışı henüz paylaşılmadı.</div>`}</div>`;
     son.dataset.zvoDurum='hazir';akis.dataset.zvoDurum='hazir';son.querySelector('[data-zvo-son]')?.addEventListener('click',e=>sunumAc(e.currentTarget.dataset.program,e.currentTarget.dataset.key));son.querySelector('[data-zvo-son]')?.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')sunumAc(e.currentTarget.dataset.program,e.currentTarget.dataset.key);});akis.querySelector('[data-zvo-gunluk]')?.addEventListener('click',()=>window.caGo?.('gunluk'));ikon();
   }catch(e){console.warn('veli öğrenme özeti',e);son.dataset.zvoDurum='hazir';akis.dataset.zvoDurum='hazir';son.innerHTML='<div class="zvo-son" style="cursor:default;padding:18px;text-align:center;color:#7C8B82;font-size:12px">Eğitim özeti şu anda yüklenemedi.</div>';}
@@ -89,8 +101,8 @@ function sunumAc(program,anahtar){window.__zekyEgitimBaslangic={program,anahtar}
 function galeriAc(){window.__zekyGaleriBaslangicFiltre='egitim';window.veliSwitchTab?.('yeniapp');setTimeout(()=>window.caGo?.('galeri'),30);}
 
 async function ogrenciBildirimleriGetir(force=false){
-  if(bildirimYukleme&&!force)return bildirimYukleme;const o=ogrenci(),p=P();if(!o?.id||!p?.fb||!p?.db)return[];
-  bildirimYukleme=(async()=>{try{const s=await p.fb.getDocs(p.fb.collection(p.db,'ogrenciler',o.id,'bildirimler')),l=[];s.forEach(d=>l.push({id:d.id,...(d.data()||{})}));const donem=String(p.state?.aktifDonem||'');bildirimCache=l.filter(x=>!x.donem||!donem||String(x.donem)===donem).sort((a,b)=>tarihHam(b.olusturuldu||b.tarih).localeCompare(tarihHam(a.olusturuldu||a.tarih)));return bildirimCache;}catch(e){console.warn('veli öğrenci bildirimleri',e?.code||e?.message);return[];}finally{bildirimYukleme=null;}})();return bildirimYukleme;
+  const o=ogrenci(),p=P();if(!o?.id||!p?.fb||!p?.db)return[];if(!force&&bildirimCacheOgrenciId===o.id&&bildirimCache.length)return bildirimCache;if(bildirimYukleme&&!force)return bildirimYukleme;
+  bildirimYukleme=(async()=>{try{const s=await p.fb.getDocs(p.fb.collection(p.db,'ogrenciler',o.id,'bildirimler')),l=[];s.forEach(d=>l.push({id:d.id,...(d.data()||{})}));const donem=String(p.state?.aktifDonem||'');bildirimCache=l.filter(x=>(!x.donem||!donem||String(x.donem)===donem)&&!(x.tip==='egitim_gelisim'&&x.galeriId&&['beklemede','onayBekliyor'].includes(x.fotoDurum||''))).sort((a,b)=>tarihHam(b.olusturuldu||b.tarih).localeCompare(tarihHam(a.olusturuldu||a.tarih)));bildirimCacheOgrenciId=o.id;return bildirimCache;}catch(e){console.warn('veli öğrenci bildirimleri',e?.code||e?.message);return[];}finally{bildirimYukleme=null;}})();return bildirimYukleme;
 }
 
 async function etkinlikBildirimleriGetir(o){
@@ -99,9 +111,9 @@ async function etkinlikBildirimleriGetir(o){
 
 async function duyuruPopupGetir(o){const p=P();if(!o?.id||!p?.fb||!p?.db)return[];try{const s=await p.fb.getDocs(p.fb.collection(p.db,'duyurular')),l=[];s.forEach(d=>{const v=d.data()||{};if(v.arsiv||v.simsek||!etkinlikUygun(v,o))return;l.push({id:`duyuru:${d.id}`,tip:'duyuru_yeni',baslik:v.baslik||'Yeni duyuru',icerik:v.icerik||'',olusturuldu:v.olusturuldu||v.olusturulmaTarihi||v.guncellendi||''});});return l;}catch(e){console.warn('veli duyuru popup',e?.code||e?.message);return[];}}
 
-async function sonGozlemBildirimiGetir(o){try{const gel=await gelisimGetir(o),g=gel?.sonGozlem;if(!g||g.paylas===false)return[];return[{id:`gelisim:${g.disiplin||''}:${g.anahtar||''}:${g.durum||''}:${tarihHam(g.tarih)}`,tip:'egitim_gelisim',baslik:`${g.dersAd||'Yeni kazanım'} · ${ASAMA[g.durum]?.ad||'Yeni aşama'}`,icerik:g.not||`${PROGRAM[g.disiplin]?.ad||g.programAd||'Eğitim'} programında yeni bir gelişim kaydı var.`,program:g.disiplin,kazanimAnahtari:g.anahtar,gozlemDurum:g.durum,olusturuldu:g.tarih}];}catch(_){return[];}}
+async function sonGozlemBildirimiGetir(o){try{const [gel,galeri]=await Promise.all([gelisimGetir(o),onayliGaleriGetir(o.id,P())]),g=portfolyoOlustur(gel,galeri)[0];if(!g)return[];return[{id:`gelisim:${g.program||''}:${g.anahtar||''}:${g.durum||''}:${tarihHam(g.tarih)}`,tip:'egitim_gelisim',baslik:`${g.dersAd||'Yeni kazanım'} · ${ASAMA[g.durum]?.ad||'Yeni aşama'}`,icerik:g.not||`${PROGRAM[g.program]?.ad||g.programAd||'Eğitim'} programında yeni bir gelişim kaydı var.`,program:g.program,kazanimAnahtari:g.anahtar,gozlemDurum:g.durum,galeriId:g.galeriId||'',olusturuldu:g.tarih}];}catch(_){return[];}}
 
-async function bildirimHavuzuGetir(){const o=ogrenci();if(!o?.id)return[];const [ogr,etk,son]=await Promise.all([ogrenciBildirimleriGetir(),etkinlikBildirimleriGetir(o),sonGozlemBildirimiGetir(o)]);const gelisimVar=ogr.some(x=>x.tip==='egitim_gelisim'&&x.kazanimAnahtari===son[0]?.kazanimAnahtari&&x.gozlemDurum===son[0]?.gozlemDurum);return[...ogr,...etk,...(gelisimVar?[]:son)].sort((a,b)=>tarihHam(b.olusturuldu||b.tarih).localeCompare(tarihHam(a.olusturuldu||a.tarih)));}
+async function bildirimHavuzuGetir(){const o=ogrenci();if(!o?.id)return[];const [ogr,etk,son]=await Promise.all([ogrenciBildirimleriGetir(),etkinlikBildirimleriGetir(o),sonGozlemBildirimiGetir(o)]);const gelisimVar=ogr.some(x=>x.tip==='egitim_gelisim'&&x.kazanimAnahtari===son[0]?.kazanimAnahtari&&x.gozlemDurum===son[0]?.gozlemDurum),gorulen=new Set();return[...ogr,...etk,...(gelisimVar?[]:son)].sort((a,b)=>tarihHam(b.olusturuldu||b.tarih).localeCompare(tarihHam(a.olusturuldu||a.tarih))).filter(x=>{const k=x.galeriId?`galeri:${x.galeriId}`:`${x.tip}:${x.kazanimAnahtari||x.id}:${x.gozlemDurum||''}`;if(gorulen.has(k))return false;gorulen.add(k);return true;});}
 
 function bildirimEylemi(b){if(b.tip==='egitim_gelisim')sunumAc(b.program,b.kazanimAnahtari);else if(String(b.tip||'').includes('galeri'))galeriAc();else if(String(b.tip||'').includes('etkinlik')){window.veliSwitchTab?.('yeniapp');setTimeout(()=>window.caGo?.('takvim'),30);}else window.veliSwitchTab?.('bildirimler');}
 function bildirimIkon(b){return b.tip==='egitim_gelisim'?'sprout':String(b.tip||'').includes('galeri')?'images':String(b.tip||'').includes('etkinlik')?'calendar-heart':'bell';}
