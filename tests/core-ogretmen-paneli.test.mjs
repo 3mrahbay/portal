@@ -4,22 +4,42 @@ import { readFile } from 'node:fs/promises';
 
 const kok = new URL('../', import.meta.url);
 
-test('öğretmen öğrenci listesi aktif dönem master işaretini zorunlu tutar', async () => {
+test('öğretmen öğrenci listesi okunabilen aktif dönem belgelerini kesin kaynak kullanır', async () => {
   const s = await readFile(new URL('index.html', kok), 'utf8');
-  assert.match(s, /masterDonemAktif/);
-  assert.match(s, /aktifDonemDurum/);
-  assert.match(s, /String\(o\.aktifDonem \|\| ""\) === String\(AKTIF_DONEM\)/);
-  assert.match(s, /masterSenkronYetkili/);
+  assert.match(s, /ogretmenDonemBelgeleriOkundu/);
+  assert.match(s, /Object\.keys\(ayarListesi \|\| \{\}\)\.length > 0/);
+  assert.match(s, /if \(!donemVerisi\) return false/);
+  assert.match(s, /getOgrenciDurum\(o, donemVerisi\) !== "aktif"/);
 });
 
-test('gözlem kısayolu ve Eğitim kartı doğrudan çekirdekte bulunur', async () => {
+test('gözlem doğrudan çekirdek modalda S T U not ve fotoğraf sunar', async () => {
   const s = await readFile(new URL('index.html', kok), 'utf8');
-  const m = await readFile(new URL('moduller/ogretmen-egitim-gozlem.js', kok), 'utf8');
-  assert.match(s, /zekyCoreYeniGozlemKart/);
-  assert.match(s, /zekyYeniEgitimGozlemiAc/);
-  assert.match(s, /zekyGelismisGozlemAcCore/);
-  assert.match(s, /ogretmen-egitim-gozlem\.js\?v=4/);
-  assert.match(m, /export async function gozlemAc/);
+  assert.match(s, /caGozlemModalArka/);
+  assert.match(s, /Tekrar Ediyor/);
+  assert.match(s, /Ustalaştı/);
+  assert.match(s, /caGozlemFotoYukle/);
+  assert.match(s, /kazanimAnahtari/);
+  assert.match(s, /gozlemDurum/);
+  assert.match(s, /albumTuru:"egitim"/);
+  assert.match(s, /asamalar\[st\.seviye\]/);
+  assert.match(s, /Bir Çiçek Koleji Anaokulu/);
+  assert.match(s, /globalAlpha=\.40/);
+});
+
+test('gözlem açıcı dış portal-data ya da gözlem modülü importuna bağlı değildir', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  const i = s.indexOf('window.zekyGelismisGozlemAcCore');
+  assert.ok(i >= 0);
+  const parca = s.slice(i, i + 900);
+  assert.doesNotMatch(parca, /await import\(/);
+  assert.match(parca, /window\.caGozlemAc/);
+});
+
+test('galeri onayı fotoğrafı doğru S T U aşamasına da yazar', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  assert.match(s, /const asamaKod = oge\?\.gozlemDurum/);
+  assert.match(s, /asamalar\[asamaKod\]/);
+  assert.match(s, /fotoDurum:durum/);
 });
 
 test('öğretmen mesaj arayüzünde e-posta toast veya inline veli hedefi üretmez', async () => {
@@ -31,17 +51,7 @@ test('öğretmen mesaj arayüzünde e-posta toast veya inline veli hedefi üretm
   assert.match(s, /veliyeMesajAcByIndex/);
 });
 
-test('PWA çekirdek hotfix v118 ve v4 gözlem dosyasını taşır', async () => {
+test('PWA dönem ve gözlem çekirdek sürümü v120', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v119"/);
-  assert.match(s, /portal-data\.js\?v=4/);
-  assert.match(s, /ogretmen-egitim-gozlem\.js\?v=4/);
-});
-
-test('öğretmen dönem işaretleri tamamlanmadıysa Yoklama ile aynı aktiflik fallbackini kullanır', async () => {
-  const s = await readFile(new URL('index.html', kok), 'utf8');
-  assert.match(s, /masterDonemIsaretleriHazir/);
-  assert.match(s, /ogrenciList\.every/);
-  assert.match(s, /getOgrenciDurum\(o, donemVerisi\) !== "aktif"/);
-  assert.match(s, /Yoklama ekranının kullandığı aktiflik mantığıyla aynı fallback/);
+  assert.match(s, /CACHE_VERSION = "v120"/);
 });
