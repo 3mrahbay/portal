@@ -3,9 +3,34 @@
 // Öğretmen/personel tarafındaki gözlem + aktif öğrenci + iletişim gizliliği
 // ayrı güvenlik köprüsüyle kurulur.
 
-const KURULUM = '__zekyVeliEgitimKoprusuV5';
-const SURUM = 'v5';
+const KURULUM = '__zekyVeliEgitimKoprusuV6';
+const SURUM = 'v6';
 let baslatiliyor = false;
+
+// Portalın çekirdeği Firestore erişimini PortalAPI üzerinden yayımlıyor.
+// Eski bağımsız modüller ise aynı işlevleri window.BCK altında bekliyor.
+// Canlı portalda BCK hiç oluşturulmadığı için veli eğitim zinciri daha
+// portal-data.js yüklenmeden 12 saniye sonra duruyordu. Bu küçük uyumluluk
+// katmanı ikinci bir Firebase örneği kurmadan iki arayüzü birbirine bağlar.
+export function bckUyumlulukKur(win = window) {
+  if (!win || win.BCK) return win?.BCK || null;
+  const p = win.PortalAPI;
+  if (!p?.db || !p?.fb) return null;
+  const durum = () => p.state || {};
+  win.BCK = {
+    __portalUyumluluk: true,
+    db: p.db,
+    ...p.fb,
+    kullanici: () => durum().currentUser || null,
+    personel: () => durum().personel || null,
+    rol: () => durum().rol || '',
+    siniflari: () => durum().siniflar || [],
+    ogrenciler: () => durum().ogrenciList || [],
+    yoneticiMi: () => !!durum().isAdmin || ['kurucu_mudur','mudur','egitim_koordinator'].includes(String(durum().rol || '')),
+    toast: (mesaj, tip) => p.toast?.(mesaj, tip)
+  };
+  return win.BCK;
+}
 
 function bekle(kosul, deneme = 120, aralik = 100) {
   return new Promise((resolve, reject) => {
@@ -21,16 +46,17 @@ function bekle(kosul, deneme = 120, aralik = 100) {
 }
 
 async function modulleriYukle(win) {
-  await bekle(() => !!win.BCK && typeof win.caGo === 'function');
+  await bekle(() => !!win.PortalAPI && typeof win.caGo === 'function');
+  if (!bckUyumlulukKur(win)) throw new Error('Portal veri uyumluluk katmanı kurulamadı.');
 
   const PortalDataModulu = await import(`../portal-data.js?${SURUM}`);
   if (!win.PortalData) win.PortalData = PortalDataModulu;
 
   const [veliModulu, guvenlikModulu, donemModulu, deneyimModulu] = await Promise.all([
     import(`../moduller/veli-egitim-gelisim.js?${SURUM}`),
-    import('./zeky-ogrenci-guvenlik-koprusu.js?v=3'),
-    import('./zeky-aktif-donem-senkron.js?v=1'),
-    import('./zeky-veli-ogrenme-deneyimi.js?v=2')
+    import('./zeky-ogrenci-guvenlik-koprusu.js?v=4'),
+    import('./zeky-aktif-donem-senkron.js?v=2'),
+    import('./zeky-veli-ogrenme-deneyimi.js?v=3')
   ]);
 
   return {
@@ -51,7 +77,7 @@ export async function veliEgitimKoprusunuKur(win = window) {
     await Promise.allSettled([guvenlikKur(), aktifDonemSenkronla(), veliOgrenmeKur(win)]);
 
     const eskiCaGo = win.caGo;
-    if (!eskiCaGo.__zekyEgitimV5) {
+    if (!eskiCaGo.__zekyEgitimV6) {
       const yeniCaGo = function (ekran, ...args) {
         if (ekran === 'egitim') {
           Promise.resolve()
@@ -64,7 +90,7 @@ export async function veliEgitimKoprusunuKur(win = window) {
         }
         return eskiCaGo.call(this, ekran, ...args);
       };
-      yeniCaGo.__zekyEgitimV5 = true;
+      yeniCaGo.__zekyEgitimV6 = true;
       yeniCaGo.__eski = eskiCaGo;
       win.caGo = yeniCaGo;
     }

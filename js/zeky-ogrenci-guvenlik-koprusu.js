@@ -217,6 +217,15 @@ function navigasyonKur(){
 
 async function gozlemKur(){
   try{
+    // Canlı portalın kendi gözlem modalı medya yükleyicilerine doğrudan
+    // erişebiliyor. PortalAPI için oluşturulan BCK uyumluluk nesnesi bu
+    // kapalı çekirdek işlevlerini taşımıyorsa çalışan modalı değiştirme.
+    const b=B();
+    if(b?.__portalUyumluluk&&(!b?.medyaYukle||!b?.resimSikistir)){
+      gozlemAc=window.caGozlemAc;
+      window.zekyGelismisGozlemAc=gozlemAc;
+      return;
+    }
     delete window.__zekyGelismisGozlemV1;
     const m=await import('../moduller/ogretmen-egitim-gozlem.js?v6');
     m.kur(window);

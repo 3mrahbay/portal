@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { onayliGaleriGetir, portfolyoOlustur } from '../js/zeky-egitim-portfolyo.js';
+import { egitimOnayiniEsitle } from '../js/zeky-galeri-onay-egitim.js';
 
 const kok = new URL('../', import.meta.url);
 const anahtar = 'gunluk__On Calismalar__Sandalye Tasima';
@@ -49,6 +50,32 @@ test('yönetim onayı gelişim belgesini ve deterministik veli bildirimini eşit
   assert.match(s,/`egitim_\$\{id\}`/);
   assert.match(s,/fotoDurum:'onaylandi'/);
   assert.match(s,/sonGozlem/);
+  assert.match(s,/onayliKayitlariOnar/);
+  assert.match(s,/onarilanKayitlar/);
+});
+
+test('onay eşitlemesi çekirdek galeri biçimini veli gelişimi ve bildirime yazar', async () => {
+  const yazilan=[];
+  const galeri={durum:'onaylandi',egitimKaydi:true,program:'montessori',ogrenciId:'o1',kazanimAnahtari:anahtar,gozlemDurum:'S',baslik:'Sandalye Taşıma',aciklama:'Bağımsız tamamladı.',bunnyUrl:'https://cdn.test/g1.jpg',tarih:'2026-09-18T10:00:00Z'};
+  const fb={
+    doc:(_db,...parcalar)=>parcalar.join('/'),
+    getDoc:async yol=>yol==='galeri/g1'?{exists:()=>true,data:()=>galeri}:{exists:()=>false,data:()=>({})},
+    setDoc:async(yol,veri,secenek)=>yazilan.push({yol,veri,secenek}),
+    serverTimestamp:()=>({seconds:1})
+  };
+  const onceki=globalThis.window;
+  globalThis.window={PortalAPI:{db:{},fb}};
+  try{
+    assert.equal(await egitimOnayiniEsitle('g1','onaylandi'),true);
+  }finally{
+    if(onceki===undefined)delete globalThis.window;else globalThis.window=onceki;
+  }
+  assert.deepEqual(yazilan.map(x=>x.yol),['ogrenciGelisim/o1','ogrenciler/o1/bildirimler/egitim_g1']);
+  const gelisim=yazilan[0].veri.montessori;
+  assert.equal(gelisim.kayitlar[anahtar],'S');
+  assert.equal(gelisim.detay[anahtar].asamalar.S.fotoDurum,'onaylandi');
+  assert.equal(gelisim.detay[anahtar].asamalar.S.fotoUrl,'https://cdn.test/g1.jpg');
+  assert.equal(yazilan[1].veri.icerik,'Bağımsız tamamladı.');
 });
 
 test('öğretmen fotoğraflı sunumu onaydan önce veliye bildirmez', async () => {
