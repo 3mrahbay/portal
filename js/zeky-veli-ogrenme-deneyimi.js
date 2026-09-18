@@ -1,4 +1,4 @@
-import { onayliGaleriGetir, portfolyoOlustur, bugununSunumlari } from './zeky-egitim-portfolyo.js?v=1';
+import { onayliGaleriGetir, portfolyoOlustur, bugununSunumlari } from './zeky-egitim-portfolyo.js?v=2';
 
 // Veli ana sayfası: son eğitim sunumu, günlük akış ve çocuk bildirimleri.
 // Yalnız seçili çocuğun doğrudan belgelerini / alt koleksiyonunu okur.
