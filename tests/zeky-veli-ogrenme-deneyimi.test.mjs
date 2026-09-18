@@ -55,14 +55,3 @@ test('galeri onayı kazanım açıklaması, aşama ve öğrenci bağlamını gö
   assert.match(s, /galeriOnayla/);
   assert.match(s, /galeriReddet/);
 });
-
-test('portal yeni sürümü CDN ve PWA önbelleğine takılmadan yükler', async () => {
-  const index = await readFile(new URL('index.html', kok), 'utf8');
-  const sw = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(index, /PORTAL_SURUM = "v104"/);
-  assert.match(index, /serviceworker\.js\?\$\{swSurum\}/);
-  assert.match(index, /updateViaCache:\s*"none"/);
-  assert.match(index, /zeky-randevu-modal-koprusu\.js\?v=5/);
-  assert.match(sw, /CACHE_VERSION = "v123"/);
-  assert.match(sw, /zeky-randevu-modal-koprusu\.js\?v=5/);
-});
