@@ -51,7 +51,27 @@ test('öğretmen mesaj arayüzünde e-posta toast veya inline veli hedefi üretm
   assert.match(s, /veliyeMesajAcByIndex/);
 });
 
-test('PWA dönem ve gözlem çekirdek sürümü v120', async () => {
+test('gözlem popup aşamaları görünür, tek seçimli ve klavye erişilebilirdir', async () => {
+  const s = await readFile(new URL('js/zeky-gozlem-modal-modern.js', kok), 'utf8');
+  assert.match(s, /#caGozlemModalRoot \.ca-sev/);
+  assert.match(s, /\.ca-sev\.on/);
+  assert.match(s, /pointer-events:auto!important/);
+  assert.match(s, /role', 'radio'/);
+  assert.match(s, /aria-checked/);
+  assert.match(s, /e\.key !== 'Enter' && e\.key !== ' '/);
+  assert.match(s, /window\.caGozlemSeviye\(buton\.dataset\.s\)/);
+  assert.match(s, /Çalışma ilk kez tanıtıldı/);
+  assert.match(s, /Pekiştirmek için çalışıyor/);
+  assert.match(s, /Bağımsız ve güvenli uyguluyor/);
+});
+
+test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', async () => {
+  const s = await readFile(new URL('js/zeky-randevu-modal-koprusu.js', kok), 'utf8');
+  assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
+});
+
+test('PWA dönem ve gözlem çekirdek sürümü v121', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v120"/);
+  assert.match(s, /CACHE_VERSION = "v121"/);
+  assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
