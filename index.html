@@ -13785,7 +13785,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v104";
+window.PORTAL_SURUM = "v105";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -23355,48 +23355,57 @@ async function loadAyarlar() {
   gelecekDonemKayitlari = {}; // öğrencinin gelecek dönemde kaydı var mı?
   const gelDonem = gelecekDonem(AKTIF_DONEM);
   const masterSenkronYetkili = isAdmin || ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol);
+  const gelecekDonemGerekli = masterSenkronYetkili || aktifKullaniciRol === "muhasebe";
 
   // Her öğrencinin donem/AKTIF_DONEM subcollection'ını çek.
   // Yönetim hesabı ayrıca yalnız güvenli dönem işaretini master kayda yazar;
   // öğretmen böylece finans/dönem alt belgesini okumadan eski öğrencileri eleyebilir.
-  for (const o of ogrenciList) {
-    try {
-      const ref = doc(db, "ogrenciler", o.id, "donemler", AKTIF_DONEM);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        ayarListesi[o.id] = snap.data();
-      }
-
-      if (masterSenkronYetkili) {
-        const masterDurum = snap.exists()
-          ? String(snap.data().durum || "aktif")
-          : "arsiv";
-        try {
-          if (String(o.aktifDonem || "") !== String(AKTIF_DONEM) ||
-              String(o.aktifDonemDurum || "") !== masterDurum) {
-            await setDoc(doc(db, "ogrenciler", o.id), {
-              aktifDonem: AKTIF_DONEM,
-              aktifDonemDurum: masterDurum,
-              aktifDonemGuncellendi: new Date().toISOString()
-            }, { merge: true });
-            o.aktifDonem = AKTIF_DONEM;
-            o.aktifDonemDurum = masterDurum;
-          }
-        } catch (senkronHata) {
-          console.warn(`Aktif dönem işareti yazılamadı: ${o.id}`, senkronHata);
+  // Okumaları tek tek bekletmek onlarca öğrencide ekranı uzun süre boş bırakıyordu.
+  // Altı işçi Firestore'u zorlamadan toplam bekleme süresini belirgin biçimde azaltır.
+  let sonrakiOgrenciIdx = 0;
+  const isciSayisi = Math.min(6, ogrenciList.length);
+  const isciler = Array.from({ length: isciSayisi }, async () => {
+    while (sonrakiOgrenciIdx < ogrenciList.length) {
+      const o = ogrenciList[sonrakiOgrenciIdx++];
+      try {
+        const ref = doc(db, "ogrenciler", o.id, "donemler", AKTIF_DONEM);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          ayarListesi[o.id] = snap.data();
         }
-      }
 
-      // Gelecek dönemde kaydı var mı? (yenileme butonu için)
-      if (gelDonem) {
-        const gelRef = doc(db, "ogrenciler", o.id, "donemler", gelDonem);
-        const gelSnap = await getDoc(gelRef);
-        if (gelSnap.exists()) gelecekDonemKayitlari[o.id] = true;
+        if (masterSenkronYetkili) {
+          const masterDurum = snap.exists()
+            ? String(snap.data().durum || "aktif")
+            : "arsiv";
+          try {
+            if (String(o.aktifDonem || "") !== String(AKTIF_DONEM) ||
+                String(o.aktifDonemDurum || "") !== masterDurum) {
+              await setDoc(doc(db, "ogrenciler", o.id), {
+                aktifDonem: AKTIF_DONEM,
+                aktifDonemDurum: masterDurum,
+                aktifDonemGuncellendi: new Date().toISOString()
+              }, { merge: true });
+              o.aktifDonem = AKTIF_DONEM;
+              o.aktifDonemDurum = masterDurum;
+            }
+          } catch (senkronHata) {
+            console.warn(`Aktif dönem işareti yazılamadı: ${o.id}`, senkronHata);
+          }
+        }
+
+        // Gelecek dönemde kaydı var mı? (yenileme butonu için)
+        if (gelDonem && gelecekDonemGerekli) {
+          const gelRef = doc(db, "ogrenciler", o.id, "donemler", gelDonem);
+          const gelSnap = await getDoc(gelRef);
+          if (gelSnap.exists()) gelecekDonemKayitlari[o.id] = true;
+        }
+      } catch (e) {
+        console.warn(`Ayar yüklenemedi: ${o.id}`);
       }
-    } catch (e) {
-      console.warn(`Ayar yüklenemedi: ${o.id}`);
     }
-  }
+  });
+  await Promise.all(isciler);
 }
 
 // Bir dönemin gelecek dönemini hesapla: "2025-2026" → "2026-2027"
@@ -26258,6 +26267,7 @@ document.addEventListener("click", () => {
 // ═══════════════════════════════════════════════════════════════════
 let veliListesi = [];          // Türetilmiş veli kayıtları
 let veliVelisizOgrenciler = [];
+let veliListesiYukleniyor = false;
 
 // Bir öğrenci belgesinden tüm veli kayıtlarını çıkarır (app: ogrenciVelileri)
 function veliKayitlariCikar(o) {
@@ -26288,6 +26298,9 @@ function veliKayitlariCikar(o) {
 window.veliListesiYukle = async function() {
   const wrap = document.getElementById("veliTabloWrap");
   if (!wrap) return;
+  // Hızlı/tekrarlı menü tıklamalarında aynı pahalı sorguyu üst üste başlatma.
+  if (veliListesiYukleniyor) return;
+  veliListesiYukleniyor = true;
   wrap.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Veliler yükleniyor...</p></div>`;
 
   try {
@@ -26355,6 +26368,8 @@ window.veliListesiYukle = async function() {
   } catch (e) {
     console.error("Veli listesi yüklenemedi:", e);
     wrap.innerHTML = `<div style="text-align:center; padding:40px; color:#DC2626;"><p>Veli listesi yüklenemedi.</p></div>`;
+  } finally {
+    veliListesiYukleniyor = false;
   }
 };
 
@@ -31432,20 +31447,43 @@ let egitimMatrixVerisi = null;   // { ogrenciler: [...], gelisim: { ogrId: { ...
 let egitimGrupAcik = {};         // { 'GrupAd1': true, 'GrupAd2': false } — açılır/kapanır state
 let egitimTumuKapaliMi = false;  // "Tümünü Kapat/Aç" düğmesinin durumu
 let egitimGelisimDinleyici = null;
+let egitimYuklemeSurumu = 0;
+
+function egitimSekmesiAktifMi() {
+  return document.getElementById("tab-egitim")?.classList.contains("active") === true;
+}
 
 function egitimGelisimCanliDinlemeyiDurdur() {
   if (typeof egitimGelisimDinleyici === "function") egitimGelisimDinleyici();
   egitimGelisimDinleyici = null;
 }
 
-function egitimGelisimCanliDinlemeyiBaslat() {
+function egitimArkaPlanCalismasiniDurdur(ekraniTemizle = false) {
+  // Devam eden async müfredat/matrix yüklemesini de geçersiz kılar.
+  egitimYuklemeSurumu++;
   egitimGelisimCanliDinlemeyiDurdur();
+  egitimAktifDisiplin = null;
+  if (ekraniTemizle) {
+    egitimMatrixVerisi = null;
+    const wrap = document.getElementById("egitimMatrixWrap");
+    if (wrap) wrap.replaceChildren();
+  }
+}
+
+function egitimGelisimCanliDinlemeyiBaslat(disiplin) {
+  egitimGelisimCanliDinlemeyiDurdur();
+  if (!disiplin || !egitimSekmesiAktifMi()) return;
+  const dinleyiciSurumu = egitimYuklemeSurumu;
   egitimGelisimDinleyici = onSnapshot(collection(db, "ogrenciGelisim"), snap => {
-    if (!egitimMatrixVerisi) return;
+    // Sekmeden ayrıldıktan veya başka bir yükleme başladıktan sonra gizli
+    // binlerce hücrelik matrisi yeniden çizme.
+    if (dinleyiciSurumu !== egitimYuklemeSurumu ||
+        !egitimSekmesiAktifMi() || egitimAktifDisiplin !== disiplin ||
+        !egitimMatrixVerisi) return;
     const gelisim = {};
     snap.forEach(d => { gelisim[d.id] = d.data(); });
     egitimMatrixVerisi.gelisim = gelisim;
-    if (egitimAktifDisiplin && typeof egitimMatrixRender === "function") {
+    if (typeof egitimMatrixRender === "function") {
       egitimMatrixRender();
     }
   }, e => console.warn("Eğitim gelişimi canlı yenilenemedi:", e?.code || e?.message || e));
@@ -31527,11 +31565,14 @@ async function ozelBranslariYukle() {
 
 let ozelBranslarYuklendi = false;
 window.egitimSekmesiAcildi = async function() {
+  egitimArkaPlanCalismasiniDurdur(true);
+  const yuklemeSurumu = egitimYuklemeSurumu;
   // Özel branşları bir kez yükle
   if (!ozelBranslarYuklendi) {
     await ozelBranslariYukle();
     ozelBranslarYuklendi = true;
   }
+  if (yuklemeSurumu !== egitimYuklemeSurumu || !egitimSekmesiAktifMi()) return;
   // Disiplin seçim ekranını göster, matrix'i gizle
   const secici = document.getElementById("egitimDisiplinSecici");
   const bransSecici = document.getElementById("egitimBransSecici");
@@ -31897,6 +31938,8 @@ window.egitimRaporExcel = function(disiplin) {
 };
 
 window.egitimDisiplinAc = async function(disiplin) {
+  egitimGelisimCanliDinlemeyiDurdur();
+  const yuklemeSurumu = ++egitimYuklemeSurumu;
   egitimAktifDisiplin = disiplin;
   egitimAktifAlanIdx = 0;
   egitimAktifGrupIdx = 0;
@@ -31925,7 +31968,9 @@ window.egitimDisiplinAc = async function(disiplin) {
   // Müfredat ve tüm öğrencilerin gelişimini yükle
   document.getElementById("egitimMatrixWrap").innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Müfredat ve öğrenci verileri yükleniyor...</div>`;
   await mufredatYukle(disiplin);
+  if (yuklemeSurumu !== egitimYuklemeSurumu || !egitimSekmesiAktifMi()) return;
   await egitimMatrixVeriYukle();
+  if (yuklemeSurumu !== egitimYuklemeSurumu || !egitimSekmesiAktifMi()) return;
 
   // Disiplin başlığı + renk
   const dInfo = DISIPLINLER.find(x => x.id === disiplin);
@@ -31950,11 +31995,11 @@ window.egitimDisiplinAc = async function(disiplin) {
   egitimAlanSeciciDoldur();
   egitimGrupSeciciDoldur();
   egitimMatrixRender();
-  egitimGelisimCanliDinlemeyiBaslat();
+  egitimGelisimCanliDinlemeyiBaslat(disiplin);
 };
 
 window.egitimDisiplinKapat = function() {
-  egitimGelisimCanliDinlemeyiDurdur();
+  egitimArkaPlanCalismasiniDurdur(true);
   egitimSekmesiAcildi();
 };
 
@@ -41216,6 +41261,9 @@ document.querySelectorAll(".tab").forEach(tab => {
     if (!sekmeyeErisim(tab.dataset.tab)) {
       showToast("Bu bölüme erişim yetkiniz yok", "error");
       return;
+    }
+    if (tab.dataset.tab !== "egitim") {
+      egitimArkaPlanCalismasiniDurdur(true);
     }
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");

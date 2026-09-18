@@ -25,6 +25,45 @@ test('açık eğitim matrisi gelişim koleksiyonunu canlı dinler', async () => 
   assert.match(kaynak, /caGozlemEgitimGorunumunuGuncelle/);
 });
 
+test('eğitim sayfasından ayrılınca canlı dinleyici ve büyük matrix temizlenir', async () => {
+  const kaynak = await readFile(new URL('index.html', kok), 'utf8');
+  const bas = kaynak.indexOf('document.querySelectorAll(".tab").forEach');
+  const son = kaynak.indexOf('// Etkinlik & Takvim iç alt-sekme geçişi', bas);
+  const sekmeAkisi = kaynak.slice(bas, son);
+  assert.match(sekmeAkisi, /tab\.dataset\.tab !== "egitim"/);
+  assert.match(sekmeAkisi, /egitimArkaPlanCalismasiniDurdur\(true\)/);
+
+  const durdurBas = kaynak.indexOf('function egitimArkaPlanCalismasiniDurdur');
+  const durdurSon = kaynak.indexOf('function egitimGelisimCanliDinlemeyiBaslat', durdurBas);
+  const durdur = kaynak.slice(durdurBas, durdurSon);
+  assert.match(durdur, /egitimYuklemeSurumu\+\+/);
+  assert.match(durdur, /egitimGelisimCanliDinlemeyiDurdur\(\)/);
+  assert.match(durdur, /wrap\.replaceChildren\(\)/);
+});
+
+test('geciken eğitim yüklemesi başka sayfada matrix başlatamaz', async () => {
+  const kaynak = await readFile(new URL('index.html', kok), 'utf8');
+  const bas = kaynak.indexOf('window.egitimDisiplinAc = async function');
+  const son = kaynak.indexOf('window.egitimDisiplinKapat', bas);
+  const ac = kaynak.slice(bas, son);
+  assert.match(ac, /const yuklemeSurumu = \+\+egitimYuklemeSurumu/);
+  assert.match(ac, /yuklemeSurumu !== egitimYuklemeSurumu \|\| !egitimSekmesiAktifMi\(\)/);
+  assert.match(ac, /egitimGelisimCanliDinlemeyiBaslat\(disiplin\)/);
+});
+
+test('öğrenci dönem ayarları kontrollü paralel, veli listesi tek sorgu olarak yüklenir', async () => {
+  const kaynak = await readFile(new URL('index.html', kok), 'utf8');
+  const ayarBas = kaynak.indexOf('async function loadAyarlar');
+  const ayarSon = kaynak.indexOf('function gelecekDonem', ayarBas);
+  const ayarlar = kaynak.slice(ayarBas, ayarSon);
+  assert.match(ayarlar, /Math\.min\(6, ogrenciList\.length\)/);
+  assert.match(ayarlar, /await Promise\.all\(isciler\)/);
+  assert.match(ayarlar, /gelDonem && gelecekDonemGerekli/);
+
+  assert.match(kaynak, /if \(veliListesiYukleniyor\) return/);
+  assert.match(kaynak, /finally \{\s*veliListesiYukleniyor = false/);
+});
+
 test('Değerler+ ayrı program anahtarında tutulur', async () => {
   const kaynak = await readFile(new URL('js/zeky-galeri-onay-egitim.js', kok), 'utf8');
   assert.match(kaynak, /degerlerPlus:'Değerler\+'/);
