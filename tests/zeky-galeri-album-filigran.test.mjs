@@ -17,7 +17,7 @@ test('portal galeri uyumluluk katmanı BÇKA filigranını ve %60 saydamlığı 
   assert.match(kopru, /globalAlpha\s*=\s*0\.40/);
   assert.match(kopru, /Bir Çiçek Koleji Anaokulu/);
   assert.match(kopru, /BÇKA/);
-  assert.match(yukleyici, /zeky-galeri-filigran-koprusu\.js\?v=1/);
+  assert.match(yukleyici, /zeky-galeri-filigran-koprusu\.js\?v=4/);
 });
 
 test('veli galerisi yalnız onaylı medyayı ister ve sınıf adlarını güvenli eşler', async () => {
@@ -32,7 +32,8 @@ test('veli galerisi yalnız onaylı medyayı ister ve sınıf adlarını güvenl
 
 test('canlı galeri yüklemesi filigranı fotoğraf pikseline gerçekten çizer', async () => {
   const kaynak = await readFile(new URL('js/zeky-galeri-filigran-koprusu.js', kok), 'utf8');
-  const modulUrl = `data:text/javascript;base64,${Buffer.from(kaynak).toString('base64')}`;
+  const yalnizFiligran = kaynak.replace(/^import\s+['"][^'"]+['"];?\s*$/gm, '');
+  const modulUrl = `data:text/javascript;base64,${Buffer.from(yalnizFiligran).toString('base64')}`;
   const { galeriFiligranKoprusunuKur } = await import(modulUrl);
 
   const yazilar = [];

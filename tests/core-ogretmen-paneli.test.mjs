@@ -70,8 +70,8 @@ test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', a
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('PWA dönem ve gözlem çekirdek sürümü v121', async () => {
+test('PWA dönem ve gözlem çekirdek sürümü v122', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v121"/);
+  assert.match(s, /CACHE_VERSION = "v122"/);
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });

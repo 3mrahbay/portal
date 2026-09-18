@@ -176,7 +176,7 @@ function mesajGizlilikKur(){
       const st=document.createElement('strong');st.textContent=ogrAd(o);ust.append('👶 ',st, sinif?` · ${sinif}`:'');el.appendChild(ust);
       const ac=document.createElement('div');ac.textContent='Mesaj göndereceğiniz veliyi seçin:';ac.style.cssText='font-size:12px;color:#9ca3af;margin-bottom:8px';el.appendChild(ac);
       if(!veliler.length){const bos=document.createElement('div');bos.textContent='Tanımlı veli bulunamadı.';bos.style.cssText='padding:12px;color:#64748B';el.appendChild(bos);return;}
-      veliler.forEach(v=>{const btn=document.createElement('button');btn.type='button';btn.className='mesaj-yeni-veli-btn';btn.textContent=`👤 ${v.ad||v.rol} (${v.rol})`;btn.onclick=()=>{if(typeof window.mesajYeniBaslat==='function')window.mesajYeniBaslat(v.email,v.ad||v.rol,ogrenciId);};el.appendChild(btn);});
+      veliler.forEach(v=>{const hedefEmail=v.email;const btn=document.createElement('button');btn.type='button';btn.className='mesaj-yeni-veli-btn';btn.textContent=`👤 ${v.ad||v.rol} (${v.rol})`;btn.onclick=()=>{if(typeof window.mesajYeniBaslat==='function')window.mesajYeniBaslat(hedefEmail,v.ad||v.rol,ogrenciId);};el.appendChild(btn);});
     };
     yeniSec.__zekyGizli=true; yeniSec.__eski=eskiSec; window.mesajYeniOgrenciSec=yeniSec;
   }
@@ -218,7 +218,7 @@ function navigasyonKur(){
 async function gozlemKur(){
   try{
     delete window.__zekyGelismisGozlemV1;
-    const m=await import('../moduller/ogretmen-egitim-gozlem.js?v3');
+    const m=await import('../moduller/ogretmen-egitim-gozlem.js?v5');
     m.kur(window);
     await bekle(()=>window.__zekyGelismisGozlemV1===true&&typeof window.caGozlemAc==='function',80,100);
     gozlemAc=window.caGozlemAc;
