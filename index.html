@@ -1604,7 +1604,29 @@ body.rol-danisma [data-modul="gunlukRapor"],
 body.rol-danisma [data-modul="haftalikPlan"],
 body.rol-danisma [data-modul="galeri"],
 body.rol-danisma [data-modul="programBelgeleme"],
+body.rol-danisma [data-modul="randevular"],
+body.rol-danisma [data-modul="yemek"],
+body.rol-danisma .duyuru-yazma,
+body.rol-danisma .etkinlik-yazma,
 body.rol-danisma .danisma-gizle { display: none !important; }
+body.rol-danisma .mesaj-kategori-filtre { display:none !important; }
+body.rol-danisma .tb-grup-gorunum,
+body.rol-danisma .tb-grup-program { display:none !important; }
+
+/* Danışma operasyon ana ekranı: Okul Zili görsel ve mekânsal olarak birincil. */
+.danisma-operasyon-paneli .danisma-zil-karti {
+  border:2px solid #0E7490;
+  box-shadow:0 12px 32px rgba(14,116,144,.12);
+}
+.danisma-operasyon-paneli .danisma-hizli-islemler {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(105px,1fr)); gap:10px;
+}
+.danisma-operasyon-paneli .danisma-ikili {
+  display:grid; grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr); gap:14px;
+}
+@media (max-width:850px) {
+  .danisma-operasyon-paneli .danisma-ikili { grid-template-columns:1fr; }
+}
 /* Veli galerisi masonry — dikey fotoğraflar kırpılmadan dikey kalır */
 .vg-masonry { column-count: 3; column-gap: 8px; }
 @media (max-width: 700px) { .vg-masonry { column-count: 2; column-gap: 7px; } }
@@ -9856,7 +9878,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
     <div class="modal-overlay" id="mesajYeniModal" onclick="if(event.target.id==='mesajYeniModal') mesajYeniSohbetKapat()">
       <div class="modal" style="max-width:480px;">
         <div class="modal-header">
-          <h3><i data-lucide="message-circle-plus" style="width:17px;height:17px;vertical-align:-3px;"></i> Yeni Sohbet</h3>
+          <h3 id="mesajYeniModalBaslik"><i data-lucide="message-circle-plus" style="width:17px;height:17px;vertical-align:-3px;"></i> Yeni Sohbet</h3>
           <button class="close-btn" onclick="mesajYeniSohbetKapat()">×</button>
         </div>
         <div class="modal-body">
@@ -9927,9 +9949,15 @@ body.rol-danisma .danisma-gizle { display: none !important; }
             <input type="text" id="gtAciklama" placeholder="Ne alındı, hangi sınıf için?">
           </div>
 
+          <div class="form-group">
+            <label>Fiş / Fatura Görseli veya PDF</label>
+            <input type="file" id="gtFisDosya" accept="image/jpeg,image/png,image/webp,application/pdf">
+            <small class="form-ipucu">İsteğe bağlı · JPG, PNG, WebP veya PDF · en fazla 15 MB</small>
+          </div>
+
           <div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:10px; padding:11px 13px; font-size:11.5px; color:#92400E; line-height:1.5;">
             <i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i>
-            Fiş/faturayı fiziksel olarak muhasebeye teslim etmeyi unutmayın. Onaylanan talepler gider kayıtlarına otomatik işlenir.
+            Dijital fişi ekleyebilir; gerekiyorsa aslını ayrıca muhasebeye teslim edebilirsiniz. Onaylanan talepler gider kayıtlarına otomatik işlenir.
           </div>
         </div>
         <div class="modal-footer">
@@ -11234,7 +11262,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
               <button class="btn-mini" data-etkinlik-filter="gecmis" onclick="etkinlikFilter('gecmis')">⏮ Geçmiş</button>
               <button class="btn-mini" data-etkinlik-filter="tumu" onclick="etkinlikFilter('tumu')"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
             </div>
-            <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
+            <button class="btn-primary etkinlik-yazma" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
           </div>
 
           <!-- Liste -->
@@ -11246,7 +11274,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
       <div id="etAlt-takvim" style="display:none;"><div>
           <div class="takvim-yonetim-bar">
             <h3>🗓️ Okul Takvimi</h3>
-            <button class="takvim-yeni-btn" onclick="takvimEtkinlikModalAc()">+ Yeni Etkinlik</button>
+            <button class="takvim-yeni-btn etkinlik-yazma" onclick="takvimEtkinlikModalAc()">+ Yeni Etkinlik</button>
           </div>
 
           <!-- AY GRID -->
@@ -11323,8 +11351,8 @@ body.rol-danisma .danisma-gizle { display: none !important; }
         <div style="position:absolute; top:-30%; right:-6%; width:260px; height:260px; background:radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events:none;"></div>
         <div style="position:relative; z-index:1;">
           <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:0.85; display:flex; align-items:center; gap:7px;"><i data-lucide="message-circle" style="width:15px;height:15px;"></i> İLETİŞİM MERKEZİ</div>
-          <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Mesajlaşma</h2>
-          <p style="opacity:0.92; font-size:14px; max-width:660px; margin:0;">Veli ve personelle gerçek zamanlı yazışın. Sohbetler otomatik kaydedilir, okundu bilgisi görünür.</p>
+          <h2 id="mesajHeroBaslik" style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:26px; margin:8px 0 6px 0; letter-spacing:-0.02em;">Mesajlaşma</h2>
+          <p id="mesajHeroAlt" style="opacity:0.92; font-size:14px; max-width:660px; margin:0;">Veli ve personelle gerçek zamanlı yazışın. Sohbetler otomatik kaydedilir, okundu bilgisi görünür.</p>
         </div>
       </div>
       <div class="wa-katman"><div>
@@ -11400,7 +11428,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
               <button class="btn-mini" data-duyuru-filter="arsiv" onclick="duyuruFilter('arsiv')"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> Arşiv</button>
               <button class="btn-mini" data-duyuru-filter="tumu" onclick="duyuruFilter('tumu')"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px;"></i> Tümü</button>
             </div>
-            <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
+            <button class="btn-primary duyuru-yazma" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru</button>
           </div>
 
           <!-- Liste -->
@@ -11559,6 +11587,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
           <option value="egitim_koordinator">Eğitim Koordinatörü (tüm sınıflar, eğitim)</option>
           <option value="muhasebe">Muhasebe (mali işler)</option>
           <option value="ogretmen">Öğretmen / Branş (atanan sınıflar)</option>
+          <option value="danisma">Danışma / Halkla İlişkiler (Okul Zili ve operasyon)</option>
           <option value="kurucu_mudur">Kurucu Müdür (tüm yetki)</option>
         </select>
       </div>
@@ -13855,7 +13884,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v112";
+window.PORTAL_SURUM = "v114";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14083,15 +14112,161 @@ let currentUser = null;
 let isAdmin = false;
 // ===== FAZ 1a: ROL SİSTEMİ =====
 let aktifPersonel = null;        // personeller/{email} dokümanı (null = personel değil, yani veli)
-let aktifKullaniciRol = null;    // "kurucu_mudur" | "mudur" | "egitim_koordinator" | "muhasebe" | "ogretmen" | null(veli)
+let aktifKullaniciRol = null;    // "kurucu_mudur" | "mudur" | "egitim_koordinator" | "muhasebe" | "ogretmen" | "danisma" | null(veli)
 let aktifKullaniciSiniflari = []; // Öğretmenin atandığı sınıflar (sinifAtamalari'ndan)
+function rolNormalize(rol) {
+  // Eski personel kayıtlarındaki ayrı "halkla_iliskiler" rolünü tek operasyon
+  // hesabına taşır. Veriyi değiştirmeden tüm istemci kontrollerini aynılaştırır.
+  return String(rol || "").trim() === "halkla_iliskiler" ? "danisma" : String(rol || "").trim();
+}
+function danismaRolMu() {
+  try { return !isAdmin && rolNormalize(aktifKullaniciRol) === "danisma"; }
+  catch (_) { return false; }
+}
+window.danismaRolMu = danismaRolMu;
+function danismaSaltOkunurEngelle(alan = "Bu alan") {
+  if (!danismaRolMu()) return false;
+  if (typeof showToast === "function") showToast(`${alan} danışma hesabında salt okunurdur`, "error");
+  return true;
+}
+
+function danismaOgrenciOzeti(id, veri) {
+  const v = veri || {};
+  return {
+    id,
+    ogrenciAdSoyad: v.ogrenciAdSoyad || v.adSoyad || "",
+    adSoyad: v.adSoyad || v.ogrenciAdSoyad || "",
+    sinif: v.sinif || v.sinifi || "",
+    sinifi: v.sinifi || v.sinif || "",
+    aktifDonem: v.aktifDonem || "",
+    aktifDonemDurum: v.aktifDonemDurum || v.durum || "aktif",
+    durum: v.durum || v.aktifDonemDurum || "aktif",
+    kayitDurumu: v.kayitDurumu || ""
+  };
+}
+
+const DANISMA_GUVENLI_KOLEKSIYONLAR = Object.freeze({
+  ogrenciler: "danismaOgrenciOzetleri",
+  personeller: "danismaPersonelRehberi",
+  pickup: "danismaPickupBildirimleri",
+  pickupYetkilileri: "danismaPickupYetkilileri",
+  sabah: "danismaSabahGirisleri"
+});
+
+function danismaProjeksiyonYonetebilirMi() {
+  return !!isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(rolNormalize(aktifKullaniciRol));
+}
+
+async function danismaGuvenliBelgeleriYaz(kayitlar) {
+  for (let i = 0; i < kayitlar.length; i += 400) {
+    const batch = writeBatch(db);
+    kayitlar.slice(i, i + 400).forEach(k => batch.set(k.ref, k.data));
+    await batch.commit();
+  }
+}
+
+// Yönetim oturumunda tam kaynaklardan yalnız operasyon alanlarını ayırır.
+// Danışma bu fonksiyonu çalıştıramaz ve kaynak koleksiyonları okuyamaz.
+async function danismaOperasyonProjeksiyonlariniSenkronla() {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = [];
+  const simdi = serverTimestamp();
+
+  (ogrenciList || []).forEach(o => {
+    const ayar = ayarListesi[o.id] || {};
+    const durum = getOgrenciDurum(o, ayar) || "aktif";
+    yazilacak.push({
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.ogrenciler, o.id),
+      data: {
+        ogrenciAdSoyad: o.ogrenciAdSoyad || o.adSoyad || "",
+        sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "",
+        aktifDonem: o.aktifDonem || AKTIF_DONEM || "",
+        aktifDonemDurum: o.aktifDonemDurum || durum,
+        durum,
+        kayitDurumu: o.kayitDurumu || "",
+        guncellendi: simdi
+      }
+    });
+  });
+
+  try {
+    const yetkiliSnap = await getDocs(collection(db, "pickupYetkilileri"));
+    yetkiliSnap.forEach(d => {
+      const kisiler = Array.isArray(d.data()?.kisiler)
+        ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
+        : [];
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
+        data: { kisiler, guncellendi: simdi }
+      });
+    });
+  } catch (e) { console.warn("Danışma teslim yetkilisi projeksiyonu:", e.code || e.message); }
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const pickupSnap = await getDocs(query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun)));
+    pickupSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || v.cocukId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          hedefSaat: v.hedefSaat || "", alanKisi: v.alanKisi || "Veli",
+          durum: v.durum || "yolda", olusturuldu: v.olusturuldu || "",
+          hazirZamani: v.hazirZamani || "", teslimZamani: v.teslimZamani || "",
+          teslimEden: v.teslimEden || "", veliOnay: v.veliOnay === true,
+          veliOnayZamani: v.veliOnayZamani || "", iptalZamani: v.iptalZamani || "",
+          guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma okul zili projeksiyonu:", e.code || e.message); }
+
+  try {
+    const sabahSnap = await getDocs(query(collection(db, "sabahGirisleri"), where("tarih", "==", bugun)));
+    sabahSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.sabah, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          veliBildirdi: v.veliBildirdi === true, veliBildirimSaati: v.veliBildirimSaati || "",
+          sinifaGirisOnayi: v.sinifaGirisOnayi || "", onaylayanAd: v.onaylayanAd || "",
+          onaylayanRol: v.onaylayanRol || "", guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma sabah girişi projeksiyonu:", e.code || e.message); }
+
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+
+async function danismaPersonelRehberiniSenkronla(liste) {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = (liste || []).flatMap(p => {
+    const email = String(p.email || p.id || "").toLowerCase().trim();
+    if (!email) return [];
+    return [{
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
+      data: {
+        adSoyad: p.adSoyad || p.ad || "",
+        rol: rolNormalize(p.rol), unvan: p.unvan || "",
+        durum: p.durum || "aktif", guncellendi: serverTimestamp()
+      }
+    }];
+  });
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
 const ROL_ETIKETLERI = {
   kurucu_mudur: "Kurucu Müdür",
   mudur: "Müdür",
   egitim_koordinator: "Eğitim Koordinatörü",
   muhasebe: "Muhasebe",
   ogretmen: "Öğretmen",
-  danisma: "Danışma",
+  danisma: "Danışma / Halkla İlişkiler",
+  halkla_iliskiler: "Danışma / Halkla İlişkiler",
   pdr: "PDR Uzmanı"
 };
 // Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
@@ -14187,6 +14362,9 @@ const SEKME_YETKILERI = {
   // Kurum
   personel:    ["kurucu_mudur", "mudur"],
   ozluk:       ["kurucu_mudur", "mudur", "muhasebe"],
+  profilim:    ["kurucu_mudur", "mudur", "mudur_yardimcisi", "egitim_koordinator", "egitim_koordinatoru",
+                "muhasebe", "ogretmen", "brans_ogretmeni", "yardimci_ogretmen", "ingilizce_ogretmeni",
+                "degerler_ogretmeni", "orman_ogretmeni", "danisma", "pdr", "asci", "temizlik"],
   egitim:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   finans:      ["kurucu_mudur", "mudur", "muhasebe"],
   raporlar:    ["kurucu_mudur", "mudur", "muhasebe"],
@@ -14205,7 +14383,7 @@ const SEKME_YETKILERI = {
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
   duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
-  yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
+  yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
   mesajlasma:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
   gelisim:     ["kurucu_mudur", "mudur", "egitim_koordinator"],
@@ -14258,6 +14436,9 @@ window.sinifGorunur = sinifGorunur;
 // Modülün varsayılan sekmesine erişimi olmayan rol modülü hiç görmez.
 function modulErisim(modulKey) {
   if (typeof isAdmin !== "undefined" && isAdmin) return true;
+  // Genel veli randevu ekranı kayıtlı velilerin kişisel verilerini içerir.
+  // Danışma yalnızca ayrı Aday Randevuları modülünü kullanır.
+  if (modulKey === "randevular" && danismaRolMu()) return false;
   const tanim = MODUL_HARITASI[modulKey];
   if (!tanim) return true;
   // Modülün sekmelerinden en az birine erişim varsa modül görünür
@@ -14304,7 +14485,7 @@ function sekmeleriRoleGoreAyarla() {
     const ogr = !isAdmin && ["ogretmen", "brans_ogretmeni", "yardimci_ogretmen",
       "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni"].includes(aktifKullaniciRol);
     document.body.classList.toggle("rol-ogretmen", !!ogr);
-    document.body.classList.toggle("rol-danisma", !isAdmin && aktifKullaniciRol === "danisma");
+    document.body.classList.toggle("rol-danisma", danismaRolMu());
   } catch (e) {}
 
   // Panel başlık etiketini role göre güncelle
@@ -14341,13 +14522,16 @@ function sekmeleriRoleGoreAyarla() {
   // Durum sekmeleri (Aktif / Başvuru Sürecinde / Yenileme / Arşiv / Tümü)
   // ve kendi sınıfı dışındaki sınıf çipleri öğretmene gösterilmez.
   const ogretmenGorunumu = !finansYetkisi && aktifKullaniciRol === "ogretmen";
+  const danismaGorunumu = danismaRolMu();
+  if (danismaGorunumu) activeDurum = "aktif";
   document.querySelectorAll('.durum-sekmeleri')
-    .forEach(el => { el.style.display = ogretmenGorunumu ? "none" : ""; });
+    .forEach(el => { el.style.display = (ogretmenGorunumu || danismaGorunumu) ? "none" : ""; });
 
   // Sınıf çipleri: öğretmen yalnızca atandığı sınıfın çipini görür
   document.querySelectorAll('[data-filter]').forEach(c => {
     const f = c.dataset.filter;
     if (!["papatyalar", "kardelenler", "nar"].includes(f)) return;
+    if (danismaGorunumu) { c.style.display = ""; return; }
     if (!ogretmenGorunumu) { c.style.display = ""; return; }
     const esle = { papatyalar: "Papatyalar Sınıfı", kardelenler: "Kardelenler Sınıfı", nar: "Nar Çiçekleri Sınıfı" };
     c.style.display = sinifGorunur(esle[f]) ? "" : "none";
@@ -14357,15 +14541,26 @@ function sekmeleriRoleGoreAyarla() {
   const heroBaslik = document.getElementById("ogrenciHeroBaslik");
   const heroAlt = document.getElementById("ogrenciHeroAlt");
   if (heroBaslik && heroAlt) {
-    if (ogretmenGorunumu) {
+    if (danismaGorunumu) {
+      heroBaslik.textContent = "Aktif Öğrenciler · Teslim Operasyonu";
+      heroAlt.textContent = "Yalnızca öğrenci adı, sınıfı ve güvenli teslim bilgileri gösterilir. Veli iletişim bilgileri kapalıdır.";
+      const arama = document.getElementById("searchInput");
+      if (arama) arama.placeholder = "Öğrenci veya sınıf ara...";
+    } else if (ogretmenGorunumu) {
       const snf = (aktifKullaniciSiniflari || []).join(", ") || "Sınıfım";
       heroBaslik.textContent = "Sınıfım · " + snf;
       heroAlt.textContent = "Öğrencilerinize tıklayarak gözlem, gelişim, rapor ve mesaj işlemlerine hızlıca ulaşabilirsiniz.";
     } else {
       heroBaslik.textContent = "Kayıtlı Öğrenciler";
       heroAlt.innerHTML = "Okula kabul edilmiş öğrenciler. Yeni başvurular <b>Başvuru Havuzu</b>'ndadır — onaylanınca buraya taşınır.";
+      const arama = document.getElementById("searchInput");
+      if (arama) arama.placeholder = "Öğrenci veya veli ara...";
     }
   }
+
+  // Danışma ana menüsünün ilk öğesi rolün asıl sorumluluğunu açıkça söyler.
+  const ozetAd = document.querySelector('.side-item[data-modul="ozet"] .side-ad');
+  if (ozetAd) ozetAd.textContent = danismaGorunumu ? "Okul Zili" : "Özet";
 
   // Mali filtre çipleri (Ayarlı / Eksik Ayar / Gecikmiş) öğretmene gösterilmez
   ["chipAyarli", "chipEksik", "chipGecikmis"].forEach(id => {
@@ -14405,6 +14600,8 @@ async function loadPersoneller() {
     const snap = await getDocs(collection(db, "personeller"));
     personelListesi = [];
     snap.forEach(d => personelListesi.push({ id: d.id, ...d.data() }));
+    try { await danismaPersonelRehberiniSenkronla(personelListesi); }
+    catch (e) { console.warn("Danışma personel rehberi:", e.code || e.message); }
 
     // Sınıf atamaları (tüm öğretmenler için tek seferde)
     personelAtamaHaritasi = {};
@@ -14464,7 +14661,7 @@ function personelListele() {
   });
 
   // Sırala: önce role göre, sonra ada göre
-  const rolSira = { kurucu_mudur: 0, mudur: 1, egitim_koordinator: 2, muhasebe: 3, ogretmen: 4 };
+  const rolSira = { kurucu_mudur: 0, mudur: 1, egitim_koordinator: 2, muhasebe: 3, ogretmen: 4, danisma: 5, halkla_iliskiler: 5 };
   filtreli.sort((a, b) => {
     const ra = rolSira[a.rol] ?? 9;
     const rb = rolSira[b.rol] ?? 9;
@@ -15086,6 +15283,25 @@ function mesajThreadIdUret(email1, email2) {
   return sirali.join("__").replace(/[^a-z0-9_@.\-]/g, "_");
 }
 
+function mesajThreadVeliIceriyor(thread) {
+  const bilgiler = Object.values((thread && thread.katilimciBilgi) || {});
+  return bilgiler.some(k => k && (k.rol === "veli" || k.tip === "veli"))
+    || (!!thread?.ogrenciId && thread?.kanal !== "kurum_ici");
+}
+
+function mesajThreadDanismaVeliMi(thread) {
+  const bilgiler = Object.values((thread && thread.katilimciBilgi) || {});
+  const veliVar = mesajThreadVeliIceriyor(thread);
+  const danismaVar = bilgiler.some(k => k && rolNormalize(k.rol) === "danisma");
+  return veliVar && danismaVar;
+}
+
+function mesajThreadKategoriBelirle(thread, benimEmail) {
+  const benim = String(benimEmail || "").toLowerCase();
+  if (!((thread?.katilimcilar || []).includes(benim))) return "gozetim";
+  return mesajThreadVeliIceriyor(thread) ? "veli" : "ic";
+}
+
 // ═══════════ MESAJLAŞMA: AD-SOYAD GÖSTERİMİ (e-posta gizleme) ═══════════
 // Kural: mesajlaşma arayüzünde hiçbir yerde e-posta adresi gösterilmez.
 // Sıra: kayıtlı ad → sistemden çözümlenen ad → "<Öğrenci> velisi" → rol etiketi.
@@ -15263,6 +15479,44 @@ async function mesajThreadGetirVeyaOlustur(taraflar) {
   return { id: threadId, ...yeniThread };
 }
 
+// Personel ↔ personel sohbeti. Veli katılımcısı, öğrenci bağı ve veli gözetim
+// alanı içermez; bu nedenle veli sorgularına hiçbir zaman dahil olmaz.
+async function mesajIcThreadGetirVeyaOlustur(hedefPersonel) {
+  if (!currentUser || !hedefPersonel?.email) throw new Error("Personel bilgisi eksik");
+  const benimEmail = currentUser.email.toLowerCase();
+  const hedefEmail = hedefPersonel.email.toLowerCase();
+  if (benimEmail === hedefEmail) throw new Error("Kendinizle sohbet başlatamazsınız");
+  const threadId = mesajThreadIdUret(benimEmail, hedefEmail);
+  const threadRef = doc(db, "mesajlar", threadId);
+  try {
+    const mevcut = await getDoc(threadRef);
+    if (mevcut.exists()) {
+      const veri = mevcut.data();
+      if (mesajThreadVeliIceriyor(veri)) throw new Error("Bu kişiyle kurum içi sohbet açılamadı");
+      return { id: threadId, ...veri };
+    }
+  } catch (e) {
+    if (e?.message === "Bu kişiyle kurum içi sohbet açılamadı") throw e;
+  }
+
+  const benimAd = mesajAdNormalize(aktifPersonel?.adSoyad || currentUser.displayName, benimEmail);
+  const yeniThread = {
+    kanal: "kurum_ici",
+    katilimcilar: [benimEmail, hedefEmail],
+    katilimciBilgi: {
+      [benimEmail]: { ad: benimAd, rol: aktifKullaniciRol || "personel", tip: "personel" },
+      [hedefEmail]: { ad: mesajAdNormalize(hedefPersonel.ad, hedefEmail), rol: rolNormalize(hedefPersonel.rol) || "personel", tip: "personel" }
+    },
+    ccGozetimciler: [],
+    ogrenciId: "", ogrenciAd: "", ogrenciSinif: "",
+    sonMesaj: "", sonMesajTarihi: serverTimestamp(), sonMesajGonderen: "",
+    okunmamis: { [benimEmail]: 0, [hedefEmail]: 0 },
+    olusturuldu: serverTimestamp()
+  };
+  await setDoc(threadRef, yeniThread);
+  return { id: threadId, ...yeniThread };
+}
+
 // Bir thread'e mesaj gönder
 async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeUrl = "", belgeYol = "", belgeAd = "") {
   const temizMetin = (metin || "").trim();
@@ -15280,6 +15534,9 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
     return;
   }
   const thread = threadSnap.data();
+  if ((danismaRolMu() && mesajThreadVeliIceriyor(thread)) || mesajThreadDanismaVeliMi(thread)) {
+    throw new Error("Danışma hesabı ile veli mesajlaşması kapalıdır");
+  }
   const katilimcilar = thread.katilimcilar || [];
   const karsiTaraf = katilimcilar.find(e => e !== gonderen);
 
@@ -15401,6 +15658,8 @@ function mesajBildirimBaslat() {
     let toplam = 0;
     snap.forEach(d => {
       const t = d.data();
+      // Danışma rozetine eski/yanlışlıkla açılmış veli konuşmaları düşmez.
+      if (danismaRolMu() && mesajThreadKategoriBelirle(t, benim) !== "ic") return;
       toplam += (t.okunmamis && t.okunmamis[benim]) || 0;
     });
     mesajBildirimToplam = toplam;
@@ -15452,6 +15711,17 @@ function mesajlasmaBaslat() {
   if (!currentUser) return;
   const benim = currentUser.email.toLowerCase();
 
+  const heroBaslik = document.getElementById("mesajHeroBaslik");
+  const heroAlt = document.getElementById("mesajHeroAlt");
+  if (danismaRolMu()) {
+    if (heroBaslik) heroBaslik.textContent = "Kurum İçi Mesajlaşma";
+    if (heroAlt) heroAlt.textContent = "Yalnızca okul personeliyle yazışabilirsiniz. Bu konuşmalar veli hesaplarında görünmez.";
+    mesajAktifKategori = "ic";
+  } else {
+    if (heroBaslik) heroBaslik.textContent = "Mesajlaşma";
+    if (heroAlt) heroAlt.textContent = "Veli ve personelle gerçek zamanlı yazışın. Sohbetler otomatik kaydedilir, okundu bilgisi görünür.";
+  }
+
   // Önceki dinleyiciyi temizle
   if (mesajThreadUnsub) { mesajThreadUnsub(); mesajThreadUnsub = null; }
 
@@ -15478,7 +15748,11 @@ function mesajlasmaBaslat() {
 
   mesajThreadUnsub = onSnapshot(q, (snap) => {
     mesajThreadListesi = [];
-    snap.forEach(d => mesajThreadListesi.push({ id: d.id, ...d.data() }));
+    snap.forEach(d => {
+      const thread = { id: d.id, ...d.data() };
+      if (danismaRolMu() && mesajThreadKategoriBelirle(thread, benim) !== "ic") return;
+      mesajThreadListesi.push(thread);
+    });
     mesajThreadleriListele();
     mesajToplamOkunmamisGuncelle();
   }, (err) => {
@@ -15512,18 +15786,17 @@ function mesajThreadleriListele() {
 
   let liste = [...mesajThreadListesi];
 
-  // Kategori belirleme yardımcısı: veli / ic (personel arası) / gozetim
-  function threadKategori(t) {
-    const benimGoz = !((t.katilimcilar || []).includes(benim));
-    if (benimGoz) return "gozetim";
-    const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
-    const rol = t.katilimciBilgi?.[karsi]?.rol;
-    return rol === "veli" ? "veli" : "ic";
+  const threadKategori = (t) => mesajThreadKategoriBelirle(t, benim);
+
+  // DANIŞMA KISITI: yalnızca kurum içi personel sohbetleri görünür.
+  // Veli konuşması DOM'a taşınmaz ve doğrudan açma denemesi ayrıca engellenir.
+  if (danismaRolMu()) {
+    liste = liste.filter(t => threadKategori(t) === "ic");
   }
 
   // ÖĞRETMEN KISITI: yalnızca veli sohbetleri görünür.
   // Yönetim gözetim akışı ve personel arası yazışmalar öğretmene KAPALI.
-  if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
+  if (!danismaRolMu() && typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
     liste = liste.filter(t => threadKategori(t) === "veli");
   }
 
@@ -15604,6 +15877,10 @@ function mesajThreadleriListele() {
 window.mesajThreadAc = async function(threadId) {
   const thread = mesajThreadListesi.find(t => t.id === threadId);
   if (!thread) return;
+  if (danismaRolMu() && mesajThreadKategoriBelirle(thread, currentUser?.email) !== "ic") {
+    showToast("Danışma hesabı veli sohbetlerini açamaz", "error");
+    return;
+  }
   mesajAktifThread = thread;
   const benim = currentUser.email.toLowerCase();
   const benimGozetimciMiyim = !((thread.katilimcilar || []).includes(benim));
@@ -15810,12 +16087,23 @@ window.mesajSohbetKapat = function() {
 
 // === YENİ SOHBET (öğrenci → veli akışı) ===
 let mesajYeniSeciliOgrenci = null;
+let mesajYeniPersonelCache = null;
 
 window.mesajYeniSohbetAc = function() {
   mesajYeniSeciliOgrenci = null;
-  document.getElementById("mesajYeniOgrenciAra").value = "";
+  const ara = document.getElementById("mesajYeniOgrenciAra");
+  if (ara) {
+    ara.value = "";
+    ara.placeholder = danismaRolMu() ? "Personel adı veya rol ara…" : "Öğrenci veya veli adı ara…";
+  }
+  const baslik = document.getElementById("mesajYeniModalBaslik");
+  if (baslik) baslik.innerHTML = danismaRolMu()
+    ? `<i data-lucide="messages-square" style="width:17px;height:17px;vertical-align:-3px;"></i> Yeni Kurum İçi Sohbet`
+    : `<i data-lucide="message-circle-plus" style="width:17px;height:17px;vertical-align:-3px;"></i> Yeni Sohbet`;
   document.getElementById("mesajYeniModal").classList.add("active");
-  mesajYeniOgrencileriListele();
+  if (danismaRolMu()) mesajYeniPersonelleriListele();
+  else mesajYeniOgrencileriListele();
+  if (window.lucideYenile) window.lucideYenile(document.getElementById("mesajYeniModal"));
 };
 
 window.mesajYeniSohbetKapat = function() {
@@ -15824,6 +16112,7 @@ window.mesajYeniSohbetKapat = function() {
 
 // Yeni sohbet: öğrencileri listele (öğretmen sadece kendi sınıfını görür - ogrenciList zaten filtreli)
 window.mesajYeniOgrencileriListele = function() {
+  if (danismaRolMu()) { mesajYeniPersonelleriListele(); return; }
   const el = document.getElementById("mesajYeniOgrenciListesi");
   if (!el) return;
   const arama = (document.getElementById("mesajYeniOgrenciAra")?.value || "").toLowerCase().trim();
@@ -15859,6 +16148,62 @@ window.mesajYeniOgrencileriListele = function() {
   }).join("");
 };
 
+// Danışma için yeni sohbet seçicisi: öğrenci/veli yerine yalnız aktif personel.
+window.mesajYeniPersonelleriListele = async function() {
+  const el = document.getElementById("mesajYeniOgrenciListesi");
+  if (!el || !currentUser) return;
+  const arama = (document.getElementById("mesajYeniOgrenciAra")?.value || "").toLocaleLowerCase("tr").trim();
+  el.innerHTML = `<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px;">Personel listesi yükleniyor…</div>`;
+  try {
+    if (!mesajYeniPersonelCache) {
+      const snap = await getDocs(collection(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller));
+      mesajYeniPersonelCache = [];
+      snap.forEach(d => {
+        const p = d.data() || {};
+        const email = String(p.email || d.id || "").toLowerCase();
+        if ((p.durum || "aktif") !== "aktif" || email === currentUser.email.toLowerCase()) return;
+        mesajYeniPersonelCache.push({
+          email, ad: p.adSoyad || p.ad || ROL_ETIKETLERI[rolNormalize(p.rol)] || "Personel",
+          rol: rolNormalize(p.rol), unvan: p.unvan || ""
+        });
+      });
+    }
+    let liste = [...mesajYeniPersonelCache];
+    if (arama) liste = liste.filter(p =>
+      `${p.ad} ${p.unvan} ${ROL_ETIKETLERI[p.rol] || p.rol}`.toLocaleLowerCase("tr").includes(arama));
+    liste.sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
+    window.__mesajIcKisiListesi = liste;
+    if (!liste.length) {
+      el.innerHTML = `<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px;">${arama ? "Personel bulunamadı." : "Aktif personel bulunamadı."}</div>`;
+      return;
+    }
+    el.innerHTML = liste.map((p, i) => `
+      <button type="button" class="mesaj-yeni-ogrenci-kart" onclick="mesajYeniIcBaslatIndex(${i})" style="width:100%;border:0;text-align:left;">
+        <div class="mesaj-thread-avatar" style="width:36px;height:36px;font-size:14px;">${escapeHtmlGelisim((p.ad[0] || "?").toLocaleUpperCase("tr"))}</div>
+        <div><div class="ad">${escapeHtmlGelisim(p.ad)}</div>
+        <div class="alt">${escapeHtmlGelisim(p.unvan || ROL_ETIKETLERI[p.rol] || "Personel")}</div></div>
+      </button>`).join("");
+  } catch (e) {
+    console.error("Kurum içi personel listesi:", e);
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:#dc2626;font-size:13px;">Personel listesi yüklenemedi.</div>`;
+  }
+};
+
+window.mesajYeniIcBaslatIndex = async function(index) {
+  if (!danismaRolMu()) return;
+  const kisi = (window.__mesajIcKisiListesi || [])[index];
+  if (!kisi) return;
+  try {
+    const thread = await mesajIcThreadGetirVeyaOlustur(kisi);
+    mesajYeniSohbetKapat();
+    if (!mesajThreadListesi.find(t => t.id === thread.id)) mesajThreadListesi.unshift(thread);
+    mesajThreadAc(thread.id);
+  } catch (e) {
+    console.error("Kurum içi sohbet:", e);
+    showToast("Sohbet başlatılamadı: " + e.message, "error");
+  }
+};
+
 // Öğrenci seçildi → velilerini göster (e-posta DOM'a yazılmaz)
 window.__zekyMesajVeliSecim = null;
 window.mesajYeniVeliSec = function(idx) {
@@ -15869,6 +16214,10 @@ window.mesajYeniVeliSec = function(idx) {
 };
 
 window.mesajYeniOgrenciSec = function(ogrenciId) {
+  if (danismaRolMu()) {
+    showToast("Danışma hesabı veli sohbeti başlatamaz", "error");
+    return;
+  }
   const o = ogrenciList.find(x => x.id === ogrenciId);
   if (!o) return;
   mesajYeniSeciliOgrenci = o;
@@ -15904,6 +16253,10 @@ window.mesajYeniOgrenciSec = function(ogrenciId) {
 
 // Veli seçildi → thread oluştur/aç
 window.mesajYeniBaslat = async function(veliEmail, veliAd, ogrenciId) {
+  if (danismaRolMu()) {
+    showToast("Danışma hesabı velilerle mesajlaşamaz", "error");
+    return;
+  }
   const o = ogrenciList.find(x => x.id === ogrenciId);
   const ayar = o ? ayarListesi[o.id] : null;
   const sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o?.sinif || "";
@@ -16041,11 +16394,11 @@ onAuthStateChanged(auth, async (user) => {
     // Admin ise: personel kaydı varsa onu kullan, yoksa kurucu_mudur say (güvenlik ağı)
     if (isAdmin) {
       aktifPersonel = personel || { email, adSoyad: user.displayName || "Kurucu Müdür", rol: "kurucu_mudur", durum: "aktif" };
-      aktifKullaniciRol = aktifPersonel.rol || "kurucu_mudur";
+      aktifKullaniciRol = rolNormalize(aktifPersonel.rol || "kurucu_mudur");
     } else if (personel && personel.durum === "aktif") {
       // Aktif personel
       aktifPersonel = personel;
-      aktifKullaniciRol = personel.rol;
+      aktifKullaniciRol = rolNormalize(personel.rol);
       // Yalnız sınıf öğretmeni için sınıf kısıtı vardır. Muhasebe gibi diğer
       // roller gereksiz sinifAtamalari sorgusu çalıştırmaz.
       if (aktifKullaniciRol === "ogretmen") {
@@ -16111,14 +16464,14 @@ onAuthStateChanged(auth, async (user) => {
       }
       // Onay bekleyenler sayacını arka planda yükle
       try {
-        if (typeof initOnayBekleyenler === "function") initOnayBekleyenler();
+        if (sekmeyeErisim("onay") && typeof initOnayBekleyenler === "function") initOnayBekleyenler();
       } catch (e) {
         console.warn("initOnayBekleyenler hatası:", e);
       }
 
       // <i data-lucide="bell" style="width:13px;height:13px;vertical-align:-2px;"></i> TUR C: Admin girişinde kredi kartı taleplerini kontrol et
       try {
-        if (typeof kontrolEtYeniTalepler === "function") {
+        if (sekmeyeErisim("finans") && typeof kontrolEtYeniTalepler === "function") {
           setTimeout(() => kontrolEtYeniTalepler(), 800);
         }
       } catch (e) {
@@ -17060,6 +17413,24 @@ function vzSaatY(iso) {
   return isNaN(d) ? "" : String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
 }
 
+function okulZiliKoleksiyonu() {
+  return danismaRolMu() ? DANISMA_GUVENLI_KOLEKSIYONLAR.pickup : "pickupBildirimleri";
+}
+
+function okulZiliGuvenliVeri(v, ogrenciId = "", tarih = "") {
+  const x = v || {};
+  return {
+    ogrenciId: x.ogrenciId || x.cocukId || ogrenciId || "",
+    ogrenciAd: x.ogrenciAd || "", sinif: x.sinif || "", tarih: x.tarih || tarih || "",
+    hedefSaat: x.hedefSaat || "", alanKisi: x.alanKisi || "Veli",
+    durum: x.durum || "yolda", olusturuldu: x.olusturuldu || "",
+    hazirZamani: x.hazirZamani || "", teslimZamani: x.teslimZamani || "",
+    teslimEden: x.teslimEden || "", veliOnay: x.veliOnay === true,
+    veliOnayZamani: x.veliOnayZamani || "", iptalZamani: x.iptalZamani || "",
+    guncellendi: serverTimestamp()
+  };
+}
+
 window.veliOkulZiliDoldur = async function() {
   const el = document.getElementById("veliOkulZiliKart");
   if (!el) return;
@@ -17076,7 +17447,16 @@ window.veliOkulZiliDoldur = async function() {
   let b = null;
   try {
     const s = await getDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih));
-    if (s.exists()) b = s.data();
+    if (s.exists()) {
+      b = s.data();
+      // Eski kaydı ilk veli görüntülemesinde güvenli danışma projeksiyonuna
+      // yalnız belge henüz yoksa taşı.
+      try {
+        const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+        const guvenli = await getDoc(guvenliRef);
+        if (!guvenli.exists()) await setDoc(guvenliRef, okulZiliGuvenliVeri(b, ogr.id, tarih));
+      } catch (e) { console.warn("okul zili güvenli özet:", e.code || e.message); }
+    }
   } catch (e) { console.warn("okul zili:", e.code || e.message); }
 
   // Sıra bilgisi (isimsiz kuyruk)
@@ -17232,7 +17612,7 @@ window.veliOkulZiliBildir = async function() {
   const kisi = document.getElementById("vzKisi")?.value || "Veli";
   const tarih = vzBugun();
   try {
-    await setDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+    const tamVeri = {
       ogrenciId: ogr.id,
       ogrenciAd: ogr.ogrenciAdSoyad || "",
       sinif: (ayarListesi?.[ogr.id]?.kayit?.sinif) || ogr.sinif || "",
@@ -17241,11 +17621,24 @@ window.veliOkulZiliBildir = async function() {
       veliEmail: (currentUser?.email || "").toLowerCase(),
       olusturuldu: new Date().toISOString(),
       guncellendi: serverTimestamp()
-    }, { merge: true });
+    };
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
+    const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+    const guvenliMevcut = await getDoc(guvenliRef);
+    if (guvenliMevcut.exists()) {
+      batch.set(guvenliRef, {
+        hedefSaat: saat, alanKisi: kisi, durum: "yolda",
+        guncellendi: serverTimestamp()
+      }, { merge: true });
+    } else {
+      batch.set(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
+    }
     // İsimsiz kuyruk (ZEKY pickupKuyrukGuncelle ile aynı şema)
-    await setDoc(doc(db, "pickupKuyruk", tarih), {
+    batch.set(doc(db, "pickupKuyruk", tarih), {
       tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
     }, { merge: true });
+    await batch.commit();
     showToast("🔔 Bildiriminiz öğretmene iletildi");
     veliOkulZiliDoldur();
   } catch (e) {
@@ -17260,12 +17653,18 @@ window.veliOkulZiliTeyit = async function() {
   if (!ogr) return;
   const tarih = vzBugun();
   try {
-    await setDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+    const batch = writeBatch(db);
+    const onay = {
       veliOnay: true,
       veliOnayZamani: new Date().toISOString(),
       veliOnayEmail: (currentUser?.email || "").toLowerCase(),
       guncellendi: serverTimestamp()
+    };
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
     }, { merge: true });
+    await batch.commit();
     showToast("✓ Teyit edildi, iyi günler");
     veliOkulZiliDoldur();
   } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
@@ -17278,12 +17677,18 @@ window.veliOkulZiliIptal = async function() {
   if (!confirm("Bildirimi kaldırmak istediğinize emin misiniz?")) return;
   const tarih = vzBugun();
   try {
-    await setDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
-      durum: "iptal", iptalZamani: new Date().toISOString(), guncellendi: serverTimestamp()
+    const batch = writeBatch(db);
+    const iptalZamani = new Date().toISOString();
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
     }, { merge: true });
-    await setDoc(doc(db, "pickupKuyruk", tarih), {
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, "pickupKuyruk", tarih), {
       ogrenciler: { [ogr.id]: deleteField() }
     }, { merge: true });
+    await batch.commit();
     showToast("Bildirim kaldırıldı");
     veliOkulZiliDoldur();
   } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
@@ -18963,7 +19368,11 @@ function caMsgBaslat() {
     );
     caMsgThreadUnsub = onSnapshot(q, (snap) => {
       caMsgThreads = [];
-      snap.forEach(d => caMsgThreads.push({ id: d.id, ...d.data() }));
+      snap.forEach(d => {
+        const thread = { id: d.id, ...d.data() };
+        if (mesajThreadDanismaVeliMi(thread)) return;
+        caMsgThreads.push(thread);
+      });
       caMsgListele();
     }, (err) => {
       console.error("ZEKY mesaj dinleme hatası:", err);
@@ -19304,7 +19713,7 @@ async function caMsgPersonelListe() {
       caMsgPersonelCache = [];
       snap.forEach(d => {
         const p = { id: d.id, ...d.data() };
-        if ((p.durum || "aktif") === "aktif") caMsgPersonelCache.push(p);
+        if ((p.durum || "aktif") === "aktif" && rolNormalize(p.rol) !== "danisma") caMsgPersonelCache.push(p);
       });
     }
     const rolSira = { kurucu_mudur: 0, mudur: 1, egitim_koordinator: 2, ogretmen: 3, muhasebe: 4 };
@@ -19338,6 +19747,10 @@ async function caMsgPersonelListe() {
 }
 
 window.caMsgYeniBaslat = async function(personelEmail, personelAd, personelRol) {
+  if (rolNormalize(personelRol) === "danisma") {
+    showToast("Danışma hesabı veli mesajlaşmasına açık değildir", "error");
+    return;
+  }
   const benim = veliEpostam();
   const veliAd = mesajKendiVeliAdim();
   const ilkCocuk = (typeof veliOgrenciler !== "undefined" && veliOgrenciler && veliOgrenciler[0]) || null;
@@ -19651,12 +20064,19 @@ window.adminGotoTab = function(name) {
 window.pickupHazirla = async function(ogrenciId, tarih) {
   if (!ogrenciId) { showToast("Öğrenci bilgisi okunamadı", "error"); return; }
   try {
-    await setDoc(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), {
+    const guncelleme = {
       durum: "hazir",
       hazirZamani: new Date().toISOString(),
       hazirlayan: (currentUser?.email || "").toLowerCase(),
       guncellendi: serverTimestamp()
+    };
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), guncelleme, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ogrenciId, tarih, durum: "hazir",
+      hazirZamani: guncelleme.hazirZamani, guncellendi: serverTimestamp()
     }, { merge: true });
+    await batch.commit();
     showToast("✓ Hazırlandı olarak işaretlendi");
     if (typeof okulZiliDoldur === "function") okulZiliDoldur();
   } catch (e) {
@@ -19671,19 +20091,23 @@ window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi) {
   try {
     const ad = (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad)
             || currentUser?.displayName || currentUser?.email || "";
-    await setDoc(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), {
+    const guncelleme = {
       durum: "teslim",
       teslimZamani: new Date().toISOString(),
       teslimEden: ad,
       guncellendi: serverTimestamp()
+    };
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), guncelleme, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ogrenciId, tarih, durum: "teslim", teslimZamani: guncelleme.teslimZamani,
+      teslimEden: ad, guncellendi: serverTimestamp()
     }, { merge: true });
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      ogrenciler: { [ogrenciId]: deleteField() }
+    }, { merge: true });
+    await batch.commit();
     // İsimsiz kuyruktan düş — ZEKY pickupKuyrukGuncelle(id, tarih, null) ile aynı şema
-    try {
-      await setDoc(doc(db, "pickupKuyruk", tarih), {
-        ogrenciler: { [ogrenciId]: deleteField() }
-      }, { merge: true });
-    } catch (e) { /* kuyruk yoksa sorun değil */ }
-
     showToast("✓ Teslim edildi");
     if (typeof okulZiliDoldur === "function") okulZiliDoldur();
   } catch (e) {
@@ -19699,7 +20123,7 @@ window.okulZiliCanliBaslat = function() {
   if (!document.getElementById("okulZiliListe")) return;
   try {
     const bugun = new Date().toISOString().substring(0, 10);
-    const q = query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun));
+    const q = query(collection(db, okulZiliKoleksiyonu()), where("tarih", "==", bugun));
     _okulZiliUnsub = onSnapshot(q, () => {
       if (document.getElementById("okulZiliListe") && typeof okulZiliDoldur === "function") okulZiliDoldur();
     }, (e) => console.warn("okul zili dinleme:", e.code || e.message));
@@ -19714,15 +20138,36 @@ window.okulZiliDoldur = async function() {
   const ozetEl = document.getElementById("okulZiliOzet");
   if (!el) return;
 
-  // ZEKY ile ORTAK: pickupBildirimleri/{ogrenciId}__{tarih}
+  // Danışma kişisel alan içermeyen projeksiyonu; diğer roller ortak asıl
+  // pickupBildirimleri koleksiyonunu okur.
   // durum akışı: yolda → hazir → teslim   (veliOnay ayrı beyandır)
   const bugun = new Date().toISOString().substring(0, 10);
   let kayitlar = [];
   try {
-    const snap = await getDocs(collection(db, "pickupBildirimleri"));
+    const q = query(collection(db, okulZiliKoleksiyonu()), where("tarih", "==", bugun));
+    const snap = await getDocs(q);
     snap.forEach(d => {
       const v = d.data() || {};
-      if ((v.tarih || "").substring(0, 10) === bugun && v.durum !== "iptal") kayitlar.push({ id: d.id, ...v });
+      if (v.durum === "iptal") return;
+      const ogrenciOzeti = (ogrenciList || []).find(o => o.id === (v.ogrenciId || v.cocukId || ""));
+      // Teslim ekranında yalnız operasyon alanları tutulur. Belgedeki veli
+      // e-postası / onay e-postası gibi kimlik alanları arayüz durumuna alınmaz.
+      kayitlar.push({
+        id: d.id,
+        ogrenciId: v.ogrenciId || "",
+        ogrenciAd: v.ogrenciAd || ogrenciOzeti?.ogrenciAdSoyad || ogrenciOzeti?.adSoyad || "",
+        sinif: v.sinif || ogrenciOzeti?.sinif || ogrenciOzeti?.sinifi || "",
+        tarih: v.tarih || bugun,
+        hedefSaat: v.hedefSaat || "",
+        alanKisi: v.alanKisi || "Veli",
+        durum: v.durum || "yolda",
+        olusturuldu: v.olusturuldu || "",
+        hazirZamani: v.hazirZamani || "",
+        teslimZamani: v.teslimZamani || "",
+        teslimEden: v.teslimEden || "",
+        veliOnay: v.veliOnay === true,
+        veliOnayZamani: v.veliOnayZamani || ""
+      });
     });
   } catch (e) { console.warn("pickupBildirimleri:", e.code || e.message); }
 
@@ -19786,7 +20231,8 @@ window.okulZiliDoldur = async function() {
     teslim: { ad: "Teslim edildi",  renk: "#059669", bg: "#ECFDF5" }
   };
 
-  el.innerHTML = kayitlar.slice(0, 6).map(k => {
+  const gorunenKayitlar = danismaRolMu() ? kayitlar : kayitlar.slice(0, 6);
+  el.innerHTML = gorunenKayitlar.map(k => {
     const durumKey = DURUM[k.durum] ? k.durum : "yolda";
     const s = DURUM[durumKey];
     const dk = beklemeDk(k);
@@ -19823,7 +20269,7 @@ window.okulZiliDoldur = async function() {
         ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(ogrAd)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}
       </div>
     </div>`;
-  }).join("") + (kayitlar.length > 6
+  }).join("") + (!danismaRolMu() && kayitlar.length > 6
     ? `<div style="font-size:11.5px; color:#94A3B8; padding-top:8px;">+${kayitlar.length - 6} bildirim daha</div>` : "");
 
   if (window.lucideYenile) window.lucideYenile();
@@ -20225,13 +20671,14 @@ function adminHomeYukleniyorGoster() {
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
-  const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && ["ogretmen","danisma"].includes(aktifKullaniciRol));
+  const danismaMi = danismaRolMu();
+  const ogretmenMi = !danismaMi && (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
 
   // Veri zinciri sürerken boş bir bekleme kartına kilitleme. Rolüne uygun gerçek
   // ana sayfa kabuğu ve hızlı menüler hemen kullanılabilir; veri isteyen kartlar
   // ise kesin öğrenci/dönem verisi gelene kadar sorgu başlatmaz.
-  root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
-  if (!ogretmenMi) {
+  root.innerHTML = danismaMi ? danismaHomeHTML(ad) : (ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad));
+  if (!ogretmenMi && !danismaMi) {
     root.querySelectorAll(".kpi-buyuk, .kpi-buyuk-dark, .ozet-donut-sayi")
       .forEach(el => { el.textContent = "—"; });
   }
@@ -20244,6 +20691,12 @@ function adminHomeYukleniyorGoster() {
     Ana sayfa açıldı. Öğrenci ve dönem bilgileri arka planda yükleniyor; menüleri kullanabilirsiniz.`;
   const ilkBolum = root.querySelector(".ca-page, .ozet-v2") || root;
   ilkBolum.prepend(yuklemeDurumu);
+
+  // Danışmanın birincil görevi öğrenci/dönem veri zincirini beklemez. Okul
+  // Zili kuyruğu kabuk çizilir çizilmez yüklenir ve canlı dinleme başlatılır.
+  if (danismaMi && typeof okulZiliDoldur === "function") {
+    Promise.resolve(okulZiliDoldur()).catch(e => console.warn("Okul Zili ilk yükleme:", e));
+  }
 
   const beklemeSurumu = adminHomeRenderSurumu;
   adminHomeGorevPlanla(() => {
@@ -20274,6 +20727,8 @@ function renderAdminHome() {
   }
   adminHomeZamanlayicilariniTemizle();
   const renderSurumu = ++adminHomeRenderSurumu;
+  const danismaMi = danismaRolMu();
+  if (danismaMi) caAdminEkran = "home";
   // Faz 1b: admin iç-navigasyon (eğitim takibi gerçek veri)
   if (caAdminEkran === "egitim") {
     root.innerHTML = `<div class="ca-page ca-stack"><div class="ca-draft-banner"><i data-lucide="book-open" style="width:14px;height:14px;vertical-align:-2px;"></i> Sınıf eğitim verileri yükleniyor…</div></div>`;
@@ -20283,8 +20738,11 @@ function renderAdminHome() {
   }
   if (caAdminEkran === "gozlem") { caGozlemRender(); return; }
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
-  const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && ["ogretmen","danisma"].includes(aktifKullaniciRol));
-  root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
+  const ogretmenMi = !danismaMi && (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
+  root.innerHTML = danismaMi ? danismaHomeHTML(ad) : (ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad));
+  if (danismaMi && typeof danismaHomeVeriYukle === "function") {
+    adminHomeGorevPlanla(() => danismaHomeVeriYukle(), 0, renderSurumu, "danışma operasyon verileri");
+  }
   // Öğretmen ana sayfası: sayıları Firestore'dan doldur (demo veri yok)
   if (ogretmenMi && typeof ogretmenHomeVeriYukle === "function") {
     adminHomeGorevPlanla(() => ogretmenHomeVeriYukle(), 0, renderSurumu, "öğretmen verileri");
@@ -20293,7 +20751,7 @@ function renderAdminHome() {
   // HUB kartlarını tek seferde ateşlemek Firestore cevaplarını ve DOM
   // güncellemelerini aynı ana iş parçacığı dilimine yığıyordu. Kartları sırayla
   // doldur; her biri arasında tarayıcıya çizim fırsatı bırak.
-  if (!ogretmenMi) {
+  if (!ogretmenMi && !danismaMi) {
     adminHomeGorevleriSirala([
       ["doğum günleri", async () => { if (typeof dogumGunleriDoldur === "function") dogumGunleriDoldur(); }],
       ["özet rozetleri", async () => {
@@ -20482,6 +20940,10 @@ async function hbEgitimDoldur() {
 let caAdminEkran = "home";
 let caAdminSinif = null;
 window.caAdminGo = function(ekran, sinif) {
+  if (danismaRolMu() && (ekran || "home") !== "home") {
+    showToast("Danışma hesabı eğitim süreçlerine erişemez", "error");
+    return;
+  }
   caAdminEkran = ekran || "home";
   caAdminSinif = sinif || null;
   renderAdminHome();
@@ -21470,6 +21932,139 @@ function yonetimHomeHTML(ad) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// DANIŞMA / HALKLA İLİŞKİLER ANA SAYFASI — OPERASYON ODAKLI
+// Okul Zili ilk ve en büyük çalışma alanıdır. Eğitim, finans ve veli mesajı
+// bu kabukta yer almaz; kişisel işlemler Profilim üzerinden yürütülür.
+// ═══════════════════════════════════════════════════════════════════
+function danismaHomeHTML(ad) {
+  return `
+    <div class="ca-page ca-stack danisma-operasyon-paneli">
+      <div class="ca-topbar">
+        <div class="ca-row">
+          <div class="ca-avatar" style="background:#ECFEFF;color:#0E7490;">${escapeHtml((ad[0] || "D").toLocaleUpperCase("tr"))}</div>
+          <div><div class="ca-tile-sub">OPERASYON MASASI</div><h2 style="font-size:18px;">${escapeHtml(ad)}</h2></div>
+        </div>
+        <span class="ca-pill" style="background:#ECFEFF;color:#0E7490;border-color:#A5F3FC;"><i data-lucide="bell-ring" style="width:13px;height:13px;"></i> Okul Zili sorumlusu</span>
+      </div>
+
+      <section class="ca-card danisma-zil-karti" aria-labelledby="danismaZilBaslik">
+        <div class="ca-sectionhead" style="align-items:flex-start;">
+          <div>
+            <div style="font-size:10.5px;font-weight:850;color:#0E7490;letter-spacing:.09em;">BİRİNCİL ÇALIŞMA ALANI</div>
+            <h3 id="danismaZilBaslik" class="ca-head" style="font-size:21px;margin-top:4px;display:flex;align-items:center;gap:8px;"><i data-lucide="bell-ring" style="width:21px;height:21px;color:#0E7490;"></i> Okul Zili · Teslim Kuyruğu</h3>
+            <div class="ca-tile-sub" style="margin-top:4px;">Veli yola çıktığında kuyruk canlı güncellenir. Hazırlama, yetkili kontrolü ve teslim adımlarını buradan yönetin.</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="ca-pill" style="background:#ECFDF5;color:#047857;border-color:#A7F3D0;"><span style="width:7px;height:7px;border-radius:50%;background:#10B981;display:inline-block;"></span> CANLI</span>
+            <div id="okulZiliOzet" style="font-size:11.5px;color:#64748B;margin-top:7px;">Yükleniyor…</div>
+          </div>
+        </div>
+        <div id="okulZiliListe" style="margin-top:8px;"><div class="ca-tile-sub">Kuyruk yükleniyor…</div></div>
+      </section>
+
+      <div>
+        <h3 class="ca-head" style="font-size:15px;margin-bottom:10px;">Hızlı işlemler</h3>
+        <div class="danisma-hizli-islemler">
+          <button class="ca-qbtn" onclick="modulSec('danismaRandevu')"><span class="ca-qicon" style="background:#CFFAFE;color:#0E7490;"><i data-lucide="calendar-plus"></i></span><span class="ca-qlabel">Randevu Oluştur</span></button>
+          <button class="ca-qbtn" onclick="modulSec('ogrencilerM')"><span class="ca-qicon" style="background:var(--c-blue-soft);"><i data-lucide="users"></i></span><span class="ca-qlabel">Öğrenciler</span></button>
+          <button class="ca-qbtn" onclick="modulSec('mesaj')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="messages-square"></i></span><span class="ca-qlabel">Kurum İçi Mesaj</span></button>
+          <button class="ca-qbtn" onclick="modulSec('duyurular')"><span class="ca-qicon" style="background:var(--c-yellow-soft);"><i data-lucide="megaphone"></i></span><span class="ca-qlabel">Duyurular</span></button>
+          <button class="ca-qbtn" onclick="modulSec('etkinlik')"><span class="ca-qicon" style="background:var(--c-pink-soft);"><i data-lucide="calendar-heart"></i></span><span class="ca-qlabel">Etkinlikler</span></button>
+          <button class="ca-qbtn" onclick="modulSec('profilim')"><span class="ca-qicon" style="background:var(--c-tint);"><i data-lucide="user-circle"></i></span><span class="ca-qlabel">Profilim</span></button>
+          <button class="ca-qbtn" onclick="izinTalepAc()"><span class="ca-qicon" style="background:#DBEAFE;color:#1D4ED8;"><i data-lucide="calendar-x"></i></span><span class="ca-qlabel">İzin Talebi</span></button>
+          <button class="ca-qbtn" onclick="giderTalepAc()"><span class="ca-qicon" style="background:#FEF3C7;color:#B45309;"><i data-lucide="receipt"></i></span><span class="ca-qlabel">Fiş Ekle</span></button>
+          <button class="ca-qbtn" onclick="modulSec('profilim')"><span class="ca-qicon" style="background:#DCFCE7;color:#166534;"><i data-lucide="clipboard-list"></i></span><span class="ca-qlabel">İhtiyaç Bildir</span></button>
+        </div>
+      </div>
+
+      <div class="danisma-ikili">
+        <div class="ca-stack" style="gap:14px;">
+          <section>
+            <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sabah Girişi</h3><span class="ca-tile-sub">Bugün</span></div>
+            <div class="ca-card" id="danismaSabahGirisiKart"><div class="ca-tile-sub">Yükleniyor…</div></div>
+          </section>
+          <section>
+            <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Aday Veli Randevuları</h3><button class="ca-link" onclick="modulSec('danismaRandevu')">Tümü →</button></div>
+            <div class="ca-card" id="danismaHomeRandevu"><div class="ca-tile-sub">Yükleniyor…</div></div>
+          </section>
+          <section>
+            <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Kurum İçi Mesajlar</h3><button class="ca-link" onclick="modulSec('mesaj')">Aç →</button></div>
+            <div class="ca-card" id="danismaHomeMesajlar"><div class="ca-tile-sub">Yükleniyor…</div></div>
+          </section>
+        </div>
+        <div class="ca-stack" style="gap:14px;">
+          <section>
+            <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Giriş · Mola · Çıkış</h3><button class="ca-link" onclick="modulSec('profilim')">Profilim →</button></div>
+            <div id="ozetDevamKart"><div class="ca-tile-sub">Yükleniyor…</div></div>
+          </section>
+          <section>
+            <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Duyuru & Etkinlik</h3><button class="ca-link" onclick="modulSec('duyurular')">Oku →</button></div>
+            <div class="ca-card" id="ogrHomeDuyuru"><div class="ca-tile-sub">Yükleniyor…</div></div>
+          </section>
+          <div class="ca-card" style="background:#F8FAFC;border-style:dashed;">
+            <div style="display:flex;gap:10px;align-items:flex-start;"><i data-lucide="shield-check" style="width:18px;height:18px;color:#0E7490;flex-shrink:0;"></i>
+              <div><strong style="font-size:12.5px;color:#334155;">Gizlilik sınırı</strong><div class="ca-tile-sub" style="line-height:1.55;margin-top:3px;">Veli rehberi, telefon/e-posta, veli mesajları, muhasebe ve eğitim kayıtları bu hesapta kapalıdır.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function danismaHomeMesajlariDoldur() {
+  const el = document.getElementById("danismaHomeMesajlar");
+  if (!el || !currentUser) return;
+  const benim = currentUser.email.toLowerCase();
+  try {
+    const q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benim));
+    const snap = await getDocs(q);
+    const liste = [];
+    snap.forEach(d => {
+      const t = { id: d.id, ...d.data() };
+      if (mesajThreadKategoriBelirle(t, benim) !== "ic") return;
+      const okunmamis = Number(t.okunmamis?.[benim] || 0);
+      if (okunmamis > 0) liste.push({ ...t, okunmamisSayi: okunmamis });
+    });
+    const zamanMs = (v) => {
+      if (!v) return 0;
+      if (typeof v.toMillis === "function") return v.toMillis();
+      if (v.seconds) return Number(v.seconds) * 1000;
+      const ms = new Date(v).getTime();
+      return Number.isFinite(ms) ? ms : 0;
+    };
+    liste.sort((a, b) => zamanMs(b.sonMesajTarihi) - zamanMs(a.sonMesajTarihi));
+    el.innerHTML = liste.length ? liste.slice(0, 4).map(t => {
+      const karsi = (t.katilimcilar || []).find(e => e !== benim) || "";
+      const ad = mesajGorunenAd(t, karsi, "Personel");
+      return `<button type="button" class="ca-msgitem" onclick="modulSec('mesaj')" style="cursor:pointer;width:100%;border:0;background:transparent;text-align:left;">
+        <div class="ca-msgmini" style="background:var(--c-purple-soft);">${escapeHtml((ad[0] || "?").toLocaleUpperCase("tr"))}</div>
+        <div style="min-width:0;flex:1;"><div style="font-weight:650;color:var(--c-ink);font-size:13px;">${escapeHtml(ad)}</div><div class="ca-tile-sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(t.sonMesaj || "Yeni mesaj")}</div></div>
+        <span class="ca-unread">${t.okunmamisSayi}</span></button>`;
+    }).join("") : `<div class="ca-tile-sub">Okunmamış kurum içi mesajınız yok.</div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="ca-tile-sub">Mesajlar yüklenemedi.</div>`;
+  }
+}
+
+async function danismaHomeVeriYukle() {
+  const gorevler = [
+    async () => { if (typeof okulZiliDoldur === "function") await okulZiliDoldur(); },
+    async () => { const m = await modulYukle("sabah-girisi"); if (m) await m.ogretmenKart("danismaSabahGirisiKart"); },
+    async () => { if (typeof ozetDevamKartiDoldur === "function") await ozetDevamKartiDoldur(); },
+    async () => { const m = await modulYukle("danisma-randevulari"); if (m) await m.ozetKart("danismaHomeRandevu"); },
+    async () => { await danismaHomeMesajlariDoldur(); },
+    async () => { if (typeof ogretmenHomeEkKartlar === "function") await ogretmenHomeEkKartlar(); }
+  ];
+  for (const gorev of gorevler) {
+    if (!adminHomeSekmesiAktifMi()) break;
+    try { await gorev(); } catch (e) { console.warn("Danışma ana sayfa kartı:", e); }
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  if (window.lucideYenile) window.lucideYenile(document.getElementById("adminHomeRoot"));
+}
+window.danismaHomeVeriYukle = danismaHomeVeriYukle;
+
+// ═══════════════════════════════════════════════════════════════════
 // ÖĞRETMEN ANA SAYFASI — GERÇEK VERİ
 // Demo/pilot içerik tamamen kaldırıldı. Tüm sayılar Firestore'dan gelir:
 //   devamsizlik/{tarih}  → bugünkü yoklama
@@ -21886,7 +22481,11 @@ function veliMesajlasmaBaslat() {
 
   veliMesajThreadUnsub = onSnapshot(q, (snap) => {
     veliMesajThreadListesi = [];
-    snap.forEach(d => veliMesajThreadListesi.push({ id: d.id, ...d.data() }));
+    snap.forEach(d => {
+      const thread = { id: d.id, ...d.data() };
+      if (mesajThreadDanismaVeliMi(thread)) return;
+      veliMesajThreadListesi.push(thread);
+    });
     veliMesajThreadleriListele();
     veliMesajToplamOkunmamisGuncelle();
   }, (err) => {
@@ -22120,7 +22719,7 @@ async function veliMesajPersonelleriListele() {
       veliMesajPersonelCache = [];
       snap.forEach(d => {
         const p = { id: d.id, ...d.data() };
-        if ((p.durum || "aktif") === "aktif") veliMesajPersonelCache.push(p);
+        if ((p.durum || "aktif") === "aktif" && rolNormalize(p.rol) !== "danisma") veliMesajPersonelCache.push(p);
       });
     }
 
@@ -22169,6 +22768,10 @@ async function veliMesajPersonelleriListele() {
 
 // Veli bir personel seçti → thread oluştur/aç
 window.veliMesajYeniBaslat = async function(personelEmail, personelAd, personelRol) {
+  if (rolNormalize(personelRol) === "danisma") {
+    showToast("Danışma hesabı veli mesajlaşmasına açık değildir", "error");
+    return;
+  }
   // Veli kendi bilgisi
   const benim = veliEpostam();
   const veliAd = mesajKendiVeliAdim();
@@ -23528,13 +24131,23 @@ async function loadOgrenciler() {
   }
   
   try {
-    // Öğrencileri çek
-    const snap = await getDocs(collection(db, "ogrenciler"));
+    // Danışma tam öğrenci belgesini (veli/sağlık/finans alanları) hiçbir zaman
+    // okumaz; yalnız güvenli operasyon projeksiyonunu çeker.
+    const ogrenciKaynak = danismaRolMu()
+      ? DANISMA_GUVENLI_KOLEKSIYONLAR.ogrenciler
+      : "ogrenciler";
+    const snap = await getDocs(collection(db, ogrenciKaynak));
     
     if (snap.empty) {
       ogrenciList = [];
       ayarListesi = {};
       ogrenciVerileriHazirMi = true;
+      if (danismaRolMu()) {
+        if (ogrenciSekmesiAktifMi()) wrap.innerHTML = `
+          <div class="empty"><h3>Güvenli öğrenci listesi hazırlanıyor</h3>
+          <p>Yönetim hesabının operasyon özetlerini bir kez eşitlemesi gerekiyor.</p></div>`;
+        return;
+      }
       // İlk kez yükleme - toplu veri yükleme teklifi
       const bosIcerik = `
         <div class="empty">
@@ -23555,7 +24168,10 @@ async function loadOgrenciler() {
     
     ogrenciList = [];
     snap.forEach(d => {
-      ogrenciList.push({ id: d.id, ...d.data() });
+      // Danışma kaynağı zaten sunucu kurallarıyla güvenli projeksiyondur.
+      ogrenciList.push(danismaRolMu()
+        ? danismaOgrenciOzeti(d.id, d.data())
+        : { id: d.id, ...d.data() });
     });
     
     // Sırala: sınıfa göre, sonra isme göre
@@ -23578,6 +24194,13 @@ async function loadOgrenciler() {
     
     // Dönem ayarlarını ayrı sorgu
     await loadAyarlar();
+
+    // Yönetim, tam kaynaktan güvenli danışma özetlerini eşitler. Hata ana
+    // ekranı durdurmaz; danışma hesabına kaynak belgeler açılmaz.
+    if (danismaProjeksiyonYonetebilirMi()) {
+      try { await danismaOperasyonProjeksiyonlariniSenkronla(); }
+      catch (e) { console.warn("Danışma operasyon projeksiyonu:", e.code || e.message); }
+    }
 
     // ===== FAZ 2a: ÖĞRETMEN SINIF FİLTRESİ =====
     // Öğretmen sadece atandığı sınıfların öğrencilerini görür
@@ -24301,6 +24924,7 @@ window.takvimGunTikla = function(tarihStr) {
 };
 
 window.takvimEtkinlikModalAc = function(id, varsayilanTarih) {
+  if (danismaSaltOkunurEngelle("Etkinlik takvimi")) return;
   document.getElementById("takvimModal").classList.add("active");
   document.getElementById("takvimDuzenleId").value = id || "";
 
@@ -24371,6 +24995,7 @@ function takvimOgrenciSeciciDoldur() {
 }
 
 window.takvimEtkinlikKaydet = async function() {
+  if (danismaSaltOkunurEngelle("Etkinlik takvimi")) return;
   const id = document.getElementById("takvimDuzenleId").value;
   const baslik = document.getElementById("takvimBaslik").value.trim();
   const tip = document.getElementById("takvimTip").value;
@@ -24423,6 +25048,7 @@ window.takvimEtkinlikKaydet = async function() {
 };
 
 window.takvimEtkinlikSil = async function() {
+  if (danismaSaltOkunurEngelle("Etkinlik takvimi")) return;
   const id = document.getElementById("takvimDuzenleId").value;
   if (!id) return;
   if (!confirm("Bu etkinliği silmek istediğinize emin misiniz?")) return;
@@ -28414,6 +29040,52 @@ function finansGorebilir() {
 }
 window.finansGorebilir = finansGorebilir;
 
+// Danışma / Halkla İlişkiler: teslim operasyonuna özel, kişisel veli verisi ve
+// eğitim/finans aksiyonu içermeyen öğrenci listesi.
+function renderTableDanisma(wrap) {
+  if (!filteredList.length) {
+    wrap.innerHTML = '<div class="empty"><h3>Aktif öğrenci bulunamadı</h3><p>Arama veya sınıf filtresini değiştirmeyi deneyin.</p></div>';
+    return;
+  }
+  const sirali = [...filteredList].sort((a, b) => {
+    const aa = a.ogrenciAdSoyad || a.adSoyad || "";
+    const bb = b.ogrenciAdSoyad || b.adSoyad || "";
+    return aa.localeCompare(bb, "tr");
+  });
+  wrap.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:12px;padding:4px;">
+      ${sirali.map(o => {
+        const ayar = ayarListesi[o.id] || {};
+        const sinif = (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "Sınıf belirtilmemiş";
+        const ad = o.ogrenciAdSoyad || o.adSoyad || "Öğrenci";
+        const id = String(o.id || "").replace(/'/g, "\\'");
+        const adJs = String(ad).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        return `<article style="background:#fff;border:1px solid var(--c-line,#E2E8F0);border-radius:14px;padding:14px 15px;">
+          <div style="display:flex;align-items:center;gap:11px;">
+            <div style="width:42px;height:42px;flex-shrink:0;border-radius:50%;background:#0E7490;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;">${escapeHtml((ad[0] || "?").toLocaleUpperCase("tr"))}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:750;font-size:14.5px;color:#1E293B;">${escapeHtml(ad)}</div>
+              <div style="font-size:12.5px;color:#64748B;margin-top:2px;">${escapeHtml(sinif)}</div>
+            </div>
+            <span style="font-size:10px;font-weight:800;color:#047857;background:#ECFDF5;padding:3px 8px;border-radius:100px;">AKTİF</span>
+          </div>
+          <div style="display:flex;gap:7px;margin-top:12px;flex-wrap:wrap;">
+            <button class="btn-mini" onclick="modulYukle('pickup-yetkilileri').then(m=>m&&m.ogretmenPopup('${id}','${adJs}'))" style="flex:1;min-width:132px;color:#0E7490;border-color:#A5F3FC;background:#ECFEFF;font-weight:700;">
+              <i data-lucide="shield-check" style="width:13px;height:13px;vertical-align:-2px;"></i> Teslim Yetkilileri
+            </button>
+            <button class="btn-mini" onclick="modulSec('ozet')" style="flex:1;min-width:92px;font-weight:700;">
+              <i data-lucide="bell-ring" style="width:13px;height:13px;vertical-align:-2px;"></i> Okul Zili
+            </button>
+          </div>
+        </article>`;
+      }).join("")}
+    </div>
+    <div style="margin-top:12px;font-size:12.5px;color:var(--c-muted,#64748B);padding:0 4px;">
+      ${sirali.length} aktif öğrenci · Veli iletişim bilgileri bu hesapta kapalıdır.
+    </div>`;
+  if (window.lucideYenile) setTimeout(() => window.lucideYenile(wrap), 40);
+}
+
 function renderTableEgitim(wrap) {
   if (!filteredList.length) {
     wrap.innerHTML = '<div class="empty"><h3>Sonuç bulunamadı</h3><p>Arama veya filtreleri değiştirmeyi deneyin.</p></div>';
@@ -28684,6 +29356,8 @@ function renderTable() {
     // Arama
     if (searchVal) {
       const ad = (o.ogrenciAdSoyad || "").toLowerCase();
+      const sinifAra = ((ayarListesi[o.id]?.kayit?.sinif) || o.sinif || o.sinifi || "").toLowerCase();
+      if (danismaRolMu()) return ad.includes(searchVal) || sinifAra.includes(searchVal);
       const anne = (o.veli1AdSoyad || "").toLowerCase();
       const baba = (o.veli2AdSoyad || "").toLowerCase();
       if (!ad.includes(searchVal) && !anne.includes(searchVal) && !baba.includes(searchVal)) {
@@ -28762,6 +29436,16 @@ function renderTable() {
   }
   
   // ═══ ROL AYRIMI ═══
+  if (danismaRolMu()) {
+    filteredList = filteredList.filter(o => {
+      const dv = ayarListesi[o.id];
+      const durum = (dv && dv.durum) || o.kayitDurumu || o.durum || "aktif";
+      return durum !== "arsiv" && o.arsiv !== true;
+    });
+    renderTableDanisma(wrap);
+    return;
+  }
+
   // Öğretmen ve eğitim koordinatörü mali sütunları (aidat/ödeme) GÖRMEZ.
   // Onlara eğitim odaklı sadeleştirilmiş liste + hızlı işlem kısayolları gösterilir.
   if (typeof finansGorebilir === "function" && !finansGorebilir()) {
@@ -30009,7 +30693,7 @@ async function renderDuyurular() {
         <div style="font-size:48px; margin-bottom:12px;"><i data-lucide="file-text" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
         <div style="font-family:var(--font-display); font-size:17px; color:var(--gray-700); margin-bottom:6px;">${aktifDuyuruFilter === "arsiv" ? "Arşivde duyuru yok" : "Henüz duyuru yok"}</div>
         <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">Velilerinize ilk duyurunuzu gönderin</div>
-        <button class="btn-primary" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru Oluştur</button>
+        <button class="btn-primary duyuru-yazma" onclick="openDuyuruModal()" style="background:#eab308; border:none; color:white;">+ Yeni Duyuru Oluştur</button>
       </div>
     `;
     return;
@@ -30054,7 +30738,7 @@ async function renderDuyurular() {
           </div>
         </div>
         <div style="font-size:13px; color:var(--gray-700); line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(d.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1" target="_blank" style="color:#2d6a4f;">$2</a>')}</div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
+        <div class="duyuru-yazma" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
           ${(typeof ogretmenRolMu === "function" && ogretmenRolMu()
              && (d.olusturan || "").toLowerCase() !== (currentUser?.email || "").toLowerCase())
             ? `<span style="font-size:11.5px; color:var(--gray-500); padding:6px 0;">
@@ -30073,6 +30757,7 @@ async function renderDuyurular() {
 
 // Modal aç
 window.openDuyuruModal = function() {
+  if (danismaSaltOkunurEngelle("Duyurular")) return;
   document.getElementById("duyuruModal").classList.add("active");
   if (typeof duyuruRolKisitiUygula === "function") duyuruRolKisitiUygula();
   document.getElementById("duyuruModalBaslik").innerHTML = `📝 Yeni Duyuru`; window.lucideYenile && window.lucideYenile();
@@ -30120,6 +30805,7 @@ function doldurOgrenciSecici() {
 
 // Düzenle
 window.duzenleDuyuru = function(id) {
+  if (danismaSaltOkunurEngelle("Duyurular")) return;
   const d = duyuruListesi.find(x => x.id === id);
   if (!d) return;
   openDuyuruModal();
@@ -30166,6 +30852,7 @@ window.duyuruRolKisitiUygula = function() {
 };
 
 window.kaydetDuyuru = async function() {
+  if (danismaSaltOkunurEngelle("Duyurular")) return;
   const id = document.getElementById("duyuruDuzenleId").value;
   const baslik = document.getElementById("duyuruBaslik").value.trim();
   const icerik = document.getElementById("duyuruIcerik").value.trim();
@@ -30307,6 +30994,7 @@ async function duyuruMailGonder(data) {
 
 // Arşivle / Arşivden çıkar
 window.arsivleDuyuru = async function(id) {
+  if (danismaSaltOkunurEngelle("Duyurular")) return;
   try {
     await updateDoc(doc(db, "duyurular", id), { arsiv: true, guncellendi: new Date().toISOString() });
     showToast("✓ Arşivlendi");
@@ -30317,6 +31005,7 @@ window.arsivleDuyuru = async function(id) {
 };
 
 window.arsivAcDuyuru = async function(id) {
+  if (danismaSaltOkunurEngelle("Duyurular")) return;
   try {
     await updateDoc(doc(db, "duyurular", id), { arsiv: false, guncellendi: new Date().toISOString() });
     showToast("✓ Arşivden çıkarıldı");
@@ -30328,6 +31017,7 @@ window.arsivAcDuyuru = async function(id) {
 
 // Sil
 window.silDuyuru = async function() {
+  if (danismaSaltOkunurEngelle("Duyurular")) return;
   const id = document.getElementById("duyuruDuzenleId").value;
   if (!id) return;
   if (!confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
@@ -30342,6 +31032,7 @@ window.silDuyuru = async function() {
 };
 
 window.silDuyuruHizli = async function(id) {
+  if (danismaSaltOkunurEngelle("Duyurular")) return;
   if (!confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
   try {
     await deleteDoc(doc(db, "duyurular", id));
@@ -30620,7 +31311,7 @@ async function renderEtkinlikler() {
         <div style="font-size:48px; margin-bottom:12px;"><i data-lucide="calendar" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
         <div style="font-family:var(--font-display); font-size:17px; color:var(--gray-700); margin-bottom:6px;">${aktifEtkinlikFilter === "gecmis" ? "Geçmiş etkinlik yok" : "Etkinlik bulunamadı"}</div>
         <div style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">İlk etkinliğinizi oluşturun</div>
-        <button class="btn-primary" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
+        <button class="btn-primary etkinlik-yazma" onclick="openEtkinlikModal()" style="background:#3b82f6; border:none; color:white;">+ Yeni Etkinlik</button>
       </div>
     `;
     return;
@@ -30663,7 +31354,7 @@ async function renderEtkinlikler() {
             ${e.aciklama ? `<div style="font-size:13px; color:var(--gray-700); line-height:1.6; margin-top:8px; padding-top:8px; border-top:1px dashed var(--gray-200); white-space:pre-wrap;">${escapeHtml(e.aciklama)}</div>` : ''}
           </div>
         </div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
+        <div class="etkinlik-yazma" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
           <button onclick="duzenleEtkinlik('${e.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Düzenle</button>
           <button onclick="silEtkinlikHizli('${e.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
         </div>
@@ -30675,6 +31366,7 @@ async function renderEtkinlikler() {
 }
 
 window.openEtkinlikModal = function() {
+  if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   document.getElementById("etkinlikModal").classList.add("active");
   if (typeof etkinlikRolKisitiUygula === "function") etkinlikRolKisitiUygula();
   document.getElementById("etkinlikModalBaslik").innerHTML = `📅 Yeni Etkinlik`; window.lucideYenile && window.lucideYenile();
@@ -30703,6 +31395,7 @@ window.etkinlikHedefDegisti = function() {
 };
 
 window.duzenleEtkinlik = function(id) {
+  if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   const e = etkinlikListesi.find(x => x.id === id);
   if (!e) return;
   openEtkinlikModal();
@@ -30738,6 +31431,7 @@ window.etkinlikRolKisitiUygula = function() {
 };
 
 window.kaydetEtkinlik = async function() {
+  if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   const id = document.getElementById("etkinlikDuzenleId").value;
   const baslik = document.getElementById("etkinlikBaslik").value.trim();
   const kategori = document.getElementById("etkinlikKategori").value;
@@ -30828,6 +31522,7 @@ async function etkinlikMailGonder(data) {
 }
 
 window.silEtkinlik = async function() {
+  if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   const id = document.getElementById("etkinlikDuzenleId").value;
   if (!id) return;
   if (!confirm("Bu etkinliği silmek istediğinize emin misiniz?")) return;
@@ -30840,6 +31535,7 @@ window.silEtkinlik = async function() {
 };
 
 window.silEtkinlikHizli = async function(id) {
+  if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   if (!confirm("Bu etkinliği silmek istediğinize emin misiniz?")) return;
   try {
     await deleteDoc(doc(db, "etkinlikler", id));
@@ -36392,6 +37088,8 @@ window.giderTalepAc = function() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
   set("gtTarih", new Date().toISOString().substring(0, 10));
   set("gtMagaza", ""); set("gtTutar", ""); set("gtAciklama", "");
+  const fis = document.getElementById("gtFisDosya");
+  if (fis) fis.value = "";
   document.getElementById("giderTalepModal").classList.add("active");
   if (window.lucideYenile) window.lucideYenile();
 };
@@ -36409,6 +37107,17 @@ window.giderTalepGonder = async function() {
   if (tutar <= 0) { showToast("Geçerli bir tutar girin", "error"); return; }
 
   try {
+    const fisDosya = document.getElementById("gtFisDosya")?.files?.[0] || null;
+    let fisUrl = "", fisYol = "";
+    if (fisDosya) {
+      const dogrula = medyaDogrula(fisDosya, false);
+      if (!dogrula.gecerli) { showToast(dogrula.hata, "error"); return; }
+      showToast("Fiş yükleniyor…", "info");
+      const klasorEmail = String(currentUser?.email || "personel").toLowerCase().replace(/[^a-z0-9@._-]/g, "_");
+      const sonuc = await medyaYukle(fisDosya, `fis-talepleri/${klasorEmail}`, false);
+      fisUrl = sonuc.url;
+      fisYol = sonuc.yol;
+    }
     // ZEKY ile ORTAK koleksiyon: fisTalepleri (Rules'da tanımlı)
     await addDoc(collection(db, "fisTalepleri"), {
       magaza,
@@ -36416,7 +37125,7 @@ window.giderTalepGonder = async function() {
       tutar,
       odemeTipi: g("gtOdemeTipi") || "Nakit",
       aciklama: g("gtAciklama"),
-      fisUrl: "", fisYol: "",
+      fisUrl, fisYol,
       durum: "Beklemede",
       talepEden: (currentUser?.email || "").toLowerCase(),
       talepEdenAd: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser?.displayName || currentUser?.email || "",
@@ -36662,8 +37371,8 @@ window.profilimRender = async function() {
   // Fişlerim
   let fisler = [];
   try {
-    const snap = await getDocs(collection(db, "fisTalepleri"));
-    snap.forEach(d => { const v = d.data(); if ((v.talepEden || "") === email) fisler.push({ id: d.id, ...v }); });
+    const snap = await getDocs(query(collection(db, "fisTalepleri"), where("talepEden", "==", email)));
+    snap.forEach(d => fisler.push({ id: d.id, ...d.data() }));
     fisler.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
   } catch (e) { console.warn("fis:", e.code); }
 
@@ -37556,7 +38265,7 @@ window.ogretmenRolMu = function() {
   try {
     if (isAdmin) return false;
     return ["ogretmen", "brans_ogretmeni", "yardimci_ogretmen",
-            "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni", "danisma"]
+            "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni"]
       .includes(aktifKullaniciRol);
   } catch (e) { return false; }
 };

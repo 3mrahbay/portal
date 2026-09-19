@@ -269,4 +269,10 @@ export async function ozetKart(hedefId) {
     </div>`).join("") + (yarinku ? `<div style="font-size:11px; color:var(--c-muted); padding-top:6px;">Yarın ${yarinku} randevu</div>` : "");
 }
 
-window._danisma = { filtre, formAc, kaydet, durum, ozetYenile: () => ozetKart("ozetDanismaKart") };
+window._danisma = {
+  filtre, formAc, kaydet, durum,
+  ozetYenile: () => {
+    if (document.getElementById("danismaHomeRandevu")) return ozetKart("danismaHomeRandevu");
+    return ozetKart("ozetDanismaKart");
+  }
+};
