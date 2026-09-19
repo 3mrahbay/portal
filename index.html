@@ -13785,7 +13785,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v106";
+window.PORTAL_SURUM = "v107";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16008,8 +16008,13 @@ onAuthStateChanged(auth, async (user) => {
       // ZEKY denetim kaydı: personel/yönetim girişi
       try { zekiDenetim("personel_giris", { rol: aktifKullaniciRol }); } catch(e) {}
 
-      // Özellik bayraklarını yükle ve arayüze uygula (SaaS feature flags)
-      try { await ozellikBayraklariYukle(); ozellikleriArayuzeUygula(); } catch(e) { console.warn(e); }
+      // Varsayılan özelliklerle arayüzü hemen kullanılabilir hale getir.
+      // Tek bir config belgesi gecikirse öğrenci yüklemesini ve ana sayfayı bloke etmesin;
+      // Firestore cevabı geldiğinde bayraklar arka planda kesin değerle yenilenir.
+      try { ozellikleriArayuzeUygula(); } catch(e) { console.warn(e); }
+      ozellikBayraklariYukle()
+        .then(() => { try { ozellikleriArayuzeUygula(); } catch(e) { console.warn(e); } })
+        .catch(e => console.warn("Özellik bayrakları arka plan yüklemesi:", e));
 
       // Verileri yükle
       try {
@@ -20094,16 +20099,40 @@ function adminHomeYukleniyorGoster() {
   adminHomeArkaPlanCalismasiniDurdur();
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
-  root.innerHTML = `<div class="ca-page ca-stack">
-    <div class="ca-card" style="min-height:180px; display:flex; align-items:center; justify-content:center; text-align:center;">
-      <div>
-        <div class="spinner" style="margin:0 auto 14px;"></div>
-        <div class="ca-head" style="font-size:16px;">Ana sayfa hazırlanıyor</div>
-        <div class="ca-tile-sub" style="margin-top:6px;">Öğrenci ve dönem bilgileri güvenli biçimde yükleniyor…</div>
-      </div>
-    </div>
-  </div>`;
+  const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
+  const ogretmenMi = (typeof aktifKullaniciRol !== "undefined" && ["ogretmen","danisma"].includes(aktifKullaniciRol));
+
+  // Veri zinciri sürerken boş bir bekleme kartına kilitleme. Rolüne uygun gerçek
+  // ana sayfa kabuğu ve hızlı menüler hemen kullanılabilir; veri isteyen kartlar
+  // ise kesin öğrenci/dönem verisi gelene kadar sorgu başlatmaz.
+  root.innerHTML = ogretmenMi ? ogretmenHomeHTML(ad) : yonetimHomeHTML(ad);
+  if (!ogretmenMi) {
+    root.querySelectorAll(".kpi-buyuk, .kpi-buyuk-dark, .ozet-donut-sayi")
+      .forEach(el => { el.textContent = "—"; });
+  }
+
+  const yuklemeDurumu = document.createElement("div");
+  yuklemeDurumu.id = "adminHomeYuklemeDurumu";
+  yuklemeDurumu.className = "ca-draft-banner";
+  yuklemeDurumu.style.cssText = "margin-bottom:12px;";
+  yuklemeDurumu.innerHTML = `<i data-lucide="loader-2" style="width:14px;height:14px;vertical-align:-2px;animation:spin 1s linear infinite;"></i>
+    Ana sayfa açıldı. Öğrenci ve dönem bilgileri arka planda yükleniyor; menüleri kullanabilirsiniz.`;
+  const ilkBolum = root.querySelector(".ca-page, .ozet-v2") || root;
+  ilkBolum.prepend(yuklemeDurumu);
+
+  const beklemeSurumu = adminHomeRenderSurumu;
+  adminHomeGorevPlanla(() => {
+    if (adminHomeVeriHazirMi) return;
+    const durum = document.getElementById("adminHomeYuklemeDurumu");
+    if (durum) {
+      durum.innerHTML = `<i data-lucide="wifi-off" style="width:14px;height:14px;vertical-align:-2px;"></i>
+        Veri yüklemesi beklenenden uzun sürüyor. Menüleri kullanabilirsiniz; bağlantı tamamlandığında kartlar kendiliğinden güncellenecek.`;
+      if (window.lucideYenile) window.lucideYenile();
+    }
+  }, 8000, beklemeSurumu, "yükleme durumu");
+
   if (typeof caTemaUygula === "function") caTemaUygula();
+  if (window.lucideYenile) window.lucideYenile();
 }
 
 function adminHomeVeriYuklemesiTamamlandi() {
@@ -23391,6 +23420,15 @@ async function loadOgrenciler() {
       if (s !== 0) return s;
       return (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "", "tr");
     });
+
+    // Öğretmen oturumunda önce ana kayıttaki sınıfı kullanarak güvenli daraltma
+    // yap. Böylece öğretmen, kendisine ait olmayan onlarca dönem belgesini
+    // açılışta beklemez; bilinmeyen/uyuşmayan sınıf güvenli tarafta gizli kalır.
+    ayarListesi = {};
+    gelecekDonemKayitlari = {};
+    if (aktifKullaniciRol === "ogretmen" && !isAdmin) {
+      ogrenciList = ogrenciListeyiRoleGoreFiltrele(ogrenciList);
+    }
     
     // Dönem ayarlarını ayrı sorgu
     await loadAyarlar();
