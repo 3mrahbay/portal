@@ -29,7 +29,7 @@ import {
   guvenliId, gunAnahtari, zamanYazi
 } from './zeky-randevu-cutover-runtime.js';
 import { veliOdemeOzetiHesapla } from './zeky-veli-odeme-ozeti.js?v=1';
-import './zeky-galeri-filigran-koprusu.js?v=7';
+import './zeky-galeri-filigran-koprusu.js?v=9';
 import './zeky-gozlem-modal-modern.js?v=1';
 
 const istekler = istekIzleyiciOlustur();

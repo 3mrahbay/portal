@@ -51,14 +51,16 @@ test('geciken eğitim yüklemesi başka sayfada matrix başlatamaz', async () =>
   assert.match(ac, /egitimGelisimCanliDinlemeyiBaslat\(disiplin\)/);
 });
 
-test('öğrenci dönem ayarları kontrollü paralel, veli listesi tek sorgu olarak yüklenir', async () => {
+test('öğrenci dönem ayarları düşük eşzamanlılıkla, gelecek dönem ise isteğe bağlı yüklenir', async () => {
   const kaynak = await readFile(new URL('index.html', kok), 'utf8');
   const ayarBas = kaynak.indexOf('async function loadAyarlar');
-  const ayarSon = kaynak.indexOf('function gelecekDonem', ayarBas);
+  const ayarSon = kaynak.indexOf('// Bir dönemin gelecek dönemini hesapla', ayarBas);
   const ayarlar = kaynak.slice(ayarBas, ayarSon);
-  assert.match(ayarlar, /Math\.min\(6, ogrenciList\.length\)/);
+  assert.match(ayarlar, /Math\.min\(3, ogrenciList\.length\)/);
   assert.match(ayarlar, /await Promise\.all\(isciler\)/);
-  assert.match(ayarlar, /gelDonem && gelecekDonemGerekli/);
+  assert.match(ayarlar, /_anaKayitOzeti: true/);
+  assert.match(ayarlar, /async function gelecekDonemKayitlariniYukle/);
+  assert.doesNotMatch(ayarlar, /gelDonem && gelecekDonemGerekli/);
 
   assert.match(kaynak, /if \(veliListesiYukleniyor\) return/);
   assert.match(kaynak, /finally \{\s*veliListesiYukleniyor = false/);

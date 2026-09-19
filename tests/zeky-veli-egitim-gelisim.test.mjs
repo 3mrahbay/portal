@@ -66,18 +66,19 @@ test('eğitim köprüsü PortalAPI uyumluluğuyla global caGo ve veli deneyimini
   assert.match(kopru, /typeof win\.caGo === 'function'/);
   assert.match(kopru, /ekran === 'egitim'/);
   assert.match(kopru, /veliEgitimRender\('cicekAppRoot'\)/);
-  assert.match(kopru, /zeky-ogrenci-guvenlik-koprusu\.js\?v=4/);
-  assert.match(kopru, /zeky-aktif-donem-senkron\.js\?v=2/);
+  assert.match(kopru, /zeky-ogrenci-guvenlik-koprusu\.js\?v=6/);
+  assert.match(kopru, /zeky-aktif-donem-senkron\.js\?v=3/);
   assert.match(kopru, /zeky-veli-ogrenme-deneyimi\.js\?v=3/);
   assert.match(kopru, /__zekyEgitimKoprusuSurum/);
   assert.doesNotMatch(kopru, /typeof win\.caEgitimYukle/);
-  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=6/);
+  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=8/);
 });
 
 test('öğrenci güvenlik köprüsü aktif dönem, gözlem ve e-posta gizliliğini uygular', async () => {
   const kaynak = await readFile(new URL('js/zeky-ogrenci-guvenlik-koprusu.js', kok), 'utf8');
   assert.match(kaynak, /aktifDonemDurum/);
-  assert.match(kaynak, /aktifDonem:/);
+  assert.match(kaynak, /String\(o\.aktifDonem \|\| ''\) === donem/);
+  assert.doesNotMatch(kaynak, /aktifDonemGuncellendi/);
   assert.match(kaynak, /ogrenciEgitimIslem/);
   assert.match(kaynak, /islem==='gozlem'/);
   assert.match(kaynak, /islem==='mesaj'/);
@@ -88,30 +89,42 @@ test('öğrenci güvenlik köprüsü aktif dönem, gözlem ve e-posta gizliliği
   assert.match(kaynak, /btn\.onclick=.*mesajYeniBaslat/);
   assert.doesNotMatch(kaynak, /Mesajlaşma bölümünden .*email/);
   assert.doesNotMatch(kaynak, /onclick=.{0,120}v\.email/);
+  assert.match(kaynak, /if \(ayar\) return durumNorm\(ayar\.durum\) === 'aktif'/);
+  assert.match(kaynak, /observerYenilemeBekliyor/);
+  assert.match(kaynak, /requestAnimationFrame/);
+  assert.match(kaynak, /\['tab-ogrenciler','tab-egitim'\]/);
+  assert.doesNotMatch(kaynak, /observer\.observe\(document\.body/);
+  assert.match(kaynak, /if \(el\.textContent !== yeniMetin\) el\.textContent = yeniMetin/);
 });
 
 test('aktif dönem senkronu yalnız güvenli dönem işaretlerini ana öğrenci kaydına yazar', async () => {
   const kaynak = await readFile(new URL('js/zeky-aktif-donem-senkron.js', kok), 'utf8');
+  const guvenlik = await readFile(new URL('js/zeky-ogrenci-guvenlik-koprusu.js', kok), 'utf8');
   assert.match(kaynak, /aktifDonem:donem/);
   assert.match(kaynak, /aktifDonemDurum:durum/);
   assert.match(kaynak, /for\(let deneme=0;deneme<15;deneme\+\+\)/);
+  assert.match(kaynak, /if\(aktifSenkronSozu\)return aktifSenkronSozu/);
+  assert.match(kaynak, /isler\.slice\(i,i\+3\)\.map/);
+  assert.match(kaynak, /s\.ogrenciVerileriHazirMi/);
+  assert.doesNotMatch(kaynak, /isler\.push\(b\.setDoc/);
+  assert.doesNotMatch(guvenlik, /setTimeout\(aktifDonemIsaretleriniSenkronla/);
   assert.doesNotMatch(kaynak, /aidat/);
   assert.doesNotMatch(kaynak, /veli1Eposta/);
 });
 
-test('PWA cache eğitim, güvenlik ve modern gözlem zincirini taşır', async () => {
+test('PWA cache eğitim, güvenlik ve modern gözlem zincirini tek sürümle taşır', async () => {
   const sw = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(sw, /CACHE_VERSION = "v129"/);
-  assert.match(sw, /portal-data\.js\?v=3/);
-  assert.match(sw, /portal-data\.js\?v=6/);
-  assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=6/);
+  assert.match(sw, /CACHE_VERSION = "v131"/);
+  assert.doesNotMatch(sw, /portal-data\.js\?v=3/);
+  assert.match(sw, /portal-data\.js\?v=8/);
+  assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=8/);
   assert.match(sw, /zeky-veli-ogrenme-deneyimi\.js\?v=3/);
   assert.match(sw, /zeky-galeri-onay-egitim\.js\?v=4/);
   assert.match(sw, /zeky-egitim-portfolyo\.js\?v=2/);
   assert.match(sw, /zeky-veli-donem-raporu\.js\?v=1/);
-  assert.match(sw, /zeky-ogrenci-guvenlik-koprusu\.js\?v=4/);
-  assert.match(sw, /zeky-aktif-donem-senkron\.js\?v=2/);
-  assert.match(sw, /veli-egitim-gelisim\.js\?v=6/);
+  assert.match(sw, /zeky-ogrenci-guvenlik-koprusu\.js\?v=6/);
+  assert.match(sw, /zeky-aktif-donem-senkron\.js\?v=3/);
+  assert.match(sw, /veli-egitim-gelisim\.js\?v=8/);
   assert.match(sw, /ogretmen-egitim-gozlem\.js\?v=6/);
   assert.match(sw, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
