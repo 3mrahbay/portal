@@ -40,6 +40,22 @@ test('veli eğitim fotoğraf fallback sorgusu onaylı kapsamı ister ve seçili 
   assert.match(kaynak, /state\.veliAktifOgrenci/);
 });
 
+test('veli oturumu yalnız aktif dönem öğrencisini açar ve doğrulama hatasında kapalı kalır', async () => {
+  const kaynak = await readFile(new URL('index.html', kok), 'utf8');
+  const bas = kaynak.indexOf('function veliOgrenciMasterAktifDonemdeMi');
+  const son = kaynak.indexOf('// ============ ADMIN: VELİ DAVET', bas);
+  const erisim = kaynak.slice(bas, son);
+
+  assert.match(erisim, /String\(ogr\.aktifDonem \|\| ""\) === String\(AKTIF_DONEM \|\| ""\)/);
+  assert.match(erisim, /return donemEslesir && durum === "aktif"/);
+  assert.match(erisim, /if \(!donemSnap\.exists\(\)\)/);
+  assert.match(erisim, /if \(masterAktif\) aktifOgrenciler\.push\(ogr\)/);
+  assert.match(erisim, /if \(donemDurum !== "aktif"\)/);
+  assert.match(erisim, /Aktif dönem doğrulanamadı, öğrenci elendi/);
+  assert.doesNotMatch(erisim, /Dönem dokümanı okunamadıysa öğrenciyi dahil et/);
+  assert.doesNotMatch(erisim, /Dönem durumu okunamadı, öğrenci dahil ediliyor/);
+});
+
 test('portal öğretmen gözlemi aşama, not ve fotoğrafı aynı kazanım zincirine yazar', async () => {
   const kaynak = await readFile(new URL('moduller/ogretmen-egitim-gozlem.js', kok), 'utf8');
   assert.match(kaynak, /Sunuldu/);
@@ -114,7 +130,7 @@ test('aktif dönem senkronu yalnız güvenli dönem işaretlerini ana öğrenci 
 
 test('PWA cache eğitim, güvenlik, modern gözlem ve aktif dönem veli zincirini tek sürümle taşır', async () => {
   const sw = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(sw, /CACHE_VERSION = "v133"/);
+  assert.match(sw, /CACHE_VERSION = "v134"/);
   assert.doesNotMatch(sw, /portal-data\.js\?v=3/);
   assert.match(sw, /portal-data\.js\?v=8/);
   assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=9/);
