@@ -13855,7 +13855,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v111";
+window.PORTAL_SURUM = "v112";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16296,6 +16296,14 @@ function updateVeliWelcome(user, donemVeri) {
   }
 }
 
+function veliOgrenciMasterAktifDonemdeMi(ogr) {
+  if (!ogr) return false;
+  const donemEslesir = String(ogr.aktifDonem || "") === String(AKTIF_DONEM || "");
+  const durum = String(ogr.aktifDonemDurum || ogr.durum || "aktif")
+    .toLocaleLowerCase("tr").trim();
+  return donemEslesir && durum === "aktif";
+}
+
 // Veliye ait öğrenci(ler)i bul
 async function findOgrenciForVeli(user) {
   const email = (user.email || "").toLowerCase();
@@ -16366,24 +16374,37 @@ async function findOgrenciForVeli(user) {
     console.error("findOgrenciForVeli hatası:", e);
   }
 
-  // FAZ 6: Arşivli öğrencileri veliden gizle
-  // Veli sadece aktif öğrencilerine erişebilir. Hepsi arşivse, veli yetkisiz kabul edilir.
-  // ÖNEMLİ: Faz 6 arşivleme AKTIF_DONEM dönem dokümanına yazar. Master dokümandaki
-  // eski "durum" alanı legacy/güvenilmez olabilir (yıl-içi başka anlamlar taşıyor),
-  // bu yüzden sadece dönem dokümanını kontrol ediyoruz.
+  // Veli yalnız AKTIF_DONEM içinde aktif kaydı bulunan öğrencilerine erişebilir.
+  // Dönem belgesi yoksa veya okunamıyorsa ana öğrenci kaydındaki güvenli dönem
+  // özeti de aynı dönemi ve "aktif" durumunu doğrulamadıkça erişim verilmez.
   const aktifOgrenciler = [];
   for (const ogr of bulunan) {
+    const masterAktif = veliOgrenciMasterAktifDonemdeMi(ogr);
     try {
       const donemSnap = await getDoc(doc(db, "ogrenciler", ogr.id, "donemler", AKTIF_DONEM));
-      if (donemSnap.exists() && donemSnap.data().durum === "arsiv") {
-        console.log(`[findOgrenciForVeli] ${ogr.ogrenciAdSoyad || ogr.id}: aktif dönemde arşivli, elendi`);
+      if (!donemSnap.exists()) {
+        if (masterAktif) aktifOgrenciler.push(ogr);
+        else console.log(`[findOgrenciForVeli] ${ogr.ogrenciAdSoyad || ogr.id}: ${AKTIF_DONEM} dönem kaydı yok, elendi`);
+        continue;
+      }
+
+      const donemVeri = donemSnap.data() || {};
+      const donemDurum = String(
+        donemVeri.durum || (donemVeri.aktif === false ? "arsiv" : "aktif")
+      ).toLocaleLowerCase("tr").trim();
+      if (donemDurum !== "aktif") {
+        console.log(`[findOgrenciForVeli] ${ogr.ogrenciAdSoyad || ogr.id}: ${AKTIF_DONEM} döneminde aktif değil, elendi`);
         continue;
       }
       aktifOgrenciler.push(ogr);
     } catch (e) {
-      // Dönem dokümanı okunamadıysa öğrenciyi dahil et (güvenli taraf)
-      console.warn(`Dönem durumu okunamadı, öğrenci dahil ediliyor: ${ogr.id}`, e);
-      aktifOgrenciler.push(ogr);
+      // Okuma hatasında yalnız ana kayıttaki güncel dönem özeti kesin biçimde
+      // aktifse erişim sürer; aksi durumda güvenli tarafta kalıp öğrenci elenir.
+      if (masterAktif) {
+        aktifOgrenciler.push(ogr);
+      } else {
+        console.warn(`Aktif dönem doğrulanamadı, öğrenci elendi: ${ogr.id}`, e);
+      }
     }
   }
 
@@ -16509,7 +16530,7 @@ function showVeliNotAuthorized(email) {
       <div style="font-size:48px; margin-bottom:14px;">🔒</div>
       <h3 style="margin:0 0 12px 0; font-family:var(--font-display);">Yetkili değilsiniz</h3>
       <p style="color:var(--gray-600); margin-bottom:20px;">
-        <strong>${escapeHtml(email)}</strong> e-postası ile kayıtlı bir öğrenci bulunamadı.
+        <strong>${escapeHtml(email)}</strong> e-postası ile ${escapeHtml(String(AKTIF_DONEM || "aktif dönem"))} döneminde aktif bir öğrenci bulunamadı.
       </p>
       <p style="font-size:13px; color:var(--gray-500); line-height:1.8;">
         Bu sisteme erişebilmeniz için okul yönetimi tarafından e-posta adresinizin onaylı bir veli olarak tanımlanması gerekir.<br>
