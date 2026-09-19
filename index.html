@@ -7843,12 +7843,8 @@ body.rol-danisma .danisma-gizle { display: none !important; }
   .mesaj-geri-btn { display: block; }
 }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- PDF, Word, ZIP ve grafik kütüphaneleri ilk açılışta değil,
+     yalnız ilgili araç kullanıldığında portalAracYukle() ile yüklenir. -->
 
 <!-- ============================================================
      YENİ TASARIM SİSTEMİ — "Bir Çiçek" mobil app dili
@@ -13752,11 +13748,86 @@ body.rol-danisma .danisma-gizle { display: none !important; }
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
 // Lucide ikonlarını yenile (dinamik içerik sonrası çağrılır)
-window.lucideYenile = function() {
-  try { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); } catch(e) {}
+window.lucideYenile = function(kok = document) {
+  try {
+    if (!window.lucide?.createIcons || !kok?.querySelectorAll) return;
+    // Lucide'nin varsayılan createIcons() çağrısı daha önce çizilmiş SVG'leri de
+    // yeniden işler. Yalnız yeni <i> yer tutucularını ve verilen kartı tara.
+    const ikonlar = Array.from(kok.querySelectorAll("i[data-lucide]"));
+    if (kok.matches?.("i[data-lucide]")) ikonlar.unshift(kok);
+    if (!ikonlar.length) return;
+    ikonlar.forEach(ikon => ikon.setAttribute("data-lucide-yeni", ikon.getAttribute("data-lucide")));
+    window.lucide.createIcons({ nameAttr: "data-lucide-yeni" });
+    kok.querySelectorAll("[data-lucide-yeni]").forEach(ikon => ikon.removeAttribute("data-lucide-yeni"));
+  } catch(e) { console.warn("İkonlar çizilemedi:", e); }
 };
 // Sayfa yüklenince ilk render
 setTimeout(() => window.lucideYenile(), 300);
+
+// Ağır çıktı/grafik araçlarını açılış yolundan çıkar. Aynı kaynak birden fazla
+// araç tarafından istenirse tek Promise paylaşılır; hata olursa sonraki tıklama
+// yeniden deneyebilir.
+const PORTAL_ARAC_KAYNAKLARI = {
+  chart: [
+    { src: "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js", hazir: () => !!window.Chart }
+  ],
+  pdf: [
+    { src: "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", hazir: () => !!window.jspdf?.jsPDF },
+    { src: "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js", hazir: () => !!window.jspdf?.jsPDF?.API?.autoTable },
+    { src: "./pdf-sayfa-bolunmesi.js" },
+    { src: "./pdf-estetik-duzeltme.js" },
+    { src: "./pdf-ust-baslik-fix-v2.js" }
+  ],
+  docx: [
+    { src: "https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js", hazir: () => !!window.docx },
+    { src: "https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js", hazir: () => typeof window.saveAs === "function" }
+  ],
+  zip: [
+    { src: "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js", hazir: () => !!window.JSZip },
+    { src: "https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js", hazir: () => typeof window.saveAs === "function" }
+  ]
+};
+const portalScriptYuklemeleri = new Map();
+const portalAracYuklemeleri = new Map();
+
+function portalScriptYukle(kaynak) {
+  if (kaynak.hazir?.()) return Promise.resolve();
+  if (portalScriptYuklemeleri.has(kaynak.src)) return portalScriptYuklemeleri.get(kaynak.src);
+  let scriptEl = null;
+  const yukleme = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    scriptEl = script;
+    script.src = kaynak.src;
+    script.async = true;
+    script.dataset.portalArac = kaynak.src;
+    script.onload = () => kaynak.hazir && !kaynak.hazir()
+      ? reject(new Error(`Araç hazır olmadı: ${kaynak.src}`))
+      : resolve();
+    script.onerror = () => reject(new Error(`Araç yüklenemedi: ${kaynak.src}`));
+    document.head.appendChild(script);
+  }).catch(hata => {
+    portalScriptYuklemeleri.delete(kaynak.src);
+    scriptEl?.remove();
+    throw hata;
+  });
+  portalScriptYuklemeleri.set(kaynak.src, yukleme);
+  return yukleme;
+}
+
+window.portalAracYukle = function(ad) {
+  if (portalAracYuklemeleri.has(ad)) return portalAracYuklemeleri.get(ad);
+  const kaynaklar = PORTAL_ARAC_KAYNAKLARI[ad];
+  if (!kaynaklar) return Promise.reject(new Error(`Bilinmeyen araç: ${ad}`));
+  const yukleme = (async () => {
+    for (const kaynak of kaynaklar) await portalScriptYukle(kaynak);
+    return true;
+  })().catch(hata => {
+    portalAracYuklemeleri.delete(ad);
+    throw hata;
+  });
+  portalAracYuklemeleri.set(ad, yukleme);
+  return yukleme;
+};
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
@@ -13785,7 +13856,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v107";
+window.PORTAL_SURUM = "v109";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -13801,6 +13872,7 @@ window.PortalAPI = {
       siniflar: (typeof aktifKullaniciSiniflari !== "undefined") ? aktifKullaniciSiniflari : [],
       ogrenciList: (typeof ogrenciList !== "undefined") ? ogrenciList : [],
       ayarListesi: (typeof ayarListesi !== "undefined") ? ayarListesi : {},
+      ogrenciVerileriHazirMi: (typeof ogrenciVerileriHazirMi !== "undefined") ? ogrenciVerileriHazirMi : false,
       veliOgrenciler: (typeof veliOgrenciler !== "undefined") ? veliOgrenciler : [],
       veliAktifOgrenci: (typeof veliAktifOgrenci !== "undefined") ? veliAktifOgrenci : null,
       aktifDonem: (typeof AKTIF_DONEM !== "undefined") ? AKTIF_DONEM : "",
@@ -14030,6 +14102,11 @@ const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
 let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
 let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
 let gelecekDonemKayitlari = {}; // {ogrenciId: true} → gelecek dönemde kaydı olanlar (yenileme butonu kontrolü)
+let ogrenciVerileriHazirMi = false;
+let ogrenciTablosuYenilemeBekliyor = false;
+let gelecekDonemKayitlariHazirMi = false;
+let gelecekDonemKayitlariYuklemeSozu = null;
+let anaKayitDonemOzetiKullaniliyor = false;
 let filteredList = [];     // Filtrelenmiş liste (tablo için)
 let activeFilter = "tumu";
 let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
@@ -14052,10 +14129,19 @@ async function personelGetir(email) {
   return null;
 }
 
-// Bir öğretmenin atandığı sınıfları getir (sinifAtamalari koleksiyonu)
-async function personelSiniflariGetir(email) {
+// Bir öğretmenin atandığı sınıfları getir. Girişte zaten okunan personel
+// belgesindeki alanlar birincil kaynaktır; böylece öğretmen oturumu ikinci bir
+// koleksiyon sorgusuna ve o sorgunun Rules iznine bağlı kalmaz.
+async function personelSiniflariGetir(email, personelKaydi = null) {
   const lower = (email || "").trim().toLowerCase();
   if (!lower) return [];
+  const belgeSiniflari = [
+    ...(Array.isArray(personelKaydi?.siniflar) ? personelKaydi.siniflar : []),
+    ...(Array.isArray(personelKaydi?.sinifAtamalari) ? personelKaydi.sinifAtamalari : [])
+  ].map(s => String(s || "").trim()).filter(Boolean);
+  if (belgeSiniflari.length) return [...new Set(belgeSiniflari)];
+
+  // Eski personel kayıtlarında alanlar yoksa geriye dönük koleksiyon desteği.
   try {
     const q = query(collection(db, "sinifAtamalari"), where("email", "==", lower));
     const snap = await getDocs(q);
@@ -15961,9 +16047,10 @@ onAuthStateChanged(auth, async (user) => {
       // Aktif personel
       aktifPersonel = personel;
       aktifKullaniciRol = personel.rol;
-      // Öğretmen ise atandığı sınıfları yükle (tüm-sınıf rolleri için gerekmez)
-      if (!TUM_SINIF_ROLLERI.includes(aktifKullaniciRol)) {
-        aktifKullaniciSiniflari = await personelSiniflariGetir(email);
+      // Yalnız sınıf öğretmeni için sınıf kısıtı vardır. Muhasebe gibi diğer
+      // roller gereksiz sinifAtamalari sorgusu çalıştırmaz.
+      if (aktifKullaniciRol === "ogretmen") {
+        aktifKullaniciSiniflari = await personelSiniflariGetir(email, personel);
       }
     }
 
@@ -20094,6 +20181,24 @@ function adminHomeGorevPlanla(gorev, gecikme, renderSurumu, etiket) {
   return zamanlayici;
 }
 
+function adminHomeGorevleriSirala(gorevler, renderSurumu) {
+  return adminHomeGorevPlanla(async () => {
+    for (const [etiket, gorev] of gorevler) {
+      if (renderSurumu !== adminHomeRenderSurumu || !adminHomeSekmesiAktifMi()) return;
+      try {
+        await gorev();
+      } catch (e) {
+        console.warn(`Ana sayfa görevi (${etiket}):`, e);
+      }
+      if (renderSurumu !== adminHomeRenderSurumu || !adminHomeSekmesiAktifMi()) return;
+      const root = document.getElementById("adminHomeRoot");
+      if (root && window.lucideYenile) window.lucideYenile(root);
+      // Büyük Firestore cevaplarının DOM güncellemeleri arka arkaya binmesin.
+      await new Promise(resolve => setTimeout(resolve, 60));
+    }
+  }, 80, renderSurumu, "kart kuyruğu");
+}
+
 function adminHomeYukleniyorGoster() {
   adminHomeVeriHazirMi = false;
   adminHomeArkaPlanCalismasiniDurdur();
@@ -20127,12 +20232,12 @@ function adminHomeYukleniyorGoster() {
     if (durum) {
       durum.innerHTML = `<i data-lucide="wifi-off" style="width:14px;height:14px;vertical-align:-2px;"></i>
         Veri yüklemesi beklenenden uzun sürüyor. Menüleri kullanabilirsiniz; bağlantı tamamlandığında kartlar kendiliğinden güncellenecek.`;
-      if (window.lucideYenile) window.lucideYenile();
+      if (window.lucideYenile) window.lucideYenile(durum);
     }
   }, 8000, beklemeSurumu, "yükleme durumu");
 
   if (typeof caTemaUygula === "function") caTemaUygula();
-  if (window.lucideYenile) window.lucideYenile();
+  if (window.lucideYenile) window.lucideYenile(root);
 }
 
 function adminHomeVeriYuklemesiTamamlandi() {
@@ -20165,32 +20270,33 @@ function renderAdminHome() {
     adminHomeGorevPlanla(() => ogretmenHomeVeriYukle(), 0, renderSurumu, "öğretmen verileri");
   }
   if (typeof caTemaUygula === "function") caTemaUygula();
-  // HUB: hızlı bakış widget'larını async doldur (duyurular + eğitim + öğretmen)
+  // HUB kartlarını tek seferde ateşlemek Firestore cevaplarını ve DOM
+  // güncellemelerini aynı ana iş parçacığı dilimine yığıyordu. Kartları sırayla
+  // doldur; her biri arasında tarayıcıya çizim fırsatı bırak.
   if (!ogretmenMi) {
-    adminHomeGorevPlanla(hbDuyurulariDoldur, 60, renderSurumu, "duyurular");
-    adminHomeGorevPlanla(hbEgitimDoldur, 120, renderSurumu, "eğitim özeti");
-    adminHomeGorevPlanla(hbOgretmenDoldur, 90, renderSurumu, "personel özeti");
-    adminHomeGorevPlanla(() => { if (typeof okulZiliDoldur === "function") return okulZiliDoldur(); }, 140, renderSurumu, "okul zili");
-    adminHomeGorevPlanla(() => { if (typeof dogumGunleriDoldur === "function") return dogumGunleriDoldur(); }, 180, renderSurumu, "doğum günleri");
-    adminHomeGorevPlanla(() => { if (typeof ozetYemekDoldur === "function") return ozetYemekDoldur(); }, 220, renderSurumu, "yemek");
-    adminHomeGorevPlanla(() => { if (typeof egitimIlerlemeDoldur === "function") return egitimIlerlemeDoldur(); }, 300, renderSurumu, "eğitim ilerlemesi");
-    adminHomeGorevPlanla(() => { if (typeof ozetDevamKartiDoldur === "function") return ozetDevamKartiDoldur(); }, 100, renderSurumu, "devam");
-    adminHomeGorevPlanla(() => modulYukle("veli-izinleri").then(m => m && m.ogretmenKart("yonVeliIzinKart")), 320, renderSurumu, "veli izinleri");
-    adminHomeGorevPlanla(() => modulYukle("danisma-randevulari").then(m => m && m.ozetKart("ozetDanismaKart")), 340, renderSurumu, "danışma randevuları");
-    adminHomeGorevPlanla(() => {
-      if (typeof ozetRozetleriGuncelle === "function") {
+    adminHomeGorevleriSirala([
+      ["doğum günleri", async () => { if (typeof dogumGunleriDoldur === "function") dogumGunleriDoldur(); }],
+      ["özet rozetleri", async () => {
+        if (typeof ozetRozetleriGuncelle !== "function") return;
         let gec = 0;
-        try {
-          if (typeof hesaplaFinansGecikenler === "function") gec = hesaplaFinansGecikenler().length;
-        } catch (e) {}
+        try { if (typeof hesaplaFinansGecikenler === "function") gec = hesaplaFinansGecikenler().length; } catch (e) {}
         ozetRozetleriGuncelle(gec);
-      }
-    }, 260, renderSurumu, "özet rozetleri");
+      }],
+      ["devam", async () => { if (typeof ozetDevamKartiDoldur === "function") await ozetDevamKartiDoldur(); }],
+      ["duyurular", hbDuyurulariDoldur],
+      ["yemek", async () => { if (typeof ozetYemekDoldur === "function") await ozetYemekDoldur(); }],
+      ["okul zili", async () => { if (typeof okulZiliDoldur === "function") await okulZiliDoldur(); }],
+      ["personel özeti", hbOgretmenDoldur],
+      ["veli izinleri", async () => { const m = await modulYukle("veli-izinleri"); if (m) await m.ogretmenKart("yonVeliIzinKart"); }],
+      ["danışma randevuları", async () => { const m = await modulYukle("danisma-randevulari"); if (m) await m.ozetKart("ozetDanismaKart"); }],
+      ["eğitim özeti", hbEgitimDoldur],
+      ["eğitim ilerlemesi", async () => { if (typeof egitimIlerlemeDoldur === "function") await egitimIlerlemeDoldur(); }]
+    ], renderSurumu);
   }
-  // Lucide ikonlarını render et (dinamik innerHTML sonrası — widget geç dolabilir)
+  // İlk kabuktaki ikonları yalnız değişen ana sayfa kökünde bir kez çiz.
+  // Sonradan dolan widget'lar kendi kapsayıcılarını yeniler.
   if (window.lucideYenile) {
-    adminHomeGorevPlanla(window.lucideYenile, 40, renderSurumu, "ikonlar");
-    adminHomeGorevPlanla(window.lucideYenile, 250, renderSurumu, "ikonlar");
+    adminHomeGorevPlanla(() => window.lucideYenile(root), 40, renderSurumu, "ikonlar");
   }
 }
 
@@ -20307,6 +20413,7 @@ async function hbDuyurulariDoldur() {
         </div>
       </div>`;
     }).join("");
+    if (window.lucideYenile) window.lucideYenile(el);
   } catch (e) {
     el.innerHTML = `<div style="font-size:13px; color:var(--c-muted);">Duyurular yüklenemedi.</div>`;
   }
@@ -20372,6 +20479,7 @@ async function caAdminEgitimYukle() {
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
   try {
+    await window.portalAracYukle("chart");
     const mufler = {
       montessori: await mufredatYukle("montessori"),
       orman: await mufredatYukle("orman"),
@@ -20701,6 +20809,7 @@ async function caGozlemDetayKaydet(st, alan, grup, ders, notMetin, foto) {
     }, { merge:true });
     kaydedilen = { anahtar, yeniDis, sonGozlem:detay[anahtar] };
   });
+  tumGelisimOnbelleginiTemizle();
   return kaydedilen;
 }
 
@@ -21577,11 +21686,13 @@ window.ogretmenHomeEkKartlar = async function() {
 
 // Öğretmen ana sayfası verilerini Firestore'dan doldur
 async function ogretmenHomeVeriYukle() {
-  setTimeout(() => { if (typeof ogretmenHomeEkKartlar === "function") ogretmenHomeEkKartlar(); }, 120);
-  setTimeout(() => { if (typeof okulZiliDoldur === "function") okulZiliDoldur(); }, 160);
-  setTimeout(() => { modulYukle("sabah-girisi").then(m => m && m.ogretmenKart("ogrSabahGirisiKart")); }, 180);
-  setTimeout(() => { modulYukle("veli-izinleri").then(m => m && m.ogretmenKart("ogrVeliIzinKart")); }, 200);
-  setTimeout(() => { if (typeof ozetDevamKartiDoldur === "function") ozetDevamKartiDoldur(); }, 100);
+  const yanKartGorevleri = [
+    async () => { if (typeof ozetDevamKartiDoldur === "function") await ozetDevamKartiDoldur(); },
+    async () => { if (typeof ogretmenHomeEkKartlar === "function") await ogretmenHomeEkKartlar(); },
+    async () => { if (typeof okulZiliDoldur === "function") await okulZiliDoldur(); },
+    async () => { const m = await modulYukle("sabah-girisi"); if (m) await m.ogretmenKart("ogrSabahGirisiKart"); },
+    async () => { const m = await modulYukle("veli-izinleri"); if (m) await m.ogretmenKart("ogrVeliIzinKart"); }
+  ];
   const bugun = new Date().toISOString().slice(0, 10);
   const siniflarim = aktifKullaniciSiniflari || [];
 
@@ -21715,7 +21826,14 @@ async function ogretmenHomeVeriYukle() {
     } catch (e) { msjEl.innerHTML = `<div class="ca-tile-sub">Mesajlar yüklenemedi.</div>`; }
   }
 
-  if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  // Yan kartların sorgularını aynı 100 ms aralığına yığma; ana öğretmen
+  // bilgileri dolduktan sonra sırayla çalıştır ve her kart arasında çizime dön.
+  for (const gorev of yanKartGorevleri) {
+    if (!adminHomeSekmesiAktifMi()) break;
+    try { await gorev(); } catch (e) { console.warn("Öğretmen ana sayfa kartı:", e); }
+    if (window.lucideYenile) window.lucideYenile(document.getElementById("adminHomeRoot"));
+    await new Promise(resolve => setTimeout(resolve, 60));
+  }
 }
 window.ogretmenHomeVeriYukle = ogretmenHomeVeriYukle;
 
@@ -23347,7 +23465,8 @@ function ogrenciErisilebilirMi(o) {
   // Öğretmen → sadece atandığı sınıflar
   if (aktifKullaniciRol === "ogretmen") {
     const sinif = ogrenciSinifiAl(o);
-    return aktifKullaniciSiniflari.includes(sinif);
+    if (!(aktifKullaniciSiniflari || []).length) return false;
+    return sinifGorunur(sinif);
   }
   // Diğer (tanımsız) → güvenli taraf: erişim yok
   return false;
@@ -23383,7 +23502,10 @@ function veliBilgisiMaskele(deger, tip) {
 
 async function loadOgrenciler() {
   const wrap = document.getElementById("ogrenciTableWrap");
-  wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Öğrenciler yükleniyor...</p></div>';
+  ogrenciVerileriHazirMi = false;
+  if (ogrenciSekmesiAktifMi()) {
+    wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Öğrenciler yükleniyor...</p></div>';
+  }
   
   try {
     // Öğrencileri çek
@@ -23392,8 +23514,9 @@ async function loadOgrenciler() {
     if (snap.empty) {
       ogrenciList = [];
       ayarListesi = {};
+      ogrenciVerileriHazirMi = true;
       // İlk kez yükleme - toplu veri yükleme teklifi
-      wrap.innerHTML = `
+      const bosIcerik = `
         <div class="empty">
           <h3>Henüz öğrenci verisi yok</h3>
           <p>49 öğrencinin verilerini Firestore'a yüklemek için aşağıdaki butona tıklayın.</p>
@@ -23406,6 +23529,7 @@ async function loadOgrenciler() {
           </p>
         </div>
       `;
+      if (ogrenciSekmesiAktifMi()) wrap.innerHTML = bosIcerik;
       return;
     }
     
@@ -23426,6 +23550,8 @@ async function loadOgrenciler() {
     // açılışta beklemez; bilinmeyen/uyuşmayan sınıf güvenli tarafta gizli kalır.
     ayarListesi = {};
     gelecekDonemKayitlari = {};
+    gelecekDonemKayitlariHazirMi = false;
+    gelecekDonemKayitlariYuklemeSozu = null;
     if (aktifKullaniciRol === "ogretmen" && !isAdmin) {
       ogrenciList = ogrenciListeyiRoleGoreFiltrele(ogrenciList);
     }
@@ -23436,16 +23562,14 @@ async function loadOgrenciler() {
     // ===== FAZ 2a: ÖĞRETMEN SINIF FİLTRESİ =====
     // Öğretmen sadece atandığı sınıfların öğrencilerini görür
     ogrenciList = ogrenciListeyiRoleGoreFiltrele(ogrenciList);
-    
-    renderTable();
-    updateStats();
-    updateDurumSayaclari();
-    // Sınıf filtre çiplerini Firestore'daki sınıflardan doldur (yeni sınıflar otomatik görünür)
-    if (typeof sinifFiltreCipleriDoldur === "function") sinifFiltreCipleriDoldur();
-    if (typeof topluYenileButonGorunurluk === "function") topluYenileButonGorunurluk();
+
+    ogrenciVerileriHazirMi = true;
+    ogrenciArayuzunuGuncelle();
   } catch (e) {
     console.error(e);
-    wrap.innerHTML = `<div class="empty"><h3>Hata oluştu</h3><p>${e.message}</p></div>`;
+    if (ogrenciSekmesiAktifMi()) {
+      wrap.innerHTML = `<div class="empty"><h3>Hata oluştu</h3><p>${e.message}</p></div>`;
+    }
   } finally {
     // İlk ağır ana sayfa render'ı yalnızca öğrenci ve dönem zinciri bittikten
     // sonra yapılır. Hata/boş veri durumunda da yükleme görünümü takılı kalmaz.
@@ -23456,18 +23580,38 @@ async function loadOgrenciler() {
 
 async function loadAyarlar() {
   ayarListesi = {};
+  anaKayitDonemOzetiKullaniliyor = false;
   gelecekDonemKayitlari = {}; // öğrencinin gelecek dönemde kaydı var mı?
-  const gelDonem = gelecekDonem(AKTIF_DONEM);
-  const masterSenkronYetkili = isAdmin || ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol);
-  const gelecekDonemGerekli = masterSenkronYetkili || aktifKullaniciRol === "muhasebe";
+  gelecekDonemKayitlariHazirMi = false;
+  gelecekDonemKayitlariYuklemeSozu = null;
+
+  // Finans bilgisi görmeyen roller için dönem alt belgesi okumak gereksizdir.
+  // Ana öğrenci kaydındaki güvenli dönem/sınıf özeti; öğretmen, danışma,
+  // koordinatör ve PDR ekranlarının aktif öğrenci listesini kurmaya yeter.
+  const tamDonemVerisiGerekli = isAdmin || ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
+  if (!tamDonemVerisiGerekli) {
+    ogrenciList.forEach(o => {
+      if (String(o.aktifDonem || "") !== String(AKTIF_DONEM)) return;
+      const durum = String(o.aktifDonemDurum || o.durum || "aktif");
+      ayarListesi[o.id] = {
+        _anaKayitOzeti: true,
+        durum,
+        kayit: { sinif: o.sinif || o.sinifi || "" },
+        ogrenci: { dogumTarihi: o.dogumTarihi || "" }
+      };
+    });
+    // Özet sonucu boş olsa bile bu kesin kaynaktır; eski dönem öğrencilerini
+    // "ayar listesi boş" geri dönüşüyle öğretmene yeniden açma.
+    anaKayitDonemOzetiKullaniliyor = true;
+    return;
+  }
 
   // Her öğrencinin donem/AKTIF_DONEM subcollection'ını çek.
-  // Yönetim hesabı ayrıca yalnız güvenli dönem işaretini master kayda yazar;
-  // öğretmen böylece finans/dönem alt belgesini okumadan eski öğrencileri eleyebilir.
-  // Okumaları tek tek bekletmek onlarca öğrencide ekranı uzun süre boş bırakıyordu.
-  // Altı işçi Firestore'u zorlamadan toplam bekleme süresini belirgin biçimde azaltır.
+  // Gelecek dönem kontrolü ve ana kayıt senkronu bu açılış zincirinde yapılmaz.
+  // Daha küçük işçi havuzu ve her kayıt sonrası event-loop'a dönüş, sonuçlar aynı
+  // anda geldiğinde tarayıcının uzun süre yanıt veremez hale gelmesini önler.
   let sonrakiOgrenciIdx = 0;
-  const isciSayisi = Math.min(6, ogrenciList.length);
+  const isciSayisi = Math.min(3, ogrenciList.length);
   const isciler = Array.from({ length: isciSayisi }, async () => {
     while (sonrakiOgrenciIdx < ogrenciList.length) {
       const o = ogrenciList[sonrakiOgrenciIdx++];
@@ -23477,39 +23621,63 @@ async function loadAyarlar() {
         if (snap.exists()) {
           ayarListesi[o.id] = snap.data();
         }
-
-        if (masterSenkronYetkili) {
-          const masterDurum = snap.exists()
-            ? String(snap.data().durum || "aktif")
-            : "arsiv";
-          try {
-            if (String(o.aktifDonem || "") !== String(AKTIF_DONEM) ||
-                String(o.aktifDonemDurum || "") !== masterDurum) {
-              await setDoc(doc(db, "ogrenciler", o.id), {
-                aktifDonem: AKTIF_DONEM,
-                aktifDonemDurum: masterDurum,
-                aktifDonemGuncellendi: new Date().toISOString()
-              }, { merge: true });
-              o.aktifDonem = AKTIF_DONEM;
-              o.aktifDonemDurum = masterDurum;
-            }
-          } catch (senkronHata) {
-            console.warn(`Aktif dönem işareti yazılamadı: ${o.id}`, senkronHata);
-          }
-        }
-
-        // Gelecek dönemde kaydı var mı? (yenileme butonu için)
-        if (gelDonem && gelecekDonemGerekli) {
-          const gelRef = doc(db, "ogrenciler", o.id, "donemler", gelDonem);
-          const gelSnap = await getDoc(gelRef);
-          if (gelSnap.exists()) gelecekDonemKayitlari[o.id] = true;
-        }
       } catch (e) {
         console.warn(`Ayar yüklenemedi: ${o.id}`);
       }
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
   });
   await Promise.all(isciler);
+}
+
+function ogrenciSekmesiAktifMi() {
+  return document.getElementById("tab-ogrenciler")?.classList.contains("active") === true;
+}
+
+function ogrenciArayuzunuGuncelle() {
+  if (!ogrenciSekmesiAktifMi()) {
+    ogrenciTablosuYenilemeBekliyor = true;
+    return;
+  }
+  ogrenciTablosuYenilemeBekliyor = false;
+  renderTable();
+  updateStats();
+  updateDurumSayaclari();
+  if (typeof sinifFiltreCipleriDoldur === "function") sinifFiltreCipleriDoldur();
+  if (typeof topluYenileButonGorunurluk === "function") topluYenileButonGorunurluk();
+}
+
+async function gelecekDonemKayitlariniYukle() {
+  if (gelecekDonemKayitlariHazirMi) return gelecekDonemKayitlari;
+  if (gelecekDonemKayitlariYuklemeSozu) return gelecekDonemKayitlariYuklemeSozu;
+  const gelDonem = gelecekDonem(AKTIF_DONEM);
+  if (!gelDonem || !finansYenilemeYetkisi()) {
+    gelecekDonemKayitlariHazirMi = true;
+    return gelecekDonemKayitlari;
+  }
+
+  gelecekDonemKayitlariYuklemeSozu = (async () => {
+    const bulunan = {};
+    let siradaki = 0;
+    const isciler = Array.from({ length: Math.min(3, ogrenciList.length) }, async () => {
+      while (siradaki < ogrenciList.length) {
+        const o = ogrenciList[siradaki++];
+        try {
+          const snap = await getDoc(doc(db, "ogrenciler", o.id, "donemler", gelDonem));
+          if (snap.exists()) bulunan[o.id] = true;
+        } catch (e) {
+          console.warn(`Gelecek dönem kaydı okunamadı: ${o.id}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    });
+    await Promise.all(isciler);
+    gelecekDonemKayitlari = bulunan;
+    gelecekDonemKayitlariHazirMi = true;
+    if (ogrenciSekmesiAktifMi()) ogrenciArayuzunuGuncelle();
+    return gelecekDonemKayitlari;
+  })().finally(() => { gelecekDonemKayitlariYuklemeSozu = null; });
+  return gelecekDonemKayitlariYuklemeSozu;
 }
 
 // Bir dönemin gelecek dönemini hesapla: "2025-2026" → "2026-2027"
@@ -23525,6 +23693,23 @@ function getOgrenciDurum(o, ayar) {
   if (ayar && ayar.durum) return ayar.durum;
   if (o.durum) return o.durum;
   return "aktif";
+}
+
+// Öğretmen ve finans dışı roller dönem alt belgesini açmadan bu üç güvenli
+// alanı kullanır. Veli iletişim ve finans bilgileri bu özete kesinlikle girmez.
+function aktifDonemOzetAlanlari(durum, guncellendi = new Date().toISOString()) {
+  const deger = String(durum || "aktif").toLocaleLowerCase("tr").trim();
+  const arsivDurumlari = ["arsiv", "arşiv", "pasif", "ayrildi", "ayrıldı"];
+  return {
+    aktifDonem: String(AKTIF_DONEM || ""),
+    aktifDonemDurum: arsivDurumlari.includes(deger) ? "arsiv" : "aktif",
+    aktifDonemGuncellendi: guncellendi
+  };
+}
+
+function aktifDonemOzetiniLokaldeUygula(ogrenciId, ozet) {
+  const ogrenci = ogrenciList.find(o => o.id === ogrenciId);
+  if (ogrenci) Object.assign(ogrenci, ozet);
 }
 
 // ============================================================
@@ -23573,32 +23758,38 @@ window.ogrenciArsivle = async function(ogrenciId, sebep, aciklama) {
       arsivleyenEmail: (currentUser?.email || "").toLowerCase(),
       arsivlemeTarihi: new Date().toISOString()
     };
-    // Mevcut paterne uyumlu: dönem dokümanına yaz
+    // Dönem durumu ile ana kayıttaki güvenli özeti atomik olarak güncelle.
     const ref = doc(db, "ogrenciler", ogrenciId, "donemler", AKTIF_DONEM);
     const snap = await getDoc(ref);
+    const simdi = new Date().toISOString();
+    const aktifDonemOzeti = aktifDonemOzetAlanlari("arsiv", simdi);
+    const batch = writeBatch(db);
     if (snap.exists()) {
-      await updateDoc(ref, {
+      batch.update(ref, {
         durum: "arsiv",
         arsivBilgi: arsivBilgi,
-        durumGuncellendi: new Date().toISOString(),
+        durumGuncellendi: simdi,
         durumGuncelleyen: currentUser.email
       });
     } else {
-      await setDoc(ref, {
+      batch.set(ref, {
         donemYili: AKTIF_DONEM,
         aktif: true,
         durum: "arsiv",
         arsivBilgi: arsivBilgi,
-        durumGuncellendi: new Date().toISOString(),
+        durumGuncellendi: simdi,
         durumGuncelleyen: currentUser.email,
-        olusturuldu: new Date().toISOString(),
+        olusturuldu: simdi,
         olusturan: currentUser.email
       });
     }
+    batch.set(doc(db, "ogrenciler", ogrenciId), aktifDonemOzeti, { merge: true });
+    await batch.commit();
     // Lokal state güncelle
     if (!ayarListesi[ogrenciId]) ayarListesi[ogrenciId] = {};
     ayarListesi[ogrenciId].durum = "arsiv";
     ayarListesi[ogrenciId].arsivBilgi = arsivBilgi;
+    aktifDonemOzetiniLokaldeUygula(ogrenciId, aktifDonemOzeti);
     showToast(`✓ ${ogrAd} arşive taşındı`);
     return true;
   } catch (e) {
@@ -23616,15 +23807,21 @@ window.ogrenciGeriDon = async function(ogrenciId) {
     const ogr = ogrenciList.find(o => o.id === ogrenciId);
     const ogrAd = ogr?.ogrenciAdSoyad || "Öğrenci";
     const ref = doc(db, "ogrenciler", ogrenciId, "donemler", AKTIF_DONEM);
-    await updateDoc(ref, {
+    const simdi = new Date().toISOString();
+    const aktifDonemOzeti = aktifDonemOzetAlanlari("aktif", simdi);
+    const batch = writeBatch(db);
+    batch.update(ref, {
       durum: "aktif",
       arsivBilgi: null,
-      durumGuncellendi: new Date().toISOString(),
+      durumGuncellendi: simdi,
       durumGuncelleyen: currentUser.email
     });
+    batch.set(doc(db, "ogrenciler", ogrenciId), aktifDonemOzeti, { merge: true });
+    await batch.commit();
     if (!ayarListesi[ogrenciId]) ayarListesi[ogrenciId] = {};
     ayarListesi[ogrenciId].durum = "aktif";
     ayarListesi[ogrenciId].arsivBilgi = null;
+    aktifDonemOzetiniLokaldeUygula(ogrenciId, aktifDonemOzeti);
     showToast(`✓ ${ogrAd} aktif listeye alındı`);
     if (typeof renderTable === "function") renderTable();
     if (typeof updateDurumSayaclari === "function") updateDurumSayaclari();
@@ -26302,28 +26499,34 @@ window.ogrenciDurumuDegistir = async function(ogrenciId, yeniDurum) {
   try {
     const ref = doc(db, "ogrenciler", ogrenciId, "donemler", AKTIF_DONEM);
     const snap = await getDoc(ref);
+    const simdi = new Date().toISOString();
+    const aktifDonemOzeti = aktifDonemOzetAlanlari(yeniDurum, simdi);
+    const batch = writeBatch(db);
 
     if (snap.exists()) {
-      await updateDoc(ref, {
+      batch.update(ref, {
         durum: yeniDurum,
-        durumGuncellendi: new Date().toISOString(),
+        durumGuncellendi: simdi,
         durumGuncelleyen: currentUser.email
       });
     } else {
-      await setDoc(ref, {
+      batch.set(ref, {
         donemYili: AKTIF_DONEM,
         aktif: true,
         durum: yeniDurum,
-        durumGuncellendi: new Date().toISOString(),
+        durumGuncellendi: simdi,
         durumGuncelleyen: currentUser.email,
-        olusturuldu: new Date().toISOString(),
+        olusturuldu: simdi,
         olusturan: currentUser.email
       });
     }
+    batch.set(doc(db, "ogrenciler", ogrenciId), aktifDonemOzeti, { merge: true });
+    await batch.commit();
 
     // Lokal state güncelle
     if (!ayarListesi[ogrenciId]) ayarListesi[ogrenciId] = {};
     ayarListesi[ogrenciId].durum = yeniDurum;
+    aktifDonemOzetiniLokaldeUygula(ogrenciId, aktifDonemOzeti);
 
     showToast(`✓ Durum "${getDurumLabel(yeniDurum)}" olarak güncellendi`);
     renderTable();
@@ -28263,10 +28466,10 @@ window.zekyGelismisGozlemAcCore = function(ogrenciId, ogrenciAd, sinif) {
 function zekiAktifDonemOgrencisi(o) {
   if (!o || !o.id) return false;
   const ayar = ayarListesi[o.id];
-  const ogretmenDonemBelgeleriOkundu =
+  const ogretmenDonemOzetiHazir =
     ((typeof finansGorebilir === "function") && !finansGorebilir())
-    && Object.keys(ayarListesi || {}).length > 0;
-  if (ogretmenDonemBelgeleriOkundu) {
+    && anaKayitDonemOzetiKullaniliyor;
+  if (ogretmenDonemOzetiHazir) {
     return !!ayar && getOgrenciDurum(o, ayar) === "aktif";
   }
   if (ayar) return getOgrenciDurum(o, ayar) === "aktif";
@@ -28379,15 +28582,19 @@ window.ogrenciEgitimIslem = function(id, islem) {
 
 function renderTable() {
   const wrap = document.getElementById("ogrenciTableWrap");
+  if (!wrap || !ogrenciSekmesiAktifMi()) {
+    ogrenciTablosuYenilemeBekliyor = true;
+    return;
+  }
+  ogrenciTablosuYenilemeBekliyor = false;
   const searchVal = document.getElementById("searchInput").value.toLowerCase().trim();
   
   // Filtre uygula
-  // Öğretmen oturumunda ayarListesi yalnız okunabilen AKTİF DÖNEM belgelerini içerir.
-  // Sınıf çiplerindeki sayaçlar da aynı kaynağı kullanır. En az bir dönem belgesi
-  // okunabiliyorsa, öğrenciler ekranı yalnız ayarListesi'nde bulunan çocukları gösterir.
-  const ogretmenDonemBelgeleriOkundu =
+  // Öğretmen oturumunda ayarListesi ana öğrenci kaydındaki güvenli aktif dönem
+  // özetlerinden kurulur. Özet sonucu boş olsa bile kesin kaynak kabul edilir.
+  const ogretmenDonemOzetiHazir =
     ((typeof finansGorebilir === "function") && !finansGorebilir())
-    && Object.keys(ayarListesi || {}).length > 0;
+    && anaKayitDonemOzetiKullaniliyor;
 
   filteredList = ogrenciList.filter(o => {
     // ===== ROL KISITI =====
@@ -28414,7 +28621,7 @@ function renderTable() {
 
     if (donemSartiAra) {
       if (!donemVerisi) return false;
-    } else if (ogretmenDonemBelgeleriOkundu) {
+    } else if (ogretmenDonemOzetiHazir) {
       // Güncel dönemde belgesi olmayan öğrenci bu döneme kayıtlı değildir.
       if (!donemVerisi) return false;
       if (getOgrenciDurum(o, donemVerisi) !== "aktif") return false;
@@ -28441,7 +28648,7 @@ function renderTable() {
     const ayar = ayarListesi[o.id];
     const durum = donemVerisi
       ? getOgrenciDurum(o, ayar)
-      : (ogretmenDonemBelgeleriOkundu
+      : (ogretmenDonemOzetiHazir
           ? "arsiv"
           : (String(o.aktifDonem || "") === String(AKTIF_DONEM)
               ? (["arsiv","arşiv","pasif","ayrildi","ayrıldı"].includes(masterDurum) ? "arsiv" : "aktif")
@@ -28627,8 +28834,8 @@ function renderTable() {
         <button class="madde-action-btn" onclick="toggleDurumMenu('${o.id}', event)" title="İşlemler">⋮</button>
         <div class="durum-menu" data-ogrenci-id="${o.id}">
           ${finansYenilemeYetkisi() && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="girisBilgisiGonder('${o.id}')">✉️ ${girisGonderildi ? "Giriş Bilgisini Tekrar Gönder" : "Giriş Bilgisi Gönder"}</button>` : ""}
-          ${gelecekDonem(AKTIF_DONEM) && !gelecekDonemKayitlari[o.id] && finansYenilemeYetkisi() ? `<button class="durum-menu-item" style="color:var(--green-deep);font-weight:600;" onclick="tekOgrenciYenileAc('${o.id}')">↻ ${gelecekDonem(AKTIF_DONEM)} Dönemine Yenile</button>` : ""}
-          ${gelecekDonem(AKTIF_DONEM) && gelecekDonemKayitlari[o.id] ? `<span class="durum-menu-item" style="color:var(--gray-500);cursor:default;">✓ ${gelecekDonem(AKTIF_DONEM)} dönemine taşındı</span>` : ""}
+          ${gelecekDonemKayitlariHazirMi && gelecekDonem(AKTIF_DONEM) && !gelecekDonemKayitlari[o.id] && finansYenilemeYetkisi() ? `<button class="durum-menu-item" style="color:var(--green-deep);font-weight:600;" onclick="tekOgrenciYenileAc('${o.id}')">↻ ${gelecekDonem(AKTIF_DONEM)} Dönemine Yenile</button>` : ""}
+          ${gelecekDonemKayitlariHazirMi && gelecekDonem(AKTIF_DONEM) && gelecekDonemKayitlari[o.id] ? `<span class="durum-menu-item" style="color:var(--gray-500);cursor:default;">✓ ${gelecekDonem(AKTIF_DONEM)} dönemine taşındı</span>` : ""}
           ${durum !== "aktif" && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'aktif')">✓ Aktif olarak işaretle</button>` : ""}
           ${durum !== "basvuru" && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'basvuru')"><i data-lucide="file-text" style="width:13px;height:13px;vertical-align:-2px;"></i> Başvuru Bekliyor</button>` : ""}
           ${durum !== "yenileme" && durum !== "arsiv" ? `<button class="durum-menu-item" onclick="ogrenciDurumuDegistir('${o.id}', 'yenileme')">🔄 Yenileme Bekliyor</button>` : ""}
@@ -29075,6 +29282,7 @@ window.basvuruOnayla = async function(basvuruId) {
       veli2Telefon: baba.cepTel || "",
       veli2Eposta: baba.eposta || "",
       durum: "aktif",
+      ...aktifDonemOzetAlanlari("aktif"),
       durumGuncelleyen: currentUser.email,
       kaynakBasvuruId: basvuruId,
       olusturuldu: new Date().toISOString(),
@@ -29540,6 +29748,8 @@ const GIDER_GRUP_ADLARI = {
 
 async function loadFinansalData() {
   try {
+    try { await window.portalAracYukle("chart"); }
+    catch (e) { console.warn("Finans grafikleri yüklenemedi:", e); }
     finansalGelirler = hesaplaFinansGelirler();
     try {
       const snap = await getDocs(collection(db, "giderler"));
@@ -31410,6 +31620,7 @@ async function gelisimDersGuncelle(ogrenciId, disiplin, alanId, grupAd, dersAd, 
         sonGuncelleyenEmail: currentUser?.email || "bilinmiyor"
       }, { merge: true });
     });
+    tumGelisimOnbelleginiTemizle();
     return true;
   } catch(e) {
     console.error("Ders güncellenemedi:", e);
@@ -31436,6 +31647,7 @@ async function gelisimNotEkle(ogrenciId, disiplin, metin) {
       [disiplin]: mevcutDisiplin,
       sonGuncelleme: serverTimestamp()
     }, { merge: true });
+    tumGelisimOnbelleginiTemizle();
     return true;
   } catch(e) {
     console.error("Not eklenemedi:", e);
@@ -31463,6 +31675,7 @@ async function ogretmenYorumuEkle(ogrenciId, baslik, metin, paylas) {
       ogretmenYorumlari: yorumlar,
       sonGuncelleme: serverTimestamp()
     }, { merge: true });
+    tumGelisimOnbelleginiTemizle();
     return true;
   } catch(e) {
     console.error("Yorum eklenemedi:", e);
@@ -31481,6 +31694,7 @@ async function ogretmenYorumuSil(ogrenciId, index) {
       ogretmenYorumlari: yorumlar,
       sonGuncelleme: serverTimestamp()
     }, { merge: true });
+    tumGelisimOnbelleginiTemizle();
     return true;
   } catch(e) {
     console.error("Yorum silinemedi:", e);
@@ -31526,17 +31740,42 @@ function disiplinGenelIlerleme(kayitlarDisiplin, mufredat) {
   };
 }
 
-// Tüm öğrencilerin gelişim verilerini yükle (admin Raporlar için)
-async function tumGelisimYukle() {
-  try {
-    const snap = await getDocs(collection(db, "ogrenciGelisim"));
-    const sonuc = {};
-    snap.forEach(d => { sonuc[d.id] = d.data(); });
-    return sonuc;
-  } catch(e) {
-    console.error("Tüm gelişim yüklenemedi:", e);
-    return {};
+// Tüm öğrencilerin gelişim verisi aynı ana sayfa render'ında birden fazla kart
+// tarafından istenir. Tek uçuş + kısa süreli bellek önbelleği aynı koleksiyonun
+// peş peşe yeniden okunmasını ve büyük belgelerin tekrar ayrıştırılmasını önler.
+let tumGelisimOnbellegi = null;
+let tumGelisimOnbellekZamani = 0;
+let tumGelisimYuklemeSozu = null;
+const TUM_GELISIM_ONBELLEK_MS = 5 * 60 * 1000;
+
+function tumGelisimOnbelleginiTemizle() {
+  tumGelisimOnbellegi = null;
+  tumGelisimOnbellekZamani = 0;
+}
+
+async function tumGelisimYukle(zorla = false) {
+  const simdi = Date.now();
+  if (!zorla && tumGelisimOnbellegi && simdi - tumGelisimOnbellekZamani < TUM_GELISIM_ONBELLEK_MS) {
+    return tumGelisimOnbellegi;
   }
+  if (tumGelisimYuklemeSozu) return tumGelisimYuklemeSozu;
+
+  tumGelisimYuklemeSozu = (async () => {
+    try {
+      const snap = await getDocs(collection(db, "ogrenciGelisim"));
+      const sonuc = {};
+      snap.forEach(d => { sonuc[d.id] = d.data(); });
+      tumGelisimOnbellegi = sonuc;
+      tumGelisimOnbellekZamani = Date.now();
+      return sonuc;
+    } catch(e) {
+      console.error("Tüm gelişim yüklenemedi:", e);
+      return tumGelisimOnbellegi || {};
+    } finally {
+      tumGelisimYuklemeSozu = null;
+    }
+  })();
+  return tumGelisimYuklemeSozu;
 }
 
 
@@ -32109,13 +32348,13 @@ window.egitimDisiplinKapat = function() {
 
 window.egitimMatrixYenile = async function() {
   if (!egitimAktifDisiplin) return;
-  await egitimMatrixVeriYukle();
+  await egitimMatrixVeriYukle(true);
   egitimSinifSeciciDoldur(); // Sınıf chip'leri de yenilensin (yeni öğrenci eklenmişse)
   egitimMatrixRender();
   if (typeof showToast === "function") showToast("✓ Yenilendi");
 };
 
-async function egitimMatrixVeriYukle() {
+async function egitimMatrixVeriYukle(zorlaGelisim = false) {
   // Aktif öğrencileri filtrele - sistemdeki standart fonksiyonu kullan
   let aktifOgrenciler;
   if (typeof getOgrenciDurum === "function") {
@@ -32151,7 +32390,7 @@ async function egitimMatrixVeriYukle() {
   });
 
   // Tüm öğrencilerin gelişim verilerini yükle
-  const tumGelisim = await tumGelisimYukle();
+  const tumGelisim = await tumGelisimYukle(zorlaGelisim);
 
   egitimMatrixVerisi = {
     ogrenciler: aktifOgrenciler,
@@ -33419,6 +33658,8 @@ async function veliRenderRaporlar() {
     if (!veliRaporSeciliDisiplin) {
       veliRenderRaporDashboard();
     } else {
+      try { await window.portalAracYukle("chart"); }
+      catch (e) { console.warn("Veli rapor grafikleri yüklenemedi:", e); }
       veliRenderRaporDetay(veliRaporSeciliDisiplin);
     }
   } catch(e) {
@@ -33515,8 +33756,10 @@ function veliRenderRaporDashboard() {
   `;
 }
 
-window.veliRaporDisiplinAc = function(disiplin) {
+window.veliRaporDisiplinAc = async function(disiplin) {
   veliRaporSeciliDisiplin = disiplin;
+  try { await window.portalAracYukle("chart"); }
+  catch (e) { console.warn("Grafik aracı yüklenemedi:", e); }
   veliRenderRaporDetay(disiplin);
 };
 
@@ -33827,6 +34070,7 @@ window.veliRaporPdfIndir = async function() {
 // Tek disiplin için grafikli PDF
 async function veliRaporPdfTekDisiplin(disiplin) {
   try {
+    await window.portalAracYukle("pdf");
     if (typeof window.jspdf === "undefined") {
       alert("PDF kütüphanesi yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.");
       return;
@@ -34021,6 +34265,7 @@ async function veliRaporPdfTekDisiplin(disiplin) {
 // Tüm disiplinler özet PDF (dashboard'dan)
 async function veliRaporPdfTumDisiplinler() {
   try {
+    await window.portalAracYukle("pdf");
     if (typeof window.jspdf === "undefined") {
       alert("PDF kütüphanesi yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.");
       return;
@@ -35349,7 +35594,8 @@ window.egitimAlbumuneEkle = function(programKodu) {
 
 // Eski fonksiyonu güncelle - düzenleme modunu da destekleyecek
 window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger) {
-  if (!window.JSZip) return showToast("ZIP kütüphanesi yüklenmedi", "error");
+  try { await window.portalAracYukle("zip"); }
+  catch (e) { return showToast("ZIP aracı yüklenemedi. İnternet bağlantınızı kontrol edin.", "error"); }
 
   // Bu albüme ait dosyaları bul
   const dosyalar = (window.galeriListesiVerisi || []).filter(g => {
@@ -40601,7 +40847,9 @@ let raporTrendChartInstance = null;
 let raporSinifChartInstance = null;
 
 // Ana rapor render fonksiyonu
-function renderRaporlar() {
+async function renderRaporlar() {
+  try { await window.portalAracYukle("chart"); }
+  catch (e) { console.warn("Rapor grafikleri yüklenemedi:", e); }
   const mevcut = hesaplaRaporVerileri();
 
   // Hero title
@@ -41378,8 +41626,22 @@ document.querySelectorAll(".tab").forEach(tab => {
     const panel = document.getElementById(`tab-${tab.dataset.tab}`);
     if (panel) panel.classList.add("active");
 
-    // Her sekme geçişinde Lucide ikonlarını yenile (dinamik render sonrası)
-    if (window.lucideYenile) { setTimeout(window.lucideYenile, 60); setTimeout(window.lucideYenile, 300); }
+    // Yalnız yeni açılan paneldeki henüz çizilmemiş ikonları tara.
+    if (window.lucideYenile && panel) {
+      setTimeout(() => window.lucideYenile(panel), 60);
+    }
+
+    // Öğrenci tablosu ana sayfa açılışında görünmezken kurulmaz. Bu sekme ilk
+    // kez açıldığında eldeki veriyi çiz; gelecek dönem kontrolünü de ancak o
+    // zaman ve arka planda başlat.
+    if (tab.dataset.tab === "ogrenciler") {
+      setTimeout(() => {
+        if (ogrenciVerileriHazirMi) {
+          ogrenciArayuzunuGuncelle();
+          gelecekDonemKayitlariniYukle().catch(e => console.warn("Gelecek dönem kayıtları:", e));
+        }
+      }, 0);
+    }
 
     // Yeni Tasarım ana sayfasına geçildiyse rol bazlı render et
     if (tab.dataset.tab === "anasayfa") {
@@ -41429,7 +41691,9 @@ document.querySelectorAll(".tab").forEach(tab => {
 
     // Finansal Yönetim sekmesine geçildiyse yükle
     if (tab.dataset.tab === "finans") {
-      setTimeout(() => {
+      setTimeout(async () => {
+        try { await window.portalAracYukle("chart"); }
+        catch (e) { console.warn("Finans grafikleri yüklenemedi:", e); }
         if (typeof loadFinansalData === "function") loadFinansalData();
       }, 50);
     }
@@ -41745,10 +42009,8 @@ if (donemSelectorEl) {
       wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Yeni dönem verileri yükleniyor...</p></div>';
     }
     await loadAyarlar();
-    renderTable();
-    updateStats();
-    updateDurumSayaclari();
-    topluYenileButonGorunurluk();
+    ogrenciArayuzunuGuncelle();
+    gelecekDonemKayitlariniYukle().catch(err => console.warn("Gelecek dönem kayıtları:", err));
 
     // Dashboard başlığındaki yıl metni güncellensin
     const dashSubTitle = document.querySelector(".dash-title p");
@@ -41762,7 +42024,7 @@ function topluYenileButonGorunurluk() {
   const btn = document.getElementById("btnTopluYenile");
   if (!btn) return;
   const gelDonem = gelecekDonem(AKTIF_DONEM);
-  const yenilenebilir = gelDonem && finansYenilemeYetkisi() &&
+  const yenilenebilir = gelecekDonemKayitlariHazirMi && gelDonem && finansYenilemeYetkisi() &&
     ogrenciList.some(o => ayarListesi[o.id] && !gelecekDonemKayitlari[o.id]);
   btn.style.display = yenilenebilir ? "inline-flex" : "none";
 }
@@ -43114,6 +43376,7 @@ function trObj(o) {
 window.odemePlaniPDFCiktisi = async function() {
   try {
     if (!currentOgrenci) { showToast("Önce bir öğrenci seçin", "error"); return; }
+    await window.portalAracYukle("pdf");
     if (typeof window.jspdf === "undefined") { showToast("PDF kütüphanesi yüklenemedi", "error"); return; }
     showToast("Ödeme planı hazırlanıyor...");
 
@@ -43309,6 +43572,7 @@ window.odemePlaniPDFCiktisi = async function() {
 window.sozlesmeCiktiPDF = async function() {
   try {
     showToast("PDF hazirlaniyor...");
+    await window.portalAracYukle("pdf");
     const veri = toplaSozlesmeVerisi();
     if (!veri) { showToast("Veri alinamadi", "error"); return; }
     if (!veri.sablon) { showToast("Once sozlesme sablonunu yukleyin", "error"); return; }
@@ -43669,6 +43933,7 @@ function docxTablo(docx, satirlar, baslik, width) {
 window.sozlesmeCiktiWord = async function() {
   try {
     showToast("Word dosyası hazırlanıyor...");
+    await window.portalAracYukle("docx");
     const veri = toplaSozlesmeVerisi();
     if (!veri) { showToast("Veri alınamadı", "error"); return; }
     if (!veri.sablon) { showToast("Önce sözleşme şablonunu yükleyin", "error"); return; }
@@ -45624,10 +45889,12 @@ window.saveAyarlar = async function() {
   const mevcutAylikOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
   // Diğer ödemeleri local state'ten al
   const mevcutDigerOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].digerOdemeler) || {};
+  const mevcutDonemDurumu = getOgrenciDurum(currentOgrenci, ayarListesi[currentOgrenci.id]);
 
   const donemDoc = {
     donemYili: AKTIF_DONEM,
     aktif: true,
+    durum: mevcutDonemDurumu,
     aidatAyarlari: aidatAyarlari,
     ogrenci: ogrenciData,
     saglik: saglikData,
@@ -45680,6 +45947,7 @@ window.saveAyarlar = async function() {
     const anaRef = doc(db, "ogrenciler", currentOgrenci.id);
     const anaSnap = await getDoc(anaRef);
     const anaGuncelleme = {
+      ...aktifDonemOzetAlanlari(mevcutDonemDurumu),
       ogrenciAdSoyad: ogrenciData.adSoyad || currentOgrenci.ogrenciAdSoyad,
       tcKimlik: ogrenciData.tcKimlik || currentOgrenci.tcKimlik || "",
       cinsiyet: ogrenciData.cinsiyet || currentOgrenci.cinsiyet || "",
@@ -45837,6 +46105,7 @@ window.yeniOgrenciKaydet = async function() {
       veli2Telefon: baba.cepTel,
       veli2Eposta: baba.eposta,
       durum: "aktif",
+      ...aktifDonemOzetAlanlari("aktif"),
       durumGuncelleyen: currentUser.email,
       kaynakBasvuruId: "manuel",
       olusturuldu: new Date().toISOString(),
@@ -46537,6 +46806,7 @@ window.csvAktar = async function() {
           sinif: o.sinif,
           programTuru: "Tam Gün",
           durum: "aktif",
+          ...aktifDonemOzetAlanlari("aktif"),
           kaynak: "mevcut_2025",
           veli1AdSoyad: o.anne?.adSoyad || "",
           veli1Telefon: o.anne?.cepTel || "",
@@ -46663,9 +46933,6 @@ window.showBulkUpload = async function() {
 
 </script>
 <script src="aidat-donem-genislet.js"></script>
-<script src="pdf-sayfa-bolunmesi.js"></script>
-<script src="pdf-estetik-duzeltme.js"></script>  
-<script src="pdf-ust-baslik-fix-v2.js"></script>
 
 <!-- PWA: Service Worker kaydı (yalnızca güvenli bağlamda; localhost/https) -->
 <script>
@@ -46676,6 +46943,6 @@ window.showBulkUpload = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=7"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=9"></script>
 </body>
 </html>

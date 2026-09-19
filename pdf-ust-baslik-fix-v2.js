@@ -96,17 +96,9 @@
   // 2) BAŞLAT
   // ============================================================
   function baslat() {
-    let denemeBekle = 0;
-    const denemeAraligi = setInterval(() => {
-      denemeBekle++;
-      const basarili = constructorYamaUygula();
-      if (basarili) {
-        clearInterval(denemeAraligi);
-      } else if (denemeBekle > 40) {
-        clearInterval(denemeAraligi);
-        console.warn('[PDF Üst Başlık] jsPDF 20 saniye içinde bulunamadı.');
-      }
-    }, 500);
+    if (!constructorYamaUygula()) {
+      console.warn('[PDF Üst Başlık] jsPDF hazır değil; yama uygulanamadı.');
+    }
   }
 
   if (document.readyState === 'loading') {
