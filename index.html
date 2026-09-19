@@ -9628,7 +9628,7 @@ body.rol-danisma .danisma-gizle { display: none !important; }
         <span style="font-size:20px;">👨‍👩‍👧</span>
         <div>
           <div style="font-family:var(--font-display); font-weight:700; font-size:15px;">Veliler</div>
-          <div style="font-size:11.5px; opacity:.88;">Öğrenci kayıtlarından türetilir. Portal/uygulama erişimi <strong>veliler</strong> koleksiyonundaki onaya bağlıdır.</div>
+          <div id="veliDonemBilgi" style="font-size:11.5px; opacity:.88;">Yalnızca aktif dönem öğrencilerinin velileri gösterilir. Portal/uygulama erişimi <strong>veliler</strong> koleksiyonundaki onaya bağlıdır.</div>
         </div>
       </div>
 
@@ -13855,7 +13855,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v110";
+window.PORTAL_SURUM = "v111";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -26601,6 +26601,29 @@ function veliKayitlariCikar(o) {
   return cikti;
 }
 
+// Veli ekranının kaynağı bağımsız "veliler" koleksiyonu değil, seçili
+// dönemde aktif kaydı bulunan öğrencilerdir. Böylece eski dönem velileri
+// whitelist'te dursa bile yönetim listesine geri gelmez.
+function veliAktifDonemOgrencisiMi(o) {
+  if (!o || !o.id) return false;
+  const donem = String(AKTIF_DONEM || "");
+  const ayar = (typeof ayarListesi !== "undefined" && ayarListesi)
+    ? ayarListesi[o.id]
+    : null;
+
+  // Dönem alt belgesi yüklendiyse kesin kaynak odur.
+  if (ayar) {
+    return String(getOgrenciDurum(o, ayar) || "")
+      .toLocaleLowerCase("tr").trim() === "aktif";
+  }
+
+  // Finans dışı rollerde dönem alt belgesi yerine ana öğrenci kaydındaki
+  // güvenli aktif dönem özeti kullanılır. Dönem eşleşmiyorsa kayıt kapalıdır.
+  if (!donem || String(o.aktifDonem || "") !== donem) return false;
+  return String(o.aktifDonemDurum || o.durum || "aktif")
+    .toLocaleLowerCase("tr").trim() === "aktif";
+}
+
 window.veliListesiYukle = async function() {
   const wrap = document.getElementById("veliTabloWrap");
   if (!wrap) return;
@@ -26608,6 +26631,11 @@ window.veliListesiYukle = async function() {
   if (veliListesiYukleniyor) return;
   veliListesiYukleniyor = true;
   wrap.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Veliler yükleniyor...</p></div>`;
+
+  const donemBilgi = document.getElementById("veliDonemBilgi");
+  if (donemBilgi) {
+    donemBilgi.innerHTML = `<strong>${escapeHtml(String(AKTIF_DONEM || "Aktif dönem"))}</strong> döneminde aktif kaydı bulunan öğrencilerin velileri gösterilir. Portal/uygulama erişimi <strong>veliler</strong> koleksiyonundaki onaya bağlıdır.`;
+  }
 
   try {
     // Öğrenciler zaten yüklüyse tekrar çekme
@@ -26628,14 +26656,15 @@ window.veliListesiYukle = async function() {
     const harita = new Map();
     veliVelisizOgrenciler = [];
 
-    // Mükerrer kayıt tespiti (arşivdekiler hariç)
-    mukerrerGruplar = mukerrerTespit(ogrenciler);
-
-    // Arşivlenmiş kayıtlar veli listesine girmesin
-    ogrenciler = ogrenciler.filter(o => o.arsiv !== true && o.kayitDurumu !== "arsiv");
+    // Önce aktif dönem öğrencilerini kesin kaynakla seç. Veli listesi ve
+    // özet sayaçları yalnızca bu öğrenci kümesinden türetilir.
+    ogrenciler = ogrenciler.filter(veliAktifDonemOgrencisiMi);
 
     // ROL KISITI: öğretmen sadece kendi sınıfındaki velileri görür
     ogrenciler = ogrencileriRoleGoreSuz(ogrenciler);
+
+    // Mükerrer kayıt tespiti de yalnızca görülebilen aktif dönem kayıtlarında.
+    mukerrerGruplar = mukerrerTespit(ogrenciler);
 
     ogrenciler.forEach(o => {
       const ad = o.ogrenciAdSoyad || o.adSoyad || [o.ad, o.soyad].filter(Boolean).join(" ") || "İsimsiz";
@@ -26739,7 +26768,7 @@ window.veliListesiRender = function() {
 
   const liste = veliFiltreliListe();
   if (!liste.length) {
-    wrap.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Kayıt bulunamadı.</p></div>`;
+    wrap.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>${escapeHtml(String(AKTIF_DONEM || "Aktif dönem"))} döneminde eşleşen veli kaydı bulunamadı.</p></div>`;
     return;
   }
 
