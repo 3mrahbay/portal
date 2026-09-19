@@ -20,7 +20,7 @@
   // 1) HEADER FONKSİYONLARINI OVERRIDE ET
   // ============================================================
   function headerYamaUygula() {
-    if (window._pdfHeaderYamasiUygulandi) return;
+    if (window._pdfHeaderYamasiUygulandi) return true;
 
     // pdfHeaderLogolu mevcut mu kontrol et
     if (typeof window.pdfHeaderLogolu !== 'function' &&
@@ -111,7 +111,7 @@
   // başlıklar görünmüyor. autoTable çağrılarını yamalayıp
   // head'in textColor'unu siyah yapacağız.
   function autoTableRenkYamaUygula() {
-    if (window._pdfAutoTableRenkYamasi) return;
+    if (window._pdfAutoTableRenkYamasi) return true;
 
     const jsPDFClass = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
     if (!jsPDFClass || !jsPDFClass.API || !jsPDFClass.API.autoTable) {
@@ -179,23 +179,9 @@
   // 3) BAŞLAT
   // ============================================================
   function baslat() {
-    // Hem header hem renk yamasını dene
-    let denemeBekle = 0;
-    const denemeAraligi = setInterval(() => {
-      denemeBekle++;
-
-      const headerOK = headerYamaUygula();
-      const renkOK = autoTableRenkYamaUygula();
-
-      if (headerOK && renkOK) {
-        clearInterval(denemeAraligi);
-        console.log('[PDF Estetik] ✅ Tüm yamalar uygulandı.');
-      } else if (denemeBekle > 40) {
-        clearInterval(denemeAraligi);
-        if (!headerOK) console.warn('[PDF Header] pdfHeaderLogolu 20 saniye içinde bulunamadı.');
-        if (!renkOK) console.warn('[PDF Renk] jsPDF 20 saniye içinde bulunamadı.');
-      }
-    }, 500);
+    const headerOK = headerYamaUygula();
+    const renkOK = autoTableRenkYamaUygula();
+    if (headerOK && renkOK) console.log('[PDF Estetik] ✅ Tüm yamalar uygulandı.');
   }
 
   if (document.readyState === 'loading') {
