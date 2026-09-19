@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v131";
+const CACHE_VERSION = "v132";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -27,15 +27,15 @@ const PRECACHE = [
   "./js/zeky-randevu-callable-adapter.js",
   "./js/zeky-randevu-parent-page.js",
   "./js/zeky-randevu-staff-page.js",
-  "./js/zeky-randevu-modal-koprusu.js?v=9",
+  "./js/zeky-randevu-modal-koprusu.js?v=10",
   "./js/zeky-veli-odeme-ozeti.js",
-  "./js/zeky-galeri-filigran-koprusu.js?v=9",
+  "./js/zeky-galeri-filigran-koprusu.js?v=10",
   "./js/zeky-galeri-onay-egitim.js?v=4",
-  "./js/zeky-veli-egitim-koprusu.js?v=8",
+  "./js/zeky-veli-egitim-koprusu.js?v=9",
   "./js/zeky-veli-ogrenme-deneyimi.js?v=3",
   "./js/zeky-egitim-portfolyo.js?v=2",
   "./js/zeky-veli-donem-raporu.js?v=1",
-  "./js/zeky-ogrenci-guvenlik-koprusu.js?v=6",
+  "./js/zeky-ogrenci-guvenlik-koprusu.js?v=7",
   "./js/zeky-aktif-donem-senkron.js?v=3",
   "./js/zeky-gozlem-modal-modern.js?v=1",
   "./moduller/veli-egitim-gelisim.js?v=8",

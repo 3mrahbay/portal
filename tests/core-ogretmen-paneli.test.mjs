@@ -89,10 +89,25 @@ test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', a
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('PWA dönem, gözlem ve bloklamasız ana sayfa sürümü v131', async () => {
+test('PWA dönem, gözlem ve tek eğitim kartı sürümü v132', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v131"/);
+  assert.match(s, /CACHE_VERSION = "v132"/);
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
+});
+
+test('eğitim sayfasında tek gözlem kartı takip başlığının hemen altında kalır', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  const kopru = await readFile(new URL('js/zeky-ogrenci-guvenlik-koprusu.js', kok), 'utf8');
+  const hero = s.indexOf('id="zekyEgitimTakipHero"');
+  const kart = s.indexOf('id="zekyCoreYeniGozlemKart"');
+  const programlar = s.indexOf('<!-- 5 PROGRAM + BRANŞLAR (BCDM) -->');
+
+  assert.equal((s.match(/id="zekyCoreYeniGozlemKart"/g) || []).length, 1);
+  assert.equal((s.match(/id="zekyYeniGozlemKart"/g) || []).length, 0);
+  assert.ok(hero >= 0 && hero < kart && kart < programlar);
+  assert.match(kopru, /querySelectorAll\('#zekyYeniGozlemKart'\)\.forEach\(kart => kart\.remove\(\)\)/);
+  assert.match(kopru, /hero\.after\(kart\)/);
+  assert.doesNotMatch(kopru, /kart\.innerHTML=.*Yeni Eğitim Gözlemi/);
 });
 
 test('ana sayfa veri beklerken kullanılabilir kalır ve ağır kartları yalnız kesin veriyle başlatır', async () => {

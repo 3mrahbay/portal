@@ -54,7 +54,7 @@ async function modulleriYukle(win) {
 
   const [veliModulu, guvenlikModulu, donemModulu, deneyimModulu] = await Promise.all([
     import(`../moduller/veli-egitim-gelisim.js?${SURUM}`),
-    import('./zeky-ogrenci-guvenlik-koprusu.js?v=6'),
+    import('./zeky-ogrenci-guvenlik-koprusu.js?v=7'),
     import('./zeky-aktif-donem-senkron.js?v=3'),
     import('./zeky-veli-ogrenme-deneyimi.js?v=3')
   ]);
