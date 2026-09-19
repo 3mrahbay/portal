@@ -1093,7 +1093,14 @@ window.egitimAlbumuneEkle = function(programKodu) {
 
 // Eski fonksiyonu güncelle - düzenleme modunu da destekleyecek
 window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger) {
-  if (!window.JSZip) return showToast("ZIP kütüphanesi yüklenmedi", "error");
+  try {
+    if (window.portalAracYukle) await window.portalAracYukle("zip");
+  } catch (e) {
+    return showToast("ZIP aracı yüklenemedi. İnternet bağlantınızı kontrol edin.", "error");
+  }
+  if (!window.JSZip || typeof window.saveAs !== "function") {
+    return showToast("ZIP kütüphanesi yüklenmedi", "error");
+  }
 
   // Bu albüme ait dosyaları bul
   const dosyalar = (window.galeriListesiVerisi || []).filter(g => {

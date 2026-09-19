@@ -4,12 +4,31 @@ import { readFile } from 'node:fs/promises';
 
 const kok = new URL('../', import.meta.url);
 
-test('öğretmen öğrenci listesi okunabilen aktif dönem belgelerini kesin kaynak kullanır', async () => {
+test('öğretmen öğrenci listesi güvenli aktif dönem özetini kesin kaynak kullanır', async () => {
   const s = await readFile(new URL('index.html', kok), 'utf8');
-  assert.match(s, /ogretmenDonemBelgeleriOkundu/);
-  assert.match(s, /Object\.keys\(ayarListesi \|\| \{\}\)\.length > 0/);
+  assert.match(s, /ogretmenDonemOzetiHazir/);
+  assert.match(s, /anaKayitDonemOzetiKullaniliyor = true/);
+  assert.match(s, /&& anaKayitDonemOzetiKullaniliyor/);
   assert.match(s, /if \(!donemVerisi\) return false/);
   assert.match(s, /getOgrenciDurum\(o, donemVerisi\) !== "aktif"/);
+});
+
+test('öğretmen sınıfları personel kaydından alınır ve adlar güvenli eşleştirilir', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  const kaynakBas = s.indexOf('async function personelSiniflariGetir');
+  const kaynakSon = s.indexOf('// ============================================================', kaynakBas);
+  const kaynak = s.slice(kaynakBas, kaynakSon);
+  assert.match(kaynak, /personelKaydi\?\.siniflar/);
+  assert.match(kaynak, /personelKaydi\?\.sinifAtamalari/);
+  assert.match(kaynak, /if \(belgeSiniflari\.length\) return \[\.\.\.new Set\(belgeSiniflari\)\]/);
+  assert.match(s, /personelSiniflariGetir\(email, personel\)/);
+
+  const filtreBas = s.indexOf('function ogrenciErisilebilirMi');
+  const filtreSon = s.indexOf('// Öğrenci listesini role göre filtrele', filtreBas);
+  const filtre = s.slice(filtreBas, filtreSon);
+  assert.match(filtre, /if \(!\(aktifKullaniciSiniflari \|\| \[\]\)\.length\) return false/);
+  assert.match(filtre, /return sinifGorunur\(sinif\)/);
+  assert.doesNotMatch(filtre, /aktifKullaniciSiniflari\.includes\(sinif\)/);
 });
 
 test('gözlem doğrudan çekirdek modalda S T U not ve fotoğraf sunar', async () => {
@@ -70,9 +89,9 @@ test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', a
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('PWA dönem, gözlem ve bloklamasız ana sayfa sürümü v129', async () => {
+test('PWA dönem, gözlem ve bloklamasız ana sayfa sürümü v131', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v129"/);
+  assert.match(s, /CACHE_VERSION = "v131"/);
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
@@ -124,13 +143,108 @@ test('ana sayfa kart görevleri eski render ve gizli sekmede yeniden sorgu başl
   assert.match(render, /adminHomeZamanlayicilariniTemizle\(\)/);
   assert.match(render, /const renderSurumu = \+\+adminHomeRenderSurumu/);
   assert.doesNotMatch(render, /setTimeout\(/);
-  assert.match(render, /adminHomeGorevPlanla\(hbDuyurulariDoldur/);
-  assert.match(render, /adminHomeGorevPlanla\(hbEgitimDoldur/);
-  assert.match(render, /adminHomeGorevPlanla\(hbOgretmenDoldur/);
+  assert.match(render, /adminHomeGorevleriSirala\(\[/);
+  assert.match(render, /\["duyurular", hbDuyurulariDoldur\]/);
+  assert.match(render, /\["eğitim özeti", hbEgitimDoldur\]/);
+  assert.match(render, /\["personel özeti", hbOgretmenDoldur\]/);
 
   const sekmeBas = s.indexOf('document.querySelectorAll(".tab").forEach');
   const sekmeSon = s.indexOf('// Etkinlik & Takvim iç alt-sekme geçişi', sekmeBas);
   const sekmeler = s.slice(sekmeBas, sekmeSon);
   assert.match(sekmeler, /tab\.dataset\.tab !== "anasayfa"/);
   assert.match(sekmeler, /adminHomeArkaPlanCalismasiniDurdur\(\)/);
+});
+
+test('çıktı ve grafik kütüphaneleri açılışta değil ilgili araçta yüklenir', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  assert.doesNotMatch(s, /<script\s+src="[^"]*(?:jspdf|docx@|Chart\.js|jszip|FileSaver)/i);
+  assert.doesNotMatch(s, /<script\s+src="(?:pdf-sayfa-bolunmesi|pdf-estetik-duzeltme|pdf-ust-baslik-fix-v2)\.js"/);
+  assert.match(s, /const PORTAL_ARAC_KAYNAKLARI = \{/);
+  assert.match(s, /window\.portalAracYukle = function\(ad\)/);
+  assert.match(s, /await window\.portalAracYukle\("pdf"\)/);
+  assert.match(s, /await window\.portalAracYukle\("docx"\)/);
+  assert.match(s, /await window\.portalAracYukle\("zip"\)/);
+  assert.match(s, /await window\.portalAracYukle\("chart"\)/);
+});
+
+test('ikon yenileme yalnız yeni yer tutucuları ve değişen paneli tarar', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  const ikonBas = s.indexOf('window.lucideYenile = function');
+  const ikonSon = s.indexOf('// Sayfa yüklenince ilk render', ikonBas);
+  const ikon = s.slice(ikonBas, ikonSon);
+  assert.match(ikon, /querySelectorAll\("i\[data-lucide\]"\)/);
+  assert.match(ikon, /nameAttr: "data-lucide-yeni"/);
+  assert.doesNotMatch(ikon, /lucide\.createIcons\(\)/);
+
+  const sekmeBas = s.indexOf('document.querySelectorAll(".tab").forEach');
+  const sekmeSon = s.indexOf('// Etkinlik & Takvim iç alt-sekme geçişi', sekmeBas);
+  const sekmeler = s.slice(sekmeBas, sekmeSon);
+  assert.match(sekmeler, /lucideYenile\(panel\)/);
+  assert.doesNotMatch(sekmeler, /setTimeout\(window\.lucideYenile, 300\)/);
+});
+
+test('gizli öğrenci tablosu ve gelecek dönem okumaları açılış zincirinden çıkarılır', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  const ayarBas = s.indexOf('async function loadAyarlar()');
+  const ayarSon = s.indexOf('function ogrenciSekmesiAktifMi()', ayarBas);
+  const ayarlar = s.slice(ayarBas, ayarSon);
+  assert.match(ayarlar, /tamDonemVerisiGerekli/);
+  assert.match(ayarlar, /_anaKayitOzeti: true/);
+  assert.match(ayarlar, /Math\.min\(3, ogrenciList\.length\)/);
+  assert.doesNotMatch(ayarlar, /aktifDonemGuncellendi/);
+  assert.doesNotMatch(ayarlar, /gelRef|gelSnap/);
+
+  const tabloBas = s.indexOf('function renderTable()');
+  const tablo = s.slice(tabloBas, tabloBas + 450);
+  assert.match(tablo, /!ogrenciSekmesiAktifMi\(\)/);
+
+  const sekmeBas = s.indexOf('document.querySelectorAll(".tab").forEach');
+  const sekmeSon = s.indexOf('// Etkinlik & Takvim iç alt-sekme geçişi', sekmeBas);
+  const sekmeler = s.slice(sekmeBas, sekmeSon);
+  assert.match(sekmeler, /tab\.dataset\.tab === "ogrenciler"/);
+  assert.match(sekmeler, /gelecekDonemKayitlariniYukle\(\)/);
+});
+
+test('aktif dönem özeti kayıt ve durum değişimlerinde güvenli biçimde ana kayda yazılır', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+
+  const ozetBas = s.indexOf('function aktifDonemOzetAlanlari');
+  const ozetSon = s.indexOf('function aktifDonemOzetiniLokaldeUygula', ozetBas);
+  const ozet = s.slice(ozetBas, ozetSon);
+  assert.match(ozet, /aktifDonem: String\(AKTIF_DONEM/);
+  assert.match(ozet, /aktifDonemDurum:/);
+  assert.match(ozet, /aktifDonemGuncellendi:/);
+  assert.doesNotMatch(ozet, /veli|telefon|eposta|aidat|tcKimlik/i);
+
+  assert.ok((s.match(/\.\.\.aktifDonemOzetAlanlari\("aktif"\)/g) || []).length >= 3);
+
+  for (const [baslangic, bitis] of [
+    ['window.ogrenciArsivle = async function', 'window.ogrenciGeriDon = async function'],
+    ['window.ogrenciGeriDon = async function', 'window.ogrenciArsivModalAc = function'],
+    ['window.ogrenciDurumuDegistir = async function', 'window.toggleDurumMenu = function']
+  ]) {
+    const bas = s.indexOf(baslangic);
+    const son = s.indexOf(bitis, bas);
+    const islem = s.slice(bas, son);
+    assert.match(islem, /const batch = writeBatch\(db\)/);
+    assert.match(islem, /batch\.set\(doc\(db, "ogrenciler", ogrenciId\), aktifDonemOzeti, \{ merge: true \}\)/);
+    assert.match(islem, /aktifDonemOzetiniLokaldeUygula\(ogrenciId, aktifDonemOzeti\)/);
+  }
+
+  const kaydetBas = s.indexOf('window.saveAyarlar = async function');
+  const kaydetSon = s.indexOf('async function autoOnaylaVeliler', kaydetBas);
+  const kaydet = s.slice(kaydetBas, kaydetSon);
+  assert.match(kaydet, /const mevcutDonemDurumu = getOgrenciDurum/);
+  assert.match(kaydet, /\.\.\.aktifDonemOzetAlanlari\(mevcutDonemDurumu\)/);
+});
+
+test('gelişim koleksiyonu aynı render içinde tek uçuş ve süreli önbellek kullanır', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  const bas = s.indexOf('let tumGelisimOnbellegi = null;');
+  const son = s.indexOf('// ============ EĞİTİM SEKMESİ', bas);
+  const cache = s.slice(bas, son);
+  assert.match(cache, /TUM_GELISIM_ONBELLEK_MS = 5 \* 60 \* 1000/);
+  assert.match(cache, /if \(tumGelisimYuklemeSozu\) return tumGelisimYuklemeSozu/);
+  assert.equal((cache.match(/getDocs\(collection\(db, "ogrenciGelisim"\)\)/g) || []).length, 1);
+  assert.match(s, /tumGelisimOnbelleginiTemizle\(\)/);
 });

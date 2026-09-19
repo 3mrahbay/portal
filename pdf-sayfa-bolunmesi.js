@@ -101,18 +101,9 @@
   // 2) BAŞLAT
   // ============================================================
   function baslat() {
-    // jsPDF yüklenene kadar bekle (CDN'den geliyor, biraz sürebilir)
-    let denemeBekle = 0;
-    const denemeAraligi = setInterval(() => {
-      denemeBekle++;
-      const basarili = autoTableYamaUygula();
-      if (basarili) {
-        clearInterval(denemeAraligi);
-      } else if (denemeBekle > 40) {
-        clearInterval(denemeAraligi);
-        console.warn('[PDF Sayfa] jsPDF 20 saniye içinde bulunamadı. Modül başlatılamadı.');
-      }
-    }, 500);
+    if (!autoTableYamaUygula()) {
+      console.warn('[PDF Sayfa] jsPDF hazır değil; yama uygulanamadı.');
+    }
   }
 
   if (document.readyState === 'loading') {

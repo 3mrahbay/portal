@@ -7,10 +7,11 @@
 // NOT: Bu katman arayüz sızıntısını kapatır. Firestore'da ogrenciler ana belgesindeki
 // e-posta alanlarının öğretmene hiç okunmaması ayrıca Rules/veri modeli ile sertleştirilmelidir.
 
-const KURULUM = '__zekyOgrenciGuvenlikV1';
+const KURULUM = '__zekyOgrenciGuvenlikV2';
 const YONETIM = new Set(['kurucu_mudur','mudur','egitim_koordinator']);
 let gozlemAc = null;
 let observer = null;
+let observerYenilemeBekliyor = false;
 
 const bekle = (kosul, adet = 120, ms = 100) => new Promise((resolve, reject) => {
   let n = 0;
@@ -39,10 +40,9 @@ function ogrSinif(o, s = P()?.state || {}){
 function aktifMi(o, s = P()?.state || {}){
   if (!o?.id) return false;
   const donem = String(s.aktifDonem || '');
-  if (yonetimMi(s)) {
-    const ayar = s.ayarListesi?.[o.id];
-    return !!ayar && durumNorm(ayar.durum) === 'aktif';
-  }
+  const ayar = s.ayarListesi?.[o.id];
+  if (ayar) return durumNorm(ayar.durum) === 'aktif';
+  if (yonetimMi(s)) return false;
   return !!donem && String(o.aktifDonem || '') === donem && durumNorm(o.aktifDonemDurum) === 'aktif';
 }
 function sinifEslesir(a,b){
@@ -52,37 +52,15 @@ function sinifEslesir(a,b){
 function gorulebilirOgrenciler(){
   const s = P()?.state || {};
   let liste = (s.ogrenciList || []).filter(o => aktifMi(o,s));
-  if (!yonetimMi(s) && Array.isArray(s.siniflar) && s.siniflar.length) {
+  const ogretmen = !s.isAdmin && String(s.rol || '') === 'ogretmen';
+  if (ogretmen && (!Array.isArray(s.siniflar) || !s.siniflar.length)) return [];
+  if (ogretmen) {
     liste = liste.filter(o => s.siniflar.some(x => sinifEslesir(ogrSinif(o,s), x)));
   }
   return liste;
 }
 function toast(m, tip='info'){
   try { if (window.showToast) window.showToast(m, tip); } catch (_) {}
-}
-
-async function aktifDonemIsaretleriniSenkronla(){
-  const s = P()?.state || {};
-  if (!yonetimMi(s)) return;
-  if (!s.aktifDonem || !s.ogrenciList?.length || !Object.keys(s.ayarListesi || {}).length) return;
-  const anahtar = `zeky-aktif-donem-sync-${s.aktifDonem}`;
-  try { if (sessionStorage.getItem(anahtar) === '1') return; } catch (_) {}
-  const b = B();
-  if (!b?.setDoc || !b?.doc || !b?.db) return;
-  const isler = [];
-  for (const o of s.ogrenciList) {
-    const ayar = s.ayarListesi?.[o.id];
-    if (!ayar) continue;
-    const yeniDurum = durumNorm(ayar.durum);
-    if (String(o.aktifDonem || '') === String(s.aktifDonem) && durumNorm(o.aktifDonemDurum) === yeniDurum) continue;
-    isler.push(b.setDoc(b.doc(b.db,'ogrenciler',o.id), {
-      aktifDonem: s.aktifDonem,
-      aktifDonemDurum: yeniDurum,
-      aktifDonemGuncellendi: new Date().toISOString()
-    }, { merge:true }).catch(e => console.warn('aktif dönem işareti',o.id,e)));
-  }
-  for (let i=0;i<isler.length;i+=12) await Promise.all(isler.slice(i,i+12));
-  try { sessionStorage.setItem(anahtar,'1'); } catch (_) {}
 }
 
 function kartId(el){
@@ -93,7 +71,9 @@ function kartId(el){
 function ogrenciKartlariniFiltrele(){
   const s = P()?.state || {};
   const izinli = new Set(gorulebilirOgrenciler().map(o=>o.id));
-  const tiklar = document.querySelectorAll("[onclick*='ogrenciEgitimPopup(']");
+  const tab = document.getElementById('tab-ogrenciler');
+  if (!tab) return;
+  const tiklar = tab.querySelectorAll("[onclick*='ogrenciEgitimPopup(']");
   let gorunen = 0;
   tiklar.forEach(t => {
     const id = kartId(t);
@@ -104,14 +84,12 @@ function ogrenciKartlariniFiltrele(){
     kart.style.display = ok ? '' : 'none';
     if (ok) gorunen++;
   });
-  const tab = document.getElementById('tab-ogrenciler');
-  if (tab) {
-    tab.querySelectorAll('div').forEach(el => {
-      if (/\d+\s+öğrenci listeleniyor\.?/.test(el.textContent || '') && el.children.length === 0) {
-        el.textContent = `${gorunen} öğrenci listeleniyor.`;
-      }
-    });
-  }
+  tab.querySelectorAll('div').forEach(el => {
+    if (/\d+\s+öğrenci listeleniyor\.?/.test(el.textContent || '') && el.children.length === 0) {
+      const yeniMetin = `${gorunen} öğrenci listeleniyor.`;
+      if (el.textContent !== yeniMetin) el.textContent = yeniMetin;
+    }
+  });
 }
 
 function gozlemSeciciAc(){
@@ -235,10 +213,26 @@ async function gozlemKur(){
   }catch(e){console.error('Gelişmiş gözlem kurulamadı',e);}
 }
 
+function guvenlikYenilemeyiPlanla(){
+  if(observerYenilemeBekliyor)return;
+  observerYenilemeBekliyor=true;
+  const planla=window.requestAnimationFrame||((fn)=>setTimeout(fn,16));
+  planla(()=>{
+    observerYenilemeBekliyor=false;
+    ogrenciKartlariniFiltrele();
+    egitimYeniKartEkle();
+    mesajGizlilikKur();
+    islemlerKur();
+  });
+}
+
 function observerKur(){
   if(observer)return;
-  observer=new MutationObserver(()=>{ogrenciKartlariniFiltrele();egitimYeniKartEkle();mesajGizlilikKur();islemlerKur();});
-  observer.observe(document.body,{childList:true,subtree:true});
+  const hedefler=['tab-ogrenciler','tab-egitim']
+    .map(id=>document.getElementById(id)).filter(Boolean);
+  if(!hedefler.length)return;
+  observer=new MutationObserver(guvenlikYenilemeyiPlanla);
+  hedefler.forEach(hedef=>observer.observe(hedef,{childList:true,subtree:true}));
 }
 
 export async function kur(){
@@ -246,7 +240,9 @@ export async function kur(){
   await bekle(()=>!!window.BCK&&!!window.PortalAPI&&typeof window.modulSec==='function');
   await gozlemKur();
   navigasyonKur();mesajGizlilikKur();islemlerKur();observerKur();
-  setTimeout(aktifDonemIsaretleriniSenkronla,700);
+  // Aktif dönem özet yazımı yalnız zeky-aktif-donem-senkron modülünde yapılır.
+  // Buradan ikinci kez başlatmak aynı öğrenci kayıtlarına yinelenen yazmalar
+  // gönderiyor ve giriş sonrası ana iş parçacığı yükünü artırıyordu.
   setTimeout(()=>{ogrenciKartlariniFiltrele();egitimYeniKartEkle();},900);
   window.zekyGozlemOgrenciSeciciAc=gozlemSeciciAc;
   window[KURULUM]=true;
