@@ -122,13 +122,14 @@ function gozlemSeciciAc(){
 
 function egitimYeniKartEkle(){
   const tab = document.getElementById('tab-egitim');
-  if (!tab || document.getElementById('zekyYeniGozlemKart')) return;
-  const kart = document.createElement('div');
-  kart.id='zekyYeniGozlemKart';
-  kart.style.cssText='background:linear-gradient(135deg,#2D5E3E,#4A7C59);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 24px rgba(45,94,62,.18)';
-  kart.innerHTML='<div style="width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:22px">📷</div><div style="flex:1"><div style="font-weight:800;font-size:16px">Yeni Eğitim Gözlemi</div><div style="font-size:12px;opacity:.9;margin-top:3px">Sunuldu · Tekrar Ediyor · Ustalaştı + açıklama + fotoğraf</div></div><button type="button" style="border:1px solid rgba(255,255,255,.45);background:#fff;color:#2D5E3E;border-radius:11px;padding:10px 14px;font-weight:800;cursor:pointer">Öğrenci Seç</button>';
-  kart.querySelector('button').onclick=gozlemSeciciAc;
-  tab.insertBefore(kart,tab.firstChild);
+  if (!tab) return;
+
+  // Eski köprü aynı gözlem kartını ikinci kez üretiyordu. Çekirdekteki güvenli
+  // kart tek kaynak olarak kalır ve her yenilemede takip başlığının altına alınır.
+  tab.querySelectorAll('#zekyYeniGozlemKart').forEach(kart => kart.remove());
+  const hero = document.getElementById('zekyEgitimTakipHero');
+  const kart = document.getElementById('zekyCoreYeniGozlemKart');
+  if (hero && kart && hero.nextElementSibling !== kart) hero.after(kart);
 }
 
 function veliTopla(o,s){

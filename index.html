@@ -10023,6 +10023,15 @@ body.rol-danisma .danisma-gizle { display: none !important; }
 
     <!-- ============ EĞİTİM TAB (3 disiplin matrix sistemi) ============ -->
     <div class="tab-panel" id="tab-egitim">
+      <!-- HERO -->
+      <div id="zekyEgitimTakipHero" style="background:linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-30%; right:-10%; width:300px; height:300px; background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;"><i data-lucide="book-open" style="width:14px;height:14px;vertical-align:-2px;"></i> EĞİTİM TAKİP SİSTEMİ</div>
+          <h2 style="font-family:var(--font-display); font-weight:600; font-size:30px; margin:8px 0 6px 0;">Program Bazlı Gelişim Takibi</h2>
+          <p style="opacity:0.92; font-size:14px; max-width:780px; margin:0;">BCDM programlarında tüm öğrencileri tek bakışta görüp hızlıca işaretleme yapın. Her hücreye tıklayarak <strong>Sunuldu (S) → Tekrar (T) → Uzmanlaştı (U) → Boş</strong> arasında geçiş yapabilirsiniz.</p>
+        </div>
+      </div>
 
       <div id="zekyCoreYeniGozlemKart"
         style="background:linear-gradient(135deg,#2D5E3E,#4A7C59);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 24px rgba(45,94,62,.18);">
@@ -10033,16 +10042,6 @@ body.rol-danisma .danisma-gizle { display: none !important; }
         </div>
         <button type="button" onclick="zekyYeniEgitimGozlemiAc()"
           style="border:1px solid rgba(255,255,255,.4);background:#fff;color:#2D5E3E;border-radius:11px;padding:10px 14px;font-weight:800;cursor:pointer;font-family:inherit;">Öğrenci Seç</button>
-      </div>
-
-      <!-- HERO -->
-      <div style="background:linear-gradient(135deg, #4C1D95 0%, #6D28D9 100%); border-radius:20px; padding:28px 30px; margin-bottom:20px; color:white; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:-30%; right:-10%; width:300px; height:300px; background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); pointer-events:none;"></div>
-        <div style="position:relative; z-index:1;">
-          <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;"><i data-lucide="book-open" style="width:14px;height:14px;vertical-align:-2px;"></i> EĞİTİM TAKİP SİSTEMİ</div>
-          <h2 style="font-family:var(--font-display); font-weight:600; font-size:30px; margin:8px 0 6px 0;">Program Bazlı Gelişim Takibi</h2>
-          <p style="opacity:0.92; font-size:14px; max-width:780px; margin:0;">BCDM programlarında tüm öğrencileri tek bakışta görüp hızlıca işaretleme yapın. Her hücreye tıklayarak <strong>Sunuldu (S) → Tekrar (T) → Uzmanlaştı (U) → Boş</strong> arasında geçiş yapabilirsiniz.</p>
-        </div>
       </div>
 
       <!-- 5 PROGRAM + BRANŞLAR (BCDM) -->
@@ -13856,7 +13855,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v109";
+window.PORTAL_SURUM = "v110";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -46943,6 +46942,6 @@ window.showBulkUpload = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=9"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=10"></script>
 </body>
 </html>
