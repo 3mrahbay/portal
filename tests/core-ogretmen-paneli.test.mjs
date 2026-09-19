@@ -70,13 +70,13 @@ test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', a
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('PWA dönem, gözlem ve ana sayfa performans sürümü v128', async () => {
+test('PWA dönem, gözlem ve bloklamasız ana sayfa sürümü v129', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v128"/);
+  assert.match(s, /CACHE_VERSION = "v129"/);
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('ana sayfa öğrenci ve dönem verisi tamamlandıktan sonra yalnız bir kez çizilir', async () => {
+test('ana sayfa veri beklerken kullanılabilir kalır ve ağır kartları yalnız kesin veriyle başlatır', async () => {
   const s = await readFile(new URL('index.html', kok), 'utf8');
 
   const girisBas = s.indexOf('if (personelMi) {');
@@ -85,12 +85,26 @@ test('ana sayfa öğrenci ve dönem verisi tamamlandıktan sonra yalnız bir kez
   assert.match(giris, /adminHomeYukleniyorGoster\(\)/);
   assert.doesNotMatch(giris, /renderAdminHome\(\)/);
   assert.ok(giris.indexOf('adminHomeYukleniyorGoster()') < giris.indexOf('await loadOgrenciler()'));
+  assert.doesNotMatch(giris, /await ozellikBayraklariYukle\(\)/);
+  assert.match(giris, /ozellikBayraklariYukle\(\)\s*\.then/);
+
+  const beklemeBas = s.indexOf('function adminHomeYukleniyorGoster()');
+  const beklemeSon = s.indexOf('function adminHomeVeriYuklemesiTamamlandi', beklemeBas);
+  const bekleme = s.slice(beklemeBas, beklemeSon);
+  assert.match(bekleme, /ogretmenHomeHTML\(ad\)/);
+  assert.match(bekleme, /yonetimHomeHTML\(ad\)/);
+  assert.match(bekleme, /adminHomeYuklemeDurumu/);
+  assert.match(bekleme, /menüleri kullanabilirsiniz/);
+  assert.doesNotMatch(bekleme, /ogretmenHomeVeriYukle\(/);
+  assert.doesNotMatch(bekleme, /hbDuyurulariDoldur/);
 
   const yuklemeBas = s.indexOf('async function loadOgrenciler()');
   const yuklemeSon = s.indexOf('async function loadAyarlar()', yuklemeBas);
   const yukleme = s.slice(yuklemeBas, yuklemeSon);
   assert.doesNotMatch(yukleme, /renderAdminHome\(\)/);
   assert.match(yukleme, /finally\s*\{[\s\S]*adminHomeVeriYuklemesiTamamlandi\(\)/);
+  assert.match(yukleme, /aktifKullaniciRol === "ogretmen"[\s\S]*ogrenciListeyiRoleGoreFiltrele\(ogrenciList\)/);
+  assert.ok(yukleme.indexOf('ogrenciListeyiRoleGoreFiltrele(ogrenciList)') < yukleme.indexOf('await loadAyarlar()'));
   assert.ok(yukleme.indexOf('ogrenciListeyiRoleGoreFiltrele') < yukleme.indexOf('adminHomeVeriYuklemesiTamamlandi()'));
 });
 
