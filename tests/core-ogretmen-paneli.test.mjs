@@ -89,10 +89,34 @@ test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', a
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('PWA dönem, gözlem ve tek eğitim kartı sürümü v132', async () => {
+test('PWA dönem, gözlem, tek eğitim kartı ve aktif dönem velileri sürümü v133', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v132"/);
+  assert.match(s, /CACHE_VERSION = "v133"/);
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
+});
+
+test('veli listesi yalnız aktif dönem öğrencilerinden türetilir', async () => {
+  const s = await readFile(new URL('index.html', kok), 'utf8');
+  const filtreBas = s.indexOf('function veliAktifDonemOgrencisiMi');
+  const filtreSon = s.indexOf('window.veliListesiYukle', filtreBas);
+  const filtre = s.slice(filtreBas, filtreSon);
+  const yukleBas = s.indexOf('window.veliListesiYukle');
+  const yukleSon = s.indexOf('function veliFiltreliListe', yukleBas);
+  const yukle = s.slice(yukleBas, yukleSon);
+
+  assert.match(filtre, /ayarListesi\[o\.id\]/);
+  assert.match(filtre, /getOgrenciDurum\(o, ayar\)/);
+  assert.match(filtre, /String\(o\.aktifDonem \|\| ""\) !== donem/);
+  assert.match(filtre, /o\.aktifDonemDurum \|\| o\.durum \|\| "aktif"/);
+  assert.match(yukle, /ogrenciler = ogrenciler\.filter\(veliAktifDonemOgrencisiMi\)/);
+  assert.ok(
+    yukle.indexOf('filter(veliAktifDonemOgrencisiMi)') < yukle.indexOf('ogrencileriRoleGoreSuz(ogrenciler)'),
+    'aktif dönem filtresi rol filtresinden önce uygulanmalı'
+  );
+  assert.ok(
+    yukle.indexOf('ogrencileriRoleGoreSuz(ogrenciler)') < yukle.indexOf('mukerrerTespit(ogrenciler)'),
+    'mükerrer kontrolü yalnız görünür aktif dönem öğrencilerinde çalışmalı'
+  );
 });
 
 test('eğitim sayfasında tek gözlem kartı takip başlığının hemen altında kalır', async () => {
