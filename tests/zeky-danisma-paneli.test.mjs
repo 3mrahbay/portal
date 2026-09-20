@@ -19,9 +19,13 @@ function bolum(kaynak, baslangic, bitis) {
 test('danışma ve eski halkla ilişkiler rolleri tek operasyon hesabında birleşir', async () => {
   const s = await portalKaynak();
   assert.match(s, /=== "halkla_iliskiler" \? "danisma"/);
-  assert.match(s, /danisma: "Danışma \/ Halkla İlişkiler"/);
-  assert.match(s, /halkla_iliskiler: "Danışma \/ Halkla İlişkiler"/);
-  assert.match(s, /<option value="danisma">Danışma \/ Halkla İlişkiler \(Okul Zili ve operasyon\)<\/option>/);
+  assert.match(s, /danisma: "Danışma Personeli"/);
+  assert.match(s, /halkla_iliskiler: "Danışma Personeli"/);
+  assert.match(s, /<option value="danisma">Danışma Personeli \(Okul Zili ve operasyon\)<\/option>/);
+
+  const personelFormu = await readFile(new URL('personel-ekle.html', kok), 'utf8');
+  assert.match(personelFormu, /<optgroup label="Danışma Personeli">\s*<option value="danisma">🔔 Danışma Personeli<\/option>/);
+  assert.match(personelFormu, /'halkla_iliskiler': '🔔 Danışma Personeli'/);
 
   const yetkiler = bolum(s, 'const SEKME_YETKILERI = {', '// ═══ VERİ GÖRÜNÜRLÜK KISITLARI');
   for (const sekme of ['anasayfa', 'ogrenciler', 'profilim', 'danismaRandevu', 'duyurular', 'etkinlik', 'mesajlasma']) {
