@@ -21,14 +21,35 @@ const _cache = {};
 
 export async function listeGetir(ogrenciId, tazele = false) {
   if (!tazele && _cache[ogrenciId]) return _cache[ogrenciId];
-  const { fb, db } = P();
+  const { fb, db, state } = P();
+  const danismaMi = ["danisma", "halkla_iliskiler"].includes(state.rol);
+  const kaynak = danismaMi ? "danismaPickupYetkilileri" : "pickupYetkilileri";
   let kisiler = null;
   try {
-    const s = await fb.getDoc(fb.doc(db, "pickupYetkilileri", ogrenciId));
+    const s = await fb.getDoc(fb.doc(db, kaynak, ogrenciId));
     if (s.exists() && Array.isArray(s.data().kisiler)) kisiler = s.data().kisiler;
+
+    // Veli eski tam listeyi ilk açtığında telefon içermeyen operasyon
+    // projeksiyonunu hazırlar. Personel kaynak belgeyi kopyalayamaz.
+    if (!danismaMi && !state.rol && kisiler?.length) {
+      try {
+        const guvenliRef = fb.doc(db, "danismaPickupYetkilileri", ogrenciId);
+        const guvenli = await fb.getDoc(guvenliRef);
+        if (!guvenli.exists()) {
+          await fb.setDoc(guvenliRef, {
+            kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
+            guncellendi: fb.serverTimestamp()
+          });
+        }
+      } catch (e) { console.warn("pickup güvenli yetkili özeti:", e.code || e.message); }
+    }
   } catch (e) { console.warn("pickup yetkilileri:", e.code || e.message); }
   // ZEKY varsayılanı: kayıt yoksa anne + baba
-  if (!kisiler || !kisiler.length) kisiler = [{ ad: "Anne", yakinlik: "Anne" }, { ad: "Baba", yakinlik: "Baba" }];
+  if ((!kisiler || !kisiler.length) && !danismaMi) kisiler = [{ ad: "Anne", yakinlik: "Anne" }, { ad: "Baba", yakinlik: "Baba" }];
+  if (danismaMi) {
+    kisiler = kisiler || [];
+    kisiler = kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" }));
+  }
   _cache[ogrenciId] = kisiler;
   return kisiler;
 }
@@ -150,11 +171,17 @@ async function sil(i) {
 async function kaydet(ogrenciId, kisiler) {
   const { fb, db, state } = P();
   try {
-    await fb.setDoc(fb.doc(db, "pickupYetkilileri", ogrenciId), {
+    const batch = fb.writeBatch(db);
+    batch.set(fb.doc(db, "pickupYetkilileri", ogrenciId), {
       kisiler,
       guncelleyen: (state.currentUser?.email || "").toLowerCase(),
       guncellendi: fb.serverTimestamp()
     }, { merge: true });
+    batch.set(fb.doc(db, "danismaPickupYetkilileri", ogrenciId), {
+      kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
+      guncellendi: fb.serverTimestamp()
+    });
+    await batch.commit();
     _cache[ogrenciId] = kisiler;
   } catch (e) {
     console.error("pickup yetkili kaydet:", e);
@@ -170,8 +197,9 @@ const _IKON = { Anne:"👩", Baba:"👨", Anneanne:"👵", Babaanne:"👵", Dede
   Amca:"👨‍🦱", Dayı:"👨‍🦱", Abla:"👧", Ağabey:"👦", Servis:"🚌", Bakıcı:"🧑‍🍼", Komşu:"🏠" };
 
 export async function ogretmenPopup(ogrenciId, ogrenciAd) {
-  const { esc } = P();
+  const { esc, state } = P();
   const kisiler = await listeGetir(ogrenciId);
+  const telefonGoster = state.rol !== "danisma" && state.rol !== "halkla_iliskiler";
   const eski = document.getElementById("pyPopup");
   if (eski) eski.remove();
   const m = document.createElement("div");
@@ -191,11 +219,12 @@ export async function ogretmenPopup(ogrenciId, ogrenciAd) {
             <span style="font-size:24px;">${_IKON[k.yakinlik] || "👤"}</span>
             <div style="flex:1;">
               <div style="font-size:14px; font-weight:700; color:var(--c-ink);">${esc(k.ad)}</div>
-              <div style="font-size:11.5px; color:var(--c-muted);">${esc(k.yakinlik || "")}${k.telefon ? ` · <a href="tel:${esc(k.telefon)}" style="color:#2D5E3E; font-weight:700;">${esc(k.telefon)}</a>` : ""}</div>
+              <div style="font-size:11.5px; color:var(--c-muted);">${esc(k.yakinlik || "")}${telefonGoster && k.telefon ? ` · <a href="tel:${esc(k.telefon)}" style="color:#2D5E3E; font-weight:700;">${esc(k.telefon)}</a>` : ""}</div>
             </div>
           </div>`).join("")}
+        ${!kisiler.length ? `<div style="padding:12px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; font-size:12px; color:#92400E;">Güvenli teslim yetkilisi listesi henüz hazırlanmadı. Çocuğu teslim etmeden önce yönetimden teyit alın.</div>` : ""}
         <div style="margin-top:12px; padding:10px 12px; background:#FEF2F2; border-radius:10px; font-size:11.5px; color:#991B1B; line-height:1.5;">
-          ⚠ Listede olmayan biri geldiyse çocuğu <strong>teslim etmeyin</strong>, veliyi arayın.
+          ⚠ Listede olmayan biri geldiyse çocuğu <strong>teslim etmeyin</strong>; yönetim üzerinden teyit isteyin.
         </div>
         <button class="btn-mini" onclick="document.getElementById('pyPopup').remove()" style="width:100%; margin-top:12px; padding:10px;">Kapat</button>
       </div>

@@ -21,6 +21,19 @@ function saatY(iso) {
   return isNaN(d) ? "" : String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 function haftaSonuMu() { const g = new Date().getDay(); return g === 0 || g === 6; }
+function danismaMi() { return ["danisma", "halkla_iliskiler"].includes(P().state.rol); }
+function sabahKaynak() { return danismaMi() ? "danismaSabahGirisleri" : "sabahGirisleri"; }
+function sabahGuvenliVeri(v, ogrenciId = "", tarih = "") {
+  const { fb } = P();
+  const x = v || {};
+  return {
+    ogrenciId: x.ogrenciId || ogrenciId || "", ogrenciAd: x.ogrenciAd || "",
+    sinif: x.sinif || "", tarih: x.tarih || tarih || "",
+    veliBildirdi: x.veliBildirdi === true, veliBildirimSaati: x.veliBildirimSaati || "",
+    sinifaGirisOnayi: x.sinifaGirisOnayi || "", onaylayanAd: x.onaylayanAd || "",
+    onaylayanRol: x.onaylayanRol || "", guncellendi: fb.serverTimestamp()
+  };
+}
 
 // ───────────────────────────────────────────────────────────────────
 // VELİ TARAFI
@@ -44,7 +57,14 @@ export async function veliKart(hedefId) {
   let k = null;
   try {
     const s = await fb.getDoc(fb.doc(db, "sabahGirisleri", ogr.id + "__" + tarih));
-    if (s.exists()) k = s.data();
+    if (s.exists()) {
+      k = s.data();
+      try {
+        const guvenliRef = fb.doc(db, "danismaSabahGirisleri", ogr.id + "__" + tarih);
+        const guvenli = await fb.getDoc(guvenliRef);
+        if (!guvenli.exists()) await fb.setDoc(guvenliRef, sabahGuvenliVeri(k, ogr.id, tarih));
+      } catch (e) { console.warn("sabah güvenli özet:", e.code || e.message); }
+    }
   } catch (e) { console.warn("sabah girişi:", e.code || e.message); }
 
   const ad = (ogr.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
@@ -119,7 +139,7 @@ async function veliBildir() {
   if (!ogr) return;
   const tarih = bugun();
   try {
-    await fb.setDoc(fb.doc(db, "sabahGirisleri", ogr.id + "__" + tarih), {
+    const tamVeri = {
       ogrenciId: ogr.id,
       ogrenciAd: ogr.ogrenciAdSoyad || ogr.adSoyad || "",
       sinif: (state.ayarListesi[ogr.id]?.kayit?.sinif) || ogr.sinif || "",
@@ -128,7 +148,20 @@ async function veliBildir() {
       veliBildirimSaati: new Date().toISOString(),
       veliBildirenEmail: (state.currentUser?.email || "").toLowerCase(),
       guncellendi: fb.serverTimestamp()
-    }, { merge: true });
+    };
+    const batch = fb.writeBatch(db);
+    batch.set(fb.doc(db, "sabahGirisleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
+    const guvenliRef = fb.doc(db, "danismaSabahGirisleri", ogr.id + "__" + tarih);
+    const guvenliMevcut = await fb.getDoc(guvenliRef);
+    if (guvenliMevcut.exists()) {
+      batch.set(guvenliRef, {
+        veliBildirdi: true, veliBildirimSaati: tamVeri.veliBildirimSaati,
+        guncellendi: fb.serverTimestamp()
+      }, { merge: true });
+    } else {
+      batch.set(guvenliRef, sabahGuvenliVeri(tamVeri, ogr.id, tarih));
+    }
+    await batch.commit();
     toast("🌅 Bildiriminiz okula iletildi");
     veliKart("veliSabahGirisiKart");
   } catch (e) {
@@ -167,7 +200,7 @@ export async function ogretmenKart(hedefId) {
   // Bugünkü kayıtlar
   const kayitlar = {};
   try {
-    const snap = await fb.getDocs(fb.query(fb.collection(db, "sabahGirisleri"), fb.where("tarih", "==", tarih)));
+    const snap = await fb.getDocs(fb.query(fb.collection(db, sabahKaynak()), fb.where("tarih", "==", tarih)));
     snap.forEach(d => { const v = d.data(); if (v.ogrenciId) kayitlar[v.ogrenciId] = v; });
   } catch (e) { console.warn("sabah girişleri:", e.code || e.message); }
 
@@ -221,14 +254,24 @@ async function ogretmenOnayla(ogrenciId, sinif) {
   const tarih = bugun();
   try {
     const ROL_AD = { ogretmen: "Öğretmen", danisma: "Danışma", mudur: "Müdür", kurucu_mudur: "Kurucu Müdür", egitim_koordinator: "Koordinatör" };
-    await fb.setDoc(fb.doc(db, "sabahGirisleri", ogrenciId + "__" + tarih), {
+    const tamGuncelleme = {
       ogrenciId, tarih, sinif: sinif || "",
       sinifaGirisOnayi: new Date().toISOString(),
       onaylayan: (state.currentUser?.email || "").toLowerCase(),
       onaylayanAd: (state.personel?.adSoyad) || state.currentUser?.displayName || "",
       onaylayanRol: ROL_AD[state.rol] || state.rol || "",
       guncellendi: fb.serverTimestamp()
+    };
+    const batch = fb.writeBatch(db);
+    batch.set(fb.doc(db, "sabahGirisleri", ogrenciId + "__" + tarih), tamGuncelleme, { merge: true });
+    batch.set(fb.doc(db, "danismaSabahGirisleri", ogrenciId + "__" + tarih), {
+      ogrenciId, tarih, sinif: sinif || "",
+      sinifaGirisOnayi: tamGuncelleme.sinifaGirisOnayi,
+      onaylayanAd: tamGuncelleme.onaylayanAd,
+      onaylayanRol: tamGuncelleme.onaylayanRol,
+      guncellendi: fb.serverTimestamp()
     }, { merge: true });
+    await batch.commit();
     toast("✓ Sınıfa giriş onaylandı");
     // Canlı dinleme kartı kendisi yeniler
   } catch (e) {
@@ -241,7 +284,7 @@ function canliBaslat(hedefId) {
   if (_unsub) return;
   const { fb, db, bugun } = P();
   try {
-    const q = fb.query(fb.collection(db, "sabahGirisleri"), fb.where("tarih", "==", bugun()));
+    const q = fb.query(fb.collection(db, sabahKaynak()), fb.where("tarih", "==", bugun()));
     _unsub = fb.onSnapshot(q, () => {
       if (document.getElementById(hedefId)) ogretmenKart(hedefId);
       else { _unsub(); _unsub = null; }
