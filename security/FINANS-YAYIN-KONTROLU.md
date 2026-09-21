@@ -13,7 +13,7 @@ Portal ve ZEKY aynı finans hesaplama, veli, dekont, dashboard ve mutabakat mod�
 - ZEKY taslağı daha önce yayımlanan PDR/danışma dalıyla birleştirildi; ilgili rol ekranları korunur.
 
 ## Doğrulama
-- Portal: 102 test geçti. ZEKY: 20 test geçti.
+- Portal: 104 test geçti. ZEKY: 22 test geçti.
 - Yerel Firestore Emulator: 71 kontrol geçti. Sahip veli, başka veli, muhasebe, öğretmen, danışma, PDR ve oturumsuz erişim; kısmi ödeme, eşzamanlı onay/ters kayıt, fazla iade, özel dekont ve banka eşleştirmesi sınandı.
 - Test komutu: `node --test tests/*.test.mjs`.
 - Emülatör: `FIRESTORE_EMULATOR_HOST=127.0.0.1:8791 FINANCE_RULES_FILE=/path/candidate.rules node tests/finans-rules-emulator.cjs`. `@firebase/rules-unit-testing` ve `firebase` test bağımlılıkları gerekir. Test yalnız yerel adres ve demo-finance-review projesiyle çalışır.
@@ -33,3 +33,10 @@ Portal ve ZEKY aynı finans hesaplama, veli, dekont, dashboard ve mutabakat mod�
 - Başabaş, sınıflandırılmış giderlere dayanan senaryodur; gerçekleşmiş net kâr olarak sunulmaz.
 - Tarihsiz eski tahsilatlar aylık nakit grafiğine yazılmaz. Eksik dönem/tarih veya tutarsız hareketlere tahmin uygulanmaz. Eski sözleşme/ücret yönetimi korunur; yeni sözleşme sistemi ve XLSX çıktı eklenmedi.
 - Dekontlar istemci üzerinden değiştirilmez/silinmez. Saklama ve yetkili imha süreci ayrıca tanımlanmalıdır.
+
+## 21 Eylül — referans ekranlarına göre ilk arayüz paketi
+11 ekran görüntüsü incelendi. Kart → öğrenci cari özeti → ay/kalem detayı akışı, üst bölüm gezinmesi, 10/25/50/100 satırlık sayfalama, Türkçe sütun sıralaması, bu ay vadesi gelen açık borç filtresi eklendi. Öğrenci detayında ödeme planı ve tahsilat/iade hareketleri birlikte görünür. Vade ekranı ayın gerçek vadelerini günlere göre gruplar; vadesiz borç adedi ayrıca gösterilir. Toplu rapor ekranda açılır, aranır/sıralanır, ek kalem ve ay toplamlarıyla CSV alınır. Belirsiz gider ödeme durumu artık ödendi sayılmaz.
+
+Bu paket görsel/cihaz kabulünden geçmedi ve üretime yayımlanmadı. Önceki 1.0.7 AAB bu yeni arayüz değişikliklerini içermez; son kod için yeniden derleme gerekir.
+
+Referansların kalan kapsamı: yeni sözleşme/ücret düzenleyicisi, okul dışı gelirler, gerçek kasa/banka/POS bakiyesi ve hesap hareketleri, çek/senet, XLSX çıktı; tüm ikincil listelerde tutarlı filtre/sıralama ve görsel kabul. Vade ekranı günlere ayrılmış aylık listedir; ay/hafta/gün takvim ızgarası henüz yoktur. Örnek ekranlardaki bakiye ve kişiler uygulamaya eklenmedi. WhatsApp gönderimi veya ödeme transferi yapılmadı.
