@@ -17638,23 +17638,34 @@ window.veliOkulZiliBildir = async function() {
       olusturuldu: new Date().toISOString(),
       guncellendi: serverTimestamp()
     };
+
+    // Asıl işlem: veli bildirimi + isimsiz sıra. Danışma projeksiyonu bu
+    // batch'in parçası DEĞİLDİR; yardımcı kayıttaki izin sorunu veli
+    // bildirimini geri alamaz.
     const batch = writeBatch(db);
     batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
-    const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
-    const guvenliMevcut = await getDoc(guvenliRef);
-    if (guvenliMevcut.exists()) {
-      batch.set(guvenliRef, {
-        hedefSaat: saat, alanKisi: kisi, durum: "yolda",
-        guncellendi: serverTimestamp()
-      }, { merge: true });
-    } else {
-      batch.set(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
-    }
-    // İsimsiz kuyruk (ZEKY pickupKuyrukGuncelle ile aynı şema)
     batch.set(doc(db, "pickupKuyruk", tarih), {
       tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
     }, { merge: true });
     await batch.commit();
+
+    // Danışma için kişisel e-posta içermeyen operasyon özeti yardımcıdır.
+    // Erişim yoksa ana işlem yine başarılı kabul edilir.
+    try {
+      const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+      const guvenliMevcut = await getDoc(guvenliRef);
+      if (guvenliMevcut.exists()) {
+        await setDoc(guvenliRef, {
+          hedefSaat: saat, alanKisi: kisi, durum: "yolda",
+          guncellendi: serverTimestamp()
+        }, { merge: true });
+      } else {
+        await setDoc(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
+      }
+    } catch (projeksiyonHatasi) {
+      console.warn("Okul Zili danışma özeti güncellenemedi:", projeksiyonHatasi.code || projeksiyonHatasi.message);
+    }
+
     showToast("🔔 Bildiriminiz öğretmene iletildi");
     veliOkulZiliDoldur();
   } catch (e) {
@@ -17669,18 +17680,22 @@ window.veliOkulZiliTeyit = async function() {
   if (!ogr) return;
   const tarih = vzBugun();
   try {
-    const batch = writeBatch(db);
     const onay = {
       veliOnay: true,
       veliOnayZamani: new Date().toISOString(),
       veliOnayEmail: (currentUser?.email || "").toLowerCase(),
       guncellendi: serverTimestamp()
     };
-    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
-    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
-      veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
-    }, { merge: true });
-    await batch.commit();
+    await setDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
+
+    try {
+      await setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+        veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
+      }, { merge: true });
+    } catch (projeksiyonHatasi) {
+      console.warn("Okul Zili teyit danışma özeti güncellenemedi:", projeksiyonHatasi.code || projeksiyonHatasi.message);
+    }
+
     showToast("✓ Teyit edildi, iyi günler");
     veliOkulZiliDoldur();
   } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
@@ -17693,18 +17708,24 @@ window.veliOkulZiliIptal = async function() {
   if (!confirm("Bildirimi kaldırmak istediğinize emin misiniz?")) return;
   const tarih = vzBugun();
   try {
-    const batch = writeBatch(db);
     const iptalZamani = new Date().toISOString();
+    const batch = writeBatch(db);
     batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
-      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
-    }, { merge: true });
-    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
       durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
     }, { merge: true });
     batch.set(doc(db, "pickupKuyruk", tarih), {
       ogrenciler: { [ogr.id]: deleteField() }
     }, { merge: true });
     await batch.commit();
+
+    try {
+      await setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+        durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+      }, { merge: true });
+    } catch (projeksiyonHatasi) {
+      console.warn("Okul Zili iptal danışma özeti güncellenemedi:", projeksiyonHatasi.code || projeksiyonHatasi.message);
+    }
+
     showToast("Bildirim kaldırıldı");
     veliOkulZiliDoldur();
   } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
