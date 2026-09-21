@@ -1,0 +1,41 @@
+name: Verify public Okul Zili deployment
+on:
+  push:
+    branches: [diag/okul-zili-canli-dogrulama-20260921]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare actual public responses to this checkout
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import urllib.request, hashlib, json, time, re
+          root='https://portal.bircicekkoleji.com/'
+          checks=[('index.html',''),('serviceworker.js',''),('moduller/pickup-yetkilileri.js',''),('moduller/pickup-yetkilileri.js','?v=v116')]
+          results=[]
+          for path,q in checks:
+              item={'path':path+q}
+              try:
+                  req=urllib.request.Request(root+path+q,headers={'Cache-Control':'no-cache','User-Agent':'BCKA-Public-Deployment-Verification'})
+                  with urllib.request.urlopen(req,timeout=30) as r:
+                      data=r.read(); item.update(status=r.status,finalUrl=r.url,contentType=r.headers.get('Content-Type'),age=r.headers.get('Age'))
+                  s=data.decode('utf-8'); source=Path(path).read_bytes()
+                  item.update(sha256=hashlib.sha256(data).hexdigest(),matchesCheckout=data==source,bytes=len(data),taggedError='Gönderilemedi — ana çıkış kaydı:' in s,version=re.findall(r'(?:CACHE_VERSION|PORTAL_SURUM)\s*=\s*[\"\']([^\"\']+)',s)[:3])
+              except Exception as e:
+                  item['error']=str(e)
+              results.append(item)
+          print(json.dumps({'head':'${{ github.sha }}','publicResponses':results},ensure_ascii=False,indent=2))
+          Path('public-verification.json').write_text(json.dumps(results,ensure_ascii=False,indent=2))
+          PY
+      - name: Run source regression tests
+        run: node --test tests/*.test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-verification
+          path: public-verification.json
+          retention-days: 1
