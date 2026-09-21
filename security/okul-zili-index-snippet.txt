@@ -1,0 +1,2967 @@
+
+
+===== window.veliOkulZiliBildir = async function() =====
+
+--- occurrence 1 @ 812252 ---
+          ${i > 0 ? `<div style="position:absolute; left:-50%; right:50%; top:9px; height:2px; background:${a.ok ? s.renk : "#E2E8F0"};"></div>` : ""}
+          <div style="width:20px; height:20px; border-radius:50%; margin:0 auto; background:${a.ok ? s.renk : "#E2E8F0"}; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">${a.ok ? "✓" : ""}</div>
+          <div style="font-size:11px; font-weight:700; color:${a.ok ? "#1E293B" : "#94A3B8"}; margin-top:5px;">${a.ad}</div>
+          <div style="font-size:10.5px; color:var(--c-muted);">${vzSaatY(a.z) || "—"}</div>
+        </div>`).join("")}
+    </div>
+    <div style="padding:0 18px 14px; font-size:12px; color:var(--c-muted); display:flex; gap:10px; flex-wrap:wrap;">
+      <span>🕐 Hedef ${esc(b.hedefSaat || "—")}</span>
+      <span>· ${esc(b.alanKisi || "Veli")} alacak</span>
+      ${sira && b.durum !== "teslim" && sira.onunde > 0 ? `<span>· önünüzde ${sira.onunde} kişi</span>` : ""}
+    </div>
+    ${b.durum === "teslim" && !b.veliOnay ? `
+      <div style="padding:0 18px 16px;">
+        <button class="ca-btn" style="width:100%; background:#059669; font-size:14px; padding:12px;" onclick="veliOkulZiliTeyit()">
+          👍 Çocuğumu aldım, teyit ediyorum
+        </button>
+      </div>` : ""}
+    ${b.veliOnay ? `
+      <div style="padding:0 18px 14px; font-size:12px; color:#059669; font-weight:700;">
+        ✓ Teyit ettiniz · ${vzSaatY(b.veliOnayZamani)}
+      </div>` : ""}
+    ${b.durum === "yolda" ? `
+      <div style="padding:0 18px 14px;">
+        <button class="ca-btn ghost" style="width:100%; font-size:12.5px;" onclick="veliOkulZiliIptal()">Vazgeçtim, bildirimi kaldır</button>
+      </div>` : ""}`;
+};
+
+// "Almaya geliyorum" — ZEKY pickupBildir ile aynı belge
+window.veliOkulZiliBildir = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const saat = document.getElementById("vzSaat")?.value || "";
+  const kisi = document.getElementById("vzKisi")?.value || "Veli";
+  const tarih = vzBugun();
+  try {
+    const tamVeri = {
+      ogrenciId: ogr.id,
+      ogrenciAd: ogr.ogrenciAdSoyad || "",
+      sinif: (ayarListesi?.[ogr.id]?.kayit?.sinif) || ogr.sinif || "",
+      tarih, hedefSaat: saat, alanKisi: kisi,
+      durum: "yolda",
+      veliEmail: (currentUser?.email || "").toLowerCase(),
+      olusturuldu: new Date().toISOString(),
+      guncellendi: serverTimestamp()
+    };
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
+    const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+    const guvenliMevcut = await getDoc(guvenliRef);
+    if (guvenliMevcut.exists()) {
+      batch.set(guvenliRef, {
+        hedefSaat: saat, alanKisi: kisi, durum: "yolda",
+        guncellendi: serverTimestamp()
+      }, { merge: true });
+    } else {
+      batch.set(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
+    }
+    // İsimsiz kuyruk (ZEKY pickupKuyrukGuncelle ile aynı şema)
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("🔔 Bildiriminiz öğretmene iletildi");
+    veliOkulZiliDoldur();
+  } catch (e) {
+    console.error("okul zili bildir:", e);
+    showToast("Gönderilemedi: " + e.message, "error");
+  }
+};
+
+// Veli teyidi — ZEKY pickupVeliOnayi ile aynı (öğretmenin kaydından AYRI alan)
+window.veliOkulZiliTeyit = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const onay = {
+      veliOnay: true,
+      veliOnayZamani: new Date().toISOString(),
+      veliOnayEmail: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    };
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("✓ Teyit edildi, iyi günler");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
+};
+
+// Vazgeçme (yalnızca "yolda" durumunda)
+window.veliOkulZiliIptal = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  if (!confirm("Bildirimi kaldırmak istediğinize emin misiniz?")) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const iptalZamani = new Date().toISOString();
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      ogrenciler: { [ogr.id]: deleteField() }
+    }, { merge: true });
+    await batch.commit();
+    showToast("Bildirim kaldırıldı");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
+};
+
+async function caHomeGunlukDoldur() {
+  const el = document.getElementById("caHomeGunluk");
+  if (!el) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  if (!o) { el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Öğrenci seçilmedi.</div>`; return; }
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const q = query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id));
+    const snap = await getDocs(q);
+    let liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
+    const r = liste[0];
+    if (!r) {
+      el.innerHTML = `<div style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz günlük rapor girilmemiş.</div>`;
+      return;
+    }
+    const gunAd = (() => {
+      try {
+        const d = new Date(r.tarih + "T00:00:00");
+        return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+      } catch (e) { return r.tarih || ""; }
+    })();
+    // Değer nesne olabilir ({miktar:"%85"} gibi) — düz metne çevir,
+    // aksi halde ekranda "[object Object]" görünüyordu.
+    const duzMetin = (v) => {
+      if (v == null) return "";
+      if (typeof v === "string" || typeof v === "number") return String(v);
+      if (typeof v === "object") {
+        const aday = v.deger ?? v.miktar ?? v.durum ?? v.metin ?? v.ad ?? v.yuzde ?? v.sure;
+        if (aday != null) return String(aday);
+        const ilk = Object.values(v).find(x => typeof x === "string" || typeof x === "number");
+        return ilk != null ? String(ilk) : "";
+      }
+      return "";
+    };
+    const pil = (ham, etiket, bg) => {
+      const deger = duzMetin(ham);
+      return deger
+        ? `<div class="ca-statpill" style="background:${bg};"><div class="v">${escapeHtml(deger)}</div><div class="l">${etiket}</div></div>` : "";
+    };
+    el.innerHTML = `
+      <div class="ca-row">
+        <span class="ca-qicon" style="background:var(--c-yellow-soft); width:42px; 
+
+===== window.veliOkulZiliDoldur = async function() =====
+
+--- occurrence 1 @ 803139 ---
+llipsis;">${escapeHtml(t.sonMesaj || "")}</div>
+            </div>
+            ${okunmamis > 0 ? `<span class="ca-unread">${okunmamis}</span>` : ""}
+          </div>`;
+        }).join("")
+      : `<div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz mesajınız yok.</div>`;
+  } catch (e) {
+    el.innerHTML = `<div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Mesajlar yüklenemedi.</div>`;
+  }
+}
+window.caHomeMesajlariDoldur = caHomeMesajlariDoldur;
+
+
+// Veli ana sayfası — bugünün günlüğü (GERÇEK VERİ)
+// ═══════════ VELİ — OKUL ZİLİ (ZEKY veli-pickup ile ortak) ═══════════
+// Belge: pickupBildirimleri/{ogrenciId}__{tarih}
+// Akış: veli "Almaya geliyorum" → yolda → öğretmen hazırlar → hazir → teslim → veli teyit
+
+function vzBugun() { return new Date().toISOString().slice(0, 10); }
+function vzSaatY(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d) ? "" : String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+function okulZiliKoleksiyonu() {
+  return danismaRolMu() ? DANISMA_GUVENLI_KOLEKSIYONLAR.pickup : "pickupBildirimleri";
+}
+
+function okulZiliGuvenliVeri(v, ogrenciId = "", tarih = "") {
+  const x = v || {};
+  return {
+    ogrenciId: x.ogrenciId || x.cocukId || ogrenciId || "",
+    ogrenciAd: x.ogrenciAd || "", sinif: x.sinif || "", tarih: x.tarih || tarih || "",
+    hedefSaat: x.hedefSaat || "", alanKisi: x.alanKisi || "Veli",
+    durum: x.durum || "yolda", olusturuldu: x.olusturuldu || "",
+    hazirZamani: x.hazirZamani || "", teslimZamani: x.teslimZamani || "",
+    teslimEden: x.teslimEden || "", veliOnay: x.veliOnay === true,
+    veliOnayZamani: x.veliOnayZamani || "", iptalZamani: x.iptalZamani || "",
+    guncellendi: serverTimestamp()
+  };
+}
+
+window.veliOkulZiliDoldur = async function() {
+  const el = document.getElementById("veliOkulZiliKart");
+  if (!el) return;
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) { el.innerHTML = ""; return; }
+
+  const tarih = vzBugun();
+  const gunIdx = new Date().getDay();
+  // Yetkili kişi listesi (form açılır menüsü için)
+  try {
+    const py = await modulYukle("pickup-yetkilileri");
+    if (py) window._vzYetkililer = await py.listeGetir(ogr.id);
+  } catch (e) { window._vzYetkililer = null; }
+  let b = null;
+  try {
+    const s = await getDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih));
+    if (s.exists()) {
+      b = s.data();
+      // Eski kaydı ilk veli görüntülemesinde güvenli danışma projeksiyonuna
+      // yalnız belge henüz yoksa taşı.
+      try {
+        const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+        const guvenli = await getDoc(guvenliRef);
+        if (!guvenli.exists()) await setDoc(guvenliRef, okulZiliGuvenliVeri(b, ogr.id, tarih));
+      } catch (e) { console.warn("okul zili güvenli özet:", e.code || e.message); }
+    }
+  } catch (e) { console.warn("okul zili:", e.code || e.message); }
+
+  // Sıra bilgisi (isimsiz kuyruk)
+  let sira = null;
+  if (b && b.durum !== "teslim") {
+    try {
+      const ks = await getDoc(doc(db, "pickupKuyruk", tarih));
+      if (ks.exists()) {
+        const liste = Object.entries(ks.data().ogrenciler || {})
+          .map(([id, v]) => ({ id, saat: (v && v.saat) || "" }))
+          .sort((x, y) => x.saat.localeCompare(y.saat));
+        const i = liste.findIndex(x => x.id === ogr.id);
+        if (i >= 0) sira = { sira: i + 1, onunde: i, toplam: liste.length };
+      }
+    } catch (e) { /* kuyruk yoksa sorun değil */ }
+  }
+
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const ad = (ogr.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
+
+  // ── Hafta sonu ──
+  if (gunIdx === 0 || gunIdx === 6) {
+    el.innerHTML = `<div style="padding:16px 18px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:26px;">🔔</span>
+      <div><div class="ca-head" style="font-size:14px;">Okul Zili</div>
+      <div class="ca-tile-sub">Hafta sonu · okul kapalı</div></div>
+    </div>`;
+    return;
+  }
+
+  // ── Akşam (18:30 sonrası) ve bildirim yoksa → yer kaplamasın ──
+  if (!b) {
+    const _s = new Date();
+    if (_s.getHours() >= 18 && _s.getMinutes() >= 30 || _s.getHours() >= 19) {
+      el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:var(--c-muted);">
+        <span>🔔</span><span>Okul Zili · yarın sabah aktif olacak</span>
+      </div>`;
+      return;
+    }
+  }
+
+  // ── Henüz bildirim yok → "Almaya geliyorum" ──
+  if (!b) {
+    const simdi = new Date();
+    const varsayilan = simdi.getHours() < 15 ? "15:30" : String(Math.min(simdi.getHours()+1, 18)).padStart(2,"0") + ":00";
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#B45309 0%,#F59E0B 100%); color:#fff; padding:14px 18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:24px;">🔔</span>
+          <div style="flex:1;">
+            <div class="ca-head" style="font-size:15px; color:#fff;">Okul Zili</div>
+            <div style="font-size:12px; opacity:.9;">${esc(ad)}'ı almaya geldiğinizde bildirin, öğretmen hazırlasın</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 18px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Varış saati</label>
+          <input type="time" id="vzSaat" value="${varsayilan}"
+            style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Kim alacak</label>
+          <select id="vzKisi" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; margin-top:4px;">
+            ${(window._vzYetkililer || [{ad:"Anne"},{ad:"Baba"}]).map(k => `<option>${esc(k.ad)}</option>`).join("")}
+          </select>
+          <div style="font-size:10.5px; color:var(--c-muted); margin-top:4px;">Liste "Teslim Alabilecek Kişiler" kartından gelir.</div>
+        </div>
+      </div>
+      <div style="padding:0 18px 16px;">
+        <button class="ca-btn" style="width:100%; background:#B45309; font-size:14px; padding:13px;" onclick="veliOkulZiliBildir()">
+          🚗 Almaya geliyorum
+        </button>
+      </div>`;
+    return;
+  }
+
+  // ── Teslim + veli teyidi tamam → kompakt özet, yer kaplamasın ──
+  if (b.durum === "teslim" && b.veliOnay) {
+    el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:#166534;">
+      <span>✅</span>
+      <span style="flex:1;"><strong>${esc(ad)}</strong> ${vzSaatY(b.teslimZamani)}'de teslim edildi${b.teslimEden ? " · " + esc(b.teslimEden.split(" ")[0]) : ""}</span>
+      <span style="font-size:11px; color:var(--c-muted);">teyit ${vzSaatY(b.veliOnayZamani)}</span>
+    </div>`;
+    return;
+  }
+
+  // ── Bildirim var → durum takibi ──
+  const DURUM = {
+    yolda:  { ad: "Bildirim alındı",   alt: "Öğretmen haberdar, çocuğunuz hazırlanacak", renk: "#B45309", bg: "#FFFBEB", ikon: "🚗" },
+    hazir:  { ad: "Hazır, kapıya geliyor", alt: "Çocuğunuz hazırlandı, kapıda teslim edilecek", renk: "#1D4ED8", bg: "#EFF6FF", ikon: "🎒" },
+    teslim: { ad: "Teslim edildi",      alt: b.teslimEden ? esc(b.teslimEden) + " teslim etti" : "Öğretmen teslim etti", renk: "#059669", bg: "#ECFDF5", ikon: "✅" }
+ 
+
+===== DANISMA_GUVENLI_KOLEKSIYONLAR =====
+
+--- occurrence 1 @ 660788 ---
+        </td>
+          </tr>
+        </table>
+        <div style="color:#9ca3af; font-size:11px; margin-top:16px;">Bu mail Bir Çiçek Koleji Veli Portalı tarafından gönderilmiştir.</div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// Global state
+let currentUser = null;
+let isAdmin = false;
+// ===== FAZ 1a: ROL SİSTEMİ =====
+let aktifPersonel = null;        // personeller/{email} dokümanı (null = personel değil, yani veli)
+let aktifKullaniciRol = null;    // "kurucu_mudur" | "mudur" | "egitim_koordinator" | "muhasebe" | "ogretmen" | "danisma" | null(veli)
+let aktifKullaniciSiniflari = []; // Öğretmenin atandığı sınıflar (sinifAtamalari'ndan)
+function rolNormalize(rol) {
+  // Eski personel kayıtlarındaki ayrı "halkla_iliskiler" rolünü tek operasyon
+  // hesabına taşır. Veriyi değiştirmeden tüm istemci kontrollerini aynılaştırır.
+  return String(rol || "").trim() === "halkla_iliskiler" ? "danisma" : String(rol || "").trim();
+}
+function danismaRolMu() {
+  try { return !isAdmin && rolNormalize(aktifKullaniciRol) === "danisma"; }
+  catch (_) { return false; }
+}
+window.danismaRolMu = danismaRolMu;
+function danismaSaltOkunurEngelle(alan = "Bu alan") {
+  if (!danismaRolMu()) return false;
+  if (typeof showToast === "function") showToast(`${alan} danışma hesabında salt okunurdur`, "error");
+  return true;
+}
+
+function danismaOgrenciOzeti(id, veri) {
+  const v = veri || {};
+  return {
+    id,
+    ogrenciAdSoyad: v.ogrenciAdSoyad || v.adSoyad || "",
+    adSoyad: v.adSoyad || v.ogrenciAdSoyad || "",
+    sinif: v.sinif || v.sinifi || "",
+    sinifi: v.sinifi || v.sinif || "",
+    aktifDonem: v.aktifDonem || "",
+    aktifDonemDurum: v.aktifDonemDurum || v.durum || "aktif",
+    durum: v.durum || v.aktifDonemDurum || "aktif",
+    kayitDurumu: v.kayitDurumu || ""
+  };
+}
+
+const DANISMA_GUVENLI_KOLEKSIYONLAR = Object.freeze({
+  ogrenciler: "danismaOgrenciOzetleri",
+  personeller: "danismaPersonelRehberi",
+  pickup: "danismaPickupBildirimleri",
+  pickupYetkilileri: "danismaPickupYetkilileri",
+  sabah: "danismaSabahGirisleri"
+});
+
+function danismaProjeksiyonYonetebilirMi() {
+  return !!isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(rolNormalize(aktifKullaniciRol));
+}
+
+async function danismaGuvenliBelgeleriYaz(kayitlar) {
+  for (let i = 0; i < kayitlar.length; i += 400) {
+    const batch = writeBatch(db);
+    kayitlar.slice(i, i + 400).forEach(k => batch.set(k.ref, k.data));
+    await batch.commit();
+  }
+}
+
+// Yönetim oturumunda tam kaynaklardan yalnız operasyon alanlarını ayırır.
+// Danışma bu fonksiyonu çalıştıramaz ve kaynak koleksiyonları okuyamaz.
+async function danismaOperasyonProjeksiyonlariniSenkronla() {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = [];
+  const simdi = serverTimestamp();
+
+  (ogrenciList || []).forEach(o => {
+    const ayar = ayarListesi[o.id] || {};
+    const durum = getOgrenciDurum(o, ayar) || "aktif";
+    yazilacak.push({
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.ogrenciler, o.id),
+      data: {
+        ogrenciAdSoyad: o.ogrenciAdSoyad || o.adSoyad || "",
+        sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "",
+        aktifDonem: o.aktifDonem || AKTIF_DONEM || "",
+        aktifDonemDurum: o.aktifDonemDurum || durum,
+        durum,
+        kayitDurumu: o.kayitDurumu || "",
+        guncellendi: simdi
+      }
+    });
+  });
+
+  try {
+    const yetkiliSnap = await getDocs(collection(db, "pickupYetkilileri"));
+    yetkiliSnap.forEach(d => {
+      const kisiler = Array.isArray(d.data()?.kisiler)
+        ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
+        : [];
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
+        data: { kisiler, guncellendi: simdi }
+      });
+    });
+  } catch (e) { console.warn("Danışma teslim yetkilisi projeksiyonu:", e.code || e.message); }
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const pickupSnap = await getDocs(query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun)));
+    pickupSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || v.cocukId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          hedefSaat: v.hedefSaat || "", alanKisi: v.alanKisi || "Veli",
+          durum: v.durum || "yolda", olusturuldu: v.olusturuldu || "",
+          hazirZamani: v.hazirZamani || "", teslimZamani: v.teslimZamani || "",
+          teslimEden: v.teslimEden || "", veliOnay: v.veliOnay === true,
+          veliOnayZamani: v.veliOnayZamani || "", iptalZamani: v.iptalZamani || "",
+          guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma okul zili projeksiyonu:", e.code || e.message); }
+
+  try {
+    const sabahSnap = await getDocs(query(collection(db, "sabahGirisleri"), where("tarih", "==", bugun)));
+    sabahSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.sabah, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          veliBildirdi: v.veliBildirdi === true, veliBildirimSaati: v.veliBildirimSaati || "",
+          sinifaGirisOnayi: v.sinifaGirisOnayi || "", onaylayanAd: v.onaylayanAd || "",
+          onaylayanRol: v.onaylayanRol || "", guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma sabah girişi projeksiyonu:", e.code || e.message); }
+
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+
+async function danismaPersonelRehberiniSenkronla(liste) {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = (liste || []).flatMap(p => {
+    const email = String(p.email || p.id || "").toLowerCase().trim();
+    if (!email) return [];
+    return [{
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
+      data: {
+        adSoyad: p.adSoyad || p.ad || "",
+        rol: rolNormalize(p.rol), unvan: p.unvan || "",
+        durum: p.durum || "aktif", guncellendi: serverTimestamp()
+      }
+    }];
+  });
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+const ROL_ETIKETLERI = {
+  kurucu_mudur: "Kurucu Müdür",
+  mudur: "Müdür",
+  egitim_koordinator: "Eğitim Koordinatörü",
+  muhasebe: "Muhasebe",
+  ogretmen: "Öğretmen",
+  danisma: "Danışma Personeli",
+  halkla_iliskiler: "Danışma Personeli",
+  pdr: "PDR Uzmanı"
+};
+// Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
+const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma", "pdr"];
+// Yönetim rolleri (her şeye erişir)
+const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
+let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
+let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
+let gelecekDonemKayitlari = {}; // {ogrenciId: true} → gelecek dönemde kaydı olanlar (yenileme butonu kontrolü)
+let ogrenciVerileriHazirMi = false;
+let ogrenciTablosuYenilemeBekliyor = false;
+let gelecekDonemKayitlariHazirMi = false;
+let gelecekDonemKayitlariYuklemeSozu = null;
+let anaKayitDonemOzetiKullaniliyor = false;
+let filteredList = [];     // Filtrelenmiş liste (tablo için)
+let activeFilter = "tumu";
+let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
+let currentOgrenci = null; // Modalda açık olan öğrenci
+
+// ============ AUTH ============
+// ===== FAZ 1a: Bu e-posta sistemde kayıtlı bir PERSONEL mi? =====
+// Döner: personel dokümanı (varsa) veya null
+async function personelGetir(email) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!
+--- occurrence 2 @ 661941 ---
+alan = "Bu alan") {
+  if (!danismaRolMu()) return false;
+  if (typeof showToast === "function") showToast(`${alan} danışma hesabında salt okunurdur`, "error");
+  return true;
+}
+
+function danismaOgrenciOzeti(id, veri) {
+  const v = veri || {};
+  return {
+    id,
+    ogrenciAdSoyad: v.ogrenciAdSoyad || v.adSoyad || "",
+    adSoyad: v.adSoyad || v.ogrenciAdSoyad || "",
+    sinif: v.sinif || v.sinifi || "",
+    sinifi: v.sinifi || v.sinif || "",
+    aktifDonem: v.aktifDonem || "",
+    aktifDonemDurum: v.aktifDonemDurum || v.durum || "aktif",
+    durum: v.durum || v.aktifDonemDurum || "aktif",
+    kayitDurumu: v.kayitDurumu || ""
+  };
+}
+
+const DANISMA_GUVENLI_KOLEKSIYONLAR = Object.freeze({
+  ogrenciler: "danismaOgrenciOzetleri",
+  personeller: "danismaPersonelRehberi",
+  pickup: "danismaPickupBildirimleri",
+  pickupYetkilileri: "danismaPickupYetkilileri",
+  sabah: "danismaSabahGirisleri"
+});
+
+function danismaProjeksiyonYonetebilirMi() {
+  return !!isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(rolNormalize(aktifKullaniciRol));
+}
+
+async function danismaGuvenliBelgeleriYaz(kayitlar) {
+  for (let i = 0; i < kayitlar.length; i += 400) {
+    const batch = writeBatch(db);
+    kayitlar.slice(i, i + 400).forEach(k => batch.set(k.ref, k.data));
+    await batch.commit();
+  }
+}
+
+// Yönetim oturumunda tam kaynaklardan yalnız operasyon alanlarını ayırır.
+// Danışma bu fonksiyonu çalıştıramaz ve kaynak koleksiyonları okuyamaz.
+async function danismaOperasyonProjeksiyonlariniSenkronla() {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = [];
+  const simdi = serverTimestamp();
+
+  (ogrenciList || []).forEach(o => {
+    const ayar = ayarListesi[o.id] || {};
+    const durum = getOgrenciDurum(o, ayar) || "aktif";
+    yazilacak.push({
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.ogrenciler, o.id),
+      data: {
+        ogrenciAdSoyad: o.ogrenciAdSoyad || o.adSoyad || "",
+        sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "",
+        aktifDonem: o.aktifDonem || AKTIF_DONEM || "",
+        aktifDonemDurum: o.aktifDonemDurum || durum,
+        durum,
+        kayitDurumu: o.kayitDurumu || "",
+        guncellendi: simdi
+      }
+    });
+  });
+
+  try {
+    const yetkiliSnap = await getDocs(collection(db, "pickupYetkilileri"));
+    yetkiliSnap.forEach(d => {
+      const kisiler = Array.isArray(d.data()?.kisiler)
+        ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
+        : [];
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
+        data: { kisiler, guncellendi: simdi }
+      });
+    });
+  } catch (e) { console.warn("Danışma teslim yetkilisi projeksiyonu:", e.code || e.message); }
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const pickupSnap = await getDocs(query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun)));
+    pickupSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || v.cocukId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          hedefSaat: v.hedefSaat || "", alanKisi: v.alanKisi || "Veli",
+          durum: v.durum || "yolda", olusturuldu: v.olusturuldu || "",
+          hazirZamani: v.hazirZamani || "", teslimZamani: v.teslimZamani || "",
+          teslimEden: v.teslimEden || "", veliOnay: v.veliOnay === true,
+          veliOnayZamani: v.veliOnayZamani || "", iptalZamani: v.iptalZamani || "",
+          guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma okul zili projeksiyonu:", e.code || e.message); }
+
+  try {
+    const sabahSnap = await getDocs(query(collection(db, "sabahGirisleri"), where("tarih", "==", bugun)));
+    sabahSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.sabah, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          veliBildirdi: v.veliBildirdi === true, veliBildirimSaati: v.veliBildirimSaati || "",
+          sinifaGirisOnayi: v.sinifaGirisOnayi || "", onaylayanAd: v.onaylayanAd || "",
+          onaylayanRol: v.onaylayanRol || "", guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma sabah girişi projeksiyonu:", e.code || e.message); }
+
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+
+async function danismaPersonelRehberiniSenkronla(liste) {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = (liste || []).flatMap(p => {
+    const email = String(p.email || p.id || "").toLowerCase().trim();
+    if (!email) return [];
+    return [{
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
+      data: {
+        adSoyad: p.adSoyad || p.ad || "",
+        rol: rolNormalize(p.rol), unvan: p.unvan || "",
+        durum: p.durum || "aktif", guncellendi: serverTimestamp()
+      }
+    }];
+  });
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+const ROL_ETIKETLERI = {
+  kurucu_mudur: "Kurucu Müdür",
+  mudur: "Müdür",
+  egitim_koordinator: "Eğitim Koordinatörü",
+  muhasebe: "Muhasebe",
+  ogretmen: "Öğretmen",
+  danisma: "Danışma Personeli",
+  halkla_iliskiler: "Danışma Personeli",
+  pdr: "PDR Uzmanı"
+};
+// Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
+const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma", "pdr"];
+// Yönetim rolleri (her şeye erişir)
+const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
+let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
+let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
+let gelecekDonemKayitlari = {}; // {ogrenciId: true} → gelecek dönemde kaydı olanlar (yenileme butonu kontrolü)
+let ogrenciVerileriHazirMi = false;
+let ogrenciTablosuYenilemeBekliyor = false;
+let gelecekDonemKayitlariHazirMi = false;
+let gelecekDonemKayitlariYuklemeSozu = null;
+let anaKayitDonemOzetiKullaniliyor = false;
+let filteredList = [];     // Filtrelenmiş liste (tablo için)
+let activeFilter = "tumu";
+let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
+let currentOgrenci = null; // Modalda açık olan öğrenci
+
+// ============ AUTH ============
+// ===== FAZ 1a: Bu e-posta sistemde kayıtlı bir PERSONEL mi? =====
+// Döner: personel dokümanı (varsa) veya null
+async function personelGetir(email) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return null;
+  try {
+    const snap = await getDoc(doc(db, "personeller", lower));
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    }
+  } catch (e) {
+    console.warn("personelGetir hatası:", e);
+  }
+  return null;
+}
+
+// Bir öğretmenin atandığı sınıfları getir. Girişte zaten okunan personel
+// belgesindeki alanlar birincil kaynaktır; böylece öğretmen oturumu ikinci bir
+// koleksiyon sorgusuna ve o sorgunun Rules iznine bağlı kalmaz.
+async function personelSiniflariGetir(email, personelKaydi = null) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return [];
+  const belgeSiniflari = [
+    ...(Array.isArray(personelKaydi?.siniflar) ? personelKaydi.siniflar : []),
+    ...(Array.isArray(personelKaydi?.sinifAtamalari) ? personelKaydi.sinifAtamalari : [])
+  ].map(s => String(s || "").trim()).filter(Boolean);
+  if (belgeSiniflari.length) return [...new Set(belgeSiniflari)];
+
+  // Eski personel kayıtlarında alanlar yoksa geriye dönük koleksiyon desteği.
+  try {
+    const q = query(collection(db, "sinifAtamalari"), where("email", "==", lower));
+    const snap = await getDocs(q);
+    const sini
+--- occurrence 3 @ 662690 ---
+ "danismaPersonelRehberi",
+  pickup: "danismaPickupBildirimleri",
+  pickupYetkilileri: "danismaPickupYetkilileri",
+  sabah: "danismaSabahGirisleri"
+});
+
+function danismaProjeksiyonYonetebilirMi() {
+  return !!isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(rolNormalize(aktifKullaniciRol));
+}
+
+async function danismaGuvenliBelgeleriYaz(kayitlar) {
+  for (let i = 0; i < kayitlar.length; i += 400) {
+    const batch = writeBatch(db);
+    kayitlar.slice(i, i + 400).forEach(k => batch.set(k.ref, k.data));
+    await batch.commit();
+  }
+}
+
+// Yönetim oturumunda tam kaynaklardan yalnız operasyon alanlarını ayırır.
+// Danışma bu fonksiyonu çalıştıramaz ve kaynak koleksiyonları okuyamaz.
+async function danismaOperasyonProjeksiyonlariniSenkronla() {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = [];
+  const simdi = serverTimestamp();
+
+  (ogrenciList || []).forEach(o => {
+    const ayar = ayarListesi[o.id] || {};
+    const durum = getOgrenciDurum(o, ayar) || "aktif";
+    yazilacak.push({
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.ogrenciler, o.id),
+      data: {
+        ogrenciAdSoyad: o.ogrenciAdSoyad || o.adSoyad || "",
+        sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "",
+        aktifDonem: o.aktifDonem || AKTIF_DONEM || "",
+        aktifDonemDurum: o.aktifDonemDurum || durum,
+        durum,
+        kayitDurumu: o.kayitDurumu || "",
+        guncellendi: simdi
+      }
+    });
+  });
+
+  try {
+    const yetkiliSnap = await getDocs(collection(db, "pickupYetkilileri"));
+    yetkiliSnap.forEach(d => {
+      const kisiler = Array.isArray(d.data()?.kisiler)
+        ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
+        : [];
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
+        data: { kisiler, guncellendi: simdi }
+      });
+    });
+  } catch (e) { console.warn("Danışma teslim yetkilisi projeksiyonu:", e.code || e.message); }
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const pickupSnap = await getDocs(query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun)));
+    pickupSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || v.cocukId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          hedefSaat: v.hedefSaat || "", alanKisi: v.alanKisi || "Veli",
+          durum: v.durum || "yolda", olusturuldu: v.olusturuldu || "",
+          hazirZamani: v.hazirZamani || "", teslimZamani: v.teslimZamani || "",
+          teslimEden: v.teslimEden || "", veliOnay: v.veliOnay === true,
+          veliOnayZamani: v.veliOnayZamani || "", iptalZamani: v.iptalZamani || "",
+          guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma okul zili projeksiyonu:", e.code || e.message); }
+
+  try {
+    const sabahSnap = await getDocs(query(collection(db, "sabahGirisleri"), where("tarih", "==", bugun)));
+    sabahSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.sabah, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          veliBildirdi: v.veliBildirdi === true, veliBildirimSaati: v.veliBildirimSaati || "",
+          sinifaGirisOnayi: v.sinifaGirisOnayi || "", onaylayanAd: v.onaylayanAd || "",
+          onaylayanRol: v.onaylayanRol || "", guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma sabah girişi projeksiyonu:", e.code || e.message); }
+
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+
+async function danismaPersonelRehberiniSenkronla(liste) {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = (liste || []).flatMap(p => {
+    const email = String(p.email || p.id || "").toLowerCase().trim();
+    if (!email) return [];
+    return [{
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
+      data: {
+        adSoyad: p.adSoyad || p.ad || "",
+        rol: rolNormalize(p.rol), unvan: p.unvan || "",
+        durum: p.durum || "aktif", guncellendi: serverTimestamp()
+      }
+    }];
+  });
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+const ROL_ETIKETLERI = {
+  kurucu_mudur: "Kurucu Müdür",
+  mudur: "Müdür",
+  egitim_koordinator: "Eğitim Koordinatörü",
+  muhasebe: "Muhasebe",
+  ogretmen: "Öğretmen",
+  danisma: "Danışma Personeli",
+  halkla_iliskiler: "Danışma Personeli",
+  pdr: "PDR Uzmanı"
+};
+// Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
+const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma", "pdr"];
+// Yönetim rolleri (her şeye erişir)
+const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
+let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
+let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
+let gelecekDonemKayitlari = {}; // {ogrenciId: true} → gelecek dönemde kaydı olanlar (yenileme butonu kontrolü)
+let ogrenciVerileriHazirMi = false;
+let ogrenciTablosuYenilemeBekliyor = false;
+let gelecekDonemKayitlariHazirMi = false;
+let gelecekDonemKayitlariYuklemeSozu = null;
+let anaKayitDonemOzetiKullaniliyor = false;
+let filteredList = [];     // Filtrelenmiş liste (tablo için)
+let activeFilter = "tumu";
+let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
+let currentOgrenci = null; // Modalda açık olan öğrenci
+
+// ============ AUTH ============
+// ===== FAZ 1a: Bu e-posta sistemde kayıtlı bir PERSONEL mi? =====
+// Döner: personel dokümanı (varsa) veya null
+async function personelGetir(email) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return null;
+  try {
+    const snap = await getDoc(doc(db, "personeller", lower));
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    }
+  } catch (e) {
+    console.warn("personelGetir hatası:", e);
+  }
+  return null;
+}
+
+// Bir öğretmenin atandığı sınıfları getir. Girişte zaten okunan personel
+// belgesindeki alanlar birincil kaynaktır; böylece öğretmen oturumu ikinci bir
+// koleksiyon sorgusuna ve o sorgunun Rules iznine bağlı kalmaz.
+async function personelSiniflariGetir(email, personelKaydi = null) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return [];
+  const belgeSiniflari = [
+    ...(Array.isArray(personelKaydi?.siniflar) ? personelKaydi.siniflar : []),
+    ...(Array.isArray(personelKaydi?.sinifAtamalari) ? personelKaydi.sinifAtamalari : [])
+  ].map(s => String(s || "").trim()).filter(Boolean);
+  if (belgeSiniflari.length) return [...new Set(belgeSiniflari)];
+
+  // Eski personel kayıtlarında alanlar yoksa geriye dönük koleksiyon desteği.
+  try {
+    const q = query(collection(db, "sinifAtamalari"), where("email", "==", lower));
+    const snap = await getDocs(q);
+    const siniflar = [];
+    snap.forEach(d => {
+      const s = d.data().sinif;
+      if (s && !siniflar.includes(s)) siniflar.push(s);
+    });
+    return siniflar;
+  } catch (e) {
+    console.warn("personelSiniflariGetir hatası:", e);
+    return [];
+  }
+}
+
+// ============================================================
+// ===== FAZ 1b: PERSONEL YÖNETİMİ (CRUD) =====
+// ============================================================
+let personelListesi = [];          // Tüm personeller (Firestore'dan)
+let personelAtamaHaritasi = {};    // { email: [sinif1, sinif2] } — sınıf atamaları
+let personelAktifDurumFiltre = "aktif"; // "aktif" | "arsiv"
+let personelSeciliSiniflar = [];   // Modal'da seçili sınıflar
+
+// Sadece yönetim rolleri personel yönetebilir
+fu
+--- occurrence 4 @ 663187 ---
+batch.set(k.ref, k.data));
+    await batch.commit();
+  }
+}
+
+// Yönetim oturumunda tam kaynaklardan yalnız operasyon alanlarını ayırır.
+// Danışma bu fonksiyonu çalıştıramaz ve kaynak koleksiyonları okuyamaz.
+async function danismaOperasyonProjeksiyonlariniSenkronla() {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = [];
+  const simdi = serverTimestamp();
+
+  (ogrenciList || []).forEach(o => {
+    const ayar = ayarListesi[o.id] || {};
+    const durum = getOgrenciDurum(o, ayar) || "aktif";
+    yazilacak.push({
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.ogrenciler, o.id),
+      data: {
+        ogrenciAdSoyad: o.ogrenciAdSoyad || o.adSoyad || "",
+        sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "",
+        aktifDonem: o.aktifDonem || AKTIF_DONEM || "",
+        aktifDonemDurum: o.aktifDonemDurum || durum,
+        durum,
+        kayitDurumu: o.kayitDurumu || "",
+        guncellendi: simdi
+      }
+    });
+  });
+
+  try {
+    const yetkiliSnap = await getDocs(collection(db, "pickupYetkilileri"));
+    yetkiliSnap.forEach(d => {
+      const kisiler = Array.isArray(d.data()?.kisiler)
+        ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
+        : [];
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
+        data: { kisiler, guncellendi: simdi }
+      });
+    });
+  } catch (e) { console.warn("Danışma teslim yetkilisi projeksiyonu:", e.code || e.message); }
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const pickupSnap = await getDocs(query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun)));
+    pickupSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || v.cocukId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          hedefSaat: v.hedefSaat || "", alanKisi: v.alanKisi || "Veli",
+          durum: v.durum || "yolda", olusturuldu: v.olusturuldu || "",
+          hazirZamani: v.hazirZamani || "", teslimZamani: v.teslimZamani || "",
+          teslimEden: v.teslimEden || "", veliOnay: v.veliOnay === true,
+          veliOnayZamani: v.veliOnayZamani || "", iptalZamani: v.iptalZamani || "",
+          guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma okul zili projeksiyonu:", e.code || e.message); }
+
+  try {
+    const sabahSnap = await getDocs(query(collection(db, "sabahGirisleri"), where("tarih", "==", bugun)));
+    sabahSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.sabah, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          veliBildirdi: v.veliBildirdi === true, veliBildirimSaati: v.veliBildirimSaati || "",
+          sinifaGirisOnayi: v.sinifaGirisOnayi || "", onaylayanAd: v.onaylayanAd || "",
+          onaylayanRol: v.onaylayanRol || "", guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma sabah girişi projeksiyonu:", e.code || e.message); }
+
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+
+async function danismaPersonelRehberiniSenkronla(liste) {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = (liste || []).flatMap(p => {
+    const email = String(p.email || p.id || "").toLowerCase().trim();
+    if (!email) return [];
+    return [{
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
+      data: {
+        adSoyad: p.adSoyad || p.ad || "",
+        rol: rolNormalize(p.rol), unvan: p.unvan || "",
+        durum: p.durum || "aktif", guncellendi: serverTimestamp()
+      }
+    }];
+  });
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+const ROL_ETIKETLERI = {
+  kurucu_mudur: "Kurucu Müdür",
+  mudur: "Müdür",
+  egitim_koordinator: "Eğitim Koordinatörü",
+  muhasebe: "Muhasebe",
+  ogretmen: "Öğretmen",
+  danisma: "Danışma Personeli",
+  halkla_iliskiler: "Danışma Personeli",
+  pdr: "PDR Uzmanı"
+};
+// Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
+const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma", "pdr"];
+// Yönetim rolleri (her şeye erişir)
+const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
+let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
+let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
+let gelecekDonemKayitlari = {}; // {ogrenciId: true} → gelecek dönemde kaydı olanlar (yenileme butonu kontrolü)
+let ogrenciVerileriHazirMi = false;
+let ogrenciTablosuYenilemeBekliyor = false;
+let gelecekDonemKayitlariHazirMi = false;
+let gelecekDonemKayitlariYuklemeSozu = null;
+let anaKayitDonemOzetiKullaniliyor = false;
+let filteredList = [];     // Filtrelenmiş liste (tablo için)
+let activeFilter = "tumu";
+let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
+let currentOgrenci = null; // Modalda açık olan öğrenci
+
+// ============ AUTH ============
+// ===== FAZ 1a: Bu e-posta sistemde kayıtlı bir PERSONEL mi? =====
+// Döner: personel dokümanı (varsa) veya null
+async function personelGetir(email) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return null;
+  try {
+    const snap = await getDoc(doc(db, "personeller", lower));
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    }
+  } catch (e) {
+    console.warn("personelGetir hatası:", e);
+  }
+  return null;
+}
+
+// Bir öğretmenin atandığı sınıfları getir. Girişte zaten okunan personel
+// belgesindeki alanlar birincil kaynaktır; böylece öğretmen oturumu ikinci bir
+// koleksiyon sorgusuna ve o sorgunun Rules iznine bağlı kalmaz.
+async function personelSiniflariGetir(email, personelKaydi = null) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return [];
+  const belgeSiniflari = [
+    ...(Array.isArray(personelKaydi?.siniflar) ? personelKaydi.siniflar : []),
+    ...(Array.isArray(personelKaydi?.sinifAtamalari) ? personelKaydi.sinifAtamalari : [])
+  ].map(s => String(s || "").trim()).filter(Boolean);
+  if (belgeSiniflari.length) return [...new Set(belgeSiniflari)];
+
+  // Eski personel kayıtlarında alanlar yoksa geriye dönük koleksiyon desteği.
+  try {
+    const q = query(collection(db, "sinifAtamalari"), where("email", "==", lower));
+    const snap = await getDocs(q);
+    const siniflar = [];
+    snap.forEach(d => {
+      const s = d.data().sinif;
+      if (s && !siniflar.includes(s)) siniflar.push(s);
+    });
+    return siniflar;
+  } catch (e) {
+    console.warn("personelSiniflariGetir hatası:", e);
+    return [];
+  }
+}
+
+// ============================================================
+// ===== FAZ 1b: PERSONEL YÖNETİMİ (CRUD) =====
+// ============================================================
+let personelListesi = [];          // Tüm personeller (Firestore'dan)
+let personelAtamaHaritasi = {};    // { email: [sinif1, sinif2] } — sınıf atamaları
+let personelAktifDurumFiltre = "aktif"; // "aktif" | "arsiv"
+let personelSeciliSiniflar = [];   // Modal'da seçili sınıflar
+
+// Sadece yönetim rolleri personel yönetebilir
+function personelYonetebilirMi() {
+  return isAdmin || YONETIM_ROLLERI.includes(aktifKullaniciRol);
+}
+
+// ===== FAZ 1c: ROL BAZLI SEKME GÖRÜNÜRLÜĞÜ =====
+// Her sekme (data-tab) hangi rollere görünür?
+// 5 ROL MİMARİSİ — ZEKY app ile aynı yetki dağılımı.
+// Kurucu Müdür ve Müdür her yeri görür.
+// Eğitim Koordinatörü: eğitim + iletişim, finans YOK, özlük YOK.
+// Muhasebe: öğrenci temel bilgisi + finans + özlük, eğitim YOK.
+// Öğretmen/Branş: kendi sınıfı + eğitim + iletişim, finans ve İK YOK.
+c
+--- occurrence 5 @ 664134 ---
+
+      }
+    });
+  });
+
+  try {
+    const yetkiliSnap = await getDocs(collection(db, "pickupYetkilileri"));
+    yetkiliSnap.forEach(d => {
+      const kisiler = Array.isArray(d.data()?.kisiler)
+        ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
+        : [];
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
+        data: { kisiler, guncellendi: simdi }
+      });
+    });
+  } catch (e) { console.warn("Danışma teslim yetkilisi projeksiyonu:", e.code || e.message); }
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const pickupSnap = await getDocs(query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun)));
+    pickupSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || v.cocukId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          hedefSaat: v.hedefSaat || "", alanKisi: v.alanKisi || "Veli",
+          durum: v.durum || "yolda", olusturuldu: v.olusturuldu || "",
+          hazirZamani: v.hazirZamani || "", teslimZamani: v.teslimZamani || "",
+          teslimEden: v.teslimEden || "", veliOnay: v.veliOnay === true,
+          veliOnayZamani: v.veliOnayZamani || "", iptalZamani: v.iptalZamani || "",
+          guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma okul zili projeksiyonu:", e.code || e.message); }
+
+  try {
+    const sabahSnap = await getDocs(query(collection(db, "sabahGirisleri"), where("tarih", "==", bugun)));
+    sabahSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.sabah, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          veliBildirdi: v.veliBildirdi === true, veliBildirimSaati: v.veliBildirimSaati || "",
+          sinifaGirisOnayi: v.sinifaGirisOnayi || "", onaylayanAd: v.onaylayanAd || "",
+          onaylayanRol: v.onaylayanRol || "", guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma sabah girişi projeksiyonu:", e.code || e.message); }
+
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+
+async function danismaPersonelRehberiniSenkronla(liste) {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = (liste || []).flatMap(p => {
+    const email = String(p.email || p.id || "").toLowerCase().trim();
+    if (!email) return [];
+    return [{
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
+      data: {
+        adSoyad: p.adSoyad || p.ad || "",
+        rol: rolNormalize(p.rol), unvan: p.unvan || "",
+        durum: p.durum || "aktif", guncellendi: serverTimestamp()
+      }
+    }];
+  });
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+const ROL_ETIKETLERI = {
+  kurucu_mudur: "Kurucu Müdür",
+  mudur: "Müdür",
+  egitim_koordinator: "Eğitim Koordinatörü",
+  muhasebe: "Muhasebe",
+  ogretmen: "Öğretmen",
+  danisma: "Danışma Personeli",
+  halkla_iliskiler: "Danışma Personeli",
+  pdr: "PDR Uzmanı"
+};
+// Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
+const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma", "pdr"];
+// Yönetim rolleri (her şeye erişir)
+const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
+let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
+let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
+let gelecekDonemKayitlari = {}; // {ogrenciId: true} → gelecek dönemde kaydı olanlar (yenileme butonu kontrolü)
+let ogrenciVerileriHazirMi = false;
+let ogrenciTablosuYenilemeBekliyor = false;
+let gelecekDonemKayitlariHazirMi = false;
+let gelecekDonemKayitlariYuklemeSozu = null;
+let anaKayitDonemOzetiKullaniliyor = false;
+let filteredList = [];     // Filtrelenmiş liste (tablo için)
+let activeFilter = "tumu";
+let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
+let currentOgrenci = null; // Modalda açık olan öğrenci
+
+// ============ AUTH ============
+// ===== FAZ 1a: Bu e-posta sistemde kayıtlı bir PERSONEL mi? =====
+// Döner: personel dokümanı (varsa) veya null
+async function personelGetir(email) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return null;
+  try {
+    const snap = await getDoc(doc(db, "personeller", lower));
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    }
+  } catch (e) {
+    console.warn("personelGetir hatası:", e);
+  }
+  return null;
+}
+
+// Bir öğretmenin atandığı sınıfları getir. Girişte zaten okunan personel
+// belgesindeki alanlar birincil kaynaktır; böylece öğretmen oturumu ikinci bir
+// koleksiyon sorgusuna ve o sorgunun Rules iznine bağlı kalmaz.
+async function personelSiniflariGetir(email, personelKaydi = null) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return [];
+  const belgeSiniflari = [
+    ...(Array.isArray(personelKaydi?.siniflar) ? personelKaydi.siniflar : []),
+    ...(Array.isArray(personelKaydi?.sinifAtamalari) ? personelKaydi.sinifAtamalari : [])
+  ].map(s => String(s || "").trim()).filter(Boolean);
+  if (belgeSiniflari.length) return [...new Set(belgeSiniflari)];
+
+  // Eski personel kayıtlarında alanlar yoksa geriye dönük koleksiyon desteği.
+  try {
+    const q = query(collection(db, "sinifAtamalari"), where("email", "==", lower));
+    const snap = await getDocs(q);
+    const siniflar = [];
+    snap.forEach(d => {
+      const s = d.data().sinif;
+      if (s && !siniflar.includes(s)) siniflar.push(s);
+    });
+    return siniflar;
+  } catch (e) {
+    console.warn("personelSiniflariGetir hatası:", e);
+    return [];
+  }
+}
+
+// ============================================================
+// ===== FAZ 1b: PERSONEL YÖNETİMİ (CRUD) =====
+// ============================================================
+let personelListesi = [];          // Tüm personeller (Firestore'dan)
+let personelAtamaHaritasi = {};    // { email: [sinif1, sinif2] } — sınıf atamaları
+let personelAktifDurumFiltre = "aktif"; // "aktif" | "arsiv"
+let personelSeciliSiniflar = [];   // Modal'da seçili sınıflar
+
+// Sadece yönetim rolleri personel yönetebilir
+function personelYonetebilirMi() {
+  return isAdmin || YONETIM_ROLLERI.includes(aktifKullaniciRol);
+}
+
+// ===== FAZ 1c: ROL BAZLI SEKME GÖRÜNÜRLÜĞÜ =====
+// Her sekme (data-tab) hangi rollere görünür?
+// 5 ROL MİMARİSİ — ZEKY app ile aynı yetki dağılımı.
+// Kurucu Müdür ve Müdür her yeri görür.
+// Eğitim Koordinatörü: eğitim + iletişim, finans YOK, özlük YOK.
+// Muhasebe: öğrenci temel bilgisi + finans + özlük, eğitim YOK.
+// Öğretmen/Branş: kendi sınıfı + eğitim + iletişim, finans ve İK YOK.
+const SEKME_YETKILERI = {
+  // Ana sayfa herkese açık
+  anasayfa:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
+  // Öğrenci & Okul
+  ogrenciler:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
+  veliler:     ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
+  siniflar:    ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  onay:        ["kurucu_mudur", "mudur"],
+  // Kurum
+  personel:    ["kurucu_mudur", "mudur"],
+  ozluk:       ["kurucu_mudur", "mudur", "muhasebe"],
+  profilim:    ["kurucu_mudur", "mudur", "mudur_yardimcisi", "egitim_koordinator", "egitim_koordinatoru",
+                "muhasebe", "ogretmen", "brans_ogretmeni", "yardimci_ogretmen", "ingilizce_ogretmeni",
+                "degerler_ogretmeni", "orman_ogretmeni", "danisma", "pdr", "asci", "temizlik"],
+  egitim:      ["kurucu_mudur", "mudur", "egitim_koordin
+
+===== pickupKuyruk =====
+
+--- occurrence 1 @ 804563 ---
+hedefSaat || "", alanKisi: x.alanKisi || "Veli",
+    durum: x.durum || "yolda", olusturuldu: x.olusturuldu || "",
+    hazirZamani: x.hazirZamani || "", teslimZamani: x.teslimZamani || "",
+    teslimEden: x.teslimEden || "", veliOnay: x.veliOnay === true,
+    veliOnayZamani: x.veliOnayZamani || "", iptalZamani: x.iptalZamani || "",
+    guncellendi: serverTimestamp()
+  };
+}
+
+window.veliOkulZiliDoldur = async function() {
+  const el = document.getElementById("veliOkulZiliKart");
+  if (!el) return;
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) { el.innerHTML = ""; return; }
+
+  const tarih = vzBugun();
+  const gunIdx = new Date().getDay();
+  // Yetkili kişi listesi (form açılır menüsü için)
+  try {
+    const py = await modulYukle("pickup-yetkilileri");
+    if (py) window._vzYetkililer = await py.listeGetir(ogr.id);
+  } catch (e) { window._vzYetkililer = null; }
+  let b = null;
+  try {
+    const s = await getDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih));
+    if (s.exists()) {
+      b = s.data();
+      // Eski kaydı ilk veli görüntülemesinde güvenli danışma projeksiyonuna
+      // yalnız belge henüz yoksa taşı.
+      try {
+        const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+        const guvenli = await getDoc(guvenliRef);
+        if (!guvenli.exists()) await setDoc(guvenliRef, okulZiliGuvenliVeri(b, ogr.id, tarih));
+      } catch (e) { console.warn("okul zili güvenli özet:", e.code || e.message); }
+    }
+  } catch (e) { console.warn("okul zili:", e.code || e.message); }
+
+  // Sıra bilgisi (isimsiz kuyruk)
+  let sira = null;
+  if (b && b.durum !== "teslim") {
+    try {
+      const ks = await getDoc(doc(db, "pickupKuyruk", tarih));
+      if (ks.exists()) {
+        const liste = Object.entries(ks.data().ogrenciler || {})
+          .map(([id, v]) => ({ id, saat: (v && v.saat) || "" }))
+          .sort((x, y) => x.saat.localeCompare(y.saat));
+        const i = liste.findIndex(x => x.id === ogr.id);
+        if (i >= 0) sira = { sira: i + 1, onunde: i, toplam: liste.length };
+      }
+    } catch (e) { /* kuyruk yoksa sorun değil */ }
+  }
+
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const ad = (ogr.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
+
+  // ── Hafta sonu ──
+  if (gunIdx === 0 || gunIdx === 6) {
+    el.innerHTML = `<div style="padding:16px 18px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:26px;">🔔</span>
+      <div><div class="ca-head" style="font-size:14px;">Okul Zili</div>
+      <div class="ca-tile-sub">Hafta sonu · okul kapalı</div></div>
+    </div>`;
+    return;
+  }
+
+  // ── Akşam (18:30 sonrası) ve bildirim yoksa → yer kaplamasın ──
+  if (!b) {
+    const _s = new Date();
+    if (_s.getHours() >= 18 && _s.getMinutes() >= 30 || _s.getHours() >= 19) {
+      el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:var(--c-muted);">
+        <span>🔔</span><span>Okul Zili · yarın sabah aktif olacak</span>
+      </div>`;
+      return;
+    }
+  }
+
+  // ── Henüz bildirim yok → "Almaya geliyorum" ──
+  if (!b) {
+    const simdi = new Date();
+    const varsayilan = simdi.getHours() < 15 ? "15:30" : String(Math.min(simdi.getHours()+1, 18)).padStart(2,"0") + ":00";
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#B45309 0%,#F59E0B 100%); color:#fff; padding:14px 18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:24px;">🔔</span>
+          <div style="flex:1;">
+            <div class="ca-head" style="font-size:15px; color:#fff;">Okul Zili</div>
+            <div style="font-size:12px; opacity:.9;">${esc(ad)}'ı almaya geldiğinizde bildirin, öğretmen hazırlasın</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 18px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Varış saati</label>
+          <input type="time" id="vzSaat" value="${varsayilan}"
+            style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Kim alacak</label>
+          <select id="vzKisi" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; margin-top:4px;">
+            ${(window._vzYetkililer || [{ad:"Anne"},{ad:"Baba"}]).map(k => `<option>${esc(k.ad)}</option>`).join("")}
+          </select>
+          <div style="font-size:10.5px; color:var(--c-muted); margin-top:4px;">Liste "Teslim Alabilecek Kişiler" kartından gelir.</div>
+        </div>
+      </div>
+      <div style="padding:0 18px 16px;">
+        <button class="ca-btn" style="width:100%; background:#B45309; font-size:14px; padding:13px;" onclick="veliOkulZiliBildir()">
+          🚗 Almaya geliyorum
+        </button>
+      </div>`;
+    return;
+  }
+
+  // ── Teslim + veli teyidi tamam → kompakt özet, yer kaplamasın ──
+  if (b.durum === "teslim" && b.veliOnay) {
+    el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:#166534;">
+      <span>✅</span>
+      <span style="flex:1;"><strong>${esc(ad)}</strong> ${vzSaatY(b.teslimZamani)}'de teslim edildi${b.teslimEden ? " · " + esc(b.teslimEden.split(" ")[0]) : ""}</span>
+      <span style="font-size:11px; color:var(--c-muted);">teyit ${vzSaatY(b.veliOnayZamani)}</span>
+    </div>`;
+    return;
+  }
+
+  // ── Bildirim var → durum takibi ──
+  const DURUM = {
+    yolda:  { ad: "Bildirim alındı",   alt: "Öğretmen haberdar, çocuğunuz hazırlanacak", renk: "#B45309", bg: "#FFFBEB", ikon: "🚗" },
+    hazir:  { ad: "Hazır, kapıya geliyor", alt: "Çocuğunuz hazırlandı, kapıda teslim edilecek", renk: "#1D4ED8", bg: "#EFF6FF", ikon: "🎒" },
+    teslim: { ad: "Teslim edildi",      alt: b.teslimEden ? esc(b.teslimEden) + " teslim etti" : "Öğretmen teslim etti", renk: "#059669", bg: "#ECFDF5", ikon: "✅" }
+  };
+  const s = DURUM[b.durum] || DURUM.yolda;
+
+  // Zaman çizelgesi
+  const adimlar = [
+    { ad: "Bildirdiniz", z: b.olusturuldu, ok: true },
+    { ad: "Hazırlandı",  z: b.hazirZamani, ok: !!b.hazirZamani },
+    { ad: "Teslim",      z: b.teslimZamani, ok: !!b.teslimZamani }
+  ];
+
+  el.innerHTML = `
+    <div style="background:${s.bg}; border-bottom:1px solid ${s.renk}22; padding:14px 18px;">
+      <div style="display:flex; align-items:center; gap:11px;">
+        <span style="font-size:26px;">${s.ikon}</span>
+        <div style="flex:1; min-width:0;">
+          <div class="ca-head" style="font-size:15px; color:${s.renk};">${s.ad}</div>
+          <div class="ca-tile-sub">${s.alt}</div>
+        </div>
+        ${sira && b.durum !== "teslim" ? `
+          <div style="text-align:center; background:#fff; border-radius:12px; padding:6px 12px; border:1px solid ${s.renk}33;">
+            <div style="font-size:20px; font-weight:800; color:${s.renk}; line-height:1;">${sira.sira}</div>
+            <div style="font-size:9.5px; color:var(--c-muted); text-transform:uppercase; font-weight:700;">sıra</div>
+          </div>` : ""}
+      </div>
+    </div>
+    <div style="padding:12px 18px; display:flex; gap:0;">
+      ${adimlar.map((a, i) => `
+        <div style="flex:1; text-align:center; position:relative;">
+          ${i > 0 ? `<div style="position:absolute; left:-50%; right:50%; top:9px; height:2px; background:${a.o
+--- occurrence 2 @ 813592 ---
+      <div style="padding:0 18px 14px; font-size:12px; color:#059669; font-weight:700;">
+        ✓ Teyit ettiniz · ${vzSaatY(b.veliOnayZamani)}
+      </div>` : ""}
+    ${b.durum === "yolda" ? `
+      <div style="padding:0 18px 14px;">
+        <button class="ca-btn ghost" style="width:100%; font-size:12.5px;" onclick="veliOkulZiliIptal()">Vazgeçtim, bildirimi kaldır</button>
+      </div>` : ""}`;
+};
+
+// "Almaya geliyorum" — ZEKY pickupBildir ile aynı belge
+window.veliOkulZiliBildir = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const saat = document.getElementById("vzSaat")?.value || "";
+  const kisi = document.getElementById("vzKisi")?.value || "Veli";
+  const tarih = vzBugun();
+  try {
+    const tamVeri = {
+      ogrenciId: ogr.id,
+      ogrenciAd: ogr.ogrenciAdSoyad || "",
+      sinif: (ayarListesi?.[ogr.id]?.kayit?.sinif) || ogr.sinif || "",
+      tarih, hedefSaat: saat, alanKisi: kisi,
+      durum: "yolda",
+      veliEmail: (currentUser?.email || "").toLowerCase(),
+      olusturuldu: new Date().toISOString(),
+      guncellendi: serverTimestamp()
+    };
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
+    const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+    const guvenliMevcut = await getDoc(guvenliRef);
+    if (guvenliMevcut.exists()) {
+      batch.set(guvenliRef, {
+        hedefSaat: saat, alanKisi: kisi, durum: "yolda",
+        guncellendi: serverTimestamp()
+      }, { merge: true });
+    } else {
+      batch.set(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
+    }
+    // İsimsiz kuyruk (ZEKY pickupKuyrukGuncelle ile aynı şema)
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("🔔 Bildiriminiz öğretmene iletildi");
+    veliOkulZiliDoldur();
+  } catch (e) {
+    console.error("okul zili bildir:", e);
+    showToast("Gönderilemedi: " + e.message, "error");
+  }
+};
+
+// Veli teyidi — ZEKY pickupVeliOnayi ile aynı (öğretmenin kaydından AYRI alan)
+window.veliOkulZiliTeyit = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const onay = {
+      veliOnay: true,
+      veliOnayZamani: new Date().toISOString(),
+      veliOnayEmail: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    };
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("✓ Teyit edildi, iyi günler");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
+};
+
+// Vazgeçme (yalnızca "yolda" durumunda)
+window.veliOkulZiliIptal = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  if (!confirm("Bildirimi kaldırmak istediğinize emin misiniz?")) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const iptalZamani = new Date().toISOString();
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      ogrenciler: { [ogr.id]: deleteField() }
+    }, { merge: true });
+    await batch.commit();
+    showToast("Bildirim kaldırıldı");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
+};
+
+async function caHomeGunlukDoldur() {
+  const el = document.getElementById("caHomeGunluk");
+  if (!el) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  if (!o) { el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Öğrenci seçilmedi.</div>`; return; }
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const q = query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id));
+    const snap = await getDocs(q);
+    let liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
+    const r = liste[0];
+    if (!r) {
+      el.innerHTML = `<div style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz günlük rapor girilmemiş.</div>`;
+      return;
+    }
+    const gunAd = (() => {
+      try {
+        const d = new Date(r.tarih + "T00:00:00");
+        return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+      } catch (e) { return r.tarih || ""; }
+    })();
+    // Değer nesne olabilir ({miktar:"%85"} gibi) — düz metne çevir,
+    // aksi halde ekranda "[object Object]" görünüyordu.
+    const duzMetin = (v) => {
+      if (v == null) return "";
+      if (typeof v === "string" || typeof v === "number") return String(v);
+      if (typeof v === "object") {
+        const aday = v.deger ?? v.miktar ?? v.durum ?? v.metin ?? v.ad ?? v.yuzde ?? v.sure;
+        if (aday != null) return String(aday);
+        const ilk = Object.values(v).find(x => typeof x === "string" || typeof x === "number");
+        return ilk != null ? String(ilk) : "";
+      }
+      return "";
+    };
+    const pil = (ham, etiket, bg) => {
+      const deger = duzMetin(ham);
+      return deger
+        ? `<div class="ca-statpill" style="background:${bg};"><div class="v">${escapeHtml(deger)}</div><div class="l">${etiket}</div></div>` : "";
+    };
+    el.innerHTML = `
+      <div class="ca-row">
+        <span class="ca-qicon" style="background:var(--c-yellow-soft); width:42px; height:42px;"><i data-lucide="sun"></i></span>
+        <div>
+          <div style="font-weight:700; color:var(--c-ink);">${escapeHtml(gunAd)}${r.tarih === bugun ? "" : " <span style='font-weight:400;color:var(--c-muted);font-size:12px;'>(son rapor)</span>"}</div>
+          ${r.ogretmenAd ? `<div class="ca-tile-sub">Öğretmen: ${escapeHtml(r.ogretmenAd)}</div>` : ""}
+        </div>
+      </div>
+      ${(r.yemek || r.uyku || r.mood) ? `<div class="ca-statpills">
+        ${pil(r.yemek, "Yemek", "var(--c-pink-soft)")}
+        ${pil(r.uyku, "Uyku", "var(--c-purple-soft)")}
+        ${pil(r.mood || r.ruhHali, "Mood", "#Dff4e3")}
+      </div>` : ""}
+      ${r.not || r.aciklama ? `<div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">${escapeHtml(r.not || r.aciklama)}</div>` : ""}`;
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Günlük rapor yüklenemedi.</div>`;
+  }
+}
+window.caHomeGunlukDoldur = caHomeGunlukDoldur;
+
+
+// ═══════════════════════════════════════════════════════════════════
+// VELİ RANDEVU TALEBİ
+// Mevcut slot sistemine EK olarak talep akışı:
+//   Veli gün + saat + görüşülecek taraf seçer → randevuSlotlari'na
+//   durum:"talep" olarak yazılır → yö
+--- occurrence 3 @ 813651 ---
+r:#059669; font-weight:700;">
+        ✓ Teyit ettiniz · ${vzSaatY(b.veliOnayZamani)}
+      </div>` : ""}
+    ${b.durum === "yolda" ? `
+      <div style="padding:0 18px 14px;">
+        <button class="ca-btn ghost" style="width:100%; font-size:12.5px;" onclick="veliOkulZiliIptal()">Vazgeçtim, bildirimi kaldır</button>
+      </div>` : ""}`;
+};
+
+// "Almaya geliyorum" — ZEKY pickupBildir ile aynı belge
+window.veliOkulZiliBildir = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const saat = document.getElementById("vzSaat")?.value || "";
+  const kisi = document.getElementById("vzKisi")?.value || "Veli";
+  const tarih = vzBugun();
+  try {
+    const tamVeri = {
+      ogrenciId: ogr.id,
+      ogrenciAd: ogr.ogrenciAdSoyad || "",
+      sinif: (ayarListesi?.[ogr.id]?.kayit?.sinif) || ogr.sinif || "",
+      tarih, hedefSaat: saat, alanKisi: kisi,
+      durum: "yolda",
+      veliEmail: (currentUser?.email || "").toLowerCase(),
+      olusturuldu: new Date().toISOString(),
+      guncellendi: serverTimestamp()
+    };
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
+    const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+    const guvenliMevcut = await getDoc(guvenliRef);
+    if (guvenliMevcut.exists()) {
+      batch.set(guvenliRef, {
+        hedefSaat: saat, alanKisi: kisi, durum: "yolda",
+        guncellendi: serverTimestamp()
+      }, { merge: true });
+    } else {
+      batch.set(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
+    }
+    // İsimsiz kuyruk (ZEKY pickupKuyrukGuncelle ile aynı şema)
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("🔔 Bildiriminiz öğretmene iletildi");
+    veliOkulZiliDoldur();
+  } catch (e) {
+    console.error("okul zili bildir:", e);
+    showToast("Gönderilemedi: " + e.message, "error");
+  }
+};
+
+// Veli teyidi — ZEKY pickupVeliOnayi ile aynı (öğretmenin kaydından AYRI alan)
+window.veliOkulZiliTeyit = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const onay = {
+      veliOnay: true,
+      veliOnayZamani: new Date().toISOString(),
+      veliOnayEmail: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    };
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("✓ Teyit edildi, iyi günler");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
+};
+
+// Vazgeçme (yalnızca "yolda" durumunda)
+window.veliOkulZiliIptal = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  if (!confirm("Bildirimi kaldırmak istediğinize emin misiniz?")) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const iptalZamani = new Date().toISOString();
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      ogrenciler: { [ogr.id]: deleteField() }
+    }, { merge: true });
+    await batch.commit();
+    showToast("Bildirim kaldırıldı");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
+};
+
+async function caHomeGunlukDoldur() {
+  const el = document.getElementById("caHomeGunluk");
+  if (!el) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  if (!o) { el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Öğrenci seçilmedi.</div>`; return; }
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const q = query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id));
+    const snap = await getDocs(q);
+    let liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
+    const r = liste[0];
+    if (!r) {
+      el.innerHTML = `<div style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz günlük rapor girilmemiş.</div>`;
+      return;
+    }
+    const gunAd = (() => {
+      try {
+        const d = new Date(r.tarih + "T00:00:00");
+        return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+      } catch (e) { return r.tarih || ""; }
+    })();
+    // Değer nesne olabilir ({miktar:"%85"} gibi) — düz metne çevir,
+    // aksi halde ekranda "[object Object]" görünüyordu.
+    const duzMetin = (v) => {
+      if (v == null) return "";
+      if (typeof v === "string" || typeof v === "number") return String(v);
+      if (typeof v === "object") {
+        const aday = v.deger ?? v.miktar ?? v.durum ?? v.metin ?? v.ad ?? v.yuzde ?? v.sure;
+        if (aday != null) return String(aday);
+        const ilk = Object.values(v).find(x => typeof x === "string" || typeof x === "number");
+        return ilk != null ? String(ilk) : "";
+      }
+      return "";
+    };
+    const pil = (ham, etiket, bg) => {
+      const deger = duzMetin(ham);
+      return deger
+        ? `<div class="ca-statpill" style="background:${bg};"><div class="v">${escapeHtml(deger)}</div><div class="l">${etiket}</div></div>` : "";
+    };
+    el.innerHTML = `
+      <div class="ca-row">
+        <span class="ca-qicon" style="background:var(--c-yellow-soft); width:42px; height:42px;"><i data-lucide="sun"></i></span>
+        <div>
+          <div style="font-weight:700; color:var(--c-ink);">${escapeHtml(gunAd)}${r.tarih === bugun ? "" : " <span style='font-weight:400;color:var(--c-muted);font-size:12px;'>(son rapor)</span>"}</div>
+          ${r.ogretmenAd ? `<div class="ca-tile-sub">Öğretmen: ${escapeHtml(r.ogretmenAd)}</div>` : ""}
+        </div>
+      </div>
+      ${(r.yemek || r.uyku || r.mood) ? `<div class="ca-statpills">
+        ${pil(r.yemek, "Yemek", "var(--c-pink-soft)")}
+        ${pil(r.uyku, "Uyku", "var(--c-purple-soft)")}
+        ${pil(r.mood || r.ruhHali, "Mood", "#Dff4e3")}
+      </div>` : ""}
+      ${r.not || r.aciklama ? `<div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">${escapeHtml(r.not || r.aciklama)}</div>` : ""}`;
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Günlük rapor yüklenemedi.</div>`;
+  }
+}
+window.caHomeGunlukDoldur = caHomeGunlukDoldur;
+
+
+// ═══════════════════════════════════════════════════════════════════
+// VELİ RANDEVU TALEBİ
+// Mevcut slot sistemine EK olarak talep akışı:
+//   Veli gün + saat + görüşülecek taraf seçer → randevuSlotlari'na
+//   durum:"talep" olarak yazılır → yönetim onaylayınca durum:"dolu" olur.
+// Aynı koleksiyon kul
+--- occurrence 4 @ 815840 ---
+nayi ile aynı (öğretmenin kaydından AYRI alan)
+window.veliOkulZiliTeyit = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const onay = {
+      veliOnay: true,
+      veliOnayZamani: new Date().toISOString(),
+      veliOnayEmail: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    };
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("✓ Teyit edildi, iyi günler");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
+};
+
+// Vazgeçme (yalnızca "yolda" durumunda)
+window.veliOkulZiliIptal = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  if (!confirm("Bildirimi kaldırmak istediğinize emin misiniz?")) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const iptalZamani = new Date().toISOString();
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      ogrenciler: { [ogr.id]: deleteField() }
+    }, { merge: true });
+    await batch.commit();
+    showToast("Bildirim kaldırıldı");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
+};
+
+async function caHomeGunlukDoldur() {
+  const el = document.getElementById("caHomeGunluk");
+  if (!el) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  if (!o) { el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Öğrenci seçilmedi.</div>`; return; }
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const q = query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id));
+    const snap = await getDocs(q);
+    let liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
+    const r = liste[0];
+    if (!r) {
+      el.innerHTML = `<div style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz günlük rapor girilmemiş.</div>`;
+      return;
+    }
+    const gunAd = (() => {
+      try {
+        const d = new Date(r.tarih + "T00:00:00");
+        return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+      } catch (e) { return r.tarih || ""; }
+    })();
+    // Değer nesne olabilir ({miktar:"%85"} gibi) — düz metne çevir,
+    // aksi halde ekranda "[object Object]" görünüyordu.
+    const duzMetin = (v) => {
+      if (v == null) return "";
+      if (typeof v === "string" || typeof v === "number") return String(v);
+      if (typeof v === "object") {
+        const aday = v.deger ?? v.miktar ?? v.durum ?? v.metin ?? v.ad ?? v.yuzde ?? v.sure;
+        if (aday != null) return String(aday);
+        const ilk = Object.values(v).find(x => typeof x === "string" || typeof x === "number");
+        return ilk != null ? String(ilk) : "";
+      }
+      return "";
+    };
+    const pil = (ham, etiket, bg) => {
+      const deger = duzMetin(ham);
+      return deger
+        ? `<div class="ca-statpill" style="background:${bg};"><div class="v">${escapeHtml(deger)}</div><div class="l">${etiket}</div></div>` : "";
+    };
+    el.innerHTML = `
+      <div class="ca-row">
+        <span class="ca-qicon" style="background:var(--c-yellow-soft); width:42px; height:42px;"><i data-lucide="sun"></i></span>
+        <div>
+          <div style="font-weight:700; color:var(--c-ink);">${escapeHtml(gunAd)}${r.tarih === bugun ? "" : " <span style='font-weight:400;color:var(--c-muted);font-size:12px;'>(son rapor)</span>"}</div>
+          ${r.ogretmenAd ? `<div class="ca-tile-sub">Öğretmen: ${escapeHtml(r.ogretmenAd)}</div>` : ""}
+        </div>
+      </div>
+      ${(r.yemek || r.uyku || r.mood) ? `<div class="ca-statpills">
+        ${pil(r.yemek, "Yemek", "var(--c-pink-soft)")}
+        ${pil(r.uyku, "Uyku", "var(--c-purple-soft)")}
+        ${pil(r.mood || r.ruhHali, "Mood", "#Dff4e3")}
+      </div>` : ""}
+      ${r.not || r.aciklama ? `<div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">${escapeHtml(r.not || r.aciklama)}</div>` : ""}`;
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+  } catch (e) {
+    el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Günlük rapor yüklenemedi.</div>`;
+  }
+}
+window.caHomeGunlukDoldur = caHomeGunlukDoldur;
+
+
+// ═══════════════════════════════════════════════════════════════════
+// VELİ RANDEVU TALEBİ
+// Mevcut slot sistemine EK olarak talep akışı:
+//   Veli gün + saat + görüşülecek taraf seçer → randevuSlotlari'na
+//   durum:"talep" olarak yazılır → yönetim onaylayınca durum:"dolu" olur.
+// Aynı koleksiyon kullanıldığı için takvimde de otomatik görünür.
+// Firestore Rules zaten veliye kendi e-postasıyla create izni veriyor.
+// ═══════════════════════════════════════════════════════════════════
+const RANDEVU_HEDEFLERI = [
+  { k: "pdr",           ad: "PDR / Rehberlik",   ikon: "brain",       aciklama: "Gelişim, davranış, uyum konuları" },
+  { k: "ogretmen_veli", ad: "Sınıf Öğretmeni",   ikon: "user",        aciklama: "Sınıf içi gelişim ve günlük durum" },
+  { k: "idare",         ad: "Müdür / İdare",     ikon: "briefcase",   aciklama: "Kayıt, ücret, genel konular" },
+  { k: "diger",         ad: "Diğer",             ikon: "circle-help", aciklama: "Konuyu notta belirtin" }
+];
+
+window.caRandevuTalepAc = function() {
+  const eski = document.getElementById("caRandevuArka");
+  if (eski) eski.remove();
+
+  // En erken yarın, en geç 60 gün sonrası
+  const yarin = new Date(); yarin.setDate(yarin.getDate() + 1);
+  const sonGun = new Date(); sonGun.setDate(sonGun.getDate() + 60);
+  const iso = (d) => d.toISOString().slice(0, 10);
+
+  const saatler = [];
+  for (let h = 9; h <= 16; h++) { saatler.push(String(h).padStart(2, "0") + ":00"); saatler.push(String(h).padStart(2, "0") + ":30"); }
+
+  const div = document.createElement("div");
+  div.id = "caRandevuArka";
+  div.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9500; display:flex; align-items:center; justify-content:center; padding:20px;";
+  div.innerHTML = `
+    <div style="background:#fff; border-radius:20px; max-width:440px; width:100%; padding:22px; max-height:90vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <h3 style="margin:0; font-family:var(--c-font-head,inherit); font-size:18px;">Randevu Talebi</h3>
+        <button onclick="document.getElementById('caRandevuArka').remove()" style="border:none; background:transparent; font-size:24px; color:#94A3B8; cursor:pointer; line-height:1;">&times;</button>
+      </div>
+      <div style="font-size:12.5px; color:#64748B; margin-bottom:16px; line-height:1.5;">Talebiniz okula iletilir. Onaylandığında takviminize eklenir ve size bildirim gönderilir.</div>
+
+     
+--- occurrence 5 @ 947028 ---
+ guncelleme = {
+      durum: "hazir",
+      hazirZamani: new Date().toISOString(),
+      hazirlayan: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    };
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), guncelleme, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ogrenciId, tarih, durum: "hazir",
+      hazirZamani: guncelleme.hazirZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("✓ Hazırlandı olarak işaretlendi");
+    if (typeof okulZiliDoldur === "function") okulZiliDoldur();
+  } catch (e) {
+    console.error("pickup hazırla:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi) {
+  if (!ogrenciId) { showToast("Öğrenci bilgisi okunamadı", "error"); return; }
+  if (!confirm(`${ogrAd || "Öğrenci"}, ${alanKisi || "veliye"} teslim edilecek.\n\nOnaylıyor musunuz?`)) return;
+  try {
+    const ad = (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad)
+            || currentUser?.displayName || currentUser?.email || "";
+    const guncelleme = {
+      durum: "teslim",
+      teslimZamani: new Date().toISOString(),
+      teslimEden: ad,
+      guncellendi: serverTimestamp()
+    };
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), guncelleme, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ogrenciId, tarih, durum: "teslim", teslimZamani: guncelleme.teslimZamani,
+      teslimEden: ad, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      ogrenciler: { [ogrenciId]: deleteField() }
+    }, { merge: true });
+    await batch.commit();
+    // İsimsiz kuyruktan düş — ZEKY pickupKuyrukGuncelle(id, tarih, null) ile aynı şema
+    showToast("✓ Teslim edildi");
+    if (typeof okulZiliDoldur === "function") okulZiliDoldur();
+  } catch (e) {
+    console.error("pickup teslim:", e);
+    showToast("Kaydedilemedi: " + e.message, "error");
+  }
+};
+
+// Okul Zili canlı dinleme — veli bildirim gönderdiğinde kart kendini yeniler
+let _okulZiliUnsub = null;
+window.okulZiliCanliBaslat = function() {
+  if (_okulZiliUnsub) return; // zaten dinliyor
+  if (!document.getElementById("okulZiliListe")) return;
+  try {
+    const bugun = new Date().toISOString().substring(0, 10);
+    const q = query(collection(db, okulZiliKoleksiyonu()), where("tarih", "==", bugun));
+    _okulZiliUnsub = onSnapshot(q, () => {
+      if (document.getElementById("okulZiliListe") && typeof okulZiliDoldur === "function") okulZiliDoldur();
+    }, (e) => console.warn("okul zili dinleme:", e.code || e.message));
+  } catch (e) { console.warn("okul zili canlı:", e); }
+};
+window.okulZiliCanliDurdur = function() {
+  if (_okulZiliUnsub) { _okulZiliUnsub(); _okulZiliUnsub = null; }
+};
+
+window.okulZiliDoldur = async function() {
+  const el = document.getElementById("okulZiliListe");
+  const ozetEl = document.getElementById("okulZiliOzet");
+  if (!el) return;
+
+  // Danışma kişisel alan içermeyen projeksiyonu; diğer roller ortak asıl
+  // pickupBildirimleri koleksiyonunu okur.
+  // durum akışı: yolda → hazir → teslim   (veliOnay ayrı beyandır)
+  const bugun = new Date().toISOString().substring(0, 10);
+  let kayitlar = [];
+  try {
+    const q = query(collection(db, okulZiliKoleksiyonu()), where("tarih", "==", bugun));
+    const snap = await getDocs(q);
+    snap.forEach(d => {
+      const v = d.data() || {};
+      if (v.durum === "iptal") return;
+      const ogrenciOzeti = (ogrenciList || []).find(o => o.id === (v.ogrenciId || v.cocukId || ""));
+      // Teslim ekranında yalnız operasyon alanları tutulur. Belgedeki veli
+      // e-postası / onay e-postası gibi kimlik alanları arayüz durumuna alınmaz.
+      kayitlar.push({
+        id: d.id,
+        ogrenciId: v.ogrenciId || "",
+        ogrenciAd: v.ogrenciAd || ogrenciOzeti?.ogrenciAdSoyad || ogrenciOzeti?.adSoyad || "",
+        sinif: v.sinif || ogrenciOzeti?.sinif || ogrenciOzeti?.sinifi || "",
+        tarih: v.tarih || bugun,
+        hedefSaat: v.hedefSaat || "",
+        alanKisi: v.alanKisi || "Veli",
+        durum: v.durum || "yolda",
+        olusturuldu: v.olusturuldu || "",
+        hazirZamani: v.hazirZamani || "",
+        teslimZamani: v.teslimZamani || "",
+        teslimEden: v.teslimEden || "",
+        veliOnay: v.veliOnay === true,
+        veliOnayZamani: v.veliOnayZamani || ""
+      });
+    });
+  } catch (e) { console.warn("pickupBildirimleri:", e.code || e.message); }
+
+  // ÖĞRETMEN: yalnızca kendi sınıfının çocukları
+  if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
+    const kendi = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari) || [];
+    if (kendi.length) kayitlar = kayitlar.filter(k => kendi.includes(k.sinif));
+  }
+
+  const saatY = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d)) return null;
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  };
+
+  // ZEKY pickupBeklemeDk ile aynı mantık: hedef saatten (yoksa bildirimden) başlar
+  const beklemeDk = (b) => {
+    if (!b) return 0;
+    let bas = null;
+    if (b.hedefSaat && /^\d{1,2}:\d{2}$/.test(b.hedefSaat)) {
+      const [h, m] = b.hedefSaat.split(":").map(Number);
+      const d = new Date(); d.setHours(h, m, 0, 0); bas = d.getTime();
+    } else if (b.olusturuldu) {
+      bas = new Date(b.olusturuldu).getTime();
+    }
+    if (!bas || isNaN(bas)) return 0;
+    const bitis = (b.durum === "teslim" && b.teslimZamani) ? new Date(b.teslimZamani).getTime() : Date.now();
+    return Math.max(0, Math.round((bitis - bas) / 60000));
+  };
+  // ZEKY pickupSeviye: 5 / 10 / 15 dk eşikleri
+  const seviyeRenk = (dk) => dk >= 15 ? "#C0392B" : dk >= 10 ? "#E8A92E" : dk >= 5 ? "#B8860B" : "#94A3B8";
+
+  if (!kayitlar.length) {
+    if (ozetEl) ozetEl.textContent = "Bugün bildirim yok";
+    el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:12px 0; line-height:1.6;">
+      Bugün için çıkış bildirimi yok.<br>
+      <span style="font-size:11.5px; color:#94A3B8;">Veliler ZEKY'den "Almaya geliyorum" dediğinde kuyruk burada görünür.</span>
+    </div>`;
+    return;
+  }
+
+  // Kuyruk sırası: bekleyenler hedef saate göre, teslim edilenler sona
+  kayitlar.sort((a, b) => {
+    const at = a.durum === "teslim" ? 1 : 0, bt = b.durum === "teslim" ? 1 : 0;
+    if (at !== bt) return at - bt;
+    return String(a.hedefSaat || "99:99").localeCompare(String(b.hedefSaat || "99:99"));
+  });
+
+  const bekleyenler = kayitlar.filter(k => k.durum !== "teslim");
+  const teslimler = kayitlar.filter(k => k.durum === "teslim");
+  const gecikenSayisi = bekleyenler.filter(k => beklemeDk(k) >= 10).length;
+  if (ozetEl) {
+    ozetEl.textContent = `${bekleyenler.length} bekliyor · ${teslimler.length} teslim` +
+      (gecikenSayisi ? ` · ${gecikenSayisi} geciken` : "");
+  }
+
+  const DURUM = {
+    yolda:  { ad: "Veli yolda",     renk: "#B45309", bg: "#FFFBEB" },
+    hazir:  { ad: "Hazırlandı",     renk: "#1D4ED8", bg: "#EFF6FF" },
+    teslim: { ad: "Teslim edildi",  renk: "#059669", bg: "#ECFDF5" }
+  };
+
+  const gorunenKayitlar = danismaRolMu() ? kayitlar : kayitlar.slice(0, 6);
+  el.innerHTML = gorunenKayitlar.map(k => {
+    const durumKey = DURUM[k.durum] ? k.durum : "yolda";
+    const s = DURUM[durumKey];
+    const dk = beklemeDk(k);
+    const renk = seviyeRenk(dk);
+    const siraNo = durumKey === "teslim" ? "✓" : (bekleyenler.indexOf(k) + 1);
+    const ogrAd = k.ogrenciAd || "—";
+    const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+
+
+
+===== pickupBildirimleri =====
+
+--- occurrence 1 @ 663028 ---
+venliBelgeleriYaz(kayitlar) {
+  for (let i = 0; i < kayitlar.length; i += 400) {
+    const batch = writeBatch(db);
+    kayitlar.slice(i, i + 400).forEach(k => batch.set(k.ref, k.data));
+    await batch.commit();
+  }
+}
+
+// Yönetim oturumunda tam kaynaklardan yalnız operasyon alanlarını ayırır.
+// Danışma bu fonksiyonu çalıştıramaz ve kaynak koleksiyonları okuyamaz.
+async function danismaOperasyonProjeksiyonlariniSenkronla() {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = [];
+  const simdi = serverTimestamp();
+
+  (ogrenciList || []).forEach(o => {
+    const ayar = ayarListesi[o.id] || {};
+    const durum = getOgrenciDurum(o, ayar) || "aktif";
+    yazilacak.push({
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.ogrenciler, o.id),
+      data: {
+        ogrenciAdSoyad: o.ogrenciAdSoyad || o.adSoyad || "",
+        sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "",
+        aktifDonem: o.aktifDonem || AKTIF_DONEM || "",
+        aktifDonemDurum: o.aktifDonemDurum || durum,
+        durum,
+        kayitDurumu: o.kayitDurumu || "",
+        guncellendi: simdi
+      }
+    });
+  });
+
+  try {
+    const yetkiliSnap = await getDocs(collection(db, "pickupYetkilileri"));
+    yetkiliSnap.forEach(d => {
+      const kisiler = Array.isArray(d.data()?.kisiler)
+        ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
+        : [];
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
+        data: { kisiler, guncellendi: simdi }
+      });
+    });
+  } catch (e) { console.warn("Danışma teslim yetkilisi projeksiyonu:", e.code || e.message); }
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const pickupSnap = await getDocs(query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun)));
+    pickupSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || v.cocukId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          hedefSaat: v.hedefSaat || "", alanKisi: v.alanKisi || "Veli",
+          durum: v.durum || "yolda", olusturuldu: v.olusturuldu || "",
+          hazirZamani: v.hazirZamani || "", teslimZamani: v.teslimZamani || "",
+          teslimEden: v.teslimEden || "", veliOnay: v.veliOnay === true,
+          veliOnayZamani: v.veliOnayZamani || "", iptalZamani: v.iptalZamani || "",
+          guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma okul zili projeksiyonu:", e.code || e.message); }
+
+  try {
+    const sabahSnap = await getDocs(query(collection(db, "sabahGirisleri"), where("tarih", "==", bugun)));
+    sabahSnap.forEach(d => {
+      const v = d.data() || {};
+      yazilacak.push({
+        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.sabah, d.id),
+        data: {
+          ogrenciId: v.ogrenciId || "", ogrenciAd: v.ogrenciAd || "",
+          sinif: v.sinif || "", tarih: v.tarih || bugun,
+          veliBildirdi: v.veliBildirdi === true, veliBildirimSaati: v.veliBildirimSaati || "",
+          sinifaGirisOnayi: v.sinifaGirisOnayi || "", onaylayanAd: v.onaylayanAd || "",
+          onaylayanRol: v.onaylayanRol || "", guncellendi: simdi
+        }
+      });
+    });
+  } catch (e) { console.warn("Danışma sabah girişi projeksiyonu:", e.code || e.message); }
+
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+
+async function danismaPersonelRehberiniSenkronla(liste) {
+  if (!danismaProjeksiyonYonetebilirMi()) return;
+  const yazilacak = (liste || []).flatMap(p => {
+    const email = String(p.email || p.id || "").toLowerCase().trim();
+    if (!email) return [];
+    return [{
+      ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
+      data: {
+        adSoyad: p.adSoyad || p.ad || "",
+        rol: rolNormalize(p.rol), unvan: p.unvan || "",
+        durum: p.durum || "aktif", guncellendi: serverTimestamp()
+      }
+    }];
+  });
+  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+}
+const ROL_ETIKETLERI = {
+  kurucu_mudur: "Kurucu Müdür",
+  mudur: "Müdür",
+  egitim_koordinator: "Eğitim Koordinatörü",
+  muhasebe: "Muhasebe",
+  ogretmen: "Öğretmen",
+  danisma: "Danışma Personeli",
+  halkla_iliskiler: "Danışma Personeli",
+  pdr: "PDR Uzmanı"
+};
+// Tüm sınıflara otomatik erişen roller (sınıf ataması gerekmez)
+const TUM_SINIF_ROLLERI = ["kurucu_mudur", "mudur", "egitim_koordinator", "danisma", "pdr"];
+// Yönetim rolleri (her şeye erişir)
+const YONETIM_ROLLERI = ["kurucu_mudur", "mudur"];
+let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
+let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
+let gelecekDonemKayitlari = {}; // {ogrenciId: true} → gelecek dönemde kaydı olanlar (yenileme butonu kontrolü)
+let ogrenciVerileriHazirMi = false;
+let ogrenciTablosuYenilemeBekliyor = false;
+let gelecekDonemKayitlariHazirMi = false;
+let gelecekDonemKayitlariYuklemeSozu = null;
+let anaKayitDonemOzetiKullaniliyor = false;
+let filteredList = [];     // Filtrelenmiş liste (tablo için)
+let activeFilter = "tumu";
+let activeDurum = "aktif";  // Varsayılan "Aktif" sekmesi
+let currentOgrenci = null; // Modalda açık olan öğrenci
+
+// ============ AUTH ============
+// ===== FAZ 1a: Bu e-posta sistemde kayıtlı bir PERSONEL mi? =====
+// Döner: personel dokümanı (varsa) veya null
+async function personelGetir(email) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return null;
+  try {
+    const snap = await getDoc(doc(db, "personeller", lower));
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    }
+  } catch (e) {
+    console.warn("personelGetir hatası:", e);
+  }
+  return null;
+}
+
+// Bir öğretmenin atandığı sınıfları getir. Girişte zaten okunan personel
+// belgesindeki alanlar birincil kaynaktır; böylece öğretmen oturumu ikinci bir
+// koleksiyon sorgusuna ve o sorgunun Rules iznine bağlı kalmaz.
+async function personelSiniflariGetir(email, personelKaydi = null) {
+  const lower = (email || "").trim().toLowerCase();
+  if (!lower) return [];
+  const belgeSiniflari = [
+    ...(Array.isArray(personelKaydi?.siniflar) ? personelKaydi.siniflar : []),
+    ...(Array.isArray(personelKaydi?.sinifAtamalari) ? personelKaydi.sinifAtamalari : [])
+  ].map(s => String(s || "").trim()).filter(Boolean);
+  if (belgeSiniflari.length) return [...new Set(belgeSiniflari)];
+
+  // Eski personel kayıtlarında alanlar yoksa geriye dönük koleksiyon desteği.
+  try {
+    const q = query(collection(db, "sinifAtamalari"), where("email", "==", lower));
+    const snap = await getDocs(q);
+    const siniflar = [];
+    snap.forEach(d => {
+      const s = d.data().sinif;
+      if (s && !siniflar.includes(s)) siniflar.push(s);
+    });
+    return siniflar;
+  } catch (e) {
+    console.warn("personelSiniflariGetir hatası:", e);
+    return [];
+  }
+}
+
+// ============================================================
+// ===== FAZ 1b: PERSONEL YÖNETİMİ (CRUD) =====
+// ============================================================
+let personelListesi = [];          // Tüm personeller (Firestore'dan)
+let personelAtamaHaritasi = {};    // { email: [sinif1, sinif2] } — sınıf atamaları
+let personelAktifDurumFiltre = "aktif"; // "aktif" | "arsiv"
+let personelSeciliSiniflar = [];   // Modal'da seçili sınıflar
+
+// Sadece yönetim rolleri personel yönetebilir
+function personelYonetebilirMi() {
+  return isAdmin || YONETIM_ROLLERI.includes(aktifKullaniciRol);
+}
+
+// ===== FAZ 1c: ROL BAZLI SEKME GÖRÜNÜRLÜĞÜ =====
+// Her sekme (data-tab) hangi rollere görünür?
+// 5 ROL MİMARİSİ — ZEKY app ile aynı yetki dağılımı.
+// Kurucu Müdür ve Müdür her yeri görür.
+// Eğitim Koordinatörü: eğitim + iletişim, f
+--- occurrence 2 @ 801994 ---
+m = (currentUser?.email || "").toLowerCase();
+    const q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benim));
+    const snap = await getDocs(q);
+    const liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.sonMesajZamani || "").localeCompare(String(a.sonMesajZamani || "")));
+    el.innerHTML = liste.length
+      ? liste.slice(0, 3).map(t => {
+          const digerleri = (t.katilimcilar || []).filter(x => x !== benim);
+          const kimAd = mesajGorunenAd(t, digerleri[0], "Okul");
+          const okunmamis = (t.okunmamis && t.okunmamis[benim]) || 0;
+          return `<div class="ca-msgitem" onclick="caGo('mesajlar')" style="cursor:pointer;">
+            <div class="ca-msgmini" style="background:var(--c-green-light); color:#fff;">${escapeHtml((String(kimAd)[0] || "?").toLocaleUpperCase("tr"))}</div>
+            <div style="min-width:0;">
+              <div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(kimAd)}</div>
+              <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.sonMesaj || "")}</div>
+            </div>
+            ${okunmamis > 0 ? `<span class="ca-unread">${okunmamis}</span>` : ""}
+          </div>`;
+        }).join("")
+      : `<div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz mesajınız yok.</div>`;
+  } catch (e) {
+    el.innerHTML = `<div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Mesajlar yüklenemedi.</div>`;
+  }
+}
+window.caHomeMesajlariDoldur = caHomeMesajlariDoldur;
+
+
+// Veli ana sayfası — bugünün günlüğü (GERÇEK VERİ)
+// ═══════════ VELİ — OKUL ZİLİ (ZEKY veli-pickup ile ortak) ═══════════
+// Belge: pickupBildirimleri/{ogrenciId}__{tarih}
+// Akış: veli "Almaya geliyorum" → yolda → öğretmen hazırlar → hazir → teslim → veli teyit
+
+function vzBugun() { return new Date().toISOString().slice(0, 10); }
+function vzSaatY(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d) ? "" : String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+function okulZiliKoleksiyonu() {
+  return danismaRolMu() ? DANISMA_GUVENLI_KOLEKSIYONLAR.pickup : "pickupBildirimleri";
+}
+
+function okulZiliGuvenliVeri(v, ogrenciId = "", tarih = "") {
+  const x = v || {};
+  return {
+    ogrenciId: x.ogrenciId || x.cocukId || ogrenciId || "",
+    ogrenciAd: x.ogrenciAd || "", sinif: x.sinif || "", tarih: x.tarih || tarih || "",
+    hedefSaat: x.hedefSaat || "", alanKisi: x.alanKisi || "Veli",
+    durum: x.durum || "yolda", olusturuldu: x.olusturuldu || "",
+    hazirZamani: x.hazirZamani || "", teslimZamani: x.teslimZamani || "",
+    teslimEden: x.teslimEden || "", veliOnay: x.veliOnay === true,
+    veliOnayZamani: x.veliOnayZamani || "", iptalZamani: x.iptalZamani || "",
+    guncellendi: serverTimestamp()
+  };
+}
+
+window.veliOkulZiliDoldur = async function() {
+  const el = document.getElementById("veliOkulZiliKart");
+  if (!el) return;
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) { el.innerHTML = ""; return; }
+
+  const tarih = vzBugun();
+  const gunIdx = new Date().getDay();
+  // Yetkili kişi listesi (form açılır menüsü için)
+  try {
+    const py = await modulYukle("pickup-yetkilileri");
+    if (py) window._vzYetkililer = await py.listeGetir(ogr.id);
+  } catch (e) { window._vzYetkililer = null; }
+  let b = null;
+  try {
+    const s = await getDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih));
+    if (s.exists()) {
+      b = s.data();
+      // Eski kaydı ilk veli görüntülemesinde güvenli danışma projeksiyonuna
+      // yalnız belge henüz yoksa taşı.
+      try {
+        const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+        const guvenli = await getDoc(guvenliRef);
+        if (!guvenli.exists()) await setDoc(guvenliRef, okulZiliGuvenliVeri(b, ogr.id, tarih));
+      } catch (e) { console.warn("okul zili güvenli özet:", e.code || e.message); }
+    }
+  } catch (e) { console.warn("okul zili:", e.code || e.message); }
+
+  // Sıra bilgisi (isimsiz kuyruk)
+  let sira = null;
+  if (b && b.durum !== "teslim") {
+    try {
+      const ks = await getDoc(doc(db, "pickupKuyruk", tarih));
+      if (ks.exists()) {
+        const liste = Object.entries(ks.data().ogrenciler || {})
+          .map(([id, v]) => ({ id, saat: (v && v.saat) || "" }))
+          .sort((x, y) => x.saat.localeCompare(y.saat));
+        const i = liste.findIndex(x => x.id === ogr.id);
+        if (i >= 0) sira = { sira: i + 1, onunde: i, toplam: liste.length };
+      }
+    } catch (e) { /* kuyruk yoksa sorun değil */ }
+  }
+
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const ad = (ogr.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
+
+  // ── Hafta sonu ──
+  if (gunIdx === 0 || gunIdx === 6) {
+    el.innerHTML = `<div style="padding:16px 18px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:26px;">🔔</span>
+      <div><div class="ca-head" style="font-size:14px;">Okul Zili</div>
+      <div class="ca-tile-sub">Hafta sonu · okul kapalı</div></div>
+    </div>`;
+    return;
+  }
+
+  // ── Akşam (18:30 sonrası) ve bildirim yoksa → yer kaplamasın ──
+  if (!b) {
+    const _s = new Date();
+    if (_s.getHours() >= 18 && _s.getMinutes() >= 30 || _s.getHours() >= 19) {
+      el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:var(--c-muted);">
+        <span>🔔</span><span>Okul Zili · yarın sabah aktif olacak</span>
+      </div>`;
+      return;
+    }
+  }
+
+  // ── Henüz bildirim yok → "Almaya geliyorum" ──
+  if (!b) {
+    const simdi = new Date();
+    const varsayilan = simdi.getHours() < 15 ? "15:30" : String(Math.min(simdi.getHours()+1, 18)).padStart(2,"0") + ":00";
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#B45309 0%,#F59E0B 100%); color:#fff; padding:14px 18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:24px;">🔔</span>
+          <div style="flex:1;">
+            <div class="ca-head" style="font-size:15px; color:#fff;">Okul Zili</div>
+            <div style="font-size:12px; opacity:.9;">${esc(ad)}'ı almaya geldiğinizde bildirin, öğretmen hazırlasın</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 18px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Varış saati</label>
+          <input type="time" id="vzSaat" value="${varsayilan}"
+            style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Kim alacak</label>
+          <select id="vzKisi" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; margin-top:4px;">
+            ${(window._vzYetkililer || [{ad:"Anne"},{ad:"Baba"}]).map(k => `<option>${esc(k.ad)}</option>`).join("")}
+          </select>
+          <div style="font-size:10.5px; color:var(--c-muted); margin-top:4px;">Liste "Teslim Alabilecek Kişiler" kartından gelir.</div>
+        </div>
+      </div>
+      <div style="padding:0 18px 16px;">
+        <button class="ca-btn" style="width:100%; background:#B45309; font-size:14px; padding:13px;" onclick="veliOkulZiliBildir
+--- occurrence 3 @ 802481 ---
+ilter(x => x !== benim);
+          const kimAd = mesajGorunenAd(t, digerleri[0], "Okul");
+          const okunmamis = (t.okunmamis && t.okunmamis[benim]) || 0;
+          return `<div class="ca-msgitem" onclick="caGo('mesajlar')" style="cursor:pointer;">
+            <div class="ca-msgmini" style="background:var(--c-green-light); color:#fff;">${escapeHtml((String(kimAd)[0] || "?").toLocaleUpperCase("tr"))}</div>
+            <div style="min-width:0;">
+              <div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(kimAd)}</div>
+              <div class="ca-tile-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.sonMesaj || "")}</div>
+            </div>
+            ${okunmamis > 0 ? `<span class="ca-unread">${okunmamis}</span>` : ""}
+          </div>`;
+        }).join("")
+      : `<div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz mesajınız yok.</div>`;
+  } catch (e) {
+    el.innerHTML = `<div style="padding:8px; text-align:center; color:var(--c-muted); font-size:13px;">Mesajlar yüklenemedi.</div>`;
+  }
+}
+window.caHomeMesajlariDoldur = caHomeMesajlariDoldur;
+
+
+// Veli ana sayfası — bugünün günlüğü (GERÇEK VERİ)
+// ═══════════ VELİ — OKUL ZİLİ (ZEKY veli-pickup ile ortak) ═══════════
+// Belge: pickupBildirimleri/{ogrenciId}__{tarih}
+// Akış: veli "Almaya geliyorum" → yolda → öğretmen hazırlar → hazir → teslim → veli teyit
+
+function vzBugun() { return new Date().toISOString().slice(0, 10); }
+function vzSaatY(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d) ? "" : String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+function okulZiliKoleksiyonu() {
+  return danismaRolMu() ? DANISMA_GUVENLI_KOLEKSIYONLAR.pickup : "pickupBildirimleri";
+}
+
+function okulZiliGuvenliVeri(v, ogrenciId = "", tarih = "") {
+  const x = v || {};
+  return {
+    ogrenciId: x.ogrenciId || x.cocukId || ogrenciId || "",
+    ogrenciAd: x.ogrenciAd || "", sinif: x.sinif || "", tarih: x.tarih || tarih || "",
+    hedefSaat: x.hedefSaat || "", alanKisi: x.alanKisi || "Veli",
+    durum: x.durum || "yolda", olusturuldu: x.olusturuldu || "",
+    hazirZamani: x.hazirZamani || "", teslimZamani: x.teslimZamani || "",
+    teslimEden: x.teslimEden || "", veliOnay: x.veliOnay === true,
+    veliOnayZamani: x.veliOnayZamani || "", iptalZamani: x.iptalZamani || "",
+    guncellendi: serverTimestamp()
+  };
+}
+
+window.veliOkulZiliDoldur = async function() {
+  const el = document.getElementById("veliOkulZiliKart");
+  if (!el) return;
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) { el.innerHTML = ""; return; }
+
+  const tarih = vzBugun();
+  const gunIdx = new Date().getDay();
+  // Yetkili kişi listesi (form açılır menüsü için)
+  try {
+    const py = await modulYukle("pickup-yetkilileri");
+    if (py) window._vzYetkililer = await py.listeGetir(ogr.id);
+  } catch (e) { window._vzYetkililer = null; }
+  let b = null;
+  try {
+    const s = await getDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih));
+    if (s.exists()) {
+      b = s.data();
+      // Eski kaydı ilk veli görüntülemesinde güvenli danışma projeksiyonuna
+      // yalnız belge henüz yoksa taşı.
+      try {
+        const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+        const guvenli = await getDoc(guvenliRef);
+        if (!guvenli.exists()) await setDoc(guvenliRef, okulZiliGuvenliVeri(b, ogr.id, tarih));
+      } catch (e) { console.warn("okul zili güvenli özet:", e.code || e.message); }
+    }
+  } catch (e) { console.warn("okul zili:", e.code || e.message); }
+
+  // Sıra bilgisi (isimsiz kuyruk)
+  let sira = null;
+  if (b && b.durum !== "teslim") {
+    try {
+      const ks = await getDoc(doc(db, "pickupKuyruk", tarih));
+      if (ks.exists()) {
+        const liste = Object.entries(ks.data().ogrenciler || {})
+          .map(([id, v]) => ({ id, saat: (v && v.saat) || "" }))
+          .sort((x, y) => x.saat.localeCompare(y.saat));
+        const i = liste.findIndex(x => x.id === ogr.id);
+        if (i >= 0) sira = { sira: i + 1, onunde: i, toplam: liste.length };
+      }
+    } catch (e) { /* kuyruk yoksa sorun değil */ }
+  }
+
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const ad = (ogr.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
+
+  // ── Hafta sonu ──
+  if (gunIdx === 0 || gunIdx === 6) {
+    el.innerHTML = `<div style="padding:16px 18px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:26px;">🔔</span>
+      <div><div class="ca-head" style="font-size:14px;">Okul Zili</div>
+      <div class="ca-tile-sub">Hafta sonu · okul kapalı</div></div>
+    </div>`;
+    return;
+  }
+
+  // ── Akşam (18:30 sonrası) ve bildirim yoksa → yer kaplamasın ──
+  if (!b) {
+    const _s = new Date();
+    if (_s.getHours() >= 18 && _s.getMinutes() >= 30 || _s.getHours() >= 19) {
+      el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:var(--c-muted);">
+        <span>🔔</span><span>Okul Zili · yarın sabah aktif olacak</span>
+      </div>`;
+      return;
+    }
+  }
+
+  // ── Henüz bildirim yok → "Almaya geliyorum" ──
+  if (!b) {
+    const simdi = new Date();
+    const varsayilan = simdi.getHours() < 15 ? "15:30" : String(Math.min(simdi.getHours()+1, 18)).padStart(2,"0") + ":00";
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#B45309 0%,#F59E0B 100%); color:#fff; padding:14px 18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:24px;">🔔</span>
+          <div style="flex:1;">
+            <div class="ca-head" style="font-size:15px; color:#fff;">Okul Zili</div>
+            <div style="font-size:12px; opacity:.9;">${esc(ad)}'ı almaya geldiğinizde bildirin, öğretmen hazırlasın</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 18px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Varış saati</label>
+          <input type="time" id="vzSaat" value="${varsayilan}"
+            style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Kim alacak</label>
+          <select id="vzKisi" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; margin-top:4px;">
+            ${(window._vzYetkililer || [{ad:"Anne"},{ad:"Baba"}]).map(k => `<option>${esc(k.ad)}</option>`).join("")}
+          </select>
+          <div style="font-size:10.5px; color:var(--c-muted); margin-top:4px;">Liste "Teslim Alabilecek Kişiler" kartından gelir.</div>
+        </div>
+      </div>
+      <div style="padding:0 18px 16px;">
+        <button class="ca-btn" style="width:100%; background:#B45309; font-size:14px; padding:13px;" onclick="veliOkulZiliBildir()">
+          🚗 Almaya geliyorum
+        </button>
+      </div>`;
+    return;
+  }
+
+  // ── Teslim + veli teyidi tamam → kompakt özet, yer kaplamasın ──
+  if (b.durum === "teslim" && b.veliOnay) {
+    el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:#166534;">
+      <span>✅</span>
+      <span style="flex:1;"><strong>${esc(ad)}</strong> ${vzSaatY(b.teslimZamani)}'de teslim edildi${b.teslimEden ? " · " + esc(b.teslimEde
+--- occurrence 4 @ 803807 ---
+mleri/{ogrenciId}__{tarih}
+// Akış: veli "Almaya geliyorum" → yolda → öğretmen hazırlar → hazir → teslim → veli teyit
+
+function vzBugun() { return new Date().toISOString().slice(0, 10); }
+function vzSaatY(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d) ? "" : String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+function okulZiliKoleksiyonu() {
+  return danismaRolMu() ? DANISMA_GUVENLI_KOLEKSIYONLAR.pickup : "pickupBildirimleri";
+}
+
+function okulZiliGuvenliVeri(v, ogrenciId = "", tarih = "") {
+  const x = v || {};
+  return {
+    ogrenciId: x.ogrenciId || x.cocukId || ogrenciId || "",
+    ogrenciAd: x.ogrenciAd || "", sinif: x.sinif || "", tarih: x.tarih || tarih || "",
+    hedefSaat: x.hedefSaat || "", alanKisi: x.alanKisi || "Veli",
+    durum: x.durum || "yolda", olusturuldu: x.olusturuldu || "",
+    hazirZamani: x.hazirZamani || "", teslimZamani: x.teslimZamani || "",
+    teslimEden: x.teslimEden || "", veliOnay: x.veliOnay === true,
+    veliOnayZamani: x.veliOnayZamani || "", iptalZamani: x.iptalZamani || "",
+    guncellendi: serverTimestamp()
+  };
+}
+
+window.veliOkulZiliDoldur = async function() {
+  const el = document.getElementById("veliOkulZiliKart");
+  if (!el) return;
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) { el.innerHTML = ""; return; }
+
+  const tarih = vzBugun();
+  const gunIdx = new Date().getDay();
+  // Yetkili kişi listesi (form açılır menüsü için)
+  try {
+    const py = await modulYukle("pickup-yetkilileri");
+    if (py) window._vzYetkililer = await py.listeGetir(ogr.id);
+  } catch (e) { window._vzYetkililer = null; }
+  let b = null;
+  try {
+    const s = await getDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih));
+    if (s.exists()) {
+      b = s.data();
+      // Eski kaydı ilk veli görüntülemesinde güvenli danışma projeksiyonuna
+      // yalnız belge henüz yoksa taşı.
+      try {
+        const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+        const guvenli = await getDoc(guvenliRef);
+        if (!guvenli.exists()) await setDoc(guvenliRef, okulZiliGuvenliVeri(b, ogr.id, tarih));
+      } catch (e) { console.warn("okul zili güvenli özet:", e.code || e.message); }
+    }
+  } catch (e) { console.warn("okul zili:", e.code || e.message); }
+
+  // Sıra bilgisi (isimsiz kuyruk)
+  let sira = null;
+  if (b && b.durum !== "teslim") {
+    try {
+      const ks = await getDoc(doc(db, "pickupKuyruk", tarih));
+      if (ks.exists()) {
+        const liste = Object.entries(ks.data().ogrenciler || {})
+          .map(([id, v]) => ({ id, saat: (v && v.saat) || "" }))
+          .sort((x, y) => x.saat.localeCompare(y.saat));
+        const i = liste.findIndex(x => x.id === ogr.id);
+        if (i >= 0) sira = { sira: i + 1, onunde: i, toplam: liste.length };
+      }
+    } catch (e) { /* kuyruk yoksa sorun değil */ }
+  }
+
+  const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+  const ad = (ogr.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
+
+  // ── Hafta sonu ──
+  if (gunIdx === 0 || gunIdx === 6) {
+    el.innerHTML = `<div style="padding:16px 18px; display:flex; align-items:center; gap:12px;">
+      <span style="font-size:26px;">🔔</span>
+      <div><div class="ca-head" style="font-size:14px;">Okul Zili</div>
+      <div class="ca-tile-sub">Hafta sonu · okul kapalı</div></div>
+    </div>`;
+    return;
+  }
+
+  // ── Akşam (18:30 sonrası) ve bildirim yoksa → yer kaplamasın ──
+  if (!b) {
+    const _s = new Date();
+    if (_s.getHours() >= 18 && _s.getMinutes() >= 30 || _s.getHours() >= 19) {
+      el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:var(--c-muted);">
+        <span>🔔</span><span>Okul Zili · yarın sabah aktif olacak</span>
+      </div>`;
+      return;
+    }
+  }
+
+  // ── Henüz bildirim yok → "Almaya geliyorum" ──
+  if (!b) {
+    const simdi = new Date();
+    const varsayilan = simdi.getHours() < 15 ? "15:30" : String(Math.min(simdi.getHours()+1, 18)).padStart(2,"0") + ":00";
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#B45309 0%,#F59E0B 100%); color:#fff; padding:14px 18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:24px;">🔔</span>
+          <div style="flex:1;">
+            <div class="ca-head" style="font-size:15px; color:#fff;">Okul Zili</div>
+            <div style="font-size:12px; opacity:.9;">${esc(ad)}'ı almaya geldiğinizde bildirin, öğretmen hazırlasın</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 18px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Varış saati</label>
+          <input type="time" id="vzSaat" value="${varsayilan}"
+            style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Kim alacak</label>
+          <select id="vzKisi" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; margin-top:4px;">
+            ${(window._vzYetkililer || [{ad:"Anne"},{ad:"Baba"}]).map(k => `<option>${esc(k.ad)}</option>`).join("")}
+          </select>
+          <div style="font-size:10.5px; color:var(--c-muted); margin-top:4px;">Liste "Teslim Alabilecek Kişiler" kartından gelir.</div>
+        </div>
+      </div>
+      <div style="padding:0 18px 16px;">
+        <button class="ca-btn" style="width:100%; background:#B45309; font-size:14px; padding:13px;" onclick="veliOkulZiliBildir()">
+          🚗 Almaya geliyorum
+        </button>
+      </div>`;
+    return;
+  }
+
+  // ── Teslim + veli teyidi tamam → kompakt özet, yer kaplamasın ──
+  if (b.durum === "teslim" && b.veliOnay) {
+    el.innerHTML = `<div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; color:#166534;">
+      <span>✅</span>
+      <span style="flex:1;"><strong>${esc(ad)}</strong> ${vzSaatY(b.teslimZamani)}'de teslim edildi${b.teslimEden ? " · " + esc(b.teslimEden.split(" ")[0]) : ""}</span>
+      <span style="font-size:11px; color:var(--c-muted);">teyit ${vzSaatY(b.veliOnayZamani)}</span>
+    </div>`;
+    return;
+  }
+
+  // ── Bildirim var → durum takibi ──
+  const DURUM = {
+    yolda:  { ad: "Bildirim alındı",   alt: "Öğretmen haberdar, çocuğunuz hazırlanacak", renk: "#B45309", bg: "#FFFBEB", ikon: "🚗" },
+    hazir:  { ad: "Hazır, kapıya geliyor", alt: "Çocuğunuz hazırlandı, kapıda teslim edilecek", renk: "#1D4ED8", bg: "#EFF6FF", ikon: "🎒" },
+    teslim: { ad: "Teslim edildi",      alt: b.teslimEden ? esc(b.teslimEden) + " teslim etti" : "Öğretmen teslim etti", renk: "#059669", bg: "#ECFDF5", ikon: "✅" }
+  };
+  const s = DURUM[b.durum] || DURUM.yolda;
+
+  // Zaman çizelgesi
+  const adimlar = [
+    { ad: "Bildirdiniz", z: b.olusturuldu, ok: true },
+    { ad: "Hazırlandı",  z: b.hazirZamani, ok: !!b.hazirZamani },
+    { ad: "Teslim",      z: b.teslimZamani, ok: !!b.teslimZamani }
+  ];
+
+  el.innerHTML = `
+    <div style="background:${s.bg}; border-bottom:1px solid ${s.renk}22; padding:14px 18px;">
+      <div style="display:flex; align-items:center; gap:11px;">
+        <span style="font-size:26px;">${s.ikon}</span>
+        <div style="flex:1; min-width:0;">
+          <div class="ca-head" style="font-size:15px; color:${s.renk};">${s.ad}</div>
+          <div class="ca
+--- occurrence 5 @ 813067 ---
+hedefSaat || "—")}</span>
+      <span>· ${esc(b.alanKisi || "Veli")} alacak</span>
+      ${sira && b.durum !== "teslim" && sira.onunde > 0 ? `<span>· önünüzde ${sira.onunde} kişi</span>` : ""}
+    </div>
+    ${b.durum === "teslim" && !b.veliOnay ? `
+      <div style="padding:0 18px 16px;">
+        <button class="ca-btn" style="width:100%; background:#059669; font-size:14px; padding:12px;" onclick="veliOkulZiliTeyit()">
+          👍 Çocuğumu aldım, teyit ediyorum
+        </button>
+      </div>` : ""}
+    ${b.veliOnay ? `
+      <div style="padding:0 18px 14px; font-size:12px; color:#059669; font-weight:700;">
+        ✓ Teyit ettiniz · ${vzSaatY(b.veliOnayZamani)}
+      </div>` : ""}
+    ${b.durum === "yolda" ? `
+      <div style="padding:0 18px 14px;">
+        <button class="ca-btn ghost" style="width:100%; font-size:12.5px;" onclick="veliOkulZiliIptal()">Vazgeçtim, bildirimi kaldır</button>
+      </div>` : ""}`;
+};
+
+// "Almaya geliyorum" — ZEKY pickupBildir ile aynı belge
+window.veliOkulZiliBildir = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const saat = document.getElementById("vzSaat")?.value || "";
+  const kisi = document.getElementById("vzKisi")?.value || "Veli";
+  const tarih = vzBugun();
+  try {
+    const tamVeri = {
+      ogrenciId: ogr.id,
+      ogrenciAd: ogr.ogrenciAdSoyad || "",
+      sinif: (ayarListesi?.[ogr.id]?.kayit?.sinif) || ogr.sinif || "",
+      tarih, hedefSaat: saat, alanKisi: kisi,
+      durum: "yolda",
+      veliEmail: (currentUser?.email || "").toLowerCase(),
+      olusturuldu: new Date().toISOString(),
+      guncellendi: serverTimestamp()
+    };
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
+    const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+    const guvenliMevcut = await getDoc(guvenliRef);
+    if (guvenliMevcut.exists()) {
+      batch.set(guvenliRef, {
+        hedefSaat: saat, alanKisi: kisi, durum: "yolda",
+        guncellendi: serverTimestamp()
+      }, { merge: true });
+    } else {
+      batch.set(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
+    }
+    // İsimsiz kuyruk (ZEKY pickupKuyrukGuncelle ile aynı şema)
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("🔔 Bildiriminiz öğretmene iletildi");
+    veliOkulZiliDoldur();
+  } catch (e) {
+    console.error("okul zili bildir:", e);
+    showToast("Gönderilemedi: " + e.message, "error");
+  }
+};
+
+// Veli teyidi — ZEKY pickupVeliOnayi ile aynı (öğretmenin kaydından AYRI alan)
+window.veliOkulZiliTeyit = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const onay = {
+      veliOnay: true,
+      veliOnayZamani: new Date().toISOString(),
+      veliOnayEmail: (currentUser?.email || "").toLowerCase(),
+      guncellendi: serverTimestamp()
+    };
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    showToast("✓ Teyit edildi, iyi günler");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
+};
+
+// Vazgeçme (yalnızca "yolda" durumunda)
+window.veliOkulZiliIptal = async function() {
+  const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+  if (!ogr) return;
+  if (!confirm("Bildirimi kaldırmak istediğinize emin misiniz?")) return;
+  const tarih = vzBugun();
+  try {
+    const batch = writeBatch(db);
+    const iptalZamani = new Date().toISOString();
+    batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true });
+    batch.set(doc(db, "pickupKuyruk", tarih), {
+      ogrenciler: { [ogr.id]: deleteField() }
+    }, { merge: true });
+    await batch.commit();
+    showToast("Bildirim kaldırıldı");
+    veliOkulZiliDoldur();
+  } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
+};
+
+async function caHomeGunlukDoldur() {
+  const el = document.getElementById("caHomeGunluk");
+  if (!el) return;
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  if (!o) { el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Öğrenci seçilmedi.</div>`; return; }
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const q = query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id));
+    const snap = await getDocs(q);
+    let liste = [];
+    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+    liste.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
+    const r = liste[0];
+    if (!r) {
+      el.innerHTML = `<div style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz günlük rapor girilmemiş.</div>`;
+      return;
+    }
+    const gunAd = (() => {
+      try {
+        const d = new Date(r.tarih + "T00:00:00");
+        return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+      } catch (e) { return r.tarih || ""; }
+    })();
+    // Değer nesne olabilir ({miktar:"%85"} gibi) — düz metne çevir,
+    // aksi halde ekranda "[object Object]" görünüyordu.
+    const duzMetin = (v) => {
+      if (v == null) return "";
+      if (typeof v === "string" || typeof v === "number") return String(v);
+      if (typeof v === "object") {
+        const aday = v.deger ?? v.miktar ?? v.durum ?? v.metin ?? v.ad ?? v.yuzde ?? v.sure;
+        if (aday != null) return String(aday);
+        const ilk = Object.values(v).find(x => typeof x === "string" || typeof x === "number");
+        return ilk != null ? String(ilk) : "";
+      }
+      return "";
+    };
+    const pil = (ham, etiket, bg) => {
+      const deger = duzMetin(ham);
+      return deger
+        ? `<div class="ca-statpill" style="background:${bg};"><div class="v">${escapeHtml(deger)}</div><div class="l">${etiket}</div></div>` : "";
+    };
+    el.innerHTML = `
+      <div class="ca-row">
+        <span class="ca-qicon" style="background:var(--c-yellow-soft); width:42px; height:42px;"><i data-lucide="sun"></i></span>
+        <div>
+          <div style="font-weight:700; color:var(--c-ink);">${escapeHtml(gunAd)}${r.tarih === bugun ? "" : " <span style='font-weight:400;color:var(--c-muted);font-size:12px;'>(son rapor)</span>"}</div>
+          ${r.ogretmenAd ? `<div class="ca-tile-sub">Öğretmen: ${escapeHtml(r.ogretmenAd)}</div>` : ""}
+        </div>
+      </div>
+      ${(r.yemek || r.uyku || r.mood) ? `<div class="ca-statpills">
+        ${pil(r.yemek, "Yemek", "var(--c-pink-soft)")}
+        ${pil(r.uyku, "Uyku", "var(--c-purple-soft)")}
+        ${pil(r.mood || r.ruhHali, "Mood", "#Dff4e3")}
+      </div>` : ""}
+      ${r.not || r.aciklama ? `<div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">${escapeHtml(r.not || r.aciklama)}</div>` : ""}`;
