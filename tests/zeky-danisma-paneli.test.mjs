@@ -59,7 +59,7 @@ test('danışma ana ekranında Okul Zili birincil ve tüm operasyon kısayollar�
   assert.match(home, /İhtiyaç Bildir/);
   assert.match(home, /Giriş · Mola · Çıkış/);
   assert.match(home, /Veli rehberi, telefon\/e-posta, veli mesajları, muhasebe ve eğitim kayıtları bu hesapta kapalıdır/);
-  assert.match(s, /const gorunenKayitlar = danismaRolMu\(\) \? kayitlar : kayitlar\.slice\(0, 6\)/);
+  assert.match(s, /const gorunenKayitlar = kayitlar/);
   const bekleme = bolum(s, 'function adminHomeYukleniyorGoster()', 'function adminHomeVeriYuklemesiTamamlandi');
   assert.match(bekleme, /danismaMi && typeof okulZiliDoldur === "function"/);
   assert.match(bekleme, /Promise\.resolve\(okulZiliDoldur\(\)\)/);

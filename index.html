@@ -17443,6 +17443,12 @@ function okulZiliGuvenliVeri(v, ogrenciId = "", tarih = "") {
   };
 }
 
+// Danışma projeksiyonu yardımcı kayıttır; erişim hatası asıl teslim akışını durdurmaz.
+async function okulZiliGuvenliOzetDene(islem) {
+  try { await islem(); }
+  catch (e) { console.warn("Okul Zili danışma özeti güncellenemedi:", e.code || e.message); }
+}
+
 window.veliOkulZiliDoldur = async function() {
   const el = document.getElementById("veliOkulZiliKart");
   if (!el) return;
@@ -17636,22 +17642,24 @@ window.veliOkulZiliBildir = async function() {
     };
     const batch = writeBatch(db);
     batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
-    const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
-    const guvenliMevcut = await getDoc(guvenliRef);
-    if (guvenliMevcut.exists()) {
-      batch.set(guvenliRef, {
-        hedefSaat: saat, alanKisi: kisi, durum: "yolda",
-        guncellendi: serverTimestamp()
-      }, { merge: true });
-    } else {
-      batch.set(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
-    }
     // İsimsiz kuyruk (ZEKY pickupKuyrukGuncelle ile aynı şema)
     batch.set(doc(db, "pickupKuyruk", tarih), {
       tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
     }, { merge: true });
     await batch.commit();
-    showToast("🔔 Bildiriminiz öğretmene iletildi");
+    await okulZiliGuvenliOzetDene(async () => {
+      const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+      const guvenliMevcut = await getDoc(guvenliRef);
+      if (guvenliMevcut.exists()) {
+        await setDoc(guvenliRef, {
+          hedefSaat: saat, alanKisi: kisi, durum: "yolda",
+          guncellendi: serverTimestamp()
+        }, { merge: true });
+      } else {
+        await setDoc(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
+      }
+    });
+    showToast("🔔 Bildiriminiz kaydedildi; öğretmen ve yönetim ekranında görüntülenebilir");
     veliOkulZiliDoldur();
   } catch (e) {
     console.error("okul zili bildir:", e);
@@ -17673,10 +17681,10 @@ window.veliOkulZiliTeyit = async function() {
       guncellendi: serverTimestamp()
     };
     batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
-    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
-      veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
-    }, { merge: true });
     await batch.commit();
+    await okulZiliGuvenliOzetDene(() => setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
+    }, { merge: true }));
     showToast("✓ Teyit edildi, iyi günler");
     veliOkulZiliDoldur();
   } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
@@ -17694,13 +17702,13 @@ window.veliOkulZiliIptal = async function() {
     batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
       durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
     }, { merge: true });
-    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
-      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
-    }, { merge: true });
     batch.set(doc(db, "pickupKuyruk", tarih), {
       ogrenciler: { [ogr.id]: deleteField() }
     }, { merge: true });
     await batch.commit();
+    await okulZiliGuvenliOzetDene(() => setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+      durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+    }, { merge: true }));
     showToast("Bildirim kaldırıldı");
     veliOkulZiliDoldur();
   } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
@@ -20084,11 +20092,11 @@ window.pickupHazirla = async function(ogrenciId, tarih) {
     };
     const batch = writeBatch(db);
     batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), guncelleme, { merge: true });
-    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+    await batch.commit();
+    await okulZiliGuvenliOzetDene(() => setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
       ogrenciId, tarih, durum: "hazir",
       hazirZamani: guncelleme.hazirZamani, guncellendi: serverTimestamp()
-    }, { merge: true });
-    await batch.commit();
+    }, { merge: true }));
     showToast("✓ Hazırlandı olarak işaretlendi");
     if (typeof okulZiliDoldur === "function") okulZiliDoldur();
   } catch (e) {
@@ -20111,14 +20119,14 @@ window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi) {
     };
     const batch = writeBatch(db);
     batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), guncelleme, { merge: true });
-    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
-      ogrenciId, tarih, durum: "teslim", teslimZamani: guncelleme.teslimZamani,
-      teslimEden: ad, guncellendi: serverTimestamp()
-    }, { merge: true });
     batch.set(doc(db, "pickupKuyruk", tarih), {
       ogrenciler: { [ogrenciId]: deleteField() }
     }, { merge: true });
     await batch.commit();
+    await okulZiliGuvenliOzetDene(() => setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ogrenciId, tarih, durum: "teslim", teslimZamani: guncelleme.teslimZamani,
+      teslimEden: ad, guncellendi: serverTimestamp()
+    }, { merge: true }));
     // İsimsiz kuyruktan düş — ZEKY pickupKuyrukGuncelle(id, tarih, null) ile aynı şema
     showToast("✓ Teslim edildi");
     if (typeof okulZiliDoldur === "function") okulZiliDoldur();
@@ -20149,6 +20157,8 @@ window.okulZiliDoldur = async function() {
   const el = document.getElementById("okulZiliListe");
   const ozetEl = document.getElementById("okulZiliOzet");
   if (!el) return;
+  // Boş kuyrukta da ilk veli bildirimi anında görünmelidir.
+  if (typeof okulZiliCanliBaslat === "function") okulZiliCanliBaslat();
 
   // Danışma kişisel alan içermeyen projeksiyonu; diğer roller ortak asıl
   // pickupBildirimleri koleksiyonunu okur.
@@ -20181,7 +20191,13 @@ window.okulZiliDoldur = async function() {
         veliOnayZamani: v.veliOnayZamani || ""
       });
     });
-  } catch (e) { console.warn("pickupBildirimleri:", e.code || e.message); }
+  } catch (e) {
+    console.warn("pickupBildirimleri:", e.code || e.message);
+    if (ozetEl) ozetEl.textContent = "Bildirimler alınamadı";
+    el.innerHTML = `<div role="alert" style="padding:12px 0;">Çıkış bildirimleri yüklenemedi. Lütfen yeniden deneyin.
+      <button class="btn-mini" onclick="okulZiliDoldur()">Yeniden dene</button></div>`;
+    return;
+  }
 
   // ÖĞRETMEN: yalnızca kendi sınıfının çocukları
   if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
@@ -20243,7 +20259,7 @@ window.okulZiliDoldur = async function() {
     teslim: { ad: "Teslim edildi",  renk: "#059669", bg: "#ECFDF5" }
   };
 
-  const gorunenKayitlar = danismaRolMu() ? kayitlar : kayitlar.slice(0, 6);
+  const gorunenKayitlar = kayitlar;
   el.innerHTML = gorunenKayitlar.map(k => {
     const durumKey = DURUM[k.durum] ? k.durum : "yolda";
     const s = DURUM[durumKey];
@@ -20281,11 +20297,9 @@ window.okulZiliDoldur = async function() {
         ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(ogrAd)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}
       </div>
     </div>`;
-  }).join("") + (!danismaRolMu() && kayitlar.length > 6
-    ? `<div style="font-size:11.5px; color:#94A3B8; padding-top:8px;">+${kayitlar.length - 6} bildirim daha</div>` : "");
+  }).join("");
 
   if (window.lucideYenile) window.lucideYenile();
-  if (typeof okulZiliCanliBaslat === "function") okulZiliCanliBaslat();
 };
 
 // Özet sayfası hızlı işlem butonları
