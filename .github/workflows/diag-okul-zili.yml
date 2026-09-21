@@ -1,0 +1,57 @@
+name: Diagnose Okul Zili
+on:
+  push:
+    branches:
+      - diag/okul-zili-20260921
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: diag/okul-zili-20260921
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Extract relevant index snippets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("index.html")
+          s=p.read_text(encoding="utf-8")
+          needles=[
+              "window.veliOkulZiliBildir = async function()",
+              "window.veliOkulZiliDoldur = async function()",
+              "DANISMA_GUVENLI_KOLEKSIYONLAR",
+              "pickupKuyruk",
+              "pickupBildirimleri"
+          ]
+          out=[]
+          for n in needles:
+              out.append("\n\n===== "+n+" =====\n")
+              pos=0
+              found=0
+              while True:
+                  i=s.find(n,pos)
+                  if i<0: break
+                  found+=1
+                  a=max(0,i-1800); b=min(len(s),i+6000)
+                  out.append(f"\n--- occurrence {found} @ {i} ---\n")
+                  out.append(s[a:b])
+                  pos=i+len(n)
+                  if found>=5: break
+              if not found: out.append("NOT FOUND\n")
+          Path("security/okul-zili-index-snippet.txt").write_text("".join(out),encoding="utf-8")
+          PY
+      - name: Commit diagnostic file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add security/okul-zili-index-snippet.txt
+          git commit -m "diag: extract okul zili index snippets" || exit 0
+          git push origin HEAD:diag/okul-zili-20260921
