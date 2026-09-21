@@ -1,0 +1,19 @@
+name: Validate Okul Zili Module
+on:
+  push:
+    branches:
+      - fix/okul-zili-module-sequential-20260921
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run portal tests
+        run: node --test tests/*.test.mjs
