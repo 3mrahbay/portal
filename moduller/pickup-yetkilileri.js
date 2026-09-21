@@ -171,17 +171,23 @@ async function sil(i) {
 async function kaydet(ogrenciId, kisiler) {
   const { fb, db, state } = P();
   try {
-    const batch = fb.writeBatch(db);
-    batch.set(fb.doc(db, "pickupYetkilileri", ogrenciId), {
+    // Ana veli kaydı asıl kaynaktır. Danışma için kişisel telefon içermeyen
+    // projeksiyon yardımcı kayıttır ve izin sorunu ana işlemi engellememelidir.
+    await fb.setDoc(fb.doc(db, "pickupYetkilileri", ogrenciId), {
       kisiler,
       guncelleyen: (state.currentUser?.email || "").toLowerCase(),
       guncellendi: fb.serverTimestamp()
     }, { merge: true });
-    batch.set(fb.doc(db, "danismaPickupYetkilileri", ogrenciId), {
-      kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
-      guncellendi: fb.serverTimestamp()
-    });
-    await batch.commit();
+
+    try {
+      await fb.setDoc(fb.doc(db, "danismaPickupYetkilileri", ogrenciId), {
+        kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
+        guncellendi: fb.serverTimestamp()
+      }, { merge: true });
+    } catch (e) {
+      console.warn("pickup güvenli yetkili özeti kaydedilemedi:", e.code || e.message);
+    }
+
     _cache[ogrenciId] = kisiler;
   } catch (e) {
     console.error("pickup yetkili kaydet:", e);
@@ -230,6 +236,120 @@ export async function ogretmenPopup(ogrenciId, ogrenciAd) {
       </div>
     </div>`;
   document.body.appendChild(m);
+}
+
+// ───────────────────────────────────────────────────────────────────
+// VELİ OKUL ZİLİ — izin güvenli kayıt
+// Eski akış ana pickup kaydı ile danışma projeksiyonunu aynı batch'e koyduğu
+// için projeksiyon izni reddedildiğinde ana bildirim de geri alınıyordu.
+// Burada ana kayıt + isimsiz kuyruk atomik tutulur; danışma özeti best-effort'tur.
+// ───────────────────────────────────────────────────────────────────
+function pickupBugun() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+async function veliOkulZiliGuvenliBildir() {
+  const api = P();
+  if (!api) return;
+  const { fb, db, state, toast } = api;
+  const ogr = state.veliAktifOgrenci || state.veliOgrenciler?.[0];
+  if (!ogr) {
+    if (toast) toast("Öğrenci bilgisi bulunamadı.", "error");
+    return;
+  }
+
+  const saat = (document.getElementById("vzSaat")?.value || "").trim();
+  const kisiEl =
+    document.getElementById("vzKisi") ||
+    document.getElementById("vzAlanKisi") ||
+    document.querySelector("#veliOkulZiliKart select");
+  const kisi = (kisiEl?.value || "Veli").trim();
+
+  if (!/^\d{1,2}:\d{2}$/.test(saat)) {
+    if (toast) toast("Varış saatini seçin.", "error");
+    return;
+  }
+
+  const tarih = pickupBugun();
+  const id = ogr.id + "__" + tarih;
+  const tamVeri = {
+    ogrenciId: ogr.id,
+    ogrenciAd: ogr.ogrenciAdSoyad || ogr.ogrenciAd || "",
+    sinif: ogr.sinif || "",
+    tarih,
+    hedefSaat: saat,
+    alanKisi: kisi,
+    durum: "yolda",
+    veliEmail: (state.currentUser?.email || "").toLowerCase(),
+    olusturuldu: new Date().toISOString(),
+    guncellendi: fb.serverTimestamp()
+  };
+
+  try {
+    const batch = fb.writeBatch(db);
+    batch.set(fb.doc(db, "pickupBildirimleri", id), tamVeri, { merge: true });
+    batch.set(fb.doc(db, "pickupKuyruk", tarih), {
+      tarih,
+      ogrenciler: { [ogr.id]: { saat } },
+      guncellendi: fb.serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+  } catch (e) {
+    console.error("okul zili ana kayıt:", e);
+    if (toast) toast("Gönderilemedi: " + (e.message || e), "error");
+    return;
+  }
+
+  try {
+    const guvenliRef = fb.doc(db, "danismaPickupBildirimleri", id);
+    const guvenli = {
+      ogrenciId: ogr.id,
+      ogrenciAd: tamVeri.ogrenciAd,
+      sinif: tamVeri.sinif,
+      tarih,
+      hedefSaat: saat,
+      alanKisi: kisi,
+      durum: "yolda",
+      olusturuldu: tamVeri.olusturuldu,
+      guncellendi: fb.serverTimestamp()
+    };
+    const mevcut = await fb.getDoc(guvenliRef);
+    if (mevcut.exists()) {
+      await fb.setDoc(guvenliRef, {
+        hedefSaat: saat,
+        alanKisi: kisi,
+        durum: "yolda",
+        guncellendi: fb.serverTimestamp()
+      }, { merge: true });
+    } else {
+      await fb.setDoc(guvenliRef, guvenli);
+    }
+  } catch (e) {
+    console.warn("Okul Zili danışma özeti güncellenemedi:", e.code || e.message);
+  }
+
+  if (toast) toast("🔔 Bildiriminiz öğretmene iletildi");
+  if (typeof window.veliOkulZiliDoldur === "function") {
+    try { await window.veliOkulZiliDoldur(); } catch (_) {}
+  }
+}
+veliOkulZiliGuvenliBildir.__bckaGuvenli = true;
+
+function okulZiliGuvenliBildirimiKur() {
+  const mevcut = window.veliOkulZiliBildir;
+  if (mevcut && mevcut.__bckaGuvenli) return true;
+  if (typeof mevcut !== "function") return false;
+  window.veliOkulZiliBildir = veliOkulZiliGuvenliBildir;
+  return true;
+}
+
+if (!okulZiliGuvenliBildirimiKur()) {
+  let deneme = 0;
+  const timer = setInterval(() => {
+    deneme += 1;
+    if (okulZiliGuvenliBildirimiKur() || deneme >= 80) clearInterval(timer);
+  }, 250);
 }
 
 window._pickupYetki = { formAc, ekle, sil, ogretmenPopup };
