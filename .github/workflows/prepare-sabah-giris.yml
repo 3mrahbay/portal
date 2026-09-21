@@ -1,0 +1,117 @@
+name: Prepare tested morning notice fix
+on:
+  push:
+    branches: [fix/sabah-giris-ana-kayit-20260921]
+permissions:
+  contents: write
+concurrency:
+  group: prepare-sabah-giris-20260921
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/sabah-giris-ana-kayit-20260921
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Patch only parent morning handler and remove rendering side effect
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('moduller/sabah-girisi.js');raw=p.read_bytes()
+          assert hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()=='9f9967a312ae343ec4fdf42782400066413a95c4','Morning source changed; refusing patch'
+          s=raw.decode('utf-8')
+          a=s.index('      try {\n        const guvenliRef = fb.doc(db, "danismaSabahGirisleri"')
+          end='      } catch (e) { console.warn("sabah güvenli özet:", e.code || e.message); }'
+          b=s.index(end,a)+len(end)
+          s=s[:a]+'      // Rendering is read-only. Reception copy runs after an acknowledged notice.'+s[b:]
+          a=s.index('async function veliBildir() {')
+          b=s.index('// ───────────────────────────────────────────────────────────────────\n// ÖĞRETMEN TARAFI',a)
+          replacement=r'''let _veliBildirimSuruyor = false;
+          async function veliBildir() {
+            if (_veliBildirimSuruyor) return;
+            const api = P();
+            const uid = api?.auth?.currentUser?.uid;
+            const childId = (api?.state?.veliAktifOgrenci || api?.state?.veliOgrenciler?.[0])?.id;
+            if (!uid || !childId) { api?.toast?.("Sabah girişi: önce veli hesabıyla giriş yapın.", "error"); return; }
+            const active = () => P()?.auth?.currentUser?.uid === uid &&
+              (P()?.state?.veliAktifOgrenci || P()?.state?.veliOgrenciler?.[0])?.id === childId;
+            const buttons = () => document.querySelectorAll('button[onclick="window._sabahGirisi.bildir()"]');
+            const busy = value => buttons().forEach(el => { el.disabled = value; el.setAttribute('aria-busy', String(value)); });
+            _veliBildirimSuruyor = true;
+            busy(true);
+            let saved = false;
+            try {
+              const { sabahGirisKaydet } = await import("../js/sabah-giris-kaydi.js?v=1");
+              if (!active()) return;
+              const result = await sabahGirisKaydet(api);
+              saved = result.anaKayitKaydedildi;
+              if (!active()) return;
+              if (result.zatenTeslimAlindi) {
+                api.toast("Sabah girişi: çocuğunuzun teslim alındığı zaten kayıtlı.");
+              } else if (result.danismaAktarildi) {
+                api.toast("🌅 Sabah giriş bildiriminiz kaydedildi.");
+              } else {
+                api.toast("Sabah giriş bildirimi kaydedildi; danışma ekranına aktarım doğrulanamadı (SG-OZET).", "warn");
+              }
+              try { await veliKart("veliSabahGirisiKart"); } catch (_) {
+                if (active()) api.toast("Sabah bildirimi kaydedildi; ekran yenilenemedi (SG-EKRAN).", "warn");
+              }
+              if (active() && saved && !result.danismaAktarildi) {
+                document.getElementById("sabahAktarimUyarisi")?.remove();
+                const warning = document.createElement("div");
+                warning.id = "sabahAktarimUyarisi";
+                warning.setAttribute("role", "status");
+                warning.style.cssText = "padding:12px 16px;font-size:13px;border-top:1px solid #e2e8f0;background:#fffbeb;color:#92400e;";
+                warning.textContent = "Bildirim kaydedildi. Danışma ekranına aktarım doğrulanamadı; karşılanacağınızı okuldan teyit edin. Kontrol kodu: SG-OZET.";
+                document.getElementById("veliSabahGirisiKart")?.append(warning);
+              }
+            } catch (e) {
+              if (active()) {
+                const code = /^[a-z0-9/-]{1,80}$/.test(e?.code || '') ? e.code : 'unknown';
+                api.toast(saved ? "Sabah bildirimi kaydedildi; ekran güncellenemedi (SG-EKRAN)." : "Sabah girişi kaydedilemedi (SG-ANA): " + code, saved ? "warn" : "error");
+              }
+            } finally {
+              _veliBildirimSuruyor = false;
+              if (active()) busy(false);
+            }
+          }
+
+          '''
+          s=s[:a]+replacement+s[b:]
+          before=raw.decode('utf-8')
+          marker='// ÖĞRETMEN TARAFI'
+          assert before[before.index(marker):]==s[s.index(marker):],'Staff flow must remain unchanged'
+          p.write_bytes(s.encode('utf-8'))
+          sw=Path('serviceworker.js');text=sw.read_text()
+          assert 'const CACHE_VERSION = "v140-okul-zili";' in text
+          text=text.replace('const CACHE_VERSION = "v140-okul-zili";','const CACHE_VERSION = "v141-sabah-giris";',1)
+          text=text.replace('const PRECACHE = [','const PRECACHE = [\n  "./js/sabah-giris-kaydi.js?v=1",',1)
+          sw.write_text(text)
+          for name in ['tests/core-ogretmen-paneli.test.mjs','tests/zeky-veli-egitim-gelisim.test.mjs']:
+            f=Path(name);text=f.read_text();assert 'v140-okul-zili' in text
+            f.write_text(text.replace('v140-okul-zili','v141-sabah-giris'))
+          print('PASS: parent morning flow only; teacher flow, pickup flow and Rules unchanged')
+          PY
+      - name: Check syntax, all tests and exact change scope
+        run: |
+          node --check js/sabah-giris-kaydi.js
+          node --check moduller/sabah-girisi.js
+          node --test tests/*.test.mjs > /tmp/portal-tests.log 2>&1 || { tail -100 /tmp/portal-tests.log; exit 1; }
+          tail -12 /tmp/portal-tests.log
+          git diff --check
+          git diff --stat
+      - name: Commit tested integration and remove one-shot workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm .github/workflows/prepare-sabah-giris.yml
+          git add moduller/sabah-girisi.js serviceworker.js tests/core-ogretmen-paneli.test.mjs tests/zeky-veli-egitim-gelisim.test.mjs .github/workflows/prepare-sabah-giris.yml
+          git commit -m 'fix: isolate morning notice from reception projection and label actual failures'
+          git push origin HEAD:fix/sabah-giris-ana-kayit-20260921
