@@ -1,0 +1,15 @@
+    match /odemeBildirimleri/{bildirimId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe()
+        || (isVeli() && resource.data.veliEmail == userEmail());
+      allow create: if isSignedIn()
+        && request.resource.data.veliEmail == userEmail()
+        && veliOgrencisi(request.resource.data.ogrenciId)
+        && request.resource.data.durum in ['bekliyor', 'beklemede']
+        && request.resource.data.donem is string
+        && request.resource.data.donem.matches('^[0-9]{4}-[0-9]{4}$')
+        && request.resource.data.get('bildirilenTutar', request.resource.data.get('tutar', 0)) is number
+        && request.resource.data.get('bildirilenTutar', request.resource.data.get('tutar', 0)) > 0
+        && !request.resource.data.keys().hasAny(['onaylayan','onayZamani','tahsilatIslendi']);
+      allow update: if isAdmin() || isYonetim() || isMuhasebe();
+      allow delete: if isAdmin() || isYonetim();
+    }

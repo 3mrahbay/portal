@@ -10,10 +10,17 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v137";
+const CACHE_VERSION = "v138";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/finans/core.js",
+  "./js/finans/account.js",
+  "./js/finans/data.js",
+  "./js/finans/dashboard.js",
+  "./js/finans/parent.js",
+  "./js/finans/portal-entry.js",
+  "./js/finans/ui.css",
   "./",
   "./index.html",
   "./aidat-donem-genislet.js",
