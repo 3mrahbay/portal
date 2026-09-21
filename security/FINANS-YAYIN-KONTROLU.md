@@ -1,51 +1,35 @@
-# Muhasebe bütünlüğü — yayın öncesi kontrol
+# Muhasebe paketi — güncel yayın durumu
 
-Bu paket taslaktır; canlı kayıtları değiştirmez. Portal ve ZEKY aynı core/data/dashboard/parent modüllerini kullanır.
+Portal ve ZEKY aynı finans hesaplama, veli, dekont, dashboard ve mutabakat modüllerini kullanır. Paket taslaktır; üretim verileri değiştirilmedi.
 
-## Hazır olanlar
-- Aylık/dönemlik ücret, ön ödeme ve ek kalemlerde ortak kalan hesabı; kuruş hassasiyeti.
-- Kısmi tahsilat gelir listesine dahil; tahsilat tarihi ile ilgili ay ayrı.
-- Veli ekranında çocuk/dönem seçimi, eski dönem borcu, kalem bazlı durum, bildirim geçmişi ve kısmi tutar girişi.
-- Ödeme bildirimi onayı: dönem ve bildirim atomik güncellenir; personel kimliği yalnız personele açık odemeler kaydına yazılır.
-- İşlenmiş bildirim, fazla tutar, eksik tarih ve uyumsuz hareket bakiyesi onayı engeller.
-- Dashboard, alacak ve gider dağılımı, tahsilat grafiği, başabaş senaryosu, sıralama/arama/filtreleme ve CSV/yazdırma.
-- İşlenmiş bildirimlerde arama ve tarih/ad/tutar sıralaması; veli kalemlerinde sıralama ve hareket geçmişi.
-- Tam iade / hatalı onay düzeltmesi atomik ters kayıtla işler. Özgün hareket silinmez; borç yeniden açılır. Personel açıklaması yalnız özel muhasebe kaydındadır. Gerçek para transferi yapmaz; kısmi iade, her işlem için ayrı kimlik ve kalan tahsilat sınırıyla desteklenir.
-- Bildirim reddi ve ters kayıtlar veli ekranına canlı yansır; negatif net tahsilat grafikte gösterilir.
-- ZEKY finans sayfalarındaki sabit finansal örnekler kaldırıldı. Gider kayıt düzenleme ve personel raporuna bağlantılar korunuyor.
+## Tamamlanan geliştirmeler
+- Aylık/dönemlik ücret, ön ödeme ve ek kalemler için kuruş hassasiyetli ortak borç hesabı; kısmi ödeme ve geçmiş borçlar korunur.
+- Veli kartında ödeme ayı ve durum; yeşil ödendi, turuncu gecikmiş. Çocuk/dönem seçimi, açık borçlar, hareket ve bildirim geçmişi, sıralama/filtreleme.
+- Atomik onay: dönem, bildirim ve özel muhasebe denetimi birlikte yazılır. Mükerrer onay, fazla tutar, geçersiz tarih ve hareket-bakiye tutarsızlığı engellenir.
+- Tam/kısmi iade ve hatalı onay düzeltmesi: özgün hareket silinmez, ters hareketle borç yeniden açılır. İşlem kimliği, özgün tahsilat, toplam iade ve bakiye birlikte doğrulanır. Para transferi yapmaz.
+- Özel dekont: PDF/JPG/PNG, en fazla 2 MB. Dosya imzası ve SHA-256 doğrulaması; bildirimle atomik yükleme. Ayrı Firestore belgeleri/parçaları kullanır, herkese açık URL oluşturmaz. Yalnız bildiren veli ve muhasebe/yönetim okuyabilir. Personel açıklaması ve kimliği veli kaydına yazılmaz.
+- Gerçek kayıtlardan dashboard, gelir/gider grafikleri, başabaş senaryosu, Türkçe sıralama, arama/filtre, CSV/yazdırma ve aylık toplu rapor.
+- Banka/POS CSV mutabakatı: hesap ve sütun eşleme, Türkçe/ondalık tutar seçimi, tarih/ref doğrulaması, tahsilat/iade seçimi ve komisyon kontrolü. Banka referansı ve tahsilat hareketi ikinci kez eşleştirilemez.
+- ZEKY taslağı daha önce yayımlanan PDR/danışma dalıyla birleştirildi; ilgili rol ekranları korunur.
 
-## Yayın engelleri / kalan doğrulamalar
-1. Canlı Firebase kuralları 21 Eylül ekranından salt okunur incelendi. Veli ödeme bildirimi sorgusu hem ogrenciId hem veliEmail içerir; kurallar mevcut e-posta filtresini zorunlu tutar.
-2. `prepare-finance-rules.mjs` yalnız ödeme bildirim bloğunu değiştirir. Güncel kurallar yeniden dışa aktarılarak aday üretilmeli; diğer beş uygulamanın kuralları değiştirilmemeli.
-3. Aday kural: veli başka öğrenci adına veya doğrudan onaylı bildirim oluşturamaz. Yerel Firestore Emulator ile 41 kontrol geçti: sahip veli, başka veli, muhasebe, öğretmen, danışma, PDR ve oturumsuz erişim; kısmi tahsilat, eşzamanlı mükerrer onay, fazla ödeme, ret, eşzamanlı ters kayıt ve veliye özel personel verisinin sızmaması doğrulandı. Kural henüz yayınlanmadı. Dekont kuralları da aynı aday içindedir.
-4. Gerçek hesaplarla uçtan uca onay ve bağımsız tahsilat tetikleyicilerinin varlığı kontrol edilmeli. Otomatik sunucu muhasebeleştirmesi varsa aynı olayın ikinci kez işlenmediği doğrulanmalı.
-5. Tarayıcı görsel/etkileşim QA henüz tamamlanmadı: yerel Chromium indirmesi zaman aşımına uğradı; cloud browser yerel file URL'sini güvenlik politikasıyla reddetti. Engelin etrafından dolaşılmadı.
-6. Android derlemesi ve cihaz testi yapılmadı. Bu paket Play Store'a gönderilmedi.
-7. Gerçek kasa/banka/POS bakiyeleri ve dış okul gelirleri için mevcut kaynak/hesap eşlemeleri incelenmeli. Bu paket yalnız öğrenci planlarından türetilen tahsilatı gösterir; banka mutabakatı veya ödeme entegrasyonu iddiası taşımaz.
-8. Yeni sözleşme yönetimi, dekont dosyası yükleme, XLSX çıktı, kısmi iade ve banka/POS hesabına göre muhasebeleştirme bu pakette tamamlanmadı. Portalın mevcut sözleşme/ücret düzenleme alanları korunur.
-9. Tarihsiz eski tahsilatlar aylık nakit grafiğine yazılmaz; kullanıcıya adet gösterilir. `odendi` ve hareket toplamı tutarsızlıkları dashboard'da mutabakat uyarısı oluşturur. Eksik eski bildirim dönem/tarih bilgisi otomatik tahmin edilmez.
-10. Başabaş sabit/değişken sınıflaması tamamlanmış giderlere dayanır. Gerçekleşen net kâr olarak sunulmaz; kapasite, bordro ve vergi kaynağı tamamlığı ayrıca doğrulanmalıdır.
+## Doğrulama
+- Portal: 102 test geçti. ZEKY: 20 test geçti.
+- Yerel Firestore Emulator: 71 kontrol geçti. Sahip veli, başka veli, muhasebe, öğretmen, danışma, PDR ve oturumsuz erişim; kısmi ödeme, eşzamanlı onay/ters kayıt, fazla iade, özel dekont ve banka eşleştirmesi sınandı.
+- Test komutu: `node --test tests/*.test.mjs`.
+- Emülatör: `FIRESTORE_EMULATOR_HOST=127.0.0.1:8791 FINANCE_RULES_FILE=/path/candidate.rules node tests/finans-rules-emulator.cjs`. `@firebase/rules-unit-testing` ve `firebase` test bağımlılıkları gerekir. Test yalnız yerel adres ve demo-finance-review projesiyle çalışır.
+- JavaScript sözdizimi ve ortak modüllerin eşitliği kontrol edildi. Canlı yazma testi yapılmadı.
+- Android 1.0.7 iş akışı: https://github.com/3mrahbay/zeky-app/actions/runs/35597371931 . Sonuç PR açıklamasında takip edilir.
 
-## Test
-- `node --test tests/*.test.mjs`
-- İki depodaki `js/finans` ortak dosyalarının SHA-256 değerleri aynı olmalı (entry/home/portal-entry hariç).
-- Kısmi Eylül → Ekim tahsilatı; tekrar onay; ek kıyafet; eski borç; eksik tarih; hareket toplamı uyumsuzluğu.
+## Yayın kapıları
+1. Güncel canlı kurallar yeniden dışa aktarılmalı. `prepare-finance-rules.mjs` bildirim bloğunu değiştirir, özel dekont kurallarını ekler ve genel yönetici kuralının dekont değişmezliğini aşmasını önler. Diğer uygulama kurallarını korur. İkinci kez eklemeyi reddeder.
+2. Güncel kaynakla üretilen aday emülatörde yeniden sınanmalı ve kurallar uygulama yayınından önce devreye alınmalı. Kurallar henüz üretime yayımlanmadı.
+3. Yerel görsel önizleme tarayıcı güvenlik politikası tarafından engellendi; görsel QA tamamlanmadı. Android cihazında dosya seçme/indirme ve ekran boyutları henüz sınanmadı.
+4. 21 Eylül canlı Firebase Functions listesi salt okunur incelendi: toplam iki işlev, randevuKomutV3 ve randevuSorguV3; ikisi de HTTP tetiklemeli. Listede ödeme/Firestore tetikleyicisi bulunmuyor. Haricî banka/Apps Script otomasyonlarının varlığı bu konsol kontrolüyle doğrulanmış sayılmaz.
+5. Gerçek banka/POS dökümüyle hesap/sütun eşlemesi ve yetkili gerçek hesaplarla son kabul testi yapılmalı. Ana dallar ve Play Store yayını henüz değiştirilmedi.
 
-## 21 Eylül — ikinci geliştirme paketi
-- Portal: 98 test geçti. ZEKY: 16 ortak hesap testi geçti.
-- Yerel Firebase Rules Emulator: 41 senaryo geçti. Hiçbir canlı belge yazılmadı.
-- `tests/finans-rules-emulator.cjs` yalnız `127.0.0.1` ve `demo-finance-review` projesiyle çalışır; aday kural dosyası zorunludur.
-- Çalıştırma: `FIRESTORE_EMULATOR_HOST=127.0.0.1:8791 FINANCE_RULES_FILE=/path/candidate.rules node tests/finans-rules-emulator.cjs` (`@firebase/rules-unit-testing` ve `firebase` test bağımlılıkları gerekir).
-- Emülatör sınaması istemci akışı ve aday erişim kurallarını doğrular. Canlı tetikleyicilerin varlığını, tarayıcı görünümünü, Android cihazı veya banka hareketlerini doğrulamaz.
-- İade/düzeltme yalnız bu modülün oluşturduğu tahsilat ve denetim kaydı eşleştiğinde yapılabilir; eski kayıtlara tahminle uygulanmaz.
-- Dekont için mevcut genel medya yükleme yolunun mali belgelerde özel erişim sağladığı doğrulanmadı; özel dosya erişimi sağlanmadan dekont bu yola bağlanmadı.
-
-## 21 Eylül — üçüncü geliştirme paketi
-- Kısmi iade: özgün tahsilata bağlı birden fazla iade, toplam limit ve mükerrer işlem kimliği denetimi; atomik dönem/bildirim/denetim güncellemesi.
-- Özel dekont: PDF/JPG/PNG, 2 MB sınırı, dosya imzası kontrolü, SHA-256 bütünlük doğrulaması; bildirimle tek atomik yükleme. Ayrı Firestore belgelerinde parçalara ayrılır, herkese açık URL üretilmez. Veli sahipliği ve muhasebe/yönetim erişimi kurallarla sınanır. Değiştirme/silme kapalıdır; saklama/imha politikası ayrıca belirlenmelidir.
-- CSV banka/POS mutabakatı: hesap adı, sütun eşleme, Türkçe/ondalık tutar biçimi, tarih doğrulama, benzersiz banka referansı, tahsilat/iade seçimi ve komisyon farkı. Tek banka hareketi ile tek tahsilat eşleştirilir; yinelenen referans ve tahsilat engellenir.
-- Mutabakat banka API bağlantısı veya banka bakiyesi değildir. Çoklu tahsilata karşı tek toplu POS yatırımı bu ilk sürümde eşleştirilmez. Komisyon otomatik gider kaydı oluşturmaz.
-- Önceki listelerde kalan olarak belirtilen dekont ve kısmi iade bu paketle kodlandı; CSV mutabakatı eklendi. Gerçek banka/POS verisiyle saha doğrulaması, özel kasa sayımı ve dış gelir kaynakları hâlâ ayrı işlerdir.
-- ZEKY muhasebe dalı, daha önce dahili teste çıkan PDR/danışma dalıyla birleştiriliyor; eski rol geliştirmeleri korunur.
-- Yerel test: Portal 102, ZEKY 20. Emülatör sonucu ve Android derleme bağlantısı PR açıklamasında güncellenir.
-- Yayın sırası: güncel canlı kurallardan aday üret, emülatör testini tekrarla, kuralları yayınla; ardından portal/Android sürümü. Henüz üretim dağıtımı yapılmadı.
+## Kapsam sınırları
+- Mutabakat banka API bağlantısı veya banka bakiyesi değildir. İlk sürüm tek banka hareketini tek tahsilatla eşleştirir; toplu POS yatırımları çoklu tahsilata dağıtılmaz. Komisyon otomatik gider oluşturmaz.
+- Gelirler öğrenci ödeme kayıtlarından türetilir. Dış gelirler, kasa sayımı, fatura entegrasyonu ve tüm bordro/vergi kayıtlarının tamamlığı bu paket tarafından doğrulanmaz.
+- Başabaş, sınıflandırılmış giderlere dayanan senaryodur; gerçekleşmiş net kâr olarak sunulmaz.
+- Tarihsiz eski tahsilatlar aylık nakit grafiğine yazılmaz. Eksik dönem/tarih veya tutarsız hareketlere tahmin uygulanmaz. Eski sözleşme/ücret yönetimi korunur; yeni sözleşme sistemi ve XLSX çıktı eklenmedi.
+- Dekontlar istemci üzerinden değiştirilmez/silinmez. Saklama ve yetkili imha süreci ayrıca tanımlanmalıdır.
