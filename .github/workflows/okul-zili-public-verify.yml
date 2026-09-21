@@ -1,4 +1,4 @@
-name: Verify public Okul Zili deployment
+name: Verify public Okul Zili diagnostic release
 on:
   push:
     branches: [diag/okul-zili-canli-dogrulama-20260921]
@@ -10,31 +10,44 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Compare actual public responses to this checkout
+        with:
+          ref: 1d87313499fa0e66f99ffb45470219fe1c7ec965
+      - name: Verify actual public diagnostic source
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import urllib.request, hashlib, json, time, re
+          import urllib.request, hashlib, json, time
           root='https://portal.bircicekkoleji.com/'
-          checks=[('index.html',''),('serviceworker.js',''),('moduller/pickup-yetkilileri.js',''),('moduller/pickup-yetkilileri.js','?v=v116')]
+          checks=[('index.html',''),('js/okul-zili-tani.js','?v=1')]
           results=[]
-          for path,q in checks:
-              item={'path':path+q}
-              try:
-                  req=urllib.request.Request(root+path+q,headers={'Cache-Control':'no-cache','User-Agent':'BCKA-Public-Deployment-Verification'})
-                  with urllib.request.urlopen(req,timeout=30) as r:
-                      data=r.read(); item.update(status=r.status,finalUrl=r.url,contentType=r.headers.get('Content-Type'),age=r.headers.get('Age'))
-                  s=data.decode('utf-8'); source=Path(path).read_bytes()
-                  item.update(sha256=hashlib.sha256(data).hexdigest(),matchesCheckout=data==source,bytes=len(data),taggedError='Gönderilemedi — ana çıkış kaydı:' in s,version=re.findall(r'(?:CACHE_VERSION|PORTAL_SURUM)\s*=\s*[\"\']([^\"\']+)',s)[:3])
-              except Exception as e:
-                  item['error']=str(e)
-              results.append(item)
-          print(json.dumps({'head':'${{ github.sha }}','publicResponses':results},ensure_ascii=False,indent=2))
-          Path('public-verification.json').write_text(json.dumps(results,ensure_ascii=False,indent=2))
+          for attempt in range(12):
+              results=[]
+              for path,q in checks:
+                  item={'path':path+q}
+                  try:
+                      req=urllib.request.Request(root+path+q,headers={'Cache-Control':'no-cache','User-Agent':'BCKA-Public-Deployment-Verification'})
+                      with urllib.request.urlopen(req,timeout=15) as response:
+                          data=response.read(); item.update(status=response.status,contentType=response.headers.get('Content-Type'))
+                      text=data.decode('utf-8'); source=Path(path).read_bytes()
+                      item.update(sha256=hashlib.sha256(data).hexdigest(),matchesCheckout=data==source,bytes=len(data))
+                      item['expectedControlPresent']=('onclick="okulZiliTaniAc()"' in text and 'window.okulZiliTaniAc = async function()' in text) if path=='index.html' else 'OKUL-ZILI-TANI-1' in text
+                  except Exception as error:
+                      item['error']=str(error)
+                  results.append(item)
+              if all(item.get('matchesCheckout') and item.get('expectedControlPresent') for item in results):
+                  break
+              time.sleep(10)
+          report={'release':'1d87313499fa0e66f99ffb45470219fe1c7ec965','reads':'public-static-files-only','publicResponses':results}
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path('public-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+          assert all(item.get('matchesCheckout') and item.get('expectedControlPresent') for item in results),'Live release not verified'
           PY
-      - name: Run source regression tests
-        run: node --test tests/*.test.mjs
+      - name: Verify release tests
+        run: |
+          node --test tests/*.test.mjs > /tmp/portal-tests.log 2>&1 || { tail -80 /tmp/portal-tests.log; exit 1; }
+          tail -12 /tmp/portal-tests.log
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: public-verification
           path: public-verification.json
