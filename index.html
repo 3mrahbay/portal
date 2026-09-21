@@ -13884,7 +13884,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v114";
+window.PORTAL_SURUM = "v115";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14382,9 +14382,9 @@ const SEKME_YETKILERI = {
   geriBildirim: ["kurucu_mudur", "mudur", "egitim_koordinator"],
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
-  duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
+  duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma", "pdr"],
   yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
-  etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma"],
+  etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma", "pdr"],
   mesajlasma:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
   gelisim:     ["kurucu_mudur", "mudur", "egitim_koordinator"],
   icerik:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"]
@@ -16088,6 +16088,8 @@ window.mesajSohbetKapat = function() {
 // === YENİ SOHBET (öğrenci → veli akışı) ===
 let mesajYeniSeciliOgrenci = null;
 let mesajYeniPersonelCache = null;
+let pdrMesajHedef = "veli";
+window.pdrMesajHedefSec = function(hedef) { pdrMesajHedef = hedef; mesajYeniOgrencileriListele(); };
 
 window.mesajYeniSohbetAc = function() {
   mesajYeniSeciliOgrenci = null;
@@ -16113,8 +16115,10 @@ window.mesajYeniSohbetKapat = function() {
 // Yeni sohbet: öğrencileri listele (öğretmen sadece kendi sınıfını görür - ogrenciList zaten filtreli)
 window.mesajYeniOgrencileriListele = function() {
   if (danismaRolMu()) { mesajYeniPersonelleriListele(); return; }
+  if (aktifKullaniciRol === "pdr" && pdrMesajHedef === "personel") { mesajYeniPersonelleriListele(); return; }
   const el = document.getElementById("mesajYeniOgrenciListesi");
   if (!el) return;
+  pdrMesajSeciciKur(el);
   const arama = (document.getElementById("mesajYeniOgrenciAra")?.value || "").toLowerCase().trim();
 
   let liste = ogrenciList.filter(o => {
@@ -16148,10 +16152,18 @@ window.mesajYeniOgrencileriListele = function() {
   }).join("");
 };
 
+function pdrMesajSeciciKur(el) {
+  let secici=document.getElementById("pdrMesajHedefSecici");
+  if(aktifKullaniciRol!=="pdr"){if(secici)secici.remove();return;}
+  if(!secici){secici=document.createElement("div");secici.id="pdrMesajHedefSecici";el.before(secici);}
+  secici.innerHTML='<button class="btn-secondary" onclick="pdrMesajHedefSec(&quot;veli&quot;)">Veliler</button> <button class="btn-secondary" onclick="pdrMesajHedefSec(&quot;personel&quot;)">Okul personeli</button>';
+}
+
 // Danışma için yeni sohbet seçicisi: öğrenci/veli yerine yalnız aktif personel.
 window.mesajYeniPersonelleriListele = async function() {
   const el = document.getElementById("mesajYeniOgrenciListesi");
   if (!el || !currentUser) return;
+  pdrMesajSeciciKur(el);
   const arama = (document.getElementById("mesajYeniOgrenciAra")?.value || "").toLocaleLowerCase("tr").trim();
   el.innerHTML = `<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px;">Personel listesi yükleniyor…</div>`;
   try {
@@ -16190,7 +16202,7 @@ window.mesajYeniPersonelleriListele = async function() {
 };
 
 window.mesajYeniIcBaslatIndex = async function(index) {
-  if (!danismaRolMu()) return;
+  if (!danismaRolMu() && aktifKullaniciRol !== "pdr") return;
   const kisi = (window.__mesajIcKisiListesi || [])[index];
   if (!kisi) return;
   try {
@@ -20727,6 +20739,11 @@ function renderAdminHome() {
   }
   adminHomeZamanlayicilariniTemizle();
   const renderSurumu = ++adminHomeRenderSurumu;
+  if (!isAdmin && aktifKullaniciRol === "pdr") {
+    root.innerHTML = '<div id="pdrAnaSayfaKap"></div>';
+    modulYukle("pdr-calisma").then(m => m && m.panelRender("pdrAnaSayfaKap"));
+    return;
+  }
   const danismaMi = danismaRolMu();
   if (danismaMi) caAdminEkran = "home";
   // Faz 1b: admin iç-navigasyon (eğitim takibi gerçek veri)
@@ -42474,7 +42491,7 @@ document.querySelectorAll(".tab").forEach(tab => {
 
     // PDR sekmesi açıldı
     if (tab.dataset.tab === "pdr") {
-      setTimeout(() => { modulYukle("pdr").then(m => m && m.panelRender("pdrIcerikKap")); }, 50);
+      setTimeout(() => { modulYukle("pdr-calisma").then(m => m && m.panelRender("pdrIcerikKap")); }, 50);
     }
 
     // Aday Randevuları sekmesi açıldı

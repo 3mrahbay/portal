@@ -1,3 +1,4 @@
+import {yetkili} from '../js/pdr/core.js';
 // ═══════════════════════════════════════════════════════════════════
 // PDR — moduller/pdr.js
 // ZEKY ile ORTAK: pdrGozlemleri/{id}, pdrTestleri/{id}
@@ -40,6 +41,8 @@ const alan = (id) => ALANLAR.find(a => a.id === id) || { ad: id, ikon: "📝", r
 const seviye = (id) => SEVIYELER.find(s => s.id === id) || SEVIYELER[2];
 const test = (kod) => TESTLER.find(t => t.kod === kod) || { ad: kod };
 
+let _hedefId = "pdrIcerikKap";
+let _kaydediliyor = false;
 let _sekme = "gozlem";   // gozlem | test | ogrenci
 let _seciliOgr = null;
 let _gozlemler = [], _testler = [];
@@ -75,6 +78,8 @@ function ogrSinif(o) { const a = P().state.ayarListesi[o.id]; return (a?.kayit?.
 // ───────────────────────────────────────────────────────────────────
 export async function panelRender(hedefId) {
   const el = document.getElementById(hedefId);
+  if (!yetkili(P().state)) { if (el) el.textContent = "PDR yetkisi gerekli."; return; }
+  _hedefId = hedefId;
   if (!el) return;
   const { esc, lucide } = P();
   el.innerHTML = `<div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>`;
@@ -279,12 +284,14 @@ function seciliOgrenci() {
 }
 
 async function gozlemKaydet() {
+  if (!yetkili(P().state) || _kaydediliyor) return;
   const { fb, db, toast, bugun } = P();
   const o = seciliOgrenci();
   const not = (document.getElementById("pdfNot")?.value || "").trim();
   if (!o) { toast("Öğrenci seçin", "error"); return; }
   if (!not) { toast("Gözlem notu gerekli", "error"); return; }
   try {
+    _kaydediliyor = true;
     await fb.addDoc(fb.collection(db, "pdrGozlemleri"), {
       ...o,
       alan: document.getElementById("pdfAlan")?.value || "sosyal",
@@ -294,21 +301,24 @@ async function gozlemKaydet() {
       oneriler: (document.getElementById("pdfOneri")?.value || "").split(",").map(s => s.trim()).filter(Boolean),
       veliylePaylas: !!document.getElementById("pdfPaylas")?.checked,
       ...uzman(),
+      donem: P().state.aktifDonem,
       tarih: bugun(),
       olusturuldu: fb.serverTimestamp()
     });
     toast("✓ Gözlem kaydedildi");
     _sekme = "gozlem";
-    panelRender("pdrIcerikKap");
-  } catch (e) { toast("Kaydedilemedi: " + e.message, "error"); }
+    panelRender(_hedefId);
+  } catch (e) { toast("Kaydedilemedi: " + e.message, "error"); } finally { _kaydediliyor = false; }
 }
 
 async function testKaydet() {
+  if (!yetkili(P().state) || _kaydediliyor) return;
   const { fb, db, toast, bugun } = P();
   const o = seciliOgrenci();
   const kod = document.getElementById("pdfTest")?.value;
   if (!o) { toast("Öğrenci seçin", "error"); return; }
   try {
+    _kaydediliyor = true;
     await fb.addDoc(fb.collection(db, "pdrTestleri"), {
       ogrenciId: o.ogrenciId, ogrenciAd: o.ogrenciAd,
       testKod: kod, testAd: test(kod).ad,
@@ -320,12 +330,13 @@ async function testKaydet() {
       puanlar: {},
       veliylePaylas: !!document.getElementById("pdfPaylas")?.checked,
       ...uzman(),
+      donem: P().state.aktifDonem,
       olusturuldu: fb.serverTimestamp()
     });
     toast("✓ Test sonucu kaydedildi");
     _sekme = "test";
-    panelRender("pdrIcerikKap");
-  } catch (e) { toast("Kaydedilemedi: " + e.message, "error"); }
+    panelRender(_hedefId);
+  } catch (e) { toast("Kaydedilemedi: " + e.message, "error"); } finally { _kaydediliyor = false; }
 }
 
 function ogrenciAc(id) {
@@ -350,6 +361,6 @@ function ogrenciAc(id) {
 }
 
 window._pdr = {
-  sekme: (k) => { _sekme = k; _seciliOgr = null; icerikRender(); document.querySelectorAll("#pdrIcerikKap .btn-mini").forEach(b => { /* görsel güncelleme panelRender ile */ }); panelRender("pdrIcerikKap"); },
+  sekme: (k) => { _sekme = k; _seciliOgr = null; icerikRender(); document.querySelectorAll("#pdrIcerikKap .btn-mini").forEach(b => { /* görsel güncelleme panelRender ile */ }); panelRender(_hedefId); },
   formAc, gozlemKaydet, testKaydet, ogrenciAc
 };
