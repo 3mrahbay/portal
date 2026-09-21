@@ -1,0 +1,48 @@
+    // Bu blok match /databases/{database}/documents içine eklenir.
+    // İç görüşmeler ve destek planları hiçbir veli/öğretmen hesabına açılmaz.
+    function pdrTakipVerisiGecerli(d) {
+      return d.keys().hasOnly([
+        'ogrenciId','ogrenciAd','sinif','donem','tur','durum','tarih','takipTarihi',
+        'baslik','ozet','katilimcilar','hedef','uygulama','aileOnerisi','ogretmenOnerisi','sonuc',
+        'veliylePaylas','semaSurumu','uzmanEmail','uzmanAd','olusturuldu','guncelleyen','guncellendi'
+      ])
+      && d.ogrenciId is string && d.ogrenciId.size() > 0
+      && d.ogrenciAd is string && d.sinif is string
+      && d.donem is string && d.donem.size() > 0
+      && d.tur in ['gorusme','destek','rapor']
+      && d.durum in ['planlandi','suruyor','tamamlandi']
+      && d.tarih is string && d.tarih.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+      && d.takipTarihi is string
+      && (d.takipTarihi == '' || (d.takipTarihi.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') && d.takipTarihi >= d.tarih))
+      && d.baslik is string && d.baslik.size() > 0 && d.baslik.size() <= 160
+      && d.ozet is string && d.ozet.size() > 0 && d.ozet.size() <= 5000
+      && d.katilimcilar is string && d.katilimcilar.size() <= 5000
+      && d.hedef is string && d.hedef.size() <= 5000
+      && d.uygulama is string && d.uygulama.size() <= 5000
+      && d.aileOnerisi is string && d.aileOnerisi.size() <= 5000
+      && d.ogretmenOnerisi is string && d.ogretmenOnerisi.size() <= 5000
+      && d.sonuc is string && d.sonuc.size() <= 5000
+      && (d.tur != 'destek' || (d.hedef.size() > 0 && d.takipTarihi != ''))
+      && (d.durum != 'tamamlandi' || d.sonuc.size() > 0)
+      && d.veliylePaylas == false && d.semaSurumu == 1
+      && d.uzmanEmail is string && d.uzmanAd is string
+      && d.olusturuldu is timestamp
+      && d.guncelleyen == userEmail() && d.guncellendi == request.time;
+    }
+    match /pdrTakipKayitlari/{kayitId} {
+      allow read: if isAdmin() || isYonetim() || isPdr();
+      allow create: if (isAdmin() || isYonetim() || isPdr())
+        && pdrTakipVerisiGecerli(request.resource.data)
+        && request.resource.data.uzmanEmail == userEmail()
+        && request.resource.data.olusturuldu == request.time;
+      allow update: if (isAdmin() || isYonetim() || isPdr())
+        && pdrTakipVerisiGecerli(request.resource.data)
+        && request.resource.data.ogrenciId == resource.data.ogrenciId
+        && request.resource.data.donem == resource.data.donem
+        && request.resource.data.tur == resource.data.tur
+        && request.resource.data.uzmanEmail == resource.data.uzmanEmail
+        && request.resource.data.uzmanAd == resource.data.uzmanAd
+        && request.resource.data.olusturuldu == resource.data.olusturuldu;
+      // Silme yerine sonuç ve durum kaydı korunur. Genel yönetici kuralı saklıdır.
+      allow delete: if false;
+    }
