@@ -15,6 +15,8 @@ const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
   "./js/finans/core.js",
+  "./js/finans/receipts.js",
+  "./js/finans/reconciliation.js",
   "./js/finans/account.js",
   "./js/finans/data.js",
   "./js/finans/dashboard.js",

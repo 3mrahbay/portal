@@ -9,7 +9,36 @@
         && request.resource.data.donem.matches('^[0-9]{4}-[0-9]{4}$')
         && request.resource.data.get('bildirilenTutar', request.resource.data.get('tutar', 0)) is number
         && request.resource.data.get('bildirilenTutar', request.resource.data.get('tutar', 0)) > 0
-        && !request.resource.data.keys().hasAny(['onaylayan','onayZamani','tahsilatIslendi']);
+        && !request.resource.data.keys().hasAny(['onaylayan','onayZamani','tahsilatIslendi','iadeToplami','tersKayitTarihi']);
       allow update: if isAdmin() || isYonetim() || isMuhasebe();
       allow delete: if isAdmin() || isYonetim();
+    }
+    // Private receipt metadata and chunks: immutable after atomic upload.
+    match /odemeDekontlari/{bildirimId} {
+      function staff() { return isAdmin() || isYonetim() || isMuhasebe(); }
+      function owner(meta) { return isVeli() && meta.veliEmail == userEmail() && veliOgrencisi(meta.ogrenciId); }
+      function notification() { return getAfter(/databases/$(database)/documents/odemeBildirimleri/$(bildirimId)).data; }
+      allow read: if staff() || owner(resource.data);
+      allow create: if owner(request.resource.data)
+        && request.resource.data.keys().hasOnly(['ad','boyut','mime','sha256','parcaSayisi','veliEmail','ogrenciId','bildirimId'])
+        && request.resource.data.bildirimId == bildirimId
+        && request.resource.data.ad is string && request.resource.data.ad.size() <= 120
+        && request.resource.data.boyut is int && request.resource.data.boyut > 0 && request.resource.data.boyut <= 2097152
+        && request.resource.data.parcaSayisi is int && request.resource.data.parcaSayisi > 0 && request.resource.data.parcaSayisi <= 16
+        && request.resource.data.mime in ['application/pdf','image/png','image/jpeg']
+        && request.resource.data.sha256 is string && request.resource.data.sha256.matches('^[a-f0-9]{64}$')
+        && notification().veliEmail == userEmail() && notification().ogrenciId == request.resource.data.ogrenciId
+        && notification().durum in ['bekliyor','beklemede'] && notification().dekontVar == true;
+      allow update, delete: if false;
+      match /parcalar/{parcaId} {
+        function metadata() { return getAfter(/databases/$(database)/documents/odemeDekontlari/$(bildirimId)).data; }
+        allow read: if staff() || owner(get(/databases/$(database)/documents/odemeDekontlari/$(bildirimId)).data);
+        allow create: if owner(metadata())
+          && !exists(/databases/$(database)/documents/odemeDekontlari/$(bildirimId))
+          && request.resource.data.keys().hasOnly(['sira','icerik'])
+          && request.resource.data.sira is int && request.resource.data.sira >= 0 && request.resource.data.sira < metadata().parcaSayisi
+          && parcaId == string(request.resource.data.sira)
+          && request.resource.data.icerik is string && request.resource.data.icerik.size() > 0 && request.resource.data.icerik.size() <= 180000;
+        allow update, delete: if false;
+      }
     }
