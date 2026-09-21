@@ -1,0 +1,51 @@
+name: Verify public morning release
+on:
+  push:
+    branches: [diag/sabah-yayin-kontrol-20260921]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 82cfaad14e1905e4c20d2824c6470b78af304aef
+          persist-credentials: false
+      - name: Verify actual public files without reading school records
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import urllib.request,hashlib,json,time
+          targets=[('moduller/sabah-girisi.js','?v=v116'),('js/sabah-giris-kaydi.js','?v=1'),('serviceworker.js','')]
+          results=[]
+          for attempt in range(12):
+            results=[]
+            for path,q in targets:
+              item={'path':path+q}
+              try:
+                req=urllib.request.Request('https://portal.bircicekkoleji.com/'+path+q,headers={'Cache-Control':'no-cache','User-Agent':'BCKA-Static-Release-Verification'})
+                with urllib.request.urlopen(req,timeout=15) as r:
+                  raw=r.read();item.update(status=r.status,matchesCheckout=raw==Path(path).read_bytes(),sha256=hashlib.sha256(raw).hexdigest())
+              except Exception as e:item['error']=str(e)
+              results.append(item)
+            if all(x.get('matchesCheckout') for x in results):break
+            time.sleep(10)
+          report={'release':'82cfaad14e1905e4c20d2824c6470b78af304aef','scope':'public-static-files-only','checks':results,'liveParentAccountTest':False,'rulesPublished':False}
+          Path('morning-release-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          assert all(x.get('matchesCheckout') for x in results),'Actual release bytes do not match'
+          PY
+      - name: Run all source regression tests
+        run: |
+          node --test tests/*.test.mjs > tests.log 2>&1 || { tail -80 tests.log; exit 1; }
+          tail -12 tests.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: morning-release-verification
+          path: |
+            morning-release-verification.json
+            tests.log
+          retention-days: 3
