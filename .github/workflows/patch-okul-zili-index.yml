@@ -1,0 +1,216 @@
+name: Patch Okul Zili Inline Flow
+on:
+  push:
+    branches:
+      - fix/okul-zili-index-direct-20260921
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/okul-zili-index-direct-20260921
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Patch inline parent Okul Zili operations
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("index.html")
+          s=p.read_text(encoding="utf-8")
+
+          start=s.find('window.veliOkulZiliBildir = async function()')
+          end=s.find('// Veli teyidi — ZEKY pickupVeliOnayi', start)
+          if start < 0 or end < 0:
+              raise SystemExit("veliOkulZiliBildir block not found")
+          old=s[start:end]
+          if 'const guvenliMevcut = await getDoc(guvenliRef);' not in old:
+              raise SystemExit("expected unsafe projection read not found; refusing blind patch")
+
+          new=r'''window.veliOkulZiliBildir = async function() {
+            const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+            if (!ogr) return;
+            const saat = document.getElementById("vzSaat")?.value || "";
+            const kisi = document.getElementById("vzKisi")?.value || "Veli";
+            const tarih = vzBugun();
+            try {
+              const tamVeri = {
+                ogrenciId: ogr.id,
+                ogrenciAd: ogr.ogrenciAdSoyad || "",
+                sinif: (ayarListesi?.[ogr.id]?.kayit?.sinif) || ogr.sinif || "",
+                tarih, hedefSaat: saat, alanKisi: kisi,
+                durum: "yolda",
+                veliEmail: (currentUser?.email || "").toLowerCase(),
+                olusturuldu: new Date().toISOString(),
+                guncellendi: serverTimestamp()
+              };
+
+              // Asıl işlem: veli bildirimi + isimsiz sıra. Danışma projeksiyonu bu
+              // batch'in parçası DEĞİLDİR; yardımcı kayıttaki izin sorunu veli
+              // bildirimini geri alamaz.
+              const batch = writeBatch(db);
+              batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
+              batch.set(doc(db, "pickupKuyruk", tarih), {
+                tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
+              }, { merge: true });
+              await batch.commit();
+
+              // Danışma için kişisel e-posta içermeyen operasyon özeti yardımcıdır.
+              // Erişim yoksa ana işlem yine başarılı kabul edilir.
+              try {
+                const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
+                const guvenliMevcut = await getDoc(guvenliRef);
+                if (guvenliMevcut.exists()) {
+                  await setDoc(guvenliRef, {
+                    hedefSaat: saat, alanKisi: kisi, durum: "yolda",
+                    guncellendi: serverTimestamp()
+                  }, { merge: true });
+                } else {
+                  await setDoc(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
+                }
+              } catch (projeksiyonHatasi) {
+                console.warn("Okul Zili danışma özeti güncellenemedi:", projeksiyonHatasi.code || projeksiyonHatasi.message);
+              }
+
+              showToast("🔔 Bildiriminiz öğretmene iletildi");
+              veliOkulZiliDoldur();
+            } catch (e) {
+              console.error("okul zili bildir:", e);
+              showToast("Gönderilemedi: " + e.message, "error");
+            }
+          };
+
+          '''
+          s=s[:start]+new+s[end:]
+
+          start=s.find('window.veliOkulZiliTeyit = async function()')
+          end=s.find('// Vazgeçme (yalnızca "yolda" durumunda)', start)
+          if start < 0 or end < 0:
+              raise SystemExit("veliOkulZiliTeyit block not found")
+          old=s[start:end]
+          if 'DANISMA_GUVENLI_KOLEKSIYONLAR.pickup' not in old:
+              raise SystemExit("expected teyit projection not found")
+          new=r'''window.veliOkulZiliTeyit = async function() {
+            const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+            if (!ogr) return;
+            const tarih = vzBugun();
+            try {
+              const onay = {
+                veliOnay: true,
+                veliOnayZamani: new Date().toISOString(),
+                veliOnayEmail: (currentUser?.email || "").toLowerCase(),
+                guncellendi: serverTimestamp()
+              };
+              await setDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), onay, { merge: true });
+
+              try {
+                await setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+                  veliOnay: true, veliOnayZamani: onay.veliOnayZamani, guncellendi: serverTimestamp()
+                }, { merge: true });
+              } catch (projeksiyonHatasi) {
+                console.warn("Okul Zili teyit danışma özeti güncellenemedi:", projeksiyonHatasi.code || projeksiyonHatasi.message);
+              }
+
+              showToast("✓ Teyit edildi, iyi günler");
+              veliOkulZiliDoldur();
+            } catch (e) { showToast("Kaydedilemedi: " + e.message, "error"); }
+          };
+
+          '''
+          s=s[:start]+new+s[end:]
+
+          start=s.find('window.veliOkulZiliIptal = async function()')
+          end=s.find('async function caHomeGunlukDoldur()', start)
+          if start < 0 or end < 0:
+              raise SystemExit("veliOkulZiliIptal block not found")
+          old=s[start:end]
+          if 'DANISMA_GUVENLI_KOLEKSIYONLAR.pickup' not in old:
+              raise SystemExit("expected iptal projection not found")
+          new=r'''window.veliOkulZiliIptal = async function() {
+            const ogr = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) || (typeof veliOgrenciler !== "undefined" && veliOgrenciler[0]) || null;
+            if (!ogr) return;
+            if (!confirm("Bildirimi kaldırmak istediğinize emin misiniz?")) return;
+            const tarih = vzBugun();
+            try {
+              const iptalZamani = new Date().toISOString();
+              const batch = writeBatch(db);
+              batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), {
+                durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+              }, { merge: true });
+              batch.set(doc(db, "pickupKuyruk", tarih), {
+                ogrenciler: { [ogr.id]: deleteField() }
+              }, { merge: true });
+              await batch.commit();
+
+              try {
+                await setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), {
+                  durum: "iptal", iptalZamani, guncellendi: serverTimestamp()
+                }, { merge: true });
+              } catch (projeksiyonHatasi) {
+                console.warn("Okul Zili iptal danışma özeti güncellenemedi:", projeksiyonHatasi.code || projeksiyonHatasi.message);
+              }
+
+              showToast("Bildirim kaldırıldı");
+              veliOkulZiliDoldur();
+            } catch (e) { showToast("İşlem başarısız: " + e.message, "error"); }
+          };
+
+          '''
+          s=s[:start]+new+s[end:]
+          p.write_text(s,encoding="utf-8")
+          PY
+
+      - name: Verify patch invariants
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("index.html").read_text(encoding="utf-8")
+          a=s.index('window.veliOkulZiliBildir = async function()')
+          b=s.index('// Veli teyidi — ZEKY pickupVeliOnayi',a)
+          block=s[a:b]
+          commit=block.index('await batch.commit();')
+          assert block.index('batch.set(doc(db, "pickupBildirimleri"') < commit
+          assert block.index('batch.set(doc(db, "pickupKuyruk"') < commit
+          assert block.index('const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup') > commit
+          assert 'catch (projeksiyonHatasi)' in block
+          assert 'Okul Zili danışma özeti güncellenemedi' in block
+          assert block.count('await batch.commit();') == 1
+
+          a=s.index('window.veliOkulZiliTeyit = async function()')
+          b=s.index('// Vazgeçme (yalnızca "yolda" durumunda)',a)
+          block=s[a:b]
+          assert block.index('await setDoc(doc(db, "pickupBildirimleri"') < block.index('DANISMA_GUVENLI_KOLEKSIYONLAR.pickup')
+          assert 'catch (projeksiyonHatasi)' in block
+
+          a=s.index('window.veliOkulZiliIptal = async function()')
+          b=s.index('async function caHomeGunlukDoldur()',a)
+          block=s[a:b]
+          commit=block.index('await batch.commit();')
+          assert block.index('pickupBildirimleri') < commit
+          assert block.index('pickupKuyruk') < commit
+          assert block.index('DANISMA_GUVENLI_KOLEKSIYONLAR.pickup') > commit
+          assert 'catch (projeksiyonHatasi)' in block
+          print("Okul Zili inline safety invariants: OK")
+          PY
+
+      - name: Run portal tests
+        run: node --test tests/*.test.mjs
+
+      - name: Commit direct fix and remove one-shot workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/patch-okul-zili-index.yml
+          git add index.html .github/workflows/patch-okul-zili-index.yml
+          git commit -m "fix: Okul Zili veli akışını doğrudan güvenli hale getir"
+          git push origin HEAD:fix/okul-zili-index-direct-20260921
