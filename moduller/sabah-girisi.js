@@ -59,11 +59,7 @@ export async function veliKart(hedefId) {
     const s = await fb.getDoc(fb.doc(db, "sabahGirisleri", ogr.id + "__" + tarih));
     if (s.exists()) {
       k = s.data();
-      try {
-        const guvenliRef = fb.doc(db, "danismaSabahGirisleri", ogr.id + "__" + tarih);
-        const guvenli = await fb.getDoc(guvenliRef);
-        if (!guvenli.exists()) await fb.setDoc(guvenliRef, sabahGuvenliVeri(k, ogr.id, tarih));
-      } catch (e) { console.warn("sabah güvenli özet:", e.code || e.message); }
+      // Rendering is read-only. Reception copy runs after an acknowledged notice.
     }
   } catch (e) { console.warn("sabah girişi:", e.code || e.message); }
 
@@ -133,40 +129,53 @@ export async function veliKart(hedefId) {
     </div>`;
 }
 
+let _veliBildirimSuruyor = false;
 async function veliBildir() {
-  const { fb, db, state, toast, bugun } = P();
-  const ogr = state.veliAktifOgrenci || state.veliOgrenciler[0];
-  if (!ogr) return;
-  const tarih = bugun();
+  if (_veliBildirimSuruyor) return;
+  const api = P();
+  const uid = api?.auth?.currentUser?.uid;
+  const childId = (api?.state?.veliAktifOgrenci || api?.state?.veliOgrenciler?.[0])?.id;
+  if (!uid || !childId) { api?.toast?.("Sabah girişi: önce veli hesabıyla giriş yapın.", "error"); return; }
+  const active = () => P()?.auth?.currentUser?.uid === uid &&
+    (P()?.state?.veliAktifOgrenci || P()?.state?.veliOgrenciler?.[0])?.id === childId;
+  const buttons = () => document.querySelectorAll('button[onclick="window._sabahGirisi.bildir()"]');
+  const busy = value => buttons().forEach(el => { el.disabled = value; el.setAttribute('aria-busy', String(value)); });
+  _veliBildirimSuruyor = true;
+  busy(true);
+  let saved = false;
   try {
-    const tamVeri = {
-      ogrenciId: ogr.id,
-      ogrenciAd: ogr.ogrenciAdSoyad || ogr.adSoyad || "",
-      sinif: (state.ayarListesi[ogr.id]?.kayit?.sinif) || ogr.sinif || "",
-      tarih,
-      veliBildirdi: true,
-      veliBildirimSaati: new Date().toISOString(),
-      veliBildirenEmail: (state.currentUser?.email || "").toLowerCase(),
-      guncellendi: fb.serverTimestamp()
-    };
-    const batch = fb.writeBatch(db);
-    batch.set(fb.doc(db, "sabahGirisleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
-    const guvenliRef = fb.doc(db, "danismaSabahGirisleri", ogr.id + "__" + tarih);
-    const guvenliMevcut = await fb.getDoc(guvenliRef);
-    if (guvenliMevcut.exists()) {
-      batch.set(guvenliRef, {
-        veliBildirdi: true, veliBildirimSaati: tamVeri.veliBildirimSaati,
-        guncellendi: fb.serverTimestamp()
-      }, { merge: true });
+    const { sabahGirisKaydet } = await import("../js/sabah-giris-kaydi.js?v=1");
+    if (!active()) return;
+    const result = await sabahGirisKaydet(api);
+    saved = result.anaKayitKaydedildi;
+    if (!active()) return;
+    if (result.zatenTeslimAlindi) {
+      api.toast("Sabah girişi: çocuğunuzun teslim alındığı zaten kayıtlı.");
+    } else if (result.danismaAktarildi) {
+      api.toast("🌅 Sabah giriş bildiriminiz kaydedildi.");
     } else {
-      batch.set(guvenliRef, sabahGuvenliVeri(tamVeri, ogr.id, tarih));
+      api.toast("Sabah giriş bildirimi kaydedildi; danışma ekranına aktarım doğrulanamadı (SG-OZET).", "warn");
     }
-    await batch.commit();
-    toast("🌅 Bildiriminiz okula iletildi");
-    veliKart("veliSabahGirisiKart");
+    try { await veliKart("veliSabahGirisiKart"); } catch (_) {
+      if (active()) api.toast("Sabah bildirimi kaydedildi; ekran yenilenemedi (SG-EKRAN).", "warn");
+    }
+    if (active() && saved && !result.danismaAktarildi) {
+      document.getElementById("sabahAktarimUyarisi")?.remove();
+      const warning = document.createElement("div");
+      warning.id = "sabahAktarimUyarisi";
+      warning.setAttribute("role", "status");
+      warning.style.cssText = "padding:12px 16px;font-size:13px;border-top:1px solid #e2e8f0;background:#fffbeb;color:#92400e;";
+      warning.textContent = "Bildirim kaydedildi. Danışma ekranına aktarım doğrulanamadı; karşılanacağınızı okuldan teyit edin. Kontrol kodu: SG-OZET.";
+      document.getElementById("veliSabahGirisiKart")?.append(warning);
+    }
   } catch (e) {
-    console.error("sabah bildir:", e);
-    toast("Gönderilemedi: " + e.message, "error");
+    if (active()) {
+      const code = /^[a-z0-9/-]{1,80}$/.test(e?.code || '') ? e.code : 'unknown';
+      api.toast(saved ? "Sabah bildirimi kaydedildi; ekran güncellenemedi (SG-EKRAN)." : "Sabah girişi kaydedilemedi (SG-ANA): " + code, saved ? "warn" : "error");
+    }
+  } finally {
+    _veliBildirimSuruyor = false;
+    if (active()) busy(false);
   }
 }
 
