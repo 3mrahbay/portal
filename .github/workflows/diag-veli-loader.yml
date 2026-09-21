@@ -15,40 +15,38 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Extract parent loader snippets
+      - name: Extract focused parent loader snippets
         run: |
           python - <<'PY'
           from pathlib import Path
           s=Path("index.html").read_text(encoding="utf-8")
-          needles=[
-            "veliOgrenciler",
-            "veliAktifOgrenci",
-            "ogrenciIds",
-            "currentUser.email",
-            "veliler"
-          ]
+          lines=s.splitlines()
+          targets=[]
+          for i,line in enumerate(lines):
+              if any(k in line for k in [
+                "veliOgrenciler =",
+                "veliOgrenciler.push",
+                "veliAktifOgrenci =",
+                "ogrenciIds",
+                "veliEmailEsles",
+                "veliler/" 
+              ]):
+                  targets.append(i)
           out=[]
-          for n in needles:
-            out.append("\n===== "+n+" =====\n")
-            pos=0
-            count=0
-            while True:
-              i=s.find(n,pos)
-              if i<0: break
-              count+=1
-              # prioritize occurrences likely around auth/parent loading
-              a=max(0,i-2500); b=min(len(s),i+5000)
-              frag=s[a:b]
-              if any(k in frag for k in ["veli", "parent", "ogrenci", "currentUser"]):
-                out.append(f"\n--- {count} @ {i} ---\n"+frag)
-              pos=i+len(n)
-              if count>=30: break
-          Path("security/veli-loader-snippet.txt").write_text("".join(out),encoding="utf-8")
+          seen=[]
+          for i in targets:
+              if any(abs(i-j)<35 for j in seen): continue
+              seen.append(i)
+              a=max(0,i-35); b=min(len(lines),i+70)
+              out.append(f"\n===== lines {a+1}-{b} target {i+1} =====\n")
+              out.extend(f"{n+1}: {lines[n]}" for n in range(a,b))
+              if len(seen)>=12: break
+          Path("security/veli-loader-focused.txt").write_text("\n".join(out),encoding="utf-8")
           PY
       - name: Commit diagnostic
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add security/veli-loader-snippet.txt
-          git commit -m "diag: extract veli loader snippets" || exit 0
+          git add security/veli-loader-focused.txt
+          git commit -m "diag: focused veli loader snippets" || exit 0
           git push origin HEAD:diag/veli-loader-20260921
