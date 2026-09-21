@@ -43,6 +43,6 @@
         && request.resource.data.uzmanEmail == resource.data.uzmanEmail
         && request.resource.data.uzmanAd == resource.data.uzmanAd
         && request.resource.data.olusturuldu == resource.data.olusturuldu;
-      // Silme yerine sonuç ve durum kaydı korunur. Genel yönetici kuralı saklıdır.
+      // Silme yerine sonuç ve durum kaydı korunur; genel joker izin dışlanır.
       allow delete: if false;
     }

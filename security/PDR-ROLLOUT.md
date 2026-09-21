@@ -30,3 +30,16 @@ Canlıya geçmeden eski ruleset kimliğini ve uygulama commitlerini kaydedin. So
 Tarayıcıda ortak panelin masaüstü ve 390 px mobil görünümü; oluşturma, sonuçla güncelleme, hata sonrası form korunması, öğrenci arama, rapor ve yetkisiz kullanıcı reddi sentetik verilerle doğrulandı. `node tests/pdr-ui-smoke.cjs` Playwright ile bu senaryoyu tekrarlar. Gerekirse `PLAYWRIGHT_CHROMIUM_EXECUTABLE` kurulu Chromium yolunu belirtir.
 
 Android WebView'de rapor görüntülenebilir; sistem yazdırması desteklenmediğinden PDF/yazdırma için portal yönlendirmesi gösterilir. Native paylaşım/yazdırma eklentisi bu değişiklikte eklenmedi.
+
+
+## 21 Eylül devam çalışması — güncel durum
+
+Firebase Console açık oturumu üzerinden güncel yıldızlı kurallar okundu (15 Eylül 22:07 sürümü). CLI oturumu hâlâ bağlı değil. Güncel tam kurallara yeni PDR koleksiyonu, PDR'nin kendi duyuru/etkinliklerini yazması ve güvenli personel rehberini okuması işlendi. Genel yönetici jokeri yeni takip koleksiyonunda veri doğrulamasını aşamaz.
+
+Kural hazırlayıcıdaki `String.replace` dolar işareti sorunu callback kullanılarak düzeltildi; tam kaynakla Firestore Emulator derlemesi ve 50 yetki/veri değişmezliği kontrolü geçti. Portal 80/80 test geçti. Kurallar henüz yayımlanmadı; Firebase editöründe yayınlanmamış taslak hazır.
+
+ZEKY öğrenci paneli finans içeren dönem alt belgelerini okumaz. Portal ile aynı aktif dönem özetini kullanır. PDR mesaj alıcıları da aktif döneme göre filtrelenir.
+
+Güncel kuralların önceki/test edilmiş sürümleri ve SHA-256 değerleri özel ZEKY deposundaki `security/pdr-20260921/` altında saklıdır. Bunlar halka açık portal deposuna eklenmez.
+
+Kalan: canlı kuralların yayınlanması, uygulama dağıtımı, gerçek PDR hesabıyla iki platform arası kayıt/iletişim doğrulaması, Android AAB ve cihaz kontrolü. Sunucu simülasyonu bu son kontrollerin yerine geçmez.
