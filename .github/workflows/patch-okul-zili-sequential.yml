@@ -1,0 +1,94 @@
+name: Patch Okul Zili Sequential Writes
+on:
+  push:
+    branches: [fix/okul-zili-sequential-20260921]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/okul-zili-sequential-20260921
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch parent pickup main and queue writes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("index.html")
+          s=p.read_text(encoding="utf-8")
+          start=s.index('window.veliOkulZiliBildir = async function()')
+          end=s.index('// Veli teyidi — ZEKY pickupVeliOnayi', start)
+          block=s[start:end]
+          old='''              const batch = writeBatch(db);
+              batch.set(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
+              batch.set(doc(db, "pickupKuyruk", tarih), {
+                tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
+              }, { merge: true });
+              await batch.commit();
+'''
+          new='''              // Ana çıkış bildirimi tek başına kaydedilir. Kuyruk yalnız sıra
+              // bilgisidir; kuyruk izni/şeması ana veli bildirimini engellemez.
+              try {
+                await setDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih), tamVeri, { merge: true });
+              } catch (anaHata) {
+                console.error("okul zili pickupBildirimleri yazma:", anaHata);
+                throw new Error("Ana çıkış kaydı: " + (anaHata.message || anaHata));
+              }
+
+              try {
+                await setDoc(doc(db, "pickupKuyruk", tarih), {
+                  tarih, ogrenciler: { [ogr.id]: { saat } }, guncellendi: serverTimestamp()
+                }, { merge: true });
+              } catch (kuyrukHatasi) {
+                console.warn("Okul Zili sıra kaydı güncellenemedi:", kuyrukHatasi.code || kuyrukHatasi.message);
+              }
+'''
+          if old not in block:
+              raise SystemExit("expected main batch block not found")
+          block=block.replace(old,new)
+          s=s[:start]+block+s[end:]
+          p.write_text(s,encoding="utf-8")
+          PY
+      - name: Bump PWA cache and tests
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("serviceworker.js"); s=p.read_text(encoding="utf-8")
+          s=s.replace('const CACHE_VERSION = "v139-okul-zili";','const CACHE_VERSION = "v140-okul-zili";')
+          p.write_text(s,encoding="utf-8")
+          for name in ["tests/core-ogretmen-paneli.test.mjs","tests/zeky-veli-egitim-gelisim.test.mjs"]:
+              p=Path(name); s=p.read_text(encoding="utf-8").replace("v139-okul-zili","v140-okul-zili"); p.write_text(s,encoding="utf-8")
+          PY
+      - name: Verify focused invariants
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("index.html").read_text(encoding="utf-8")
+          a=s.index('window.veliOkulZiliBildir = async function()')
+          b=s.index('// Veli teyidi — ZEKY pickupVeliOnayi',a)
+          x=s[a:b]
+          assert 'await setDoc(doc(db, "pickupBildirimleri"' in x
+          assert 'Ana çıkış kaydı:' in x
+          assert 'await setDoc(doc(db, "pickupKuyruk"' in x
+          assert 'Okul Zili sıra kaydı güncellenemedi' in x
+          assert x.index('pickupBildirimleri') < x.index('pickupKuyruk')
+          print("focused invariants OK")
+          PY
+      - name: Run portal tests
+        run: node --test tests/*.test.mjs
+      - name: Commit and remove one-shot workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/patch-okul-zili-sequential.yml
+          git add index.html serviceworker.js tests/core-ogretmen-paneli.test.mjs tests/zeky-veli-egitim-gelisim.test.mjs .github/workflows/patch-okul-zili-sequential.yml
+          git commit -m "fix: isolate Okul Zili main write from queue"
+          git push origin HEAD:fix/okul-zili-sequential-20260921
