@@ -18919,6 +18919,8 @@ function caHomeHTML() {
         <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
 
+      <button type="button" class="ca-btn ghost" onclick="okulZiliTaniAc()" style="width:100%;font-size:13px;">🔎 Okul Zili tanı kontrolü</button>
+
       <!-- İzin & Bildirim — moduller/veli-izinleri.js -->
       <div id="veliIzinKart" class="ca-card" style="padding:0; overflow:hidden;">
         <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
@@ -47036,5 +47038,19 @@ window.showBulkUpload = async function() {
   }
 </script>
 <script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=10"></script>
+
+<!-- Read-only, user-triggered pickup diagnosis. No automatic data requests. -->
+<script>
+  window.okulZiliTaniAc = async function() {
+    if (window.__okulZiliTaniYukleniyor) return;
+    window.__okulZiliTaniYukleniyor = true;
+    try {
+      const tani = await import("./js/okul-zili-tani.js?v=1");
+      await tani.ac(window.PortalAPI);
+    } catch (_) {
+      window.showToast?.("Tanı aracı yüklenemedi. Sayfayı yeniden açın.", "error");
+    } finally { window.__okulZiliTaniYukleniyor = false; }
+  };
+</script>
 </body>
 </html>
