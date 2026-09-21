@@ -1,0 +1,1296 @@
+
+===== lines 16289-16393 target 16324 =====
+
+16289:     });
+16290: 
+16291:     mesajYeniSohbetKapat();
+16292:     // Thread listesine henüz gelmemişse ekle (onSnapshot yetişene kadar)
+16293:     if (!mesajThreadListesi.find(t => t.id === thread.id)) {
+16294:       mesajThreadListesi.unshift(thread);
+16295:     }
+16296:     mesajThreadAc(thread.id);
+16297:   } catch (e) {
+16298:     console.error("Yeni sohbet hatası:", e);
+16299:     showToast("Sohbet başlatılamadı: " + e.message, "error");
+16300:   }
+16301: };
+16302: 
+16303: // Toplam okunmamış mesaj sayısını hesapla (rozet için - Faz 3d'de kullanılacak)
+16304: function mesajToplamOkunmamisGuncelle() {
+16305:   if (!currentUser) return;
+16306:   const benim = currentUser.email.toLowerCase();
+16307:   let toplam = 0;
+16308:   mesajThreadListesi.forEach(t => {
+16309:     if ((t.katilimcilar || []).includes(benim)) {
+16310:       toplam += (t.okunmamis && t.okunmamis[benim]) || 0;
+16311:     }
+16312:   });
+16313:   // Global rozet sistemine yönlendir (ana sekme + alt buton)
+16314:   if (typeof mesajBildirimRozetGuncelle === "function") {
+16315:     mesajBildirimRozetGuncelle(toplam);
+16316:   }
+16317: }
+16318: 
+16319: // Bu e-posta sistemde onaylı bir veli mi? (Whitelist kontrolü)
+16320: async function isEmailWhitelisted(email) {
+16321:   const lower = (email || "").trim().toLowerCase();
+16322:   if (!lower) return false;
+16323: 
+16324:   // veliler/{email} koleksiyonunda onaylandi: true mi?
+16325:   try {
+16326:     const veliDoc = await getDoc(doc(db, "veliler", lower));
+16327:     if (veliDoc.exists() && veliDoc.data().onaylandi === true) {
+16328:       return true;
+16329:     }
+16330:   } catch (e) {
+16331:     // Koleksiyon yoksa veya kural engelliyorsa false döner
+16332:   }
+16333: 
+16334:   return false;
+16335: }
+16336: 
+16337: window.signInWithGoogle = async function() {
+16338:   try {
+16339:     const result = await signInWithPopup(auth, provider);
+16340:     const user = result.user;
+16341:     const email = (user.email || "").toLowerCase();
+16342: 
+16343:     // ===== FAZ 1a: ROL-FARKINDALIKLI GİRİŞ AKIŞI =====
+16344:     // KONTROL 1: Admin (kalıcı güvenlik ağı) — her zaman kabul
+16345:     if (email === ADMIN_EMAIL.toLowerCase()) {
+16346:       showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
+16347:       return;
+16348:     }
+16349: 
+16350:     // KONTROL 2: Sistemde PERSONEL mi?
+16351:     const personel = await personelGetir(email);
+16352:     if (personel) {
+16353:       // KONTROL 2a: Personel arşivde mi?
+16354:       if (personel.durum === "arsiv") {
+16355:         await fbSignOut(auth);
+16356:         showToast(`Hesabınız arşivlenmiş. Okul yönetimiyle iletişime geçin.`, "error");
+16357:         return;
+16358:       }
+16359:       // Aktif personel — kabul (rolüne göre yönlendirme onAuthStateChanged'de)
+16360:       showToast(`Hoş geldiniz, ${personel.adSoyad || user.displayName || user.email}!`);
+16361:       return;
+16362:     }
+16363: 
+16364:     // KONTROL 3: Sistemde onaylı VELİ mi?
+16365:     const izinli = await isEmailWhitelisted(email);
+16366:     if (izinli) {
+16367:       showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
+16368:       return;
+16369:     }
+16370: 
+16371:     // KONTROL 4: Hiçbiri değil — reddet (generic mesaj, hint verme)
+16372:     await fbSignOut(auth);
+16373:     showToast(`Bu e-posta sistemimizde kayıtlı değil. Okul yönetimiyle iletişime geçin.`, "error");
+16374: 
+16375:   } catch (e) {
+16376:     console.error(e);
+16377:     showToast("Giriş yapılamadı: " + e.message, "error");
+16378:   }
+16379: };
+16380: 
+16381: window.signOut = async function() {
+16382:   await fbSignOut(auth);
+16383:   showToast("Çıkış yapıldı");
+16384:   setTimeout(() => location.reload(), 500);
+16385: };
+16386: 
+16387: onAuthStateChanged(auth, async (user) => {
+16388:   if (user) {
+16389:     currentUser = user;
+16390:     const email = (user.email || "").toLowerCase();
+16391: 
+16392:     // Aktif dönemi ayarlar/donem'den yükle (app ile ortak kaynak)
+16393:     await aktifDonemYukle();
+
+===== lines 16538-16642 target 16573 =====
+
+16538:       setTimeout(() => {
+16539:         document.getElementById("loginModal").classList.add("active");
+16540:       }, 300);
+16541:     }
+16542:   }
+16543: });
+16544: 
+16545: // ============ MODAL ============
+16546: window.showLoginModal = function() {
+16547:   document.getElementById("loginModal").classList.add("active");
+16548: };
+16549: 
+16550: // Close modal on overlay click
+16551: document.getElementById("loginModal").addEventListener("click", (e) => {
+16552:   if (e.target.id === "loginModal") {
+16553:     document.getElementById("loginModal").classList.remove("active");
+16554:   }
+16555: });
+16556: 
+16557: document.getElementById("ayarModal").addEventListener("click", (e) => {
+16558:   if (e.target.id === "ayarModal") closeAyarModal();
+16559: });
+16560: 
+16561: // ============ TOAST ============
+16562: window.showToast = function(msg, type = "success") {
+16563:   const toast = document.getElementById("toast");
+16564:   toast.className = "toast";
+16565:   if (type === "error") toast.classList.add("error");
+16566:   if (type === "warn") toast.classList.add("warn");
+16567:   toast.textContent = msg;
+16568:   toast.classList.add("show");
+16569:   setTimeout(() => toast.classList.remove("show"), 3500);
+16570: };
+16571: 
+16572: // ============ VELİ PANELİ ============
+16573: let veliOgrenciler = [];     // Bu velinin tüm öğrencileri (kardeşler dahil)
+16574: let veliAktifOgrenci = null; // Şu an görüntülenen öğrenci
+16575: let veliAktifDonemVeri = null; // Aktif öğrencinin dönem verisi
+16576: 
+16577: async function loadVeliPanel(user) {
+16578:   const welcomeEl = document.getElementById("veliWelcomeName");
+16579:   const avatarEl = document.getElementById("veliAvatarInitial");
+16580:   const heroEl = document.getElementById("veliStudentHero");
+16581: 
+16582:   // Üst kısmı başlangıçta e-posta ile doldur (henüz öğrenci verisi yüklenmedi)
+16583:   // Gerçek ad, setAktifVeliOgrenci çağrıldıktan sonra güncellenir
+16584:   const placeholderName = user.email.split("@")[0];
+16585:   if (welcomeEl) welcomeEl.textContent = placeholderName;
+16586:   if (avatarEl) avatarEl.textContent = (placeholderName.charAt(0) || "V").toUpperCase();
+16587: 
+16588:   // Ayarlar sekmesindeki bilgileri güncelle
+16589:   const epostaEl = document.getElementById("veliAyarEposta");
+16590:   const yontemEl = document.getElementById("veliAyarYontem");
+16591:   if (epostaEl) epostaEl.textContent = user.email;
+16592:   if (yontemEl) {
+16593:     const provId = user.providerData[0]?.providerId || "";
+16594:     yontemEl.textContent = provId === "google.com" ? "Google ile giriş" : "E-posta";
+16595:   }
+16596: 
+16597:   // Bu veliye ait öğrencileri bul
+16598:   try {
+16599:     const bulunan = await findOgrenciForVeli(user);
+16600:     veliOgrenciler = bulunan;
+16601: 
+16602:     if (bulunan.length === 0) {
+16603:       heroEl.style.display = "none";
+16604:       showVeliNotAuthorized(user.email);
+16605:       return;
+16606:     }
+16607: 
+16608:     // Öğrenci seçici göster (kardeşler varsa)
+16609:     renderVeliOgrenciSecici(bulunan);
+16610: 
+16611:     // İlk öğrenciyi aktif yap
+16612:     await setAktifVeliOgrenci(bulunan[0]);
+16613: 
+16614:     // ZEKY: yeni ana sayfayı varsayılan göster (gerçek çocuk verisiyle)
+16615:     try { veliSwitchTab("yeniapp"); } catch(e) { console.warn(e); }
+16616: 
+16617:     // <i data-lucide="bell" style="width:13px;height:13px;vertical-align:-2px;"></i> FAZ 3d: Veli için arka plan mesaj bildirim dinleyicisini başlat
+16618:     try { if (typeof mesajBildirimBaslat === "function") setTimeout(() => mesajBildirimBaslat(), 1200); } catch(e) { console.warn(e); }
+16619: 
+16620:     // Özellik bayraklarını yükle ve arayüze uygula (SaaS feature flags)
+16621:     try { await ozellikBayraklariYukle(); ozellikleriArayuzeUygula(); } catch(e) { console.warn(e); }
+16622: 
+16623:     // ⚡ Şimşek duyuru/hatırlatma kontrolü
+16624:     // Aktif şimşek duyurular varsa ve veli kapatmadıysa popup göster
+16625:     try { setTimeout(() => simsekDuyuruKontrolEt(), 800); } catch(e) { console.warn(e); }
+16626:   } catch (e) {
+16627:     console.error("Veli paneli yüklenemedi:", e);
+16628:     showToast("Veriler yüklenemedi: " + e.message, "error");
+16629:   }
+16630: }
+16631: 
+16632: // Veli adını dönem kaydındaki anne/baba/vasi bilgisinden güncelle
+16633: function updateVeliWelcome(user, donemVeri) {
+16634:   const welcomeEl = document.getElementById("veliWelcomeName");
+16635:   const avatarEl = document.getElementById("veliAvatarInitial");
+16636:   if (!donemVeri || !user) return;
+16637: 
+16638:   const userEmail = (user.email || "").toLowerCase();
+16639:   let veliAdi = "";
+16640: 
+16641:   // Anne e-postası eşleşirse annenin adını kullan
+16642:   if (donemVeri.anne && (donemVeri.anne.eposta || "").toLowerCase() === userEmail) {
+
+===== lines 16648-16752 target 16683 =====
+
+16648:   }
+16649:   // Vasi e-postası eşleşirse vasinin adını kullan
+16650:   else if (donemVeri.vasi && (donemVeri.vasi.eposta || "").toLowerCase() === userEmail) {
+16651:     veliAdi = donemVeri.vasi.adSoyad || "";
+16652:   }
+16653: 
+16654:   // Eğer eşleşme yoksa, son çare olarak e-posta kullan
+16655:   if (!veliAdi) veliAdi = user.email.split("@")[0];
+16656: 
+16657:   if (welcomeEl) welcomeEl.textContent = veliAdi;
+16658:   if (avatarEl) {
+16659:     const initials = veliAdi.split(" ")
+16660:       .map(s => s.charAt(0))
+16661:       .slice(0, 2)
+16662:       .join("")
+16663:       .toUpperCase() || "V";
+16664:     avatarEl.textContent = initials;
+16665:   }
+16666: }
+16667: 
+16668: function veliOgrenciMasterAktifDonemdeMi(ogr) {
+16669:   if (!ogr) return false;
+16670:   const donemEslesir = String(ogr.aktifDonem || "") === String(AKTIF_DONEM || "");
+16671:   const durum = String(ogr.aktifDonemDurum || ogr.durum || "aktif")
+16672:     .toLocaleLowerCase("tr").trim();
+16673:   return donemEslesir && durum === "aktif";
+16674: }
+16675: 
+16676: // Veliye ait öğrenci(ler)i bul
+16677: async function findOgrenciForVeli(user) {
+16678:   const email = (user.email || "").toLowerCase();
+16679:   const bulunan = [];
+16680:   const eklenenIds = new Set();
+16681: 
+16682:   try {
+16683:     // 1. ÖNCELİK: veliler/{email} whitelist koleksiyonundan oku
+16684:     // Admin bir veliyi onayladığında bu koleksiyona yazılır
+16685:     try {
+16686:       const veliDoc = await getDoc(doc(db, "veliler", email));
+16687:       if (veliDoc.exists() && veliDoc.data().onaylandi === true) {
+16688:         const ogrenciIds = veliDoc.data().ogrenciIds || [];
+16689:         for (const ogrenciId of ogrenciIds) {
+16690:           if (eklenenIds.has(ogrenciId)) continue;
+16691:           try {
+16692:             const ogrSnap = await getDoc(doc(db, "ogrenciler", ogrenciId));
+16693:             if (ogrSnap.exists()) {
+16694:               bulunan.push({ id: ogrenciId, ...ogrSnap.data() });
+16695:               eklenenIds.add(ogrenciId);
+16696:             }
+16697:           } catch (e) {
+16698:             console.warn(`Öğrenci yüklenemedi: ${ogrenciId}`, e);
+16699:           }
+16700:         }
+16701:       }
+16702:     } catch (e) {
+16703:       console.warn("veliler whitelist okunamadı:", e);
+16704:     }
+16705: 
+16706:     // 2. İKİNCİ ÖNCELİK: users/{uid} dokümanından oku (geçmişe uyumluluk)
+16707:     try {
+16708:       const userDoc = await getDoc(doc(db, "users", user.uid));
+16709:       if (userDoc.exists()) {
+16710:         const ogrenciIds = userDoc.data().ogrenciIds || [];
+16711:         for (const ogrenciId of ogrenciIds) {
+16712:           if (eklenenIds.has(ogrenciId)) continue;
+16713:           try {
+16714:             const ogrSnap = await getDoc(doc(db, "ogrenciler", ogrenciId));
+16715:             if (ogrSnap.exists()) {
+16716:               bulunan.push({ id: ogrenciId, ...ogrSnap.data() });
+16717:               eklenenIds.add(ogrenciId);
+16718:             }
+16719:           } catch (e) { /* Erişim yoksa geç */ }
+16720:         }
+16721:       }
+16722:     } catch (e) { /* users yoksa geç */ }
+16723: 
+16724:     // DİKKAT: Artık fallback taraması yapılmıyor!
+16725:     // Eğer veli whitelist'te yoksa, giriş yapamaz.
+16726:     // Bu, yetkisiz e-posta sahibinin giriş yapmasını engeller.
+16727: 
+16728:     // Eğer whitelist'ten öğrenci bulundu, users/{uid} dokümanını otomatik güncelle
+16729:     if (bulunan.length > 0) {
+16730:       try {
+16731:         await setDoc(doc(db, "users", user.uid), {
+16732:           email: user.email,
+16733:           ogrenciIds: Array.from(eklenenIds),
+16734:           rol: "veli",
+16735:           sonGiris: new Date().toISOString(),
+16736:           guncellendi: new Date().toISOString()
+16737:         }, { merge: true });
+16738:       } catch (e) {
+16739:         console.warn("users dokümanı güncellenemedi:", e);
+16740:       }
+16741:     }
+16742:   } catch (e) {
+16743:     console.error("findOgrenciForVeli hatası:", e);
+16744:   }
+16745: 
+16746:   // Veli yalnız AKTIF_DONEM içinde aktif kaydı bulunan öğrencilerine erişebilir.
+16747:   // Dönem belgesi yoksa veya okunamıyorsa ana öğrenci kaydındaki güvenli dönem
+16748:   // özeti de aynı dönemi ve "aktif" durumunu doğrulamadıkça erişim verilmez.
+16749:   const aktifOgrenciler = [];
+16750:   for (const ogr of bulunan) {
+16751:     const masterAktif = veliOgrenciMasterAktifDonemdeMi(ogr);
+16752:     try {
+
+===== lines 16698-16802 target 16733 =====
+
+16698:             console.warn(`Öğrenci yüklenemedi: ${ogrenciId}`, e);
+16699:           }
+16700:         }
+16701:       }
+16702:     } catch (e) {
+16703:       console.warn("veliler whitelist okunamadı:", e);
+16704:     }
+16705: 
+16706:     // 2. İKİNCİ ÖNCELİK: users/{uid} dokümanından oku (geçmişe uyumluluk)
+16707:     try {
+16708:       const userDoc = await getDoc(doc(db, "users", user.uid));
+16709:       if (userDoc.exists()) {
+16710:         const ogrenciIds = userDoc.data().ogrenciIds || [];
+16711:         for (const ogrenciId of ogrenciIds) {
+16712:           if (eklenenIds.has(ogrenciId)) continue;
+16713:           try {
+16714:             const ogrSnap = await getDoc(doc(db, "ogrenciler", ogrenciId));
+16715:             if (ogrSnap.exists()) {
+16716:               bulunan.push({ id: ogrenciId, ...ogrSnap.data() });
+16717:               eklenenIds.add(ogrenciId);
+16718:             }
+16719:           } catch (e) { /* Erişim yoksa geç */ }
+16720:         }
+16721:       }
+16722:     } catch (e) { /* users yoksa geç */ }
+16723: 
+16724:     // DİKKAT: Artık fallback taraması yapılmıyor!
+16725:     // Eğer veli whitelist'te yoksa, giriş yapamaz.
+16726:     // Bu, yetkisiz e-posta sahibinin giriş yapmasını engeller.
+16727: 
+16728:     // Eğer whitelist'ten öğrenci bulundu, users/{uid} dokümanını otomatik güncelle
+16729:     if (bulunan.length > 0) {
+16730:       try {
+16731:         await setDoc(doc(db, "users", user.uid), {
+16732:           email: user.email,
+16733:           ogrenciIds: Array.from(eklenenIds),
+16734:           rol: "veli",
+16735:           sonGiris: new Date().toISOString(),
+16736:           guncellendi: new Date().toISOString()
+16737:         }, { merge: true });
+16738:       } catch (e) {
+16739:         console.warn("users dokümanı güncellenemedi:", e);
+16740:       }
+16741:     }
+16742:   } catch (e) {
+16743:     console.error("findOgrenciForVeli hatası:", e);
+16744:   }
+16745: 
+16746:   // Veli yalnız AKTIF_DONEM içinde aktif kaydı bulunan öğrencilerine erişebilir.
+16747:   // Dönem belgesi yoksa veya okunamıyorsa ana öğrenci kaydındaki güvenli dönem
+16748:   // özeti de aynı dönemi ve "aktif" durumunu doğrulamadıkça erişim verilmez.
+16749:   const aktifOgrenciler = [];
+16750:   for (const ogr of bulunan) {
+16751:     const masterAktif = veliOgrenciMasterAktifDonemdeMi(ogr);
+16752:     try {
+16753:       const donemSnap = await getDoc(doc(db, "ogrenciler", ogr.id, "donemler", AKTIF_DONEM));
+16754:       if (!donemSnap.exists()) {
+16755:         if (masterAktif) aktifOgrenciler.push(ogr);
+16756:         else console.log(`[findOgrenciForVeli] ${ogr.ogrenciAdSoyad || ogr.id}: ${AKTIF_DONEM} dönem kaydı yok, elendi`);
+16757:         continue;
+16758:       }
+16759: 
+16760:       const donemVeri = donemSnap.data() || {};
+16761:       const donemDurum = String(
+16762:         donemVeri.durum || (donemVeri.aktif === false ? "arsiv" : "aktif")
+16763:       ).toLocaleLowerCase("tr").trim();
+16764:       if (donemDurum !== "aktif") {
+16765:         console.log(`[findOgrenciForVeli] ${ogr.ogrenciAdSoyad || ogr.id}: ${AKTIF_DONEM} döneminde aktif değil, elendi`);
+16766:         continue;
+16767:       }
+16768:       aktifOgrenciler.push(ogr);
+16769:     } catch (e) {
+16770:       // Okuma hatasında yalnız ana kayıttaki güncel dönem özeti kesin biçimde
+16771:       // aktifse erişim sürer; aksi durumda güvenli tarafta kalıp öğrenci elenir.
+16772:       if (masterAktif) {
+16773:         aktifOgrenciler.push(ogr);
+16774:       } else {
+16775:         console.warn(`Aktif dönem doğrulanamadı, öğrenci elendi: ${ogr.id}`, e);
+16776:       }
+16777:     }
+16778:   }
+16779: 
+16780:   console.log(`[findOgrenciForVeli] ${bulunan.length} öğrenci bulundu, ${aktifOgrenciler.length} aktif`);
+16781:   return aktifOgrenciler;
+16782: }
+16783: 
+16784: // ============ ADMIN: VELİ DAVET ============
+16785: window.veliDavetLinkKopyala = function() {
+16786:   const link = window.location.origin + window.location.pathname + "#veli";
+16787:   navigator.clipboard.writeText(link);
+16788:   const durum = document.getElementById("veliDavetDurum");
+16789:   if (durum) durum.innerHTML = `✓ Kopyalandı: <code>${link}</code>`;
+16790:   showToast("✓ Portal linki kopyalandı");
+16791: };
+16792: 
+16793: window.veliOnayla = async function(veliTipi) {
+16794:   const epostaId = veliTipi === "anne" ? "anneAyarEposta" : "babaAyarEposta";
+16795:   const email = (document.getElementById(epostaId)?.value || "").trim().toLowerCase();
+16796:   const durum = document.getElementById("veliDavetDurum");
+16797: 
+16798:   if (!email || !email.includes("@")) {
+16799:     if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ ${veliTipi === "anne" ? "Anne" : "Baba"} e-posta adresi eksik veya geçersiz</span>`;
+16800:     showToast(`${veliTipi === "anne" ? "Anne" : "Baba"} e-posta adresi girilmemiş`, "error");
+16801:     return;
+16802:   }
+
+===== lines 16777-16881 target 16812 =====
+
+16777:     }
+16778:   }
+16779: 
+16780:   console.log(`[findOgrenciForVeli] ${bulunan.length} öğrenci bulundu, ${aktifOgrenciler.length} aktif`);
+16781:   return aktifOgrenciler;
+16782: }
+16783: 
+16784: // ============ ADMIN: VELİ DAVET ============
+16785: window.veliDavetLinkKopyala = function() {
+16786:   const link = window.location.origin + window.location.pathname + "#veli";
+16787:   navigator.clipboard.writeText(link);
+16788:   const durum = document.getElementById("veliDavetDurum");
+16789:   if (durum) durum.innerHTML = `✓ Kopyalandı: <code>${link}</code>`;
+16790:   showToast("✓ Portal linki kopyalandı");
+16791: };
+16792: 
+16793: window.veliOnayla = async function(veliTipi) {
+16794:   const epostaId = veliTipi === "anne" ? "anneAyarEposta" : "babaAyarEposta";
+16795:   const email = (document.getElementById(epostaId)?.value || "").trim().toLowerCase();
+16796:   const durum = document.getElementById("veliDavetDurum");
+16797: 
+16798:   if (!email || !email.includes("@")) {
+16799:     if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ ${veliTipi === "anne" ? "Anne" : "Baba"} e-posta adresi eksik veya geçersiz</span>`;
+16800:     showToast(`${veliTipi === "anne" ? "Anne" : "Baba"} e-posta adresi girilmemiş`, "error");
+16801:     return;
+16802:   }
+16803: 
+16804:   if (!currentOgrenci) {
+16805:     showToast("Önce bir öğrenci seçilmeli", "error");
+16806:     return;
+16807:   }
+16808: 
+16809:   try {
+16810:     if (durum) durum.innerHTML = `⏳ ${email} onaylanıyor...`;
+16811: 
+16812:     // veliler/{email} dokümanını okuyup mevcut ogrenciIds'yi koru (kardeşler için)
+16813:     const veliRef = doc(db, "veliler", email);
+16814:     const mevcutSnap = await getDoc(veliRef);
+16815:     let ogrenciIds = [currentOgrenci.id];
+16816:     if (mevcutSnap.exists()) {
+16817:       const eski = mevcutSnap.data().ogrenciIds || [];
+16818:       ogrenciIds = Array.from(new Set([...eski, currentOgrenci.id]));
+16819:     }
+16820: 
+16821:     await setDoc(veliRef, {
+16822:       email: email,
+16823:       ogrenciIds: ogrenciIds,
+16824:       rol: veliTipi,  // "anne" | "baba"
+16825:       onaylandi: true,
+16826:       onaylayan: currentUser.email,
+16827:       onayTarihi: new Date().toISOString()
+16828:     }, { merge: true });
+16829: 
+16830:     if (durum) durum.innerHTML = `✓ <strong>${email}</strong> onaylı veli listesine eklendi. Veli artık <a href="${window.location.origin + window.location.pathname}#veli" target="_blank">portal.bircicekkoleji.com/#veli</a> adresinden Google ile giriş yapabilir.`;
+16831:     showToast(`✓ ${email} onaylandı`);
+16832:   } catch (e) {
+16833:     console.error(e);
+16834:     if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ Onaylanamadı: ${e.message}</span>`;
+16835:     showToast("Onaylama başarısız: " + e.message, "error");
+16836:   }
+16837: };
+16838: 
+16839: window.veliKaldir = async function(veliTipi) {
+16840:   const epostaId = veliTipi === "anne" ? "anneAyarEposta" : "babaAyarEposta";
+16841:   const email = (document.getElementById(epostaId)?.value || "").trim().toLowerCase();
+16842:   const durum = document.getElementById("veliDavetDurum");
+16843: 
+16844:   if (!email || !email.includes("@")) {
+16845:     showToast(`${veliTipi === "anne" ? "Anne" : "Baba"} e-posta adresi girilmemiş`, "error");
+16846:     return;
+16847:   }
+16848: 
+16849:   if (!currentOgrenci) {
+16850:     showToast("Önce bir öğrenci seçilmeli", "error");
+16851:     return;
+16852:   }
+16853: 
+16854:   if (!confirm(`${email} adresini bu öğrencinin veli listesinden kaldırmak istediğinize emin misiniz?`)) return;
+16855: 
+16856:   try {
+16857:     const veliRef = doc(db, "veliler", email);
+16858:     const mevcutSnap = await getDoc(veliRef);
+16859:     if (!mevcutSnap.exists()) {
+16860:       if (durum) durum.innerHTML = `<span style="color:var(--gray-600);">ℹ ${email} zaten sistemde kayıtlı değil</span>`;
+16861:       return;
+16862:     }
+16863: 
+16864:     const eskiIds = mevcutSnap.data().ogrenciIds || [];
+16865:     const yeniIds = eskiIds.filter(id => id !== currentOgrenci.id);
+16866: 
+16867:     if (yeniIds.length === 0) {
+16868:       // Hiç öğrenci kalmadıysa, tüm onayı kaldır
+16869:       await setDoc(veliRef, {
+16870:         email: email,
+16871:         ogrenciIds: [],
+16872:         onaylandi: false,
+16873:         kaldirildi: new Date().toISOString(),
+16874:         kaldiran: currentUser.email
+16875:       }, { merge: true });
+16876:       if (durum) durum.innerHTML = `✓ <strong>${email}</strong> tüm onaylı veli listesinden kaldırıldı (başka öğrencisi yoktu)`;
+16877:     } else {
+16878:       // Sadece bu öğrenciyi listeden çıkar
+16879:       await updateDoc(veliRef, {
+16880:         ogrenciIds: yeniIds,
+16881:         guncellendi: new Date().toISOString()
+
+===== lines 16829-16933 target 16864 =====
+
+16829: 
+16830:     if (durum) durum.innerHTML = `✓ <strong>${email}</strong> onaylı veli listesine eklendi. Veli artık <a href="${window.location.origin + window.location.pathname}#veli" target="_blank">portal.bircicekkoleji.com/#veli</a> adresinden Google ile giriş yapabilir.`;
+16831:     showToast(`✓ ${email} onaylandı`);
+16832:   } catch (e) {
+16833:     console.error(e);
+16834:     if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ Onaylanamadı: ${e.message}</span>`;
+16835:     showToast("Onaylama başarısız: " + e.message, "error");
+16836:   }
+16837: };
+16838: 
+16839: window.veliKaldir = async function(veliTipi) {
+16840:   const epostaId = veliTipi === "anne" ? "anneAyarEposta" : "babaAyarEposta";
+16841:   const email = (document.getElementById(epostaId)?.value || "").trim().toLowerCase();
+16842:   const durum = document.getElementById("veliDavetDurum");
+16843: 
+16844:   if (!email || !email.includes("@")) {
+16845:     showToast(`${veliTipi === "anne" ? "Anne" : "Baba"} e-posta adresi girilmemiş`, "error");
+16846:     return;
+16847:   }
+16848: 
+16849:   if (!currentOgrenci) {
+16850:     showToast("Önce bir öğrenci seçilmeli", "error");
+16851:     return;
+16852:   }
+16853: 
+16854:   if (!confirm(`${email} adresini bu öğrencinin veli listesinden kaldırmak istediğinize emin misiniz?`)) return;
+16855: 
+16856:   try {
+16857:     const veliRef = doc(db, "veliler", email);
+16858:     const mevcutSnap = await getDoc(veliRef);
+16859:     if (!mevcutSnap.exists()) {
+16860:       if (durum) durum.innerHTML = `<span style="color:var(--gray-600);">ℹ ${email} zaten sistemde kayıtlı değil</span>`;
+16861:       return;
+16862:     }
+16863: 
+16864:     const eskiIds = mevcutSnap.data().ogrenciIds || [];
+16865:     const yeniIds = eskiIds.filter(id => id !== currentOgrenci.id);
+16866: 
+16867:     if (yeniIds.length === 0) {
+16868:       // Hiç öğrenci kalmadıysa, tüm onayı kaldır
+16869:       await setDoc(veliRef, {
+16870:         email: email,
+16871:         ogrenciIds: [],
+16872:         onaylandi: false,
+16873:         kaldirildi: new Date().toISOString(),
+16874:         kaldiran: currentUser.email
+16875:       }, { merge: true });
+16876:       if (durum) durum.innerHTML = `✓ <strong>${email}</strong> tüm onaylı veli listesinden kaldırıldı (başka öğrencisi yoktu)`;
+16877:     } else {
+16878:       // Sadece bu öğrenciyi listeden çıkar
+16879:       await updateDoc(veliRef, {
+16880:         ogrenciIds: yeniIds,
+16881:         guncellendi: new Date().toISOString()
+16882:       });
+16883:       if (durum) durum.innerHTML = `✓ <strong>${email}</strong> bu öğrenciden kaldırıldı. Velinin kalan ${yeniIds.length} öğrencisi hâlâ erişebilir.`;
+16884:     }
+16885: 
+16886:     showToast(`✓ ${email} kaldırıldı`);
+16887:   } catch (e) {
+16888:     console.error(e);
+16889:     if (durum) durum.innerHTML = `<span style="color:#b91c1c;">✗ Kaldırılamadı: ${e.message}</span>`;
+16890:     showToast("Kaldırma başarısız: " + e.message, "error");
+16891:   }
+16892: };
+16893: 
+16894: function showVeliNotAuthorized(email) {
+16895:   const main = document.getElementById("veliPanel-dashboard");
+16896:   if (!main) return;
+16897:   main.innerHTML = `
+16898:     <div class="veli-card" style="text-align:center; padding:40px 20px;">
+16899:       <div style="font-size:48px; margin-bottom:14px;">🔒</div>
+16900:       <h3 style="margin:0 0 12px 0; font-family:var(--font-display);">Yetkili değilsiniz</h3>
+16901:       <p style="color:var(--gray-600); margin-bottom:20px;">
+16902:         <strong>${escapeHtml(email)}</strong> e-postası ile ${escapeHtml(String(AKTIF_DONEM || "aktif dönem"))} döneminde aktif bir öğrenci bulunamadı.
+16903:       </p>
+16904:       <p style="font-size:13px; color:var(--gray-500); line-height:1.8;">
+16905:         Bu sisteme erişebilmeniz için okul yönetimi tarafından e-posta adresinizin onaylı bir veli olarak tanımlanması gerekir.<br>
+16906:         Öğrencimizin velisiyseniz lütfen okul yönetimiyle iletişime geçin.
+16907:       </p>
+16908:       <div style="margin-top:24px;">
+16909:         <a href="mailto:eposta@bircicekkoleji.com" style="color:#2d6a4f; text-decoration:none; font-weight:500;"><i data-lucide="mail" style="width:13px;height:13px;vertical-align:-2px;"></i> eposta@bircicekkoleji.com</a>
+16910:       </div>
+16911:       <div style="margin-top:18px;">
+16912:         <button class="veli-btn-primary" onclick="signOut()"><i data-lucide="log-out" style="width:14px;height:14px;vertical-align:-2px;"></i> Çıkış Yap</button>
+16913:       </div>
+16914:       <div style="margin-top:10px; font-size:11px; color:var(--gray-500);">
+16915:         Güvenliğiniz için 10 saniye içinde otomatik çıkış yapılacak.
+16916:       </div>
+16917:     </div>
+16918:   `;
+16919: 
+16920:   // 10 saniye içinde otomatik sign-out (yetkisiz oturumu kapat)
+16921:   setTimeout(() => {
+16922:     fbSignOut(auth).then(() => {
+16923:       location.reload();
+16924:     });
+16925:   }, 10000);
+16926: }
+16927: 
+16928: // Eski fonksiyonu da koru (geri uyumluluk)
+16929: function showVeliNotLinked(email) {
+16930:   return showVeliNotAuthorized(email);
+16931: }
+16932: 
+16933: function renderVeliOgrenciSecici(ogrenciler) {
+
+===== lines 16927-17031 target 16962 =====
+
+16927: 
+16928: // Eski fonksiyonu da koru (geri uyumluluk)
+16929: function showVeliNotLinked(email) {
+16930:   return showVeliNotAuthorized(email);
+16931: }
+16932: 
+16933: function renderVeliOgrenciSecici(ogrenciler) {
+16934:   const secici = document.getElementById("veliOgrenciSecici");
+16935:   if (!secici) return;
+16936: 
+16937:   if (ogrenciler.length <= 1) {
+16938:     secici.style.display = "none";
+16939:     return;
+16940:   }
+16941: 
+16942:   secici.style.display = "flex";
+16943:   secici.innerHTML = ogrenciler.map((o, idx) =>
+16944:     `<button class="veli-ogrenci-chip ${idx === 0 ? 'active' : ''}" data-idx="${idx}" onclick="veliOgrenciSec(${idx})">
+16945:       ${escapeHtml(o.ogrenciAdSoyad || "Öğrenci")}
+16946:     </button>`
+16947:   ).join("");
+16948: }
+16949: 
+16950: window.veliOgrenciSec = async function(idx) {
+16951:   const ogr = veliOgrenciler[idx];
+16952:   if (!ogr) return;
+16953: 
+16954:   document.querySelectorAll(".veli-ogrenci-chip").forEach((el, i) => {
+16955:     el.classList.toggle("active", i === idx);
+16956:   });
+16957: 
+16958:   await setAktifVeliOgrenci(ogr);
+16959: };
+16960: 
+16961: async function setAktifVeliOgrenci(ogr) {
+16962:   veliAktifOgrenci = ogr;
+16963: 
+16964:   // Hero kartını doldur
+16965:   const heroEl = document.getElementById("veliStudentHero");
+16966:   const nameEl = document.getElementById("veliHeroName");
+16967:   const metaEl = document.getElementById("veliHeroMeta");
+16968:   const avatarEl = document.getElementById("veliHeroAvatar");
+16969: 
+16970:   if (heroEl && ogr) {
+16971:     heroEl.style.display = "flex";
+16972:     if (nameEl) nameEl.textContent = ogr.ogrenciAdSoyad || "Öğrenci";
+16973:     const sinif = ogr.sinif || "—";
+16974:     const program = ogr.programTuru || "Tam Gün";
+16975:     const yas = hesaplaYas(ogr.dogumTarihi);
+16976:     if (metaEl) metaEl.textContent = `${sinif} · ${yas || "—"} · ${program}`;
+16977:     if (avatarEl) {
+16978:       const initials = (ogr.ogrenciAdSoyad || "?").split(" ")
+16979:         .map(s => s.charAt(0)).slice(0, 2).join("").toUpperCase();
+16980:       avatarEl.textContent = initials;
+16981:     }
+16982:   }
+16983: 
+16984:   // Dönem verisini çek
+16985:   try {
+16986:     if (ogr._donemVeri) {
+16987:       veliAktifDonemVeri = ogr._donemVeri;
+16988:     } else {
+16989:       const donemRef = doc(db, "ogrenciler", ogr.id, "donemler", AKTIF_DONEM);
+16990:       const donemSnap = await getDoc(donemRef);
+16991:       veliAktifDonemVeri = donemSnap.exists() ? donemSnap.data() : null;
+16992:     }
+16993: 
+16994:     // Dönem verisi yüklendikten sonra üst menüdeki veli adını güncelle
+16995:     // (Google displayName yerine sistemdeki anne/baba/vasi adını göster)
+16996:     if (currentUser && veliAktifDonemVeri) {
+16997:       updateVeliWelcome(currentUser, veliAktifDonemVeri);
+16998:     }
+16999: 
+17000:     // Şu anki sekmeyi yenile
+17001:     const aktifTab = document.querySelector(".veli-menu-item.active")?.dataset.veliTab || "dashboard";
+17002:     veliRenderTab(aktifTab);
+17003:   } catch (e) {
+17004:     console.error("Dönem verisi yüklenemedi:", e);
+17005:     veliAktifDonemVeri = null;
+17006:   }
+17007: }
+17008: 
+17009: function hesaplaYas(dogumTarihi) {
+17010:   if (!dogumTarihi) return "";
+17011:   try {
+17012:     const dt = new Date(dogumTarihi);
+17013:     const now = new Date();
+17014:     let yil = now.getFullYear() - dt.getFullYear();
+17015:     if (now.getMonth() < dt.getMonth() ||
+17016:        (now.getMonth() === dt.getMonth() && now.getDate() < dt.getDate())) {
+17017:       yil--;
+17018:     }
+17019:     return `${yil} yaş`;
+17020:   } catch {
+17021:     return "";
+17022:   }
+17023: }
+17024: 
+17025: window.veliSwitchTab = function(tabName) {
+17026:   // Ayarlar sekmesi açılınca profil fotoğrafı önizlemesini tazele
+17027:   try {
+17028:     if (arguments[0] === "ayarlar" && typeof veliFotoYukleBaslangic === "function") {
+17029:       setTimeout(function () { veliFotoYukleBaslangic(); }, 120);
+17030:     }
+17031:   } catch (e) {}
+
+===== lines 17255-17359 target 17290 =====
+
+17255: 
+17256:       <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Alan İlerlemeleri</h3></div>
+17257:       <div class="ca-stack">${alanBloklari}</div>
+17258: 
+17259:       <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Öğretmen Notları</h3></div>
+17260:       ${yorumHtml}
+17261: 
+17262:       <div class="ca-tile-sub" style="text-align:center; margin-top:4px;">Veriler canlı: gözlem işlendikçe güncellenir.</div>
+17263:     </div>`;
+17264: }
+17265: 
+17266: // Yardımcı: caTemaUygula stub — bazı yerlerde guardsız çağrılıyor,
+17267: // fonksiyon tanımlı değilse ReferenceError önler. İleride tema sistemi
+17268: // eklenirse bu stub gerçek tanımla değiştirilebilir.
+17269: if (typeof window.caTemaUygula === "undefined") {
+17270:   window.caTemaUygula = function() { /* no-op */ };
+17271: }
+17272: 
+17273: // Yeni Tasarım iç ekran geçişi
+17274: window.caGo = function(ekran) {
+17275:   caEkran = ekran || "home";
+17276:   veliRenderYeniApp();
+17277:   const m = document.querySelector(".veli-main");
+17278:   if (m) m.scrollTop = 0;
+17279: };
+17280: 
+17281: // Çocuk (kardeş) değiştirici — aktif çocuğu değiştirir, ana sayfayı tazeler
+17282: window.caCocukDegistir = async function(idx) {
+17283:   // Çocuk değişince ana sayfa kartları yenilenir
+17284:   setTimeout(() => {
+17285:     if (typeof veliOkulZiliDoldur === "function") veliOkulZiliDoldur();
+17286:     modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart"));
+17287:     modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart"));
+17288:     modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart"));
+17289:   }, 250);
+17290:   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler[idx]) return;
+17291:   try { if (typeof setAktifVeliOgrenci === "function") await setAktifVeliOgrenci(veliOgrenciler[idx]); } catch(e) { console.warn(e); }
+17292:   caEkran = "home";
+17293:   veliRenderYeniApp();
+17294: };
+17295: 
+17296: // Menü favorileri (localStorage)
+17297: // ═══════════════════════════════════════════════════════════════
+17298: // MENÜ FAVORİLERİ — Firestore senkron (ZEKY app ile ORTAK)
+17299: // kullaniciTercihleri/{email} → favoriMenuler dizisi.
+17300: // Veli portalda yıldızlar → app'te (telefon) görünür; app'te yıldızlar → burada görünür.
+17301: // localStorage yedek olarak tutulur (offline/hızlı ilk açılış). Anahtarlar CA_MODULLER 'k' ile aynı.
+17302: // ═══════════════════════════════════════════════════════════════
+17303: let caFavCache = null;        // Set — bellekte (render senkron kalsın diye)
+17304: let caFavListener = null;     // onSnapshot aboneliği
+17305: 
+17306: // Senkron getir (cache; ilk açılışta localStorage'dan seed)
+17307: function caFavGetir() {
+17308:   if (caFavCache) return caFavCache;
+17309:   try { caFavCache = new Set(JSON.parse(localStorage.getItem("caFav") || "[]")); }
+17310:   catch(e) { caFavCache = new Set(); }
+17311:   return caFavCache;
+17312: }
+17313: 
+17314: // Firestore'dan favorileri yükle + canlı dinle (giriş sonrası çağrılır)
+17315: async function caFavBaslat() {
+17316:   const email = (currentUser && currentUser.email) ? currentUser.email.toLowerCase() : null;
+17317:   if (!email) return;
+17318:   // Önce bir kez oku (hızlı)
+17319:   try {
+17320:     const snap = await getDoc(doc(db, "kullaniciTercihleri", email));
+17321:     if (snap.exists() && Array.isArray(snap.data().favoriMenuler)) {
+17322:       caFavCache = new Set(snap.data().favoriMenuler);
+17323:       localStorage.setItem("caFav", JSON.stringify([...caFavCache]));
+17324:       if (typeof caEkran !== "undefined" && caEkran === "menu" && typeof veliRenderYeniApp === "function") veliRenderYeniApp();
+17325:     }
+17326:   } catch(e) { console.log("favori yüklenemedi", e); }
+17327:   // Canlı dinle (app'te değişince portal anında güncellensin)
+17328:   if (caFavListener) caFavListener();
+17329:   caFavListener = onSnapshot(doc(db, "kullaniciTercihleri", email), (snap) => {
+17330:     const fav = (snap.exists() && Array.isArray(snap.data().favoriMenuler)) ? snap.data().favoriMenuler : [];
+17331:     caFavCache = new Set(fav);
+17332:     localStorage.setItem("caFav", JSON.stringify(fav));
+17333:     if (typeof caEkran !== "undefined" && caEkran === "menu" && typeof veliRenderYeniApp === "function") veliRenderYeniApp();
+17334:   }, (err) => console.log("favori dinleme hatası", err));
+17335: }
+17336: 
+17337: // Yıldız ekle/çıkar — cache'i anında günceller (UI hızlı), Firestore'a yazar (app senkron)
+17338: window.caFavToggle = async function(key, ev) {
+17339:   if (ev) ev.stopPropagation();
+17340:   const s = caFavGetir();
+17341:   if (s.has(key)) s.delete(key); else s.add(key);
+17342:   const yeni = [...s];
+17343:   localStorage.setItem("caFav", JSON.stringify(yeni));
+17344:   if (caEkran === "menu") veliRenderYeniApp();
+17345:   // Firestore'a yaz (onSnapshot ile app + portal senkron olur)
+17346:   const email = (currentUser && currentUser.email) ? currentUser.email.toLowerCase() : null;
+17347:   if (email) {
+17348:     try {
+17349:       await setDoc(doc(db, "kullaniciTercihleri", email),
+17350:         { favoriMenuler: yeni, guncellendi: new Date().toISOString() }, { merge: true });
+17351:     } catch(e) { console.log("favori kaydedilemedi", e); }
+17352:   }
+17353: };
+17354: // Menü canlı arama (yeniden render etmeden filtreler)
+17355: window.caMenuFiltre = function(q) {
+17356:   const norm = (s) => (s || "").toLocaleLowerCase("tr").replace(/i̇/g, "i");
+17357:   const aranan = norm(q);
+17358:   document.querySelectorAll("#cicekAppRoot .ca-modtile").forEach(t => {
+17359:     t.style.display = norm(t.dataset.ad).includes(aranan) ? "" : "none";
+
+===== lines 18653-18757 target 18688 =====
+
+18653: 
+18654:   // S.S.S. + tavsiyeler
+18655:   const sssEl = document.getElementById("caPdrSSS");
+18656:   if (sssEl) {
+18657:     try {
+18658:       const d = await getDoc(doc(db, "ayarlar", "pdrSSS"));
+18659:       const liste = (d.exists() ? (d.data().sorular || d.data().liste || []) : []);
+18660:       sssEl.innerHTML = liste.length
+18661:         ? liste.map((x, i) => `
+18662:           <div class="ca-card" style="padding:0; margin-bottom:8px; overflow:hidden;">
+18663:             <button onclick="caPdrAc(${i})" style="width:100%; display:flex; align-items:center; gap:10px; text-align:left; padding:13px 15px; border:none; background:#fff; cursor:pointer; font-family:inherit;">
+18664:               <i data-lucide="circle-help" style="width:16px;height:16px;color:#B8860B;flex-shrink:0;"></i>
+18665:               <span style="flex:1; font-weight:600; font-size:13.5px; color:var(--c-ink);">${escapeHtml(x.soru || x.baslik || "")}</span>
+18666:               <i data-lucide="chevron-down" style="width:16px;height:16px;color:#94A3B8;"></i>
+18667:             </button>
+18668:             <div id="caPdrCevap${i}" style="display:none; padding:0 15px 14px; font-size:13px; color:var(--c-body); line-height:1.7;">${escapeHtml(x.cevap || x.icerik || "")}</div>
+18669:           </div>`).join("")
+18670:         : `<div class="ca-card" style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz içerik eklenmemiş.</div>`;
+18671:       if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+18672:     } catch (e) {
+18673:       sssEl.innerHTML = `<div class="ca-card" style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">İçerik yüklenemedi.</div>`;
+18674:     }
+18675:   }
+18676: }
+18677: window.caPdrAc = function(i) {
+18678:   const el = document.getElementById("caPdrCevap" + i);
+18679:   if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+18680: };
+18681: 
+18682: 
+18683: // ═══════════════════════════════════════════════════════════════════
+18684: // PROFİL FOTOĞRAFI (öğrenci + veli)
+18685: // Bunny.net'e güvenli proxy (medyaYukle) üzerinden yüklenir.
+18686: // Firestore'a SADECE URL yazılır — base64 saklamak yasak.
+18687: //   Öğrenci : ogrenciler/{id}.fotoUrl  + fotoYol (silme için)
+18688: //   Veli    : veliler/{email}.fotoUrl  + fotoYol
+18689: // Portal ve ZEKY app aynı alan adlarını kullanır.
+18690: // ═══════════════════════════════════════════════════════════════════
+18691: 
+18692: // Ortak yükleme: dosya seç → sıkıştır → Bunny → Firestore'a URL yaz
+18693: async function profilFotoYukle(dosya, koleksiyon, belgeId, klasor) {
+18694:   if (!dosya) return null;
+18695:   if (!dosya.type.startsWith("image/")) throw new Error("Lütfen bir görsel dosyası seçin.");
+18696:   if (dosya.size > 8 * 1024 * 1024) throw new Error("Görsel 8 MB'tan küçük olmalı.");
+18697: 
+18698:   // Profil fotoğrafı için 800px yeterli — hem hızlı hem CDN dostu
+18699:   const kucuk = await resimSikistir(dosya, 800, 0.85);
+18700:   const sonuc = await medyaYukle(kucuk, klasor);
+18701: 
+18702:   // Eski fotoğrafı Bunny'den temizle (yer kaplamasın)
+18703:   try {
+18704:     const mevcut = await getDoc(doc(db, koleksiyon, belgeId));
+18705:     const eskiYol = mevcut.exists() ? mevcut.data().fotoYol : null;
+18706:     if (eskiYol && eskiYol !== sonuc.yol) await medyaSil(eskiYol);
+18707:   } catch (e) { console.warn("eski foto silinemedi", e?.message); }
+18708: 
+18709:   await setDoc(doc(db, koleksiyon, belgeId), {
+18710:     fotoUrl: sonuc.url,
+18711:     fotoYol: sonuc.yol,
+18712:     fotoGuncellendi: new Date().toISOString()
+18713:   }, { merge: true });
+18714: 
+18715:   return sonuc.url;
+18716: }
+18717: 
+18718: // Fotoğrafı kaldır
+18719: async function profilFotoKaldir(koleksiyon, belgeId) {
+18720:   try {
+18721:     const mevcut = await getDoc(doc(db, koleksiyon, belgeId));
+18722:     const yol = mevcut.exists() ? mevcut.data().fotoYol : null;
+18723:     if (yol) await medyaSil(yol);
+18724:   } catch (e) { console.warn("foto silinemedi", e?.message); }
+18725:   await setDoc(doc(db, koleksiyon, belgeId), {
+18726:     fotoUrl: "", fotoYol: "", fotoGuncellendi: new Date().toISOString()
+18727:   }, { merge: true });
+18728: }
+18729: 
+18730: // Gizli dosya seçici — her çağrıda yeniden oluşturulur
+18731: function fotoSecicAc(geriCagir) {
+18732:   const inp = document.createElement("input");
+18733:   inp.type = "file";
+18734:   inp.accept = "image/*";
+18735:   inp.style.display = "none";
+18736:   inp.onchange = function () { if (inp.files && inp.files[0]) geriCagir(inp.files[0]); inp.remove(); };
+18737:   document.body.appendChild(inp);
+18738:   inp.click();
+18739: }
+18740: 
+18741: // ── ÖĞRENCİ FOTOĞRAFI (yönetim: öğrenci detayı) ──
+18742: window.ogrenciFotoDegistir = function(ogrenciId) {
+18743:   fotoSecicAc(async function (dosya) {
+18744:     if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
+18745:     try {
+18746:       const url = await profilFotoYukle(dosya, "ogrenciler", ogrenciId, "ogrenci-foto");
+18747:       // Yerel listeyi de güncelle ki ekran hemen yansısın
+18748:       const o = (typeof ogrenciList !== "undefined") ? ogrenciList.find(x => x.id === ogrenciId) : null;
+18749:       if (o) o.fotoUrl = url;
+18750:       if (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci && veliAktifOgrenci.id === ogrenciId) {
+18751:         veliAktifOgrenci.fotoUrl = url;
+18752:       }
+18753:       document.querySelectorAll('[data-foto-ogrenci="' + ogrenciId + '"]').forEach(el => {
+18754:         el.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+18755:         el.style.padding = "0"; el.style.overflow = "hidden";
+18756:       });
+18757:       if (typeof showToast === "function") showToast("Fotoğraf güncellendi", "success");
+
+===== lines 24283-24387 target 24318 =====
+
+24283:           <button id="arsivOnayBtn" style="padding:10px 16px; background:#dc2626; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;"><i data-lucide="archive" style="width:14px;height:14px;vertical-align:-2px;"></i> Arşivle</button>
+24284:         </div>
+24285:       </div>
+24286:     </div>`;
+24287:   document.body.insertAdjacentHTML("beforeend", html);
+24288:   document.getElementById("arsivOnayBtn").onclick = async () => {
+24289:     const sebep = document.getElementById("arsivSebep").value;
+24290:     const aciklama = document.getElementById("arsivAciklama").value.trim();
+24291:     const btn = document.getElementById("arsivOnayBtn");
+24292:     btn.disabled = true; btn.textContent = "Arşivleniyor...";
+24293:     const ok = await ogrenciArsivle(ogrenciId, sebep, aciklama);
+24294:     if (ok) {
+24295:       document.getElementById("arsivModalOverlay").remove();
+24296:       if (typeof renderTable === "function") renderTable();
+24297:       if (typeof updateDurumSayaclari === "function") updateDurumSayaclari();
+24298:     } else {
+24299:       btn.disabled = false; btn.textContent = "🗄️ Arşivle";
+24300:     }
+24301:   };
+24302: };
+24303: // ===== /FAZ 6 =====
+24304: 
+24305: // ============================================================
+24306: // ===== ŞİMŞEK DUYURU SİSTEMİ (POPUP) =====
+24307: // ============================================================
+24308: // Personel "Şimşek Duyuru" işaretliyse, hedef veli portala girdiğinde
+24309: // estetik bir popup ile gösterilir. "Anladım" deyince popupKapatanVeliler
+24310: // listesine eklenir ve bir daha gösterilmez. Duyuru "Duyurular" sekmesinde
+24311: // sabit olarak kalır.
+24312: 
+24313: async function simsekDuyuruKontrolEt() {
+24314:   if (!currentUser?.email) return;
+24315:   const veliEmail = currentUser.email.toLowerCase();
+24316: 
+24317:   // Aktif veli öğrencileri (veliOgrenciler) ile hedef eşleşmesi
+24318:   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler || veliOgrenciler.length === 0) return;
+24319: 
+24320:   try {
+24321:     const snap = await getDocs(collection(db, "duyurular"));
+24322:     const bekleyen = [];
+24323:     snap.forEach(d => {
+24324:       const data = d.data();
+24325:       if (!data.simsek || data.arsiv) return;
+24326:       const kapatanlar = data.popupKapatanVeliler || [];
+24327:       if (kapatanlar.includes(veliEmail)) return;
+24328:       if (!simsekHedefUygun(data)) return;
+24329:       bekleyen.push({ id: d.id, ...data });
+24330:     });
+24331: 
+24332:     if (bekleyen.length === 0) return;
+24333: 
+24334:     // En yeni olanı önce göster (sıraya koy)
+24335:     bekleyen.sort((a, b) => new Date(b.olusturuldu || 0) - new Date(a.olusturuldu || 0));
+24336:     simsekPopupGoster(bekleyen, 0);
+24337:   } catch (e) {
+24338:     console.warn("Şimşek duyuru kontrolü başarısız:", e);
+24339:   }
+24340: }
+24341: 
+24342: // Bu duyurunun hedefi bu veliyi içeriyor mu?
+24343: function simsekHedefUygun(d) {
+24344:   if (d.hedefTur === "tumOkul" || !d.hedefTur) return true;
+24345:   if (d.hedefTur === "sinif") {
+24346:     return veliOgrenciler.some(o => {
+24347:       const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+24348:       const sinif = (ayar?.kayit?.sinif) || o.sinif || "";
+24349:       return sinif === d.hedefDeger;
+24350:     });
+24351:   }
+24352:   if (d.hedefTur === "ogrenci") {
+24353:     return veliOgrenciler.some(o => o.id === d.hedefDeger);
+24354:   }
+24355:   return false;
+24356: }
+24357: 
+24358: // Popup'ı göster (kuyruktan)
+24359: function simsekPopupGoster(kuyruk, idx) {
+24360:   if (idx >= kuyruk.length) return;
+24361:   const d = kuyruk[idx];
+24362:   const aciliyetRenk = d.aciliyet === "yuksek"
+24363:     ? { bg: "#FEE2E2", bord: "#FCA5A5", ikon: "🚨", baslik: "Önemli Duyuru" }
+24364:     : { bg: "#FEF3C7", bord: "#FDE68A", ikon: "⚡", baslik: "Şimşek Duyuru" };
+24365: 
+24366:   // İçeriği güvenli HTML'e çevir
+24367:   const icerikSafe = (d.icerik || "")
+24368:     .split(/\n+/)
+24369:     .map(p => `<p style="margin:0 0 8px;">${escapeHtmlGelisim(p)}</p>`)
+24370:     .join("");
+24371: 
+24372:   const html = `
+24373:     <div id="simsekOverlay" style="position:fixed; inset:0; background:rgba(31,95,51,0.4); backdrop-filter:blur(4px); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px; animation:simsekFadeIn 0.25s ease-out;">
+24374:       <div style="position:relative; max-width:440px; width:100%; margin-top:26px; animation:simsekSlideUp 0.3s ease-out;">
+24375:       <div style="background:white; border-radius:20px; width:100%; max-height:calc(90vh - 26px); overflow-y:auto; box-shadow:0 24px 48px rgba(0,0,0,0.18); position:relative;">
+24376: 
+24377:         <!-- DEKORATİF ÇİÇEK MOTİFİ -->
+24378:         <div style="position:absolute; top:-22px; left:50%; transform:translateX(-50%); width:60px; height:60px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+24379:           <svg width="36" height="36" viewBox="0 0 200 200" aria-hidden="true">
+24380:             <g transform="translate(100 100)">
+24381:               <g fill="#FFD4DC">
+24382:                 <ellipse cx="0" cy="-34" rx="16" ry="30"/>
+24383:                 <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(72)"/>
+24384:                 <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(144)"/>
+24385:                 <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(216)"/>
+24386:                 <ellipse cx="0" cy="-34" rx="16" ry="30" transform="rotate(288)"/>
+24387:               </g>
+
+===== lines 25335-25439 target 25370 =====
+
+25335: 
+25336:   const bugun = new Date();
+25337:   const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+25338:   const yaklasan = veliEtkinlikler.filter(e => e.tarih >= bugunStr).slice(0, 10);
+25339: 
+25340:   const listeEl = document.getElementById("veliTakvimYaklasanListe");
+25341:   if (!listeEl) return;
+25342:   if (yaklasan.length === 0) {
+25343:     listeEl.innerHTML = `<div class="ca-card" style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yaklaşan etkinlik yok.</div>`;
+25344:     return;
+25345:   }
+25346:   listeEl.innerHTML = yaklasan.map(e => {
+25347:     const tarih = new Date(e.tarih);
+25348:     const aylarKisa = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+25349:     const tarihStr = `${tarih.getDate()} ${aylarKisa[tarih.getMonth()]}`;
+25350:     const saatStr = e.tumGun ? "Tüm gün" : (e.baslangicSaat ? `${e.baslangicSaat}` : "");
+25351:     return `
+25352:       <div class="takvim-etkinlik-kart" data-tip="${e.tip || 'etkinlik'}" style="cursor:pointer;" onclick="veliTakvimEtkinlikDetay('${e.id}')">
+25353:         <div style="flex:1; min-width:0;">
+25354:           <div class="takvim-etkinlik-baslik">${escapeHtml(e.baslik)}</div>
+25355:           <div class="takvim-etkinlik-meta">
+25356:             <span>${TAKVIM_TIP_LABEL[e.tip] || e.tip}</span>
+25357:             <span>📆 ${tarihStr}</span>
+25358:             ${saatStr ? `<span>⏰ ${saatStr}</span>` : ''}
+25359:             ${e.konum ? `<span>📍 ${escapeHtml(e.konum)}</span>` : ''}
+25360:           </div>
+25361:         </div>
+25362:         <button class="takvim-aksiyon-btn" onclick="event.stopPropagation(); takvimICSIndir('${e.id}')" style="flex-shrink:0;"><i data-lucide="calendar" style="width:13px;height:13px;vertical-align:-2px;"></i> Ekle</button>
+25363:       </div>
+25364:     `;
+25365:   }).join("");
+25366: }
+25367: 
+25368: function takvimVeliyeUygunMu(e) {
+25369:   if (!e.hedefTur || e.hedefTur === "tumOkul") return true;
+25370:   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler) return false;
+25371:   if (e.hedefTur === "sinif") {
+25372:     return veliOgrenciler.some(o => {
+25373:       const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+25374:       const sinif = (ayar?.kayit?.sinif) || o.sinif || "";
+25375:       return sinif === e.hedefDeger;
+25376:     });
+25377:   }
+25378:   if (e.hedefTur === "ogrenci") {
+25379:     return veliOgrenciler.some(o => o.id === e.hedefDeger);
+25380:   }
+25381:   return false;
+25382: }
+25383: 
+25384: window.veliTakvimGunTikla = function(tarihStr) {
+25385:   const veliEtkinlikler = takvimTumEtkinlikler().filter(e => takvimVeliyeUygunMu(e));
+25386:   const gunEtkinlikleri = veliEtkinlikler.filter(e => e.tarih === tarihStr);
+25387:   if (gunEtkinlikleri.length === 0) return;
+25388:   takvimEtkinlikDetayAc(gunEtkinlikleri[0]);
+25389: };
+25390: 
+25391: window.veliTakvimEtkinlikDetay = function(id) {
+25392:   const e = takvimTumEtkinlikler().find(x => x.id === id);
+25393:   if (e) takvimEtkinlikDetayAc(e);
+25394: };
+25395: // ===== /TAKVİM =====
+25396: 
+25397: // ============================================================
+25398: // ===== FAZ B: RANDEVU SLOT SİSTEMİ (YÖNETİM) =====
+25399: // ============================================================
+25400: // Veri yapısı: randevuSlotlari/{slotId}
+25401: // { tarih, baslangicSaat, bitisSaat, tip, tipAciklama (diger için),
+25402: //   ogretmenEmail, ogretmenAd, hedefSinif, konum, yonetimNotu,
+25403: //   durum (musait/dolu), veliEmail, veliAd, ogrenciId, ogrenciAd,
+25404: //   veliNotu, rezervasyonTarihi, meslekAdi, meslekAciklama,
+25405: //   arsiv, olusturan, olusturuldu, guncellendi }
+25406: 
+25407: const RANDEVU_TIP_LABEL = {
+25408:   ogretmen_veli: "👨‍🏫 Öğretmen-Veli",
+25409:   pdr: "🧠 PDR",
+25410:   idare: "🏢 İdare",
+25411:   meslek_sunumu: "💼 Meslek Sunumu",
+25412:   diger: "📌 Diğer"
+25413: };
+25414: 
+25415: let randevuSlotlari = [];
+25416: 
+25417: async function randevuSlotlariYukle(force = false) {
+25418:   if (randevuSlotlari.length > 0 && !force) return randevuSlotlari;
+25419:   try {
+25420:     const snap = await getDocs(collection(db, "randevuSlotlari"));
+25421:     const liste = [];
+25422:     snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
+25423:     randevuSlotlari = liste;
+25424:     return liste;
+25425:   } catch (e) {
+25426:     console.error("Randevu slotları yüklenemedi:", e);
+25427:     return [];
+25428:   }
+25429: }
+25430: 
+25431: // Öğretmen dropdown'larını doldur (modal açılınca)
+25432: function randevuOgretmenDropdownDoldur() {
+25433:   const dropdowns = [
+25434:     document.getElementById("randevuSlotOgretmen"),
+25435:     document.getElementById("randevuTopluOgretmen")
+25436:   ].filter(Boolean);
+25437: 
+25438:   if (typeof personelListesi === "undefined" || !personelListesi) return;
+25439: 
+
+===== lines 26165-26269 target 26200 =====
+
+26165:         ${s.emoji ? s.emoji + " " : ""}${kisaAd}<span class="chip-sayi">${n}</span>
+26166:       </button>`;
+26167:     }).join("") || `<span style="font-size:12px; color:#9AA3B0;">Sınıf tanımlı değil</span>`;
+26168: 
+26169:     if (window.lucideYenile) window.lucideYenile();
+26170:   } catch (e) {
+26171:     console.warn("Sınıf filtre çipleri yüklenemedi:", e);
+26172:     kap.innerHTML = `<span style="font-size:12px; color:#9AA3B0;">Sınıflar yüklenemedi</span>`;
+26173:   }
+26174: };
+26175: 
+26176: function sinifAdiResmiEsle(ham) {
+26177:   if (!ham) return "";
+26178:   const n = normalizeSinif(ham);
+26179:   if (!n) return ham;
+26180:   // 1) Zaten resmi ad mı?
+26181:   for (const resmi of RESMI_SINIF_ADLARI) {
+26182:     if (n === normalizeSinif(resmi)) return resmi;
+26183:   }
+26184:   // 2) Bilinen eski yazım mı?
+26185:   if (SINIF_ESLEME_HAM[n]) return SINIF_ESLEME_HAM[n];
+26186:   // 3) Kısmi eşleşme (papatyalarsinifi ↔ papatyalar gibi)
+26187:   for (const resmi of RESMI_SINIF_ADLARI) {
+26188:     const rn = normalizeSinif(resmi);
+26189:     if (rn.startsWith(n) || n.startsWith(rn)) return resmi;
+26190:   }
+26191:   for (const anahtar in SINIF_ESLEME_HAM) {
+26192:     if (n.startsWith(anahtar) || anahtar.startsWith(n)) return SINIF_ESLEME_HAM[anahtar];
+26193:   }
+26194:   return ham;
+26195: }
+26196: 
+26197: // Bu veli/öğrenci hangi sınıfta? Slot hedef sınıfla eşleşiyor mu?
+26198: function randevuVeliyeUygunMu(s) {
+26199:   if (!s.hedefSinif) return true; // Genel slot, herkes görür
+26200:   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler || veliOgrenciler.length === 0) {
+26201:     console.warn("[randevuVeliyeUygunMu] veliOgrenciler henüz yüklenmedi");
+26202:     return false;
+26203:   }
+26204:   const hedefNorm = normalizeSinif(s.hedefSinif);
+26205:   const eslesti = veliOgrenciler.some(o => {
+26206:     const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+26207:     const sinifHam = (ayar?.kayit?.sinif) || o.sinif || "";
+26208:     const sinifNorm = normalizeSinif(sinifHam);
+26209:     const ok = sinifNorm === hedefNorm;
+26210:     if (!ok) console.log(`[randevuVeliyeUygunMu] '${o.ogrenciAdSoyad || o.id}' sınıfı '${sinifHam}' (norm: '${sinifNorm}') ile slot hedefi '${s.hedefSinif}' (norm: '${hedefNorm}') eşleşmedi`);
+26211:     return ok;
+26212:   });
+26213:   return eslesti;
+26214: }
+26215: 
+26216: // Geçmiş tarih mi?
+26217: function randevuGecmisMi(s) {
+26218:   const bugun = new Date();
+26219:   const bugunStr = `${bugun.getFullYear()}-${String(bugun.getMonth()+1).padStart(2,"0")}-${String(bugun.getDate()).padStart(2,"0")}`;
+26220:   return s.tarih < bugunStr;
+26221: }
+26222: 
+26223: // Veli için tüm müsait slotları al
+26224: function veliMusaitSlotlar() {
+26225:   return randevuSlotlari.filter(s =>
+26226:     !s.arsiv &&
+26227:     (s.durum || "musait") === "musait" &&
+26228:     !randevuGecmisMi(s) &&
+26229:     randevuVeliyeUygunMu(s)
+26230:   ).sort((a, b) => {
+26231:     const t1 = a.tarih + (a.baslangicSaat || "00:00");
+26232:     const t2 = b.tarih + (b.baslangicSaat || "00:00");
+26233:     return t1.localeCompare(t2);
+26234:   });
+26235: }
+26236: 
+26237: // Veli'nin kendi rezervasyonları
+26238: function veliBenimSlotlar() {
+26239:   if (!currentUser?.email) return [];
+26240:   const veliEmail = currentUser.email.toLowerCase();
+26241:   return randevuSlotlari.filter(s =>
+26242:     !s.arsiv &&
+26243:     s.durum === "dolu" &&
+26244:     (s.veliEmail || "").toLowerCase() === veliEmail
+26245:   ).sort((a, b) => {
+26246:     const t1 = a.tarih + (a.baslangicSaat || "00:00");
+26247:     const t2 = b.tarih + (b.baslangicSaat || "00:00");
+26248:     return t1.localeCompare(t2);
+26249:   });
+26250: }
+26251: 
+26252: // Sayaçları güncelle (sekme rozetleri)
+26253: function veliRandevuSayaclariniGuncelle() {
+26254:   const musait = veliMusaitSlotlar().length;
+26255:   const benim = veliBenimSlotlar().length;
+26256:   const musaitEl = document.getElementById("veliMusaitSayac");
+26257:   const benimEl = document.getElementById("veliBenimSayac");
+26258:   if (musaitEl) {
+26259:     musaitEl.textContent = musait;
+26260:     musaitEl.style.display = musait > 0 ? "inline-block" : "none";
+26261:   }
+26262:   if (benimEl) {
+26263:     benimEl.textContent = benim;
+26264:     benimEl.style.display = benim > 0 ? "inline-block" : "none";
+26265:   }
+26266: }
+26267: 
+26268: // MÜSAİT RANDEVULAR LİSTESİ
+26269: async function veliMusaitRandevularRender() {
