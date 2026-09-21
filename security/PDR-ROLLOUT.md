@@ -11,9 +11,9 @@ Portal ve ZEKY aynı `js/pdr/{core,panel,store}.js` ve `panel.css` dosyalarını
 - Kendi özlük/izin/fiş/ihtiyaç işlemleri mevcut modüllerdedir.
 - Duyuru ve etkinlik ekler. Sunucu kuralı PDR'yi kendi oluşturduğu içerikleri değiştirmek/silmekle sınırlar.
 
-## Yayın öncesi zorunlu doğrulama
+## Yayın prosedürü
 
-Bu çalışma ortamında Firebase CLI hesabı bağlı değildi (`FIREBASE_CLI_LOGIN_REQUIRED`). Canlı kural dosyası alınamadı ve hiçbir kural yayımlanmadı. 19 Eylül tarihli yerel kopyada hazırlayıcının çalışması kontrol edildi; bu kopya güncel canlı kaynağın yerine geçmez.
+CLI hesabı bağlı değildi; güncel canlı kurallar Firebase Console üzerinden okundu. Aşağıdaki prosedür yeniden yayın yapılırken uygulanır. 21 Eylül yayın durumu aşağıdadır.
 
 1. Canlı Firestore kurallarını ve ruleset kimliğini dışarı alın.
 2. `node security/prepare-pdr-rules.mjs LIVE.rules REVIEW.rules` ile yalnız yeni koleksiyon ve üç PDR yazma iznini birleştirin. Araç yayımlamaz; beklediği blokları bulamazsa durur.
@@ -36,10 +36,12 @@ Android WebView'de rapor görüntülenebilir; sistem yazdırması desteklenmedi�
 
 Firebase Console açık oturumu üzerinden güncel yıldızlı kurallar okundu (15 Eylül 22:07 sürümü). CLI oturumu hâlâ bağlı değil. Güncel tam kurallara yeni PDR koleksiyonu, PDR'nin kendi duyuru/etkinliklerini yazması ve güvenli personel rehberini okuması işlendi. Genel yönetici jokeri yeni takip koleksiyonunda veri doğrulamasını aşamaz.
 
-Kural hazırlayıcıdaki `String.replace` dolar işareti sorunu callback kullanılarak düzeltildi; tam kaynakla Firestore Emulator derlemesi ve 50 yetki/veri değişmezliği kontrolü geçti. Portal 80/80 test geçti. Kurallar henüz yayımlanmadı; Firebase editöründe yayınlanmamış taslak hazır.
+Kural hazırlayıcıdaki `String.replace` dolar işareti sorunu callback kullanılarak düzeltildi; tam kaynakla Firestore Emulator derlemesi ve 50 yetki/veri değişmezliği kontrolü geçti. Portal 80/80 test geçti. Kurallar kullanıcı onayıyla 21 Eylül 2026 12:54 (Türkiye) yayımlandı. Yayımlanan içerik test edilen dosyayla birebir eşleşti.
 
 ZEKY öğrenci paneli finans içeren dönem alt belgelerini okumaz. Portal ile aynı aktif dönem özetini kullanır. PDR mesaj alıcıları da aktif döneme göre filtrelenir.
 
 Güncel kuralların önceki/test edilmiş sürümleri ve SHA-256 değerleri özel ZEKY deposundaki `security/pdr-20260921/` altında saklıdır. Bunlar halka açık portal deposuna eklenmez.
 
-Kalan: canlı kuralların yayınlanması, uygulama dağıtımı, gerçek PDR hesabıyla iki platform arası kayıt/iletişim doğrulaması, Android AAB ve cihaz kontrolü. Sunucu simülasyonu bu son kontrollerin yerine geçmez.
+Portal PR #31 ana dala birleştirildi. Pages dağıtımı 35585901540 başarılı; canlıdaki dört ortak PDR modülü test edilen dosyalarla aynı. ZEKY PR #12 kendi taban dalına birleştirildi. Android SDK kurulumundaki kaldırılmış tools paketi hatası düzeltildi; İmzalı ZEKY 1.0.6 (versionCode 10) AAB, 35586695422 numaralı çalıştırmada başarıyla üretildi.
+
+Kalan: gerçek PDR hesabıyla iki platform arası kayıt/iletişim doğrulaması, Android cihaz kontrolü. Play Store dağıtımı yapılmadı. Sunucu simülasyonu bu son kontrollerin yerine geçmez.
