@@ -7864,6 +7864,8 @@ body.rol-danisma .tb-grup-program { display:none !important; }
   .mesaj-konteyner:not(.sohbet-acik) .mesaj-sohbet-panel { display: none; }
   .mesaj-geri-btn { display: block; }
 }
+
+body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul="egitim"], body.muhasebe-hesabi [data-modul="okulZili"]{display:none!important}
 </style>
 <!-- PDF, Word, ZIP ve grafik kütüphaneleri ilk açılışta değil,
      yalnız ilgili araç kullanıldığında portalAracYukle() ile yüklenir. -->
@@ -14487,6 +14489,7 @@ function sekmeleriRoleGoreAyarla() {
       "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni"].includes(aktifKullaniciRol);
     document.body.classList.toggle("rol-ogretmen", !!ogr);
     document.body.classList.toggle("rol-danisma", danismaRolMu());
+    document.body.classList.toggle("muhasebe-hesabi", !isAdmin && aktifKullaniciRol === "muhasebe");
   } catch (e) {}
 
   // Panel başlık etiketini role göre güncelle
@@ -16116,7 +16119,7 @@ window.mesajYeniSohbetKapat = function() {
 // Yeni sohbet: öğrencileri listele (öğretmen sadece kendi sınıfını görür - ogrenciList zaten filtreli)
 window.mesajYeniOgrencileriListele = function() {
   if (danismaRolMu()) { mesajYeniPersonelleriListele(); return; }
-  if (aktifKullaniciRol === "pdr" && pdrMesajHedef === "personel") { mesajYeniPersonelleriListele(); return; }
+  if (["pdr","muhasebe"].includes(aktifKullaniciRol) && pdrMesajHedef === "personel") { mesajYeniPersonelleriListele(); return; }
   const el = document.getElementById("mesajYeniOgrenciListesi");
   if (!el) return;
   pdrMesajSeciciKur(el);
@@ -16155,7 +16158,7 @@ window.mesajYeniOgrencileriListele = function() {
 
 function pdrMesajSeciciKur(el) {
   let secici=document.getElementById("pdrMesajHedefSecici");
-  if(aktifKullaniciRol!=="pdr"){if(secici)secici.remove();return;}
+  if(!["pdr","muhasebe"].includes(aktifKullaniciRol)){if(secici)secici.remove();return;}
   if(!secici){secici=document.createElement("div");secici.id="pdrMesajHedefSecici";el.before(secici);}
   secici.innerHTML='<button class="btn-secondary" onclick="pdrMesajHedefSec(&quot;veli&quot;)">Veliler</button> <button class="btn-secondary" onclick="pdrMesajHedefSec(&quot;personel&quot;)">Okul personeli</button>';
 }
@@ -16169,7 +16172,7 @@ window.mesajYeniPersonelleriListele = async function() {
   el.innerHTML = `<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px;">Personel listesi yükleniyor…</div>`;
   try {
     if (!mesajYeniPersonelCache) {
-      const snap = await getDocs(collection(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller));
+      const snap = await getDocs(collection(db, aktifKullaniciRol === "muhasebe" ? "personeller" : DANISMA_GUVENLI_KOLEKSIYONLAR.personeller));
       mesajYeniPersonelCache = [];
       snap.forEach(d => {
         const p = d.data() || {};
@@ -16203,7 +16206,7 @@ window.mesajYeniPersonelleriListele = async function() {
 };
 
 window.mesajYeniIcBaslatIndex = async function(index) {
-  if (!danismaRolMu() && aktifKullaniciRol !== "pdr") return;
+  if (!danismaRolMu() && !["pdr","muhasebe"].includes(aktifKullaniciRol)) return;
   const kisi = (window.__mesajIcKisiListesi || [])[index];
   if (!kisi) return;
   try {
@@ -20678,11 +20681,20 @@ function adminHomeGorevleriSirala(gorevler, renderSurumu) {
   }, 80, renderSurumu, "kart kuyruğu");
 }
 
+function muhasebeHomeBaslat(root) {
+  const token = String(++adminHomeRenderSurumu);
+  root.dataset.financeRender = token;
+  root.innerHTML = '<p>Muhasebe çalışma alanı yükleniyor…</p>';
+  import('./js/finans/portal-entry.js').then(m => {
+    if (root.dataset.financeRender === token && adminHomeSekmesiAktifMi()) return m.portalMuhasebeAnaSayfa(root);
+  }).catch(() => { if(root.dataset.financeRender === token) root.textContent = 'Muhasebe ekranı yüklenemedi. Sayfayı yenileyebilirsiniz.'; });
+}
 function adminHomeYukleniyorGoster() {
   adminHomeVeriHazirMi = false;
   adminHomeArkaPlanCalismasiniDurdur();
   const root = document.getElementById("adminHomeRoot");
   if (!root) return;
+  if (!isAdmin && aktifKullaniciRol === "muhasebe") { root.innerHTML = '<p>Muhasebe için dönem bilgileri yükleniyor…</p>'; return; }
   const ad = (document.getElementById("userName")?.textContent || "Yönetici").trim();
   const danismaMi = danismaRolMu();
   const ogretmenMi = !danismaMi && (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol === "ogretmen");
@@ -20740,6 +20752,7 @@ function renderAdminHome() {
   }
   adminHomeZamanlayicilariniTemizle();
   const renderSurumu = ++adminHomeRenderSurumu;
+  if (!isAdmin && aktifKullaniciRol === "muhasebe") { muhasebeHomeBaslat(root); return; }
   if (!isAdmin && aktifKullaniciRol === "pdr") {
     root.innerHTML = '<div id="pdrAnaSayfaKap"></div>';
     modulYukle("pdr-calisma").then(m => m && m.panelRender("pdrAnaSayfaKap"));

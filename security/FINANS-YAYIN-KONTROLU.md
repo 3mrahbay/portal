@@ -13,7 +13,7 @@ Portal ve ZEKY aynı finans hesaplama, veli, dekont, dashboard ve mutabakat mod�
 - ZEKY taslağı daha önce yayımlanan PDR/danışma dalıyla birleştirildi; ilgili rol ekranları korunur.
 
 ## Doğrulama
-- Portal: 104 test geçti. ZEKY: 22 test geçti.
+- Portal: 109 test geçti. ZEKY: 27 test geçti.
 - Yerel Firestore Emulator: 71 kontrol geçti. Sahip veli, başka veli, muhasebe, öğretmen, danışma, PDR ve oturumsuz erişim; kısmi ödeme, eşzamanlı onay/ters kayıt, fazla iade, özel dekont ve banka eşleştirmesi sınandı.
 - Test komutu: `node --test tests/*.test.mjs`.
 - Emülatör: `FIRESTORE_EMULATOR_HOST=127.0.0.1:8791 FINANCE_RULES_FILE=/path/candidate.rules node tests/finans-rules-emulator.cjs`. `@firebase/rules-unit-testing` ve `firebase` test bağımlılıkları gerekir. Test yalnız yerel adres ve demo-finance-review projesiyle çalışır.
@@ -40,3 +40,17 @@ Portal ve ZEKY aynı finans hesaplama, veli, dekont, dashboard ve mutabakat mod�
 Bu paket görsel/cihaz kabulünden geçmedi ve üretime yayımlanmadı. Önceki 1.0.7 AAB bu yeni arayüz değişikliklerini içermez; son kod için yeniden derleme gerekir.
 
 Referansların kalan kapsamı: yeni sözleşme/ücret düzenleyicisi, okul dışı gelirler, gerçek kasa/banka/POS bakiyesi ve hesap hareketleri, çek/senet, XLSX çıktı; tüm ikincil listelerde tutarlı filtre/sıralama ve görsel kabul. Vade ekranı günlere ayrılmış aylık listedir; ay/hafta/gün takvim ızgarası henüz yoktur. Örnek ekranlardaki bakiye ve kişiler uygulamaya eklenmedi. WhatsApp gönderimi veya ödeme transferi yapılmadı.
+
+## Muhasebe hesabına özel ana sayfa
+Portal muhasebe rolü genel yönetim özetinden ayrıldı: okul zili, randevu ve eğitim kartları ile bunların arka plan görevleri bu özet için çalıştırılmaz. Hızlı erişim mali bölümler, mesajlaşma, kendi özlüğü, giriş/çıkış, personel mali işlemleri, gider ve fiş bildirimini içerir. Sınıf dağılımı ve son kayıtlar seçili dönemin verilerinden gelir. Son kayıt tarihi bulunmayan öğrenciler güncelleme tarihiyle yeni kayıt gibi gösterilmez.
+ZEKY'nin giriş yönlendirmesinde var olup dosyası olmayan muhasebe-anasayfa.html oluşturuldu; muhasebe alt menüsü tüm personel ekranlarında doğru role yönelir. Mesajlar ekranına muhasebenin tüm aktif personelle kurum içi sohbet başlatması eklendi. Portal personel/veli seçicisi muhasebeye açıldı; mali personel rehberi mevcut personeller kaynağını okur. PDR ve danışma rehberi kuralları değiştirilmedi. Otomatik mesaj gönderilmez.
+Personel özeti yalnız son durum ve güncelleme bilgisini sunar; eksik belge dışarıda/gelmedi sayılmaz, okuma hatası görünürdür. İzin, bordro hesabı veya mesai toplamı bu durum kartından türetilmez. Kendi devam kaydı mevcut profil/QR akışına bağlanır.
+Grafikler: son altı ay öğrenci tahsilatı–kayıtlı gider karşılaştırması, tahsilatın kalem dağılımı ve 1–30/31–60/61–90/90+ gün gecikmiş alacak. Kuruş, iade, vadesiz kalem ve tarih sınırları test edildi. Verilerden mali öncelik metinleri üretilir; gerçek banka bakiyesi veya tam okul net kârı olarak sunulmaz.
+Doğrulama: Portal 108, ZEKY 27 test; finans modülleri ve Portal iç betikleri sözdizimi kontrolünden geçti. Yeni grafikler ve rol ekranları için görsel/cihaz kabulü henüz yapılmadı; daha önceki AAB bu paketi içermez. Sözleşme düzenleyicisi ve gerçek hesap hareketleri kapsamı önceki kalan işler listesinde devam ediyor.
+
+## Devam oturumu — son kontroller
+- Dönem değiştirme/yenileme başarısızlığında sınıf dağılımı ve son kayıt kartları yükleniyor durumunda takılı kalmaz; hata gösterir ve finans yeniden deneme akışını kullanır.
+- Personel yenileme hatasından sonra arama/sıralama eski verileri güncelmiş gibi geri getirmez. ISO, Firestore Timestamp ve saniye tabanlı devam zamanları desteklenir; geçersiz zaman boş kalır.
+- ZEKY personel rehberi kayıt içindeki e-posta alanını da destekler, ad ve soyadı birlikte gösterir. Muhasebe alt menüsü özlük, giriş/çıkış, mesajlar ve mali özet bağlantılarını korur.
+- Grafik/tablo kapsayıcılarına dar ekran taşmasını önleyen stil eklendi. Görsel doğrulama tekrar denendi; tarayıcı ERR_BLOCKED_BY_CLIENT verdi. Görsel/gerçek telefon kontrolü tamamlanmadı.
+- Bu oturumda portal 109, ZEKY 27 test geçti. Canlı veri yazılmadı, kurallar yayımlanmadı, yeni AAB üretilmedi.

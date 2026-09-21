@@ -20,6 +20,8 @@ const PRECACHE = [
   "./js/finans/account.js",
   "./js/finans/data.js",
   "./js/finans/dashboard.js",
+  "./js/finans/staff-home.js",
+  "./js/finans/analytics.js",
   "./js/finans/parent.js",
   "./js/finans/portal-entry.js",
   "./js/finans/ui.css",
