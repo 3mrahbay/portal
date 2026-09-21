@@ -5,6 +5,11 @@ export const kurus = v => Math.round((Number.isFinite(Number(v)) ? Number(v) : 0
 export const para = v => new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY'}).format(Number(v)||0);
 export const esc = v => String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function bugun(now=new Date()){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);}
+export function gecerliTarih(value,now=new Date()){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;
+  const date=new Date(value+'T12:00:00Z');
+  return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value&&value<=bugun(now);
+}
 export function vade(ayKod,record={},ayar={}){
   const explicit=record.sonOdemeTarihi||record.vadeTarihi;
   if (/^\d{4}-\d{2}-\d{2}$/.test(explicit||'')) return explicit;
@@ -46,7 +51,7 @@ export function kartOzeti(veri,now=new Date()){
   const older=open.find(r=>r.gecikmis || r.id==='__onOdeme' || (/^\d{4}-\d{2}$/.test(r.id)&&r.id<ay));
   const r=older||p.satirlar.find(r=>r.id===ay)||open[0];
   const gecikmis=p.geciken>0;
-  return {...p,secilen:r,renk:gecikmis?'turuncu':r?.durum==='odendi'?'yesil':'normal',baslik:p.plansiz?'Ödeme planı henüz oluşturulmadı':r?`${r.ad} · ${r.durum==='odendi'?'Ödendi':r.durum==='kismi'?'Kısmen ödendi':r.gecikmis?'Ödemesi gecikti':'Ödemesi bekleniyor'}`:'Ödemeler tamamlandı',ekler:p.satirlar.filter(r=>r.id.startsWith('diger-'))};
+  return {...p,secilen:r,renk:gecikmis?'turuncu':r?.durum==='odendi'||(!p.plansiz&&p.toplam>0&&p.kalan===0)?'yesil':'normal',baslik:p.plansiz?'Ödeme planı henüz oluşturulmadı':r?`${r.ad} · ${r.durum==='odendi'?'Ödendi':r.durum==='kismi'?'Kısmen ödendi':r.gecikmis?'Ödemesi gecikti':'Ödemesi bekleniyor'}`:'Ödemeler tamamlandı',ekler:p.satirlar.filter(r=>r.id.startsWith('diger-'))};
 }
 export function sirala(rows,key,yon='asc'){
   const collator=new Intl.Collator('tr',{numeric:true,sensitivity:'base'});
@@ -67,7 +72,7 @@ export function tahsilatUygula(veri,b,id,email,now=new Date()){
   if(r.record.hareketler?.length&&r.record.hareketler.reduce((s,h)=>s+kurus(h.tutar),0)!==kurus(r.odenen))throw Error('Hareket toplamı ile bakiye uyuşmuyor; önce mutabakat gerekli.');
   const amount=kurus(b.bildirilenTutar??b.tutar);
   if(amount<=0||amount>kurus(r.kalan)) throw Error('Bildirilen tutar kalan borcu aşıyor veya geçersiz.');
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(b.odemeTarihi||'')) throw Error('Ödeme tarihi gerekli.');
+  if(!gecerliTarih(b.odemeTarihi,now)) throw Error('Geçerli, ileri tarihli olmayan bir ödeme tarihi gerekli.');
   const updated=structuredClone(veri),isEk=key.startsWith('diger-'),field=isEk?'digerOdemeler':'aylikOdemeler',rid=isEk?key.slice(6):key;
   updated[field]=updated[field]||(isEk?structuredClone(veri.aidatAyarlari?.digerOdemeler||{}):{});
   const record={...r.record},movements=[...(record.hareketler||[])];
@@ -81,7 +86,7 @@ export async function bildirimOnayla({fb,db,id,email,donem,sonuc='onayli'}){
   return fb.runTransaction(db,async tx=>{
     const snap=await tx.get(ref);if(!snap.exists())throw Error('Bildirim bulunamadı.');
     const b=snap.data();
-    if(['onayli','onaylandi','ret','reddedildi'].includes(b.durum))throw Error('Bildirim zaten işlenmiş.');
+    if(!['bekliyor','beklemede'].includes(b.durum))throw Error('Bildirim zaten işlenmiş veya durumu geçersiz.');
     const period=b.donem;
     if(!period||!b.ogrenciId)throw Error('Dönem ve öğrenci bilgisi gerekli.');
     if(sonuc==='ret'){tx.update(ref,{durum:'reddedildi',onaylayan:'Muhasebe',onayZamani:fb.serverTimestamp()});return;}
@@ -91,5 +96,38 @@ export async function bildirimOnayla({fb,db,id,email,donem,sonuc='onayli'}){
     tx.update(dr,{[u.field]:u.values});
     tx.set(fb.doc(db,'odemeler','bildirim_'+id),{tur:'tahsilat_onayi',bildirimId:id,ogrenciId:b.ogrenciId,donem:period,kalem:bildirimKalemi(b),tutar:Number(b.bildirilenTutar??b.tutar),odemeTarihi:b.odemeTarihi,onaylayan:email,olusturuldu:fb.serverTimestamp()});
     tx.update(ref,{durum:'onaylandi',tahsilatIslendi:true,donem:period,onaylayan:'Muhasebe',onayZamani:fb.serverTimestamp()});
+  });
+}
+// A reversal records an already performed refund/correction; it never transfers money.
+export function tersKayitUygula(veri,b,id,{tarih,neden,tur},now=new Date()){
+  if(!['iade','duzeltme'].includes(tur))throw Error('İşlem türünü seçin.');
+  if(typeof neden!=='string'||neden.trim().length<5||neden.length>1000)throw Error('En az 5 karakterlik işlem açıklaması gerekli.');
+  if(!gecerliTarih(tarih,now)||tarih<b.odemeTarihi)throw Error('İşlem tarihi tahsilattan önce veya bugünden sonra olamaz.');
+  if(b.durum!=='onaylandi'||b.tahsilatIslendi!==true)throw Error('Yalnız bu sistemde işlenmiş tahsilatlar geri alınabilir.');
+  const key=bildirimKalemi(b),r=odemePlani(veri,now).satirlar.find(r=>r.id===key),amount=kurus(b.bildirilenTutar??b.tutar);
+  const moves=r?.record.hareketler||[];
+  if(!r||amount<=0||kurus(r.odenen)<amount||moves.reduce((s,m)=>s+kurus(m.tutar),0)!==kurus(r.odenen))throw Error('Tahsilat bakiyesi uyuşmuyor; kayıtlar kontrol edilmeli.');
+  const original=moves.filter(m=>m.id===id);
+  if(original.length!==1||kurus(original[0].tutar)!==amount||moves.some(m=>m.tersKayitId===id))throw Error('Kaynak tahsilat eşleşmiyor veya daha önce geri alınmış.');
+  const field=key.startsWith('diger-')?'digerOdemeler':'aylikOdemeler',rid=key.startsWith('diger-')?key.slice(6):key;
+  const values=structuredClone(veri[field]||(field==='digerOdemeler'?veri.aidatAyarlari?.digerOdemeler:{} )||{});
+  const paid=kurus(r.odenen)-amount;
+  values[rid]={...r.record,odenenTutar:paid/100,odendi:paid>=kurus(r.beklenen),hareketler:[...moves,{id:'ters_'+id,tersKayitId:id,tutar:-amount/100,tarih,tur,yontem:original[0].yontem||'diger',zaman:now.toISOString()}]};
+  return {field,values,tutar:amount/100};
+}
+export async function tahsilatiGeriAl({fb,db,id,email,tarih,neden,tur}){
+  return fb.runTransaction(db,async tx=>{
+    const nr=fb.doc(db,'odemeBildirimleri',id),ns=await tx.get(nr);
+    if(!ns.exists())throw Error('Bildirim bulunamadı.');
+    const b=ns.data();if(!b.ogrenciId||!b.donem)throw Error('Öğrenci veya dönem eksik.');
+    const ar=fb.doc(db,'odemeler','bildirim_'+id),audit=await tx.get(ar);
+    if(!audit.exists()||audit.data().bildirimId!==id||audit.data().ogrenciId!==b.ogrenciId||audit.data().donem!==b.donem||audit.data().kalem!==bildirimKalemi(b)||kurus(audit.data().tutar)!==kurus(b.bildirilenTutar??b.tutar)||audit.data().geriAlindi)throw Error('Doğrulanmış tahsilat kaydı bulunamadı veya işlem geri alınmış.');
+    const dr=fb.doc(db,'ogrenciler',b.ogrenciId,'donemler',b.donem),ds=await tx.get(dr);
+    if(!ds.exists())throw Error('Dönem kaydı bulunamadı.');
+    const u=tersKayitUygula(ds.data(),b,id,{tarih,neden,tur});
+    tx.update(dr,{[u.field]:u.values});
+    tx.update(ar,{geriAlindi:true,tersKayitId:'ters_'+id});
+    tx.set(fb.doc(db,'odemeler','ters_'+id),{tur,tutar:-u.tutar,bildirimId:id,ogrenciId:b.ogrenciId,donem:b.donem,kalem:bildirimKalemi(b),odemeTarihi:tarih,neden:neden.trim(),islemYapan:email,olusturuldu:fb.serverTimestamp()});
+    tx.update(nr,{durum:tur==='iade'?'iade_edildi':'geri_alindi',tersKayitTarihi:tarih});
   });
 }
