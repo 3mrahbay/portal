@@ -68,8 +68,27 @@ test('ödenmemiş ön ödeme aylık taksitlerden önce gösterilir', () => {
   assert.equal(result.tutar, 25000);
 });
 
-test('peşin plan tamamlanmış olarak gösterilir', () => {
+test('peşin ödeme planı tek başına tahsilat kanıtı sayılmaz', () => {
   const result = veliOdemeOzetiHesapla(plan({ pesinOdeme: true }), eylul);
-  assert.equal(result.durum, 'tamamlandi');
-  assert.equal(result.tutar, 0);
+  assert.equal(result.durum, 'bekliyor');
+  assert.equal(result.tutar, 38500);
+});
+
+test('Eylül kısmi borcu Ekim ödemesiyle gizlenmez', () => {
+  const data = plan();
+  data.aylikOdemeler['2026-09'] = { odenenTutar: 10000, odendi: false };
+  data.aylikOdemeler['2026-10'] = { odenenTutar: 38500, odendi: true };
+  const result = veliOdemeOzetiHesapla(data, new Date('2026-10-05T09:00:00Z'));
+  assert.equal(result.durum, 'kismi');
+  assert.equal(result.tutar, 28500);
+  assert.match(result.aciklama, /Eylül 2026/);
+  assert.equal(result.eylem, 'Ödeme Bildir');
+});
+
+test('eski kısmi bakiye daha yeni gecikmiş aydan önce gösterilir', () => {
+  const data = plan();
+  data.aylikOdemeler['2026-09'] = { odenenTutar: 10000, odendi: false };
+  const result = veliOdemeOzetiHesapla(data, new Date('2026-12-20T09:00:00Z'));
+  assert.equal(result.tutar, 28500);
+  assert.match(result.aciklama, /Eylül 2026/);
 });

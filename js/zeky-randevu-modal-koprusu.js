@@ -28,7 +28,7 @@ import {
   callableCutoverAcikMi, randevuServisiGetir, istekIzleyiciOlustur,
   guvenliId, gunAnahtari, zamanYazi
 } from './zeky-randevu-cutover-runtime.js';
-import { veliOdemeOzetiHesapla } from './zeky-veli-odeme-ozeti.js?v=1';
+import { kartOzeti } from './finans/core.js';
 import './zeky-galeri-filigran-koprusu.js?v=10';
 import './zeky-gozlem-modal-modern.js?v=1';
 
@@ -386,34 +386,17 @@ const ODEME_GORUNUMLERI = Object.freeze({
 });
 
 let odemeKartIstekNo = 0;
+let odemeKartDinleyici = null;
 let odemeKartGuncellemePlanli = false;
 
 function odemeKartiniYaz(kart, ozet) {
-  const gorunum = ODEME_GORUNUMLERI[ozet.durum] || ODEME_GORUNUMLERI.bekliyor;
-  const tutar = ozet.tutar === null
-    ? '—'
-    : `₺${Math.round(ozet.tutar).toLocaleString('tr-TR')}`;
-  kart.style.border = ozet.durum === 'gecikmis' ? '1px solid #f9a8d4' : '';
-  kart.innerHTML = `
-    <div class="ca-row" style="justify-content:space-between;">
-      <span class="ca-pill" style="background:var(--c-purple-deep); color:#fff;">
-        <i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i>
-        ${kacar(ozet.baslik)}
-      </span>
-      <span class="ca-pill" style="background:${gorunum.arkaPlan}; color:${gorunum.renk};">${kacar(ozet.rozet)}</span>
-    </div>
-    <div class="ca-row" style="justify-content:space-between; margin-top:12px; align-items:flex-end;">
-      <div>
-        <div class="ca-head" style="font-size:22px;">${tutar}</div>
-        <div class="ca-tile-sub">${kacar(ozet.aciklama)}</div>
-      </div>
-      <button type="button" class="ca-btn" data-zeky-odeme-detay style="background:var(--c-purple-deep);">${kacar(ozet.eylem)}</button>
-    </div>`;
-  kart.querySelector('[data-zeky-odeme-detay]')?.addEventListener('click', () => {
-    if (typeof window.veliSwitchTab === 'function') window.veliSwitchTab('odemeler');
-  });
-  kart.dataset.zekyOdemeDurum = 'hazir';
-  if (window.lucideYenile) window.lucideYenile();
+ const color=ozet.renk==='turuncu'?'#fff0df':ozet.renk==='yesil'?'#e4f5e9':'#fff';
+ kart.style.background=color;
+ kart.innerHTML=`<div class="ca-head" style="font-size:18px">${kacar(ozet.baslik)}</div>
+ ${(ozet.ekler||[]).map(r=>`<div class="ca-tile-sub">${kacar(r.ad)}: ${r.durum==='odendi'?'Ödendi':r.durum==='kismi'?'Kısmen ödendi':r.durum==='tanimsiz'?'Tanımlanmamış':'Ödenmedi'}</div>`).join('')}
+ <button type="button" class="ca-btn" data-zeky-odeme-detay style="margin-top:12px">${ozet.secilen?.kalan>0?'Ödeme Bildir':'Ödemeleri Gör'}</button>`;
+ kart.querySelector('[data-zeky-odeme-detay]')?.addEventListener('click',()=>window.veliSwitchTab?.('odemeler'));
+ kart.dataset.zekyOdemeDurum='hazir';
 }
 
 async function veliOdemeKartiniGuncelle() {
@@ -422,6 +405,7 @@ async function veliOdemeKartiniGuncelle() {
   const durum = portal?.state || {};
   const ogrenciId = String(durum.veliAktifOgrenci?.id || '');
   const donem = String(durum.aktifDonem || '');
+  if (!kart && odemeKartDinleyici) { odemeKartDinleyici(); odemeKartDinleyici=null; }
   if (!kart || !portal?.db || !portal?.fb?.doc || !portal?.fb?.getDoc || !guvenliId(ogrenciId) || !donem) return;
 
   const anahtar = `${ogrenciId}|${donem}`;
@@ -429,6 +413,7 @@ async function veliOdemeKartiniGuncelle() {
       (kart.dataset.zekyOdemeDurum === 'yukleniyor' || kart.dataset.zekyOdemeDurum === 'hazir')) return;
 
   const istekNo = ++odemeKartIstekNo;
+  if(odemeKartDinleyici) { odemeKartDinleyici(); odemeKartDinleyici=null; }
   kart.dataset.zekyOdemeAnahtar = anahtar;
   kart.dataset.zekyOdemeDurum = 'yukleniyor';
   odemeKartiniYaz(kart, {
@@ -439,11 +424,16 @@ async function veliOdemeKartiniGuncelle() {
 
   try {
     const referans = portal.fb.doc(portal.db, 'ogrenciler', ogrenciId, 'donemler', donem);
+    const yaz = (belge) => {
+      if(istekNo!==odemeKartIstekNo || !kart.isConnected || window.PortalAPI?.state?.veliAktifOgrenci?.id!==ogrenciId)return;
+      odemeKartiniYaz(kart,kartOzeti(belge.exists()?belge.data():null,new Date()));
+    };
+    if(portal.fb.onSnapshot){odemeKartDinleyici=portal.fb.onSnapshot(referans,yaz,()=>odemeKartiniYaz(kart,{baslik:'Ödeme bilgileri okunamadı. Ödemelerim ekranından yeniden deneyin.'}));return;}
     const belge = await portal.fb.getDoc(referans);
     const guncelKart = document.querySelector('.ca-page .ca-pay');
     const guncelOgrenciId = String(window.PortalAPI?.state?.veliAktifOgrenci?.id || '');
     if (istekNo !== odemeKartIstekNo || guncelKart !== kart || guncelOgrenciId !== ogrenciId) return;
-    odemeKartiniYaz(kart, veliOdemeOzetiHesapla(belge.exists() ? belge.data() : null, new Date()));
+    odemeKartiniYaz(kart, kartOzeti(belge.exists() ? belge.data() : null, new Date()));
   } catch (error) {
     console.warn('[Veli ödeme özeti]', error?.code || error?.message || error);
     if (istekNo !== odemeKartIstekNo || !kart.isConnected) return;
