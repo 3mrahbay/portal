@@ -286,19 +286,24 @@ async function veliOkulZiliGuvenliBildir() {
     guncellendi: fb.serverTimestamp()
   };
 
+  // Ana çıkış kaydı ile sıra kaydını birbirinden ayır.
+  // Böylece kuyruk tarafındaki bir izin/şema sorunu veli bildirimini engellemez.
   try {
-    const batch = fb.writeBatch(db);
-    batch.set(fb.doc(db, "pickupBildirimleri", id), tamVeri, { merge: true });
-    batch.set(fb.doc(db, "pickupKuyruk", tarih), {
+    await fb.setDoc(fb.doc(db, "pickupBildirimleri", id), tamVeri, { merge: true });
+  } catch (e) {
+    console.error("okul zili pickupBildirimleri:", e);
+    if (toast) toast("Gönderilemedi — ana çıkış kaydı: " + (e.message || e), "error");
+    return;
+  }
+
+  try {
+    await fb.setDoc(fb.doc(db, "pickupKuyruk", tarih), {
       tarih,
       ogrenciler: { [ogr.id]: { saat } },
       guncellendi: fb.serverTimestamp()
     }, { merge: true });
-    await batch.commit();
   } catch (e) {
-    console.error("okul zili ana kayıt:", e);
-    if (toast) toast("Gönderilemedi: " + (e.message || e), "error");
-    return;
+    console.warn("Okul Zili sıra kaydı güncellenemedi:", e.code || e.message);
   }
 
   try {
