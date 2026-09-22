@@ -89,9 +89,10 @@ test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', a
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('PWA dönem, gözlem, tek eğitim kartı ve aktif dönem velileri sürümü v141-sabah-giris', async () => {
+test('PWA dönem, gözlem, tek eğitim kartı ve aktif dönem velileri sürümü v142-staging-config', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v141-sabah-giris"/);
+  assert.match(s, /CACHE_VERSION = "v142-staging-config"/);
+  assert.match(s, /js\/firebase-config\.js/);
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
