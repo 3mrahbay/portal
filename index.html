@@ -876,6 +876,41 @@ html, body {
   height: 20px;
 }
 
+.staging-login {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #f2c94c;
+  border-radius: var(--radius-sm);
+  background: #fff9db;
+}
+
+.staging-login[hidden] { display: none; }
+.staging-login strong { display: block; color: #6b4f00; margin-bottom: 10px; }
+.staging-login label { display: block; color: var(--gray-700); font-size: 12px; margin-top: 10px; }
+.staging-login input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 5px;
+  padding: 11px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 9px;
+  background: white;
+  font: inherit;
+}
+.staging-login button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--green-deep);
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.staging-login .staging-login-error { color: #b42318; font-size: 12px; margin: 8px 0 0; }
+
 .divider {
   display: flex;
   align-items: center;
@@ -9358,6 +9393,18 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       Google ile Giriş Yap
     </button>
 
+    <form id="stagingEmailLogin" class="staging-login" onsubmit="signInWithEmail(event)" hidden>
+      <strong>STAGING · Demo personel girişi</strong>
+      <label>E-posta
+        <input name="email" type="email" autocomplete="username" required>
+      </label>
+      <label>Şifre
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit">Demo hesabıyla giriş yap</button>
+      <p class="staging-login-error" hidden></p>
+    </form>
+
     <p class="info-text">
       Sadece okul tarafından onaylanan veli e-postaları giriş yapabilir. Google hesabınızın e-posta adresi sistemimizde kayıtlı olmalıdır.
       <br><br>
@@ -13861,22 +13908,18 @@ window.portalAracYukle = function(ad) {
 };
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword,
+  signOut as fbSignOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction,
   documentId, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { firebaseConfigForHost, firebaseEnvironmentForHost } from "./js/firebase-config.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
-  authDomain: "bcka-site.firebaseapp.com",
-  projectId: "bcka-site",
-  storageBucket: "bcka-site.firebasestorage.app",
-  messagingSenderId: "736581475783",
-  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
-};
+const firebaseConfig = firebaseConfigForHost(window.location.hostname);
+const firebaseEnvironment = firebaseEnvironmentForHost(window.location.hostname);
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -13887,7 +13930,10 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v116";
+window.PORTAL_SURUM = "v117";
+window.PORTAL_ORTAM = firebaseEnvironment;
+const stagingEmailLogin = document.getElementById("stagingEmailLogin");
+if (stagingEmailLogin) stagingEmailLogin.hidden = firebaseEnvironment !== "staging";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16375,6 +16421,31 @@ window.signInWithGoogle = async function() {
   } catch (e) {
     console.error(e);
     showToast("Giriş yapılamadı: " + e.message, "error");
+  }
+};
+
+window.signInWithEmail = async function(event) {
+  event?.preventDefault();
+  if (firebaseEnvironment !== "staging") return;
+  const form = event?.currentTarget || document.getElementById("stagingEmailLogin");
+  const error = form?.querySelector(".staging-login-error");
+  const button = form?.querySelector('button[type="submit"]');
+  if (!form) return;
+  const data = new FormData(form);
+  if (error) { error.hidden = true; error.textContent = ""; }
+  if (button) button.disabled = true;
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      String(data.get("email") || "").trim().toLowerCase(),
+      String(data.get("password") || "")
+    );
+  } catch (err) {
+    if (error) {
+      error.hidden = false;
+      error.textContent = "Giriş yapılamadı. E-posta ve şifreyi kontrol edin.";
+    }
+    if (button) button.disabled = false;
   }
 };
 

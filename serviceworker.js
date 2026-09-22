@@ -10,10 +10,11 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v141-sabah-giris";
+const CACHE_VERSION = "v142-staging-config";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/firebase-config.js",
   "./js/sabah-giris-kaydi.js?v=1",
   "./js/finans/core.js",
   "./js/finans/receipts.js",

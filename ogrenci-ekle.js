@@ -10,16 +10,10 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { firebaseConfigForHost } from "./js/firebase-config.js";
 
-// Firebase config — portal ile aynı (bcka-site projesi)
-const firebaseConfig = {
-  apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
-  authDomain: "bcka-site.firebaseapp.com",
-  projectId: "bcka-site",
-  storageBucket: "bcka-site.firebasestorage.app",
-  messagingSenderId: "736581475783",
-  appId: "1:736581475783:web:5729a05ed4d05f1d1d0de2"
-};
+// Portalın açıldığı alan adına göre canlı veya staging Firebase projesini seçer.
+const firebaseConfig = firebaseConfigForHost(window.location.hostname);
 
 // Portal zaten Firebase'i başlattıysa onu kullan, yoksa yeni başlat
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);

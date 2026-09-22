@@ -1,0 +1,1289 @@
+// ═══════════════════════════════════════════════════════════════════════
+// BİR ÇİÇEK KOLEJİ — FIRESTORE GÜVENLİK KURALLARI
+// Güncelleme: 24duyuru Ağustos 2026
+//
+// BU SÜRÜMDE DEĞİŞENLER (20 Ağustos sürümüne göre)
+// ★ BEŞ GÜVENLİK AÇIĞI KAPATILDI:
+//   1. gunlukRaporlar — veli TÜM çocukların günlük raporunu okuyabiliyordu
+//      (uyku, yemek, tuvalet, ruh hâli). Artık yalnızca kendi çocuğu.
+//   2. cihazTokenlari — push token'ları herkese açıktı; okunabiliyor VE
+//      silinebiliyordu. Bir kişi tüm okulun bildirimlerini kapatabilirdi.
+//   3. devamsizlik — veliye açıktı, personele kapatıldı.
+//   4. yoklamalar  — aynı ger// Veli–çocuk bağını ÜÇ yoldan birden kurar.
+//   5. havuzMailTercihleri — kimlik doğrulaması yoktu, eklendi.
+//   6. personeller — veli tüm personelin telefon/e-postasını okuyabiliyordu.
+//      KURAL: veli hiçbir personelin iletişim bilgisini göremez.
+//   7. ogretmenOgrencisi() artık sınıfı hem ana belgeden hem dönem
+//      belgesinden okur — dönem geçişinde erişim sessizce kopmaz.
+//
+// UYGULAMA TARAFINDA YAPILANLAR (Rules'a yansımadı — aşağıya bakın)
+// • Mesajlaşma yetki matrisi kuruldu (mesajlar.html):
+//     – Veli ↔ veli mesajlaşması tamamen kapatıldı
+//     – Muhasebe ve eğitim koordinatörü TÜM velilere ulaşır
+//     – Sınıf/program/branş öğretmeni, PDR, danışma → yalnız kendi sınıfları
+//     – Aşçı, temizlik, halkla ilişkiler → veliyle mesajlaşmaz
+// • Öğrenci kayıt temizliği: mükerrer tespiti, kalıcı silme, önceki döneme
+//   taşıma, "karar bekleyen" havuzu (dönem kaydı olmayanlar)
+// • Oturum kimlik denetimi: Firebase oturumu ile localStorage ayrışırsa
+//   yeniden giriş istenir (yanlış hesapla "permission denied" karmaşası)
+//
+// ⚠ AÇIK KALAN KONULAR — bilerek dokunulmadı, ele alınması gerekiyor
+// 1. ogretmenOgrencisi() sınıfı ana belgeden okuyor. Sınıf artık dönem
+//    belgesinde tutuluyorsa öğretmen erişimi sessizce kopar.
+// 1. ogrenciler okuması isDanisma() içeriyor → danışma TC kimlik, adres,
+//    sağlık bilgilerini de görür. Belge seviyesinde kısmi okuma yazılamaz.
+//    KARAR (24 Ağu): bu haliyle KALSIN — danışma okulun içinden bir çalışan.
+//    SaaS'a geçişte yeniden değerlendirilmeli.
+// ✓ ÇÖZÜLMÜŞ: veliler/{email} zaten kısıtlı — veli yalnızca kendi
+//   belgesini okur (userEmail() == email). İki katman da kapalı.
+//
+// 20 AĞUSTOS SÜRÜMÜNDE DEĞİŞENLER
+// ★ MUHASEBE ÖDEME YETKİSİ — üç yerde isMuhasebe() eklendi.
+//   Sorun: Muhasebe rolü öğrenci ödeme ayarını kaydedemiyordu
+//   ("Missing or insufficient permissions"). Portal ödeme kaydederken
+//   üç belgeye birden yazıyor:
+//     • ogrenciler/{id}/donemler/{donem} → aidat ayarları, aylık ödemeler
+//     • ogrenciler/{id}                  → aylikAidat/sinif/programTuru özeti
+//     • veliler/{email}                  → veli iletişim bilgisi
+//   Üçünün de yazma izninde muhasebe yoktu; tahsilat muhasebenin asli işi
+//   olduğu için eklendi. Öğretmen ve veli yetkilerine DOKUNULMADI.
+//
+// 19 AĞUSTOS SÜRÜMÜNDE DEĞİŞENLER
+// 1. pickupYetkilileri + pickupBildirimleri artık herkese açık DEĞİL.
+// 2. isDanisma() rolü eklendi.
+// 3. Galeri: öğretmen/veli doğrudan 'onaylandi' durumuyla kayıt açamaz.
+// 4. danismaRandevulari ve izinGunlugu okuması personele kısıtlandı.
+//
+// ROL YETKİ TABLOSU (eğitim rolleri)
+// ───────────────────────────────────────────────────────────────────────
+//                          Sınıf Öğr.  Program Öğr.  Branş Öğr.  PDR
+// Öğrenci listesi              ✓            ✓            ✓        ✓
+// Kazanım işaretleme       ✓ (tümü)   ✓ (kendi)        ✗        ✗
+// Yoklama / devamsızlık        ✓            ✗            ✗        ✗
+// Günlük rapor                 ✓            ✗            ✗        ✗
+// Gelişim raporu yazma         ✓            ✓            ✗        ✗
+// Ev ziyareti                  ✓            ✗            ✗        ✗
+// Orman oturum kaydı           ✓            ✓            ✗        ✗
+// Galeri yükleme               ✓            ✓            ✓        ✗
+// Mesajlaşma               ✓ (sınıf)   ✓ (sınıf)    ✓ (sınıf)  ✓ (sınıf)
+// PDR gözlem/test              ✗            ✗            ✗        ✓
+//
+// MESAJLAŞMA ERİŞİM MATRİSİ (24 Ağustos)
+// ───────────────────────────────────────────────────────────────────────
+// Veli                → kendi çocuğunun öğretmenleri + okul yönetimi
+//                       BAŞKA VELİ HİÇBİR KOŞULDA GÖRÜNMEZ
+// Öğretmen (tüm tür)  → kendi sınıflarındaki veliler + tüm personel
+// PDR, danışma        → kendi sınıflarındaki veliler + tüm personel
+// Muhasebe            → TÜM veliler + tüm personel
+// Eğitim koordinatörü → TÜM veliler + tüm personel
+// Müdür, kurucu müdür → herkes
+// Aşçı, temizlik, HI  → yalnızca personel (veliyle mesajlaşmaz)
+//
+// MUHASEBE: finansal veriye yazar, eğitim verisine dokunamaz.
+// Yazabildiği: ödemeler, giderler, faturalar, bordrolar, fiş talepleri,
+// öğrenci dönem belgesi (aidat/ödeme), öğrenci özet alanları, veli iletişim.
+// Yazamadığı: kazanım, yoklama, gelişim raporu, PDR, müfredat, duyuru.
+// ═══════════════════════════════════════════════════════════════════════
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ====== YARDIMCI FONKSİYONLAR ======
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function userEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    // ═══ UID KİMLİK KATMANI — UID-001C-V3 ═══
+    // UID belgesi yoksa mevcut e-posta davranışı aynen devam eder.
+    // UID belgesi varsa yalnız primaryProfile yetki üretir.
+    // Hatalı/pasif UID kimliği legacy yetkiye düşmez.
+    function kimlikProfilEmail(profil) {
+      let kimlikVar = isSignedIn()
+        && exists(/databases/$(database)/documents/kullaniciKimlikleri/$(request.auth.uid));
+      let kimlik = kimlikVar
+        ? get(/databases/$(database)/documents/kullaniciKimlikleri/$(request.auth.uid)).data
+        : {};
+      let profilData = kimlik.get('profiles', {}).get(profil, {});
+      let flatRefEmail = kimlik.get('refEmail', '');
+      let legacyRefEmail = profilData.get('refEmail', '');
+      let profileMatches = kimlik.get('primaryProfile', '') == profil;
+      let flatUsable = profileMatches && flatRefEmail != '';
+      let legacyUsable = profileMatches
+        && profilData.get('aktif', true) != false
+        && legacyRefEmail != '';
+
+      // UID-001 legacy nested and appointment V3 flat identities coexist only
+      // when unambiguous. Conflicting dual records fail closed.
+      return kimlikVar
+        ? (
+            kimlik.get('aktif', true) != false
+            && (
+              (flatUsable && !legacyUsable)
+              || (!flatUsable && legacyUsable)
+              || (flatUsable && legacyUsable
+                  && flatRefEmail.lower() == legacyRefEmail.lower())
+            )
+              ? (flatUsable ? flatRefEmail.lower() : legacyRefEmail.lower())
+              : '__uid_profil_yok__'
+          )
+        : userEmail();
+    }
+
+    function personelEmail() {
+      return kimlikProfilEmail('personel');
+    }
+
+    function veliEmail() {
+      return kimlikProfilEmail('veli');
+    }
+    function isAdmin() {
+      return isSignedIn() && userEmail() == 'emrahby@gmail.com';
+    }
+    function personelRol() {
+      let email = personelEmail();
+      return email != '__uid_profil_yok__'
+        && exists(/databases/$(database)/documents/personeller/$(email))
+          ? get(/databases/$(database)/documents/personeller/$(email)).data.get('rol', '')
+          : '';
+    }
+    function isKurucuMudur() {
+      return isSignedIn() && personelRol() == 'kurucu_mudur';
+    }
+    function isMudur() {
+      return isSignedIn() && personelRol() == 'mudur';
+    }
+    function isYonetim() {
+      return isSignedIn() && personelRol() in ['kurucu_mudur', 'mudur'];
+    }
+    function isKoordinator() {
+      return isSignedIn() && personelRol() == 'egitim_koordinator';
+    }
+    function isMuhasebe() {
+      return isSignedIn() && personelRol() == 'muhasebe';
+    }
+    // DANIŞMA / KARŞILAMA PERSONELİ
+    // Kapıda oturur. Öğrenci adlarını görür, sabah giriş ve çıkış kaydı tutar,
+    // aday veli randevusu alır, kapıdan mesaj iletir.
+    // Kazanım, yoklama, rapor, finans — hiçbirine dokunamaz.
+    function isDanisma() {
+      return isSignedIn() && personelRol() == 'danisma';
+    }
+    // ═══ EĞİTİM ROLLERİ — ÜÇ KADEME ═══
+    function isSinifOgretmeni() {
+      return isSignedIn() && personelRol() in ['ogretmen', 'yardimci_ogretmen'];
+    }
+    function isProgramOgretmeni() {
+      return isSignedIn() && personelRol() in ['ingilizce_ogretmeni', 'degerler_ogretmeni', 'orman_ogretmeni'];
+    }
+    // Program öğretmeninin yazabileceği TEK disiplin alanı.
+    function ogretmenDisiplini() {
+      return personelRol() == 'ingilizce_ogretmeni' ? 'ingilizce'
+           : personelRol() == 'degerler_ogretmeni' ? 'degerler'
+           : personelRol() == 'orman_ogretmeni' ? 'orman'
+           : '__yok__';
+    }
+    function isBransOgretmeni() {
+      return isSignedIn() && personelRol() == 'brans_ogretmeni';
+    }
+    // Genel "eğitim veren personel" — sadece ORTAK okuma izinleri için.
+    function isOgretmen() {
+      return isSignedIn() && personelRol() in [
+        'ogretmen',
+        'yardimci_ogretmen',
+        'ingilizce_ogretmeni',
+        'degerler_ogretmeni',
+        'orman_ogretmeni',
+        'brans_ogretmeni'
+      ];
+    }
+    // PDR uzmanı. Özel nitelikli veriye (KVKK md.6) erişen tek eğitim rolü.
+    function isPdr() {
+      return isSignedIn() && personelRol() == 'pdr';
+    }
+    function isPersonel() {
+      let email = personelEmail();
+      return isSignedIn()
+        && email != '__uid_profil_yok__'
+        && exists(/databases/$(database)/documents/personeller/$(email));
+    }
+    function isVeli() {
+      let email = veliEmail();
+      return isSignedIn()
+        && email != '__uid_profil_yok__'
+        && exists(/databases/$(database)/documents/veliler/$(email));
+    }
+    function veliOgrencisi(ogrenciId) {
+      let email = veliEmail();
+      return isSignedIn()
+        && email != '__uid_profil_yok__'
+        && exists(/databases/$(database)/documents/veliler/$(email))
+        && ogrenciId in get(/databases/$(database)/documents/veliler/$(email)).data.ogrenciIds;
+    }
+    // Veli–çocuk bağı portal/ZEKY'nin gerçek veri şemalarıyla aynı kapsamda
+    // doğrulanır. UID profil eşlemesi sorunlu olsa bile doğrulanmış Firebase
+    // Auth e-postası yalnız açık veli–çocuk bağı varsa yetki üretir.
+    function veliBelgesindeOgrenci(email, ogrenciId) {
+      return email != ''
+        && email != '__uid_profil_yok__'
+        && exists(/databases/$(database)/documents/veliler/$(email))
+        && get(/databases/$(database)/documents/veliler/$(email))
+             .data.get('ogrenciIds', []).hasAny([ogrenciId]);
+    }
+
+    function ogrenciVeliEpostasi(ogrenciId, email) {
+      let o = get(/databases/$(database)/documents/ogrenciler/$(ogrenciId)).data;
+      let veliler = o.get('veliler', []);
+      return email != ''
+        && email != '__uid_profil_yok__'
+        && (
+          o.get('veli1Eposta', '').lower() == email
+          || o.get('veli2Eposta', '').lower() == email
+          || o.get('veli1Email', '').lower() == email
+          || o.get('veli2Email', '').lower() == email
+          || o.get('veliEposta', '').lower() == email
+          || o.get('veliEmail', '').lower() == email
+          || (
+            veliler.size() > 0
+            && veliler[0].get('email', veliler[0].get('eposta', '')).lower() == email
+          )
+          || (
+            veliler.size() > 1
+            && veliler[1].get('email', veliler[1].get('eposta', '')).lower() == email
+          )
+        );
+    }
+
+    function veliCocugu(ogrenciId) {
+      let profilEmail = veliEmail();
+      let authEmail = userEmail();
+      return isSignedIn()
+        && ogrenciId != ''
+        && exists(/databases/$(database)/documents/ogrenciler/$(ogrenciId))
+        && (
+          veliBelgesindeOgrenci(profilEmail, ogrenciId)
+          || veliBelgesindeOgrenci(authEmail, ogrenciId)
+          || ogrenciVeliEpostasi(ogrenciId, profilEmail)
+          || ogrenciVeliEpostasi(ogrenciId, authEmail)
+        );
+    }
+    // Pickup kayıtlarında öğrenci alanı bazen ogrenciId bazen cocukId.
+    function pickupOgrenci(d) {
+      return d.get('ogrenciId', d.get('cocukId', ''));
+    }
+    // Sınıf listesi hem 'sinifAtamalari' hem 'siniflar' alanında olabilir.
+    function ogretmenSiniflari() {
+      let email = personelEmail();
+      let personel = get(/databases/$(database)/documents/personeller/$(email)).data;
+      return personel.get('sinifAtamalari', personel.get('siniflar', []));
+    }
+    // ★ 24 Ağu: sınıf bilgisi ANA BELGEDEN okunuyordu. Portal sınıfı dönem
+    //   belgesine taşırsa ya da ana belgedeki 'sinif' alanı boşalırsa
+    //   öğretmenin tüm erişimi SESSİZCE kopardı — hata vermez, "izin yok" der.
+    //   Artık iki yere de bakılıyor: hangisinde varsa oradan.
+    function ogrenciSinifi(ogrenciId) {
+      return get(/databases/$(database)/documents/ogrenciler/$(ogrenciId)).data.get('sinif', '');
+    }
+    function ogrenciDonemSinifi(ogrenciId, donemId) {
+      return exists(/databases/$(database)/documents/ogrenciler/$(ogrenciId)/donemler/$(donemId))
+        ? get(/databases/$(database)/documents/ogrenciler/$(ogrenciId)/donemler/$(donemId)).data.get('sinif', '')
+        : '';
+    }
+    // Aktif dönem kodu ayarlar/donem belgesinde tutulur.
+    function aktifDonem() {
+      return exists(/databases/$(database)/documents/ayarlar/donem)
+        ? get(/databases/$(database)/documents/ayarlar/donem).data.get('aktif', '')
+        : '';
+    }
+    function ogrenciSinifiEslesir(ogrenciId) {
+      return ogrenciSinifi(ogrenciId) in ogretmenSiniflari()
+        || (aktifDonem() != '' &&
+            ogrenciDonemSinifi(ogrenciId, aktifDonem()) in ogretmenSiniflari());
+    }
+    function ogretmenOgrencisi(ogrenciId) {
+      return isOgretmen() && ogrenciSinifiEslesir(ogrenciId);
+    }
+    function egitimOgretmeniOgrencisi(ogrenciId) {
+      return (isSinifOgretmeni() || isProgramOgretmeni()) && ogrenciSinifiEslesir(ogrenciId);
+    }
+    // ====== PERSONELLER ======
+    match /personeller/{email} {
+      // ★ 24 Ağu: veli tüm personelin telefon ve e-postasını okuyabiliyordu.
+      //   KURAL: veli hiçbir personelin iletişim bilgisini göremez; tek
+      //   iletişim yolu uygulama içi mesajlaşmadır. Veli tarafında bu
+      //   koleksiyonu okuyan ekran olmadığı doğrulandı (grep, 24 Ağu).
+      //   Mesajlaşma sinifOgretmenBilgileriGetir() kullanır, buraya bakmaz.
+      //   SINIR: sinifAtamalari veliye açık (aşağıda) ve orada öğretmen
+      //   e-postası var — mesaj göndermek için alıcı kimliği ŞART, teknik
+      //   olarak gizlenemez. Arayüzde gösterilmiyor ("Sınıf Öğretmeni"
+      //   yazıyor). Telefon, adres, TC hiçbir yerde görünmez.
+      allow read: if isPersonel();
+      allow create, update, delete: if isAdmin() || isKurucuMudur();
+      // Hassas özlük bilgileri: TC, IBAN, maaş, SGK
+      match /ozluk/{docId} {
+        allow read, write: if isAdmin() || isYonetim() || isMuhasebe();
+      }
+    }
+    // ====== VELİLER ======
+    match /veliler/{email} {
+      allow read: if isPersonel() || (isVeli() && veliEmail() == email);
+      allow delete: if isAdmin() || isYonetim() || isKoordinator();
+      // ★ isMuhasebe() eklendi: ödeme ekranından veli iletişim bilgisi de
+      //   güncelleniyor (fatura ve ödeme bildirimi için gerekli).
+      allow create, update: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe();
+      // Veli SADECE kendi profil fotoğrafını güncelleyebilir
+      allow update: if isVeli() && veliEmail() == email &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['fotoUrl', 'fotoYol', 'fotoGuncellendi']);
+    }
+    // ====== ÖĞRENCİLER ======
+    match /ogrenciler/{ogrenciId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe()
+        || isOgretmen() || isPdr() || isDanisma()
+        || veliOgrencisi(ogrenciId);
+      allow create, delete: if isAdmin() || isYonetim() || isKoordinator();
+      // ★ isMuhasebe() eklendi: ödeme ayarı kaydedilirken portal ana belgedeki
+      //   aylikAidat / sinif / programTuru özet alanlarını da günceller.
+      allow update: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe();
+      // Veli SADECE kendi çocuğunun fotoğraf alanlarını güncelleyebilir.
+      allow update: if veliOgrencisi(ogrenciId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['fotoUrl', 'fotoYol', 'fotoGuncellendi']);
+      match /donemler/{donemId} {
+        allow read: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe()
+          || ogretmenOgrencisi(ogrenciId) || veliOgrencisi(ogrenciId);
+        // ★ isMuhasebe() eklendi: aidat ayarları ve aylık ödeme kayıtları bu
+        //   belgede tutuluyor — tahsilat muhasebenin asli işi.
+        allow write: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe();
+      }
+    }
+    // ====== YENİ KAYIT ======
+    match /yenikayit/{kayitId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator();
+      allow create: if true;
+      allow update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== KAYIT YENİLEME ======
+    match /kayitYenileme/{kayitId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator();
+      allow create: if true;
+      allow update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== KAYITLI VELİLER ======
+    match /kayitli_veliler/{veliId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator();
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== İZİNLİ VELİLER ======
+    match /izinliVeliler/{veliId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator();
+      allow create: if isAdmin() || isYonetim() || isKoordinator();
+      allow update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== USERS ======
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isAdmin() || isYonetim();
+    }
+
+    // ====== UID KİMLİK KATMANI — UID-001A ======
+    // Kullanıcı kendi kimlik eşlemesini okuyabilir ancak değiştiremez.
+    // Profil referansları yetki yükseltme amacıyla istemci tarafından yazılamaz.
+    match /kullaniciKimlikleri/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ====== ÖDEMELER ======
+    match /odemeler/{odemeId} {
+      allow read: if isAdmin() || isYonetim() || isMuhasebe();
+      allow write: if isAdmin() || isYonetim() || isMuhasebe();
+    }
+    // ====== GİDERLER ======
+    match /giderler/{giderId} {
+      allow read: if isAdmin() || isYonetim() || isMuhasebe();
+      allow write: if isAdmin() || isYonetim() || isMuhasebe();
+    }
+    // ====== ANALİZLER ======
+    match /analizler/{analizId} {
+      allow read, write: if isAdmin() || isYonetim() || isMuhasebe();
+      allow read, create, update: if isSignedIn() && analizId == userEmail();
+    }
+    // ====== DEVAMSIZLIK ======
+    match /devamsizlik/{kayitId} {
+      // ★ 24 Ağu: veli tüm sınıfın devam durumunu görebiliyordu.
+      //   devamsizlik/{tarih} TÜM sınıfı tek belgede tutar (kayitlar: {...});
+      //   Firestore belge seviyesinde çalıştığı için "veli sadece kendi
+      //   çocuğunun satırını görsün" YAZILAMAZ. Veli tarafında bu koleksiyonu
+      //   okuyan ekran olmadığı doğrulandı; okuma personele kapatıldı.
+      //   Veli kendi çocuğunun girişini sabahGirisleri'nden görür.
+      allow read: if isPersonel();
+      allow write: if isAdmin() || isYonetim() || isSinifOgretmeni();
+    }
+   // ====== DUYURULAR ======
+    // Yönetim ve koordinatör her duyuruyu açar/düzenler/siler.
+    // ★ 01.09.2026: Sınıf öğretmeni YALNIZCA kendi sınıfına duyuru
+    //   açabilir ve yalnızca KENDİ açtığı duyuruyu düzenleyip silebilir.
+    //   Okul geneli (hedefTur='tumOkul') ve öğrenci bazlı duyuru ona kapalı.
+    //   Sınıf eşleşmesi ogrenciSinifiEslesir mantığıyla değil, doğrudan
+    //   ogretmenSiniflari() üzerinden kontrol edilir (duyuru hedefi sınıf adıdır).
+    match /duyurular/{duyuruId} {
+      // PDR okul geneline ekler; yalnız kendi içeriğini değiştirir.
+      allow create: if isPdr() && request.resource.data.get('olusturan','') == userEmail();
+      allow update: if isPdr() && resource.data.get('olusturan','') == userEmail()
+        && request.resource.data.get('olusturan','') == resource.data.get('olusturan','');
+      allow delete: if isPdr() && resource.data.get('olusturan','') == userEmail();
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isYonetim() || isKoordinator();
+ 
+      // Öğretmen: kendi sınıfına duyuru oluşturma
+      allow create: if isSinifOgretmeni()
+        && request.resource.data.get('hedefTur', '') == 'sinif'
+        && request.resource.data.get('hedefDeger', '') in ogretmenSiniflari()
+        && request.resource.data.get('olusturan', '') == userEmail();
+ 
+      // Öğretmen: yalnızca kendi duyurusu; hedefi dışarı taşıyamaz
+      allow update: if isSinifOgretmeni()
+        && resource.data.get('olusturan', '') == userEmail()
+        && request.resource.data.get('hedefTur', '') == 'sinif'
+        && request.resource.data.get('hedefDeger', '') in ogretmenSiniflari();
+ 
+      allow delete: if isSinifOgretmeni()
+        && resource.data.get('olusturan', '') == userEmail();
+ 
+      // Veli: yalnızca okundu/kapatıldı işaretleri
+      allow update: if isVeli() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['okuyanVeliler', 'popupKapatanVeliler']);
+    }
+    // ====== TAKVİM ======
+    match /takvim/{etkinlikId} {
+      // PDR okul geneline ekler; yalnız kendi içeriğini değiştirir.
+      allow create: if isPdr() && request.resource.data.get('olusturan','') == userEmail();
+      allow update: if isPdr() && resource.data.get('olusturan','') == userEmail()
+        && request.resource.data.get('olusturan','') == resource.data.get('olusturan','');
+      allow delete: if isPdr() && resource.data.get('olusturan','') == userEmail();
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== ÖDEME BİLDİRİMLERİ (veli → yönetim) ======
+    match /odemeBildirimleri/{bildirimId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe()
+        || (isVeli() && resource.data.veliEmail == userEmail());
+      allow create: if isSignedIn()
+        && request.resource.data.veliEmail == userEmail()
+        && veliOgrencisi(request.resource.data.ogrenciId)
+        && request.resource.data.durum in ['bekliyor', 'beklemede']
+        && request.resource.data.donem is string
+        && request.resource.data.donem.matches('^[0-9]{4}-[0-9]{4}$')
+        && request.resource.data.get('bildirilenTutar', request.resource.data.get('tutar', 0)) is number
+        && request.resource.data.get('bildirilenTutar', request.resource.data.get('tutar', 0)) > 0
+        && !request.resource.data.keys().hasAny(['onaylayan','onayZamani','tahsilatIslendi','iadeToplami','tersKayitTarihi']);
+      allow update: if isAdmin() || isYonetim() || isMuhasebe();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // Private receipt metadata and chunks: immutable after atomic upload.
+    match /odemeDekontlari/{bildirimId} {
+      function staff() { return isAdmin() || isYonetim() || isMuhasebe(); }
+      function owner(meta) { return isVeli() && meta.veliEmail == userEmail() && veliOgrencisi(meta.ogrenciId); }
+      function notification() { return getAfter(/databases/$(database)/documents/odemeBildirimleri/$(bildirimId)).data; }
+      allow read: if staff() || owner(resource.data);
+      allow create: if owner(request.resource.data)
+        && request.resource.data.keys().hasOnly(['ad','boyut','mime','sha256','parcaSayisi','veliEmail','ogrenciId','bildirimId'])
+        && request.resource.data.bildirimId == bildirimId
+        && request.resource.data.ad is string && request.resource.data.ad.size() <= 120
+        && request.resource.data.boyut is int && request.resource.data.boyut > 0 && request.resource.data.boyut <= 2097152
+        && request.resource.data.parcaSayisi is int && request.resource.data.parcaSayisi > 0 && request.resource.data.parcaSayisi <= 16
+        && request.resource.data.mime in ['application/pdf','image/png','image/jpeg']
+        && request.resource.data.sha256 is string && request.resource.data.sha256.matches('^[a-f0-9]{64}$')
+        && notification().veliEmail == userEmail() && notification().ogrenciId == request.resource.data.ogrenciId
+        && notification().durum in ['bekliyor','beklemede'] && notification().dekontVar == true;
+      allow update, delete: if false;
+      match /parcalar/{parcaId} {
+        function metadata() { return getAfter(/databases/$(database)/documents/odemeDekontlari/$(bildirimId)).data; }
+        allow read: if staff() || owner(get(/databases/$(database)/documents/odemeDekontlari/$(bildirimId)).data);
+        allow create: if owner(metadata())
+          && !exists(/databases/$(database)/documents/odemeDekontlari/$(bildirimId))
+          && request.resource.data.keys().hasOnly(['sira','icerik'])
+          && request.resource.data.sira is int && request.resource.data.sira >= 0 && request.resource.data.sira < metadata().parcaSayisi
+          && parcaId == string(request.resource.data.sira)
+          && request.resource.data.icerik is string && request.resource.data.icerik.size() > 0 && request.resource.data.icerik.size() <= 180000;
+        allow update, delete: if false;
+      }
+    }
+    match /veliIzinleri/{izinId} {
+      allow read: if isPersonel() || isAdmin() || isYonetim()
+        || (isVeli() && resource.data.veliEmail == userEmail());
+      allow create: if isSignedIn() && request.resource.data.veliEmail == userEmail();
+      allow update, delete: if isAdmin() || isYonetim() || isSinifOgretmeni();
+    }
+    match /ihtiyacTalepleri/{talepId} {
+      allow read: if isSignedIn() && (
+        resource.data.talepEden == userEmail() || isAdmin() || isYonetim() || isKoordinator()
+      );
+      allow create: if isSignedIn() && request.resource.data.talepEden == userEmail();
+      allow update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== TERCİHLER (yönetim → veli anketi/duyurusu) ======
+    match /tercihler/{tercihId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    match /tercihler/{tercihId}/yanitlar/{veliEmail} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator()
+        || (isSignedIn() && veliEmail == userEmail());
+      allow create, update: if isSignedIn() && veliEmail == userEmail();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    match /bransEgitmenleri/{egitmenId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    match /haftalikPlanlar/{planId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isPersonel();
+    }
+    match /puantajDuzeltmeleri/{duzId} {
+      allow read: if isSignedIn() && (
+        resource.data.personelEmail == userEmail() || isAdmin() || isYonetim() || isKoordinator()
+      );
+      allow create: if isAdmin() || isYonetim() || isKoordinator();
+      allow update: if isSignedIn() && (
+        resource.data.personelEmail == userEmail() || isAdmin() || isYonetim() || isKoordinator()
+      );
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== ETKİNLİKLER ======
+    match /etkinlikler/{etkinlikId} {
+      // PDR okul geneline ekler; yalnız kendi içeriğini değiştirir.
+      allow create: if isPdr() && request.resource.data.get('olusturan','') == userEmail();
+      allow update: if isPdr() && resource.data.get('olusturan','') == userEmail()
+        && request.resource.data.get('olusturan','') == resource.data.get('olusturan','');
+      allow delete: if isPdr() && resource.data.get('olusturan','') == userEmail();
+      allow read: if true;
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    match /etkinlik_aboneler/{email} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() || isKurucuMudur();
+      allow update, delete: if isAdmin();
+    }
+    // ====== GALERİ ======
+    match /galeri/{medyaId} {
+      allow read: if isSignedIn() && (
+        resource.data.durum == 'onaylandi'
+        || isAdmin() || isYonetim() || isKoordinator() || isOgretmen()
+      );
+      allow create: if isSignedIn() && (
+        isAdmin() || isYonetim() || isKoordinator()
+        || ((isOgretmen() || isVeli())
+            && request.resource.data.get('durum', '') != 'onaylandi')
+      );
+      allow update: if isAdmin() || isYonetim() || isKoordinator();
+      allow delete: if isAdmin() || isYonetim() || isKoordinator()
+        || (isOgretmen() && (
+              resource.data.get('yukleyenEmail', '') == userEmail()
+              || resource.data.get('yukleyen', '') == userEmail()
+              || resource.data.get('ekleyenEmail', '') == userEmail()
+           ));
+    }
+    // ====== MESAJLAR ======
+    match /mesajlar/{threadId} {
+      allow read: if isSignedIn() && (
+        userEmail() in resource.data.katilimcilar
+        || isAdmin() || isYonetim()
+      );
+      allow create: if isSignedIn() &&
+        userEmail() in request.resource.data.katilimcilar;
+      allow update: if isSignedIn() && (
+        userEmail() in resource.data.katilimcilar
+        || isAdmin() || isYonetim()
+      );
+      allow delete: if isAdmin() || isYonetim();
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+          userEmail() in get(/databases/$(database)/documents/mesajlar/$(threadId)).data.katilimcilar
+          || isAdmin() || isYonetim()
+        );
+        allow create: if isSignedIn() && (
+          userEmail() in get(/databases/$(database)/documents/mesajlar/$(threadId)).data.katilimcilar
+          || isAdmin() || isYonetim()
+        );
+        allow update: if isSignedIn() && (
+          userEmail() in get(/databases/$(database)/documents/mesajlar/$(threadId)).data.katilimcilar
+          || isAdmin() || isYonetim()
+        );
+        allow delete: if isAdmin() || isYonetim();
+      }
+    }
+    // ====== MAİL LOGLARI ======
+    match /mailLoglari/{logId} {
+      allow read: if isAdmin() || isYonetim();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+    // ====== ÖĞRENCİ GELİŞİM ======
+    match /ogrenciGelisim/{ogrenciId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator() || isPdr()
+        || ogretmenOgrencisi(ogrenciId) || veliOgrencisi(ogrenciId);
+      allow create: if isAdmin() || isYonetim() || isKoordinator()
+        || (isSinifOgretmeni() && ogretmenOgrencisi(ogrenciId));
+      // Sınıf öğretmeni: tüm programlarda serbest
+      allow update: if isAdmin() || isYonetim() || isKoordinator()
+        || (isSinifOgretmeni() && ogretmenOgrencisi(ogrenciId));
+      // Program öğretmeni: SADECE kendi disiplin alanını yazabilir.
+      allow update: if isProgramOgretmeni() && ogretmenOgrencisi(ogrenciId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly([ogretmenDisiplini(), 'rozetler']);
+      // Branş öğretmeni: kazanım yazamaz (kural yok = yasak)
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== MÜFREDATLAR ======
+    match /mufredatlar/{mufredatId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    match /montessoriGelisim/{ogrenciId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator()
+        || ogretmenOgrencisi(ogrenciId) || veliOgrencisi(ogrenciId);
+      allow write: if isAdmin() || isYonetim() || isKoordinator()
+        || ogretmenOgrencisi(ogrenciId);
+    }
+    // ====== POZİSYONLAR / İŞ BAŞVURULARI ======
+    match /pozisyonlar/{posId} {
+      allow read: if true;
+      allow write: if isAdmin() || isYonetim();
+    }
+    match /isBasvurulari/{basvuruId} {
+      allow read: if isAdmin() || isYonetim() || (isSignedIn() && basvuruId == userEmail());
+      allow create: if true;
+      allow update: if isAdmin() || isYonetim() || (isSignedIn() && basvuruId == userEmail());
+      allow delete: if isAdmin() || isYonetim();
+    }
+    match /testCevaplari/{cevapId} {
+      allow read: if isAdmin() || isYonetim() || (isSignedIn() && cevapId == userEmail());
+      allow create: if true;
+      allow update: if isAdmin() || isYonetim() || (isSignedIn() && cevapId == userEmail());
+      allow delete: if isAdmin() || isYonetim();
+    }
+    match /gorusme_yanitlari/{yanitId} {
+      allow read: if isAdmin() || isYonetim();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || isYonetim();
+    }
+    match /referanslar/{refId} {
+      allow read: if isAdmin() || isYonetim();
+      allow create: if true;
+      allow update, delete: if isAdmin() || isYonetim();
+    }
+    match /mulakatNotlari/{notId} {
+      allow read, write: if isAdmin() || isYonetim();
+    }
+    // ====== SINIFLAR (ZEKY) ======
+    match /siniflar/{sinifId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== SINIF ATAMALARI (ZEKY + Portal ortak) ======
+    match /sinifAtamalari/{atamaId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== AYARLAR / CONFIG ======
+    match /ayarlar/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim();
+    }
+    match /ayarlar/faturaSayac {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim() || isMuhasebe();
+    }
+    match /config/ozellikBayraklari {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim();
+    }
+    match /config/okulQR {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim();
+    }
+    match /config/{docId} {
+      allow read, write: if isAdmin() || isKurucuMudur();
+    }
+    // ====== HAVUZ MAIL TERCİHLERİ ======
+    match /havuzMailTercihleri/{prefId} {
+      allow read: if isAdmin() || isYonetim();
+      // ★ 24 Ağu: kimlik doğrulaması yoktu, bir betikle sınırsız kayıt
+      //   açılabiliyordu. Halka açık bir formdan geliyorsa ve form
+      //   çalışmayı bırakırsa haber verin — alan doğrulamasıyla açarız.
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || isYonetim();
+    }
+    // ====== ANKET KAMPANYALARI ======
+    match /anket_kampanyalari/{kampanyaId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== SİTE İÇERİK ======
+    match /siteIcerik/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== SÖZLEŞME ŞABLONU ======
+    match /sozlesme_sablonu/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim();
+    }
+    // ====== GİRİŞLER (audit log) ======
+    match /girisler/{girisId} {
+      allow read: if isAdmin() || isYonetim();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+    // ZEKY denetim
+    match /denetimKayitlari/{kayitId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || isYonetim();
+      allow update, delete: if false;
+    }
+    // Foto izni
+    match /fotoIzinleri/{cocukId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim() || veliOgrencisi(cocukId);
+    }
+    // ====== PUANTAJ (ZEKY personel devam kaydi) ======
+    match /puantaj/{kayitId} {
+      allow read: if isSignedIn() && (
+        resource.data.personelEmail == userEmail() || isPersonel()
+      );
+      allow create: if isSignedIn() &&
+        request.resource.data.personelEmail == userEmail();
+      allow update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== PERSONEL ANLIK DURUM ======
+    match /personelDurum/{email} {
+      allow read: if isPersonel();
+      allow write: if isSignedIn() && (
+        email == userEmail() || isAdmin() || isYonetim()
+      );
+    }
+    // ====== IZIN TALEPLERI (ZEKY personel) ======
+    match /izinTalepleri/{talepId} {
+      allow read: if isSignedIn() && (
+        resource.data.personelEmail == userEmail() || isPersonel()
+      );
+      allow create: if isSignedIn() &&
+        request.resource.data.personelEmail == userEmail();
+      allow update: if isAdmin() || isYonetim() || isKoordinator();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== BORDROLAR (ZEKY personel) ======
+    match /bordrolar/{bordroId} {
+      allow read: if isSignedIn() && (
+        resource.data.personelEmail == userEmail() || isAdmin() || isYonetim() || isMuhasebe()
+      );
+      allow create, update: if isAdmin() || isYonetim() || isMuhasebe();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== BILDIRIMLER (ZEKY uygulama ici) ======
+    match /bildirimler/{bildirimId} {
+      allow read: if isSignedIn() && resource.data.aliciEmail == userEmail();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.aliciEmail == userEmail();
+      allow delete: if isSignedIn() && resource.data.aliciEmail == userEmail();
+    }
+    // ====== CIHAZ TOKENLARI (push icin) ======
+    match /cihazTokenlari/{token} {
+      // ★ 24 Ağu: okuma ve silme herkese açıktı — bir kişi tüm okulun
+      //   bildirimlerini kapatabiliyordu. Yazma izni zaten doğruydu.
+      //   Bildirim gönderen Apps Script admin SDK kullanır, etkilenmez.
+      allow read: if isSignedIn() && resource.data.aliciEmail == userEmail();
+      allow create, update: if isSignedIn() &&
+        request.resource.data.aliciEmail == userEmail();
+      allow delete: if (isSignedIn() && resource.data.aliciEmail == userEmail())
+        || isAdmin() || isYonetim();
+    }
+    // ====== AYLIK MÜFREDAT İÇERİKLERİ (BFLM) ======
+    match /ormanMufredat/{ayKod} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    match /montessoriMufredat/{ayKod} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    match /ingilizceMufredat/{ayKod} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    match /degerlerMufredat/{ayKod} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+      // ====== DEĞERLER GÖZLEMİ (BVLM® aylık kayıt) ======
+    // degerlerGozlem/{YYYY-MM} = { ay, yil, kayitlar: { ogrenciId: {durum, isaretleyen, tarih} } }
+    // Ay bazlı TEK belge, tüm okulu içerir → veliye açılamaz (başka çocuklar görünür).
+    // Sınıf öğretmeni ve değerler program öğretmeni yazar; branş yazamaz.
+    match /degerlerGozlem/{ayKod} {
+      allow read: if isPersonel();
+      allow create, update: if isAdmin() || isYonetim() || isKoordinator()
+        || isSinifOgretmeni() || isProgramOgretmeni();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== ORMAN OTURUM KAYITLARI ======
+    match /ormanOturumlari/{oturumId} {
+      allow read: if isPersonel();
+      allow create, update: if isAdmin() || isYonetim() || isKoordinator()
+        || isSinifOgretmeni() || isProgramOgretmeni();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // Günlük rapor sınıfın gününü anlatır → sınıf öğretmeni yazar.
+    match /gunlukRaporlar/{raporId} {
+      // ★ 24 Ağu: veli TÜM çocukların günlük raporunu okuyabiliyordu.
+      //   Uyku, yemek, tuvalet, ruh hâli — en mahrem kayıtlardan biri.
+      //   Artık veli yalnızca kendi çocuğunun raporunu okur.
+      allow read: if isPersonel()
+        || (isVeli() && veliOgrencisi(resource.data.get('ogrenciId', '')));
+      allow create, update: if isAdmin() || isYonetim() || isKoordinator() || isSinifOgretmeni();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    match /yoklamalar/{yoklamaId} {
+      // ★ 24 Ağu: devamsizlik ile aynı gerekçe — sınıf bazlı toplu kayıt,
+      //   veliye kısmi okuma yazılamaz. Okuma personele kapatıldı.
+      allow read: if isPersonel();
+      allow create, update: if isAdmin() || isYonetim() || isKoordinator() || isSinifOgretmeni();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ═══════════════════════════════════════════════════════════════════
+    // ÇIKIŞ / PICKUP ZİNCİRİ
+    // Çocuk güvenliği: yetkili kişi listesine ve çıkış kaydına yalnızca
+    // ilgili veli ve personel dokunabilir.
+    // ═══════════════════════════════════════════════════════════════════
+    match /pickupYetkilileri/{ogrenciId} {
+      allow read: if isPersonel() || veliCocugu(ogrenciId);
+      allow create, update: if isAdmin() || isYonetim() || isKoordinator()
+        || veliCocugu(ogrenciId);
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // Çıkış bildirimleri (yolda → hazir → teslim)
+    match /pickupBildirimleri/{bildirimId} {
+      // V3: kayıt henüz yokken sadece kendi günlük belge yolunu kontrol edebilir.
+      allow get: if !exists(/databases/$(database)/documents/pickupBildirimleri/$(bildirimId))
+        && opKayitVelisi(bildirimId);
+      allow read: if isPersonel() || veliCocugu(pickupOgrenci(resource.data));
+      allow create: if isPersonel() || veliCocugu(pickupOgrenci(request.resource.data));
+      // Eski bir pickup kaydı öğrenci alanı olmadan kaldıysa ilgili veli
+      // kendi çocuğunun kaydını güvenli biçimde onarabilir. Başka çocuğa ait
+      // mevcut bir kayıt devralınamaz.
+      allow update: if isPersonel()
+        || (
+          veliCocugu(pickupOgrenci(request.resource.data))
+          && (
+            pickupOgrenci(resource.data) == ''
+            || pickupOgrenci(resource.data) == pickupOgrenci(request.resource.data)
+          )
+        );
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // İSİMSİZ KUYRUK: yalnızca ogrenciId + saat tutar.
+    match /pickupKuyruk/{tarih} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+    // ====== SABAH GİRİŞLERİ ======
+    match /sabahGirisleri/{kayitId} {
+      // V3: kayıt henüz yokken sadece kendi günlük belge yolunu kontrol edebilir.
+      allow get: if !exists(/databases/$(database)/documents/sabahGirisleri/$(kayitId))
+        && opKayitVelisi(kayitId);
+      allow read: if isPersonel()
+        || (isVeli() && veliOgrencisi(resource.data.ogrenciId));
+      allow create: if isAdmin() || isYonetim() || isSinifOgretmeni() || isDanisma()
+        || (isSignedIn() && veliOgrencisi(request.resource.data.ogrenciId));
+      allow update: if isAdmin() || isYonetim() || isSinifOgretmeni() || isDanisma()
+        || (veliOgrencisi(resource.data.ogrenciId)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['veliBildirdi','veliBildirimSaati',
+                           'veliBildirenEmail','guncellendi']));
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== KULLANICI TERCIHLERI (ZEKY + Portal ortak) ======
+    match /kullaniciTercihleri/{email} {
+      allow read: if isSignedIn() && email == userEmail();
+      allow create, update, delete: if isSignedIn() && email == userEmail();
+      allow read: if isAdmin() || isYonetim();
+    }
+    // ====== FATURALAR (ödeme belgeleri) ======
+    match /faturalar/{faturaId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe()
+        || (isVeli() && resource.data.veliEmail == userEmail());
+      allow create, update: if isAdmin() || isYonetim() || isMuhasebe();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== MEMNUNİYET (haftalık veli anketi) ======
+    match /memnuniyet/{kayitId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator()
+        || (isSignedIn() && resource.data.veliEmail == userEmail());
+      allow create, update: if isSignedIn() &&
+        request.resource.data.veliEmail == userEmail();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== BELGE ONAYLARI (sözleşme/KVKK) ======
+    match /belgeOnaylari/{onayId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator()
+        || (isSignedIn() && resource.data.veliEmail == userEmail());
+      allow create, update: if isSignedIn() &&
+        request.resource.data.veliEmail == userEmail();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== ESKİ RANDEVU SLOTLARI — ARŞİV, İSTEMCİYE KAPALI ======
+    // Eski akış tüm giriş yapanlara listeleme ve sahipsiz güncelleme izni
+    // veriyordu. V3 geçişinde kayıtlar korunur; Admin SDK dışında erişilemez.
+    match /randevuSlotlari/{document=**} {
+      allow read, write: if false;
+    }
+    // ====== KREDİ KARTI ÖDEME TALEPLERİ ======
+    match /krediKartiTalepleri/{talepId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe()
+        || (isSignedIn() && resource.data.veliEposta == userEmail());
+      allow create: if isSignedIn() &&
+        request.resource.data.veliEposta == userEmail();
+      allow update, delete: if isAdmin() || isYonetim() || isMuhasebe();
+    }
+    // ====== YEMEK MENÜSÜ ======
+    match /yemekMenuleri/{haftaKodu} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== ÖĞRENCİ BELGELERİ (kimlik, sağlık raporu vb.) ======
+    match /ogrenciBelgeleri/{kayitId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator() || isMuhasebe()
+        || (isSignedIn() && veliOgrencisi(resource.data.ogrenciId));
+      allow create, update: if isAdmin() || isYonetim() || isKoordinator()
+        || (isSignedIn() && veliOgrencisi(request.resource.data.ogrenciId));
+      allow delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== FİŞ TALEPLERİ (personel → muhasebe) ======
+    match /fisTalepleri/{fisId} {
+      allow read: if isAdmin() || isYonetim() || isMuhasebe() || isKoordinator()
+        || (isSignedIn() && resource.data.talepEden == userEmail());
+      allow create: if isSignedIn() && request.resource.data.talepEden == userEmail();
+      allow update: if isAdmin() || isYonetim() || isMuhasebe();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== EV ZİYARETLERİ (öğretmen planlar, veli onaylar) ======
+    match /evZiyaretleri/{ziyaretId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator() || isSinifOgretmeni()
+        || (isSignedIn() && resource.data.veliEmail == userEmail());
+      allow create: if isAdmin() || isYonetim() || isKoordinator() || isSinifOgretmeni();
+      allow update: if isAdmin() || isYonetim() || isKoordinator() || isSinifOgretmeni()
+        || (isSignedIn() && resource.data.veliEmail == userEmail()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['durum', 'veliNotu', 'guncellendi']));
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== DOĞUM İZİNLERİ (personelin kendi süreci) ======
+    match /dogumIzinleri/{personelEmail} {
+      allow read: if isAdmin() || isYonetim()
+        || (isSignedIn() && personelEmail == userEmail());
+      allow create, update: if isSignedIn() && personelEmail == userEmail();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // ====== RAPORLAR (öğrenci gelişim raporu arşivi) ======
+    match /raporlar/{raporId} {
+      allow read: if isAdmin() || isYonetim() || isKoordinator() || isOgretmen()
+        || (isSignedIn() && resource.data.veliEmail == userEmail());
+      allow create, update: if isAdmin() || isYonetim() || isKoordinator()
+        || isSinifOgretmeni() || isProgramOgretmeni();
+      allow delete: if isAdmin() || isYonetim();
+    }
+    // Bu blok match /databases/{database}/documents içine eklenir.
+    // İç görüşmeler ve destek planları hiçbir veli/öğretmen hesabına açılmaz.
+    function pdrTakipVerisiGecerli(d) {
+      return d.keys().hasOnly([
+        'ogrenciId','ogrenciAd','sinif','donem','tur','durum','tarih','takipTarihi',
+        'baslik','ozet','katilimcilar','hedef','uygulama','aileOnerisi','ogretmenOnerisi','sonuc',
+        'veliylePaylas','semaSurumu','uzmanEmail','uzmanAd','olusturuldu','guncelleyen','guncellendi'
+      ])
+      && d.ogrenciId is string && d.ogrenciId.size() > 0
+      && d.ogrenciAd is string && d.sinif is string
+      && d.donem is string && d.donem.size() > 0
+      && d.tur in ['gorusme','destek','rapor']
+      && d.durum in ['planlandi','suruyor','tamamlandi']
+      && d.tarih is string && d.tarih.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+      && d.takipTarihi is string
+      && (d.takipTarihi == '' || (d.takipTarihi.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') && d.takipTarihi >= d.tarih))
+      && d.baslik is string && d.baslik.size() > 0 && d.baslik.size() <= 160
+      && d.ozet is string && d.ozet.size() > 0 && d.ozet.size() <= 5000
+      && d.katilimcilar is string && d.katilimcilar.size() <= 5000
+      && d.hedef is string && d.hedef.size() <= 5000
+      && d.uygulama is string && d.uygulama.size() <= 5000
+      && d.aileOnerisi is string && d.aileOnerisi.size() <= 5000
+      && d.ogretmenOnerisi is string && d.ogretmenOnerisi.size() <= 5000
+      && d.sonuc is string && d.sonuc.size() <= 5000
+      && (d.tur != 'destek' || (d.hedef.size() > 0 && d.takipTarihi != ''))
+      && (d.durum != 'tamamlandi' || d.sonuc.size() > 0)
+      && d.veliylePaylas == false && d.semaSurumu == 1
+      && d.uzmanEmail is string && d.uzmanAd is string
+      && d.olusturuldu is timestamp
+      && d.guncelleyen == userEmail() && d.guncellendi == request.time;
+    }
+    match /pdrTakipKayitlari/{kayitId} {
+      allow read: if isAdmin() || isYonetim() || isPdr();
+      allow create: if (isAdmin() || isYonetim() || isPdr())
+        && pdrTakipVerisiGecerli(request.resource.data)
+        && request.resource.data.uzmanEmail == userEmail()
+        && request.resource.data.olusturuldu == request.time;
+      allow update: if (isAdmin() || isYonetim() || isPdr())
+        && pdrTakipVerisiGecerli(request.resource.data)
+        && request.resource.data.ogrenciId == resource.data.ogrenciId
+        && request.resource.data.donem == resource.data.donem
+        && request.resource.data.tur == resource.data.tur
+        && request.resource.data.uzmanEmail == resource.data.uzmanEmail
+        && request.resource.data.uzmanAd == resource.data.uzmanAd
+        && request.resource.data.olusturuldu == resource.data.olusturuldu;
+      // Silme yerine sonuç ve durum kaydı korunur; genel joker izin dışlanır.
+      allow delete: if false;
+    }
+
+    match /danismaPersonelRehberi/{email} {
+      allow read: if isPdr();
+    }
+    // ====== PDR — ÖZEL NİTELİKLİ KİŞİSEL VERİ (KVKK md.6) ======
+    // DİKKAT: isOgretmen() burada BİLİNÇLİ OLARAK YOK.
+    match /pdrGozlemleri/{gozlemId} {
+      allow read: if isAdmin() || isYonetim() || isPdr()
+        || (isSignedIn() && resource.data.veliylePaylas == true
+            && veliOgrencisi(resource.data.ogrenciId));
+      allow create, update: if isAdmin() || isYonetim() || isPdr();
+      allow delete: if isAdmin() || isPdr();
+    }
+    match /pdrTestleri/{testId} {
+      allow read: if isAdmin() || isYonetim() || isPdr()
+        || (isSignedIn() && resource.data.veliylePaylas == true
+            && veliOgrencisi(resource.data.ogrenciId));
+      allow create, update: if isAdmin() || isYonetim() || isPdr();
+      allow delete: if isAdmin() || isPdr();
+    }
+    // ====== ROZET TANIMLARI (portal + ZEKY ortak) ======
+    match /rozetTanimlari/{rozetKod} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isYonetim() || isKoordinator();
+    }
+    // ====== KVKK İZİN GÜNLÜĞÜ ======
+    match /izinGunlugu/{kayitId} {
+      allow create: if isSignedIn();
+      allow read: if isPersonel()
+        || (isSignedIn() && (
+              resource.data.get('veliEmail', '') == userEmail()
+              || resource.data.get('veliEposta', '') == userEmail()
+           ));
+      allow update, delete: if false;
+    }
+    // ====== DANIŞMA — ADAY VELİ RANDEVULARI ======
+    match /danismaRandevulari/{id} {
+      allow read: if isPersonel()
+        || (isSignedIn() && (
+              resource.data.get('veliEmail', '') == userEmail()
+              || resource.data.get('email', '') == userEmail()
+           ));
+      allow create: if isSignedIn();
+      allow update: if isPersonel();
+      allow delete: if false;
+    }
+    // ====== KAPIDAN MESAJLAR (danışma → sınıf/idare) ======
+    match /kapidanMesajlar/{id} {
+      allow read: if isPersonel();
+      allow create: if isPersonel();
+      allow update, delete: if isAdmin() || isYonetim();
+    }
+    // ====== HESAP SİLME TALEPLERİ (Google Play şartı) ======
+    match /hesapSilmeTalepleri/{id} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || isYonetim()
+        || (isSignedIn() && resource.data.email == userEmail());
+      allow update: if isAdmin() || isYonetim()
+        || (isSignedIn() && resource.data.email == userEmail());
+      allow delete: if false;
+    }
+    // ====== RANDEVU V3 — ADMIN SDK / CALLABLE SINIRI ======
+    // Firestore allow kuralları OR birleşir. Bu açık deny blokları, alttaki
+    // yönetici catch-all istisna listesiyle birlikte çalışır.
+    match /kimlikYapilandirma/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuAyarlar/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuCallableAyarlar/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuCallableRandevular/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuCallableKilitleri/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuCallableAktifTalepleri/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuCallableKomutlari/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuCallableKotalari/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuCallableDenetim/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuKataloglari/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuMusaitlikleri/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuYetkileriV2/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuVeliHedefYetkileriV2/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuPersonelKataloglari/{document=**} {
+      allow read, write: if false;
+    }
+    match /randevuOgrenciProjeksiyonlari/{document=**} {
+      allow read, write: if false;
+    }
+
+    // OKUL-ZILI-PROJEKSIYON-V3 — yalnız giriş/çıkış operasyon kayıtları.
+    // Kimlik, veli listesi ve ana kayıt yazma yetkileri değiştirilmez.
+    function opKayitOgrencisi(kayitId) {
+      return kayitId.replace('__[0-9]{4}-[0-9]{2}-[0-9]{2}$', '');
+    }
+    function opKayitVelisi(kayitId) {
+      return isSignedIn()
+        && kayitId.matches('.+__[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && isVeli()
+        && veliOgrencisi(opKayitOgrencisi(kayitId));
+    }
+    function opKimlikAyni(d, s, kayitId) {
+      return d.get('ogrenciId', '') is string
+        && d.get('tarih', '') is string
+        && d.ogrenciId != ''
+        && d.tarih.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && kayitId == d.ogrenciId + '__' + d.tarih
+        && d.ogrenciId == s.get('ogrenciId', s.get('cocukId', ''))
+        && d.tarih == s.get('tarih', '')
+        && d.get('guncellendi', null) == request.time;
+    }
+    // Belirtilen bir alan ana kayıttan farklı yazılamaz; özel alanlar aşağıda
+    // hasOnly ile reddedilir. Eski istemcilerin kısmi güncellemelerinde korunan
+    // ad/sınıf/oluşturulma alanları değişmeden kalabilir; yeni değer uydurulamaz.
+    function opAlanAyni(d, s, alan, varsayilan) {
+      return !(alan in d) || d[alan] == s.get(alan, varsayilan)
+        || (request.method == 'update'
+          && alan in ['olusturuldu', 'ogrenciAd', 'sinif']
+          && d.get(alan, varsayilan) == resource.data.get(alan, varsayilan));
+    }
+    function opSabahOzetiGecerli(d, kayitId) {
+      let s = getAfter(/databases/$(database)/documents/sabahGirisleri/$(kayitId)).data;
+      return d.keys().hasOnly([
+          'ogrenciId', 'ogrenciAd', 'sinif', 'tarih', 'veliBildirdi',
+          'veliBildirimSaati', 'sinifaGirisOnayi', 'onaylayanAd',
+          'onaylayanRol', 'guncellendi'
+        ])
+        && opKimlikAyni(d, s, kayitId)
+        && d.get('sinifaGirisOnayi', '') == s.get('sinifaGirisOnayi', '')
+        && opAlanAyni(d, s, 'ogrenciAd', '')
+        && opAlanAyni(d, s, 'sinif', '')
+        && opAlanAyni(d, s, 'veliBildirdi', false)
+        && opAlanAyni(d, s, 'veliBildirimSaati', '')
+        && opAlanAyni(d, s, 'onaylayanAd', '')
+        && opAlanAyni(d, s, 'onaylayanRol', '');
+    }
+    function opPickupOzetiGecerli(d, kayitId) {
+      let s = getAfter(/databases/$(database)/documents/pickupBildirimleri/$(kayitId)).data;
+      return d.keys().hasOnly([
+          'ogrenciId', 'ogrenciAd', 'sinif', 'tarih', 'hedefSaat',
+          'alanKisi', 'durum', 'olusturuldu', 'hazirZamani', 'teslimZamani',
+          'teslimEden', 'veliOnay', 'veliOnayZamani', 'iptalZamani', 'guncellendi'
+        ])
+        && opKimlikAyni(d, s, kayitId)
+        && d.get('durum', '') == s.get('durum', '')
+        && d.durum in ['yolda', 'hazir', 'teslim', 'iptal']
+        && opAlanAyni(d, s, 'ogrenciAd', '')
+        && opAlanAyni(d, s, 'sinif', '')
+        && opAlanAyni(d, s, 'hedefSaat', '')
+        && opAlanAyni(d, s, 'alanKisi', 'Veli')
+        && opAlanAyni(d, s, 'olusturuldu', '')
+        && opAlanAyni(d, s, 'hazirZamani', '')
+        && opAlanAyni(d, s, 'teslimZamani', '')
+        && opAlanAyni(d, s, 'teslimEden', '')
+        && opAlanAyni(d, s, 'veliOnay', false)
+        && opAlanAyni(d, s, 'veliOnayZamani', '')
+        && opAlanAyni(d, s, 'iptalZamani', '');
+    }
+    // Velinin sorgusu yalnız kendi çocuğunun belirli günlük belgesine gider.
+    // Koleksiyon listeleme sadece mevcut personel kimliklerine açıktır.
+    match /danismaSabahGirisleri/{kayitId} {
+      allow get: if isPersonel() || (
+        opKayitVelisi(kayitId) && (
+          !exists(/databases/$(database)/documents/danismaSabahGirisleri/$(kayitId))
+          || resource.data.get('ogrenciId', '') == opKayitOgrencisi(kayitId)
+        )
+      );
+      allow list: if isPersonel();
+      allow create: if (isPersonel() || opKayitVelisi(kayitId))
+        && opSabahOzetiGecerli(request.resource.data, kayitId);
+      allow update: if (isPersonel() || opKayitVelisi(kayitId))
+        && request.resource.data.ogrenciId == resource.data.ogrenciId
+        && request.resource.data.tarih == resource.data.tarih
+        && request.resource.data.keys().hasAll(resource.data.keys())
+        && opSabahOzetiGecerli(request.resource.data, kayitId);
+      allow delete: if isAdmin() || isYonetim();
+    }
+    match /danismaPickupBildirimleri/{kayitId} {
+      allow get: if isPersonel() || (
+        opKayitVelisi(kayitId) && (
+          !exists(/databases/$(database)/documents/danismaPickupBildirimleri/$(kayitId))
+          || resource.data.get('ogrenciId', '') == opKayitOgrencisi(kayitId)
+        )
+      );
+      allow list: if isPersonel();
+      allow create: if (isPersonel() || opKayitVelisi(kayitId))
+        && opPickupOzetiGecerli(request.resource.data, kayitId);
+      allow update: if (isPersonel() || opKayitVelisi(kayitId))
+        && request.resource.data.ogrenciId == resource.data.ogrenciId
+        && request.resource.data.tarih == resource.data.tarih
+        && request.resource.data.keys().hasAll(resource.data.keys())
+        && opPickupOzetiGecerli(request.resource.data, kayitId);
+      allow delete: if isAdmin() || isYonetim();
+    }
+
+    // ========== VARSAYILAN ==========
+    match /{collection}/{document=**} {
+      allow read, write: if collection != 'pdrTakipKayitlari' && collection != 'odemeDekontlari' && !(
+        collection in [
+          'kimlikYapilandirma',
+          'randevuAyarlar',
+          'randevuCallableAyarlar',
+          'randevuCallableRandevular',
+          'randevuCallableKilitleri',
+          'randevuCallableAktifTalepleri',
+          'randevuCallableKomutlari',
+          'randevuCallableKotalari',
+          'randevuCallableDenetim',
+          'randevuKataloglari',
+          'randevuMusaitlikleri',
+          'randevuYetkileriV2',
+          'randevuVeliHedefYetkileriV2',
+          'randevuPersonelKataloglari',
+          'randevuOgrenciProjeksiyonlari',
+          'randevuSlotlari'
+        ]
+      ) && (isAdmin() || isKurucuMudur());
+    }
+  }
+}
+
