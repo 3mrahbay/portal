@@ -9379,7 +9379,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
           <small id="dashPanelEtiket">🔐 Admin Paneli</small>
         </div>
       </div>
-      <div class="user-menu">
+      <div class="user-menu"><button class="btn-mini" onclick="giderTalepAc()" title="Fiş veya faturayı muhasebeye iletin"><i data-lucide="receipt"></i> Fiş Ekle</button>
         <div class="user-badge">
           <div class="user-avatar" id="userAvatar">E</div>
           <div style="display:flex; flex-direction:column; line-height:1.2;">
@@ -9920,15 +9920,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
           <div class="form-grid">
             <div class="form-group">
               <label>Kategori</label>
-              <select id="gtKategori">
-                <option>Sınıf malzemesi</option>
-                <option>Sanat</option>
-                <option>Temizlik</option>
-                <option>Gıda</option>
-                <option>Onarım</option>
-                <option>Kırtasiye</option>
-                <option selected>Diğer</option>
-              </select>
+              <select id="gtKategori"></select>
             </div>
             <div class="form-group">
               <label>Ödeme Tipi</label>
@@ -9951,11 +9943,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
             <input type="text" id="gtAciklama" placeholder="Ne alındı, hangi sınıf için?">
           </div>
 
-          <div class="form-group">
-            <label>Fiş / Fatura Görseli veya PDF</label>
-            <input type="file" id="gtFisDosya" accept="image/jpeg,image/png,image/webp,application/pdf">
-            <small class="form-ipucu">İsteğe bağlı · JPG, PNG, WebP veya PDF · en fazla 15 MB</small>
-          </div>
+          <div class="form-group"><label>Fiş / Fatura</label><div id="gtReceiptInput"></div></div>
 
           <div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:10px; padding:11px 13px; font-size:11.5px; color:#92400E; line-height:1.5;">
             <i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i>
@@ -9964,7 +9952,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         </div>
         <div class="modal-footer">
           <button class="btn-mini" onclick="giderTalepKapat()">İptal</button>
-          <button class="btn-primary" onclick="giderTalepGonder()"><i data-lucide="send" style="width:14px;height:14px;vertical-align:-2px;"></i> Onaya Gönder</button>
+          <button class="btn-primary" id="gtSubmit" onclick="giderTalepGonder()"><i data-lucide="send" style="width:14px;height:14px;vertical-align:-2px;"></i> Onaya Gönder</button>
         </div>
       </div>
     </div>
@@ -13777,6 +13765,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
+import {receiptInput} from './js/expenses/receipt-input.js';
+import {CATEGORIES,localDate} from './js/expenses/receipt-core.js';
 import {odemePlani as ortakOdemePlani, satir as ortakOdemeSatiri, vade as ortakVade} from "./js/finans/core.js";
 // Lucide ikonlarını yenile (dinamik içerik sonrası çağrılır)
 window.lucideYenile = function(kok = document) {
@@ -36806,31 +36796,43 @@ window.bekleyenTopluHatirlat = async function() {
 
 // ═══════════ GİDER TALEBİ (personel bildirir → muhasebe onaylar) ═══════════
 let giderTalepListesi = [];
+let giderReceiptInput = null, giderSending = false;
 
 window.giderTalepAc = function() {
+  if (!currentUser || (!isAdmin && !aktifPersonel)) return;
+  if (giderSending) return;
+  if (!giderReceiptInput) giderReceiptInput = receiptInput({mount:document.getElementById('gtReceiptInput'),amount:document.getElementById('gtTutar')});
+  giderReceiptInput.reset();
+  document.getElementById('gtKategori').innerHTML='<option value="">Kategori seçin</option>'+CATEGORIES.map(c=>`<option>${c}</option>`).join('');
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-  set("gtTarih", new Date().toISOString().substring(0, 10));
+  set("gtTarih", localDate());
   set("gtMagaza", ""); set("gtTutar", ""); set("gtAciklama", "");
-  const fis = document.getElementById("gtFisDosya");
-  if (fis) fis.value = "";
+
   document.getElementById("giderTalepModal").classList.add("active");
   if (window.lucideYenile) window.lucideYenile();
 };
 
 window.giderTalepKapat = function() {
+  if(giderSending)return;
+  giderReceiptInput?.reset();
   document.getElementById("giderTalepModal").classList.remove("active");
 };
 
 window.giderTalepGonder = async function() {
+  if(giderSending)return;
+  if(giderReceiptInput?.busy){showToast("Tutar okunuyor; lütfen bekleyin.","info");return;}
   const g = (id) => (document.getElementById(id)?.value || "").trim();
   const magaza = g("gtMagaza");
   const tutar = parseFloat(g("gtTutar")) || 0;
 
   if (!magaza) { showToast("Mağaza/yer bilgisi gerekli", "error"); return; }
-  if (tutar <= 0) { showToast("Geçerli bir tutar girin", "error"); return; }
+  if (!Number.isFinite(tutar) || tutar <= 0) { showToast("Geçerli bir tutar girin", "error"); return; }
 
+  if (giderReceiptInput?.file && !giderReceiptInput.reviewed) {showToast("Tutarı fişle karşılaştırıp kontrol kutusunu işaretleyin.","error");return;}
+  if (!CATEGORIES.includes(g("gtKategori"))) { showToast("Kategori seçin", "error"); return; }
+  giderSending=true;document.querySelectorAll('#giderTalepModal input,#giderTalepModal select,#giderTalepModal button').forEach(el=>el.disabled=true);
   try {
-    const fisDosya = document.getElementById("gtFisDosya")?.files?.[0] || null;
+    const fisDosya = giderReceiptInput?.file || null;
     let fisUrl = "", fisYol = "";
     if (fisDosya) {
       const dogrula = medyaDogrula(fisDosya, false);
@@ -36844,6 +36846,7 @@ window.giderTalepGonder = async function() {
     // ZEKY ile ORTAK koleksiyon: fisTalepleri (Rules'da tanımlı)
     await addDoc(collection(db, "fisTalepleri"), {
       magaza,
+      tutarKaynagi:giderReceiptInput?.source || "manuel",
       kategori: g("gtKategori") || "Diğer",
       tutar,
       odemeTipi: g("gtOdemeTipi") || "Nakit",
@@ -36855,13 +36858,14 @@ window.giderTalepGonder = async function() {
       tarih: g("gtTarih") || new Date().toISOString().substring(0, 10),
       olusturuldu: serverTimestamp()
     });
+    giderSending=false;
     giderTalepKapat();
     showToast("✓ Fiş talebiniz muhasebe onayına gönderildi");
     if (typeof giderTalepleriYukle === "function") giderTalepleriYukle();
   } catch (e) {
     console.error("Fiş talebi:", e);
     showToast("Gönderilemedi: " + e.message, "error");
-  }
+  } finally { giderSending=false;document.querySelectorAll('#giderTalepModal input,#giderTalepModal select,#giderTalepModal button').forEach(el=>el.disabled=false); }
 };
 
 // Muhasebe/yönetim: talepleri yükle
