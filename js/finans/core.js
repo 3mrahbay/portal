@@ -41,7 +41,14 @@ export function odemePlani(veri,now=new Date()){
     }
   }
   const ek=veri.digerOdemeler||a.digerOdemeler||{};
-  for(const [key,r] of Object.entries(ek)) rows.push(satir('diger-'+key,KALEM[key]||key,r.tutar,r,vade('',r,a),now));
+  // Portal stores agreed fees separately from collection records. A fee can
+  // exist before any payment record; explicit zero fees must stay zero.
+  const ucretler=a.digerUcretler||{};
+  for(const key of new Set([...Object.keys(ucretler),...Object.keys(ek)])) {
+    const r=ek[key]||{};
+    const beklenen=ucretler[key]??r.beklenenTutar??r.tutar;
+    rows.push(satir('diger-'+key,KALEM[key]||key,beklenen,r,vade('',r,a),now));
+  }
   const uyarilar=rows.flatMap(r=>{const notes=[];if(r.record.hareketler?.length&&r.record.hareketler.reduce((s,h)=>s+kurus(h.tutar),0)!==kurus(r.odenen))notes.push(r.ad+': hareket toplamı ile ödenen tutar uyuşmuyor.');if(r.record.odendi===true&&r.kalan>0)notes.push(r.ad+': ödendi işareti ile kalan tutar uyuşmuyor.');return notes;});
   const sum=k=>rows.reduce((s,r)=>s+kurus(r[k]),0)/100;
   return {uyarilar,satirlar:rows,toplam:sum('beklenen'),odenen:sum('odenen'),kalan:sum('kalan'),fazla:sum('fazla'),geciken:rows.filter(r=>r.gecikmis).reduce((s,r)=>s+kurus(r.kalan),0)/100,plansiz:rows.length===0};
