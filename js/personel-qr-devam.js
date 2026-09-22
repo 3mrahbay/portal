@@ -153,16 +153,53 @@ export function portalQrDevamKur(api = window.PortalAPI) {
 
   const asilKartCiz = window.devamKartiCiz;
   const asilKaydet = window.devamKaydet;
-  let qrYetkisi = false;
   let tarayici = null;
 
   window.devamKaydet = async function(tip) {
-    if ((tip === 'giris' || tip === 'cikis') && !qrYetkisi) {
+    if (tip === 'giris' || tip === 'cikis') {
       api.toast('Giriş ve çıkış için okul QR’ını kamerayla okutmalısınız.', 'error');
       return;
     }
     return asilKaydet(tip);
   };
+
+  async function qrKaydet(tip, email, konum) {
+    const hareketler = await bugunkuHareketler(api, email);
+    const guncelDurum = devamDurumu(hareketler);
+    const beklenenTip = guncelDurum === 'disarida' ? 'giris' : guncelDurum === 'iceride' ? 'cikis' : null;
+    if (!beklenenTip || tip !== beklenenTip) {
+      throw new Error(guncelDurum === 'molada'
+        ? 'Çıkıştan önce “Moladan Dön” butonuna basın.'
+        : 'Devam durumunuz başka bir cihazda değişti. Yeniden deneyin.');
+    }
+
+    const simdi = new Date();
+    const personel = api.state.personel || {};
+    await api.fb.addDoc(api.fb.collection(api.db, 'puantaj'), {
+      personelEmail: email,
+      personelAd: personel.adSoyad || api.state.currentUser?.displayName || email,
+      tip,
+      zaman: simdi.toISOString(),
+      tarih: bugunKodu(),
+      yontem: 'portal-qr',
+      onayli: true,
+      konum: {
+        enlem: konum.enlem,
+        boylam: konum.boylam,
+        dogrulukMetre: konum.dogrulukMetre
+      }
+    });
+    await api.fb.setDoc(api.fb.doc(api.db, 'personelDurum', email), {
+      durum: tip === 'giris' ? 'iceride' : 'disarida',
+      sonZaman: simdi.toISOString(),
+      sonTip: tip
+    }, { merge: true });
+
+    api.toast(`✓ ${tip === 'giris' ? 'Giriş' : 'Çıkış'} kaydedildi · ${simdi.toTimeString().slice(0, 5)}`);
+    if (typeof window.ozetDevamKartiDoldur === 'function') await window.ozetDevamKartiDoldur();
+    if (typeof window.profilimRender === 'function' && document.getElementById('devamKartAlan')) window.profilimRender();
+    if (typeof window.hbOgretmenDoldur === 'function') setTimeout(window.hbOgretmenDoldur, 300);
+  }
 
   function qrButonunaCevir(hedefId) {
     const alan = document.getElementById(hedefId || 'devamKartAlan');
@@ -251,9 +288,7 @@ export function portalQrDevamKur(api = window.PortalAPI) {
               return;
             }
             durumYaz(`Okul konumu doğrulandı (${karar.uzaklikMetre} m). Kayıt yapılıyor…`);
-            qrYetkisi = true;
-            try { await window.devamKaydet(tip); }
-            finally { qrYetkisi = false; }
+            await qrKaydet(tip, email, konum);
             await kapat();
           } catch (e) {
             durumYaz(e.message || 'Konum doğrulanamadı. Kayıt yapılmadı.', true);
@@ -279,4 +314,3 @@ function otomatikKur() {
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') otomatikKur();
-

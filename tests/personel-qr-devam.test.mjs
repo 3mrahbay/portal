@@ -6,6 +6,12 @@ const kaynak = await readFile(new URL('../js/personel-qr-devam.js', import.meta.
 const modul = await import('data:text/javascript;base64,' + Buffer.from(kaynak).toString('base64'));
 const { qrCoz, qrEslesir, mesafeMetre, devamDurumu, konumKarari } = modul;
 
+test('portal kaydi QR yontemini ve konum kanitini saklar', () => {
+  assert.match(kaynak, /yontem: 'portal-qr'/);
+  assert.match(kaynak, /dogrulukMetre: konum\.dogrulukMetre/);
+  assert.match(kaynak, /Giriş ve çıkış için okul QR/);
+});
+
 test('yalniz ZEKY devam QR bicimini kabul eder', () => {
   assert.deepEqual(qrCoz('ZEKY-DEVAM:BCKA:ABC123'), { okulId: 'BCKA', jeton: 'ABC123' });
   assert.equal(qrCoz('https://ornek.test/qr'), null);
