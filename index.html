@@ -39025,7 +39025,7 @@ window.closeTopluHatirlatmaModal = function() {
 let krediKartiTalepleri = [];
 
 // VELİ TARAFI: kartTalep parametresi ile gelmişse talep modalı aç
-window.veliKartTalepAc = async function(ogrenciId) {
+window.veliKartTalepAc = async function(ogrenciId, talepDonem = AKTIF_DONEM) {
   // Bu öğrenci bu veliye ait mi kontrol et
   if (!veliOgrenciler || veliOgrenciler.length === 0) return;
   const ogr = veliOgrenciler.find(o => o.id === ogrenciId);
@@ -39037,37 +39037,17 @@ window.veliKartTalepAc = async function(ogrenciId) {
   // URL'i temizle
   window.history.replaceState({}, document.title, window.location.pathname);
 
-  // Borç hesabı
+  // Aynı dönem ve ortak ödeme hesabı: kısmi ödemeler de hesaba katılır.
   let toplamBorc = 0, gecikenAySayisi = 0;
   try {
-    const donemRef = doc(db, "ogrenciler", ogrenciId, "donemler", AKTIF_DONEM);
-    const donemSnap = await getDoc(donemRef);
-    if (donemSnap.exists()) {
-      const v = donemSnap.data();
-      const a = v.aidatAyarlari || {};
-      const baslangic = a.baslangicAyi;
-      const taksit = a.taksitSayisi || 10;
-      const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-      const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-      const aylikOdemeler = v.aylikOdemeler || {};
-      const bugun = new Date();
-      if (baslangic) {
-        const ayListesi = getAyListesi(baslangic, taksit);
-        for (const ay of ayListesi) {
-          const ayTarihi = new Date(parseInt(ay.ayKod.split("-")[0]), parseInt(ay.ayKod.split("-")[1]) - 1, 10);
-          if (ayTarihi >= bugun) continue;
-          const ayNum = parseInt(ay.ayKod.split("-")[1], 10);
-          const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-          const od = aylikOdemeler[ay.ayKod] || {};
-          if (!od.odendi) {
-            toplamBorc += beklenen;
-            gecikenAySayisi++;
-          }
-        }
-      }
-    }
+    const donemSnap = await getDoc(doc(db, "ogrenciler", ogrenciId, "donemler", talepDonem));
+    const plan = ortakOdemePlani(donemSnap.exists() ? donemSnap.data() : null);
+    const geciken = plan.satirlar.filter(r => r.gecikmis && r.kalan > 0);
+    toplamBorc = geciken.reduce((sum, r) => sum + r.kalan, 0);
+    gecikenAySayisi = geciken.filter(r => !r.id.startsWith('diger-') && r.id !== '__onOdeme').length;
   } catch (e) {
-    console.warn("Borç hesabı hatası:", e);
+    showToast("Ödeme bilgileri okunamadı. Lütfen yeniden deneyin.", "error");
+    return;
   }
 
   const modalHtml = `
@@ -39099,7 +39079,7 @@ window.veliKartTalepAc = async function(ogrenciId) {
             <ol style="margin:6px 0 0; padding-left:22px; color:var(--gray-600);">
               <li>Talebiniz okul yönetimine iletilir</li>
               <li>Okul yönetimi sizi en kısa sürede arar</li>
-              <li>Kart bilgilerinizi telefonda güvenli şekilde alır</li>
+              <li>Uygun ödeme yöntemi ve POS işlemi için sizi yönlendirir</li>
               <li>POS işlemi yapıldıktan sonra SMS onayı alırsınız</li>
             </ol>
           </div>
@@ -39111,7 +39091,7 @@ window.veliKartTalepAc = async function(ogrenciId) {
         </div>
         <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end;">
           <button class="btn-secondary" onclick="closeVeliKartTalep()">İptal</button>
-          <button class="btn-primary" id="btnKartTalepGonder" style="background:#facc15; color:#422006; border:none;" onclick="kartTalepOlustur('${ogrenciId}', ${toplamBorc}, ${gecikenAySayisi})">📤 Talep Gönder</button>
+          <button class="btn-primary" id="btnKartTalepGonder" style="background:#facc15; color:#422006; border:none;" onclick="kartTalepOlustur('${ogrenciId}', ${toplamBorc}, ${gecikenAySayisi}, '${escapeHtml(talepDonem)}')">📤 Talep Gönder</button>
         </div>
       </div>
     </div>
@@ -39124,6 +39104,7 @@ window.veliKartTalepAc = async function(ogrenciId) {
     document.body.appendChild(wrap);
   }
   wrap.innerHTML = modalHtml;
+  window.lucideYenile?.(wrap);
 };
 
 window.closeVeliKartTalep = function() {
@@ -39132,7 +39113,7 @@ window.closeVeliKartTalep = function() {
 };
 
 // Veli: Talep Firestore'a yaz + okula bilgilendirme maili
-window.kartTalepOlustur = async function(ogrenciId, borc, gecikenAy) {
+window.kartTalepOlustur = async function(ogrenciId, borc, gecikenAy, talepDonem = AKTIF_DONEM) {
   const btn = document.getElementById("btnKartTalepGonder");
   if (btn) { btn.disabled = true; btn.textContent = "⏳ Gönderiliyor..."; }
 
@@ -39151,7 +39132,7 @@ window.kartTalepOlustur = async function(ogrenciId, borc, gecikenAy) {
     durum: "bekliyor",
     okundu: false,
     olusturuldu: new Date().toISOString(),
-    donem: AKTIF_DONEM
+    donem: talepDonem
   };
 
   try {
