@@ -23721,7 +23721,7 @@ window.odemeBildirGonder = async function() {
     await brevoMail({
       to: SCHOOL_EMAIL,
       toName: "Bir Çiçek Koleji",
-      subject: `<i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i> Ödeme Bildirimi · ${ogr.ogrenciAdSoyad || ""} · ${kalemAd}`,
+      subject: `Ödeme Bildirimi · ${ogr.ogrenciAdSoyad || ""} · ${kalemAd}`,
       htmlContent: mailIcerik,
       replyTo: veliEmail
     });
@@ -31508,7 +31508,7 @@ async function devamsizlikVeliMail(ogrenciId) {
       `;
       await brevoMail({
         to: v.mail, toName: v.ad,
-        subject: `<i data-lucide="clipboard-list" style="width:13px;height:13px;vertical-align:-2px;"></i> Devamsızlık Bildirimi - ${ogr.ogrenciAdSoyad}`,
+        subject: `Devamsızlık Bildirimi - ${ogr.ogrenciAdSoyad}`,
         htmlContent: portalMailSablon("Devamsızlık Bildirimi", icerik, "Okul yönetimi tarafından otomatik olarak gönderilmiştir.")
       });
       await new Promise(r => setTimeout(r, 300));
@@ -36321,7 +36321,7 @@ async function galeriBildirimMailGonder(grup) {
 
       await brevoMail({
         to: v.mail, toName: v.ad,
-        subject: `<i data-lucide="camera" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Fotoğraflar: ${etkinlikBaslik} - Bir Çiçek Koleji`,
+        subject: `Yeni Fotoğraflar: ${etkinlikBaslik} - Bir Çiçek Koleji`,
         htmlContent: portalMailSablon(etkinlikBaslik, icerik, "Portal'daki galeriye yeni içerik eklendi.")
       });
       await new Promise(r => setTimeout(r, 300));
@@ -39158,7 +39158,7 @@ window.kartTalepOlustur = async function(ogrenciId, borc, gecikenAy, talepDonem 
     `;
     brevoMail({
       to: OKUL_MAIL, toName: "Okul Yönetimi",
-      subject: `<i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Kart Talebi - ${talepData.ogrenciAd}`,
+      subject: `Yeni Kart Talebi - ${talepData.ogrenciAd}`,
       htmlContent: portalMailSablon("Yeni Kart Talebi", adminMail, "Veli kredi kartı ile ödeme talep etti.")
     });
 
