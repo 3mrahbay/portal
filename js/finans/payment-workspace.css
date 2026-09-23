@@ -1,0 +1,12 @@
+/* Scoped additions: retain the shared accounting palette and layout. */
+.finans-app .finance-person-link{background:transparent;border:0;color:var(--f,#245840);font:inherit;font-weight:700;text-align:left;text-decoration:underline;text-underline-offset:3px;padding:3px 0;cursor:pointer}
+.finans-app .finance-person-link:focus-visible{outline:2px solid var(--f,#245840);outline-offset:4px}
+.finans-app dialog.finance-workspace{position:fixed;inset:0;margin:auto;max-height:90dvh;width:min(1100px,96vw);max-width:1100px;border-radius:20px;color:#20382a;box-shadow:0 24px 70px #12251c35}
+.finans-app dialog.finance-review,.finans-app dialog.finance-reminder{width:min(760px,96vw);max-width:760px}
+.finans-app .finance-workspace .detail-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #dce7df;padding-bottom:14px;margin-bottom:18px}
+.finans-app .finance-workspace h3{font-size:18px;margin:6px 0}.finans-app .finance-person p{margin:5px 0}.finans-app .finance-note{white-space:pre-wrap;overflow-wrap:anywhere}
+.finans-app .finance-confirm{display:flex;flex-direction:row;align-items:flex-start;gap:12px;background:#f4f7f4;border:1px solid #dce7df;border-radius:12px;padding:14px;margin:16px 0}
+.finans-app .finance-confirm input{flex:0 0 20px;width:20px;height:20px;margin-top:2px;accent-color:var(--f,#245840)}
+.finans-app .finance-warning{color:#92541c}.finans-app .finance-workspace .toolbar{margin:10px 0}.finans-app .finance-workspace .scroll{max-height:45dvh}.finans-app .finance-workspace td button{margin:3px}
+.finans-app .finance-workspace [data-status]{overflow-wrap:anywhere}.finans-app .finance-mail-preview{overflow-wrap:anywhere}
+@media(max-width:650px){.finans-app dialog.finance-workspace{padding:14px;max-height:94dvh}.finans-app .finance-workspace .cards{grid-template-columns:1fr 1fr}.finans-app .finance-workspace .toolbar button{max-width:100%;white-space:normal}.finans-app .finance-workspace .finance-confirm{font-size:13px}}
