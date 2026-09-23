@@ -15,11 +15,17 @@
 //     yuzyuze?         : { zaman, isaretleyen, isaretleyenAd } (personel yazar) }
 //   Portal hesabı olmayan veli için belge kimliği "yok:{ogrenciId}:{rol}".
 //
-// Eski kayıtlar (saatsiz): duyurular/{id}.okuyanVeliler, .popupKapatanVeliler
-// Bu kayıtlar da "gördü" sayılır, saat yerine "saat kaydı yok" yazar.
+//     eskiKayit?  : true  (eski listelerden aktarıldı, saat bilinmiyor)
+//     eskiSimsek? : true  (eski kayıtta yalnız şimşek popup kapatılmış)
 //
-// Okuma listesi yalnızca personele açıktır; veliler birbirinin
-// kaydını göremez (Firestore kuralı: okumalar alt koleksiyonu).
+// Velinin KENDİ okundu bilgisi — kullaniciTercihleri/{eposta}
+//   (yalnız velinin kendisi okur/yazar; e-posta başka yerde tutulmaz):
+//   { okunanDuyurular: [duyuruId], kapatilanSimsekler: [duyuruId] }
+//
+// KVKK: Veli e-postası artık duyuru belgesine YAZILMAZ. Eski listeler
+// (duyurular/{id}.okuyanVeliler, .popupKapatanVeliler) geçiş döneminde
+// yalnız okunur; "Eski kayıtları aktar" aracı bunları yeni yapıya taşır.
+// Okuma listesi yalnızca personele açıktır.
 // ══════════════════════════════════════════════════════════════
 
 const IKON = {
@@ -60,29 +66,113 @@ function izinHatasiMi(e) {
   return /permission|insufficient/i.test(k);
 }
 
-// ─────────────────────────── veli tarafı: gördü kaydı ───────────────────────────
-/**
- * Veli duyuruyu ilk kez gördüğünde çağrılır.
- * kaynak: "liste" (Bildirimler) | "simsek" (açılır pencerede "Anladım")
- */
-export async function goruldu(duyuruId, kaynak = "liste") {
-  const a = P();
-  const eposta = kucuk(a?.state?.currentUser?.email);
-  if (!a?.fb || !a?.db || !eposta || !duyuruId) return;
-  const alan = kaynak === "simsek" ? "simsekOnay" : "listedeGorulme";
-  const yerel = `dok:${eposta}:${duyuruId}:${alan}`;
-  try { if (localStorage.getItem(yerel)) return; } catch (_) {}
-  const simdi = new Date().toISOString();
+// ─────────────────────────── veli tarafı ───────────────────────────
+function veliEpostam() { return kucuk(P()?.state?.currentUser?.email); }
+function yerelAnahtar(e, tur) { return `dok-${tur}:${e}`; }
+function yerelOku(e, tur) {
+  try { return JSON.parse(localStorage.getItem(yerelAnahtar(e, tur)) || "[]"); } catch (_) { return []; }
+}
+function yerelYaz(durum) {
   try {
-    await a.fb.setDoc(
-      a.fb.doc(a.db, "duyurular", duyuruId, "okumalar", eposta),
-      { eposta, [alan]: simdi, sonGorulme: simdi, uygulama: "portal" },
-      { merge: true }
-    );
-    try { localStorage.setItem(yerel, "1"); } catch (_) {}
+    localStorage.setItem(yerelAnahtar(durum.eposta, "okunan"), JSON.stringify([...durum.okunan].slice(-400)));
+    localStorage.setItem(yerelAnahtar(durum.eposta, "kapatilan"), JSON.stringify([...durum.kapatilan].slice(-400)));
+  } catch (_) {}
+}
+
+/** Velinin kendi okundu durumu: kullaniciTercihleri/{eposta} (+ yerel yedek). */
+export async function veliDurumuYukle() {
+  const a = P();
+  const eposta = veliEpostam();
+  const durum = { eposta, okunan: new Set(yerelOku(eposta, "okunan")), kapatilan: new Set(yerelOku(eposta, "kapatilan")) };
+  if (!eposta || !a?.fb || !a?.db) return durum;
+  try {
+    const snap = await a.fb.getDoc(a.fb.doc(a.db, "kullaniciTercihleri", eposta));
+    if (snap.exists()) {
+      const v = snap.data() || {};
+      (v.okunanDuyurular || []).forEach(x => durum.okunan.add(x));
+      (v.kapatilanSimsekler || []).forEach(x => durum.kapatilan.add(x));
+    }
+  } catch (e) { console.warn("Okundu durumu okunamadı:", e?.code || e?.message); }
+  return durum;
+}
+
+/** Veli bu duyuruyu daha önce gördü mü? (kendi listesi + geçiş dönemi için eski liste) */
+export function veliOkudu(d, durum) {
+  if (!d || !durum) return false;
+  if (durum.okunan.has(d.id)) return true;
+  return (d.okuyanVeliler || []).some(x => kucuk(x) === durum.eposta);
+}
+
+export function simsekKapatildiMi(duyuruId, durum) {
+  return !!(durum && duyuruId && durum.kapatilan.has(duyuruId));
+}
+
+// Korumalı okuma kaydı (personel görür). İlk görüş saati bir kez yazılır.
+async function okumaKaydiYaz(duyuruId, alan) {
+  const a = P();
+  const eposta = veliEpostam();
+  if (!a?.fb || !a?.db || !eposta || !duyuruId) return;
+  const ref = a.fb.doc(a.db, "duyurular", duyuruId, "okumalar", eposta);
+  try {
+    const snap = await a.fb.getDoc(ref);
+    if (snap.exists() && (snap.data() || {})[alan]) return;
+    const simdi = new Date().toISOString();
+    await a.fb.setDoc(ref, { eposta, [alan]: simdi, sonGorulme: simdi, uygulama: "portal" }, { merge: true });
   } catch (e) {
     console.warn("Okunma saati kaydedilemedi:", e?.code || e?.message);
   }
+}
+
+async function tercihEkle(eposta, alan, idler) {
+  const a = P();
+  if (!a?.fb?.arrayUnion || !eposta || !idler.length) return;
+  try {
+    await a.fb.setDoc(a.fb.doc(a.db, "kullaniciTercihleri", eposta),
+      { [alan]: a.fb.arrayUnion(...idler), guncellendi: new Date().toISOString() }, { merge: true });
+  } catch (e) { console.warn("Okundu durumu kaydedilemedi:", e?.code || e?.message); }
+}
+
+/**
+ * Bildirimler ekranı çizildikten sonra çağrılır: listelenen duyuruları
+ * velinin kendi listesine ekler; ilk kez görülenlere saatli kayıt yazar.
+ */
+export async function veliGorulenleriKaydet(duyurular, durum) {
+  if (!durum?.eposta) return;
+  const yeniler = [];
+  for (const d of (duyurular || [])) {
+    if (!d?.id || durum.okunan.has(d.id)) continue;
+    const eskiListedeVar = (d.okuyanVeliler || []).some(x => kucuk(x) === durum.eposta);
+    durum.okunan.add(d.id);
+    yeniler.push(d.id);
+    if (!eskiListedeVar) okumaKaydiYaz(d.id, "listedeGorulme");   // saat bilinen ilk görüş
+  }
+  if (!yeniler.length) return;
+  yerelYaz(durum);
+  await tercihEkle(durum.eposta, "okunanDuyurular", yeniler);
+}
+
+/** Şimşek popup'ta "Anladım". Duyuru belgesine e-posta YAZMAZ. */
+export async function simsekKapat(duyuruId) {
+  const eposta = veliEpostam();
+  if (!eposta || !duyuruId) return;
+  const durum = { eposta, okunan: new Set(yerelOku(eposta, "okunan")), kapatilan: new Set(yerelOku(eposta, "kapatilan")) };
+  durum.okunan.add(duyuruId);
+  durum.kapatilan.add(duyuruId);
+  yerelYaz(durum);
+  await Promise.allSettled([
+    okumaKaydiYaz(duyuruId, "simsekOnay"),
+    tercihEkle(eposta, "kapatilanSimsekler", [duyuruId]),
+    tercihEkle(eposta, "okunanDuyurular", [duyuruId])
+  ]);
+}
+
+/** Eski çağrılar için (önceki sürüm index.html). */
+export async function goruldu(duyuruId, kaynak = "liste") {
+  if (kaynak === "simsek") return simsekKapat(duyuruId);
+  const eposta = veliEpostam();
+  if (!eposta || !duyuruId) return;
+  await okumaKaydiYaz(duyuruId, "listedeGorulme");
+  await tercihEkle(eposta, "okunanDuyurular", [duyuruId]);
 }
 
 // ─────────────────────────── hedef veliler ───────────────────────────
@@ -139,6 +229,7 @@ function durumBul(veli, eski, okumalar) {
     if (kayit?.simsekOnay) adaylar.push({ zaman: kayit.simsekOnay, kaynak: "Açılır pencere" });
     adaylar.sort((x, y) => String(x.zaman).localeCompare(String(y.zaman)));
     if (adaylar.length) return { durum: "gordu", ...adaylar[0], kayit };
+    if (kayit?.eskiKayit) return { durum: "gordu", zaman: "", kaynak: kayit.eskiSimsek ? "Açılır pencere" : "Portal", kayit };
     if (eski.liste.has(veli.eposta)) return { durum: "gordu", zaman: "", kaynak: "Portal", kayit };
     if (eski.popup.has(veli.eposta)) return { durum: "gordu", zaman: "", kaynak: "Açılır pencere", kayit };
   }
@@ -147,16 +238,62 @@ function durumBul(veli, eski, okumalar) {
 }
 
 // ─────────────────────────── liste düğmesi ───────────────────────────
-/** Yönetim listesindeki "12/40 gördü" düğmesi. Tıklayınca panel açılır. */
+/**
+ * Yönetim listesindeki "12/40 gördü" düğmesi. Tıklayınca panel açılır.
+ * Sayı önce eski listeden yazılır, ardından korumalı okuma kayıtları
+ * sunucuda sayılıp (tek okuma) güncellenir.
+ */
+const sayimOnbellek = new Map();   // duyuruId → { sayi, zaman }
+const sayimKuyrugu = new Set();
+let sayimZamanlayici = null;
+
+function rozetMetni(goren, hedef, eskiToplam) {
+  return hedef ? `${Math.min(goren, hedef)}/${hedef} gördü` : `${eskiToplam} gördü`;
+}
+
 export function rozetHtml(d) {
   stilEkle();
   dinleyiciKur();
+  aktarimBandiKontrol();
   const hedef = hedefVeliler(d).filter(v => v.eposta);
   const eski = eskiOkuyanlar(d);
-  const gorenSay = hedef.filter(v => eski.liste.has(v.eposta) || eski.popup.has(v.eposta)).length;
-  const metin = hedef.length ? `${gorenSay}/${hedef.length} gördü` : `${new Set([...eski.liste, ...eski.popup]).size} gördü`;
-  const tamam = hedef.length && gorenSay >= hedef.length;
-  return `<button type="button" class="dok-rozet${tamam ? " dok-rozet-tamam" : ""}" data-dok-ac="${esc(d.id)}" title="Kimlerin gördüğünü göster">${IKON.goz}<span>${metin}</span></button>`;
+  const eskiGoren = hedef.filter(v => eski.liste.has(v.eposta) || eski.popup.has(v.eposta)).length;
+  const onb = sayimOnbellek.get(d.id);
+  const goren = Math.max(eskiGoren, onb ? onb.sayi : 0);
+  const tamam = hedef.length && goren >= hedef.length;
+  if (!onb || Date.now() - onb.zaman > 60000) {
+    sayimKuyrugu.add(d.id);
+    clearTimeout(sayimZamanlayici);
+    sayimZamanlayici = setTimeout(sayimlariCalistir, 50);
+  }
+  return `<button type="button" class="dok-rozet${tamam ? " dok-rozet-tamam" : ""}" data-dok-ac="${esc(d.id)}" data-dok-hedef="${hedef.length}" data-dok-eski="${eskiGoren}" data-dok-eski-toplam="${new Set([...eski.liste, ...eski.popup]).size}" title="Kimlerin gördüğünü göster">${IKON.goz}<span>${rozetMetni(goren, hedef.length, new Set([...eski.liste, ...eski.popup]).size)}</span></button>`;
+}
+
+async function sayimlariCalistir() {
+  const a = P();
+  const say = a?.fb?.getCountFromServer;
+  if (!say || !a?.fb?.query || !a?.fb?.where) { sayimKuyrugu.clear(); return; }
+  const idler = [...sayimKuyrugu];
+  sayimKuyrugu.clear();
+  const isci = async () => {
+    while (idler.length) {
+      const id = idler.shift();
+      try {
+        const q = a.fb.query(a.fb.collection(a.db, "duyurular", id, "okumalar"), a.fb.where("sonGorulme", ">", ""));
+        const sonuc = await say(q);
+        const sayi = Number(sonuc?.data?.().count) || 0;
+        sayimOnbellek.set(id, { sayi, zaman: Date.now() });
+        document.querySelectorAll(`[data-dok-ac="${String(id).replace(/["\\]/g, "\\$&")}"]`).forEach(b => {
+          const hedef = Number(b.dataset.dokHedef) || 0;
+          const goren = Math.max(Number(b.dataset.dokEski) || 0, sayi);
+          const span = b.querySelector("span");
+          if (span) span.textContent = rozetMetni(goren, hedef, Math.max(Number(b.dataset.dokEskiToplam) || 0, sayi));
+          b.classList.toggle("dok-rozet-tamam", !!hedef && goren >= hedef);
+        });
+      } catch (e) { console.warn("Okunma sayısı alınamadı:", e?.code || e?.message); }
+    }
+  };
+  await Promise.all([isci(), isci(), isci(), isci()]);
 }
 
 // ─────────────────────────── panel ───────────────────────────
@@ -200,6 +337,7 @@ export async function panelAc(duyuruId) {
     const s = await a.fb.getDocs(a.fb.collection(a.db, "duyurular", duyuruId, "okumalar"));
     if (panel !== benimPanel) return;
     s.forEach(x => panel.okumalar.set(x.id, x.data() || {}));
+    sayimOnbellek.delete(duyuruId);
   } catch (e) {
     if (panel !== benimPanel) return;
     panel.okumaHatasi = izinHatasiMi(e) ? "izin" : (e?.message || "hata");
@@ -428,6 +566,106 @@ async function hatirlatmaGonder() {
   toast(hatali ? `${basarili} veliye gönderildi, ${hatali} e-posta gönderilemedi` : `📧 ${basarili} veliye hatırlatma gönderildi`, hatali ? "error" : undefined);
 }
 
+
+// ─────────────────────────── eski kayıtları aktarma (tek seferlik) ───────────────────────────
+// duyurular/{id}.okuyanVeliler + .popupKapatanVeliler →
+//   • duyurular/{id}/okumalar/{eposta}  { eskiKayit: true, ... }  (personel paneli)
+//   • kullaniciTercihleri/{eposta}      okunanDuyurular / kapatilanSimsekler (veli)
+// Hiçbir şeyi SİLMEZ. Tekrar çalıştırmak güvenlidir.
+// Kural: genel yönetici izni (isAdmin / isKurucuMudur) yeterlidir.
+let aktarimKontrolEdildi = false;
+function yoneticiMi() {
+  const s = P()?.state || {};
+  return !!s.isAdmin || s.rol === "kurucu_mudur";
+}
+
+async function aktarimBandiKontrol() {
+  if (aktarimKontrolEdildi || !yoneticiMi()) return;
+  aktarimKontrolEdildi = true;
+  const a = P();
+  if (!a?.fb || !a?.db) return;
+  try {
+    const snap = await a.fb.getDoc(a.fb.doc(a.db, "ayarlar", "duyuruOkumaAktarim"));
+    if (snap.exists() && snap.data()?.sonAktarim) return;
+  } catch (_) { return; }
+  const liste = document.getElementById("duyurularListesi");
+  if (!liste || document.getElementById("dokAktarimBandi")) return;
+  const bant = document.createElement("div");
+  bant.id = "dokAktarimBandi";
+  bant.className = "dok-bant";
+  bant.innerHTML = `<div class="dok-bant-metin"><strong>Eski okuma kayıtları yeni sisteme aktarılmadı.</strong> `
+    + `Aktarım, velilerin e-postalarını duyurulardan kaldırmadan önceki ilk adımdır. Hiçbir kaydı silmez, tekrar çalıştırılabilir.</div>`
+    + `<button type="button" class="dok-birincil" data-dok-aktar>Şimdi aktar</button>`;
+  liste.parentNode.insertBefore(bant, liste);
+  bant.querySelector("[data-dok-aktar]").addEventListener("click", () => eskiKayitlariAktar(bant));
+}
+
+export async function eskiKayitlariAktar(bant) {
+  const a = P();
+  if (!a?.fb?.writeBatch || !yoneticiMi()) return toast("Bu işlem yalnız kurucu müdür hesabıyla yapılabilir", "error");
+  if (!confirm("Eski okuma kayıtları yeni yapıya aktarılacak. Hiçbir kayıt silinmez. Devam edilsin mi?")) return;
+  const dugme = bant?.querySelector("[data-dok-aktar]");
+  const yaz = (m) => { const el = bant?.querySelector(".dok-bant-metin"); if (el) el.textContent = m; };
+  if (dugme) dugme.disabled = true;
+  const { db, fb } = a;
+  let toplu = fb.writeBatch(db), bekleyen = 0, okumaSayisi = 0, duyuruSayisi = 0;
+  const bosalt = async () => { if (bekleyen) { await toplu.commit(); toplu = fb.writeBatch(db); bekleyen = 0; } };
+  const veliler = new Map();
+  try {
+    const dSnap = await fb.getDocs(fb.collection(db, "duyurular"));
+    let sira = 0;
+    for (const ds of dSnap.docs) {
+      sira++;
+      const d = ds.data() || {};
+      const liste = new Set((d.okuyanVeliler || []).map(kucuk).filter(Boolean));
+      const popup = new Set((d.popupKapatanVeliler || []).map(kucuk).filter(Boolean));
+      if (!liste.size && !popup.size) continue;
+      duyuruSayisi++;
+      yaz(`Aktarılıyor: ${sira}/${dSnap.size} duyuru`);
+      const mevcut = new Map();
+      (await fb.getDocs(fb.collection(db, "duyurular", ds.id, "okumalar"))).forEach(x => mevcut.set(x.id, x.data() || {}));
+      for (const e of new Set([...liste, ...popup])) {
+        if (e.includes("/")) continue;
+        const v = mevcut.get(e) || {};
+        if (!v.listedeGorulme && !v.simsekOnay && !v.eskiKayit) {
+          const veri = { eposta: e, eskiKayit: true, sonGorulme: v.sonGorulme || d.olusturuldu || "eski" };
+          if (popup.has(e) && !liste.has(e)) veri.eskiSimsek = true;
+          toplu.set(fb.doc(db, "duyurular", ds.id, "okumalar", e), veri, { merge: true });
+          bekleyen++; okumaSayisi++;
+          if (bekleyen >= 450) await bosalt();
+        }
+        const b = veliler.get(e) || { okunan: new Set(), kapatilan: new Set() };
+        b.okunan.add(ds.id);
+        if (popup.has(e)) b.kapatilan.add(ds.id);
+        veliler.set(e, b);
+      }
+    }
+    yaz(`Velilerin kendi listeleri güncelleniyor (${veliler.size} veli)`);
+    for (const [e, b] of veliler) {
+      const veri = { okunanDuyurular: fb.arrayUnion(...b.okunan) };
+      if (b.kapatilan.size) veri.kapatilanSimsekler = fb.arrayUnion(...b.kapatilan);
+      toplu.set(fb.doc(db, "kullaniciTercihleri", e), veri, { merge: true });
+      bekleyen++;
+      if (bekleyen >= 450) await bosalt();
+    }
+    await bosalt();
+    const s = a.state || {};
+    await fb.setDoc(fb.doc(db, "ayarlar", "duyuruOkumaAktarim"), {
+      sonAktarim: new Date().toISOString(), yapan: kucuk(s.currentUser?.email),
+      duyuruSayisi, okumaKaydi: okumaSayisi, veliSayisi: veliler.size
+    }, { merge: true });
+    sayimOnbellek.clear();
+    yaz(`Tamamlandı: ${duyuruSayisi} duyurudan ${okumaSayisi} okuma kaydı ve ${veliler.size} velinin kendi listesi aktarıldı.`);
+    if (dugme) dugme.remove();
+    toast("Eski okuma kayıtları aktarıldı");
+    setTimeout(() => bant?.remove(), 8000);
+  } catch (e) {
+    console.error("Aktarım hatası:", e);
+    yaz(`Aktarım yarıda kaldı: ${e?.message || e}. Tekrar çalıştırabilirsiniz, aktarılanlar yinelenmez.`);
+    if (dugme) dugme.disabled = false;
+  }
+}
+
 // ─────────────────────────── dinleyiciler ───────────────────────────
 let dinleyiciKurulu = false;
 function dinleyiciKur() {
@@ -456,6 +694,8 @@ function stilEkle() {
 .dok-rozet-tamam { background:#2d6a4f; border-color:#2d6a4f; color:#fff; }
 .dok-rozet-tamam:hover { background:#255a42; }
 
+.dok-bant { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 12px; padding:12px 14px; border-radius:12px; background:#FFF8E8; border:1px solid #F0CF86; color:#5C3B00; font-size:13px; line-height:1.5; }
+.dok-bant-metin { flex:1; min-width:220px; }
 .dok-arka { position:fixed; inset:0; z-index:1050; background:rgba(15,23,42,.55); display:flex; align-items:center; justify-content:center; padding:20px; animation:dokAc .15s ease-out; }
 @keyframes dokAc { from { opacity:0; } to { opacity:1; } }
 .dok-panel { background:#fff; width:100%; max-width:680px; max-height:min(88vh, 860px); border-radius:var(--radius-lg,24px); box-shadow:var(--shadow-lg,0 18px 40px rgba(30,41,90,.14)); display:flex; flex-direction:column; overflow:hidden; color:var(--ink,#1F2544); font-family:var(--font-body,inherit); }
@@ -533,5 +773,8 @@ function stilEkle() {
 if (typeof window !== "undefined") {
   stilEkle();
   dinleyiciKur();
-  window.duyuruOkunma = { goruldu, rozetHtml, panelAc, panelKapat };
+  window.duyuruOkunma = {
+    goruldu, rozetHtml, panelAc, panelKapat, veliDurumuYukle, veliOkudu,
+    veliGorulenleriKaydet, simsekKapatildiMi, simsekKapat, eskiKayitlariAktar
+  };
 }

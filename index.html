@@ -13883,7 +13883,7 @@ import {
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction,
-  documentId, deleteField
+  documentId, deleteField, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -13904,13 +13904,13 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v118";
+window.PORTAL_SURUM = "v119";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
   fb: { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
         query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot,
-        addDoc, arrayUnion, increment, runTransaction, documentId, deleteField },
+        addDoc, arrayUnion, increment, runTransaction, documentId, deleteField, getCountFromServer },
   // Portal durumu — her çağrıda güncel değeri verir
   get state() {
     return {
@@ -24350,13 +24350,16 @@ async function simsekDuyuruKontrolEt() {
   if (typeof veliOgrenciler === "undefined" || !veliOgrenciler || veliOgrenciler.length === 0) return;
 
   try {
+    const okunmaModul = await modulYukle("duyuru-okunma");
+    const veliOkuma = okunmaModul ? await okunmaModul.veliDurumuYukle() : null;
     const snap = await getDocs(collection(db, "duyurular"));
     const bekleyen = [];
     snap.forEach(d => {
       const data = d.data();
       if (!data.simsek || data.arsiv) return;
-      const kapatanlar = data.popupKapatanVeliler || [];
+      const kapatanlar = (data.popupKapatanVeliler || []).map(x => String(x).toLowerCase());
       if (kapatanlar.includes(veliEmail)) return;
+      if (veliOkuma && okunmaModul.simsekKapatildiMi(d.id, veliOkuma)) return;
       if (!simsekHedefUygun(data)) return;
       bekleyen.push({ id: d.id, ...data });
     });
@@ -24464,11 +24467,10 @@ async function simsekKapat(duyuruId) {
   if (!currentUser?.email) return;
   const veliEmail = currentUser.email.toLowerCase();
   try {
-    await updateDoc(doc(db, "duyurular", duyuruId), {
-      popupKapatanVeliler: arrayUnion(veliEmail)
-    });
-    // Gün ve saatiyle kayıt — moduller/duyuru-okunma.js
-    modulYukle("duyuru-okunma").then(m => m && m.goruldu(duyuruId, "simsek"));
+    // KVKK: veli e-postası duyuru belgesine yazılmaz; kayıt velinin kendi
+    // belgesine ve korumalı okuma kaydına gider — moduller/duyuru-okunma.js
+    const okunmaModul = await modulYukle("duyuru-okunma");
+    if (okunmaModul) await okunmaModul.simsekKapat(duyuruId);
   } catch (e) {
     console.warn("Şimşek kapatma kaydedilemedi:", e);
   }
@@ -30904,8 +30906,7 @@ window.kaydetDuyuru = async function() {
       showToast("✓ Duyuru güncellendi");
     } else {
       data.olusturuldu = new Date().toISOString();
-      data.okuyanVeliler = [];
-      data.popupKapatanVeliler = [];
+      // KVKK: okuyanVeliler / popupKapatanVeliler artık tutulmaz (okumalar alt kaydı)
       const ref = doc(collection(db, "duyurular"));
       await setDoc(ref, data);
 
@@ -31365,8 +31366,13 @@ async function renderEtkinlikler() {
           </div>
         </div>
         <div class="etkinlik-yazma" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
+          ${(typeof ogretmenRolMu === "function" && ogretmenRolMu()
+             && (e.olusturan || "").toLowerCase() !== (currentUser?.email || "").toLowerCase())
+            ? `<span style="font-size:11.5px; color:var(--gray-500); padding:6px 0;">
+                 <i data-lucide="lock" style="width:12px;height:12px;vertical-align:-2px;"></i> Bu etkinliği yalnızca açan kişi ve yönetim düzenleyebilir
+               </span>` : `
           <button onclick="duzenleEtkinlik('${e.id}')" style="padding:6px 12px; background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Düzenle</button>
-          <button onclick="silEtkinlikHizli('${e.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>
+          <button onclick="silEtkinlikHizli('${e.id}')" style="padding:6px 12px; background:white; border:1px solid #fecaca; color:#991b1b; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-left:auto;"><i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:-2px;"></i> Sil</button>`}
         </div>
       </div>
     `;
@@ -39960,6 +39966,9 @@ async function veliRenderBildirimler() {
     } catch (e) { console.warn("Duyurular yüklenemedi:", e); }
 
     const duyuruEkModul = bildirimler.some(b => Array.isArray(b.ekler) && b.ekler.length) ? await modulYukle("duyuru-ekleri") : null;
+    // Velinin kendi okundu listesi (kullaniciTercihleri) — moduller/duyuru-okunma.js
+    const okunmaModul = await modulYukle("duyuru-okunma");
+    const veliOkuma = okunmaModul ? await okunmaModul.veliDurumuYukle() : null;
 
     // Tarihe göre sırala (yeni üstte)
     bildirimler.sort((a, b) => (b.olusturuldu || "").localeCompare(a.olusturuldu || ""));
@@ -40025,7 +40034,8 @@ async function veliRenderBildirimler() {
           : hedefIkon("user") + " " + escapeHtml(b.hedefOgrenciAd || "");
 
         // Okunmamış mı? (nokta işareti için)
-        const okunmamis = !b.okuyanVeliler || !b.okuyanVeliler.includes(currentUser.email);
+        const okunmamis = veliOkuma ? !okunmaModul.veliOkudu(b, veliOkuma)
+          : (!b.okuyanVeliler || !b.okuyanVeliler.includes(currentUser.email));
         // Tarih başlığı — aynı gün tekrarlanmaz
         const tarihNesnesi = b.olusturulmaTarihi ? new Date(b.olusturulmaTarihi) : null;
         const gunEtiketi = tarihNesnesi && !isNaN(tarihNesnesi)
@@ -40064,18 +40074,13 @@ async function veliRenderBildirimler() {
         `;
 
         // Duyuruyu okundu olarak işaretle (arka planda)
-        const benimEpostam = (currentUser.email || "").toLowerCase();
-        if (!(b.okuyanVeliler || []).some(x => String(x).toLowerCase() === benimEpostam)) {
-          updateDoc(doc(db, "duyurular", b.id), {
-            okuyanVeliler: arrayUnion(benimEpostam)
-          }).catch(e => console.warn("Okundu kaydedilemedi:", e));
-          // Gün ve saatiyle kayıt — moduller/duyuru-okunma.js
-          modulYukle("duyuru-okunma").then(m => m && m.goruldu(b.id, "liste"));
-        }
+        // KVKK: veli e-postası duyuru belgesine YAZILMAZ. Okundu kaydı döngü
+        // sonunda toplu yapılır — moduller/duyuru-okunma.js (veliGorulenleriKaydet)
       }
     }
     html += `</div>`;
     el.innerHTML = html;
+    if (okunmaModul && veliOkuma) okunmaModul.veliGorulenleriKaydet(bildirimler.filter(x => x._tip === "duyuru"), veliOkuma);
   } catch (e) {
     el.innerHTML = `<div class="ozel-madde-empty">Bildirimler yüklenemedi: ${escapeHtml(e.message)}</div>`;
   }
