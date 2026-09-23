@@ -10745,6 +10745,11 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
             </div>
           </div>
 
+          <!-- Etkinlik ekleri (resim/dosya) — moduller/duyuru-ekleri.js doldurur -->
+          <div class="form-grid full">
+            <div class="form-group" id="etkinlikEkAlani"></div>
+          </div>
+
           <div class="form-grid full">
             <div class="form-group">
               <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
@@ -13899,7 +13904,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v117";
+window.PORTAL_SURUM = "v118";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -13933,6 +13938,11 @@ window.PortalAPI = {
   medya: {
     yukle: (dosya, klasor, sadeceResim) => medyaYukle(dosya, klasor, sadeceResim),
     sil: (yol) => medyaSil(yol)
+  },
+  // E-posta (Brevo) — moduller/duyuru-okunma.js hatırlatmaları kullanır
+  mail: {
+    gonder: (opts) => brevoMail(opts),
+    sablon: (baslik, icerik, altMesaj) => portalMailSablon(baslik, icerik, altMesaj)
   }
 };
 
@@ -24457,6 +24467,8 @@ async function simsekKapat(duyuruId) {
     await updateDoc(doc(db, "duyurular", duyuruId), {
       popupKapatanVeliler: arrayUnion(veliEmail)
     });
+    // Gün ve saatiyle kayıt — moduller/duyuru-okunma.js
+    modulYukle("duyuru-okunma").then(m => m && m.goruldu(duyuruId, "simsek"));
   } catch (e) {
     console.warn("Şimşek kapatma kaydedilemedi:", e);
   }
@@ -24884,6 +24896,7 @@ window.takvimEtkinlikDetayAc = function(e) {
           ${hedef ? `<div><strong><i data-lucide="users" style="width:13px;height:13px;vertical-align:-2px;"></i> Hedef:</strong> ${hedef}</div>` : ''}
         </div>
         ${e.aciklama ? `<div class="takvim-detay-aciklama">${aciklamaSafe}</div>` : ''}
+        <div data-etk-ek-yer></div>
         <div class="takvim-detay-butonlar">
           ${!e.sabit ? `<button class="takvim-detay-btn ics" onclick="takvimICSIndir('${e.id}')"><i data-lucide="calendar-plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Takvime Ekle</button>` : ''}
           <button class="takvim-detay-btn kapat" onclick="takvimDetayKapat()">Kapat</button>
@@ -24892,6 +24905,13 @@ window.takvimEtkinlikDetayAc = function(e) {
     </div>`;
 
   document.body.insertAdjacentHTML("beforeend", html);
+  // Resim/dosya ekleri — moduller/duyuru-ekleri.js
+  if (Array.isArray(e.ekler) && e.ekler.length) {
+    modulYukle("duyuru-ekleri").then(m => {
+      const yer = document.querySelector("#takvimDetayOverlay [data-etk-ek-yer]");
+      if (m && yer) yer.innerHTML = m.html(e.ekler, { kompakt: true });
+    });
+  }
 };
 
 window.takvimDetayKapat = function() {
@@ -25216,6 +25236,8 @@ async function caEtkinlikleriRender() {
   if (caEtkinlikSekme === "yaklasan")      liste = liste.filter(e => tarihi(e) >= bugun);
   else if (caEtkinlikSekme === "gecmis")   liste = liste.filter(e => tarihi(e) <  bugun).reverse();
 
+  const caEtkEkModul = liste.some(x => Array.isArray(x.ekler) && x.ekler.length) ? await modulYukle("duyuru-ekleri") : null;
+
   if (!liste.length) {
     const mesaj = caEtkinlikSekme === "yaklasan" ? "Yaklaşan etkinlik yok."
                 : caEtkinlikSekme === "gecmis"   ? "Geçmiş etkinlik yok."
@@ -25249,6 +25271,7 @@ async function caEtkinlikleriRender() {
           <div style="font-size:12px; color:var(--c-muted); margin-top:5px;">${GUN_AD[d.getDay()]}${saat ? " · " + escapeHtml(saat) : ""}</div>
           ${e.konum ? `<div style="font-size:12px; color:var(--c-muted); margin-top:3px;"><i data-lucide="map-pin" style="width:12px;height:12px;vertical-align:-2px;"></i> ${escapeHtml(e.konum)}</div>` : ""}
           ${e.aciklama ? `<div style="font-size:12.5px; color:#5A6B62; margin-top:7px; line-height:1.55;">${escapeHtml(e.aciklama)}</div>` : ""}
+          ${caEtkEkModul ? caEtkEkModul.html(e.ekler, { kompakt: true }) : ""}
           <span style="display:inline-block; padding:3px 9px; border-radius:12px; font-size:10.5px; font-weight:700; margin-top:8px; background:${kat.bg}; color:${kat.yazi};">${kat.ad}</span>
           ${buGun ? `<span style="display:inline-block; padding:3px 9px; border-radius:12px; font-size:10.5px; font-weight:700; margin-top:8px; margin-left:5px; background:#2D5E3E; color:#fff;">Bugün</span>` : ""}
         </div>
@@ -30647,6 +30670,7 @@ async function renderDuyurular() {
 
   await loadDuyurular();
   const duyuruEkModul = duyuruListesi.some(d => Array.isArray(d.ekler) && d.ekler.length) ? await modulYukle("duyuru-ekleri") : null;
+  const okunmaModul = await modulYukle("duyuru-okunma");
 
   let liste = [...duyuruListesi];
   if (aktifDuyuruFilter === "aktif") liste = liste.filter(d => !d.arsiv);
@@ -30700,7 +30724,7 @@ async function renderDuyurular() {
           </div>
           <div style="text-align:right; font-size:11px; color:var(--gray-500);">
             ${tarih}<br>
-            <span title="${okunmaSayisi} veli okudu" style="color:#2d6a4f;">👁 ${okunmaSayisi}</span>
+            ${okunmaModul ? okunmaModul.rozetHtml(d) : `<span title="${okunmaSayisi} veli okudu" style="color:#2d6a4f;">👁 ${okunmaSayisi}</span>`}
             ${simsekDurum ? '<br>' + simsekDurum : ''}
           </div>
         </div>
@@ -31271,6 +31295,7 @@ async function renderEtkinlikler() {
   if (!el) return;
 
   await loadEtkinlikler();
+  const etkEkModul = etkinlikListesi.some(x => Array.isArray(x.ekler) && x.ekler.length) ? await modulYukle("duyuru-ekleri") : null;
 
   const bugun = new Date();
   bugun.setHours(0, 0, 0, 0);
@@ -31336,6 +31361,7 @@ async function renderEtkinlikler() {
               ${e.konum ? '<br>📍 ' + escapeHtml(e.konum) : ''}
             </div>
             ${e.aciklama ? `<div style="font-size:13px; color:var(--gray-700); line-height:1.6; margin-top:8px; padding-top:8px; border-top:1px dashed var(--gray-200); white-space:pre-wrap;">${escapeHtml(e.aciklama)}</div>` : ''}
+            ${etkEkModul ? etkEkModul.html(e.ekler) : ""}
           </div>
         </div>
         <div class="etkinlik-yazma" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
@@ -31349,7 +31375,7 @@ async function renderEtkinlikler() {
   el.innerHTML = html;
 }
 
-window.openEtkinlikModal = function() {
+window.openEtkinlikModal = function(mevcutEkler) {
   if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   document.getElementById("etkinlikModal").classList.add("active");
   if (typeof etkinlikRolKisitiUygula === "function") etkinlikRolKisitiUygula();
@@ -31367,10 +31393,13 @@ window.openEtkinlikModal = function() {
   document.getElementById("etkinlikMailGonder").checked = false;
   document.getElementById("etkinlikSilBtn").style.display = "none";
   etkinlikHedefDegisti();
+  // Resim/dosya ekleri — düzenlemede mevcut ekler gelir
+  modulYukle("duyuru-ekleri").then(m => m && m.formHazirla(Array.isArray(mevcutEkler) ? mevcutEkler : [], "etkinlik"));
 };
 
 window.closeEtkinlikModal = function() {
   document.getElementById("etkinlikModal").classList.remove("active");
+  window.duyuruEkleri?.formKapandi();
 };
 
 window.etkinlikHedefDegisti = function() {
@@ -31382,7 +31411,7 @@ window.duzenleEtkinlik = function(id) {
   if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   const e = etkinlikListesi.find(x => x.id === id);
   if (!e) return;
-  openEtkinlikModal();
+  openEtkinlikModal(e.ekler || []);
   document.getElementById("etkinlikModalBaslik").textContent = "✏️ Etkinliği Düzenle";
   document.getElementById("etkinlikDuzenleId").value = id;
   document.getElementById("etkinlikBaslik").value = e.baslik || "";
@@ -31436,12 +31465,19 @@ window.kaydetEtkinlik = async function() {
     if (!hedefDeger) return showToast("Sınıf seçin", "error");
   }
 
+  // ── Resim/dosya ekleri ──
+  const etkEkModul = await modulYukle("duyuru-ekleri");
+  if (etkEkModul && etkEkModul.yuklemeSuruyor()) {
+    return showToast("Ekler hâlâ yükleniyor, bitince tekrar deneyin", "error");
+  }
+
   const data = {
     baslik, kategori, hedefTur, hedefDeger,
     tarih, baslangicSaat, bitisSaat, konum, aciklama,
     guncellendi: new Date().toISOString(),
     guncelleyen: currentUser.email
   };
+  if (etkEkModul) data.ekler = etkEkModul.formEkleri();
 
   try {
     if (id) {
@@ -31455,6 +31491,7 @@ window.kaydetEtkinlik = async function() {
       if (mailGonder) etkinlikMailGonder(data);
       showToast("✓ Etkinlik oluşturuldu");
     }
+    if (etkEkModul) etkEkModul.kayitTamamlandi();
     closeEtkinlikModal();
     renderEtkinlikler();
   } catch (e) {
@@ -31495,6 +31532,7 @@ async function etkinlikMailGonder(data) {
             ${data.konum ? '<br>📍 ' + escapeHtml(data.konum) : ''}
           </div>
           ${data.aciklama ? `<div style="font-size:13px; color:#4b5563; line-height:1.7; margin-top:12px; padding-top:10px; border-top:1px dashed #bfdbfe; white-space:pre-wrap;">${escapeHtml(data.aciklama)}</div>` : ''}
+          ${window.duyuruEkleri?.mailHtml ? window.duyuruEkleri.mailHtml(data.ekler) : ""}
         </div>
         <p style="margin:20px 0 0; font-size:13px; color:#374151;">Saygılarımızla,<br><strong>Bir Çiçek Koleji Anaokulu</strong></p>
       `;
@@ -31510,8 +31548,10 @@ window.silEtkinlik = async function() {
   const id = document.getElementById("etkinlikDuzenleId").value;
   if (!id) return;
   if (!confirm("Bu etkinliği silmek istediğinize emin misiniz?")) return;
+  const silinenEtkEkler = (etkinlikListesi.find(x => x.id === id) || {}).ekler || [];
   try {
     await deleteDoc(doc(db, "etkinlikler", id));
+    if (silinenEtkEkler.length) modulYukle("duyuru-ekleri").then(m => m && m.ekleriSil(silinenEtkEkler));
     showToast("✗ Etkinlik silindi");
     closeEtkinlikModal();
     renderEtkinlikler();
@@ -31521,8 +31561,10 @@ window.silEtkinlik = async function() {
 window.silEtkinlikHizli = async function(id) {
   if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   if (!confirm("Bu etkinliği silmek istediğinize emin misiniz?")) return;
+  const silinenEtkEkler = (etkinlikListesi.find(x => x.id === id) || {}).ekler || [];
   try {
     await deleteDoc(doc(db, "etkinlikler", id));
+    if (silinenEtkEkler.length) modulYukle("duyuru-ekleri").then(m => m && m.ekleriSil(silinenEtkEkler));
     showToast("✗ Silindi");
     renderEtkinlikler();
   } catch (e) { showToast("Silinemedi: " + e.message, "error"); }
@@ -40022,10 +40064,13 @@ async function veliRenderBildirimler() {
         `;
 
         // Duyuruyu okundu olarak işaretle (arka planda)
-        if (!b.okuyanVeliler || !b.okuyanVeliler.includes(currentUser.email)) {
+        const benimEpostam = (currentUser.email || "").toLowerCase();
+        if (!(b.okuyanVeliler || []).some(x => String(x).toLowerCase() === benimEpostam)) {
           updateDoc(doc(db, "duyurular", b.id), {
-            okuyanVeliler: [...(b.okuyanVeliler || []), currentUser.email]
+            okuyanVeliler: arrayUnion(benimEpostam)
           }).catch(e => console.warn("Okundu kaydedilemedi:", e));
+          // Gün ve saatiyle kayıt — moduller/duyuru-okunma.js
+          modulYukle("duyuru-okunma").then(m => m && m.goruldu(b.id, "liste"));
         }
       }
     }
@@ -40400,6 +40445,7 @@ async function veliRenderEtkinlikListesi() {
     });
 
     uygun.sort((a, b) => (a.tarih || "").localeCompare(b.tarih || ""));
+    const veliEtkEkModul = uygun.some(x => Array.isArray(x.ekler) && x.ekler.length) ? await modulYukle("duyuru-ekleri") : null;
 
     if (uygun.length === 0) {
       el.innerHTML = `
@@ -40450,6 +40496,7 @@ async function veliRenderEtkinlikListesi() {
             ${e.konum ? '<br>📍 ' + escapeHtml(e.konum) : ''}
           </div>
           ${e.aciklama ? `<div style="font-size:13px; color:var(--gray-700); line-height:1.6; margin-top:10px; padding-top:8px; border-top:1px dashed var(--gray-200); white-space:pre-wrap;">${escapeHtml(e.aciklama)}</div>` : ''}
+          ${veliEtkEkModul ? veliEtkEkModul.html(e.ekler) : ""}
         </div>
       `;
     }

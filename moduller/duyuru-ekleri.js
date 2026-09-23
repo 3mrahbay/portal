@@ -1,13 +1,14 @@
 // ══════════════════════════════════════════════════════════════
-// PORTAL · DUYURU EKLERİ (resim + dosya)
+// PORTAL · DUYURU + ETKİNLİK EKLERİ (resim + dosya)
 // --------------------------------------------------------------
-// 1) Duyuru oluştur/düzenle penceresine resim ve dosya ekleme
-// 2) Duyuru listelerinde eklerin gösterimi (yönetim listesi,
-//    veli Bildirimler sekmesi, şimşek popup, e-posta)
+// 1) Duyuru ve etkinlik pencerelerine resim/dosya ekleme
+// 2) Listelerde eklerin gösterimi (yönetim listeleri, veli
+//    Bildirimler/Etkinlikler, takvim detayı, şimşek popup, e-posta)
 // 3) Resme dokununca tam ekran görüntüleyici (X ile kapanır,
 //    ESC / geri tuşu / arka plana dokunma da kapatır)
 //
-// Veri modeli — duyurular/{id}.ekler (ZEKY ile ortak alan):
+// Veri modeli — duyurular/{id}.ekler ve etkinlikler/{id}.ekler
+// (ZEKY ile ortak alan):
 //   [{ tur: "resim"|"dosya", url, yol, ad, boyut, mime,
 //      en?, boy?, yuklendi }]
 //   url : Bunny CDN adresi   ·   yol : Bunny'den silmek için yol
@@ -28,7 +29,15 @@ const DOSYA_MAKS_MB = 15;           // medyaDogrula ile aynı sınır
 const DOSYA_UZANTILARI = ["pdf", "doc", "docx", "xls", "xlsx", "txt", "zip"];
 const RESIM_UZANTILARI = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"];
 const KABUL = "image/*," + DOSYA_UZANTILARI.map(u => "." + u).join(",");
-const KLASOR_KOK = "duyurular";     // Bunny klasörü — silme yalnızca bunun içinde yapılır
+// Bunny klasörleri — silme YALNIZCA bu klasörlerin içinde yapılır (galeri vb. korunur)
+const KLASOR_KOKLERI = ["duyurular", "etkinlikler"];
+
+// Form bağlamları: hangi pencere, hangi alan, hangi Bunny klasörü
+const BAGLAMLAR = {
+  duyuru:   { alan: "duyuruEkAlani",   pencere: "duyuruModal",   klasor: "duyurular",   ad: "duyurunun" },
+  etkinlik: { alan: "etkinlikEkAlani", pencere: "etkinlikModal", klasor: "etkinlikler", ad: "etkinliğin" }
+};
+let baglam = BAGLAMLAR.duyuru;
 
 const IKON = {
   atac: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
@@ -84,9 +93,9 @@ function guvenliDosyaAdi(ad, yeniUzanti) {
   const on = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   return `${on}-${govde}.${uz}`;
 }
-// Bunny'den sil — yalnızca duyurular/ klasöründeki dosyalar (galeri vb. asla silinmez)
+// Bunny'den sil — yalnızca duyurular/ ve etkinlikler/ klasörlerindeki dosyalar
 function bunnySil(yol) {
-  if (!yol || !String(yol).includes(KLASOR_KOK + "/")) return;
+  if (!yol || !KLASOR_KOKLERI.some(k => String(yol).includes(k + "/"))) return;
   try {
     const p = api()?.medya?.sil?.(yol);
     if (p && typeof p.catch === "function") p.catch(e => console.warn("Duyuru eki silinemedi:", e?.message || e));
@@ -166,10 +175,15 @@ function onizlemeBirak(o) {
   if (o?.onizleme) { try { URL.revokeObjectURL(o.onizleme); } catch (_) {} o.onizleme = ""; }
 }
 
-/** Form açılışında çağrılır. mevcut: düzenlenen duyurunun ekleri (yeni duyuruda []). */
-export function formHazirla(mevcut) {
+/**
+ * Form açılışında çağrılır.
+ * mevcut: düzenlenen kaydın ekleri (yeni kayıtta [])
+ * tur   : "duyuru" (varsayılan) | "etkinlik"
+ */
+export function formHazirla(mevcut, tur = "duyuru") {
   stilEkle();
   formKapandi();          // önceki oturumdan kalan kaydedilmemiş yüklemeleri temizler
+  baglam = BAGLAMLAR[tur] || BAGLAMLAR.duyuru;
   oturum++;
   formAcik = true;
   kaydedildi = false;
@@ -285,7 +299,7 @@ async function tekYukle(oge, benimOturum) {
     } else {
       gonderilecek = new File([oge.dosya], guvenliDosyaAdi(oge.dosya.name), { type: oge.dosya.type || "application/octet-stream" });
     }
-    const klasor = `${KLASOR_KOK}/${new Date().toISOString().slice(0, 7)}`;
+    const klasor = `${baglam.klasor}/${new Date().toISOString().slice(0, 7)}`;
     const sonuc = await a.medya.yukle(gonderilecek, klasor, oge.ek.tur === "resim");
     if (!sonuc || !guvenliUrl(sonuc.url)) throw new Error("Yükleme tamamlanamadı");
 
@@ -346,15 +360,16 @@ function formOgeHtml(o) {
 }
 
 function alaniCiz() {
-  const kap = document.getElementById("duyuruEkAlani");
+  const kap = document.getElementById(baglam.alan);
   if (!kap) return;
   stilEkle();
+  kap.classList.add("dek-alan");
   const dolu = ogeler.length >= MAKS_EK;
   kap.innerHTML = `<label>Resim ve dosyalar</label>`
     + `<div class="dek-birak${dolu ? " dek-dolu" : ""}" data-dek-birak>`
     + `<input type="file" data-dek-input multiple accept="${esc(KABUL)}" hidden>`
     + `<button type="button" class="dek-sec" data-dek-sec${dolu ? " disabled" : ""}>${IKON.atac}<span>${dolu ? `${MAKS_EK} ek sınırına ulaşıldı` : "Resim veya dosya ekle"}</span></button>`
-    + `<div class="dek-not">Resimler (JPG, PNG, WEBP, GIF) duyurunun altında görünür, dokununca tam ekran açılır. PDF, Word, Excel, TXT ve ZIP dosyaları en fazla 15 MB olabilir.</div>`
+    + `<div class="dek-not">Resimler (JPG, PNG, WEBP, GIF) ${baglam.ad} altında görünür, dokununca tam ekran açılır. PDF, Word, Excel, TXT ve ZIP dosyaları en fazla 15 MB olabilir.</div>`
     + `</div>`
     + (ogeler.length ? `<div class="dek-form-liste">${ogeler.map(formOgeHtml).join("")}</div>` : "")
     + `<div class="field-hint">Öğrenci fotoğrafı içeren görseller seçilen tüm velilere gider. Bu tür paylaşımlar için Galeri'yi tercih edin.</div>`;
@@ -596,9 +611,9 @@ function dinleyiciKur() {
   // Geri tuşu (Android / tarayıcı) görüntüleyiciyi kapatır
   window.addEventListener("popstate", () => { if (lb) tamEkranKapat("gecmis"); });
 
-  // Duyuru penceresi açıkken panodan resim yapıştırma (bilgisayarda)
+  // Duyuru/etkinlik penceresi açıkken panodan resim yapıştırma (bilgisayarda)
   document.addEventListener("paste", olay => {
-    if (!formAcik || !document.getElementById("duyuruModal")?.classList.contains("active")) return;
+    if (!formAcik || !document.getElementById(baglam.pencere)?.classList.contains("active")) return;
     const dosyalar = [...(olay.clipboardData?.files || [])].filter(resimMi);
     if (!dosyalar.length) return;
     olay.preventDefault();
@@ -612,32 +627,32 @@ function stilEkle() {
   const st = document.createElement("style");
   st.id = "duyuruEkStil";
   st.textContent = `
-#duyuruEkAlani .dek-birak { border:1.5px dashed var(--gray-300,#D8DCE9); border-radius:12px; padding:14px; background:var(--warm-white,#F7F8FC); text-align:center; transition:border-color .15s, background .15s; }
-#duyuruEkAlani .dek-birak.dek-surukle { border-color:var(--green-medium,#5A6ACF); background:var(--green-mist,#E9EBF4); }
-#duyuruEkAlani .dek-sec { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:10px 16px; border-radius:10px; border:1px solid var(--gray-300,#D8DCE9); background:#fff; color:var(--ink,#1F2544); font:600 14px var(--font-body,inherit); cursor:pointer; }
-#duyuruEkAlani .dek-sec:hover:not(:disabled) { border-color:var(--green-medium,#5A6ACF); color:var(--green-primary,#2B3674); }
-#duyuruEkAlani .dek-sec:focus-visible { outline:3px solid var(--green-light,#C9D1F0); outline-offset:2px; }
-#duyuruEkAlani .dek-sec:disabled { opacity:.55; cursor:not-allowed; }
-#duyuruEkAlani .dek-sec svg { width:18px; height:18px; flex-shrink:0; }
-#duyuruEkAlani .dek-not { font-size:12px; color:var(--ink-soft,#4A5169); margin:8px auto 0; line-height:1.5; max-width:46ch; }
-#duyuruEkAlani .dek-form-liste { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-#duyuruEkAlani .dek-form-oge { display:flex; align-items:center; gap:10px; padding:8px 6px 8px 8px; border:1px solid var(--gray-300,#D8DCE9); border-radius:12px; background:#fff; min-width:0; }
-#duyuruEkAlani .dek-form-oge.dek-hata { border-color:#FECACA; background:#FEF2F2; }
-#duyuruEkAlani .dek-form-kucuk { width:48px; height:48px; flex-shrink:0; border-radius:8px; overflow:hidden; background:var(--green-mist,#E9EBF4); display:flex; align-items:center; justify-content:center; }
-#duyuruEkAlani .dek-form-kucuk img { width:100%; height:100%; object-fit:cover; display:block; }
-#duyuruEkAlani .dek-uz { font-size:11px; font-weight:800; color:var(--green-primary,#2B3674); letter-spacing:.3px; }
-#duyuruEkAlani .dek-form-bilgi { flex:1; min-width:0; text-align:left; }
-#duyuruEkAlani .dek-form-ad { font-size:13px; font-weight:600; color:var(--ink,#1F2544); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#duyuruEkAlani .dek-form-alt { font-size:12px; color:var(--gray-500,#8A92A6); margin-top:2px; }
-#duyuruEkAlani .dek-tamam { color:#15803D; font-weight:600; }
-#duyuruEkAlani .dek-hata-yazi { color:#B91C1C; font-weight:600; }
-#duyuruEkAlani .dek-yukleniyor { display:inline-flex; align-items:center; gap:6px; color:var(--green-medium,#5A6ACF); font-weight:600; }
+.dek-alan .dek-birak { border:1.5px dashed var(--gray-300,#D8DCE9); border-radius:12px; padding:14px; background:var(--warm-white,#F7F8FC); text-align:center; transition:border-color .15s, background .15s; }
+.dek-alan .dek-birak.dek-surukle { border-color:var(--green-medium,#5A6ACF); background:var(--green-mist,#E9EBF4); }
+.dek-alan .dek-sec { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:10px 16px; border-radius:10px; border:1px solid var(--gray-300,#D8DCE9); background:#fff; color:var(--ink,#1F2544); font:600 14px var(--font-body,inherit); cursor:pointer; }
+.dek-alan .dek-sec:hover:not(:disabled) { border-color:var(--green-medium,#5A6ACF); color:var(--green-primary,#2B3674); }
+.dek-alan .dek-sec:focus-visible { outline:3px solid var(--green-light,#C9D1F0); outline-offset:2px; }
+.dek-alan .dek-sec:disabled { opacity:.55; cursor:not-allowed; }
+.dek-alan .dek-sec svg { width:18px; height:18px; flex-shrink:0; }
+.dek-alan .dek-not { font-size:12px; color:var(--ink-soft,#4A5169); margin:8px auto 0; line-height:1.5; max-width:46ch; }
+.dek-alan .dek-form-liste { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.dek-alan .dek-form-oge { display:flex; align-items:center; gap:10px; padding:8px 6px 8px 8px; border:1px solid var(--gray-300,#D8DCE9); border-radius:12px; background:#fff; min-width:0; }
+.dek-alan .dek-form-oge.dek-hata { border-color:#FECACA; background:#FEF2F2; }
+.dek-alan .dek-form-kucuk { width:48px; height:48px; flex-shrink:0; border-radius:8px; overflow:hidden; background:var(--green-mist,#E9EBF4); display:flex; align-items:center; justify-content:center; }
+.dek-alan .dek-form-kucuk img { width:100%; height:100%; object-fit:cover; display:block; }
+.dek-alan .dek-uz { font-size:11px; font-weight:800; color:var(--green-primary,#2B3674); letter-spacing:.3px; }
+.dek-alan .dek-form-bilgi { flex:1; min-width:0; text-align:left; }
+.dek-alan .dek-form-ad { font-size:13px; font-weight:600; color:var(--ink,#1F2544); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dek-alan .dek-form-alt { font-size:12px; color:var(--gray-500,#8A92A6); margin-top:2px; }
+.dek-alan .dek-tamam { color:#15803D; font-weight:600; }
+.dek-alan .dek-hata-yazi { color:#B91C1C; font-weight:600; }
+.dek-alan .dek-yukleniyor { display:inline-flex; align-items:center; gap:6px; color:var(--green-medium,#5A6ACF); font-weight:600; }
 .dek-donen { width:12px; height:12px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:dekDon .8s linear infinite; display:inline-block; }
 @keyframes dekDon { to { transform:rotate(360deg); } }
-#duyuruEkAlani .dek-kaldir { width:40px; height:40px; flex-shrink:0; border:0; border-radius:10px; background:transparent; color:var(--gray-500,#8A92A6); cursor:pointer; display:flex; align-items:center; justify-content:center; }
-#duyuruEkAlani .dek-kaldir:hover { background:#FEE2E2; color:#B91C1C; }
-#duyuruEkAlani .dek-kaldir:focus-visible { outline:3px solid var(--green-light,#C9D1F0); }
-#duyuruEkAlani .dek-kaldir svg { width:18px; height:18px; }
+.dek-alan .dek-kaldir { width:40px; height:40px; flex-shrink:0; border:0; border-radius:10px; background:transparent; color:var(--gray-500,#8A92A6); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.dek-alan .dek-kaldir:hover { background:#FEE2E2; color:#B91C1C; }
+.dek-alan .dek-kaldir:focus-visible { outline:3px solid var(--green-light,#C9D1F0); }
+.dek-alan .dek-kaldir svg { width:18px; height:18px; }
 
 .dek-goster { margin-top:12px; display:flex; flex-direction:column; gap:10px; max-width:100%; white-space:normal; }
 .dek-galeri { display:grid; gap:6px; max-width:560px; }
