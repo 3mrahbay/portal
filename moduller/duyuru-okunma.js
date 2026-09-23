@@ -723,7 +723,9 @@ function stilEkle() {
 .dok-sekme-aktif { background:var(--green-deep,#1F2544); border-color:var(--green-deep,#1F2544); color:#fff; }
 .dok-sekme-aktif b { background:rgba(255,255,255,.2); color:#fff; }
 .dok-sekme:focus-visible { outline:3px solid var(--green-light,#C9D1F0); outline-offset:2px; }
-.dok-liste { flex:1; overflow-y:auto; padding:6px 24px 18px; overscroll-behavior:contain; }
+.dok-liste { flex:1 1 auto; min-height:0; overflow-y:auto; padding:6px 24px 18px; overscroll-behavior:contain; }
+/* Üst bölüm, sekmeler ve alt bar asla sıkışmasın; yalnız liste kayar */
+.dok-bas, .dok-ozet, .dok-bilgi, .dok-sekmeler, .dok-alt-bar { flex-shrink:0; }
 .dok-grup h4 { position:sticky; top:0; z-index:1; margin:0; padding:12px 0 6px; background:#fff; font-size:13px; font-weight:700; color:var(--green-primary,#2B3674); }
 .dok-grup h4 span { font-weight:600; color:var(--gray-500,#8A92A6); margin-left:4px; }
 .dok-satir { display:flex; align-items:center; gap:12px; padding:11px 0; border-top:1px solid var(--gray-100,#F1F2F7); }
