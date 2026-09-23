@@ -192,7 +192,7 @@
     randevuV3KoprusunuKur();
     // Personel devam kartlarinda giris/cikis yalnizca fiziksel QR kamera
     // ve okul konumu dogrulamasi ile yapilir. Mola butonlari korunur.
-    import('./js/personel-qr-devam.js?v=1').catch((hata) => {
+    import('./js/personel-qr-devam.js?v=2').catch((hata) => {
       console.warn('[Personel QR] Modül yüklenemedi:', hata);
     });
     // İlk denemede dene (belki modal zaten açıktır)

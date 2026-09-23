@@ -201,6 +201,20 @@ export async function randevuServisiGetir() {
   return adapter;
 }
 
+// Aynı App Check ve oturum çerçevesini randevu dışındaki callable'lar
+// (ör. personelDevamKomutV1) için paylaşır; App Check sayfada bir kez kurulur.
+export async function guvenliFunctionsGetir() {
+  if (!callableCutoverAcikMi()) {
+    throw new Error('Güvenli sunucu bağlantısı bu sayfada kullanılamıyor.');
+  }
+  await oturumKullaniciBekle();
+  if (sessionInvalidated) {
+    throw new Error('Oturum değişti; sayfa yeniden açılmalıdır.');
+  }
+  await appCheckHazirla();
+  return getFunctions(firebaseAppGetir(), RANDEVU_CALLABLE_CUTOVER.region);
+}
+
 export function istekIzleyiciOlustur() {
   const anahtarlar = new Map();
   return Object.freeze({
