@@ -9421,6 +9421,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       <div class="side-grup">
         <button class="side-item" data-modul="gunlukRapor" onclick="modulSec('gunlukRapor')"><span class="side-ikon"><i data-lucide="notebook-pen"></i></span><span class="side-ad">Günlük Rapor</span></button>
         <button class="side-item yonetim-only" data-modul="geriBildirim" onclick="modulSec('geriBildirim')"><span class="side-ikon"><i data-lucide="message-square-heart"></i></span><span class="side-ad">Geri Bildirim</span></button>
+        <button class="side-item yonetim-only" data-modul="veliKatilim" onclick="modulSec('veliKatilim')"><span class="side-ikon"><i data-lucide="activity"></i></span><span class="side-ad">Veli Katılımı</span></button>
         <button class="side-item yonetim-only" data-modul="programBelgeleme" onclick="modulSec('programBelgeleme')"><span class="side-ikon"><i data-lucide="folder-check"></i></span><span class="side-ad">Evrak Takibi</span></button>
         <button class="side-item" data-modul="haftalikPlan" onclick="modulSec('haftalikPlan')"><span class="side-ikon"><i data-lucide="calendar-range"></i></span><span class="side-ad">Haftalık Plan</span></button>
         <button class="side-item" data-modul="devamsizlik" onclick="modulSec('devamsizlik')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">Devamsızlık</span></button>
@@ -9457,6 +9458,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       <button class="tab" data-tab="gunlukRapor" id="tab-gunlukRapor-btn" style="display:none;"><i data-lucide="notebook-pen"></i> Günlük Rapor</button>
       <button class="tab" data-tab="programBelgeleme" id="tab-programBelgeleme-btn" style="display:none;"><i data-lucide="folder-check"></i> Evrak Takibi</button>
       <button class="tab" data-tab="geriBildirim" id="tab-geriBildirim-btn" style="display:none;"><i data-lucide="message-square-heart"></i> Geri Bildirim</button>
+      <button class="tab" data-tab="veliKatilim" id="tab-veliKatilim-btn" style="display:none;"><i data-lucide="activity"></i> Veli Katılımı</button>
       <button class="tab" data-tab="danismaRandevu" id="tab-danismaRandevu-btn" style="display:none;"><i data-lucide="calendar-clock"></i> Aday Randevuları</button>
       <button class="tab" data-tab="pdr" id="tab-pdr-btn" style="display:none;"><i data-lucide="brain"></i> PDR</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
@@ -10182,6 +10184,17 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <p style="opacity:.92; font-size:14px; margin:0;">Haftalık memnuniyet trendi, veli yorumları ve personelin sınıf için ihtiyaç bildirimleri.</p>
       </div>
       <div id="geriBildirimIcerik"><div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div></div>
+    </div>
+
+    <!-- ============ VELİ KATILIMI — moduller/veli-katilim.js (yalnız kurucu müdür) ============ -->
+    <div class="tab-panel" id="tab-veliKatilim">
+      <div style="background:linear-gradient(135deg,#2B3674 0%,#5A6ACF 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
+          <i data-lucide="activity" style="width:15px;height:15px;"></i> VELİ İLGİSİ</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Veli Katılımı</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">Hangi veli ne zaman girdi, hangi bölümlere baktı, ne sıklıkla geliyor. Portal ve ZEKY birlikte izlenir; sayfa kendiliğinden güncellenir.</p>
+      </div>
+      <div id="veliKatilimIcerik"><div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div></div>
     </div>
 
     <!-- ============ PROGRAM BELGELEME — moduller/program-belgeleme.js ============ -->
@@ -13904,7 +13917,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v120";
+window.PORTAL_SURUM = "v121";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14410,6 +14423,8 @@ const SEKME_YETKILERI = {
   gunlukRapor: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   programBelgeleme: ["kurucu_mudur", "mudur", "egitim_koordinator"],
   geriBildirim: ["kurucu_mudur", "mudur", "egitim_koordinator"],
+  // Veli Katılımı: velilerin giriş ve gezinme kayıtları — yalnız kurucu müdür (Rules ile birebir)
+  veliKatilim: ["kurucu_mudur"],
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
   duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma", "pdr"],
@@ -16631,6 +16646,9 @@ async function loadVeliPanel(user) {
       showVeliNotAuthorized(user.email);
       return;
     }
+
+    // Veli katılım kaydı (girişler, açılan bölümler) — moduller/veli-katilim.js
+    modulYukle("veli-katilim").then(m => m && m.veliBaslat());
 
     // Öğrenci seçici göster (kardeşler varsa)
     renderVeliOgrenciSecici(bulunan);
@@ -42086,6 +42104,7 @@ const MODUL_HARITASI = {
   gunlukRapor: { tablar: ["gunlukRapor"],  varsayilan: "gunlukRapor",  ad: "Günlük Rapor" },
   programBelgeleme: { tablar: ["programBelgeleme"], varsayilan: "programBelgeleme", ad: "Evrak Takibi" },
   geriBildirim: { tablar: ["geriBildirim"], varsayilan: "geriBildirim", ad: "Geri Bildirim" },
+  veliKatilim: { tablar: ["veliKatilim"], varsayilan: "veliKatilim", ad: "Veli Katılımı" },
   galeri:      { tablar: ["galeri"],     varsayilan: "galeri", ad: "Galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
@@ -42291,6 +42310,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Geri Bildirim sekmesi açıldı
     if (tab.dataset.tab === "geriBildirim") {
       setTimeout(() => { modulYukle("geri-bildirim").then(m => m && m.yonetimPanel("geriBildirimIcerik")); }, 50);
+    }
+
+    // Veli Katılımı sekmesi açıldı (canlı dinleme) — moduller/veli-katilim.js
+    if (tab.dataset.tab === "veliKatilim") {
+      setTimeout(() => { modulYukle("veli-katilim").then(m => m && m.panelRender("veliKatilimIcerik")); }, 50);
     }
 
     // Orman & Değerler sekmesi açıldı

@@ -61,6 +61,10 @@ function hedefYazi(d) {
   if (d.hedefTur === "ogrenci") return d.hedefOgrenciAd || "Tek öğrenci";
   return "Tüm okul";
 }
+function iletisimGorur() {
+  const s = P()?.state || {};
+  return !!s.isAdmin || ["kurucu_mudur", "mudur"].includes(s.rol);
+}
 function izinHatasiMi(e) {
   const k = String(e?.code || e?.message || e || "");
   return /permission|insufficient/i.test(k);
@@ -387,7 +391,9 @@ function grupla(liste) {
 function satirHtml(r) {
   const cocuklar = r.cocuklar.map(c => esc(c.ad)).join(", ");
   const rol = r.roller.join(" ve ");
-  const hesap = r.eposta ? `<span class="dok-eposta">${esc(r.eposta)}</span>` : `<span class="dok-uyari-yazi">Portal hesabı yok, e-posta kayıtlı değil</span>`;
+  // Veli iletişim bilgisi yalnız müdür ve kurucu müdüre görünür (portal kuralı: iletisimGorebilir)
+  const hesap = !r.eposta ? `<span class="dok-uyari-yazi">Portal hesabı yok, e-posta kayıtlı değil</span>`
+    : iletisimGorur() ? `<span class="dok-eposta">${esc(r.eposta)}</span>` : "";
   let sag = "";
   const izinYok = panel.okumaHatasi === "izin";
   if (r.durum === "gormedi") {
