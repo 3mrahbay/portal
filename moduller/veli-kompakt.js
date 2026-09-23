@@ -10,6 +10,11 @@
 // Ödeme kartı yerinde kalır ama kısa görünür; dokununca ayrıntı açılır,
 // oradan Ödemeler sayfasına gidilir.
 //
+// 2. aşama (24 Eylül): kartların İÇİ sadeleşir (renkli şeritler, emoji ve
+// farklı renkli düğmeler tek dile iner) ve "Okul ve iletişim" karoları
+// eklenir: Duyurular, Takvim, Mesajlar, Randevular, Eğitim gelişimi,
+// Rehberlik. "Bugünün günlüğü" ana içerik olduğu için kart olarak kalır.
+//
 // ÖNEMLİ: Kartların kendi kodu (moduller/sabah-girisi.js,
 // veli-izinleri.js, pickup-yetkilileri.js, okul zili) DEĞİŞMEDİ.
 // Kartlar kimlikleriyle (id) aynı kalır ve yalnız yerleri değişir;
@@ -73,11 +78,47 @@ async function pickupOzet(el) {
 }
 
 const KAROLAR = [
-  { id: "veliSabahGirisiKart", ad: "Sabah girişi", ikon: "sunrise", renk: "#0E7490", acik: "#E0F7FA", ozet: sabahOzet, alt: () => `${cocukAdi()} yola çıkınca bildirin` },
-  { id: "veliOkulZiliKart", ad: "Okul zili", ikon: "bell-ring", renk: "#B45309", acik: "#FEF3C7", ozet: zilOzet, alt: () => `${cocukAdi()}'ı almaya gelirken` },
-  { id: "veliIzinKart", ad: "İzin ve bildirim", ikon: "calendar-x-2", renk: "#7C3AED", acik: "#EDE9FE", ozet: izinOzet, alt: () => "Gelmeyecek, geç gelecek" },
-  { id: "veliPickupYetkiKart", ad: "Teslim alacaklar", ikon: "shield-check", renk: "#2D5E3E", acik: "#E8F3EC", ozet: pickupOzet, alt: () => "Okuldan kimler alabilir" }
+  { id: "veliSabahGirisiKart", ad: "Sabah girişi", ikon: "sunrise", renk: "#0E7490", acik: "#E0F7FA", ozet: sabahOzet },
+  { id: "veliOkulZiliKart", ad: "Okul zili", ikon: "bell-ring", renk: "#B45309", acik: "#FEF3C7", ozet: zilOzet },
+  { id: "veliIzinKart", ad: "İzin ve bildirim", ikon: "calendar-x-2", renk: "#7C3AED", acik: "#EDE9FE", ozet: izinOzet },
+  { id: "veliPickupYetkiKart", ad: "Teslim alacaklar", ikon: "shield-check", renk: "#2D5E3E", acik: "#E8F3EC", ozet: pickupOzet }
 ];
+// Okul ve iletişim — ana sayfadaki bölümlerden karoya dönüşenler
+const bolumKarti = (baslik) => {
+  const h = [...document.querySelectorAll(".ca-page .ca-sectionhead .ca-head")].find(x => metin(x).includes(baslik));
+  const sarici = h?.closest(".ca-sectionhead")?.parentElement;
+  return sarici ? { sarici, kart: sarici.querySelector(":scope > .ca-card, :scope > .ca-announce") } : null;
+};
+const sayiBul = (el, secici) => [...el.querySelectorAll(secici)].reduce((t, x) => t + (parseInt(metin(x), 10) || 0), 0);
+const GRUP2 = [
+  { anahtar: "duyuru", ad: "Duyurular", ikon: "megaphone", renk: "#C2410C", acik: "#FFEDD5", bul: () => bolumKarti("Duyurular"),
+    dogrudan: () => window.veliSwitchTab?.("bildirimler"), ozet: () => ({ durum: "bos", yazi: "Okul duyuruları" }) },
+  { anahtar: "takvim", ad: "Takvim", ikon: "calendar-days", renk: "#2E6A9E", acik: "#E9F3FC", kartId: "caHomeTakvimOnizleme",
+    ozet: (el) => { const t = metin(el); if (!t || /Yükleniyor/.test(t)) return { durum: "yuk", yazi: "Yükleniyor" };
+      if (/yok|bulunmuyor|eklenmemiş/i.test(t)) return { durum: "bos", yazi: "Yaklaşan etkinlik yok" };
+      return { durum: "tamam", yazi: satirBul(el) || "Yaklaşan etkinlikler" }; },
+    eylem: { yazi: "Takvimi aç", ikon: "calendar-days", git: () => window.caGo?.("takvim") } },
+  { anahtar: "mesaj", ad: "Mesajlar", ikon: "message-circle", renk: "#2B3674", acik: "#E9EBF4", kartId: "caHomeMesajlar",
+    ozet: (el) => { const t = metin(el); if (!t || /Yükleniyor/.test(t)) return { durum: "yuk", yazi: "Yükleniyor" };
+      const n = sayiBul(el, ".ca-unread"); if (n) return { durum: "aktif", yazi: `${n} okunmamış mesaj` };
+      if (/yok|henüz/i.test(t)) return { durum: "bos", yazi: "Yeni mesaj yok" };
+      return { durum: "tamam", yazi: "Okunmamış mesaj yok" }; },
+    eylem: { yazi: "Tüm mesajlar", ikon: "messages-square", git: () => window.caGo?.("mesajlar") } },
+  { anahtar: "randevu", ad: "Randevular", ikon: "calendar-clock", renk: "#0F766E", acik: "#CCFBF1", kartId: "caHomeRandevular", gizleId: "caHomeRandevuBolum",
+    ozet: (el) => { const n = el.querySelectorAll(".zrv-mini").length;
+      if (!n) return { durum: "bos", yazi: "Yaklaşan randevu yok" };
+      const bekleyen = [...el.querySelectorAll(".zrv-mini")].some(x => /Yanıt bekliyor/.test(metin(x)));
+      return { durum: bekleyen ? "uyari" : "aktif", yazi: bekleyen ? "Yanıtınızı bekleyen randevu var" : `${n} yaklaşan randevu · ${metin(el.querySelector(".zrv-mini-metin span")) || ""}` }; },
+    bos: () => `<div class="vkp-bos">${ikon("calendar-heart", 22)}<span>Yaklaşan randevunuz yok. Öğretmen, rehberlik ya da müdürle görüşme talep edebilirsiniz.</span></div>`,
+    eylem: { yazi: "Randevu talep et", ikon: "calendar-plus", git: () => window.caRandevuTalepAc?.() } },
+  { anahtar: "egitim", ad: "Eğitim gelişimi", ikon: "sprout", renk: "#15803D", acik: "#DCFCE7", kartId: "caHomeEgitimOzet", kartSec: (el) => el.closest(".ca-card") || el,
+    ozet: (el) => { const t = metin(el); if (!t || /Yükleniyor/.test(t)) return { durum: "yuk", yazi: "Yükleniyor" };
+      return { durum: "tamam", yazi: satirBul(el, ["Gelişim raporlarını", "Montessori · İngilizce", "Aç →"]) || "Gelişimi görmek için dokunun" }; },
+    eylem: { yazi: "Gelişim sayfası", ikon: "sprout", git: () => window.caGo?.("egitim") } },
+  { anahtar: "pdr", ad: "Rehberlik", ikon: "brain", renk: "#7C3AED", acik: "#EDE9FE", bul: () => bolumKarti("Rehberlik"),
+    ozet: () => ({ durum: "bos", yazi: "Tavsiyeler ve sık sorulanlar" }) }
+];
+
 const DURUM_RENK = { aktif: "#16A34A", tamam: "#2D5E3E", uyari: "#DC2626", bos: "#94A3B8", pasif: "#CBD5E1", yuk: "#CBD5E1" };
 
 // ═════════════════════════ KURULUM ═════════════════════════
@@ -96,6 +137,22 @@ export function baslat() {
 }
 
 function kur() {
+  grup1Kur();
+  grup2Kur();
+}
+
+function karoOlustur(k, liste) {
+  const karo = document.createElement("button");
+  karo.type = "button"; karo.className = "vkp-karo"; karo.setAttribute("role", "listitem");
+  karo.style.setProperty("--vkp-renk", k.renk); karo.style.setProperty("--vkp-acik", k.acik);
+  karo.dataset.vkpKaro = k.id || k.anahtar;
+  karo.innerHTML = `<span class="vkp-ikon">${ikon(k.ikon, 20)}</span><span class="vkp-ad">${esc(k.ad)}</span>
+    <span class="vkp-durum"><i></i><span>Yükleniyor</span></span><span class="vkp-ok">${ikon("chevron-right", 16)}</span>`;
+  liste.appendChild(karo);
+  return karo;
+}
+
+function grup1Kur() {
   const ilk = document.getElementById(KAROLAR[0].id);
   if (!ilk || ilk.dataset.vkpKarolu) return;
   const izgara = document.createElement("section");
@@ -107,27 +164,84 @@ function kur() {
     const el = document.getElementById(k.id);
     if (!el) continue;
     el.dataset.vkpKarolu = "1";
-    const karo = document.createElement("button");
-    karo.type = "button"; karo.className = "vkp-karo"; karo.setAttribute("role", "listitem");
-    karo.style.setProperty("--vkp-renk", k.renk); karo.style.setProperty("--vkp-acik", k.acik);
-    karo.dataset.vkpKaro = k.id;
-    karo.innerHTML = `<span class="vkp-ikon">${ikon(k.ikon, 20)}</span><span class="vkp-ad">${esc(k.ad)}</span>
-      <span class="vkp-durum"><i></i><span>Yükleniyor</span></span><span class="vkp-ok">${ikon("chevron-right", 16)}</span>`;
-    karo.addEventListener("click", () => sayfaAc(k));
-    liste.appendChild(karo);
+    el.classList.add("vkp-sade");
+    const karo = karoOlustur(k, liste);
+    karo.addEventListener("click", () => sayfaAc(k, el));
     hazne.appendChild(el);
-    const guncelle = zamanla(() => ozetYaz(k, karo, el));
+    const guncelle = zamanla(() => { sadelestir(el, k); ozetYaz(k, karo, el); });
     new MutationObserver(guncelle).observe(el, { childList: true, subtree: true, characterData: true });
     guncelle();
   }
   ikonCiz();
 }
 
+function grup2Kur() {
+  const dash = document.querySelector(".ca-page .ca-dash");
+  if (!dash || dash.dataset.vkpGrup2) return;
+  const bulunan = [];
+  for (const k of GRUP2) {
+    let kart = null, sarici = null;
+    if (k.kartId) {
+      const el = document.getElementById(k.kartId);
+      if (!el) continue;
+      kart = k.kartSec ? k.kartSec(el) : el;
+      sarici = kart.closest(".ca-sectionhead") ? null : (kart.parentElement?.querySelector(":scope > .ca-sectionhead") ? kart.parentElement : null);
+      if (k.gizleId) sarici = document.getElementById(k.gizleId) || sarici;
+    } else {
+      const b = k.bul?.(); if (!b?.kart) continue; kart = b.kart; sarici = b.sarici;
+    }
+    bulunan.push({ k, kart, sarici });
+  }
+  if (!bulunan.length) return;
+  dash.dataset.vkpGrup2 = "1";
+  const izgara = document.createElement("section");
+  izgara.className = "vkp-bolum";
+  izgara.innerHTML = `<div class="vkp-baslik">Okul ve iletişim</div><div class="vkp-izgara vkp-izgara-3" role="list"></div><div class="vkp-hazne" hidden></div>`;
+  dash.parentNode.insertBefore(izgara, dash);
+  const liste = izgara.querySelector(".vkp-izgara"), hazne = izgara.querySelector(".vkp-hazne");
+  for (const { k, kart, sarici } of bulunan) {
+    const karo = karoOlustur(k, liste);
+    if (sarici) sarici.dataset.vkpGizli = "1";
+    if (k.dogrudan) {
+      karo.addEventListener("click", k.dogrudan);
+      ozetYaz(k, karo, kart);
+      continue;
+    }
+    hazne.appendChild(kart);
+    karo.addEventListener("click", () => sayfaAc(k, kart));
+    const guncelle = zamanla(() => ozetYaz(k, karo, kart));
+    new MutationObserver(guncelle).observe(kart, { childList: true, subtree: true, characterData: true });
+    guncelle();
+  }
+  ikonCiz();
+}
+
+// Kartın içini sadeleştir: renkli şeritler, emoji ve tekrar eden başlık
+const EMOJI = /[\p{Extended_Pictographic}\uFE0F\u200D]/gu;
+function sadelestir(el, k) {
+  const baslik = { veliSabahGirisiKart: "Sabah Girişi", veliOkulZiliKart: "Okul Zili", veliIzinKart: "İzin", veliPickupYetkiKart: "Teslim Alabilecek" }[k.id];
+  // Başlık satırı sayfanın kendi başlığında zaten var
+  el.querySelectorAll(".ca-head").forEach(h => { if (baslik && metin(h).includes(baslik)) h.classList.add("vkp-cift"); });
+  // Düğme ve başlıklardaki emojiler (kişi simgeleri gibi tek başına duran emojilere dokunulmaz)
+  const yurut = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const degisecek = [];
+  while (yurut.nextNode()) {
+    const n = yurut.currentNode, ata = n.parentElement;
+    if (!ata || !EMOJI.test(n.nodeValue)) { EMOJI.lastIndex = 0; continue; }
+    EMOJI.lastIndex = 0;
+    const sadeceEmoji = !metin(ata).replace(EMOJI, "").trim();
+    EMOJI.lastIndex = 0;
+    if (sadeceEmoji && !ata.closest("button, .ca-btn")) { ata.classList.add("vkp-emoji-yer"); continue; }
+    degisecek.push(n);
+  }
+  degisecek.forEach(n => { const y = n.nodeValue.replace(EMOJI, "").replace(/^\s+/, n.previousSibling ? " " : ""); if (y !== n.nodeValue) n.nodeValue = y; });
+}
+
 function zamanla(f) { let t = null; return () => { clearTimeout(t); t = setTimeout(f, 120); }; }
 
 async function ozetYaz(k, karo, el) {
   if (!karo.isConnected) return;
-  const o = await k.ozet(el);
+  const o = await k.ozet(el || document.createElement("div"));
   o.yazi = String(o.yazi || "").replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, "").replace(/\s+/g, " ").trim() || "Ayrıntı için dokunun";
   const d = karo.querySelector(".vkp-durum");
   d.querySelector("i").style.background = DURUM_RENK[o.durum] || "#94A3B8";
@@ -139,22 +253,29 @@ async function ozetYaz(k, karo, el) {
 // ═════════════════════════ AÇILIR SAYFA ═════════════════════════
 let acik = null;   // { kok, el, hazne }
 
-function sayfaAc(k) {
-  const el = document.getElementById(k.id);
+function sayfaAc(k, el) {
+  el = el || document.getElementById(k.id);
   if (!el) return;
   sayfaKapat();
+  const alt = typeof k.alt === "function" ? k.alt() : "";
   const kok = document.createElement("div");
   kok.className = "vkp-arka";
-  kok.innerHTML = `<div class="vkp-sayfa" role="dialog" aria-modal="true" aria-label="${esc(k.ad)}">
+  kok.innerHTML = `<div class="vkp-sayfa" role="dialog" aria-modal="true" aria-label="${esc(k.ad)}" style="--vkp-renk:${k.renk};--vkp-acik:${k.acik}">
     <div class="vkp-tutamak" aria-hidden="true"></div>
+    <header class="vkp-sayfa-bas"><span class="vkp-ikon">${ikon(k.ikon, 20)}</span><div><h3>${esc(k.ad)}</h3>${alt ? `<p>${esc(alt)}</p>` : ""}</div>
+      <button type="button" class="vkp-x" aria-label="Kapat">${ikon("x", 18)}</button></header>
     <div class="vkp-govde"></div>
-    <div class="vkp-alt"><button type="button" class="vkp-tamam">${ikon("check", 17)}Tamam</button></div></div>`;
+    <div class="vkp-alt${k.eylem ? " vkp-alt-iki" : ""}">${k.eylem ? `<button type="button" class="vkp-ikincil" data-vkp-eylem>${ikon(k.eylem.ikon, 17)}${esc(k.eylem.yazi)}</button>` : ""}<button type="button" class="vkp-tamam">${ikon("check", 17)}Tamam</button></div></div>`;
   document.body.appendChild(kok);
   const hazne = el.parentNode;
-  kok.querySelector(".vkp-govde").appendChild(el);
+  const govde = kok.querySelector(".vkp-govde");
+  govde.appendChild(el);
+  if (k.bos && !metin(el)) { const b = document.createElement("div"); b.innerHTML = k.bos(); govde.appendChild(b.firstElementChild); }
   acik = { kok, el, hazne };
   document.body.classList.add("vkp-kilit");
   kok.querySelector(".vkp-tamam").addEventListener("click", sayfaKapat);
+  kok.querySelector(".vkp-x").addEventListener("click", sayfaKapat);
+  kok.querySelector("[data-vkp-eylem]")?.addEventListener("click", () => { sayfaKapat(); k.eylem.git(); });
   kok.addEventListener("click", e => { if (e.target === kok) sayfaKapat(); });
   document.addEventListener("keydown", tus, true);
   ikonCiz();
@@ -262,6 +383,28 @@ function stilEkle() {
 .vkp-odeme-ipucu { position:absolute; right:14px; bottom:12px; display:inline-flex; align-items:center; gap:2px; font-size:12px; font-weight:700; color:var(--c-purple-deep, #5B3E96); opacity:.85; }
 .vkp-odeme:focus-visible { outline:3px solid rgba(91,62,150,.35); outline-offset:2px; }
 body.vkp-kilit { overflow:hidden; }
+[data-vkp-gizli] { display:none !important; }
+.vkp-izgara-3 { grid-template-columns:repeat(3, minmax(0,1fr)); }
+.vkp-sayfa-bas { display:flex; align-items:center; gap:12px; padding:16px 16px 8px 18px; flex-shrink:0; }
+.vkp-sayfa-bas > div { flex:1; min-width:0; } .vkp-sayfa-bas h3 { margin:0; font-size:17px; font-weight:800; color:var(--c-ink, #1F2544); }
+.vkp-sayfa-bas p { margin:2px 0 0; font-size:12.5px; color:var(--c-muted, #64748B); }
+.vkp-sayfa-bas .vkp-ikon { margin:0; flex-shrink:0; }
+.vkp-x { width:38px; height:38px; flex-shrink:0; border:0; border-radius:50%; background:rgba(31,37,68,.06); color:var(--c-ink, #1F2544); display:grid; place-items:center; cursor:pointer; }
+.vkp-govde { padding-top:6px; }
+.vkp-bos { display:flex; gap:10px; align-items:flex-start; padding:16px; border-radius:16px; background:#fff; color:var(--c-muted, #64748B); font-size:13.5px; line-height:1.5; }
+.vkp-govde > .ca-card, .vkp-govde > .ca-announce { border-radius:18px !important; }
+/* Kartların içi: tek renk dili */
+.vkp-sade { background:#fff !important; }
+.vkp-sade [style*="gradient"] { background:none !important; color:var(--c-ink, #1F2544) !important; }
+.vkp-sade [style*="gradient"] *:not(.ca-btn):not(button) { color:inherit !important; }
+.vkp-sade .ca-btn { white-space:nowrap; }
+.vkp-sade .ca-btn:not(.ghost), .vkp-sade button.ca-btn:not(.ghost) { background:var(--c-green, #2B3674) !important; color:#fff !important; border:0 !important; border-radius:14px !important; min-height:46px; font-weight:700 !important; box-shadow:none !important; }
+.vkp-sade .ca-btn.ghost { background:#fff !important; color:var(--c-ink, #1F2544) !important; border:1.5px solid rgba(31,37,68,.14) !important; border-radius:14px !important; min-height:46px; }
+.vkp-sade input, .vkp-sade select, .vkp-sade textarea { border:1.5px solid rgba(31,37,68,.14) !important; border-radius:12px !important; min-height:44px; padding:8px 12px !important; font-size:15px !important; background:#fff !important; color:var(--c-ink, #1F2544) !important; box-sizing:border-box; }
+.vkp-sade .vkp-cift { display:none !important; }
+.vkp-sade .vkp-emoji-yer { font-size:16px; }
+.vkp-govde .vkp-sade .ca-tile-sub { color:var(--c-muted, #64748B) !important; }
+@media (max-width:760px) { .vkp-izgara-3 { grid-template-columns:repeat(2, minmax(0,1fr)); } }
 @media (max-width:760px) { .vkp-izgara { grid-template-columns:repeat(2, minmax(0,1fr)); } }
 @media (max-width:560px) {
   .vkp-arka { padding:0; align-items:flex-end; }
