@@ -1,0 +1,81 @@
+name: Payment release validation
+on:
+  push:
+    branches: ['fix/odeme-donem-hesap-20260923']
+    paths: ['.github/workflows/payment-release-check.yml']
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preserve current main and update only payment module cache
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'fix/odeme-donem-hesap-20260923'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git merge --no-edit origin/main
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('serviceworker.js'); text=p.read_text()
+          old=re.search(r'const CACHE_VERSION = "([^"]+)";',text).group(1)
+          assert old=='v143-personel-izin-akisi', 'Cache changed: review before release'
+          new='v144-odeme-hesap'
+          text=text.replace('"'+old+'"','"'+new+'"',1)
+          paths=['payment-actions.js','payment-workspace.js','payment-workspace.css','payment-plan.js']
+          anchor='  "./js/finans/dashboard.js",'
+          assert text.count(anchor)==1
+          additions=[]
+          for name in paths:
+              assert Path('js/finans',name).is_file(),name
+              line='  "./js/finans/'+name+'",'
+              if line not in text: additions.append(line)
+          text=text.replace(anchor,anchor+'\n'+'\n'.join(additions),1)
+          p.write_text(text)
+          p=Path('tests/core-ogretmen-paneli.test.mjs'); test=p.read_text()
+          assert old in test
+          p.write_text(test.replace(old,new))
+          PY
+      - name: JavaScript syntax and complete Portal tests
+        run: |
+          set -euo pipefail
+          for f in js/finans/payment-actions.js js/finans/payment-workspace.js js/finans/dashboard.js serviceworker.js; do node --check "$f"; done
+          node --test tests/*.test.mjs | tee /tmp/portal-payment-tests.log
+          node --input-type=module <<'JS'
+          import {readFileSync,existsSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const sw=readFileSync('serviceworker.js','utf8');
+          assert.match(sw,/v144-odeme-hesap/);
+          for(const file of ['payment-actions.js','payment-workspace.js','payment-workspace.css','payment-plan.js'])assert.ok(sw.includes('"./js/finans/'+file+'"'));
+          for(const [,url] of sw.matchAll(/^\s*"(\.\/[^\"]+)",?\s*$/gm))assert.ok(existsSync(url.split('?')[0]),'Missing cached file '+url);
+          assert.match(sw,/firestore.googleapis.com/);assert.match(sw,/script.google.com/);
+          console.log('PASS payment cache files and live-service exclusions');
+          JS
+      - name: Commit reviewed cache changes only to development branch and remove temporary workflow
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/payment-release-check.yml
+          git add serviceworker.js tests/core-ogretmen-paneli.test.mjs
+          git diff --cached --check
+          git commit -m 'release: cache payment workspace modules and verify current Portal tests'
+          git push origin HEAD:refs/heads/fix/odeme-donem-hesap-20260923
+          git rev-parse HEAD | tee /tmp/portal-payment-tested-commit.txt
+          git archive --format=tar.gz HEAD > /tmp/portal-payment-tested-source.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portal-payment-release-validation
+          path: |
+            /tmp/portal-payment-tests.log
+            /tmp/portal-payment-tested-commit.txt
+            /tmp/portal-payment-tested-source.tar.gz
+          retention-days: 7
