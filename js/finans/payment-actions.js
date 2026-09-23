@@ -4,7 +4,7 @@ export const bekleyen = b => ['bekliyor','beklemede'].includes(b?.durum);
 export function gecerliDonem(s){return typeof s==='string'&&/^\d{4}-\d{4}$/.test(s)&&Number(s.slice(5))===Number(s.slice(0,4))+1;}
 function kimlik(s){if(typeof s!=='string'||!s.trim()||s.includes('/')||s.length>500)throw Error('Kayıt kimliği geçersiz.');return s;}
 // The approval form signs only the values the operator actually reviewed.
-export function bildirimImzasi(b){return JSON.stringify([b.ogrenciId,b.donem||'',bildirimKalemi(b),Number(b.bildirilenTutar??b.tutar),b.odemeTarihi||'',b.veliEmail||'',b.odemeYontemi||b.yontem||'',b.not||'']);}
+export function bildirimImzasi(b){return JSON.stringify([b.ogrenciId,b.donem||'',bildirimKalemi(b),Number(b.bildirilenTutar??b.tutar),b.odemeTarihi||'',b.veliEmail||'',b.odemeYontemi||b.yontem||'',b.not||'',!!b.tekrarBildirim,b.oncekiBildirimId||'',b.tekrarNedeni||'',b.tekrarOnayi||'']);}
 export const planSatiriImzasi = r => r ? JSON.stringify([r.id,r.beklenen,r.odenen,r.kalan,r.vade]) : '';
 export async function hesapOku({fb,db},ogrenciId,donem){
  kimlik(ogrenciId);if(!gecerliDonem(donem))throw Error('Geçerli bir eğitim dönemi seçin.');
