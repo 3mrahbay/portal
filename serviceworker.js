@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v143-personel-izin-akisi";
+const CACHE_VERSION = "v144-odeme-hesap";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -23,6 +23,10 @@ const PRECACHE = [
   "./js/finans/account.js",
   "./js/finans/data.js",
   "./js/finans/dashboard.js",
+  "./js/finans/payment-actions.js",
+  "./js/finans/payment-workspace.js",
+  "./js/finans/payment-workspace.css",
+  "./js/finans/payment-plan.js",
   "./js/finans/staff-home.js",
   "./js/finans/analytics.js",
   "./js/finans/parent.js",
