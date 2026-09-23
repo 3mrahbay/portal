@@ -42,9 +42,10 @@ jobs:
               if line not in text: additions.append(line)
           text=text.replace(anchor,anchor+'\n'+'\n'.join(additions),1)
           p.write_text(text)
-          p=Path('tests/core-ogretmen-paneli.test.mjs'); test=p.read_text()
-          assert old in test
-          p.write_text(test.replace(old,new))
+          for name in ['core-ogretmen-paneli.test.mjs','zeky-veli-egitim-gelisim.test.mjs']:
+              p=Path('tests',name); test=p.read_text()
+              assert old in test,name
+              p.write_text(test.replace(old,new))
           PY
       - name: JavaScript syntax and complete Portal tests
         run: |
@@ -65,7 +66,7 @@ jobs:
         run: |
           set -euo pipefail
           git rm .github/workflows/payment-release-check.yml
-          git add serviceworker.js tests/core-ogretmen-paneli.test.mjs
+          git add serviceworker.js tests/core-ogretmen-paneli.test.mjs tests/zeky-veli-egitim-gelisim.test.mjs
           git diff --cached --check
           git commit -m 'release: cache payment workspace modules and verify current Portal tests'
           git push origin HEAD:refs/heads/fix/odeme-donem-hesap-20260923
