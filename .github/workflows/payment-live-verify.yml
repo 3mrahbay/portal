@@ -1,0 +1,48 @@
+name: Published payment assets verification
+on:
+  push:
+    branches: ['diag/payment-live-20260923']
+    paths: ['.github/workflows/payment-live-verify.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 74ada017602be9f1bd9a808ed76c9d6fd1c25d34
+          persist-credentials: false
+      - name: Check public code assets only; no login, database or payment requests
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,time,urllib.request
+          from pathlib import Path
+          from datetime import datetime,timezone
+          domain=Path('CNAME').read_text().strip()
+          assert domain=='portal.bircicekkoleji.com'
+          names=['serviceworker.js','js/finans/dashboard.js','js/finans/payment-actions.js','js/finans/payment-workspace.js','js/finans/payment-workspace.css','js/finans/payment-plan.js','js/finans/core.js','js/finans/data.js']
+          report={'commit':'74ada017602be9f1bd9a808ed76c9d6fd1c25d34','checkedAt':datetime.now(timezone.utc).isoformat(),'readOnly':True,'authenticated':False,'files':[]}
+          for name in names:
+              expected=Path(name).read_bytes()
+              for attempt in range(3):
+                  try:
+                      req=urllib.request.Request('https://'+domain+'/'+name,headers={'Cache-Control':'no-cache','User-Agent':'Payment-Release-Verification'})
+                      with urllib.request.urlopen(req,timeout=20) as res:
+                          body=res.read(); status=res.status; mime=res.headers.get('Content-Type','')
+                      assert status==200 and body==expected,'Published bytes differ: '+name
+                      report['files'].append({'path':name,'httpStatus':status,'contentType':mime,'sha256':hashlib.sha256(body).hexdigest(),'matchesReviewedSource':True})
+                      print('PASS HTTP 200 and exact published source:',name)
+                      break
+                  except Exception:
+                      if attempt==2: raise
+                      time.sleep(10)
+          Path('payment-live-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+          print('No financial records read or modified; no mail sent.')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portal-payment-live-verification
+          path: payment-live-verification.json
+          retention-days: 7
