@@ -514,7 +514,8 @@ export async function panelRender(kapId) {
   const kap = document.getElementById(kapId);
   if (!kap) return;
   stilEkle();
-  pnl = { kap, ara: pnl?.ara || "", sekme: pnl?.sekme || "bekleyen", hata: "" };
+  const onAra = window.__gnAra; window.__gnAra = null;   // Sınıfım menüsünden öğrenci adıyla gelindiyse
+  pnl = { kap, ara: onAra || pnl?.ara || "", sekme: onAra ? "notlar" : (pnl?.sekme || "bekleyen"), hata: "" };
   kap.innerHTML = `<div class="gn-yuk"><span class="gn-donen"></span>Görüşmeler getiriliyor</div>`;
   const [k, n] = await Promise.allSettled([kutu(), notlariYukle()]);
   if (k.status === "fulfilled") sonKutu = k.value.liste;

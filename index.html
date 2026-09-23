@@ -13934,7 +13934,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v128";
+window.PORTAL_SURUM = "v129";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -22435,6 +22435,8 @@ window.ogretmenHomeEkKartlar = async function() {
 
 // Öğretmen ana sayfası verilerini Firestore'dan doldur
 async function ogretmenHomeVeriYukle() {
+  // Yeni düzen: Okul Zili → Sabah Girişi → Sınıfım → Günün akışı karoları — moduller/ogretmen-anasayfa.js
+  try { const oak = await modulYukle("ogretmen-anasayfa"); if (oak) oak.duzenle(); } catch (e) { console.warn("öğretmen düzeni", e); }
   const yanKartGorevleri = [
     async () => { if (typeof ozetDevamKartiDoldur === "function") await ozetDevamKartiDoldur(); },
     async () => { if (typeof ogretmenHomeEkKartlar === "function") await ogretmenHomeEkKartlar(); },

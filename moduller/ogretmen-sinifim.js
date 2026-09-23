@@ -139,10 +139,53 @@ function ciz() {
 
   kap.querySelectorAll("[data-osk-sinif]").forEach(b => b.addEventListener("click", () => { kart.sinif = b.dataset.oskSinif; kart.hepsi = false; ciz(); }));
   kap.querySelectorAll("[data-osk-durum]").forEach(b => b.addEventListener("click", () => { kart.durum = kart.durum === b.dataset.oskDurum ? "" : b.dataset.oskDurum; ciz(); }));
-  kap.querySelectorAll("[data-osk-ogr]").forEach(b => b.addEventListener("click", () => window.ozetOgrenciAc?.(b.dataset.oskOgr)));
+  kap.querySelectorAll("[data-osk-ogr]").forEach(b => b.addEventListener("click", () => eylemMenusu(b.dataset.oskOgr)));
   kap.querySelector("[data-osk-hepsi]")?.addEventListener("click", () => { kart.hepsi = true; ciz(); });
   kap.querySelectorAll("[data-osk-git]").forEach(b => b.addEventListener("click", () => window.modulSec?.(b.dataset.oskGit)));
   try { window.lucideYenile?.(kap); } catch (_) {}
+}
+
+// ═════════ Öğrenciye dokununca: işlem menüsü (alttan açılır) ═════════
+const EYLEMLER = [
+  ["gozlem", "Gözlem gir", "eye", "Günlük gözlem ve not"],
+  ["gelisim", "Gelişim değerlendirmesi", "sprout", "Montessori, İngilizce, değerler"],
+  ["rapor", "Rapor oluştur", "file-text", "Dönemlik gelişim raporu"],
+  ["mesaj", "Veliye mesaj", "message-circle", "Uygulama içi mesajlaşma"],
+  ["devamsizlik", "Devamsızlık", "clipboard-check", "Yoklama ve devam durumu"],
+  ["galeri", "Galeriye fotoğraf", "image", "Bu öğrenciyle ilgili medya"],
+  ["kart", "Öğrenci kartı", "contact", "Kişisel bilgiler ve veliler"],
+  ["notlar", "Görüşme notları", "notebook-text", "Veli görüşmelerinden notlar"]
+];
+function eylemMenusu(id) {
+  if (!kart) return;
+  const o = kart.ogrenciler.find(x => x.id === id);
+  if (!o) return;
+  document.getElementById("oskMenu")?.remove();
+  const d = durumKodu((kart.kayitlar[o.id] || {}).durum), dd = DURUMLAR[d];
+  const bas = o.ad.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join("").toLocaleUpperCase("tr");
+  const kok = document.createElement("div");
+  kok.id = "oskMenu"; kok.className = "osk-menu-arka";
+  kok.innerHTML = `<div class="osk-menu" role="dialog" aria-modal="true" aria-label="${esc(o.ad)}">
+    <div class="osk-menu-tutamak" aria-hidden="true"></div>
+    <header class="osk-menu-bas"><span class="osk-avatar" style="--osk-durum:${dd.renk};--osk-sinif:#4A7C59">${o.foto ? `<img src="${esc(o.foto)}" alt="">` : esc(bas)}</span>
+      <div><h3>${esc(o.ad)}</h3><p>${esc(o.sinif)}</p><span class="osk-menu-durum" style="color:${d === "yok" ? "#64748B" : dd.renk}"><i style="background:${dd.renk}"></i>Bugün: ${esc(dd.ad)}</span></div>
+      <button type="button" class="osk-menu-x" aria-label="Kapat">${ikon("x", 18)}</button></header>
+    <div class="osk-menu-izgara">${EYLEMLER.map(([k, a, i, alt]) => `<button type="button" class="osk-menu-eylem" data-osk-eylem="${k}"><span class="osk-menu-ikon">${ikon(i, 19)}</span><span><strong>${esc(a)}</strong><small>${esc(alt)}</small></span></button>`).join("")}</div>
+  </div>`;
+  document.body.appendChild(kok);
+  const kapat = () => { kok.remove(); document.removeEventListener("keydown", tus, true); };
+  const tus = (e) => { if (e.key === "Escape") { e.preventDefault(); kapat(); } };
+  document.addEventListener("keydown", tus, true);
+  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
+  kok.querySelector(".osk-menu-x").addEventListener("click", kapat);
+  kok.querySelectorAll("[data-osk-eylem]").forEach(b => b.addEventListener("click", () => {
+    const islem = b.dataset.oskEylem;
+    kapat();
+    if (islem === "kart") window.ozetOgrenciAc?.(o.id);
+    else if (islem === "notlar") { window.__gnAra = o.ad; window.modulSec?.("gorusmeNotlari"); }
+    else window.ogrenciEgitimIslem?.(o.id, islem);
+  }));
+  try { window.lucideYenile?.(); } catch (_) {}
 }
 
 function stilEkle() {
@@ -189,6 +232,26 @@ function stilEkle() {
 .osk-eylemler button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; padding:8px 10px; border-radius:12px; font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; }
 .osk-birincil { border:0; background:#2D5E3E; color:#fff; } .osk-birincil:hover { background:#24503A; }
 .osk-ikincil { border:1.5px solid #D9E3DC; background:#fff; color:#2D5E3E; }
+.osk-menu-arka { position:fixed; inset:0; z-index:9450; background:rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center; padding:18px; animation:oskAc .15s ease-out; }
+@keyframes oskAc { from { opacity:0; } to { opacity:1; } }
+.osk-menu { width:100%; max-width:520px; max-height:90vh; overflow-y:auto; background:#F7F8FB; border-radius:24px; padding:0 14px 16px; box-shadow:0 24px 60px rgba(15,23,42,.25); }
+.osk-menu-tutamak { display:none; }
+.osk-menu-bas { display:flex; align-items:center; gap:14px; padding:18px 4px 14px; }
+.osk-menu-bas > div { flex:1; min-width:0; } .osk-menu-bas h3 { margin:0; font-size:18px; font-weight:800; color:#1E293B; } .osk-menu-bas p { margin:2px 0 4px; font-size:13px; color:#64748B; }
+.osk-menu-bas .osk-avatar { width:54px; height:54px; margin:0; font-size:17px; flex-shrink:0; }
+.osk-menu-durum { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; } .osk-menu-durum i { width:8px; height:8px; border-radius:50%; }
+.osk-menu-x { width:38px; height:38px; flex-shrink:0; align-self:flex-start; border:0; border-radius:50%; background:rgba(31,37,68,.06); color:#1E293B; display:grid; place-items:center; cursor:pointer; }
+.osk-menu-izgara { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.osk-menu-eylem { display:flex; align-items:center; gap:11px; min-height:64px; padding:10px 12px; border:1px solid rgba(31,37,68,.08); border-radius:16px; background:#fff; font:inherit; text-align:left; color:#1E293B; cursor:pointer; }
+.osk-menu-eylem:hover { border-color:#BFD8C7; box-shadow:0 6px 16px rgba(31,37,68,.06); }
+.osk-menu-eylem:focus-visible { outline:3px solid #BFD8C7; outline-offset:2px; }
+.osk-menu-ikon { width:38px; height:38px; flex-shrink:0; border-radius:12px; display:grid; place-items:center; background:#E8F3EC; color:#2D5E3E; }
+.osk-menu-eylem span:last-child { display:flex; flex-direction:column; min-width:0; } .osk-menu-eylem strong { font-size:13.5px; } .osk-menu-eylem small { font-size:11.5px; color:#64748B; line-height:1.3; }
+@media (max-width:560px) {
+  .osk-menu-arka { padding:0; align-items:flex-end; }
+  .osk-menu { max-width:none; border-radius:24px 24px 0 0; padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .osk-menu-tutamak { display:block; width:40px; height:5px; border-radius:999px; background:rgba(31,37,68,.18); margin:8px auto 0; }
+}
 @media (max-width:420px) { .osk-izgara { grid-template-columns:repeat(4, minmax(0,1fr)); } .osk-avatar { width:42px; height:42px; } .osk-eylemler { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce) { .osk-canli span { animation:none; } }
 `;
