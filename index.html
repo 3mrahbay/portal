@@ -13934,7 +13934,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v126";
+window.PORTAL_SURUM = "v127";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16672,6 +16672,8 @@ async function loadVeliPanel(user) {
 
     // Veli katılım kaydı (girişler, açılan bölümler) — moduller/veli-katilim.js
     modulYukle("veli-katilim").then(m => m && m.veliBaslat());
+    // Ana sayfa kartları: kompakt karo + dokununca açılan sayfa — moduller/veli-kompakt.js
+    modulYukle("veli-kompakt").then(m => m && m.baslat());
 
     // Öğrenci seçici göster (kardeşler varsa)
     renderVeliOgrenciSecici(bulunan);
