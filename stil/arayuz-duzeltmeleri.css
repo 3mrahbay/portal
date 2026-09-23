@@ -1,0 +1,233 @@
+/* ══════════════════════════════════════════════════════════════
+   PORTAL · ARAYÜZ DÜZELTMELERİ
+   --------------------------------------------------------------
+   index.html'deki ana stil bloğundan SONRA yüklenir ve yalnız
+   gereken kuralları ezer. (24 Eylül 2026)
+
+   1) Açılır pencere başlıkları: başlık solda, X sağda, üstte sabit
+   2) Bildirim ve şimşek pencerelerinde sıkışan ikonlar
+   3) Logo: tam daire (logo-daire.png)
+   4) Üst menü: "Bir Çiçek Koleji Anaokulu Yönetim Sistemi" (Exo 2 Black)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 1) Açılır pencere başlığı ─────────────────────────────── */
+.modal > .modal-header,
+.modal-box > .modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #fff;                         /* satır içi renkli zemin varsa o kalır */
+  border-bottom: 1px solid var(--gray-100, #F1F2F7);
+}
+.modal > .modal-header {
+  /* Kaydırılan kutunun dolgusu 40px: yapışkan başlık dolgu kenarına otursun */
+  top: -40px;
+  margin: -40px -40px 24px;
+  padding: 18px 18px 16px 28px;
+  border-radius: var(--radius-lg, 24px) var(--radius-lg, 24px) 0 0;
+}
+.modal-box > .modal-header {
+  margin: 0;
+  padding: 16px 16px 14px 22px;
+  border-radius: 18px 18px 0 0;
+}
+.modal > .modal-header > h2,
+.modal > .modal-header > h3,
+.modal-box > .modal-header > h2,
+.modal-box > .modal-header > h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.modal > .modal-header > .modal-header-row {
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 12px;
+}
+.modal-header .modal-header-row h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+/* X düğmesi — tüm pencerelerde aynı */
+.modal-header .close-btn,
+.modal-header .btn-close {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  padding: 0 0 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, .06);
+  color: var(--ink-soft, #4A5169);
+  font: 400 24px/1 var(--font-body, system-ui, sans-serif);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.modal-header .close-btn:hover,
+.modal-header .btn-close:hover {
+  background: rgba(15, 23, 42, .12);
+  color: var(--ink, #1F2544);
+}
+.modal-header .close-btn:focus-visible,
+.modal-header .btn-close:focus-visible {
+  outline: 3px solid var(--green-light, #C9D1F0);
+  outline-offset: 2px;
+}
+
+.modal-footer { flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+  .modal-overlay { padding: 12px; }
+  .modal > .modal-header {
+    top: -24px;
+    margin: -24px -24px 18px;
+    padding: 14px 12px 12px 20px;
+  }
+  .modal > .modal-header > h2,
+  .modal > .modal-header > h3 { font-size: 16.5px; }
+}
+
+/* ── 2) Bildirim penceresi: ikon ve X sıkışmasın ───────────── */
+#zekyVeliBildirimPopup .zvo-popup-ikon,
+#zekyVeliBildirimPopup [data-kapat] {
+  flex-shrink: 0;
+}
+#zekyVeliBildirimPopup [data-kapat] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: #4C5D53;
+}
+
+/* Kodla açılan diğer pencereler (gözlem, izin, rapor, randevu, QR):
+   yuvarlak kapat düğmeleri ve sabit boyutlu ikon kutuları uzun başlıkta sıkışmasın */
+button[style*="border-radius:50%"],
+button[style*="border-radius: 50%"],
+div[style*="place-items:center"][style*="width:"],
+div[style*="place-items: center"][style*="width:"] {
+  flex-shrink: 0;
+}
+
+/* ── 3) Logo: tam daire ────────────────────────────────────── */
+.modal-logo img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.nav-logo img,
+.veli-sidebar-logo img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+.veli-sidebar-logo img {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
+/* ── 4) Üst menü ───────────────────────────────────────────── */
+.dash-logo {
+  gap: 12px;
+  min-width: 0;
+}
+.dash-logo img {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.dash-logo-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+.dash-marka {
+  font-family: "Exo 2", var(--font-display, sans-serif);
+  font-weight: 900;
+  font-size: 19px;
+  line-height: 1.12;
+  letter-spacing: .1px;
+  color: var(--green-deep, #1F2544);
+}
+.dash-logo-text small#dashPanelEtiket {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: #E8F3EC;
+  color: #2D5E3E;
+  font: 600 12.5px/1.35 var(--font-body, system-ui, sans-serif);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.dash-logo-text small#dashPanelEtiket::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4A7C59;
+}
+@media (max-width: 900px) {
+  .dash-marka { font-size: 16px; }
+  .dash-marka > span { display: block; }
+}
+/* Telefon: iki satır — üstte logo ve tam başlık, altta rol etiketi ve kullanıcı düğmeleri */
+@media (max-width: 600px) {
+  .dash-header { padding: 10px 0; }
+  .dash-header-inner {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "logo marka  marka"
+      ".    etiket menu";
+    column-gap: 10px;
+    row-gap: 7px;
+    align-items: center;
+    padding: 0 14px;
+  }
+  .dash-logo, .dash-logo-text { display: contents; }
+  .dash-logo img { grid-area: logo; width: 38px; height: 38px; }
+  .dash-marka { grid-area: marka; font-size: 15px; line-height: 1.15; }
+  .dash-marka > span { display: block; }
+  .dash-logo-text small#dashPanelEtiket {
+    grid-area: etiket;
+    justify-self: start;
+    font-size: 11.5px;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .user-menu { grid-area: menu; gap: 6px; }
+  .user-menu .user-badge { padding: 3px; gap: 0; }
+  /* ad ve rol yazısı gizli (rol zaten etikette); yalnız baş harf kalır */
+  .user-menu .user-badge > :not(.user-avatar) { display: none !important; }
+  .user-menu > .btn-mini { font-size: 0; padding: 7px; line-height: 0; }   /* Fiş Ekle: yalnız ikon */
+  .user-menu > .btn-mini svg { width: 18px; height: 18px; margin: 0; }
+  .btn-logout { padding: 6px 8px; }
+}
