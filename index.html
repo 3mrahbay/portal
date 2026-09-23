@@ -9589,6 +9589,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       <!-- ALT SEKMELER -->
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
         <button class="ozluk-tab active" data-o="durum"  onclick="ozlukSekme('durum')"  style="padding:9px 15px; border:1.5px solid #2D5E3E; background:#2D5E3E; color:#fff; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Anlık Durum</button>
+        <button class="ozluk-tab yonetim-only" data-o="qrayar" onclick="ozlukSekme('qrayar')" style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;"><i data-lucide="qr-code" style="width:14px;height:14px;vertical-align:-2px;"></i> Okul QR</button>
         <button class="ozluk-tab" data-o="qrlog"  onclick="ozlukSekme('qrlog')"  style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Giriş-Çıkış Kaydı</button>
         <button class="ozluk-tab" data-o="izin"   onclick="ozlukSekme('izin')"   style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">İzin Talepleri</button>
         <button class="ozluk-tab" data-o="puantaj" onclick="ozlukSekme('puantaj')" style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Aylık Puantaj</button>
@@ -13778,6 +13779,12 @@ import {
   izinSureOzeti as personelIzinSureOzeti,
   izinTalebiDogrula as personelIzinTalebiDogrula
 } from './js/personel-izin-core.js?v=1';
+import {
+  okulQrMetni,
+  okulQrAyarDogrula,
+  okulQrYeniJeton,
+  okulQrPosterDosyaAdi
+} from './js/okul-qr-core.js?v=1';
 // Lucide ikonlarını yenile (dinamik içerik sonrası çağrılır)
 window.lucideYenile = function(kok = document) {
   try {
@@ -21916,6 +21923,8 @@ function yonetimHomeHTML(ad) {
                 <i data-lucide="clipboard-check"></i><span>Yoklama</span></button>
               <button class="ozet-hizli-btn" onclick="giderTalepAc()" title="Yaptığınız harcamayı bildirin">
                 <i data-lucide="receipt"></i><span>Fiş Bildir</span></button>
+              <button class="ozet-hizli-btn yonetim-only" onclick="adminGotoTab('ozluk'); setTimeout(() => ozlukSekme('qrayar'), 80)" title="Okul giriş çıkış QR kodunu indir veya yazdır">
+                <i data-lucide="qr-code"></i><span>Okul QR</span></button>
               <button class="ozet-hizli-btn yonetim-only" onclick="hizliIslem('galeriOnay')" title="Onay bekleyen fotoğraflar">
                 <i data-lucide="image-check"></i><span>Galeri Onay</span><em class="ozet-hb-rozet uyari" id="hbRozetGaleri"></em></button>
               <button class="ozet-hizli-btn" onclick="modulSec('profilim')" title="Özlük, puantaj, izin">
@@ -27884,6 +27893,16 @@ window.ozlukYukle = async function() {
   if (!el) return;
   el.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>`;
 
+  if (ozlukAktifSekme === "qrayar") {
+    try { await ozlukOkulQrCiz(); }
+    catch (e) {
+      console.error("okul QR", e);
+      el.innerHTML = `<div style="text-align:center;padding:40px;color:#DC2626;"><p>QR ayarı yüklenemedi: ${escapeHtml(e.message || "")}</p></div>`;
+    }
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+    return;
+  }
+
   // Personel listesi (bir kez)
   if (!ozlukPersoneller.length) {
     try {
@@ -27921,6 +27940,173 @@ function ozlukPersonelAd(email) {
   const p = ozlukPersoneller.find(x => (x.email || "").toLowerCase() === (email || "").toLowerCase());
   return p ? (p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email) : (email || "—");
 }
+
+// ── OKUL QR OLUŞTURMA / İNDİRME / BASKI ──────────────────────────
+const OKUL_QR_KUTUPHANE = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+let okulQrAyar = null;
+
+function okulQrYonetebilirMi() {
+  return !!(typeof isAdmin !== "undefined" && isAdmin) || ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol);
+}
+
+function okulQrKutuphaneYukle() {
+  if (window.QRCode) return Promise.resolve();
+  if (window.__okulQrKutuphane) return window.__okulQrKutuphane;
+  window.__okulQrKutuphane = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = OKUL_QR_KUTUPHANE;
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("QR oluşturma bileşeni yüklenemedi."));
+    document.head.appendChild(script);
+  });
+  return window.__okulQrKutuphane;
+}
+
+function okulQrKonumAl() {
+  if (!window.isSecureContext || !navigator.geolocation) return Promise.reject(new Error("Konum bu tarayıcıda kullanılamıyor."));
+  return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
+    p => resolve({ enlem:p.coords.latitude, boylam:p.coords.longitude, dogrulukMetre:p.coords.accuracy }),
+    () => reject(new Error("Konum alınamadı. Tarayıcı konum iznini açın.")),
+    { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+  ));
+}
+
+async function okulQrKoduCiz() {
+  const hedef = document.getElementById("okulQrKod");
+  const dogrulama = okulQrAyarDogrula(okulQrAyar || {});
+  if (!hedef || !dogrulama.qrHazir) return;
+  await okulQrKutuphaneYukle();
+  hedef.innerHTML = "";
+  new window.QRCode(hedef, {
+    text: okulQrMetni(okulQrAyar), width:320, height:320,
+    colorDark:"#173D28", colorLight:"#FFFFFF",
+    correctLevel:window.QRCode.CorrectLevel.H
+  });
+}
+
+async function ozlukOkulQrCiz() {
+  const araclar = document.getElementById("ozlukAraclar");
+  const icerik = document.getElementById("ozlukIcerik");
+  if (araclar) araclar.innerHTML = "";
+  if (!okulQrYonetebilirMi()) {
+    icerik.innerHTML = `<div style="padding:24px;background:#FEF2F2;color:#991B1B;border-radius:14px;">Okul QR ayarını yalnızca yönetim hesabı açabilir.</div>`;
+    return;
+  }
+  const snap = await getDoc(doc(db, "config", "okulQR"));
+  okulQrAyar = snap.exists() ? snap.data() : null;
+  const d = okulQrAyarDogrula(okulQrAyar || {});
+  icerik.innerHTML = `
+    <style>
+      .oqr-grid{display:grid;grid-template-columns:minmax(300px,420px) minmax(280px,1fr);gap:18px;align-items:start}.oqr-poster{background:#fff;border:1px solid #DCE6DF;border-radius:24px;padding:28px;text-align:center;box-shadow:0 12px 34px rgba(31,77,48,.08)}.oqr-logo{width:82px;height:82px;object-fit:contain}.oqr-qr{width:340px;max-width:100%;aspect-ratio:1;margin:18px auto 14px;padding:10px;background:#fff;border:1px solid #E3EAE5;border-radius:18px;display:grid;place-items:center;box-sizing:border-box}.oqr-qr canvas,.oqr-qr img{width:100%!important;height:100%!important}.oqr-aksiyon{display:grid;grid-template-columns:1fr 1fr;gap:9px}.oqr-btn{min-height:46px;border-radius:12px;border:1px solid #DCE6DF;background:#fff;color:#2D5E3E;font:800 13px inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}.oqr-btn.ana{background:#2D6843;color:#fff;border-color:#2D6843}.oqr-btn.tehlike{color:#B42318;border-color:#F2C9C5}.oqr-btn:disabled{opacity:.5;cursor:not-allowed}.oqr-bilgi{background:#fff;border:1px solid #E1E8E3;border-radius:18px;padding:18px}.oqr-satir{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid #EEF2EF;font-size:12.5px}.oqr-satir:last-child{border-bottom:0}.oqr-satir span{color:#718078}.oqr-satir strong{color:#24372B;text-align:right}@media(max-width:780px){.oqr-grid{grid-template-columns:1fr}.oqr-poster{padding:20px}.oqr-aksiyon{grid-template-columns:1fr}.oqr-qr{width:min(320px,100%)}}
+    </style>
+    ${!d.qrHazir ? `<div style="padding:13px 15px;background:#FFF7E6;color:#8A5A00;border:1px solid #F5D99A;border-radius:13px;margin-bottom:14px;"><strong>Okul QR henüz oluşturulmamış.</strong> “QR Oluştur” düğmesi güvenli bir okul kodu üretir.</div>` : ""}
+    ${d.qrHazir && !d.konumHazir ? `<div style="padding:13px 15px;background:#FEF2F2;color:#A42323;border:1px solid #F6CCCC;border-radius:13px;margin-bottom:14px;"><strong>Okul konumu eksik.</strong> QR okutulsa bile giriş/çıkış kabul edilmez. Okuldayken konumu kaydedin.</div>` : ""}
+    <div class="oqr-grid">
+      <div class="oqr-poster" id="okulQrPoster">
+        <img src="okul_logo.png" class="oqr-logo" alt="Bir Çiçek Koleji">
+        <div style="font-family:var(--font-display);font-size:21px;font-weight:850;color:#244B33;margin-top:8px;">PERSONEL GİRİŞ / ÇIKIŞ</div>
+        <div style="font-size:12px;color:#6E7E74;margin-top:5px;">ZEKY veya portal kamerasıyla okutunuz</div>
+        ${d.qrHazir ? `<div id="okulQrKod" class="oqr-qr" aria-label="Okul giriş çıkış QR kodu"></div>` : `<div class="oqr-qr" style="background:#F7F9F7;color:#829086;font-size:13px;">QR oluşturulmayı bekliyor</div>`}
+        <div style="font-size:15px;font-weight:850;color:#244B33;">Bir Çiçek Koleji Anaokulu</div>
+        <div style="font-size:11.5px;color:#7B887F;margin-top:6px;line-height:1.55;">QR yalnızca okul konumu içinde çalışır.<br>Telefonunuzda kamera ve konum iznini açın.</div>
+      </div>
+      <div>
+        <div class="oqr-bilgi">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div style="width:42px;height:42px;border-radius:12px;background:#EAF5ED;color:#2D6843;display:grid;place-items:center;"><i data-lucide="shield-check"></i></div><div><strong style="display:block;color:#24372B;">Okul QR Ayarı</strong><span style="font-size:11px;color:#7B887F;">ZEKY ve portal ortak kaydı</span></div></div>
+          <div class="oqr-satir"><span>Okul kodu</span><strong>${escapeHtml(d.okulId)}</strong></div>
+          <div class="oqr-satir"><span>QR durumu</span><strong style="color:${d.qrHazir ? "#16804A" : "#A42323"};">${d.qrHazir ? "Aktif" : "Oluşturulmadı"}</strong></div>
+          <div class="oqr-satir"><span>Okul konumu</span><strong>${d.konumHazir ? `${d.enlem.toFixed(5)}, ${d.boylam.toFixed(5)}` : "Eksik"}</strong></div>
+          <div class="oqr-satir"><span>Kabul yarıçapı</span><strong>${d.yaricapMetre} metre</strong></div>
+          <label style="display:block;margin-top:14px;font-size:11px;font-weight:800;color:#66766D;">KABUL YARIÇAPI
+            <select id="okulQrYaricap" style="display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #D9E2DC;border-radius:10px;font:650 13px inherit;">
+              ${[50,75,100,150,200].map(x => `<option value="${x}" ${x === d.yaricapMetre ? "selected" : ""}>${x} metre</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        <div class="oqr-aksiyon" style="margin-top:12px;">
+          ${d.qrHazir ? `<button class="oqr-btn ana" onclick="okulQrPngIndir()"><i data-lucide="download"></i> PNG İndir</button><button class="oqr-btn" onclick="okulQrYazdir()"><i data-lucide="printer"></i> A4 Yazdır</button>` : `<button class="oqr-btn ana" style="grid-column:1/-1" onclick="okulQrOlustur(false)"><i data-lucide="qr-code"></i> QR Oluştur</button>`}
+          <button class="oqr-btn" onclick="okulQrKonumGuncelle()"><i data-lucide="map-pin"></i> Okul Konumunu Güncelle</button>
+          ${d.qrHazir ? `<button class="oqr-btn tehlike" onclick="okulQrOlustur(true)"><i data-lucide="refresh-cw"></i> QR’ı Yenile</button>` : ""}
+        </div>
+        <div style="margin-top:12px;padding:12px 14px;background:#F4F7F5;border-radius:12px;color:#627269;font-size:11.5px;line-height:1.55;"><strong>Önemli:</strong> QR’ı yenilerseniz daha önce aldığınız tüm baskılar geçersiz olur. Normal kullanımda yalnızca indirip yazdırmanız yeterlidir.</div>
+      </div>
+    </div>`;
+  if (d.qrHazir) await okulQrKoduCiz();
+}
+
+window.okulQrOlustur = async function(yenile = false) {
+  if (!okulQrYonetebilirMi()) return;
+  if (yenile && !confirm("QR yenilenirse mevcut tüm basılı QR’lar çalışmaz. Yeni baskı almanız gerekir. Devam edilsin mi?")) return;
+  const mevcut = okulQrAyar || {};
+  const govde = {
+    okulId:String(mevcut.okulId || "BCKA"), jeton:okulQrYeniJeton(),
+    yaricapMetre:Number(document.getElementById("okulQrYaricap")?.value) || Number(mevcut.yaricapMetre) || 100,
+    guncelleyen:currentUser?.email || "", guncellendi:new Date().toISOString()
+  };
+  if (mevcut.enlem != null) govde.enlem = Number(mevcut.enlem);
+  if (mevcut.boylam != null) govde.boylam = Number(mevcut.boylam);
+  if (!mevcut.olusturuldu) govde.olusturuldu = new Date().toISOString();
+  await setDoc(doc(db, "config", "okulQR"), govde, { merge:true });
+  showToast(yenile ? "Yeni QR oluşturuldu. Eski baskılar geçersiz." : "Okul QR oluşturuldu.", "success");
+  await ozlukOkulQrCiz();
+};
+
+window.okulQrKonumGuncelle = async function() {
+  if (!okulQrYonetebilirMi()) return;
+  const btnler = document.querySelectorAll(".oqr-btn"); btnler.forEach(x => x.disabled = true);
+  try {
+    const konum = await okulQrKonumAl();
+    const yaricapMetre = Number(document.getElementById("okulQrYaricap")?.value) || 100;
+    const mevcut = okulQrAyar || {};
+    const govde = { okulId:mevcut.okulId || "BCKA", jeton:mevcut.jeton || okulQrYeniJeton(), enlem:konum.enlem, boylam:konum.boylam, yaricapMetre, konumDogrulukMetre:konum.dogrulukMetre, guncelleyen:currentUser?.email || "", guncellendi:new Date().toISOString() };
+    if (!mevcut.olusturuldu) govde.olusturuldu = new Date().toISOString();
+    await setDoc(doc(db, "config", "okulQR"), govde, { merge:true });
+    showToast(`Okul konumu kaydedildi · doğruluk ${Math.round(konum.dogrulukMetre)} m`, "success");
+    await ozlukOkulQrCiz();
+  } catch (e) { showToast(e.message || "Konum kaydedilemedi.", "error"); btnler.forEach(x => x.disabled = false); }
+};
+
+function okulQrCanvas() {
+  return document.querySelector("#okulQrKod canvas");
+}
+
+async function okulQrPosterCanvasOlustur() {
+  const qr = okulQrCanvas();
+  if (!qr) throw new Error("QR görseli henüz hazır değil.");
+  const c = document.createElement("canvas"); c.width = 1400; c.height = 1900;
+  const x = c.getContext("2d"); x.fillStyle = "#FFFFFF"; x.fillRect(0,0,c.width,c.height);
+  x.strokeStyle = "#D9E6DD"; x.lineWidth = 4; x.strokeRect(55,55,1290,1790);
+  try { const logo = new Image(); logo.src = "okul_logo.png"; await logo.decode(); x.drawImage(logo,570,115,260,260); } catch (_) {}
+  x.textAlign = "center"; x.fillStyle = "#244B33"; x.font = "800 64px sans-serif"; x.fillText("PERSONEL GİRİŞ / ÇIKIŞ",700,475);
+  x.fillStyle = "#65766B"; x.font = "34px sans-serif"; x.fillText("ZEKY veya portal kamerasıyla okutunuz",700,535);
+  x.drawImage(qr,300,610,800,800);
+  x.fillStyle = "#244B33"; x.font = "800 48px sans-serif"; x.fillText("Bir Çiçek Koleji Anaokulu",700,1515);
+  x.fillStyle = "#65766B"; x.font = "30px sans-serif"; x.fillText("QR yalnızca okul konumu içinde çalışır.",700,1580); x.fillText("Kamera ve konum iznini açınız.",700,1630);
+  x.fillStyle = "#8A978E"; x.font = "24px sans-serif"; x.fillText(`Kabul alanı: ${okulQrAyarDogrula(okulQrAyar || {}).yaricapMetre} metre`,700,1730);
+  return c;
+}
+
+window.okulQrPngIndir = async function() {
+  try {
+    const c = await okulQrPosterCanvasOlustur(); const a = document.createElement("a");
+    a.href = c.toDataURL("image/png"); a.download = okulQrPosterDosyaAdi(okulQrAyar?.okulId); a.click();
+    showToast("Baskıya hazır QR indirildi.", "success");
+  } catch (e) { showToast(e.message || "QR indirilemedi.", "error"); }
+};
+
+window.okulQrYazdir = async function() {
+  const w = window.open("", "_blank", "width=900,height=1000");
+  try {
+    const c = await okulQrPosterCanvasOlustur(); const veri = c.toDataURL("image/png");
+    if (!w) throw new Error("Yazdırma penceresine izin verin.");
+    w.document.write(`<!doctype html><html><head><title>Personel Giriş Çıkış QR</title><style>@page{size:A4 portrait;margin:8mm}html,body{margin:0;background:#fff}img{display:block;width:100%;height:auto;max-height:277mm;object-fit:contain}@media print{button{display:none}}</style></head><body><img src="${veri}" alt="Personel giriş çıkış QR"><button onclick="window.print()" style="position:fixed;right:18px;bottom:18px;padding:12px 18px;border:0;border-radius:10px;background:#2D6843;color:#fff;font-weight:700;">Yazdır</button><script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script></body></html>`);
+    w.document.close();
+  } catch (e) {
+    try { w?.close(); } catch (_) {}
+    showToast(e.message || "Yazdırma açılamadı.", "error");
+  }
+};
 
 // ── 1) ANLIK DURUM ─────────────────────────────────────────────────
 async function ozlukDurumCiz() {
