@@ -1,25 +1,17 @@
+import { devamHataMetni, devamServisiOlustur } from './personel-devam-callable.js';
+
+// Giriş, çıkış ve mola kaydını sunucu (personelDevamKomutV1) yazar. QR jetonu,
+// okul konumu, saat ve durum geçişi sunucuda doğrulanır; tarayıcı yalnız okunan
+// QR metnini ve o anki konumu gönderir. Tam konum hiçbir yerde saklanmaz.
 const QR_BICIMI = 'ZEKY-DEVAM';
 const TARAYICI_KAYNAGI = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+const ETIKET = { giris: 'Giriş', cikis: 'Çıkış', 'mola-basla': 'Mola başlangıcı', 'mola-bitir': 'Mola bitişi' };
+const FUNCTIONS_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
 
 export function qrCoz(metin) {
   const parcalar = String(metin || '').trim().split(':');
-  if (parcalar.length !== 3 || parcalar[0] !== QR_BICIMI) return null;
+  if (parcalar.length !== 3 || parcalar[0] !== QR_BICIMI || !parcalar[1] || !parcalar[2]) return null;
   return { okulId: parcalar[1], jeton: parcalar[2] };
-}
-
-export function qrEslesir(metin, ayar) {
-  const qr = qrCoz(metin);
-  return !!(qr && ayar && qr.okulId === ayar.okulId && qr.jeton === ayar.jeton);
-}
-
-export function mesafeMetre(enlem1, boylam1, enlem2, boylam2) {
-  const R = 6371000;
-  const rad = deger => Number(deger) * Math.PI / 180;
-  const dEnlem = rad(Number(enlem2) - Number(enlem1));
-  const dBoylam = rad(Number(boylam2) - Number(boylam1));
-  const a = Math.sin(dEnlem / 2) ** 2
-    + Math.cos(rad(enlem1)) * Math.cos(rad(enlem2)) * Math.sin(dBoylam / 2) ** 2;
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
 export function devamDurumu(hareketler) {
@@ -33,32 +25,24 @@ export function devamDurumu(hareketler) {
     }, 'disarida');
 }
 
-export function konumKarari(konum, ayar) {
-  if (!ayar || !Number.isFinite(Number(ayar.enlem)) || !Number.isFinite(Number(ayar.boylam))) {
-    return { uygun: false, kod: 'okul-konumu-eksik' };
-  }
-  if (!konum || !Number.isFinite(Number(konum.enlem)) || !Number.isFinite(Number(konum.boylam))) {
-    return { uygun: false, kod: 'cihaz-konumu-eksik' };
-  }
-  const yaricapMetre = Math.max(20, Number(ayar.yaricapMetre) || 100);
-  const dogrulukMetre = Number(konum.dogrulukMetre);
-  if (!Number.isFinite(dogrulukMetre) || dogrulukMetre > Math.max(100, yaricapMetre)) {
-    return { uygun: false, kod: 'konum-dogrulugu-yetersiz', dogrulukMetre };
-  }
-  const uzaklikMetre = mesafeMetre(konum.enlem, konum.boylam, ayar.enlem, ayar.boylam);
-  return {
-    uygun: uzaklikMetre <= yaricapMetre,
-    kod: uzaklikMetre <= yaricapMetre ? 'okulda' : 'okul-disinda',
-    uzaklikMetre,
-    yaricapMetre,
-    dogrulukMetre
-  };
-}
-
 function bugunKodu() {
   const d = new Date();
   const iki = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${iki(d.getMonth() + 1)}-${iki(d.getDate())}`;
+}
+
+let servisSozu = null;
+function devamServisi() {
+  if (!servisSozu) {
+    servisSozu = (async () => {
+      const [{ guvenliFunctionsGetir }, { httpsCallable }] = await Promise.all([
+        import('./zeky-randevu-cutover-runtime.js'),
+        import(FUNCTIONS_SDK)
+      ]);
+      return devamServisiOlustur({ functions: await guvenliFunctionsGetir(), httpsCallable });
+    })().catch(hata => { servisSozu = null; throw hata; });
+  }
+  return servisSozu;
 }
 
 function kutuphaneYukle() {
@@ -152,54 +136,43 @@ export function portalQrDevamKur(api = window.PortalAPI) {
   window.__portalQrDevamKuruldu = true;
 
   const asilKartCiz = window.devamKartiCiz;
-  const asilKaydet = window.devamKaydet;
   let tarayici = null;
+  let gonderiliyor = false;
 
+  function ekranlariTazele() {
+    if (typeof window.ozetDevamKartiDoldur === 'function' && document.getElementById('ozetDevamKart')) {
+      window.ozetDevamKartiDoldur();
+    }
+    if (typeof window.profilimRender === 'function' && document.getElementById('devamKartAlan')) window.profilimRender();
+    if (typeof window.hbOgretmenDoldur === 'function') setTimeout(window.hbOgretmenDoldur, 300);
+  }
+
+  async function sunucuyaGonder(islem, ek) {
+    const servis = await devamServisi();
+    const sonuc = await servis.gonder(islem, 'portal', ek);
+    const saat = new Date(sonuc.zaman).toTimeString().slice(0, 5);
+    api.toast(`✓ ${ETIKET[islem] || islem} kaydedildi · ${saat}`);
+    ekranlariTazele();
+    return sonuc;
+  }
+
+  // Mola düğmeleri de sunucudan geçer; giriş/çıkış yalnız QR ile yapılır.
   window.devamKaydet = async function(tip) {
     if (tip === 'giris' || tip === 'cikis') {
       api.toast('Giriş ve çıkış için okul QR’ını kamerayla okutmalısınız.', 'error');
       return;
     }
-    return asilKaydet(tip);
-  };
-
-  async function qrKaydet(tip, email, konum) {
-    const hareketler = await bugunkuHareketler(api, email);
-    const guncelDurum = devamDurumu(hareketler);
-    const beklenenTip = guncelDurum === 'disarida' ? 'giris' : guncelDurum === 'iceride' ? 'cikis' : null;
-    if (!beklenenTip || tip !== beklenenTip) {
-      throw new Error(guncelDurum === 'molada'
-        ? 'Çıkıştan önce “Moladan Dön” butonuna basın.'
-        : 'Devam durumunuz başka bir cihazda değişti. Yeniden deneyin.');
+    if (gonderiliyor) return;
+    gonderiliyor = true;
+    try {
+      await sunucuyaGonder(tip);
+    } catch (hata) {
+      api.toast(devamHataMetni(hata), 'error');
+      ekranlariTazele();
+    } finally {
+      gonderiliyor = false;
     }
-
-    const simdi = new Date();
-    const personel = api.state.personel || {};
-    await api.fb.addDoc(api.fb.collection(api.db, 'puantaj'), {
-      personelEmail: email,
-      personelAd: personel.adSoyad || api.state.currentUser?.displayName || email,
-      tip,
-      zaman: simdi.toISOString(),
-      tarih: bugunKodu(),
-      yontem: 'portal-qr',
-      onayli: true,
-      konum: {
-        enlem: konum.enlem,
-        boylam: konum.boylam,
-        dogrulukMetre: konum.dogrulukMetre
-      }
-    });
-    await api.fb.setDoc(api.fb.doc(api.db, 'personelDurum', email), {
-      durum: tip === 'giris' ? 'iceride' : 'disarida',
-      sonZaman: simdi.toISOString(),
-      sonTip: tip
-    }, { merge: true });
-
-    api.toast(`✓ ${tip === 'giris' ? 'Giriş' : 'Çıkış'} kaydedildi · ${simdi.toTimeString().slice(0, 5)}`);
-    if (typeof window.ozetDevamKartiDoldur === 'function') await window.ozetDevamKartiDoldur();
-    if (typeof window.profilimRender === 'function' && document.getElementById('devamKartAlan')) window.profilimRender();
-    if (typeof window.hbOgretmenDoldur === 'function') setTimeout(window.hbOgretmenDoldur, 300);
-  }
+  };
 
   function qrButonunaCevir(hedefId) {
     const alan = document.getElementById(hedefId || 'devamKartAlan');
@@ -228,19 +201,11 @@ export function portalQrDevamKur(api = window.PortalAPI) {
     const email = String(api.state.currentUser?.email || '').toLowerCase();
     if (!email) return api.toast('Personel oturumu bulunamadı.', 'error');
 
-    let ayar, hareketler;
+    let hareketler;
     try {
-      const [ayarSnap, gun] = await Promise.all([
-        api.fb.getDoc(api.fb.doc(api.db, 'config', 'okulQR')),
-        bugunkuHareketler(api, email)
-      ]);
-      ayar = ayarSnap.exists() ? ayarSnap.data() : null;
-      hareketler = gun;
+      hareketler = await bugunkuHareketler(api, email);
     } catch (e) {
-      return api.toast('QR veya devam bilgisi alınamadı: ' + (e.code || e.message), 'error');
-    }
-    if (!ayar || !ayar.okulId || !ayar.jeton || !Number.isFinite(Number(ayar.enlem)) || !Number.isFinite(Number(ayar.boylam))) {
-      return api.toast('Okul QR/konum ayarı eksik. Yönetim ekranından tamamlayın.', 'error');
+      return api.toast('Devam bilgisi alınamadı: ' + (e.code || e.message), 'error');
     }
     const durum = devamDurumu(hareketler);
     if (durum === 'molada') return api.toast('Çıkıştan önce “Moladan Dön” butonuna basın.', 'error');
@@ -268,30 +233,26 @@ export function portalQrDevamKur(api = window.PortalAPI) {
         async metin => {
           if (isleniyor) return;
           isleniyor = true;
-          if (!qrEslesir(metin, ayar)) {
-            durumYaz('Bu QR, okulun geçerli devam QR’ı değil.', true);
+          if (!qrCoz(metin)) {
+            durumYaz('Bu QR, okulun giriş-çıkış QR’ı değil.', true);
             setTimeout(() => { isleniyor = false; }, 1500);
             return;
           }
-          durumYaz('QR doğrulandı. Okul konumu kontrol ediliyor…');
+          durumYaz('QR okundu. Konum alınıyor…');
           await tarayiciyiDurdur(tarayici);
+          let konum;
           try {
-            const konum = await konumAl();
-            const karar = konumKarari(konum, ayar);
-            if (!karar.uygun) {
-              const mesaj = karar.kod === 'okul-disinda'
-                ? `Okul alanı dışındasınız (${karar.uzaklikMetre} m). Kayıt yapılmadı.`
-                : karar.kod === 'konum-dogrulugu-yetersiz'
-                  ? 'Konum yeterince hassas değil. Açık bir noktada tekrar deneyin.'
-                  : 'Konum doğrulanamadı. Kayıt yapılmadı.';
-              durumYaz(mesaj, true);
-              return;
-            }
-            durumYaz(`Okul konumu doğrulandı (${karar.uzaklikMetre} m). Kayıt yapılıyor…`);
-            await qrKaydet(tip, email, konum);
+            konum = await konumAl();
+          } catch (e) {
+            durumYaz(e.message || 'Konum alınamadı. Kayıt yapılmadı.', true);
+            return;
+          }
+          durumYaz('Okul sunucusu QR ve konumu doğruluyor…');
+          try {
+            await sunucuyaGonder(tip, { qr: metin, konum });
             await kapat();
           } catch (e) {
-            durumYaz(e.message || 'Konum doğrulanamadı. Kayıt yapılmadı.', true);
+            durumYaz(devamHataMetni(e), true);
           }
         },
         () => {}

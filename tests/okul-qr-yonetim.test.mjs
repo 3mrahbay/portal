@@ -36,6 +36,6 @@ test('portal yonetim ekraninda QR indirme ve A4 baski vardir', async () => {
   assert.match(html, /okulQrYazdir/);
   assert.match(html, /config", "okulQR"/);
   assert.match(html, /QR yenilenirse mevcut tüm basılı QR/);
-  assert.match(sw, /CACHE_VERSION = "v145-okul-qr-baski"/);
+  assert.match(sw, /CACHE_VERSION = "v146-personel-devam-sunucu"/);
   assert.match(sw, /okul-qr-core\.js\?v=1/);
 });
