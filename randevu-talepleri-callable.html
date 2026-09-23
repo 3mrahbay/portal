@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <meta name="referrer" content="no-referrer">
-  <title>ZEKY · Randevu Yönetimi</title>
+  <title>Randevular · Bir Çiçek Koleji</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Exo+2:wght@900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
   <style>
     :root{
       --yesil:#2d5e3e;--yesil-koyu:#21472f;--yesil-acik:#e8f2eb;
@@ -76,8 +79,16 @@
     @media(max-width:850px){.hero{align-items:flex-start;flex-direction:column}.hero-aksiyon{justify-content:flex-start}.filtreler{grid-template-columns:repeat(2,1fr)}.ozet{grid-template-columns:repeat(2,1fr)}.randevu-slot{grid-template-columns:90px minmax(0,1fr)}.islemler{grid-column:1/-1;justify-content:flex-start;max-width:none}}
     @media(max-width:520px){.sayfa{width:min(100% - 22px,1120px);padding-top:11px}.ust-linkler{gap:10px}.hero{padding:21px 19px}.hero-aksiyon,.hero-aksiyon .buton{width:100%}.filtreler{grid-template-columns:1fr}.ozet{gap:8px}.ozet-kart{padding:13px}.randevu-tarih-baslik{align-items:flex-start;flex-direction:column}.randevu-slot{grid-template-columns:1fr;gap:8px}.islemler{grid-column:auto}.buton{min-height:42px}}
   </style>
+  <link rel="stylesheet" href="./stil/randevu-sayfalari.css?v=1">
 </head>
 <body>
+  <header class="rp-ust"><div class="rp-ust-ic">
+    <a class="rp-marka" href="./index.html"><img src="./logo-daire.png" alt=""><span><strong>Bir Çiçek Koleji Anaokulu Yönetim Sistemi</strong><small>Randevu yönetimi</small></span></a>
+    <nav class="rp-nav" aria-label="Randevu gezinme">
+      <a href="./index.html"><i data-lucide="arrow-left"></i><span>Portal</span></a>
+      <a href="./randevu-talepleri.html" class="rp-aktif" aria-current="page"><i data-lucide="calendar-days"></i><span>Randevular</span></a>
+      <a href="./randevu-ayarlar.html"><i data-lucide="calendar-cog"></i><span>Uygun saatler</span></a>
+    </nav></div></header>
   <div class="sayfa">
     <nav class="ust-cubuk" aria-label="Randevu gezinme">
       <a class="geri" href="./index.html">← Portala dön</a>
@@ -86,13 +97,13 @@
 
     <header class="hero">
       <div>
-        <div class="etiket">ZEKY · GÜVENLİ RANDEVU YÖNETİMİ</div>
+        <div class="etiket"><i data-lucide="calendar-heart"></i> RANDEVULAR · PORTAL VE ZEKY ORTAK</div>
         <h1>Randevular</h1>
-        <p>Veli taleplerini eski, tarih odaklı düzende takip edin; onay, ret, farklı saat ve iptal işlemlerini güvenli servis üzerinden yönetin.</p>
+        <p>Velilerden gelen görüşme taleplerini buradan yönetin: onaylayın, farklı bir saat önerin ya da gerekçesiyle reddedin. Onay bekleyenler en üstte görünür; veliye her adımda bildirim gider.</p>
       </div>
       <div class="hero-aksiyon">
-        <button id="yeniRandevuAc" class="buton birincil" type="button">+ Veliye randevu öner</button>
-        <a class="buton ikincil" href="./randevu-ayarlar.html">Uygunlukları yönet</a>
+        <button id="yeniRandevuAc" class="buton birincil" type="button"><i data-lucide="calendar-plus"></i> Veliye randevu öner</button>
+        <a class="buton ikincil" href="./randevu-ayarlar.html"><i data-lucide="calendar-cog"></i> Uygun saatleri yönet</a>
       </div>
     </header>
 
@@ -100,10 +111,10 @@
 
     <main id="uygulama" hidden>
       <section class="ozet" aria-label="Randevu özeti">
-        <button class="ozet-kart aktif" type="button" data-ozet-filtre="pending"><span>Onay bekleyen</span><strong id="ozetBekleyen">0</strong></button>
-        <button class="ozet-kart" type="button" data-ozet-filtre="approved"><span>Onaylanan</span><strong id="ozetOnaylanan">0</strong></button>
-        <button class="ozet-kart" type="button" data-ozet-filtre="proposal"><span>Veli yanıtı beklenen</span><strong id="ozetTeklif">0</strong></button>
-        <button class="ozet-kart" type="button" data-ozet-filtre="all"><span>Tüm kayıtlar</span><strong id="ozetTum">0</strong></button>
+        <button class="ozet-kart aktif" type="button" data-ozet-filtre="pending"><span class="rp-ozet-ikon" style="background:#FEF3C7;color:#B45309"><i data-lucide="hourglass"></i></span><span>Onay bekleyen</span><strong id="ozetBekleyen">0</strong></button>
+        <button class="ozet-kart" type="button" data-ozet-filtre="approved"><span class="rp-ozet-ikon" style="background:#DCFCE7;color:#15803D"><i data-lucide="calendar-check"></i></span><span>Onaylanan</span><strong id="ozetOnaylanan">0</strong></button>
+        <button class="ozet-kart" type="button" data-ozet-filtre="proposal"><span class="rp-ozet-ikon" style="background:#DBEAFE;color:#1D4ED8"><i data-lucide="calendar-clock"></i></span><span>Veli yanıtı beklenen</span><strong id="ozetTeklif">0</strong></button>
+        <button class="ozet-kart" type="button" data-ozet-filtre="all"><span class="rp-ozet-ikon" style="background:#F1F5F9;color:#475569"><i data-lucide="list"></i></span><span>Tüm kayıtlar</span><strong id="ozetTum">0</strong></button>
       </section>
 
       <section class="panel">
@@ -132,7 +143,7 @@
             <option value="all">Tüm tarihler</option>
           </select>
           <input id="aramaFiltre" type="search" maxlength="100" placeholder="Öğrenci, veli veya personel ara">
-          <button id="yenileBtn" class="buton" type="button">Yenile</button>
+          <button id="yenileBtn" class="buton" type="button"><i data-lucide="refresh-cw"></i> Yenile</button>
         </div>
       </section>
 
@@ -158,5 +169,6 @@
   </dialog>
 
   <script type="module" src="./js/zeky-randevu-staff-page.js"></script>
+  <script>window.addEventListener("load", () => { try { window.lucide && lucide.createIcons(); } catch (_) {} });</script>
 </body>
 </html>

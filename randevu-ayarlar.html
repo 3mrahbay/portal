@@ -5,23 +5,34 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <meta name="referrer" content="no-referrer">
-  <title>ZEKY · Randevu Uygunlukları</title>
+  <title>Uygun saatler · Bir Çiçek Koleji</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Exo+2:wght@900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
   <style>
     :root{--koyu:#2d5e3e;--koyu2:#21472f;--zemin:#f5f7f4;--kart:#fff;--metin:#29332c;--soluk:#748078;--cizgi:#dfe8e1;--uyari:#fff0c2;--hata:#fbe9e7;--acik:#e8f2eb;--golge:0 12px 32px rgba(33,71,47,.08)}
     *{box-sizing:border-box}body{margin:0;background:var(--zemin);color:var(--metin);font:14px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.sayfa{width:min(980px,calc(100% - 32px));margin:auto;padding:18px 0 80px}.ust-cubuk{display:flex;justify-content:space-between;gap:16px;margin-bottom:14px}.portal-geri{color:var(--koyu);font-weight:800;text-decoration:none}.hero{padding:25px 28px;border-radius:22px;background:linear-gradient(135deg,var(--koyu2),#477557);color:#fff;box-shadow:var(--golge)}.hero h1{font-size:clamp(25px,4vw,34px);margin:4px 0 7px}.hero p{margin:0;opacity:.88}.etiket{font-size:11px;font-weight:900;letter-spacing:.12em;opacity:.8}.kart{background:var(--kart);border:1px solid var(--cizgi);border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 6px 22px rgba(33,71,47,.04)}.kart h2{color:var(--koyu2);margin:0 0 5px}.form-satir{display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:end}.alan{margin-top:13px}.alan label{display:block;margin:0 0 6px;font-weight:800}.alan select,.alan input,button{width:100%;padding:11px;border:1px solid var(--cizgi);border-radius:11px;background:#fff;font:inherit}button{width:auto;font-weight:800;cursor:pointer}.birincil{background:var(--koyu);border-color:var(--koyu);color:#fff}.tehlike{color:#9b1c1c;background:#fff5f4;border-color:#fecaca}.tarih-grubu{border:1px solid var(--cizgi);border-radius:14px;overflow:hidden;margin:11px 0}.tarih-baslik{display:flex;justify-content:space-between;gap:10px;padding:10px 13px;background:var(--acik);color:var(--koyu2);font-weight:850}.satir{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--cizgi);padding:12px 13px}.satir:first-child{border-top:0}.ikincil{color:var(--soluk)}.durum{padding:12px 14px;border:1px solid #f3d485;border-radius:12px;background:var(--uyari);margin:14px 0;font-weight:650}.durum.hata{background:var(--hata);border-color:#efbbb5}.grup-kutu{display:flex;flex-wrap:wrap;gap:8px}.secenek{display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border:1px solid var(--cizgi);border-radius:20px;background:#fff;cursor:pointer;font-weight:650;user-select:none}.secenek input{width:auto;padding:0;margin:0}.secenek.secili{background:var(--koyu);color:#fff;border-color:var(--koyu)}[hidden]{display:none!important}@media(max-width:650px){.sayfa{width:min(100% - 22px,980px);padding-top:11px}.hero{padding:21px 19px}.form-satir{grid-template-columns:1fr}.form-satir button{width:100%}.tarih-baslik{flex-direction:column}}
   </style>
+  <link rel="stylesheet" href="./stil/randevu-sayfalari.css?v=1">
 </head>
 <body>
+  <header class="rp-ust"><div class="rp-ust-ic">
+    <a class="rp-marka" href="./index.html"><img src="./logo-daire.png" alt=""><span><strong>Bir Çiçek Koleji Anaokulu Yönetim Sistemi</strong><small>Randevu yönetimi</small></span></a>
+    <nav class="rp-nav" aria-label="Randevu gezinme">
+      <a href="./index.html"><i data-lucide="arrow-left"></i><span>Portal</span></a>
+      <a href="./randevu-talepleri.html"><i data-lucide="calendar-days"></i><span>Randevular</span></a>
+      <a href="./randevu-ayarlar.html" class="rp-aktif" aria-current="page"><i data-lucide="calendar-cog"></i><span>Uygun saatler</span></a>
+    </nav></div></header>
   <div class="sayfa">
   <nav class="ust-cubuk"><a class="portal-geri" href="./index.html">← Portala dön</a><a class="portal-geri" href="./randevu-talepleri.html">Randevulara dön</a></nav>
-  <header class="hero"><div class="etiket">ZEKY · GÜVENLİ YÖNETİM</div><h1>Randevu Uygunlukları</h1><p>Personelin tekli veya haftalık görüşme saatlerini güvenli biçimde planlayın.</p></header>
+  <header class="hero"><div class="etiket"><i data-lucide="calendar-cog"></i> RANDEVULAR · UYGUN SAATLER</div><h1>Görüşme saatleri</h1><p>Velilerin seçebileceği saatleri buradan açın. Tek bir saat ekleyebilir ya da haftalık programla birkaç haftayı tek seferde doldurabilirsiniz. Açık saat yoksa veli talep oluşturamaz.</p></header>
   <div id="durumMesaji" class="durum" role="status" hidden></div>
   <main id="uygulama" hidden>
     <form id="uygunlukForm" class="kart">
       <div class="form-satir">
         <div class="alan"><label for="hedefSec">Personel</label><select id="hedefSec" required></select></div>
         <div class="alan"><label for="zamanSec">Tarih ve saat</label><input id="zamanSec" type="datetime-local" step="1800" required></div>
-        <button id="ekleBtn" class="birincil" type="submit">Uygunluk ekle</button>
+        <button id="ekleBtn" class="birincil" type="submit"><i data-lucide="plus"></i> Saati ekle</button>
       </div>
       <p class="ikincil">Yarım saatlik, gelecek 90 gün içindeki saatler eklenebilir.</p>
     </form>
@@ -50,9 +61,9 @@
           </select></div>
       </div>
       <p id="topluOzet" class="ikincil"></p>
-      <button id="topluBtn" class="birincil" type="submit">Toplu ekle</button>
+      <button id="topluBtn" class="birincil" type="submit"><i data-lucide="calendar-range"></i> Haftalık saatleri ekle</button>
     </form>
-    <section class="kart"><h2>Aktif uygunluklar</h2><div id="uygunlukListesi"></div></section>
+    <section class="kart"><h2>Açık saatler</h2><div id="uygunlukListesi"></div></section>
   </main>
   </div>
   <script type="module">
@@ -333,5 +344,6 @@
     }
     baslat();
   </script>
+  <script>window.addEventListener("load", () => { try { window.lucide && lucide.createIcons(); } catch (_) {} });</script>
 </body>
 </html>

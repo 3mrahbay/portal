@@ -13921,7 +13921,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v124";
+window.PORTAL_SURUM = "v125";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -18037,6 +18037,8 @@ async function caHomeRandevulariDoldur() {
   const bolum = document.getElementById("caHomeRandevuBolum");
   const el = document.getElementById("caHomeRandevular");
   if (!bolum || !el) return;
+  // Yeni randevu sistemi (randevuSorguV3) — js/zeky-randevu-veli-arayuz.js
+  if (window.zekyRandevuYaklasan) return window.zekyRandevuYaklasan(bolum, el);
   try {
     const veliEmail = (currentUser?.email || "").toLowerCase();
     const bugun = new Date().toISOString().slice(0, 10);
@@ -18112,6 +18114,8 @@ function caRandevularHTML() {
 async function caRandevulariYukle() {
   const el = document.getElementById("caRandevuListe");
   if (!el) return;
+  // Yeni randevu sistemi (randevuSorguV3) — js/zeky-randevu-veli-arayuz.js
+  if (window.zekyRandevuListe) return window.zekyRandevuListe("caRandevuListe");
   try {
     const veliEmail = (currentUser?.email || "").toLowerCase();
     const snap = await getDocs(query(collection(db, "randevuSlotlari"), where("veliEmail", "==", veliEmail)));
@@ -47561,7 +47565,7 @@ window.showBulkUpload = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=10"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=11"></script>
 
 <!-- Read-only, user-triggered pickup diagnosis. No automatic data requests. -->
 <script>

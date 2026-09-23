@@ -1,0 +1,78 @@
+/* ══════════════════════════════════════════════════════════════
+   RANDEVU YÖNETİM SAYFALARI — portal tasarım dili (24 Eylül 2026)
+   randevu-talepleri-callable.html ve randevu-ayarlar.html içindeki
+   satır içi stilden SONRA yüklenir; yalnız görünümü değiştirir.
+   Sayfa betikleri, kimlikler (id) ve veri yolu aynı kalır.
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --yesil:#2D5E3E; --yesil-koyu:#24503A; --yesil-acik:#E8F3EC;
+  --koyu:#2D5E3E; --koyu2:#24503A; --acik:#E8F3EC;
+  --zemin:#F4F6F5; --kart:#fff; --metin:#1E293B; --soluk:#64748B; --cizgi:#E2E8F0;
+  --sari:#FEF3C7; --mavi:#DBEAFE; --kirmizi:#FEE2E2; --turuncu:#FFF8E8; --turuncu-cizgi:#F6D58E;
+  --uyari:#FFF8E8; --hata:#FEE2E2; --golge:0 6px 22px rgba(30,41,59,.06);
+}
+body { font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--zemin); color: var(--metin); }
+button, input, select, textarea { font-family: inherit; }
+
+/* Üst başlık — portal ile aynı */
+.rp-ust { position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid #E8EDF2; box-shadow: 0 1px 3px rgba(30,41,59,.05); }
+.rp-ust-ic { width: min(1120px, calc(100% - 32px)); margin: 0 auto; display: flex; align-items: center; gap: 14px; padding: 10px 0; }
+.rp-marka { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1F2544; min-width: 0; flex: 1; }
+.rp-marka img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.rp-marka strong { display: block; font-family: "Exo 2", Inter, sans-serif; font-weight: 900; font-size: clamp(12.5px, 3.4vw, 18px); line-height: 1.12; }
+.rp-marka small { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 9px 2px 7px; border-radius: 999px; background: #E8F3EC; color: #2D5E3E; font-size: 12px; font-weight: 600; }
+.rp-marka small::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #4A7C59; }
+.rp-nav { display: flex; gap: 4px; flex-shrink: 0; }
+.rp-nav a { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 8px 12px; border-radius: 10px; color: #475569; font-size: 13.5px; font-weight: 600; text-decoration: none; }
+.rp-nav a:hover { background: #F1F5F4; }
+.rp-nav a.rp-aktif { background: #E8F3EC; color: #2D5E3E; }
+.rp-nav svg { width: 17px; height: 17px; }
+.ust-cubuk { display: none !important; }
+
+/* Kahraman alanı — özlük ekranındaki yeşil şerit dili */
+.sayfa { padding-top: 18px; }
+.hero { background: linear-gradient(135deg, #2D5E3E 0%, #4A7C59 100%) !important; border-radius: 20px !important; padding: 22px 26px !important; box-shadow: 0 10px 28px rgba(45,94,62,.18) !important; color: #fff; }
+.hero .etiket { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 800; letter-spacing: .12em; opacity: .9; }
+.hero .etiket svg { width: 15px; height: 15px; }
+.hero h1 { font-family: Inter, sans-serif; font-weight: 800; font-size: clamp(24px, 4vw, 32px); margin: 8px 0 6px; }
+.hero p { opacity: .92; line-height: 1.55; }
+
+/* Düğmeler */
+.buton, button.birincil, .kart button, .form-alt button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 12px !important; font-weight: 700 !important; min-height: 42px; }
+.buton svg, button svg { width: 16px; height: 16px; flex-shrink: 0; }
+.birincil, button.birincil { background: #2D5E3E !important; border-color: #2D5E3E !important; color: #fff !important; }
+.birincil:hover { background: #24503A !important; }
+.hero .birincil { background: #fff !important; border-color: #fff !important; color: #24503A !important; }
+.hero .ikincil { background: rgba(255,255,255,.14) !important; border-color: rgba(255,255,255,.4) !important; color: #fff !important; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Özet kutuları */
+.ozet-kart { position: relative; border-radius: 16px !important; padding: 14px 16px 14px 60px !important; border: 1.5px solid var(--cizgi) !important; box-shadow: none !important; min-height: 72px; }
+.ozet-kart .rp-ozet-ikon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; }
+.ozet-kart .rp-ozet-ikon svg { width: 18px; height: 18px; }
+.ozet-kart strong { color: var(--metin) !important; font-size: 24px !important; font-variant-numeric: tabular-nums; }
+.ozet-kart.aktif { outline: 0 !important; border-color: #2D5E3E !important; background: #F7FBF8 !important; box-shadow: 0 0 0 3px #E8F3EC !important; }
+
+/* Paneller, kartlar, formlar */
+.panel, .kart { border-radius: 18px !important; border: 1px solid #E8EDF2 !important; box-shadow: var(--golge) !important; }
+h2 { color: #1E293B !important; font-weight: 800; }
+select, input, textarea { border: 1.5px solid var(--cizgi) !important; border-radius: 11px !important; min-height: 42px; color: var(--metin); background: #fff; }
+select:focus, input:focus, textarea:focus { outline: none; border-color: #4A7C59 !important; box-shadow: 0 0 0 3px #E8F3EC; }
+.randevu-tarih-grubu { border-radius: 16px !important; }
+.randevu-tarih-baslik { background: #F4F8F5 !important; color: #24503A !important; }
+.randevu-saat { color: #1E293B !important; font-variant-numeric: tabular-nums; }
+.rozet { font-weight: 700 !important; }
+.rozet.talep { background: #FEF3C7; color: #92400E; }
+.bekleyen-kutu { border-radius: 16px !important; }
+.durum-mesaji, .durum { border-radius: 12px !important; }
+dialog { border-radius: 22px !important; }
+.kapat { width: 40px; height: 40px; border-radius: 50% !important; background: rgba(15,23,42,.06) !important; display: grid; place-items: center; }
+
+@media (max-width: 640px) {
+  .rp-ust-ic { width: calc(100% - 20px); gap: 8px; }
+  .rp-marka img { width: 36px; height: 36px; }
+  .rp-marka small { font-size: 11px; }
+  .rp-nav a span { display: none; }
+  .rp-nav a { padding: 8px 10px; }
+  .hero { padding: 18px 18px !important; }
+}
