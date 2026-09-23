@@ -10,12 +10,13 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v142-qr-devam";
+const CACHE_VERSION = "v143-personel-izin-akisi";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
   "./js/sabah-giris-kaydi.js?v=1",
   "./js/personel-qr-devam.js?v=1",
+  "./js/personel-izin-core.js?v=1",
   "./js/finans/core.js",
   "./js/finans/receipts.js",
   "./js/finans/reconciliation.js",
