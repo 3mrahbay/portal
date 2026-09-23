@@ -10356,6 +10356,11 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
             </div>
           </div>
 
+          <!-- Duyuru ekleri (resim/dosya) — moduller/duyuru-ekleri.js doldurur -->
+          <div class="form-grid full">
+            <div class="form-group" id="duyuruEkAlani"></div>
+          </div>
+
           <div class="form-grid full">
             <div class="form-group">
               <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
@@ -13894,7 +13899,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v116";
+window.PORTAL_SURUM = "v117";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -13923,7 +13928,12 @@ window.PortalAPI = {
   ogretmenMi: () => (typeof ogretmenRolMu === "function") ? ogretmenRolMu() : false,
   ogrenciDurum: (o, a) => (typeof getOgrenciDurum === "function") ? getOgrenciDurum(o, a) : "",
   esc: (t) => String(t == null ? "" : t).replace(/</g, "&lt;").replace(/"/g, "&quot;"),
-  bugun: () => new Date().toISOString().slice(0, 10)
+  bugun: () => new Date().toISOString().slice(0, 10),
+  // Medya (Bunny proxy) — moduller/duyuru-ekleri.js gibi modüller kullanır
+  medya: {
+    yukle: (dosya, klasor, sadeceResim) => medyaYukle(dosya, klasor, sadeceResim),
+    sil: (yol) => medyaSil(yol)
+  }
 };
 
 // Modül yükleyici — bir kez yükler, önbellekler
@@ -24345,6 +24355,7 @@ async function simsekDuyuruKontrolEt() {
 
     // En yeni olanı önce göster (sıraya koy)
     bekleyen.sort((a, b) => new Date(b.olusturuldu || 0) - new Date(a.olusturuldu || 0));
+    if (bekleyen.some(d => Array.isArray(d.ekler) && d.ekler.length)) await modulYukle("duyuru-ekleri");
     simsekPopupGoster(bekleyen, 0);
   } catch (e) {
     console.warn("Şimşek duyuru kontrolü başarısız:", e);
@@ -24411,6 +24422,7 @@ function simsekPopupGoster(kuyruk, idx) {
           <div style="background:${aciliyetRenk.bg}; border:1px solid ${aciliyetRenk.bord}; border-radius:12px; padding:14px 16px; font-size:14px; color:#374151; line-height:1.6;">
             ${icerikSafe}
           </div>
+          ${window.duyuruEkleri ? window.duyuruEkleri.html(d.ekler, { kompakt: true }) : ""}
           <div style="display:flex; gap:8px; margin-top:18px;">
             ${kuyruk.length > 1 ? `<div style="flex:1; text-align:center; align-self:center; font-size:11px; color:#9ca3af;">${idx + 1} / ${kuyruk.length}</div>` : ''}
             <button id="simsekAnladim" style="flex:${kuyruk.length > 1 ? '2' : '1'}; background:#1F5F33; color:white; border:none; padding:14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; min-height:48px;">
@@ -30634,6 +30646,7 @@ async function renderDuyurular() {
   if (!el) return;
 
   await loadDuyurular();
+  const duyuruEkModul = duyuruListesi.some(d => Array.isArray(d.ekler) && d.ekler.length) ? await modulYukle("duyuru-ekleri") : null;
 
   let liste = [...duyuruListesi];
   if (aktifDuyuruFilter === "aktif") liste = liste.filter(d => !d.arsiv);
@@ -30692,6 +30705,7 @@ async function renderDuyurular() {
           </div>
         </div>
         <div style="font-size:13px; color:var(--gray-700); line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(d.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1" target="_blank" style="color:#2d6a4f;">$2</a>')}</div>
+        ${duyuruEkModul ? duyuruEkModul.html(d.ekler) : ""}
         <div class="duyuru-yazma" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--gray-200);">
           ${(typeof ogretmenRolMu === "function" && ogretmenRolMu()
              && (d.olusturan || "").toLowerCase() !== (currentUser?.email || "").toLowerCase())
@@ -30710,7 +30724,7 @@ async function renderDuyurular() {
 }
 
 // Modal aç
-window.openDuyuruModal = function() {
+window.openDuyuruModal = function(mevcutEkler) {
   if (danismaSaltOkunurEngelle("Duyurular")) return;
   document.getElementById("duyuruModal").classList.add("active");
   if (typeof duyuruRolKisitiUygula === "function") duyuruRolKisitiUygula();
@@ -30727,10 +30741,13 @@ window.openDuyuruModal = function() {
   document.getElementById("duyuruSilBtn").style.display = "none";
   duyuruHedefDegisti();
   doldurOgrenciSecici();
+  // Resim/dosya ekleri — düzenlemede mevcut ekler gelir
+  modulYukle("duyuru-ekleri").then(m => m && m.formHazirla(Array.isArray(mevcutEkler) ? mevcutEkler : []));
 };
 
 window.closeDuyuruModal = function() {
   document.getElementById("duyuruModal").classList.remove("active");
+  window.duyuruEkleri?.formKapandi();
 };
 
 // Hedef türü değiştiğinde alt alan göster/gizle
@@ -30762,7 +30779,7 @@ window.duzenleDuyuru = function(id) {
   if (danismaSaltOkunurEngelle("Duyurular")) return;
   const d = duyuruListesi.find(x => x.id === id);
   if (!d) return;
-  openDuyuruModal();
+  openDuyuruModal(d.ekler || []);
   document.getElementById("duyuruModalBaslik").textContent = "✏️ Duyuruyu Düzenle";
   document.getElementById("duyuruDuzenleId").value = id;
   document.getElementById("duyuruBaslik").value = d.baslik || "";
@@ -30841,6 +30858,12 @@ window.kaydetDuyuru = async function() {
     }
   }
 
+  // ── Resim/dosya ekleri ──
+  const duyuruEkModul = await modulYukle("duyuru-ekleri");
+  if (duyuruEkModul && duyuruEkModul.yuklemeSuruyor()) {
+    return showToast("Ekler hâlâ yükleniyor, bitince tekrar deneyin", "error");
+  }
+
   const data = {
     baslik, icerik, aciliyet, hedefTur, hedefDeger, hedefOgrenciAd,
     mailGonder,
@@ -30849,6 +30872,7 @@ window.kaydetDuyuru = async function() {
     olusturan: currentUser.email,
     guncellendi: new Date().toISOString()
   };
+  if (duyuruEkModul) data.ekler = duyuruEkModul.formEkleri();
 
   try {
     if (id) {
@@ -30867,6 +30891,7 @@ window.kaydetDuyuru = async function() {
       }
       showToast("✓ Duyuru yayınlandı");
     }
+    if (duyuruEkModul) duyuruEkModul.kayitTamamlandi();
     closeDuyuruModal();
     renderDuyurular();
   } catch (e) {
@@ -30916,6 +30941,7 @@ async function duyuruMailGonder(data) {
           <div style="font-size:12px; font-weight:700; color:${aciliyetRenk[data.aciliyet]}; letter-spacing:0.5px; margin-bottom:8px;">${aciliyetLabels[data.aciliyet]}</div>
           <h3 style="margin:0 0 10px; color:var(--gray-800); font-size:18px;">${escapeHtml(data.baslik)}</h3>
           <div style="font-size:14px; color:#374151; line-height:1.7; white-space:pre-wrap;">${escapeHtml(data.icerik).replace(/\n/g, '<br>')}</div>
+          ${window.duyuruEkleri ? window.duyuruEkleri.mailHtml(data.ekler) : ""}
         </div>
 
         <p style="margin:16px 0 0; font-size:13px; color:#6b7280; line-height:1.7;">
@@ -30975,8 +31001,10 @@ window.silDuyuru = async function() {
   const id = document.getElementById("duyuruDuzenleId").value;
   if (!id) return;
   if (!confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
+  const silinenEkler = (duyuruListesi.find(x => x.id === id) || {}).ekler || [];
   try {
     await deleteDoc(doc(db, "duyurular", id));
+    if (silinenEkler.length) modulYukle("duyuru-ekleri").then(m => m && m.ekleriSil(silinenEkler));
     showToast("✗ Duyuru silindi");
     closeDuyuruModal();
     renderDuyurular();
@@ -30988,8 +31016,10 @@ window.silDuyuru = async function() {
 window.silDuyuruHizli = async function(id) {
   if (danismaSaltOkunurEngelle("Duyurular")) return;
   if (!confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
+  const silinenEkler = (duyuruListesi.find(x => x.id === id) || {}).ekler || [];
   try {
     await deleteDoc(doc(db, "duyurular", id));
+    if (silinenEkler.length) modulYukle("duyuru-ekleri").then(m => m && m.ekleriSil(silinenEkler));
     showToast("✗ Duyuru silindi");
     renderDuyurular();
   } catch (e) {
@@ -39887,6 +39917,8 @@ async function veliRenderBildirimler() {
       }
     } catch (e) { console.warn("Duyurular yüklenemedi:", e); }
 
+    const duyuruEkModul = bildirimler.some(b => Array.isArray(b.ekler) && b.ekler.length) ? await modulYukle("duyuru-ekleri") : null;
+
     // Tarihe göre sırala (yeni üstte)
     bildirimler.sort((a, b) => (b.olusturuldu || "").localeCompare(a.olusturuldu || ""));
 
@@ -39983,6 +40015,7 @@ async function veliRenderBildirimler() {
               <span style="font-size:11px; color:${stil.text}; opacity:0.8;">${olusturuldu}</span>
             </div>
             <div style="font-size:13px; color:${stil.text}; line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(b.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, (m, href, text) => /^(https?:|mailto:)/i.test(href) ? `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color:inherit; font-weight:600;">${text}</a>` : text)}</div>
+            ${duyuruEkModul ? duyuruEkModul.html(b.ekler) : ""}
           </div>
             </div>
           </div>
