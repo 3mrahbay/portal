@@ -9101,7 +9101,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 }
 </style>
 <!-- Arayüz düzeltmeleri: pencere başlıkları, logo, üst menü — stil/arayuz-duzeltmeleri.css -->
-<link rel="stylesheet" href="stil/arayuz-duzeltmeleri.css?v=1">
+<link rel="stylesheet" href="stil/arayuz-duzeltmeleri.css?v=2">
 </head>
 <body>
 
@@ -13921,7 +13921,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v123";
+window.PORTAL_SURUM = "v124";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -22275,7 +22275,7 @@ function ogretmenHomeHTML(ad) {
         </div>
 
         <div>
-          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıfım</h3><button class="ca-link" onclick="modulSec('ogrencilerM')">Detay →</button></div>
+          <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıfım · Bugün</h3><button class="ca-link" onclick="modulSec('devamsizlik')">Yoklama →</button></div>
           <div class="ca-card" id="ogrHomeSinif">
             <div class="ca-tile-sub">Yükleniyor…</div>
           </div>
@@ -22437,15 +22437,8 @@ async function ogretmenHomeVeriYukle() {
     });
   } catch (e) { console.warn("sınıf mevcudu", e); }
 
-  const sinifEl = document.getElementById("ogrHomeSinif");
-  if (sinifEl) {
-    sinifEl.innerHTML = sinifOgrencileri.length
-      ? `<div style="font-family:var(--c-font-head); font-weight:700; font-size:26px; color:var(--c-ink);">${sinifOgrencileri.length}</div>
-         <div class="ca-tile-sub" style="margin-bottom:10px;">kayıtlı öğrenci</div>
-         ${sinifOgrencileri.slice(0, 5).map(o => `<div class="ca-msgitem"><div class="ca-msgmini" style="background:var(--c-green-light); color:#fff;">${escapeHtml((String(o.ogrenciAdSoyad || "?")[0] || "?").toLocaleUpperCase("tr"))}</div><div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml(o.ogrenciAdSoyad || o.adSoyad || "")}</div></div>`).join("")}
-         ${sinifOgrencileri.length > 5 ? `<div class="ca-tile-sub" style="margin-top:6px;">+${sinifOgrencileri.length - 5} öğrenci daha</div>` : ""}`
-      : `<div class="ca-tile-sub">Sınıfınıza atanmış öğrenci bulunamadı.</div>`;
-  }
+  // Sınıfım kartı: canlı yoklama, sınıf/durum süzgeci, doğum günleri — moduller/ogretmen-sinifim.js
+  modulYukle("ogretmen-sinifim").then(m => m && m.kartCiz("ogrHomeSinif", sinifOgrencileri, bugun));
 
   // ── Bugünkü yoklama ──
   const ykEl = document.getElementById("ogrHomeYoklama");
