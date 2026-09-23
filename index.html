@@ -9593,7 +9593,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
       <!-- ALT SEKMELER -->
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-        <button class="ozluk-tab active" data-o="durum"  onclick="ozlukSekme('durum')"  style="padding:9px 15px; border:1.5px solid #2D5E3E; background:#2D5E3E; color:#fff; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Anlık Durum</button>
+        <button class="ozluk-tab active" data-o="personel" onclick="ozlukSekme('personel')" style="padding:9px 15px; border:1.5px solid #2D5E3E; background:#2D5E3E; color:#fff; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;"><i data-lucide="users" style="width:14px;height:14px;vertical-align:-2px;"></i> Personel</button>
+        <button class="ozluk-tab" data-o="durum"  onclick="ozlukSekme('durum')"  style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Anlık Durum</button>
         <button class="ozluk-tab yonetim-only" data-o="qrayar" onclick="ozlukSekme('qrayar')" style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;"><i data-lucide="qr-code" style="width:14px;height:14px;vertical-align:-2px;"></i> Okul QR</button>
         <button class="ozluk-tab" data-o="qrlog"  onclick="ozlukSekme('qrlog')"  style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">Giriş-Çıkış Kaydı</button>
         <button class="ozluk-tab" data-o="izin"   onclick="ozlukSekme('izin')"   style="padding:9px 15px; border:1.5px solid var(--c-line,#E2E8F0); background:#fff; color:#64748B; border-radius:20px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;">İzin Talepleri</button>
@@ -13920,7 +13921,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v122";
+window.PORTAL_SURUM = "v123";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16498,6 +16499,8 @@ onAuthStateChanged(auth, async (user) => {
 
       // Sekmeleri role göre göster/gizle (Faz 1c)
       try { sekmeleriRoleGoreAyarla(); } catch(e) { console.warn(e); }
+      // Personelin uygulama kullanımı (giriş sıklığı, açılan bölümler) — moduller/veli-katilim.js
+      if (!isAdmin) modulYukle("veli-katilim").then(m => m && m.personelBaslat && m.personelBaslat());
       try { solMenuyuRoleGoreAyarla(); } catch(e) { console.warn(e); }
 
       // Ana sayfanın ağır kartlarını öğrenci/dönem verileri gelmeden başlatma.
@@ -27910,7 +27913,7 @@ window.sinifSecimleriniDoldur = sinifSecimleriniDoldur;
 //   bordrolar/{email_ay}  { personelEmail, donem, netMaas, durum }
 //   personeller/{email}   özlük bilgileri
 // ═══════════════════════════════════════════════════════════════════
-let ozlukAktifSekme = "durum";
+let ozlukAktifSekme = "personel";
 let ozlukPersoneller = [];
 
 const OZLUK_TIP_AD = { "giris": "Giriş", "cikis": "Çıkış", "mola-basla": "Mola başladı", "mola-bitir": "Mola bitti" };
@@ -27981,6 +27984,15 @@ window.ozlukYukle = async function() {
       ozlukPersoneller.sort((a, b) => ((a.adSoyad || a.ad || a.email)).localeCompare((b.adSoyad || b.ad || b.email), "tr"));
     } catch (e) { console.warn("personeller", e); }
   }
+
+  // Personel görünümü: liste + çalışana tıklayınca ayrıntı (canlı) — moduller/personel-ozluk.js
+  if (ozlukAktifSekme === "personel") {
+    const m = await modulYukle("personel-ozluk");
+    if (m) await m.panelRender("ozlukIcerik", ozlukPersoneller);
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+    return;
+  }
+  window.personelOzluk?.panelDurdur();   // diğer alt sekmelere geçince canlı dinleme durur
 
   try {
     if (ozlukAktifSekme === "durum")   await ozlukDurumCiz();

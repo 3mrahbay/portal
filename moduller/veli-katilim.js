@@ -54,7 +54,14 @@ function tarihYap(z) {
 }
 function bolumAdi(k) { return BOLUMLER[k] || (k ? k.charAt(0).toLocaleUpperCase("tr") + k.slice(1) : ""); }
 
-// ═════════════════════════ VELİ TARAFI ═════════════════════════
+// ═════════════════════════ VELİ / PERSONEL TARAFI ═════════════════════════
+// Aynı kayıt mantığı iki hedefle çalışır: veliler (veliKatilim) ve
+// personel (personelKatilim — Özlük & Puantaj › Uygulama sekmesi).
+const HEDEFLER = {
+  veli:     { ozet: "veliKatilim",     akis: "veliKatilimAkisi",     sarilanlar: ["caGo", "veliSwitchTab"], atla: ["home", "menu", ""] },
+  personel: { ozet: "personelKatilim", akis: "personelKatilimAkisi", sarilanlar: ["modulSec"],             atla: ["ozet", ""] }
+};
+let hedef = HEDEFLER.veli;
 let veliAktif = false;
 let veliEposta = "";
 let sonEkran = "";
@@ -77,6 +84,23 @@ export function veliBaslat() {
   if (s.personel || s.isAdmin) return;           // personel önizlemesi kaydedilmez
   veliEposta = kucuk(s.currentUser?.email);
   if (!veliEposta || !a?.fb || !a?.db) return;
+  hedef = HEDEFLER.veli;
+  izlemeyiKur();
+}
+
+/** Personel paneli açılınca çağrılır (kurucu müdür/admin kaydedilmez). */
+export function personelBaslat() {
+  if (veliAktif) return;
+  const a = P();
+  const s = a?.state || {};
+  if (!s.personel || s.isAdmin) return;
+  veliEposta = kucuk(s.currentUser?.email);
+  if (!veliEposta || !a?.fb || !a?.db) return;
+  hedef = HEDEFLER.personel;
+  izlemeyiKur();
+}
+
+function izlemeyiKur() {
   veliAktif = true;
 
   ziyaretKontrol();
@@ -104,17 +128,17 @@ function nabiz() {
   if (Date.now() - sonHareketOku() > OTURUM_ARASI) { ziyaretKontrol(); return; }
   sonHareketYaz();
   const { db, fb } = P();
-  fb.setDoc(fb.doc(db, "veliKatilim", veliEposta),
+  fb.setDoc(fb.doc(db, hedef.ozet, veliEposta),
     { eposta: veliEposta, sonGorulme: fb.serverTimestamp(), sonUygulama: "portal" }, { merge: true })
     .catch(e => console.warn("Katılım nabzı yazılamadı:", e?.code || e?.message));
 }
 
 function ekranGirdi(ham) {
   if (!veliAktif || typeof ham !== "string") return;
-  const k = (ESLEME[ham] || ham).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+  const k = ((hedef === HEDEFLER.veli ? ESLEME[ham] : null) || ham).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
   sonEtkilesim = Date.now();
   if (Date.now() - sonHareketOku() > OTURUM_ARASI) ziyaretKontrol(); else sonHareketYaz();
-  if (ATLANAN.has(k)) return;
+  if (hedef.atla.includes(k)) return;
   if (k === sonEkran && Date.now() - sonEkranZaman < 5 * 60 * 1000) return;
   sonEkran = k;
   sonEkranZaman = Date.now();
@@ -138,13 +162,12 @@ function sar(ad) {
 function gezinmeyiDinle() {
   let deneme = 0;
   const kur = () => {
-    const a = sar("caGo");
-    const b = sar("veliSwitchTab");
-    if ((!a || !b) && ++deneme < 20) setTimeout(kur, 500);
+    const tamam = hedef.sarilanlar.map(sar).every(Boolean);
+    if (!tamam && ++deneme < 20) setTimeout(kur, 500);
   };
   kur();
   // Başka bir köprü sonradan sararsa bizimki içerde kalır; yine de ara ara kontrol et
-  setTimeout(() => { sar("caGo"); sar("veliSwitchTab"); }, 8000);
+  setTimeout(() => hedef.sarilanlar.forEach(sar), 8000);
 }
 
 async function kaydet(tur, ekran) {
@@ -157,8 +180,10 @@ async function kaydet(tur, ekran) {
     ozet.girisSayisi = fb.increment(1);
     ozet.gunler = { [gunAnahtari()]: fb.increment(1) };
     ozet.uygulamalar = { portal: fb.increment(1) };
-    const idler = (a.state?.veliOgrenciler || []).map(o => o?.id).filter(Boolean).slice(0, 10);
-    if (idler.length) ozet.ogrenciIdler = idler;
+    if (hedef === HEDEFLER.veli) {
+      const idler = (a.state?.veliOgrenciler || []).map(o => o?.id).filter(Boolean).slice(0, 10);
+      if (idler.length) ozet.ogrenciIdler = idler;
+    }
   } else {
     ozet.sonEkran = ekran;
     ozet.ekranlar = { [ekran]: fb.increment(1) };
@@ -166,8 +191,8 @@ async function kaydet(tur, ekran) {
   const akisId = `${veliEposta}__${String(Date.now()).padStart(13, "0")}${Math.random().toString(36).slice(2, 6)}`;
   try {
     const toplu = fb.writeBatch(db);
-    toplu.set(fb.doc(db, "veliKatilim", veliEposta), ozet, { merge: true });
-    toplu.set(fb.doc(db, "veliKatilimAkisi", akisId), {
+    toplu.set(fb.doc(db, hedef.ozet, veliEposta), ozet, { merge: true });
+    toplu.set(fb.doc(db, hedef.akis, akisId), {
       eposta: veliEposta, tur, ekran: ekran || "", uygulama: "portal", cihaz: cihazTuru(), zaman: fb.serverTimestamp()
     });
     await toplu.commit();
@@ -699,5 +724,5 @@ function stilEkle() {
 }
 
 if (typeof window !== "undefined") {
-  window.veliKatilim = { veliBaslat, panelRender, panelDurdur, BOLUMLER };
+  window.veliKatilim = { veliBaslat, personelBaslat, panelRender, panelDurdur, BOLUMLER };
 }
