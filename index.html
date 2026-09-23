@@ -9425,6 +9425,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <button class="side-item" data-modul="gunlukRapor" onclick="modulSec('gunlukRapor')"><span class="side-ikon"><i data-lucide="notebook-pen"></i></span><span class="side-ad">Günlük Rapor</span></button>
         <button class="side-item yonetim-only" data-modul="geriBildirim" onclick="modulSec('geriBildirim')"><span class="side-ikon"><i data-lucide="message-square-heart"></i></span><span class="side-ad">Geri Bildirim</span></button>
         <button class="side-item yonetim-only" data-modul="veliKatilim" onclick="modulSec('veliKatilim')"><span class="side-ikon"><i data-lucide="activity"></i></span><span class="side-ad">Veli Katılımı</span></button>
+        <button class="side-item" data-modul="gorusmeNotlari" onclick="modulSec('gorusmeNotlari')"><span class="side-ikon"><i data-lucide="notebook-text"></i></span><span class="side-ad">Görüşme Notları</span></button>
         <button class="side-item yonetim-only" data-modul="programBelgeleme" onclick="modulSec('programBelgeleme')"><span class="side-ikon"><i data-lucide="folder-check"></i></span><span class="side-ad">Evrak Takibi</span></button>
         <button class="side-item" data-modul="haftalikPlan" onclick="modulSec('haftalikPlan')"><span class="side-ikon"><i data-lucide="calendar-range"></i></span><span class="side-ad">Haftalık Plan</span></button>
         <button class="side-item" data-modul="devamsizlik" onclick="modulSec('devamsizlik')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">Devamsızlık</span></button>
@@ -9462,6 +9463,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       <button class="tab" data-tab="programBelgeleme" id="tab-programBelgeleme-btn" style="display:none;"><i data-lucide="folder-check"></i> Evrak Takibi</button>
       <button class="tab" data-tab="geriBildirim" id="tab-geriBildirim-btn" style="display:none;"><i data-lucide="message-square-heart"></i> Geri Bildirim</button>
       <button class="tab" data-tab="veliKatilim" id="tab-veliKatilim-btn" style="display:none;"><i data-lucide="activity"></i> Veli Katılımı</button>
+      <button class="tab" data-tab="gorusmeNotlari" id="tab-gorusmeNotlari-btn" style="display:none;"><i data-lucide="notebook-text"></i> Görüşme Notları</button>
       <button class="tab" data-tab="danismaRandevu" id="tab-danismaRandevu-btn" style="display:none;"><i data-lucide="calendar-clock"></i> Aday Randevuları</button>
       <button class="tab" data-tab="pdr" id="tab-pdr-btn" style="display:none;"><i data-lucide="brain"></i> PDR</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
@@ -10199,6 +10201,17 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <p style="opacity:.92; font-size:14px; margin:0;">Hangi veli ne zaman girdi, hangi bölümlere baktı, ne sıklıkla geliyor. Portal ve ZEKY birlikte izlenir; sayfa kendiliğinden güncellenir.</p>
       </div>
       <div id="veliKatilimIcerik"><div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div></div>
+    </div>
+
+    <!-- ============ GÖRÜŞME NOTLARI — moduller/gorusme-notlari.js (velilere kapalı) ============ -->
+    <div class="tab-panel" id="tab-gorusmeNotlari">
+      <div style="background:linear-gradient(135deg,#2D5E3E 0%,#4A7C59 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
+          <i data-lucide="notebook-text" style="width:15px;height:15px;"></i> VELİ GÖRÜŞMELERİ</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Görüşme Notları</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">Randevu sonrası notlar, değerlendirme ölçütleri ve takipler. Veliler bu notları hiçbir zaman görmez.</p>
+      </div>
+      <div id="gorusmeNotlariIcerik"><div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div></div>
     </div>
 
     <!-- ============ PROGRAM BELGELEME — moduller/program-belgeleme.js ============ -->
@@ -13921,7 +13934,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v125";
+window.PORTAL_SURUM = "v126";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14429,6 +14442,8 @@ const SEKME_YETKILERI = {
   geriBildirim: ["kurucu_mudur", "mudur", "egitim_koordinator"],
   // Veli Katılımı: velilerin giriş ve gezinme kayıtları — yalnız kurucu müdür (Rules ile birebir)
   veliKatilim: ["kurucu_mudur"],
+  // Görüşme notları: velilere kapalı; öğretmen yalnız kendi sınıfını görür (Rules ile birebir)
+  gorusmeNotlari: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "pdr"],
   galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
   duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma", "pdr"],
@@ -16501,6 +16516,8 @@ onAuthStateChanged(auth, async (user) => {
       try { sekmeleriRoleGoreAyarla(); } catch(e) { console.warn(e); }
       // Personelin uygulama kullanımı (giriş sıklığı, açılan bölümler) — moduller/veli-katilim.js
       if (!isAdmin) modulYukle("veli-katilim").then(m => m && m.personelBaslat && m.personelBaslat());
+      // Randevu talebi ve görüşme notu bildirimleri (açılır pencere) — moduller/gorusme-notlari.js
+      modulYukle("gorusme-notlari").then(m => m && m.bildirimBaslat && m.bildirimBaslat());
       try { solMenuyuRoleGoreAyarla(); } catch(e) { console.warn(e); }
 
       // Ana sayfanın ağır kartlarını öğrenci/dönem verileri gelmeden başlatma.
@@ -22267,7 +22284,7 @@ function ogretmenHomeHTML(ad) {
             <div class="ca-tile-sub">Yükleniyor…</div>
           </div>
 
-          <div class="ca-sectionhead" style="margin-top:16px;"><h3 class="ca-head" style="font-size:15px;">Bekleyen Randevular</h3><button class="ca-link" onclick="modulSec('profilim')">Tümü →</button></div>
+          <div class="ca-sectionhead" style="margin-top:16px;"><h3 class="ca-head" style="font-size:15px;">Randevular</h3><button class="ca-link" onclick="modulSec('gorusmeNotlari')">Görüşme notları →</button></div>
           <div class="ca-card" style="padding:12px 16px;" id="ogrHomeRandevu">
             <div class="ca-tile-sub">Yükleniyor…</div>
           </div>
@@ -22301,7 +22318,10 @@ window.ogretmenHomeEkKartlar = async function() {
   const trh = (t) => t ? String(t).substring(0, 10).split("-").reverse().join(".") : "";
 
   // ── 1) Bekleyen randevular ──
-  const rEl = document.getElementById("ogrHomeRandevu");
+  // Randevular yeni sistemden (randevuSorguV3) — moduller/gorusme-notlari.js; eski okuma yalnız modül yüklenemezse
+  const gnModul = await modulYukle("gorusme-notlari");
+  if (gnModul) gnModul.ozetKart("ogrHomeRandevu");
+  const rEl = gnModul ? null : document.getElementById("ogrHomeRandevu");
   if (rEl) {
     try {
       const snap = await getDocs(collection(db, "randevuSlotlari"));
@@ -42129,6 +42149,7 @@ const MODUL_HARITASI = {
   programBelgeleme: { tablar: ["programBelgeleme"], varsayilan: "programBelgeleme", ad: "Evrak Takibi" },
   geriBildirim: { tablar: ["geriBildirim"], varsayilan: "geriBildirim", ad: "Geri Bildirim" },
   veliKatilim: { tablar: ["veliKatilim"], varsayilan: "veliKatilim", ad: "Veli Katılımı" },
+  gorusmeNotlari: { tablar: ["gorusmeNotlari"], varsayilan: "gorusmeNotlari", ad: "Görüşme Notları" },
   galeri:      { tablar: ["galeri"],     varsayilan: "galeri", ad: "Galeri" },
   duyurular:   { tablar: ["duyurular"], varsayilan: "duyurular", ad: "Duyurular" },
   yemek:       { tablar: ["yemek"],     varsayilan: "yemek", ad: "Yemek Menüsü" },
@@ -42339,6 +42360,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Veli Katılımı sekmesi açıldı (canlı dinleme) — moduller/veli-katilim.js
     if (tab.dataset.tab === "veliKatilim") {
       setTimeout(() => { modulYukle("veli-katilim").then(m => m && m.panelRender("veliKatilimIcerik")); }, 50);
+    }
+
+    // Görüşme Notları sekmesi açıldı — moduller/gorusme-notlari.js
+    if (tab.dataset.tab === "gorusmeNotlari") {
+      setTimeout(() => { modulYukle("gorusme-notlari").then(m => m && m.panelRender("gorusmeNotlariIcerik")); }, 50);
     }
 
     // Orman & Değerler sekmesi açıldı
