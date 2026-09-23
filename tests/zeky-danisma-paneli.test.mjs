@@ -116,7 +116,8 @@ test('duyuru ve etkinlikler danışmada salt okunur kalır', async () => {
 
 test('kişisel işlemler fiş eki ve yalnız kendi taleplerini sorgulama sınırı taşır', async () => {
   const s = await portalKaynak();
-  assert.match(s, /<input type="file" id="gtFisDosya"/);
+  assert.match(s, /id="gtReceiptInput"/);
+  assert.match(s, /receiptInput\(\{mount:document\.getElementById\('gtReceiptInput'\)/);
   assert.match(s, /medyaYukle\(fisDosya, `fis-talepleri\/\$\{klasorEmail\}`, false\)/);
   assert.match(s, /fisUrl, fisYol/);
   assert.match(s, /query\(collection\(db, "fisTalepleri"\), where\("talepEden", "==", email\)\)/);
