@@ -13,5 +13,8 @@ export function receiptTotal(text){
  const max=Math.max(0,...found.map(x=>x.score)),values=[...new Set(found.filter(x=>x.score===max).map(x=>x.value))];
  return {amount:values.length===1?values[0]:null,candidates:values};
 }
-export function validateReceipt(file){if(!file)return;if(file.size>15*1024*1024)throw Error('Dosya en fazla 15 MB olabilir.');if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw Error('JPG, PNG, WebP veya PDF seçin.');}
+// Bazı telefonlar/uygulama içi tarayıcılar dosya türünü boş ya da 'octet-stream' gönderir; türü uzantıdan tamamla.
+const EXT_TYPES={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',pdf:'application/pdf',heic:'image/heic',heif:'image/heif'};
+export function receiptType(file){let t=String(file?.type||'').toLowerCase();if(t==='image/jpg'||t==='image/pjpeg')return 'image/jpeg';if(/octet-stream/.test(t))t='';if(t)return t;const name=String(file?.name||'');return name.includes('.')?EXT_TYPES[name.split('.').pop().toLowerCase()]||'':'';}
+export function validateReceipt(file){if(!file)return;if(file.size>15*1024*1024)throw Error('Dosya en fazla 15 MB olabilir.');const t=receiptType(file);if(/^image\/hei[cf]/.test(t))throw Error('Bu fotoğraf HEIC biçiminde. “Resim çek” ile çekin veya JPG seçin.');if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(t))throw Error('JPG, PNG, WebP veya PDF seçin.');}
 export function localDate(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul'}).format(new Date());}
