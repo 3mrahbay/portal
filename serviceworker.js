@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v161-hesap-secimi";
+const CACHE_VERSION = "v162-audit-cache";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -92,7 +92,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k.startsWith('bircicek-portal-') && k !== CACHE_NAME).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -103,9 +103,17 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   if (NO_CACHE_HOSTS.some((h) => url.hostname.includes(h))) return;
 
+  // CDN photos, attachments and remote API responses can contain private data.
+  // Cache only this app's shell/code; authentication does not clear Cache Storage.
+  if (url.origin !== self.location.origin) return;
+  const isShellAsset = /\.(?:html|js|css|woff2?|ttf)$/.test(url.pathname) ||
+    /\/(?:okul_logo\.png|logo-daire\.png|manifest\.json)$/.test(url.pathname);
+  if (req.mode !== 'navigate' && !isShellAsset) return;
+
   const isNavigation =
     req.mode === "navigate" || req.destination === "document" ||
-    url.pathname.endsWith(".html") || url.pathname.endsWith(".js");
+    url.pathname.endsWith(".html") || url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css");
 
   if (isNavigation) {
     event.respondWith(
@@ -117,7 +125,16 @@ self.addEventListener("fetch", (event) => {
           }
           return res;
         })
-        .catch(() => caches.match(req).then((c) => c || caches.match("./index.html")))
+        .catch(async () => {
+          const cached = await caches.match(req);
+          if (cached) return cached;
+          if (req.mode === 'navigate' || req.destination === 'document') {
+            const shell = await caches.match('./index.html');
+            if (shell) return shell;
+          }
+          // Returning HTML for a missing module breaks imports and conceals the cause.
+          return new Response('Çevrimdışı: kaynak bulunamadı.', {status: 503, headers: {'Content-Type': 'text/plain; charset=utf-8'}});
+        })
     );
     return;
   }
