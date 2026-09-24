@@ -13991,6 +13991,8 @@ window.modulYukle = async function(ad) {
   }
 };
 const provider = new GoogleAuthProvider();
+// Her girişte Google hesap seçim penceresi gösterilsin (son hesapla otomatik girişi engeller)
+provider.setCustomParameters({ prompt: "select_account" });
 
 const ADMIN_EMAIL = "emrahby@gmail.com";
 
