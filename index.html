@@ -13913,7 +13913,7 @@ import {
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction,
-  documentId, deleteField, getCountFromServer
+  documentId, deleteField, getCountFromServer, FieldPath
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -15487,6 +15487,125 @@ function mesajKendiVeliAdim() {
   return "";
 }
 
+// ═══════════ PORTAL-MESAJ-ONARIM-2026-09 — ortak yardımcılar (ZEKY ile aynı kurallar) ═══════════
+
+// Ek (fotoğraf/belge) adresi yalnız https olabilir; çift tırnak, < > ve kontrol karakteri içermez.
+// Geçersizse "" döner — ekrana hiç basılmaz (zararlı içerik engeli).
+function mesajGuvenliEkAdresi(adres) {
+  const s = String(adres || "").trim();
+  return /^https:\/\/[^<>"`\\\u0000-\u001f]+$/.test(s) ? s : "";
+}
+
+// Belge bağlantısı (öğretmen/yönetim ve eski veli ekranı için ortak görünüm)
+function mesajBelgeHtml(m) {
+  const url = mesajGuvenliEkAdresi(m && m.belgeUrl);
+  if (!url) return "";
+  const ad = (m && m.belgeAd) || "Belge";
+  return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin:4px 0;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,0.05);color:inherit;text-decoration:none;font-size:12.5px;font-weight:600;">📄 ${escapeHtmlGelisim(ad)}</a>`;
+}
+
+// Karşı taraf bu mesajı okudu mu? (thread.sonOkuma[karşı] >= mesaj zamanı)
+function mesajKarsiOkuduMu(thread, m, benim) {
+  const sonOkuma = (thread && thread.sonOkuma) || {};
+  const t = m && m.tarih;
+  const zaman = t && t.toDate ? t.toDate().getTime() : (t && t.seconds ? t.seconds * 1000 : 0);
+  if (!zaman) return false;
+  return Object.keys(sonOkuma).some(e => e !== benim && new Date(sonOkuma[e]).getTime() >= zaman);
+}
+
+// Eski "Okul Yönetimi" sohbetleri: ZEKY bu seçeneği okulun genel e-postasına (demo veli
+// hesabı) açıyordu; karşı tarafın rolü 'yonetim' yazılı. Bu sohbetlere artık yazılmaz.
+function mesajSohbetKapaliMi(thread) {
+  return Object.values((thread && thread.katilimciBilgi) || {}).some(b => b && b.rol === "yonetim");
+}
+function mesajSohbetBanaYanlisGeldiMi(thread, benim) {
+  const b = (thread && thread.katilimciBilgi && thread.katilimciBilgi[String(benim || "").toLowerCase()]) || null;
+  return !!(b && b.rol === "yonetim");
+}
+
+// Velinin yazabileceği kişiler. Veli 'personeller' koleksiyonunu OKUYAMAZ (KVKK kuralı);
+// eskiden bu ekran oradan okuduğu için "Personel listesi yüklenemedi" hatası veriyordu.
+//   • Her çocuğun sınıf öğretmeni → sinifAtamalari (ZEKY ile aynı kaynak)
+//   • Okul yönetimi (kurucu müdür) → ayarlar/mesajRehberi (yönetim oturumu günceller)
+async function veliMesajAlicilariGetir() {
+  const cocuklar = (typeof veliOgrenciler !== "undefined" && veliOgrenciler) ? veliOgrenciler : [];
+  const anahtar = (x) => {
+    const r = (typeof sinifAdiResmiEsle === "function") ? sinifAdiResmiEsle(x) : x;
+    return String(r || "").toLocaleLowerCase("tr").replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u")
+      .replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c").replace(/\s+/g, "").trim();
+  };
+  const cocukBilgi = cocuklar.map(o => {
+    const ayar = (typeof ayarListesi !== "undefined" && ayarListesi) ? ayarListesi[o.id] : null;
+    const sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || o._sinif || "";
+    return { id: o.id, ad: o.ogrenciAdSoyad || o.adSoyad || "", sinif, anahtar: anahtar(sinif) };
+  });
+  const cokCocuk = cocukBilgi.length > 1;
+  const liste = [];
+  const [atamaSnap, rehber] = await Promise.all([
+    getDocs(collection(db, "sinifAtamalari")),
+    getDoc(doc(db, "ayarlar", "mesajRehberi")).catch(() => null)
+  ]);
+  atamaSnap.forEach(d => {
+    const p = d.data() || {};
+    const email = String(p.email || "").toLowerCase().trim();
+    const danismaDegil = rolNormalize(p.rol) !== "danisma";   // danışma veliyle yazışmaz
+    if (!email || !danismaDegil) return;
+    const v = p;
+    const a = anahtar(v.sinif);
+    cocukBilgi.filter(c => c.anahtar && c.anahtar === a).forEach(c => {
+      const ilkAd = (c.ad || "").split(" ")[0];
+      const onceki = liste.find(x => x.email === email);
+      if (onceki) {
+        if (cokCocuk && ilkAd && !onceki.unvan.includes(ilkAd)) onceki.unvan += ", " + ilkAd;
+        return;
+      }
+      liste.push({
+        email, id: email,
+        adSoyad: (v.ad && !mesajEpostaMi(v.ad)) ? String(v.ad) : "",
+        rol: v.rol || "ogretmen",
+        unvan: "Sınıf Öğretmeni" + (cokCocuk && ilkAd ? " · " + ilkAd : ""),
+        ogrenciId: c.id
+      });
+    });
+  });
+  const yonetim = (rehber && rehber.exists && rehber.exists()) ? (rehber.data().yonetim || []) : [];
+  yonetim.forEach(y => {
+    const email = String((y && y.email) || "").toLowerCase().trim();
+    if (!email || liste.some(x => x.email === email)) return;
+    liste.push({ email, id: email, adSoyad: y.ad || "", rol: y.rol || "kurucu_mudur",
+                 unvan: y.unvan || "Kurucu Müdür", ogrenciId: (cocukBilgi[0] && cocukBilgi[0].id) || "" });
+  });
+  return liste;
+}
+
+// Velinin "Okul Yönetimi" alıcısını güncel tut: aktif KURUCU MÜDÜR kayıtları →
+// ayarlar/mesajRehberi. Yalnız yönetim oturumunda çalışır. ZEKY ile BİREBİR aynı hesap
+// (aynı içerik üretilir, iki uygulama birbirinin yazdığını gereksiz yere değiştirmez).
+async function mesajRehberiSenkronla() {
+  try {
+    const snap = await getDocs(collection(db, "personeller"));
+    const yonetim = [];
+    snap.forEach(d => {
+      const p = d.data() || {};
+      const durum = String(p.durum || "aktif").toLocaleLowerCase("tr");
+      if (p.aktif === false || ["pasif", "arsiv", "arşiv", "ayrildi", "ayrıldı"].includes(durum)) return;
+      if (String(p.rol || "").trim().toLowerCase() !== "kurucu_mudur") return;
+      const email = String(d.id || "").toLowerCase().trim();
+      if (!email) return;
+      const ad = String(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || "").trim();
+      yonetim.push({ email, ad: (ad && !/\S+@\S+\.\S+/.test(ad)) ? ad : "", rol: "kurucu_mudur", unvan: "Kurucu Müdür" });
+    });
+    yonetim.sort((a, b) => a.email.localeCompare(b.email));
+    const ref = doc(db, "ayarlar", "mesajRehberi");
+    const mevcut = await getDoc(ref);
+    if (mevcut.exists() && JSON.stringify(mevcut.data().yonetim || []) === JSON.stringify(yonetim)) return;
+    await setDoc(ref, { yonetim, guncellendi: serverTimestamp(), guncelleyen: String(currentUser?.email || "").toLowerCase() }, { merge: true });
+  } catch (e) {
+    console.warn("[Mesaj] Rehber senkronu atlandı:", e?.code || e?.message);
+  }
+}
+window.veliMesajAlicilariGetir = veliMesajAlicilariGetir;
+
 // Gözetimci e-postalarını getir (Müdür + Kurucu Müdür) — CC için
 async function mesajGozetimcileriGetir() {
   const gozetimciler = [];
@@ -15523,6 +15642,8 @@ async function mesajThreadGetirVeyaOlustur(taraflar) {
     }
   } catch (e) {
     // permission-denied: thread henüz yok, oluşturmaya devam et (Rules resource==null'a izin vermiyorsa buraya düşer)
+    // PORTAL-MESAJ-ONARIM-2026-09: bağlantı hatasında OLUŞTURMA — var olan sohbetin özeti sıfırlanırdı.
+    if (e?.code !== "permission-denied") throw e;
     console.warn("[Mesaj] Thread okuma atlandı, oluşturulacak:", e.code);
   }
 
@@ -15575,6 +15696,7 @@ async function mesajIcThreadGetirVeyaOlustur(hedefPersonel) {
     }
   } catch (e) {
     if (e?.message === "Bu kişiyle kurum içi sohbet açılamadı") throw e;
+    if (e?.code && e.code !== "permission-denied") throw e;
   }
 
   const benimAd = mesajAdNormalize(aktifPersonel?.adSoyad || currentUser.displayName, benimEmail);
@@ -15616,6 +15738,10 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
     throw new Error("Danışma hesabı ile veli mesajlaşması kapalıdır");
   }
   const katilimcilar = thread.katilimcilar || [];
+  // PORTAL-MESAJ-ONARIM-2026-09
+  if (!katilimcilar.includes(gonderen)) throw new Error("İzleme modunda mesaj gönderilemez");
+  if (mesajSohbetKapaliMi(thread)) throw new Error("Bu sohbet kapatıldı. Okul yönetimine yeni sohbetten yazabilirsiniz.");
+  if ((resimUrl && !mesajGuvenliEkAdresi(resimUrl)) || (belgeUrl && !mesajGuvenliEkAdresi(belgeUrl))) throw new Error("Ek adresi geçersiz");
   const karsiTaraf = katilimcilar.find(e => e !== gonderen);
 
   // Mesaj nesnesi
@@ -15637,42 +15763,34 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
     mesajVeri.tip = "belge";
   }
 
-  // Mesajı alt koleksiyona ekle
-  await addDoc(collection(db, "mesajlar", threadId, "messages"), mesajVeri);
-
   // Thread özetinde gösterilecek son mesaj metni
   const ozetMetin = temizMetin
     ? (temizMetin.length > 80 ? temizMetin.slice(0, 80) + "…" : temizMetin)
     : (belgeUrl ? "📄 Belge" : "📸 Fotoğraf");
 
-  // okunmamis: email anahtarindaki nokta Firestore'da alt-alan sanildigi icin
-  // dot-path yerine map'i komple guncelliyoruz (nokta bug fix — app+portal ortak).
-  const mevcutOkunmamis = Object.assign({}, thread.okunmamis || {});
-  if (karsiTaraf) {
-    mevcutOkunmamis[karsiTaraf] = (mevcutOkunmamis[karsiTaraf] || 0) + 1;
-  }
-  const guncelleme = {
-    sonMesaj: ozetMetin,
-    sonMesajTarihi: serverTimestamp(),
-    sonMesajGonderen: gonderen,
-    okunmamis: mevcutOkunmamis
-  };
-  await updateDoc(threadRef, guncelleme);
+  // PORTAL-MESAJ-ONARIM-2026-09: mesaj ve sohbet özeti TEK seferde yazılır; karşı tarafın
+  // sayacı ATOMİK artar. Eskiden tüm okunmamış haritası okunup yeniden yazılıyordu: aynı anda
+  // yazan ya da o an okuyan tarafın değişikliği eziliyor, rozet takılı kalıyordu.
+  // FieldPath: e-postadaki nokta alt alan sanılmaz (eski "nokta bug" çözümünün yerine).
+  const batch = writeBatch(db);
+  batch.set(doc(collection(db, "mesajlar", threadId, "messages")), mesajVeri);
+  const alanlar = ["sonMesaj", ozetMetin, "sonMesajTarihi", serverTimestamp(), "sonMesajGonderen", gonderen];
+  if (karsiTaraf) alanlar.push(new FieldPath("okunmamis", karsiTaraf), increment(1));
+  batch.update(threadRef, ...alanlar);
+  await batch.commit();
 }
 
 // Bir thread'i okundu işaretle (mevcut kullanıcı için sayacı sıfırla)
 async function mesajOkunduIsaretle(threadId) {
   if (!currentUser) return;
   const benim = currentUser.email.toLowerCase();
+  if (!threadId) return;
   try {
-    const snap = await getDoc(doc(db, "mesajlar", threadId));
-    if (!snap.exists()) return;
-    const okunmamis = Object.assign({}, snap.data().okunmamis || {});
-    okunmamis[benim] = 0;
-    // Okundu tikleri için: bu kullanıcının son okuma zamanını kaydet
-    const sonOkuma = Object.assign({}, snap.data().sonOkuma || {});
-    sonOkuma[benim] = new Date().toISOString();
-    await updateDoc(doc(db, "mesajlar", threadId), { okunmamis, sonOkuma });
+    // PORTAL-MESAJ-ONARIM-2026-09: yalnız KENDİ sayacım ve okuma zamanım yazılır
+    // (FieldPath). Eskiden tüm harita yazılıyor, o an gelen mesajın sayacı eziliyordu.
+    await updateDoc(doc(db, "mesajlar", threadId),
+      new FieldPath("okunmamis", benim), 0,
+      new FieldPath("sonOkuma", benim), new Date().toISOString());
   } catch (e) {
     console.warn("Okundu işaretleme hatası:", e);
   }
@@ -15725,6 +15843,9 @@ function mesajBildirimBaslat() {
   if (!currentUser) return;
   const benim = (currentUser.email || "").toLowerCase();
   if (!benim) return;
+
+  // PORTAL-MESAJ-ONARIM-2026-09: yönetim oturumu velinin "Okul Yönetimi" alıcısını güncel tutar
+  try { if (typeof YONETIM_ROLLERI !== "undefined" && YONETIM_ROLLERI.includes(aktifKullaniciRol)) mesajRehberiSenkronla(); } catch (_) {}
 
   // Önceki dinleyiciyi temizle
   if (mesajBildirimUnsub) { mesajBildirimUnsub(); mesajBildirimUnsub = null; }
@@ -15833,6 +15954,18 @@ function mesajlasmaBaslat() {
     });
     mesajThreadleriListele();
     mesajToplamOkunmamisGuncelle();
+    // PORTAL-MESAJ-ONARIM-2026-09: açık sohbetin okuma bilgisi değişince tikler yenilenir
+    try {
+      if (mesajAktifThread) {
+        const guncel = mesajThreadListesi.find(t => t.id === mesajAktifThread.id);
+        if (guncel) {
+          const eski = JSON.stringify(mesajAktifThread.sonOkuma || {});
+          mesajAktifThread = guncel;
+          const son = window.__mesajSonBalon;
+          if (son && JSON.stringify(guncel.sonOkuma || {}) !== eski) mesajBalonlariRender(son.mesajlar, son.benim, son.gozetimciMiyim);
+        }
+      }
+    } catch (_) {}
   }, (err) => {
     console.error("Thread dinleme hatası:", err);
     const el = document.getElementById("mesajThreadListesi");
@@ -16018,6 +16151,7 @@ window.mesajThreadAc = async function(threadId) {
 
 // Mesaj balonlarını render et
 function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
+  window.__mesajSonBalon = { mesajlar, benim, gozetimciMiyim };
   const govde = document.getElementById("mesajSohbetGovde");
   if (!govde) return;
 
@@ -16042,6 +16176,7 @@ function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
         <div class="mesaj-balon gelen" style="max-width:85%;">
           <div class="mesaj-gonderen-etiket">${escapeHtmlGelisim(gonderenAd)}</div>
           ${resimHtml}
+          ${mesajBelgeHtml(m)}
           ${metinHtml}
           <div class="mesaj-balon-meta">${tarih}</div>
         </div>`;
@@ -16065,6 +16200,7 @@ function mesajBalonlariRender(mesajlar, benim, gozetimciMiyim) {
     return `
       <div class="mesaj-balon ${benMiGonderdim ? 'giden' : 'gelen'}">
         ${resimHtml}
+        ${mesajBelgeHtml(m)}
         ${metinHtml}
         <div class="mesaj-balon-meta">${tarih}${tikHtml}</div>
       </div>`;
@@ -19501,9 +19637,18 @@ function caMsgBaslat() {
       snap.forEach(d => {
         const thread = { id: d.id, ...d.data() };
         if (mesajThreadDanismaVeliMi(thread)) return;
+        if (mesajSohbetBanaYanlisGeldiMi(thread, benim)) return;
         caMsgThreads.push(thread);
       });
       caMsgListele();
+      // PORTAL-MESAJ-ONARIM-2026-09: açık sohbetin okuma bilgisi değişince tikler yenilenir
+      try {
+        if (caMsgAktif && window.__caMsgSon) {
+          const _g = caMsgThreads.find(t => t.id === caMsgAktif.id);
+          const _s = JSON.stringify((_g && _g.sonOkuma) || {});
+          if (_g && _s !== window.__caMsgSonOkuma) { window.__caMsgSonOkuma = _s; caMsgBalonlar(window.__caMsgSon.mesajlar, window.__caMsgSon.benim); }
+        }
+      } catch (_) {}
     }, (err) => {
       console.error("ZEKY mesaj dinleme hatası:", err);
       const el = document.getElementById("caMsgThreadListesi");
@@ -19605,6 +19750,7 @@ window.caMsgAc = async function(threadId) {
 };
 
 function caMsgBalonlar(mesajlar, benim) {
+  window.__caMsgSon = { mesajlar, benim };
   const govde = document.getElementById("caMsgGovde");
   if (!govde) return;
   if (mesajlar.length === 0) {
@@ -19636,7 +19782,9 @@ function caMsgBalonlar(mesajlar, benim) {
     // Okundu tiki (sadece giden mesajlarda)
     let tik = "";
     if (benMi) {
-      const okundu = m.okuyanlar && Object.keys(m.okuyanlar).some(e => e !== benim);
+      // PORTAL-MESAJ-ONARIM-2026-09: okuma bilgisi sohbet belgesinden (portal + ZEKY ortak)
+      const _t = (caMsgAktif && caMsgThreads.find(t => t.id === caMsgAktif.id)) || caMsgAktif;
+      const okundu = mesajKarsiOkuduMu(_t, m, benim);
       tik = `<span class="wa-tik ${okundu ? "okundu" : ""}">${okundu ? "✓✓" : "✓"}</span>`;
     }
 
@@ -19645,11 +19793,13 @@ function caMsgBalonlar(mesajlar, benim) {
     if (m.resimUrl) {
       icerikHtml += `<img src="${escapeHtml(m.resimUrl)}?width=400" class="wa-bub-img" onclick="mesajResimBuyut(${escapeHtml(JSON.stringify(m.resimUrl))})" loading="lazy">`;
     }
-    if (m.belgeUrl) {
+    // PORTAL-MESAJ-ONARIM-2026-09: bağlantı yalnız https ve kaçışlı; onclick içine adres yazılmaz
+    const _belgeUrl = mesajGuvenliEkAdresi(m.belgeUrl);
+    if (_belgeUrl) {
       const belgeAd = m.belgeAd || "Belge";
-      const uzanti = (belgeAd.split(".").pop() || "").toUpperCase();
+      const uzanti = escapeHtml((belgeAd.split(".").pop() || "").toUpperCase().slice(0, 8));
       icerikHtml += `
-        <div class="wa-belge" onclick="window.open('${escapeHtml(m.belgeUrl)}','_blank')">
+        <div class="wa-belge" data-url="${escapeHtml(_belgeUrl)}" onclick="window.open(this.dataset.url,'_blank','noopener')">
           <div class="wa-belge-ikon"><i data-lucide="file" style="width:15px;height:15px;vertical-align:-2px;"></i></div>
           <div class="wa-belge-bilgi">
             <div class="wa-belge-ad">${escapeHtmlGelisim(belgeAd)}</div>
@@ -19838,14 +19988,8 @@ async function caMsgPersonelListe() {
   if (!el) return;
   el.innerHTML = `<div style="padding:20px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor…</div>`;
   try {
-    if (!caMsgPersonelCache) {
-      const snap = await getDocs(collection(db, "personeller"));
-      caMsgPersonelCache = [];
-      snap.forEach(d => {
-        const p = { id: d.id, ...d.data() };
-        if ((p.durum || "aktif") === "aktif" && rolNormalize(p.rol) !== "danisma") caMsgPersonelCache.push(p);
-      });
-    }
+    // PORTAL-MESAJ-ONARIM-2026-09: veli 'personeller'i okuyamaz → sınıf öğretmenleri + kurucu müdür
+    if (!caMsgPersonelCache) caMsgPersonelCache = await veliMesajAlicilariGetir();
     const rolSira = { kurucu_mudur: 0, mudur: 1, egitim_koordinator: 2, ogretmen: 3, muhasebe: 4 };
     const liste = [...caMsgPersonelCache].sort((a, b) => (rolSira[a.rol] ?? 9) - (rolSira[b.rol] ?? 9));
     if (liste.length === 0) {
@@ -19861,7 +20005,7 @@ async function caMsgPersonelListe() {
       if (p.rol === "ogretmen" && p.unvan) etiket = p.unvan;
       const bg = avRenk[i % avRenk.length];
       return `
-        <div class="ca-convrow" onclick="caMsgYeniBaslat(${escapeHtml(JSON.stringify(email))},${escapeHtml(JSON.stringify(ad))},${escapeHtml(JSON.stringify(p.rol || ""))})">
+        <div class="ca-convrow" onclick="caMsgYeniBaslat(${escapeHtml(JSON.stringify(email))},${escapeHtml(JSON.stringify(ad))},${escapeHtml(JSON.stringify(p.rol || ""))},${escapeHtml(JSON.stringify(p.ogrenciId || ""))})">
           <div class="ca-conv-av" style="background:${bg}; width:42px; height:42px; font-size:16px;">${escapeHtmlGelisim(initial)}</div>
           <div class="ca-conv-body">
             <div class="ca-conv-name">${escapeHtmlGelisim(ad)}</div>
@@ -19876,14 +20020,15 @@ async function caMsgPersonelListe() {
   }
 }
 
-window.caMsgYeniBaslat = async function(personelEmail, personelAd, personelRol) {
+window.caMsgYeniBaslat = async function(personelEmail, personelAd, personelRol, ogrenciId) {
   if (rolNormalize(personelRol) === "danisma") {
     showToast("Danışma hesabı veli mesajlaşmasına açık değildir", "error");
     return;
   }
   const benim = veliEpostam();
   const veliAd = mesajKendiVeliAdim();
-  const ilkCocuk = (typeof veliOgrenciler !== "undefined" && veliOgrenciler && veliOgrenciler[0]) || null;
+  const _cocuklar = (typeof veliOgrenciler !== "undefined" && veliOgrenciler) || [];
+  const ilkCocuk = (ogrenciId && _cocuklar.find(o => o.id === ogrenciId)) || _cocuklar[0] || null;
   const ayar = ilkCocuk && typeof ayarListesi !== "undefined" ? (ayarListesi[ilkCocuk.id] || null) : null;
   const sinif = ilkCocuk ? ((ayar && ayar.kayit && ayar.kayit.sinif) || ilkCocuk.sinif || ilkCocuk._sinif || "") : "";
   try {
@@ -22642,6 +22787,7 @@ function veliMesajlasmaBaslat() {
     snap.forEach(d => {
       const thread = { id: d.id, ...d.data() };
       if (mesajThreadDanismaVeliMi(thread)) return;
+      if (mesajSohbetBanaYanlisGeldiMi(thread, benim)) return;
       veliMesajThreadListesi.push(thread);
     });
     veliMesajThreadleriListele();
@@ -22765,6 +22911,7 @@ function veliMesajBalonlariRender(mesajlar, benim) {
     return `
       <div class="mesaj-balon ${benMiGonderdim ? 'giden' : 'gelen'}">
         ${resimHtml}
+        ${mesajBelgeHtml(m)}
         ${metinHtml}
         <div class="mesaj-balon-meta">${tarih}</div>
       </div>`;
@@ -22872,14 +23019,8 @@ async function veliMesajPersonelleriListele() {
 
   try {
     // Aktif personelleri çek (cache'le)
-    if (!veliMesajPersonelCache) {
-      const snap = await getDocs(collection(db, "personeller"));
-      veliMesajPersonelCache = [];
-      snap.forEach(d => {
-        const p = { id: d.id, ...d.data() };
-        if ((p.durum || "aktif") === "aktif" && rolNormalize(p.rol) !== "danisma") veliMesajPersonelCache.push(p);
-      });
-    }
+    // PORTAL-MESAJ-ONARIM-2026-09: veli 'personeller'i okuyamaz → sınıf öğretmenleri + kurucu müdür
+    if (!veliMesajPersonelCache) veliMesajPersonelCache = await veliMesajAlicilariGetir();
 
     // Velinin çocuklarının sınıflarını bul
     const cocukSiniflari = new Set();
@@ -22910,7 +23051,7 @@ async function veliMesajPersonelleriListele() {
       let etiket = rolEtiket;
       if (p.rol === "ogretmen" && p.unvan) etiket = escapeHtmlGelisim(p.unvan);
       return `
-        <div class="mesaj-yeni-ogrenci-kart" onclick="veliMesajYeniBaslat('${emailEsc}','${adEsc}','${rolEsc}')">
+        <div class="mesaj-yeni-ogrenci-kart" onclick="veliMesajYeniBaslat('${emailEsc}','${adEsc}','${rolEsc}','${String(p.ogrenciId || "").replace(/[^A-Za-z0-9_-]/g, "")}')">
           <div class="mesaj-thread-avatar" style="width:36px; height:36px; font-size:14px;">${escapeHtmlGelisim(initial)}</div>
           <div>
             <div class="ad">${escapeHtmlGelisim(ad)}</div>
@@ -22925,7 +23066,7 @@ async function veliMesajPersonelleriListele() {
 }
 
 // Veli bir personel seçti → thread oluştur/aç
-window.veliMesajYeniBaslat = async function(personelEmail, personelAd, personelRol) {
+window.veliMesajYeniBaslat = async function(personelEmail, personelAd, personelRol, ogrenciId) {
   if (rolNormalize(personelRol) === "danisma") {
     showToast("Danışma hesabı veli mesajlaşmasına açık değildir", "error");
     return;
@@ -22934,7 +23075,7 @@ window.veliMesajYeniBaslat = async function(personelEmail, personelAd, personelR
   const benim = veliEpostam();
   const veliAd = mesajKendiVeliAdim();
   // İlk çocuğu referans öğrenci olarak ata (gözetim/bağlam için)
-  const ilkCocuk = (veliOgrenciler && veliOgrenciler[0]) || null;
+  const ilkCocuk = (ogrenciId && (veliOgrenciler || []).find(o => o.id === ogrenciId)) || (veliOgrenciler && veliOgrenciler[0]) || null;
   const ayar = ilkCocuk ? (ayarListesi[ilkCocuk.id] || null) : null;
   const sinif = ilkCocuk ? ((ayar && ayar.kayit && ayar.kayit.sinif) || ilkCocuk.sinif || ilkCocuk._sinif || "") : "";
 
