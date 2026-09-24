@@ -13934,7 +13934,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v129";
+window.PORTAL_SURUM = "v130";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16518,6 +16518,8 @@ onAuthStateChanged(auth, async (user) => {
       if (!isAdmin) modulYukle("veli-katilim").then(m => m && m.personelBaslat && m.personelBaslat());
       // Randevu talebi ve görüşme notu bildirimleri (açılır pencere) — moduller/gorusme-notlari.js
       modulYukle("gorusme-notlari").then(m => m && m.bildirimBaslat && m.bildirimBaslat());
+      // Veli "Yola çıktık" / "Almaya geliyorum" → ilgili personele tek seferlik açılır pencere — moduller/personel-anlik-bildirim.js
+      modulYukle("personel-anlik-bildirim").then(m => m && m.baslat && m.baslat());
       try { solMenuyuRoleGoreAyarla(); } catch(e) { console.warn(e); }
 
       // Ana sayfanın ağır kartlarını öğrenci/dönem verileri gelmeden başlatma.
@@ -16591,6 +16593,7 @@ onAuthStateChanged(auth, async (user) => {
     // <i data-lucide="bell" style="width:13px;height:13px;vertical-align:-2px;"></i> FAZ 3d: Çıkışta mesaj dinleyicilerini temizle
     try {
       if (typeof mesajBildirimDurdur === "function") mesajBildirimDurdur();
+      if (window.personelAnlikBildirim) window.personelAnlikBildirim.durdur();
       if (typeof mesajlasmaDurdur === "function") mesajlasmaDurdur();
       if (typeof veliMesajlasmaDurdur === "function") veliMesajlasmaDurdur();
     } catch(e) {}
@@ -20893,6 +20896,7 @@ function renderAdminHome() {
       ["duyurular", hbDuyurulariDoldur],
       ["yemek", async () => { if (typeof ozetYemekDoldur === "function") await ozetYemekDoldur(); }],
       ["okul zili", async () => { if (typeof okulZiliDoldur === "function") await okulZiliDoldur(); }],
+      ["sabah girişi", async () => { if (!document.getElementById("yonSabahGirisiKart")) return; const m = await modulYukle("sabah-girisi"); if (m) await m.ogretmenKart("yonSabahGirisiKart"); }],
       ["personel özeti", hbOgretmenDoldur],
       ["veli izinleri", async () => { const m = await modulYukle("veli-izinleri"); if (m) await m.ogretmenKart("yonVeliIzinKart"); }],
       ["danışma randevuları", async () => { const m = await modulYukle("danisma-randevulari"); if (m) await m.ozetKart("ozetDanismaKart"); }],
@@ -21913,6 +21917,18 @@ function yonetimHomeHTML(ad) {
           <!-- ALT YARIM: Okul Zili (sol) + Eğitim İlerlemesi (sağ) -->
           <div class="ozet-ikili-alt">
             <div class="ozet-ikili-sol">
+              <!-- Sabah Girişi (veli "Yola çıktık") — moduller/sabah-girisi.js · yalnız yönetim/koordinatör -->
+              ${(typeof danismaProjeksiyonYonetebilirMi === "function" && danismaProjeksiyonYonetebilirMi()) ? `
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span style="font-size:16px; display:inline-flex;"><i data-lucide="sunrise" style="width:16px;height:16px;color:#0E7490;"></i></span>
+                  <span class="ozet-panel-baslik">Sabah Girişi · Geliş Akışı</span>
+                </div>
+                <span class="ozet-panel-etiket">Bugün</span>
+              </div>
+              <div id="yonSabahGirisiKart" style="max-height:340px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #EEF1F5;">
+                <div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Yükleniyor…</div>
+              </div>` : ""}
               <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
                 <div style="display:flex; align-items:center; gap:7px;">
                   <span style="font-size:16px; display:inline-flex;"><i data-lucide="bell-ring" style="width:16px;height:16px;color:#B45309;"></i></span>
