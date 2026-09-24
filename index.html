@@ -15249,6 +15249,17 @@ function medyaDogrula(dosya, sadeceResim = true) {
   return { gecerli: true };
 }
 
+// Medya sunucusu (Apps Script) JSON yerine hata sayfası / boş yanıt dönerse,
+// Safari'nin anlaşılmaz "The string did not match the expected pattern" mesajı yerine sunucunun söylediğini göster.
+async function medyaYanitOku(res) {
+  const metin = await res.text();
+  try { return JSON.parse(metin); } catch (e) {
+    const ozet = metin.replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/gi, " ").replace(/\s+/g, " ").trim().slice(0, 160);
+    console.error("Medya sunucusu JSON dışı yanıt:", res.status, metin.slice(0, 500));
+    throw new Error("Medya sunucusu beklenmeyen yanıt verdi (HTTP " + res.status + ")" + (ozet ? ": " + ozet : ""));
+  }
+}
+
 /**
  * Medya yükle — proxy üzerinden Bunny'ye.
  * @param {File} dosya - yüklenecek dosya
@@ -15274,7 +15285,7 @@ async function medyaYukle(dosya, klasor = "genel", sadeceResim = true) {
     })
   });
 
-  const sonuc = await res.json();
+  const sonuc = await medyaYanitOku(res);
   if (!sonuc.ok) throw new Error(sonuc.hata || "Yükleme başarısız");
   return { url: sonuc.url, yol: sonuc.yol };
 }
@@ -15294,7 +15305,7 @@ async function medyaSil(yol) {
       yol: yol
     })
   });
-  const sonuc = await res.json();
+  const sonuc = await medyaYanitOku(res);
   if (!sonuc.ok) throw new Error(sonuc.hata || "Silme başarısız");
   return true;
 }
@@ -37241,7 +37252,7 @@ window.giderTalepGonder = async function() {
       const dogrula = medyaDogrula(fisDosya, false);
       if (!dogrula.gecerli) { showToast(dogrula.hata, "error"); return; }
       showToast("Fiş yükleniyor…", "info");
-      const klasorEmail = String(currentUser?.email || "personel").toLowerCase().replace(/[^a-z0-9@._-]/g, "_");
+      const klasorEmail = String(currentUser?.email || "personel").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
       const sonuc = await medyaYukle(fisDosya, `fis-talepleri/${klasorEmail}`, false);
       fisUrl = sonuc.url;
       fisYol = sonuc.yol;
@@ -38037,7 +38048,7 @@ window.personelIzinTalepGonder = async function() {
   try {
     let belgeUrl = "", belgeYol = "";
     if (belge) {
-      const klasorEmail = String(currentUser?.email || "personel").toLowerCase().replace(/[^a-z0-9@._-]/g, "_");
+      const klasorEmail = String(currentUser?.email || "personel").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
       const sonuc = await medyaYukle(belge, `izin-belgeleri/${klasorEmail}`, false);
       belgeUrl = sonuc.url; belgeYol = sonuc.yol || "";
     }
