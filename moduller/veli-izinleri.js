@@ -41,9 +41,12 @@ export async function veliKart(hedefId) {
   if (!ogr) { el.innerHTML = ""; return; }
 
   // Bu çocuğun izinleri (son 30 gün + gelecek)
+  // Kural veliye yalnız kendi e-postasıyla açtığı bildirimleri okutur; sorgu
+  // veliEmail süzgeci taşımazsa Firestore tüm sorguyu reddeder ve liste boş görünür.
   let izinler = [];
   try {
-    const snap = await fb.getDocs(fb.query(fb.collection(db, "veliIzinleri"), fb.where("ogrenciId", "==", ogr.id)));
+    const veliEmail = (state.currentUser?.email || "").toLowerCase();
+    const snap = await fb.getDocs(fb.query(fb.collection(db, "veliIzinleri"), fb.where("ogrenciId", "==", ogr.id), fb.where("veliEmail", "==", veliEmail)));
     snap.forEach(d => izinler.push({ id: d.id, ...d.data() }));
     izinler.sort((a, b) => String(b.baslangic || "").localeCompare(String(a.baslangic || "")));
   } catch (e) { console.warn("veli izinleri:", e.code || e.message); }
