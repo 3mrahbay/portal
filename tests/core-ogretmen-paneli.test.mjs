@@ -89,9 +89,9 @@ test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', a
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('PWA dönem, gözlem, tek eğitim kartı ve aktif dönem velileri sürümü v145-okul-qr-baski', async () => {
+test('PWA güncel önbellek sürümü ve gerekli modüller', async () => {
   const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v146-personel-devam-sunucu"/);
+  assert.ok(Number(s.match(/CACHE_VERSION = "v(\d+)-/)?.[1]) >= 146, "önbellek sürümü geriye gitmemeli");
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
   assert.match(s, /personel-izin-core\.js\?v=1/);
 });

@@ -3,7 +3,7 @@
 // ZEKY ile ORTAK: sabahGirisleri/{ogrenciId}__{tarih}
 //
 // Akış:  veli "Yola çıktık" → veliBildirdi
-//        danışma VEYA öğretmen "Teslim aldım" → sinifaGirisOnayi (+ kim aldı)
+//        danışma VEYA öğretmen "Teslim Al" → sinifaGirisOnayi (+ kim aldı)
 // Sabah kapıda genelde danışma alır; öğretmen de alabilir. Kim aldıysa
 // adı ve rolü kayda geçer — veli "kime teslim ettim" bilgisini görür.
 //
@@ -61,7 +61,12 @@ export async function veliKart(hedefId) {
       k = s.data();
       // Rendering is read-only. Reception copy runs after an acknowledged notice.
     }
-  } catch (e) { console.warn("sabah girişi:", e.code || e.message); }
+  } catch (e) {
+    console.warn("sabah girişi:", e.code || e.message);
+    el.innerHTML = `<div role="alert" class="ca-tile-sub">Sabah giriş bilgisi yüklenemedi. <button type="button" class="btn-mini" data-sabah-tekrar>Tekrar Dene</button></div>`;
+    el.querySelector('[data-sabah-tekrar]').onclick = () => veliKart(hedefId);
+    return;
+  }
 
   const ad = (ogr.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
   const bildirdi = !!(k && k.veliBildirdi);
@@ -211,7 +216,12 @@ export async function ogretmenKart(hedefId) {
   try {
     const snap = await fb.getDocs(fb.query(fb.collection(db, sabahKaynak()), fb.where("tarih", "==", tarih)));
     snap.forEach(d => { const v = d.data(); if (v.ogrenciId) kayitlar[v.ogrenciId] = v; });
-  } catch (e) { console.warn("sabah girişleri:", e.code || e.message); }
+  } catch (e) {
+    console.warn("sabah girişleri:", e.code || e.message);
+    el.innerHTML = `<div role="alert" class="ca-tile-sub">Sabah girişleri yüklenemedi. <button type="button" class="btn-mini" data-sabah-tekrar>Tekrar Dene</button></div>`;
+    el.querySelector('[data-sabah-tekrar]').onclick = () => ogretmenKart(hedefId);
+    return;
+  }
 
   const yolda = ogrenciler.filter(o => kayitlar[o.id]?.veliBildirdi && !kayitlar[o.id]?.sinifaGirisOnayi);
   const girdi = ogrenciler.filter(o => kayitlar[o.id]?.sinifaGirisOnayi);
@@ -219,6 +229,7 @@ export async function ogretmenKart(hedefId) {
 
   const satir = (o, tip) => {
     const k = kayitlar[o.id] || {};
+    const arg = (v) => JSON.stringify(String(v || "")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
     const ad = o.ogrenciAdSoyad || o.adSoyad || "—";
     const sinif = (state.ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "";
     const R = {
@@ -237,8 +248,8 @@ export async function ogretmenKart(hedefId) {
         </div>
       </div>
       ${tip !== "girdi"
-        ? `<button class="btn-mini" onclick="window._sabahGirisi.onayla('${o.id}','${esc(sinif)}')"
-             style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:5px 10px; font-size:11px; white-space:nowrap;">Teslim aldım</button>`
+        ? `<button class="btn-mini" onclick="window._sabahGirisi.onayla(${arg(o.id)},${arg(sinif)})"
+             style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:5px 10px; font-size:11px; white-space:nowrap;">Teslim Al</button>`
         : `<span style="font-size:10px; font-weight:800; color:${R.r}; background:${R.bg}; padding:3px 8px; border-radius:100px;">${R.et}</span>`}
     </div>`;
   };
@@ -250,7 +261,7 @@ export async function ogretmenKart(hedefId) {
       <span style="font-size:11px; font-weight:800; color:#64748B; background:#F8FAFC; padding:3px 9px; border-radius:100px;">⏳ Bekleniyor ${bekliyor.length}</span>
     </div>
     ${yolda.map(o => satir(o, "yolda")).join("")}
-    ${bekliyor.slice(0, 8).map(o => satir(o, "bekliyor")).join("")}
+    ${bekliyor.map(o => satir(o, "bekliyor")).join("")}
     ${girdi.map(o => satir(o, "girdi")).join("")}
     ${!ogrenciler.length ? `<div class="ca-tile-sub">Sınıfınızda aktif öğrenci yok.</div>` : ""}`;
 

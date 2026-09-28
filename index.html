@@ -13934,7 +13934,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v130";
+window.PORTAL_SURUM = "v163-teslim-akis";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -20428,6 +20428,8 @@ window.okulZiliDoldur = async function() {
   const el = document.getElementById("okulZiliListe");
   const ozetEl = document.getElementById("okulZiliOzet");
   if (!el) return;
+  // Boş kuyrukta da dinle: günün ilk bildirimi sayfa yenilemeden gelmeli.
+  okulZiliCanliBaslat();
 
   // Danışma kişisel alan içermeyen projeksiyonu; diğer roller ortak asıl
   // pickupBildirimleri koleksiyonunu okur.
@@ -20460,7 +20462,12 @@ window.okulZiliDoldur = async function() {
         veliOnayZamani: v.veliOnayZamani || ""
       });
     });
-  } catch (e) { console.warn("pickupBildirimleri:", e.code || e.message); }
+  } catch (e) {
+    console.warn("pickupBildirimleri:", e.code || e.message);
+    if (ozetEl) ozetEl.textContent = "Yüklenemedi";
+    el.innerHTML = `<div role="alert" style="padding:12px 0;">Çıkış bildirimleri yüklenemedi. <button type="button" class="btn-mini" onclick="okulZiliDoldur()">Tekrar Dene</button></div>`;
+    return;
+  }
 
   // ÖĞRETMEN: yalnızca kendi sınıfının çocukları
   if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
@@ -20530,7 +20537,8 @@ window.okulZiliDoldur = async function() {
     const renk = seviyeRenk(dk);
     const siraNo = durumKey === "teslim" ? "✓" : (bekleyenler.indexOf(k) + 1);
     const ogrAd = k.ogrenciAd || "—";
-    const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
+    const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+    const arg = (t) => esc(JSON.stringify(String(t == null ? "" : t)));
 
     // Zaman çizgisi: veli bildirdi → hazırlandı → teslim (+ veli teyidi)
     const adimlar = [];
@@ -20555,9 +20563,9 @@ window.okulZiliDoldur = async function() {
       </div>
       <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
         <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 8px; border-radius:100px; white-space:nowrap;">${s.ad}</span>
-        ${durumKey === "yolda" ? `<button class="btn-mini" onclick="pickupHazirla('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}')" style="background:#FFFBEB; color:#B45309; border-color:#FCD34D; font-weight:700; padding:4px 9px; font-size:11px;">Hazırla</button>` : ""}
-        ${durumKey !== "teslim" ? `<button class="btn-mini" onclick="modulYukle('pickup-yetkilileri').then(m => m && m.ogretmenPopup('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(ogrAd)}'))" title="Kim teslim alabilir?" style="padding:4px 8px; font-size:11px;">🛡️</button>` : ""}
-        ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(ogrAd)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}
+        ${durumKey === "yolda" ? `<button class="btn-mini" onclick="pickupHazirla(${arg(k.ogrenciId || k.id.split("__")[0])},${arg(k.tarih || bugun)})" style="background:#FFFBEB; color:#B45309; border-color:#FCD34D; font-weight:700; padding:4px 9px; font-size:11px;">Hazırlandı</button>` : ""}
+        ${durumKey !== "teslim" ? `<button class="btn-mini" onclick="modulYukle('pickup-yetkilileri').then(m => m && m.ogretmenPopup(${arg(k.ogrenciId || k.id.split("__")[0])},${arg(ogrAd)}))" title="Kim teslim alabilir?" style="padding:4px 8px; font-size:11px;">🛡️</button>` : ""}
+        ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt(${arg(k.ogrenciId || k.id.split("__")[0])},${arg(k.tarih || bugun)},${arg(ogrAd)},${arg(k.alanKisi || "veli")})" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}
       </div>
     </div>`;
   }).join("") + (!danismaRolMu() && kayitlar.length > 6

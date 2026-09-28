@@ -17,7 +17,7 @@ export async function panelRender(hedefId){
         const m=await window.modulYukle('pdr');await m.panelRender('pdrEskiFormKap');window._pdr.formAc(alan);
         const sel=document.getElementById('pdfOgr');if(sel)sel.value=ogrenciId;return;
       }
-      window.modulSec(alan);
+      window.modulSec(alan==='mesajlasma'?'mesaj':alan);
     }
   });
 }
