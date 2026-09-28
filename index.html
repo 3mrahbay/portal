@@ -15385,7 +15385,12 @@ function mesajThreadKategoriBelirle(thread, benimEmail) {
 // Sıra: kayıtlı ad → sistemden çözümlenen ad → "<Öğrenci> velisi" → rol etiketi.
 
 function mesajEpostaMi(s) {
-  return typeof s === "string" && /\S+@\S+\.\S+/.test(s);
+  return typeof s === "string" && (/@/.test(s) || /(?:\+?\d[\s().-]*){7,}/.test(s));
+}
+
+function mesajGercekAd(ad) {
+  const t = String(ad || "").trim();
+  return t && !mesajEpostaMi(t) && !/^(?:sınıf\s+)?öğretmen[iİ]?(?:\s*\d+)?$/i.test(t) ? t : "";
 }
 
 // Bir e-postaya karşılık gelen ad-soyadı sistem verisinden bul
@@ -15443,9 +15448,9 @@ function mesajAdCozumle(email) {
 // Thread kaydına yazılacak temiz ad (e-posta ise boş bırakılır)
 function mesajAdNormalize(ad, email) {
   const a = String(ad || "").trim();
-  if (a && !mesajEpostaMi(a)) return a;
+  if (mesajGercekAd(a)) return a;
   const c = mesajAdCozumle(email);
-  return (c && !mesajEpostaMi(c)) ? c : "";
+  return mesajGercekAd(c);
 }
 
 // Ekranda gösterilecek isim — e-posta ASLA döndürülmez
@@ -15454,14 +15459,13 @@ function mesajGorunenAd(thread, email, varsayilan) {
   const bilgi = (thread && thread.katilimciBilgi && thread.katilimciBilgi[e]) || null;
 
   const kayitli = bilgi && bilgi.ad ? String(bilgi.ad).trim() : "";
-  if (kayitli && !mesajEpostaMi(kayitli)) return kayitli;
-
-  const cozulen = mesajAdCozumle(e);
+  const cozulen = mesajGercekAd(mesajAdCozumle(e));
   if (cozulen) return cozulen;
+  if (mesajGercekAd(kayitli)) return kayitli;
 
   const rol = (bilgi && bilgi.rol) || "";
   const tip = (bilgi && bilgi.tip) || "";
-  const ogrAd = (thread && thread.ogrenciAd) ? String(thread.ogrenciAd).trim() : "";
+  const ogrAd = mesajGercekAd(thread && thread.ogrenciAd);
 
   if (rol === "veli" || tip === "veli") {
     return ogrAd ? (ogrAd + " velisi") : "Veli";
@@ -15469,7 +15473,7 @@ function mesajGorunenAd(thread, email, varsayilan) {
   if (rol && typeof ROL_ETIKETLERI !== "undefined" && ROL_ETIKETLERI[rol]) return ROL_ETIKETLERI[rol];
   if (rol === "personel" || tip === "personel") return "Okul";
   if (ogrAd) return ogrAd + " velisi";
-  return varsayilan || "Okul";
+  return mesajGercekAd(varsayilan) || "Okul";
 }
 
 // Giriş yapmış velinin kendi ad-soyadı (thread oluştururken kullanılır)
@@ -15478,7 +15482,7 @@ function mesajKendiVeliAdim() {
   const dn = String((typeof currentUser !== "undefined" && currentUser && currentUser.displayName) || "").trim();
   if (dn && !mesajEpostaMi(dn)) return dn;
   const c = mesajAdCozumle(benim);
-  if (c) return c;
+  if (mesajGercekAd(c)) return c;
   try {
     const ilk = (typeof veliOgrenciler !== "undefined" && veliOgrenciler && veliOgrenciler[0]) || null;
     const oAd = ilk && (ilk.ogrenciAdSoyad || ilk.adSoyad);
@@ -15561,7 +15565,7 @@ async function veliMesajAlicilariGetir() {
       }
       liste.push({
         email, id: email,
-        adSoyad: (v.ad && !mesajEpostaMi(v.ad)) ? String(v.ad) : "",
+        adSoyad: mesajGercekAd(v.ad) || mesajGercekAd(v.adSoyad),
         rol: v.rol || "ogretmen",
         unvan: "Sınıf Öğretmeni" + (cokCocuk && ilkAd ? " · " + ilkAd : ""),
         ogrenciId: c.id
@@ -15572,7 +15576,7 @@ async function veliMesajAlicilariGetir() {
   yonetim.forEach(y => {
     const email = String((y && y.email) || "").toLowerCase().trim();
     if (!email || liste.some(x => x.email === email)) return;
-    liste.push({ email, id: email, adSoyad: y.ad || "", rol: y.rol || "kurucu_mudur",
+    liste.push({ email, id: email, adSoyad: mesajGercekAd(y.ad), rol: y.rol || "kurucu_mudur",
                  unvan: y.unvan || "Kurucu Müdür", ogrenciId: (cocukBilgi[0] && cocukBilgi[0].id) || "" });
   });
   return liste;
@@ -15582,19 +15586,30 @@ async function veliMesajAlicilariGetir() {
 // ayarlar/mesajRehberi. Yalnız yönetim oturumunda çalışır. ZEKY ile BİREBİR aynı hesap
 // (aynı içerik üretilir, iki uygulama birbirinin yazdığını gereksiz yere değiştirmez).
 async function mesajRehberiSenkronla() {
+  if (!["kurucu_mudur", "kurucu", "mudur"].includes(rolNormalize(aktifKullaniciRol))) return;
   try {
     const snap = await getDocs(collection(db, "personeller"));
     const yonetim = [];
+    const adHarita = {};
     snap.forEach(d => {
       const p = d.data() || {};
       const durum = String(p.durum || "aktif").toLocaleLowerCase("tr");
       if (p.aktif === false || ["pasif", "arsiv", "arşiv", "ayrildi", "ayrıldı"].includes(durum)) return;
+      const personelAd = mesajGercekAd(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" "));
+      if (personelAd) adHarita[String(p.email || d.id).toLowerCase().trim()] = personelAd;
       if (String(p.rol || "").trim().toLowerCase() !== "kurucu_mudur") return;
       const email = String(d.id || "").toLowerCase().trim();
       if (!email) return;
       const ad = String(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || "").trim();
-      yonetim.push({ email, ad: (ad && !/\S+@\S+\.\S+/.test(ad)) ? ad : "", rol: "kurucu_mudur", unvan: "Kurucu Müdür" });
+      yonetim.push({ email, ad: mesajGercekAd(ad), rol: "kurucu_mudur", unvan: "Kurucu Müdür" });
     });
+    // Yalnız mevcut atamanın adını güncelle; özel personel alanlarını kopyalama.
+    const atamalar = await getDocs(collection(db, "sinifAtamalari"));
+    for (const atama of atamalar.docs) {
+      const v = atama.data();
+      const ad = adHarita[String(v.email || "").toLowerCase().trim()];
+      if (ad && v.ad !== ad) await setDoc(atama.ref, { ad }, { merge: true });
+    }
     yonetim.sort((a, b) => a.email.localeCompare(b.email));
     const ref = doc(db, "ayarlar", "mesajRehberi");
     const mevcut = await getDoc(ref);
@@ -16389,8 +16404,8 @@ window.mesajYeniPersonelleriListele = async function() {
         const email = String(p.email || d.id || "").toLowerCase();
         if ((p.durum || "aktif") !== "aktif" || email === currentUser.email.toLowerCase()) return;
         mesajYeniPersonelCache.push({
-          email, ad: p.adSoyad || p.ad || ROL_ETIKETLERI[rolNormalize(p.rol)] || "Personel",
-          rol: rolNormalize(p.rol), unvan: p.unvan || ""
+          email, ad: mesajGercekAd(p.adSoyad || p.ad) || ROL_ETIKETLERI[rolNormalize(p.rol)] || "Personel",
+          rol: rolNormalize(p.rol), unvan: mesajGercekAd(p.unvan)
         });
       });
     }
@@ -19617,6 +19632,7 @@ function caMsgBaslat() {
   if (typeof db === "undefined") return;
   const benim = veliEpostam();
   caMsgAktif = null; caMsgSeciliResim = null;
+  veliMesajAlicilariGetir().then(liste => { caMsgPersonelCache = liste; caMsgListele(); }).catch(() => {});
 
   // Geniş ekran: sağ paneli başlangıçta "sohbet seçin" placeholder ile aç
   const genisEkran = window.matchMedia("(min-width: 820px)").matches;
@@ -19999,7 +20015,7 @@ async function caMsgPersonelListe() {
     const avRenk = ["var(--c-green-light)","var(--c-pink-soft)","var(--c-yellow-soft)","var(--c-purple-soft)","var(--c-blue-soft)"];
     el.innerHTML = liste.map((p, i) => {
       const email = (p.email || p.id).toLowerCase();
-      const ad = p.adSoyad || ROL_ETIKETLERI[p.rol] || "Okul";
+      const ad = mesajGercekAd(p.adSoyad) || ROL_ETIKETLERI[p.rol] || "Okul";
       const initial = ad.charAt(0).toUpperCase();
       let etiket = ROL_ETIKETLERI[p.rol] || "Personel";
       if (p.rol === "ogretmen" && p.unvan) etiket = p.unvan;
@@ -22772,6 +22788,7 @@ function veliEpostam() {
 // Veli mesajlaşma başlat — kendi thread'lerini dinle
 function veliMesajlasmaBaslat() {
   if (!currentUser) return;
+  veliMesajAlicilariGetir().then(liste => { veliMesajPersonelCache = liste; veliMesajThreadleriListele(); }).catch(() => {});
   const benim = veliEpostam();
 
   if (veliMesajThreadUnsub) { veliMesajThreadUnsub(); veliMesajThreadUnsub = null; }
@@ -23041,7 +23058,7 @@ async function veliMesajPersonelleriListele() {
 
     el.innerHTML = liste.map(p => {
       const email = (p.email || p.id).toLowerCase();
-      const ad = p.adSoyad || ROL_ETIKETLERI[p.rol] || "Okul";
+      const ad = mesajGercekAd(p.adSoyad) || ROL_ETIKETLERI[p.rol] || "Okul";
       const initial = ad.charAt(0).toUpperCase();
       const rolEtiket = ROL_ETIKETLERI[p.rol] || "Personel";
       const emailEsc = email.replace(/'/g, "\\'");
