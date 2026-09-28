@@ -34525,6 +34525,7 @@ function renderMufredatEditor() {
       <div class="mufredat-alan-baslik">
         <span style="font-size:20px;">${alan.ikon || '📚'}</span>
         <span style="font-size:15px;">${escapeHtmlGelisim(alan.ad)}</span>
+        <button type="button" class="btn-mini" onclick="mufredatAlanAdDegistir(${ai})" style="font-size:11px;" title="Alan adını düzenle">✏️ Adını düzenle</button>
         <span style="margin-left:auto; font-size:11px; color:#6b7280;">
           ${alan.gruplar.reduce((t,g)=>t+g.dersler.length,0)} ders / ${alan.gruplar.length} grup
         </span>
@@ -34565,6 +34566,23 @@ function renderMufredatEditor() {
       + Yeni Gelişim Alanı Ekle
     </button>`;
 }
+
+window.mufredatAlanAdDegistir = function(ai) {
+  const alan = aktifMufredatlar[aktifEditorDisiplin]?.[ai];
+  if (!alan) return;
+  const cevap = prompt("Gelişim alanının yeni adı:", alan.ad);
+  if (cevap === null) return;
+  const yeniAd = cevap.trim();
+  if (!yeniAd) {
+    if (typeof showToast === "function") showToast("Alan adı boş olamaz", "error");
+    return;
+  }
+  if (yeniAd === alan.ad) return;
+  // Gelişim kayıtlarının anahtarı alan.id kullanır; yalnızca görünen adı değiştir.
+  alan.ad = yeniAd;
+  renderMufredatEditor();
+  if (typeof showToast === "function") showToast("Alan adı düzenlendi. Kalıcı olması için Tüm Değişiklikleri Kaydet'e basın.");
+};
 
 window.mufredatAlanEkle = function() {
   const ad = prompt("Yeni gelişim alanının adı:\n(Örn: Temel Beceriler, Yaratıcılık, Sosyal Gelişim)");
