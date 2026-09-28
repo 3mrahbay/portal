@@ -30,6 +30,6 @@ test('stylesheets use the current network response',async()=>{
  w.listeners.fetch({request:request('/portal-stil.css',{destination:'style'}),respondWith(p){pending=p}});assert.equal(await (await pending).text(),'new');
 });
 test('activation only removes obsolete Portal caches',async()=>{
- const w=worker({keys:['unrelated-app','bircicek-portal-old','bircicek-portal-v162-audit-cache']});let pending;
+ const w=worker({keys:['unrelated-app','bircicek-portal-old',`bircicek-portal-${source.match(/CACHE_VERSION = "([^"]+)"/)[1]}`]});let pending;
  w.listeners.activate({waitUntil(p){pending=p}});await pending;assert.deepEqual(w.deleted,['bircicek-portal-old']);
 });
