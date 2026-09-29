@@ -14279,6 +14279,9 @@ async function danismaOperasyonProjeksiyonlariniSenkronla() {
           hazirZamani: v.hazirZamani || "", teslimZamani: v.teslimZamani || "",
           teslimEden: v.teslimEden || "", veliOnay: v.veliOnay === true,
           veliOnayZamani: v.veliOnayZamani || "", iptalZamani: v.iptalZamani || "",
+          kapida: v.kapida === true, kapidaZamani: v.kapidaZamani || "",
+          kimlikKontrol: v.kimlikKontrol === true, kimlikKontrolZamani: v.kimlikKontrolZamani || "",
+          kimlikNotu: v.kimlikNotu || "", danismaNotu: v.danismaNotu || "",
           guncellendi: simdi
         }
       });
@@ -14315,6 +14318,7 @@ async function danismaPersonelRehberiniSenkronla(liste) {
       data: {
         adSoyad: p.adSoyad || p.ad || "",
         rol: rolNormalize(p.rol), unvan: p.unvan || "",
+        siniflar: Array.isArray(p.siniflar) ? p.siniflar : (Array.isArray(p.sinifAtamalari) ? p.sinifAtamalari : []),
         durum: p.durum || "aktif", guncellendi: serverTimestamp()
       }
     }];
@@ -20352,6 +20356,43 @@ window.adminGotoTab = function(name) {
 // ═══ OKUL ZİLİ — bugünkü veli çıkış talepleri (ZEKY app ile ortak koleksiyon) ═══
 // ═══ OKUL ZİLİ İŞLEMLERİ (ZEKY pickupHazirla / pickupTeslimEt ile ortak) ═══
 // Belge: pickupBildirimleri/{ogrenciId}__{tarih}
+window.pickupKapidaIsaretle = async function(ogrenciId, tarih) {
+  if (!ogrenciId) return;
+  try {
+    const zaman = new Date().toISOString(), id = ogrenciId + "__" + tarih;
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", id), {
+      kapida:true, kapidaZamani:zaman, kapidaBildiren:(currentUser?.email||"").toLowerCase(),
+      guncellendi:serverTimestamp()
+    }, { merge:true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, id), {
+      ogrenciId, tarih, kapida:true, kapidaZamani:zaman, guncellendi:serverTimestamp()
+    }, { merge:true });
+    await batch.commit();
+    showToast("✓ Veli kapıda olarak işaretlendi");
+    if (typeof okulZiliDoldur === "function") okulZiliDoldur();
+  } catch (e) { console.error("pickup kapıda:",e); showToast("Kaydedilemedi: "+e.message,"error"); }
+};
+
+window.pickupKimlikIsaretle = async function(ogrenciId, tarih, alanKisi) {
+  if (!ogrenciId) return;
+  if (!confirm((alanKisi || "Almaya gelen kişi") + " için kimlik kontrolü yapıldı mı?")) return;
+  try {
+    const zaman = new Date().toISOString(), id = ogrenciId + "__" + tarih;
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", id), {
+      kimlikKontrol:true, kimlikKontrolZamani:zaman,
+      kimlikKontrolEden:(currentUser?.email||"").toLowerCase(), guncellendi:serverTimestamp()
+    }, { merge:true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, id), {
+      ogrenciId, tarih, kimlikKontrol:true, kimlikKontrolZamani:zaman, guncellendi:serverTimestamp()
+    }, { merge:true });
+    await batch.commit();
+    showToast("✓ Kimlik kontrolü kaydedildi");
+    if (typeof okulZiliDoldur === "function") okulZiliDoldur();
+  } catch (e) { console.error("pickup kimlik:",e); showToast("Kaydedilemedi: "+e.message,"error"); }
+};
+
 window.pickupHazirla = async function(ogrenciId, tarih) {
   if (!ogrenciId) { showToast("Öğrenci bilgisi okunamadı", "error"); return; }
   try {
@@ -20457,7 +20498,13 @@ window.okulZiliDoldur = async function() {
         teslimZamani: v.teslimZamani || "",
         teslimEden: v.teslimEden || "",
         veliOnay: v.veliOnay === true,
-        veliOnayZamani: v.veliOnayZamani || ""
+        veliOnayZamani: v.veliOnayZamani || "",
+        kapida: v.kapida === true,
+        kapidaZamani: v.kapidaZamani || "",
+        kimlikKontrol: v.kimlikKontrol === true,
+        kimlikKontrolZamani: v.kimlikKontrolZamani || "",
+        kimlikNotu: v.kimlikNotu || "",
+        danismaNotu: v.danismaNotu || ""
       });
     });
   } catch (e) { console.warn("pickupBildirimleri:", e.code || e.message); }
@@ -20535,7 +20582,9 @@ window.okulZiliDoldur = async function() {
     // Zaman çizgisi: veli bildirdi → hazırlandı → teslim (+ veli teyidi)
     const adimlar = [];
     if (k.olusturuldu) adimlar.push(`<span title="Veli bildirdi">📣 ${saatY(k.olusturuldu)}</span>`);
+    if (k.kapidaZamani) adimlar.push(`<span style="color:#2E5C8A;font-weight:700;" title="Veli kapıda">🚪 kapıda ${saatY(k.kapidaZamani)}</span>`);
     if (k.hazirZamani) adimlar.push(`<span title="Öğretmen hazırladı">📦 ${saatY(k.hazirZamani)}</span>`);
+    if (k.kimlikKontrol) adimlar.push(`<span style="color:#2D7A2D;font-weight:700;" title="Kimlik kontrolü">🛡️ kimlik OK${k.kimlikKontrolZamani ? " " + saatY(k.kimlikKontrolZamani) : ""}</span>`);
     if (k.teslimZamani) adimlar.push(`<span title="Teslim edildi">✅ ${saatY(k.teslimZamani)}${k.teslimEden ? " · " + esc(k.teslimEden) : ""}</span>`);
     if (k.veliOnay) adimlar.push(`<span style="color:#2D7A2D; font-weight:700;" title="Veli teyidi">👍 aldım${k.veliOnayZamani ? " " + saatY(k.veliOnayZamani) : ""}</span>`);
 
@@ -20552,11 +20601,14 @@ window.okulZiliDoldur = async function() {
           ${dk > 0 && durumKey !== "teslim" ? `<span style="color:${renk}; font-weight:700;">⏱ ${dk} dk</span>` : ""}
           ${dk > 0 && durumKey === "teslim" ? `<span style="color:#94A3B8;">⏱ ${dk} dk sürdü</span>` : ""}
         </div>
+        ${k.danismaNotu ? `<div style="font-size:10.5px;color:#7A5A13;background:#FFF8E7;border-radius:7px;padding:4px 7px;margin-top:4px;">📝 ${esc(k.danismaNotu)}</div>` : ""}
       </div>
-      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;">
         <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 8px; border-radius:100px; white-space:nowrap;">${s.ad}</span>
+        ${durumKey === "yolda" && !k.kapida ? `<button class="btn-mini" onclick="pickupKapidaIsaretle('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}')" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;font-weight:700;padding:4px 9px;font-size:11px;">Veli Kapıda</button>` : ""}
         ${durumKey === "yolda" ? `<button class="btn-mini" onclick="pickupHazirla('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}')" style="background:#FFFBEB; color:#B45309; border-color:#FCD34D; font-weight:700; padding:4px 9px; font-size:11px;">Hazırla</button>` : ""}
         ${durumKey !== "teslim" ? `<button class="btn-mini" onclick="modulYukle('pickup-yetkilileri').then(m => m && m.ogretmenPopup('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(ogrAd)}'))" title="Kim teslim alabilir?" style="padding:4px 8px; font-size:11px;">🛡️</button>` : ""}
+        ${durumKey === "hazir" && !k.kimlikKontrol ? `<button class="btn-mini" onclick="pickupKimlikIsaretle('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(k.alanKisi || "alıcı")}')" style="background:#FDEBE9;color:#C0392B;border-color:#F5B8B1;font-weight:700;padding:4px 9px;font-size:11px;">Kimlik OK</button>` : ""}
         ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(ogrAd)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}
       </div>
     </div>`;
