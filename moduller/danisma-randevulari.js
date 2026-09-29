@@ -1,3 +1,4 @@
+import { operasyonPushTetikle } from "../js/zeky-operasyon-push.js";
 // ═══════════════════════════════════════════════════════════════════
 // DANIŞMA RANDEVULARI — moduller/danisma-randevulari.js
 // ZEKY ile ORTAK: danismaRandevulari/{otoId}
@@ -200,7 +201,7 @@ async function kaydet() {
   const veliAd = g("drVeliAd"), telefon = g("drTel"), tarih = g("drTarih"), saat = g("drSaat");
   if (!veliAd || !telefon || !tarih || !saat) { toast("Veli adı, telefon, tarih ve saat gerekli", "error"); return; }
   try {
-    await fb.addDoc(fb.collection(db, "danismaRandevulari"), {
+    const ref = await fb.addDoc(fb.collection(db, "danismaRandevulari"), {
       veliAd, telefon,
       eposta: g("drEposta").toLowerCase(),
       cocukAd: g("drCocuk"),
@@ -216,6 +217,7 @@ async function kaydet() {
       olusturuldu: new Date().toISOString(),
       guncellendi: fb.serverTimestamp()
     });
+    await operasyonPushTetikle("randevu-yeni", ref.id);
     toast("✓ Randevu kaydedildi");
     panelRender("danismaRandevuIcerik");
   } catch (e) {
