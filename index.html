@@ -20424,6 +20424,10 @@ window.pickupKapidaBildirPortal = async function(ogrenciId, tarih) {
       guncellendi:serverTimestamp()
     }, { merge:true });
     await batch.commit();
+    fetch("https://script.google.com/macros/s/AKfycby0oVMIP9LVl-rYbmnOpmL2Sa_2kmnVDgOP_wdGCBIqrtmJSSxOcNfaw3U5c6N8vuVr/exec", {
+      method:"POST", headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({ olay:"pickup-kapida", kayitId:ogrenciId + "__" + tarih })
+    }).catch(() => {});
     showToast("✓ Veli kapıda olarak işaretlendi");
     okulZiliDoldur();
   } catch (e) { showToast("Kapı bildirimi kaydedilemedi: " + e.message, "error"); }
