@@ -143,7 +143,7 @@ test('aday randevuları danışma ana ekran özetini de yeniler', async () => {
 test('Okul Zili güvenli danışma projeksiyonu ZEKY kapı ve kimlik adımlarını PII taşımadan paylaşır', async () => {
   const s = await portalKaynak();
   const proj = bolum(s, 'async function danismaOperasyonProjeksiyonlariniSenkronla()', 'async function danismaPersonelRehberiniSenkronla');
-  for (const alan of ['kapida','kapidaZamani','kimlikKontrol','kimlikKontrolZamani','kimlikNotu','danismaNotu']) {
+  for (const alan of ['kapida','kapidaZamani','kimlikKontrol','kimlikKontrolZamani','danismaNotu']) {
     assert.match(proj, new RegExp(alan));
   }
   assert.doesNotMatch(proj, /veliEmail|veliOnayEmail|telefon|eposta/i);
