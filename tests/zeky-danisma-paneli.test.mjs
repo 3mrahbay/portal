@@ -138,3 +138,40 @@ test('aday randevuları danışma ana ekran özetini de yeniler', async () => {
   assert.match(s, /document\.getElementById\("danismaHomeRandevu"\)/);
   assert.match(s, /ozetKart\("danismaHomeRandevu"\)/);
 });
+
+
+test('Okul Zili güvenli danışma projeksiyonu ZEKY kapı ve kimlik adımlarını PII taşımadan paylaşır', async () => {
+  const s = await portalKaynak();
+  const proj = bolum(s, 'async function danismaOperasyonProjeksiyonlariniSenkronla()', 'async function danismaPersonelRehberiniSenkronla');
+  for (const alan of ['kapida','kapidaZamani','kimlikKontrol','kimlikKontrolZamani','kimlikNotu','danismaNotu']) {
+    assert.match(proj, new RegExp(alan));
+  }
+  assert.doesNotMatch(proj, /veliEmail|veliOnayEmail|telefon|eposta/i);
+
+  const zil = bolum(s, 'window.okulZiliDoldur = async function()', '// Özet sayfası hızlı işlem butonları');
+  assert.match(zil, /Veli Kapıda/);
+  assert.match(zil, /Kimlik OK/);
+  assert.match(zil, /k\.danismaNotu/);
+  assert.match(zil, /k\.kapidaZamani/);
+  assert.match(zil, /k\.kimlikKontrol/);
+  assert.doesNotMatch(zil, /veliEmail|veliOnayEmail/);
+});
+
+test('portal ve ZEKY için Okul Zili kapı ve kimlik aksiyonları ana kayıtla güvenli özeti birlikte yazar', async () => {
+  const s = await portalKaynak();
+  const kapida = bolum(s, 'window.pickupKapidaIsaretle = async function', 'window.pickupKimlikIsaretle = async function');
+  const kimlik = bolum(s, 'window.pickupKimlikIsaretle = async function', 'window.pickupHazirla = async function');
+  for (const kaynak of [kapida, kimlik]) {
+    assert.match(kaynak, /pickupBildirimleri/);
+    assert.match(kaynak, /DANISMA_GUVENLI_KOLEKSIYONLAR\.pickup/);
+    assert.match(kaynak, /writeBatch\(db\)/);
+  }
+});
+
+test('danışma personel rehberi sınıf eşleşmesini destekler ama iletişim verisi taşımaz', async () => {
+  const s = await portalKaynak();
+  const rehber = bolum(s, 'async function danismaPersonelRehberiniSenkronla', 'const ROL_ETIKETLERI');
+  assert.match(rehber, /siniflar:/);
+  assert.match(rehber, /sinifAtamalari/);
+  assert.doesNotMatch(rehber, /telefon|eposta|adres/i);
+});
