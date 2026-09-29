@@ -14316,7 +14316,7 @@ async function danismaPersonelRehberiniSenkronla(liste) {
     return [{
       ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
       data: {
-        adSoyad: p.adSoyad || p.ad || "",
+        adSoyad: p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || "",
         rol: rolNormalize(p.rol), unvan: p.unvan || "",
         siniflar: Array.isArray(p.siniflar) ? p.siniflar : (Array.isArray(p.sinifAtamalari) ? p.sinifAtamalari : []),
         durum: p.durum || "aktif", guncellendi: serverTimestamp()
