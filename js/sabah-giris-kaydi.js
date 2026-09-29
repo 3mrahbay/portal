@@ -1,3 +1,4 @@
+import { operasyonPushTetikle } from "./zeky-operasyon-push.js";
 // SG-2: no permission changes, no alternate credentials, no automatic retries.
 // Only the primary write acknowledges the notice. A failed reception copy is
 // reported separately; it must not erase the primary write or imply delivery.
@@ -70,5 +71,6 @@ export async function sabahGirisKaydet(api) {
     }
     result.danismaAktarildi = true;
   } catch (e) { result.danismaHataKodu = hataKodu(e); }
+  await operasyonPushTetikle("sabah-yeni", id);
   return result;
 }
