@@ -273,6 +273,23 @@ async function veliOkulZiliGuvenliBildir() {
 
   const tarih = pickupBugun();
   const id = ogr.id + "__" + tarih;
+
+  // ZEKY ile aynı koruma: personel hazırlama/teslim aşamasına geçtiyse veli
+  // aynı günlük kaydı tekrar "yolda" durumuna çekemez.
+  try {
+    const mevcut = await fb.getDoc(fb.doc(db, "pickupBildirimleri", id));
+    if (mevcut.exists() && ["hazir","teslim"].includes(mevcut.data()?.durum)) {
+      if (toast) toast(mevcut.data().durum === "teslim"
+        ? "Bugünkü teslim tamamlandı. Yeni bildirim oluşturulamaz."
+        : "Çocuğunuz hazırlanıyor. Çıkış bildirimi artık değiştirilemez.", "error");
+      return;
+    }
+  } catch (e) {
+    if (!["permission-denied","firestore/permission-denied"].includes(e.code)) {
+      console.warn("Okul Zili mevcut kayıt kontrolü:", e.code || e.message);
+    }
+  }
+
   const tamVeri = {
     ogrenciId: ogr.id,
     ogrenciAd: ogr.ogrenciAdSoyad || ogr.ogrenciAd || "",
