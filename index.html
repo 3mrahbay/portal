@@ -20417,8 +20417,9 @@ window.pickupHazirla = async function(ogrenciId, tarih) {
   }
 };
 
-window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi) {
+window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi, kimlikKontrol = false) {
   if (!ogrenciId) { showToast("Öğrenci bilgisi okunamadı", "error"); return; }
+  if (!kimlikKontrol && !confirm("Kimlik kontrolü işaretli değil. Yine de teslim kaydı oluşturulsun mu?")) return;
   if (!confirm(`${ogrAd || "Öğrenci"}, ${alanKisi || "veliye"} teslim edilecek.\n\nOnaylıyor musunuz?`)) return;
   try {
     const ad = (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad)
@@ -20609,7 +20610,7 @@ window.okulZiliDoldur = async function() {
         ${durumKey === "yolda" ? `<button class="btn-mini" onclick="pickupHazirla('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}')" style="background:#FFFBEB; color:#B45309; border-color:#FCD34D; font-weight:700; padding:4px 9px; font-size:11px;">Hazırla</button>` : ""}
         ${durumKey !== "teslim" ? `<button class="btn-mini" onclick="modulYukle('pickup-yetkilileri').then(m => m && m.ogretmenPopup('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(ogrAd)}'))" title="Kim teslim alabilir?" style="padding:4px 8px; font-size:11px;">🛡️</button>` : ""}
         ${durumKey === "hazir" && !k.kimlikKontrol ? `<button class="btn-mini" onclick="pickupKimlikIsaretle('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(k.alanKisi || "alıcı")}')" style="background:#FDEBE9;color:#C0392B;border-color:#F5B8B1;font-weight:700;padding:4px 9px;font-size:11px;">Kimlik OK</button>` : ""}
-        ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(ogrAd)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}
+        ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(ogrAd)}','${esc(k.alanKisi || "veli")}',${k.kimlikKontrol === true})" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}
       </div>
     </div>`;
   }).join("") + (!danismaRolMu() && kayitlar.length > 6
