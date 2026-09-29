@@ -192,3 +192,15 @@ test('portal veli Okul Zili personel hazırlama ve teslim aşamalarını geriye 
   assert.match(m, /Bugünkü teslim tamamlandı/);
   assert.match(m, /Çocuğunuz hazırlanıyor/);
 });
+
+
+test('dar kapsamlı rules yaması yeni operasyon alanlarını açar ama PII eklemez', async () => {
+  const r = await readFile(new URL('security/danisma-okul-zili-parity.rules.snippet', kok), 'utf8');
+  for (const alan of ['kapida','kapidaZamani','kimlikKontrol','kimlikKontrolZamani','danismaNotu']) {
+    assert.match(r, new RegExp("'"+alan+"'"));
+  }
+  assert.match(r, /opAlanAyni\(d, s, 'kapida', false\)/);
+  assert.match(r, /opAlanAyni\(d, s, 'kimlikKontrol', false\)/);
+  assert.match(r, /allow read: if isPdr\(\) \|\| isDanisma\(\)/);
+  assert.doesNotMatch(r, /'telefon'|'eposta'|'veliEmail'|'veliOnayEmail'/);
+});
