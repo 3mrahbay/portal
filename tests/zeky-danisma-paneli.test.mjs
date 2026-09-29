@@ -138,3 +138,69 @@ test('aday randevuları danışma ana ekran özetini de yeniler', async () => {
   assert.match(s, /document\.getElementById\("danismaHomeRandevu"\)/);
   assert.match(s, /ozetKart\("danismaHomeRandevu"\)/);
 });
+
+
+test('Okul Zili güvenli danışma projeksiyonu ZEKY kapı ve kimlik adımlarını PII taşımadan paylaşır', async () => {
+  const s = await portalKaynak();
+  const proj = bolum(s, 'async function danismaOperasyonProjeksiyonlariniSenkronla()', 'async function danismaPersonelRehberiniSenkronla');
+  for (const alan of ['kapida','kapidaZamani','kimlikKontrol','kimlikKontrolZamani','danismaNotu']) {
+    assert.match(proj, new RegExp(alan));
+  }
+  assert.doesNotMatch(proj, /veliEmail|veliOnayEmail|telefon|eposta/i);
+
+  const zil = bolum(s, 'window.okulZiliDoldur = async function()', '// Özet sayfası hızlı işlem butonları');
+  assert.match(zil, /Veli Kapıda/);
+  assert.match(zil, /Kimlik OK/);
+  assert.match(zil, /k\.danismaNotu/);
+  assert.match(zil, /k\.kapidaZamani/);
+  assert.match(zil, /k\.kimlikKontrol/);
+  assert.doesNotMatch(zil, /veliEmail|veliOnayEmail/);
+});
+
+test('portal ve ZEKY için Okul Zili kapı ve kimlik aksiyonları ana kayıtla güvenli özeti birlikte yazar', async () => {
+  const s = await portalKaynak();
+  const kapida = bolum(s, 'window.pickupKapidaIsaretle = async function', 'window.pickupKimlikIsaretle = async function');
+  const kimlik = bolum(s, 'window.pickupKimlikIsaretle = async function', 'window.pickupHazirla = async function');
+  for (const kaynak of [kapida, kimlik]) {
+    assert.match(kaynak, /pickupBildirimleri/);
+    assert.match(kaynak, /DANISMA_GUVENLI_KOLEKSIYONLAR\.pickup/);
+    assert.match(kaynak, /writeBatch\(db\)/);
+  }
+});
+
+test('danışma personel rehberi sınıf eşleşmesini destekler ama iletişim verisi taşımaz', async () => {
+  const s = await portalKaynak();
+  const rehber = bolum(s, 'async function danismaPersonelRehberiniSenkronla', 'const ROL_ETIKETLERI');
+  assert.match(rehber, /siniflar:/);
+  assert.match(rehber, /sinifAtamalari/);
+  assert.doesNotMatch(rehber, /telefon|eposta|adres/i);
+});
+
+
+test('portal Okul Zili teslim öncesi kimlik uyarısı ZEKY ile aynıdır', async () => {
+  const s = await portalKaynak();
+  const zil = bolum(s, 'window.okulZiliDoldur = async function()', '// Özet sayfası hızlı işlem butonları');
+  assert.match(zil, /pickupTeslimEt\([^\n]+k\.kimlikKontrol === true/);
+  const teslim = bolum(s, 'window.pickupTeslimEt = async function', '// Okul Zili canlı dinleme');
+  assert.match(teslim, /kimlikKontrol = false/);
+  assert.match(teslim, /Kimlik kontrolü işaretli değil/);
+});
+
+test('portal veli Okul Zili personel hazırlama ve teslim aşamalarını geriye çeviremez', async () => {
+  const m = await readFile(new URL('moduller/pickup-yetkilileri.js', kok), 'utf8');
+  assert.match(m, /\["hazir","teslim"\]\.includes/);
+  assert.match(m, /Bugünkü teslim tamamlandı/);
+  assert.match(m, /Çocuğunuz hazırlanıyor/);
+});
+
+
+test('dar kapsamlı rules yaması yeni operasyon alanlarını açar ama PII eklemez', async () => {
+  const r = await readFile(new URL('security/danisma-okul-zili-parity.rules.snippet', kok), 'utf8');
+  for (const alan of ['kapida','kapidaZamani','kimlikKontrol','kimlikKontrolZamani','danismaNotu']) {
+    assert.match(r, new RegExp("'"+alan+"'"));
+  }
+  assert.match(r, /opAlanAyni\(d, s, 'kapida', false\)/);
+  assert.match(r, /opAlanAyni\(d, s, 'kimlikKontrol', false\)/);
+  assert.match(r, /allow read: if isPdr\(\) \|\| isDanisma\(\)/);
+  assert.doesNotMatch(r, /'telefon'|'eposta'|'veliEmail'|'veliOnayEmail'/);
+});

@@ -1,0 +1,54 @@
+// DANIŞMA · PORTAL ↔ ZEKY OKUL ZİLİ PARİTE YAMASI
+// Kaynak: 29 Eylül 2026 canlı kurallarındaki mevcut fonksiyon/match bloklarının
+// yerine uygulanır. Tam ruleset değildir; başka kuralları silerek tek başına
+// yayınlanmamalıdır.
+//
+// Amaç:
+// - danismaPickupBildirimleri içinde yalnız yeni operasyon alanlarını açmak
+// - alanları ana pickupBildirimleri kaydıyla getAfter() üzerinden eşleştirmek
+// - telefon/e-posta gibi PII eklememek
+// - güvenli personel rehberini danışmanın okuyabilmesini sağlamak
+
+function opPickupOzetiGecerli(d, kayitId) {
+  let s = getAfter(/databases/$(database)/documents/pickupBildirimleri/$(kayitId)).data;
+  return d.keys().hasOnly([
+      'ogrenciId', 'ogrenciAd', 'sinif', 'tarih', 'hedefSaat',
+      'alanKisi', 'durum', 'olusturuldu', 'hazirZamani', 'teslimZamani',
+      'teslimEden', 'veliOnay', 'veliOnayZamani', 'iptalZamani',
+      'kapida', 'kapidaZamani',
+      'kimlikKontrol', 'kimlikKontrolZamani',
+      'danismaNotu',
+      'guncellendi'
+    ])
+    && opKimlikAyni(d, s, kayitId)
+    && d.get('durum', '') == s.get('durum', '')
+    && d.durum in ['yolda', 'hazir', 'teslim', 'iptal']
+    && opAlanAyni(d, s, 'ogrenciAd', '')
+    && opAlanAyni(d, s, 'sinif', '')
+    && opAlanAyni(d, s, 'hedefSaat', '')
+    && opAlanAyni(d, s, 'alanKisi', 'Veli')
+    && opAlanAyni(d, s, 'olusturuldu', '')
+    && opAlanAyni(d, s, 'hazirZamani', '')
+    && opAlanAyni(d, s, 'teslimZamani', '')
+    && opAlanAyni(d, s, 'teslimEden', '')
+    && opAlanAyni(d, s, 'veliOnay', false)
+    && opAlanAyni(d, s, 'veliOnayZamani', '')
+    && opAlanAyni(d, s, 'iptalZamani', '')
+    && opAlanAyni(d, s, 'kapida', false)
+    && opAlanAyni(d, s, 'kapidaZamani', '')
+    && opAlanAyni(d, s, 'kimlikKontrol', false)
+    && opAlanAyni(d, s, 'kimlikKontrolZamani', '')
+    && opAlanAyni(d, s, 'danismaNotu', '');
+}
+
+// Mevcut danismaPersonelRehberi match'inde yalnız read satırı değişir.
+// Bu koleksiyonun projeksiyonunda e-posta/telefon alanı tutulmaz;
+// belge ID'si kurum personelinin kullanıcı anahtarıdır.
+match /danismaPersonelRehberi/{email} {
+  allow read: if isPdr() || isDanisma();
+}
+
+// NOT:
+// danismaPickupBildirimleri match bloğundaki create/update koşulları
+// opPickupOzetiGecerli(...) çağırmaya devam eder. Böylece güvenli özet,
+// aynı batch içindeki ana pickupBildirimleri kaydıyla birebir doğrulanır.
