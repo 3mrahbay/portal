@@ -229,10 +229,14 @@ async function durum(id, yeni) {
   const etiket = DURUM[yeni]?.ad || yeni;
   if (yeni === "kayit_oldu" && !confirm("Bu aday kayıt oldu olarak işaretlenecek. Onaylıyor musunuz?")) return;
   try {
+    const zaman = new Date().toISOString();
+    const email = (state.currentUser?.email || "").toLowerCase();
     await fb.setDoc(fb.doc(db, "danismaRandevulari", id), {
       durum: yeni,
-      [yeni + "Zamani"]: new Date().toISOString(),
-      guncelleyen: (state.currentUser?.email || "").toLowerCase(),
+      [yeni + "Zamani"]: zaman,
+      durumZamani: zaman,
+      guncelleyen: email,
+      durumDegistiren: email,
       guncellendi: fb.serverTimestamp()
     }, { merge: true });
     toast("✓ " + etiket);
