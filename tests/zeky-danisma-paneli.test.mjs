@@ -175,3 +175,20 @@ test('danışma personel rehberi sınıf eşleşmesini destekler ama iletişim v
   assert.match(rehber, /sinifAtamalari/);
   assert.doesNotMatch(rehber, /telefon|eposta|adres/i);
 });
+
+
+test('portal Okul Zili teslim öncesi kimlik uyarısı ZEKY ile aynıdır', async () => {
+  const s = await portalKaynak();
+  const zil = bolum(s, 'window.okulZiliDoldur = async function()', '// Özet sayfası hızlı işlem butonları');
+  assert.match(zil, /pickupTeslimEt\([^\n]+k\.kimlikKontrol === true/);
+  const teslim = bolum(s, 'window.pickupTeslimEt = async function', '// Okul Zili canlı dinleme');
+  assert.match(teslim, /kimlikKontrol = false/);
+  assert.match(teslim, /Kimlik kontrolü işaretli değil/);
+});
+
+test('portal veli Okul Zili personel hazırlama ve teslim aşamalarını geriye çeviremez', async () => {
+  const m = await readFile(new URL('moduller/pickup-yetkilileri.js', kok), 'utf8');
+  assert.match(m, /\["hazir","teslim"\]\.includes/);
+  assert.match(m, /Bugünkü teslim tamamlandı/);
+  assert.match(m, /Çocuğunuz hazırlanıyor/);
+});
