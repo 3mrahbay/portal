@@ -20368,6 +20368,9 @@ window.pickupHazirla = async function(ogrenciId, tarih) {
       hazirZamani: guncelleme.hazirZamani, guncellendi: serverTimestamp()
     }, { merge: true });
     await batch.commit();
+    import("./js/zeky-operasyon-push.js")
+      .then(m => m.operasyonPushTetikle("pickup-hazir", ogrenciId + "__" + tarih))
+      .catch(() => {});
     showToast("✓ Hazırlandı olarak işaretlendi");
     if (typeof okulZiliDoldur === "function") okulZiliDoldur();
   } catch (e) {
@@ -20405,6 +20408,70 @@ window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi) {
     console.error("pickup teslim:", e);
     showToast("Kaydedilemedi: " + e.message, "error");
   }
+};
+
+// Danışma operasyon alanları — ZEKY ile AYNI pickup belgesine ve güvenli
+// projeksiyona birlikte yazılır. Veli iletişim bilgisi projeksiyona taşınmaz.
+window.pickupKapidaBildirPortal = async function(ogrenciId, tarih) {
+  if (!ogrenciId) return;
+  try {
+    const zaman = new Date().toISOString();
+    const email = (currentUser?.email || "").toLowerCase();
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), {
+      kapida:true, kapidaZamani:zaman, kapidaBildiren:email,
+      guncellendi:serverTimestamp()
+    }, { merge:true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ogrenciId, tarih, kapida:true, kapidaZamani:zaman,
+      guncellendi:serverTimestamp()
+    }, { merge:true });
+    await batch.commit();
+    fetch("https://script.google.com/macros/s/AKfycby0oVMIP9LVl-rYbmnOpmL2Sa_2kmnVDgOP_wdGCBIqrtmJSSxOcNfaw3U5c6N8vuVr/exec", {
+      method:"POST", headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({ olay:"pickup-kapida", kayitId:ogrenciId + "__" + tarih })
+    }).catch(() => {});
+    showToast("✓ Veli kapıda olarak işaretlendi");
+    okulZiliDoldur();
+  } catch (e) { showToast("Kapı bildirimi kaydedilemedi: " + e.message, "error"); }
+};
+
+window.pickupKimlikOnaylaPortal = async function(ogrenciId, tarih, alanKisi) {
+  if (!confirm((alanKisi || "Almaya gelen kişi") + " için kimlik kontrolü yapıldı olarak işaretlenecek.\n\nOnaylıyor musunuz?")) return;
+  try {
+    const zaman = new Date().toISOString();
+    const email = (currentUser?.email || "").toLowerCase();
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), {
+      kimlikKontrol:true, kimlikKontrolZamani:zaman, kimlikKontrolEden:email,
+      guncellendi:serverTimestamp()
+    }, { merge:true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ogrenciId, tarih, kimlikKontrol:true, kimlikKontrolZamani:zaman,
+      guncellendi:serverTimestamp()
+    }, { merge:true });
+    await batch.commit();
+    showToast("✓ Kimlik doğrulandı");
+    okulZiliDoldur();
+  } catch (e) { showToast("Kimlik kaydı yapılamadı: " + e.message, "error"); }
+};
+
+window.pickupDanismaNotuPortal = async function(ogrenciId, tarih, mevcut) {
+  const metin = prompt("Danışma notu", mevcut || "");
+  if (metin === null) return;
+  try {
+    const temiz = String(metin || "").trim().slice(0, 500);
+    const batch = writeBatch(db);
+    batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), {
+      danismaNotu:temiz, guncellendi:serverTimestamp()
+    }, { merge:true });
+    batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ogrenciId, tarih, danismaNotu:temiz, guncellendi:serverTimestamp()
+    }, { merge:true });
+    await batch.commit();
+    showToast(temiz ? "✓ Danışma notu kaydedildi" : "Danışma notu temizlendi");
+    okulZiliDoldur();
+  } catch (e) { showToast("Not kaydedilemedi: " + e.message, "error"); }
 };
 
 // Okul Zili canlı dinleme — veli bildirim gönderdiğinde kart kendini yeniler
@@ -20457,7 +20524,12 @@ window.okulZiliDoldur = async function() {
         teslimZamani: v.teslimZamani || "",
         teslimEden: v.teslimEden || "",
         veliOnay: v.veliOnay === true,
-        veliOnayZamani: v.veliOnayZamani || ""
+        veliOnayZamani: v.veliOnayZamani || "",
+        kapida: v.kapida === true,
+        kapidaZamani: v.kapidaZamani || "",
+        kimlikKontrol: v.kimlikKontrol === true,
+        kimlikKontrolZamani: v.kimlikKontrolZamani || "",
+        danismaNotu: v.danismaNotu || ""
       });
     });
   } catch (e) { console.warn("pickupBildirimleri:", e.code || e.message); }
@@ -20536,8 +20608,11 @@ window.okulZiliDoldur = async function() {
     const adimlar = [];
     if (k.olusturuldu) adimlar.push(`<span title="Veli bildirdi">📣 ${saatY(k.olusturuldu)}</span>`);
     if (k.hazirZamani) adimlar.push(`<span title="Öğretmen hazırladı">📦 ${saatY(k.hazirZamani)}</span>`);
+    if (k.kapida) adimlar.push(`<span style="color:#2E5C8A;font-weight:700;" title="Veli kapıda">🚪 kapıda${k.kapidaZamani ? " " + saatY(k.kapidaZamani) : ""}</span>`);
+    if (k.kimlikKontrol) adimlar.push(`<span style="color:#2D7A2D;font-weight:700;" title="Kimlik doğrulandı">🛡️ kimlik ✓</span>`);
     if (k.teslimZamani) adimlar.push(`<span title="Teslim edildi">✅ ${saatY(k.teslimZamani)}${k.teslimEden ? " · " + esc(k.teslimEden) : ""}</span>`);
     if (k.veliOnay) adimlar.push(`<span style="color:#2D7A2D; font-weight:700;" title="Veli teyidi">👍 aldım${k.veliOnayZamani ? " " + saatY(k.veliOnayZamani) : ""}</span>`);
+    if (k.danismaNotu) adimlar.push(`<span style="color:#7B5EA7;" title="Danışma notu">📝 ${esc(k.danismaNotu)}</span>`);
 
     return `<div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #F1F2F7;">
       <div style="width:28px; height:28px; border-radius:9px; background:${s.bg}; color:${s.renk}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex-shrink:0;">${siraNo}</div>
@@ -20555,6 +20630,9 @@ window.okulZiliDoldur = async function() {
       </div>
       <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
         <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 8px; border-radius:100px; white-space:nowrap;">${s.ad}</span>
+        ${danismaRolMu() && durumKey !== "teslim" && !k.kapida ? `<button class="btn-mini" onclick="pickupKapidaBildirPortal('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}')" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;padding:4px 8px;font-size:11px;">Kapıda</button>` : ""}
+        ${danismaRolMu() && durumKey !== "teslim" && !k.kimlikKontrol ? `<button class="btn-mini" onclick="pickupKimlikOnaylaPortal('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5;color:#166534;border-color:#86EFAC;padding:4px 8px;font-size:11px;">Kimlik ✓</button>` : ""}
+        ${danismaRolMu() && durumKey !== "teslim" ? `<button class="btn-mini" onclick="pickupDanismaNotuPortal('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(k.danismaNotu || "")}')" style="padding:4px 8px;font-size:11px;">Not</button>` : ""}
         ${durumKey === "yolda" ? `<button class="btn-mini" onclick="pickupHazirla('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}')" style="background:#FFFBEB; color:#B45309; border-color:#FCD34D; font-weight:700; padding:4px 9px; font-size:11px;">Hazırla</button>` : ""}
         ${durumKey !== "teslim" ? `<button class="btn-mini" onclick="modulYukle('pickup-yetkilileri').then(m => m && m.ogretmenPopup('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(ogrAd)}'))" title="Kim teslim alabilir?" style="padding:4px 8px; font-size:11px;">🛡️</button>` : ""}
         ${durumKey === "hazir" ? `<button class="btn-mini" onclick="pickupTeslimEt('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(ogrAd)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:4px 9px; font-size:11px;">Teslim Et</button>` : ""}

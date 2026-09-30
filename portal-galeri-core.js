@@ -45,6 +45,249 @@ function galeriProgramKodu(g) {
   return "";
 }
 
+const galeriEtkilesimOnbellek = new Map();
+
+async function galeriEmailHash(eposta) {
+  const metin = String(eposta || "").trim().toLowerCase();
+  if (!metin || !globalThis.crypto?.subtle) return "";
+  const ham = new TextEncoder().encode(metin);
+  const ozet = await globalThis.crypto.subtle.digest("SHA-256", ham);
+  return Array.from(new Uint8Array(ozet)).map(x => x.toString(16).padStart(2, "0")).join("");
+}
+
+function galeriVeliOturumuMu() {
+  try {
+    return !B.yoneticiMi() && !!(B.veliAktifOgrenci?.() || (B.veliOgrencileri?.() || []).length);
+  } catch (_) { return false; }
+}
+
+function galeriEtkilesimCocukId(oge) {
+  const cocuklar = (B.veliOgrencileri?.() || []).filter(Boolean);
+  if (!cocuklar.length) return "";
+  if (oge?.hedefTur === "ogrenci") {
+    const o = cocuklar.find(x => x.id === oge.hedefDeger || x.id === oge.hedefOgrenciId);
+    if (o) return o.id;
+  }
+  if (oge?.hedefTur === "sinif") {
+    const o = cocuklar.find(x => {
+      const d = x._donemVeri || {};
+      return (d.kayit?.sinif || x.sinif || x.sinifi || "") === oge.hedefDeger;
+    });
+    if (o) return o.id;
+  }
+  return B.veliAktifOgrenci?.()?.id || cocuklar[0]?.id || "";
+}
+
+async function galeriVeliEtkilesimKaydet(oge, tur, ek = {}) {
+  if (!oge?.id || !galeriVeliOturumuMu()) return false;
+  const user = B.kullanici?.() || {};
+  if (!user.uid || !user.email) return false;
+  const veliEmailHash = await galeriEmailHash(user.email);
+  if (!veliEmailHash) return false;
+
+  const ref = doc(db, "galeri", oge.id, "etkilesimler", String(user.uid));
+  const snap = await getDoc(ref);
+  const onceki = snap.exists() ? (snap.data() || {}) : {};
+  const simdi = new Date().toISOString();
+  const ortak = {
+    veliUid: String(user.uid),
+    veliEmailHash,
+    ogrenciId: galeriEtkilesimCocukId(oge) || onceki.ogrenciId || "",
+    uygulama: "portal",
+    guncellendi: simdi
+  };
+  let yama = {};
+  if (tur === "acma") {
+    yama = {
+      ilkAcma: onceki.ilkAcma || simdi,
+      sonAcma: simdi,
+      acmaSayisi: Number(onceki.acmaSayisi || 0) + 1
+    };
+  } else if (tur === "indirme") {
+    const tamamlandi = ek.indirmeDurumu === "tamamlandi";
+    yama = {
+      indirmeBaslatildi: true,
+      indirildi: tamamlandi ? true : !!onceki.indirildi,
+      sonIndirme: simdi,
+      sonIndirmeDurumu: tamamlandi ? "tamamlandi" : "baslatildi",
+      indirmeSayisi: Number(onceki.indirmeSayisi || 0) + 1
+    };
+  } else {
+    return false;
+  }
+  await setDoc(ref, { ...ortak, ...yama }, { merge: true });
+  galeriEtkilesimOnbellek.delete(oge.id);
+  return true;
+}
+
+async function galeriHedefVeliler(oge) {
+  const ogrenciler = B.ogrenciler?.() || [];
+  const ayarlar = B.ayarlar?.() || {};
+  const hedefOgrenciler = ogrenciler.filter(o => {
+    const ayar = ayarlar[o.id] || {};
+    try { if (getOgrenciDurum(o, ayar) !== "aktif") return false; } catch (_) {}
+    const sinif = ayar?.kayit?.sinif || o.sinif || o.sinifi || "";
+    const tur = oge?.hedefTur || "tumOkul";
+    if (tur === "sinif") return sinif === oge.hedefDeger;
+    if (tur === "ogrenci") return o.id === (oge.hedefDeger || oge.hedefOgrenciId);
+    return true;
+  });
+  const hedefIds = new Set(hedefOgrenciler.map(o => o.id));
+  const ogrenciHarita = new Map(hedefOgrenciler.map(o => [
+    o.id,
+    { id:o.id, ad:o.ogrenciAdSoyad || o.adSoyad || o.ad || "Öğrenci",
+      sinif:(ayarlar[o.id]?.kayit?.sinif || o.sinif || o.sinifi || "") }
+  ]));
+
+  const snap = await getDocs(collection(db, "veliler"));
+  const veliler = [];
+  snap.forEach(d => {
+    const v = d.data() || {};
+    if (v.onaylandi !== true) return;
+    const ids = (Array.isArray(v.ogrenciIds) ? v.ogrenciIds : []).filter(id => hedefIds.has(id));
+    if (!ids.length) return;
+    veliler.push({
+      eposta:String(d.id || "").trim().toLowerCase(),
+      ad:v.adSoyad || [v.ad, v.soyad].filter(Boolean).join(" ") || "Veli",
+      roller:[v.yakinlik || v.rol || "Veli"],
+      cocuklar:ids.map(id => ogrenciHarita.get(id)).filter(Boolean)
+    });
+  });
+  return veliler.filter(v => v.eposta);
+}
+
+function galeriZamanYazi(v) {
+  if (!v) return "";
+  const d = v?.toDate ? v.toDate() : new Date(v);
+  if (!d || isNaN(d.getTime())) return "";
+  return d.toLocaleString("tr-TR", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+}
+
+async function galeriEtkilesimOzetGetir(oge, tazele = false) {
+  if (!oge?.id) return { acan:0, indiren:0, favori:0, hedef:0, kayitlar:[] };
+  if (!tazele && galeriEtkilesimOnbellek.has(oge.id)) return galeriEtkilesimOnbellek.get(oge.id);
+  const [hedefVeliler, snap] = await Promise.all([
+    galeriHedefVeliler(oge),
+    getDocs(collection(db, "galeri", oge.id, "etkilesimler"))
+  ]);
+  const kayitlar = snap.docs.map(x => ({ id:x.id, ...(x.data() || {}) }));
+  const ozet = {
+    hedef:hedefVeliler.length,
+    acan: kayitlar.filter(x => Number(x.acmaSayisi || 0) > 0 || x.ilkAcma).length,
+    indiren: kayitlar.filter(x => Number(x.indirmeSayisi || 0) > 0 || x.indirmeBaslatildi).length,
+    favori: kayitlar.filter(x => x.favori === true).length,
+    kayitlar,
+    hedefVeliler
+  };
+  galeriEtkilesimOnbellek.set(oge.id, ozet);
+  return ozet;
+}
+
+function galeriEtkilesimRozetHtml(oge, goster) {
+  if (!goster || (oge?.durum && oge.durum !== "onaylandi")) return "";
+  return `<button type="button" data-galeri-etkilesim-badge="${escapeHtml(oge.id)}"
+    onclick="event.stopPropagation(); galeriEtkilesimPanelAc('${String(oge.id).replace(/'/g,"\\'")}')"
+    title="Veli etkileşimlerini göster"
+    style="position:absolute; left:6px; right:6px; bottom:6px; z-index:4; border:0; border-radius:8px; padding:5px 7px;
+           background:rgba(31,37,68,.82); color:white; font-size:10px; font-weight:700; cursor:pointer; backdrop-filter:blur(5px);">
+    👁 …/… · ↓ … · ♥ …
+  </button>`;
+}
+
+async function galeriEtkilesimRozetleriYenile(liste) {
+  const yonetim = B.yoneticiMi?.() || ["kurucu_mudur","mudur"].includes(B.rol?.());
+  if (!yonetim) return;
+  const idler = [...new Map((liste || []).filter(x => x?.id && (!x.durum || x.durum === "onaylandi")).map(x => [x.id, x])).values()];
+  const kuyruk = idler.slice();
+  const isci = async () => {
+    while (kuyruk.length) {
+      const oge = kuyruk.shift();
+      try {
+        const o = await galeriEtkilesimOzetGetir(oge);
+        Array.from(document.querySelectorAll("[data-galeri-etkilesim-badge]"))
+          .filter(b => b.dataset.galeriEtkilesimBadge === String(oge.id))
+          .forEach(b => {
+            b.textContent = `👁 ${o.acan}/${o.hedef || 0} · ↓ ${o.indiren} · ♥ ${o.favori}`;
+          });
+      } catch (e) {
+        console.warn("Galeri etkileşim özeti okunamadı:", e?.code || e?.message);
+      }
+    }
+  };
+  await Promise.all([isci(), isci(), isci()]);
+}
+
+window.galeriEtkilesimPanelKapat = function() {
+  document.getElementById("galeriEtkilesimPanel")?.remove();
+};
+
+window.galeriEtkilesimPanelAc = async function(id) {
+  const oge = galeriListesiVerisi.find(x => x.id === id);
+  if (!oge) return;
+  const yonetim = B.yoneticiMi?.() || ["kurucu_mudur","mudur"].includes(B.rol?.());
+  if (!yonetim) return showToast("Bu bilgi yalnızca yönetime açıktır", "error");
+
+  window.galeriEtkilesimPanelKapat();
+  const wrap = document.createElement("div");
+  wrap.id = "galeriEtkilesimPanel";
+  wrap.style.cssText = "position:fixed;inset:0;z-index:10020;background:rgba(15,23,42,.58);display:grid;place-items:center;padding:16px;";
+  wrap.innerHTML = `<div style="width:min(760px,96vw);max-height:88vh;overflow:auto;background:white;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.25);">
+    <div style="padding:16px 18px;border-bottom:1px solid #ececf3;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;background:white;z-index:2;">
+      <div><div style="font-weight:800;color:#1f2544;">Veli etkileşimleri</div><div style="font-size:12px;color:#7a8197;margin-top:3px;">${escapeHtml(oge.etkinlikBaslik || oge.baslik || oge.orjinalAd || "Galeri içeriği")}</div></div>
+      <button type="button" onclick="galeriEtkilesimPanelKapat()" style="border:0;background:#f3f4f6;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:20px;">×</button>
+    </div>
+    <div id="galeriEtkilesimPanelIcerik" style="padding:18px;color:#596079;">Etkileşim bilgileri yükleniyor…</div>
+  </div>`;
+  wrap.addEventListener("click", e => { if (e.target === wrap) window.galeriEtkilesimPanelKapat(); });
+  document.body.appendChild(wrap);
+
+  try {
+    const ozet = await galeriEtkilesimOzetGetir(oge, true);
+    const hedefVeliler = ozet.hedefVeliler || [];
+    const hashli = await Promise.all(hedefVeliler.map(async v => ({ ...v, hash:await galeriEmailHash(v.eposta) })));
+    const kayitHarita = new Map(ozet.kayitlar.filter(x => x.veliEmailHash).map(x => [x.veliEmailHash, x]));
+    const satirlar = hashli.map(v => ({ ...v, kayit:kayitHarita.get(v.hash) || null }));
+    const acanlar = satirlar.filter(x => x.kayit && (x.kayit.ilkAcma || Number(x.kayit.acmaSayisi || 0) > 0));
+    const acmayanlar = satirlar.filter(x => !x.kayit || (!x.kayit.ilkAcma && !Number(x.kayit.acmaSayisi || 0)));
+    const indiren = satirlar.filter(x => x.kayit && (x.kayit.indirmeBaslatildi || Number(x.kayit.indirmeSayisi || 0) > 0)).length;
+    const favori = satirlar.filter(x => x.kayit?.favori === true).length;
+
+    const satir = (x, acildi) => {
+      const k = x.kayit || {};
+      const cocuk = x.cocuklar.map(c => c.ad).join(", ");
+      const indirme = k.indirildi ? "İndirildi" : k.indirmeBaslatildi ? "İndirme başlatıldı" : "";
+      const kaynak = String(k.uygulama || "").startsWith("zeky") ? "ZEKY" : k.uygulama === "portal" ? "Portal" : "";
+      return `<div style="display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid #f0f1f5;">
+        <div style="min-width:0;"><div style="font-size:13px;font-weight:750;color:#252a3f;">${escapeHtml(x.ad)} <span style="font-size:10px;color:#9298aa;font-weight:600;">${escapeHtml(x.roller.join(" / "))}</span></div>
+        <div style="font-size:11px;color:#7a8197;margin-top:2px;">${escapeHtml(cocuk)}</div></div>
+        <div style="text-align:right;flex:0 0 auto;">
+          ${acildi ? `<div style="font-size:11px;font-weight:700;color:#2d7a2d;">Açtı · ${escapeHtml(galeriZamanYazi(k.ilkAcma || k.sonAcma))}</div>` : `<div style="font-size:11px;font-weight:700;color:#b45309;">Henüz açmadı</div>`}
+          <div style="font-size:10px;color:#8a90a3;margin-top:3px;">${[indirme, k.favori ? "♥ Favori" : "", kaynak].filter(Boolean).map(escapeHtml).join(" · ")}</div>
+        </div>
+      </div>`;
+    };
+
+    const icerik = document.getElementById("galeriEtkilesimPanelIcerik");
+    if (!icerik) return;
+    icerik.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px;">
+        <div style="background:#eef8f0;border-radius:13px;padding:12px;"><div style="font-size:20px;font-weight:850;color:#2d7a2d;">${acanlar.length}/${satirlar.length}</div><div style="font-size:10.5px;color:#657069;">veli hesabı açtı</div></div>
+        <div style="background:#eef4fb;border-radius:13px;padding:12px;"><div style="font-size:20px;font-weight:850;color:#2e5c8a;">${indiren}</div><div style="font-size:10.5px;color:#657069;">indirme işlemi yapan</div></div>
+        <div style="background:#f5eef9;border-radius:13px;padding:12px;"><div style="font-size:20px;font-weight:850;color:#6b4fb6;">${favori}</div><div style="font-size:10.5px;color:#657069;">favoriye alan</div></div>
+      </div>
+      <div style="font-size:11px;color:#7a8197;background:#fafafc;border-radius:10px;padding:9px 11px;margin-bottom:14px;">“Açtı”, içeriğin tam ekran görüntülendiğini ifade eder. Web tarayıcısında dosyanın fiziksel olarak diske yazıldığını her zaman doğrulayamadığımız için bazı kayıtlar “İndirme başlatıldı” olarak görünür.</div>
+      <div style="font-size:12px;font-weight:800;color:#33384e;margin:7px 0;">Açanlar · ${acanlar.length}</div>
+      ${acanlar.length ? acanlar.map(x => satir(x, true)).join("") : '<div style="padding:15px;color:#8a90a3;">Henüz açan veli yok.</div>'}
+      <div style="font-size:12px;font-weight:800;color:#33384e;margin:18px 0 7px;">Henüz açmayanlar · ${acmayanlar.length}</div>
+      ${acmayanlar.length ? acmayanlar.map(x => satir(x, false)).join("") : '<div style="padding:15px;color:#2d7a2d;">Hedefteki tüm veli hesapları içeriği açtı.</div>'}
+    `;
+  } catch (e) {
+    const icerik = document.getElementById("galeriEtkilesimPanelIcerik");
+    if (icerik) icerik.innerHTML = `<div style="color:#b91c1c;">Etkileşim kayıtları okunamadı: ${escapeHtml(e?.message || String(e))}</div>`;
+  }
+};
+
+
 async function galeriGozlemOnayiEsitle(oge, durum, duzenlenmisMetin = "") {
   const ogrenciId = oge?.ogrenciId || oge?.hedefOgrenciId ||
     (oge?.hedefTur === "ogrenci" ? oge.hedefDeger : "");
@@ -307,7 +550,7 @@ async function renderGaleri() {
 
     const yonetimMiG = B.yoneticiMi() || ["kurucu_mudur","mudur"].includes(B.rol());
     for (const d of sirali) {
-      const previewUrl = d.dosyaTipi === "video" ? d.kucukResim : d.bunnyUrl;
+      const previewUrl = d.dosyaTipi === "video" ? (d.kucukResim || d.thumbnail || "") : d.bunnyUrl;
       const thumbUrl = (d.dosyaTipi === "foto" && d.bunnyUrl) ? d.bunnyUrl + "?width=400" : previewUrl;
       const durum = d.durum || "onaylandi";
       const reddedildiMi = durum === "reddedildi";
@@ -316,6 +559,7 @@ async function renderGaleri() {
       else if (reddedildiMi) rozet = `<div style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700;">✕</div>`;
 
       let onayBtn = "";
+      const etkilesimRozeti = galeriEtkilesimRozetHtml(d, yonetimMiG && durum === "onaylandi");
       if (galeriBekliyorMu(durum) && yonetimMiG) {
         onayBtn = `<div style="position:absolute; bottom:0; left:0; right:0; display:flex; gap:3px; padding:5px; background:rgba(0,0,0,0.55);">
           <button onclick="event.stopPropagation(); galeriOnayla('${d.id}')" style="flex:1; padding:6px; background:#16a34a; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✓</button>
@@ -326,11 +570,14 @@ async function renderGaleri() {
       gHtml += `
         <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:12px; overflow:hidden; cursor:pointer; ${galeriBekliyorMu(durum)?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626; opacity:.7;':''}" onclick="acGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video"
-            ? `<img src="${escapeHtml(previewUrl||'')}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center;"><i data-lucide='video'></i></div><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
+            ? (previewUrl
+              ? `<img src="${escapeHtml(previewUrl)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><video src="${escapeHtml(d.bunnyUrl||d.url||'')}" muted playsinline preload="metadata" style="display:none;width:100%;height:100%;object-fit:cover;pointer-events:none;" onloadedmetadata="try{this.currentTime=Math.min(.12,Math.max(0,(this.duration||1)/100))}catch(e){}"></video><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
+              : `<video src="${escapeHtml(d.bunnyUrl||d.url||'')}" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" onloadedmetadata="try{this.currentTime=Math.min(.12,Math.max(0,(this.duration||1)/100))}catch(e){}"></video><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`)
             : `<img src="${escapeHtml(thumbUrl||'')}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">`
           }
           ${rozet}
           ${onayBtn}
+          ${etkilesimRozeti}
           <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" class="galeri-sil-btn" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:26px; height:26px; border-radius:50%; cursor:pointer; opacity:0; transition:opacity 0.2s; display:grid; place-items:center;" onmouseover="this.style.opacity='1'"><i data-lucide="trash-2" style="width:13px;height:13px;"></i></button>
           <button onclick="event.stopPropagation(); galeriKapakYap('${d.id}')" title="Albüm kapağı yap" class="galeri-sil-btn" style="position:absolute; top:6px; left:38px; background:${d.kapak ? "#F5B301" : "rgba(15,23,42,.75)"}; color:white; border:none; width:26px; height:26px; border-radius:50%; cursor:pointer; opacity:${d.kapak ? "1" : "0"}; transition:opacity 0.2s; display:grid; place-items:center;" onmouseover="this.style.opacity='1'"><i data-lucide="star" style="width:13px;height:13px;${d.kapak ? "fill:#fff;" : ""}"></i></button>
         </div>`;
@@ -345,6 +592,7 @@ async function renderGaleri() {
       </div><div style="text-align:center; color:var(--gray-500); padding:24px; font-size:13px;">Henüz içerik yok — yukarıdaki kutulardan ekleyin.</div>`;
     }
     el.innerHTML = gHtml;
+    galeriEtkilesimRozetleriYenile(sirali);
     if (window.lucideYenile) setTimeout(window.lucideYenile, 30);
     return;
   }
@@ -448,6 +696,7 @@ async function renderGaleri() {
 
       // Müdür onay butonları (sadece onay bekleyenlerde + yönetim görür)
       let onayButonlari = "";
+      const etkilesimRozeti = galeriEtkilesimRozetHtml(d, yonetimMi && durum === "onaylandi");
       if (galeriBekliyorMu(durum) && yonetimMi) {
         onayButonlari = `
           <div style="position:absolute; bottom:0; left:0; right:0; display:flex; gap:4px; padding:6px; background:rgba(0,0,0,0.55);">
@@ -470,6 +719,7 @@ async function renderGaleri() {
           }
           ${durumRozet}
           ${onayButonlari}
+          ${etkilesimRozeti}
           <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:11px; opacity:0; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" class="galeri-sil-btn">🗑</button>
           <button onclick="event.stopPropagation(); galeriKapakYap('${d.id}')" title="Albüm kapağı yap" class="galeri-sil-btn" style="position:absolute; top:6px; left:36px; background:${d.kapak ? "#F0B429" : "rgba(31,37,68,.75)"}; color:white; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; opacity:${d.kapak ? "1" : "0"}; transition:opacity 0.2s; display:grid; place-items:center;" onmouseover="this.style.opacity='1'"><i data-lucide="star" style="width:12px;height:12px;${d.kapak ? "fill:#fff;" : ""}"></i></button>
         </div>
@@ -479,6 +729,7 @@ async function renderGaleri() {
   }
   html += `</div><style>.galeri-sil-btn:hover{opacity:1 !important;}div:hover > .galeri-sil-btn{opacity:0.8;}</style>`;
   el.innerHTML = html;
+  galeriEtkilesimRozetleriYenile(liste);
 }
 
 // Yükleme Modalı
@@ -861,7 +1112,11 @@ window.acGaleriLightbox = function(id) {
 
   const icerik = document.getElementById("galeriLightboxIcerik");
   if (oge.dosyaTipi === "video") {
-    icerik.innerHTML = `<iframe src="${escapeHtml(oge.bunnyUrl)}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
+    const videoUrl = oge.bunnyUrl || oge.url || "";
+    const iframeVideo = /iframe\.mediadelivery\.net|player\.bunnycdn\.com|player\.bunny\.net/i.test(videoUrl);
+    icerik.innerHTML = iframeVideo
+      ? `<iframe src="${escapeHtml(videoUrl)}${videoUrl.includes("?") ? "&" : "?"}autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay; fullscreen"></iframe>`
+      : `<video src="${escapeHtml(videoUrl)}" controls autoplay playsinline preload="metadata" poster="${escapeHtml(oge.kucukResim || oge.thumbnail || "")}" style="width:90vw; max-width:1200px; max-height:78vh; background:black; object-fit:contain;"></video>`;
   } else {
     icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:90vh; object-fit:contain;">`;
   }
@@ -921,7 +1176,9 @@ window.galeriGonderiDuzenle = async function(id) {
 
 window.galeriLightboxIndir = async function() {
   if (!aktifLightboxOge) return;
-  const url = aktifLightboxOge.dosyaTipi === "video" ? aktifLightboxOge.mp4Url : aktifLightboxOge.bunnyUrl;
+  const url = aktifLightboxOge.dosyaTipi === "video"
+    ? (aktifLightboxOge.mp4Url || aktifLightboxOge.bunnyUrl || aktifLightboxOge.url)
+    : (aktifLightboxOge.bunnyUrl || aktifLightboxOge.url);
   const btn = document.getElementById("galeriLightboxIndirBtn");
 
   try {
@@ -961,6 +1218,10 @@ window.galeriLightboxIndir = async function() {
         await writable.write(blob);
         await writable.close();
 
+        if (galeriVeliOturumuMu()) {
+          await galeriVeliEtkilesimKaydet(aktifLightboxOge, "indirme", { indirmeDurumu:"tamamlandi" })
+            .catch(e => console.warn("Galeri indirme kaydı yazılamadı:", e?.code || e?.message));
+        }
         showToast("✓ Dosya kaydedildi");
         if (btn) { btn.disabled = false; btn.textContent = "📥 İndir"; }
         return;
@@ -992,6 +1253,10 @@ window.galeriLightboxIndir = async function() {
     // Blob URL'i serbest bırak
     setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
+    if (galeriVeliOturumuMu()) {
+      galeriVeliEtkilesimKaydet(aktifLightboxOge, "indirme", { indirmeDurumu:"baslatildi" })
+        .catch(e => console.warn("Galeri indirme başlatma kaydı yazılamadı:", e?.code || e?.message));
+    }
     showToast("✓ İndirme başladı");
     if (btn) { btn.disabled = false; btn.textContent = "📥 İndir"; }
   } catch (e) {
@@ -1163,7 +1428,7 @@ window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, h
       document.getElementById(progressId + "_sayac").textContent = i + 1;
 
       try {
-        const url = d.dosyaTipi === "video" ? d.mp4Url : d.bunnyUrl;
+        const url = d.dosyaTipi === "video" ? (d.mp4Url || d.bunnyUrl || d.url) : (d.bunnyUrl || d.url);
         const resp = await fetch(url);
         if (!resp.ok) throw new Error("Fetch başarısız");
         const blob = await resp.blob();
@@ -1225,6 +1490,10 @@ window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, h
       saveAs(zipBlob, `${albumAdi}.zip`);
     }
 
+    if (galeriVeliOturumuMu()) {
+      Promise.allSettled(tumDosyalar.map(d => galeriVeliEtkilesimKaydet(d, "indirme", { indirmeDurumu:"baslatildi" })))
+        .catch(() => {});
+    }
     document.getElementById(progressId).remove();
     showToast(`✓ Albüm indirildi (${basarili} dosya${hatali > 0 ? `, ${hatali} hatalı` : ''})`);
   } catch (e) {
@@ -1832,6 +2101,8 @@ window.veliAcGaleriLightbox = function(id) {
 
   document.getElementById("galeriLightbox").classList.add("active");
   renderVeliLightbox();
+  galeriVeliEtkilesimKaydet(aktifLightboxOge, "acma")
+    .catch(e => console.warn("Galeri açma kaydı yazılamadı:", e?.code || e?.message));
 };
 
 function renderVeliLightbox() {
@@ -1841,7 +2112,11 @@ function renderVeliLightbox() {
 
   const icerik = document.getElementById("galeriLightboxIcerik");
   if (oge.dosyaTipi === "video") {
-    icerik.innerHTML = `<iframe src="${escapeHtml(oge.bunnyUrl)}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
+    const videoUrl = oge.bunnyUrl || oge.url || "";
+    const iframeVideo = /iframe\.mediadelivery\.net|player\.bunnycdn\.com|player\.bunny\.net/i.test(videoUrl);
+    icerik.innerHTML = iframeVideo
+      ? `<iframe src="${escapeHtml(videoUrl)}${videoUrl.includes("?") ? "&" : "?"}autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay; fullscreen"></iframe>`
+      : `<video src="${escapeHtml(videoUrl)}" controls autoplay playsinline preload="metadata" poster="${escapeHtml(oge.kucukResim || oge.thumbnail || "")}" style="width:90vw; max-width:1200px; max-height:78vh; background:black; object-fit:contain;"></video>`;
   } else {
     icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:85vh; object-fit:contain;">`;
   }
