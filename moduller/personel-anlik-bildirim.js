@@ -194,6 +194,7 @@ export function baslat() {
       if (kullanici().eposta !== k.eposta) return false;   // bu arada oturum değişti
       aktif = { eposta: k.eposta, gun: api.bugun(), unsubs: [], gunKontrol: null };
       stilEkle();
+      sesKilidiniKur();
       if (DANISMA_ROLLERI.includes(k.rol) && !k.isAdmin) danismaKuyrukDuzeltmeyiKur();
       dinle(api, k);
       // Gece yarısı geçerse yeni günün kayıtlarını dinle
@@ -354,14 +355,48 @@ function baslikTemizle() {
   if (asilBaslik !== null && document.visibilityState === "visible") { document.title = asilBaslik; asilBaslik = null; }
 }
 
-// Kısa iki notalı uyarı sesi (tarayıcı izin vermezse sessiz geçer)
+// Kısa iki notalı uyarı sesi.
+// Chrome/Safari Web Audio'yu kullanıcı etkileşimi olmadan başlatmaz. Portal açıldıktan
+// sonraki ilk dokunma/tıklama/tuş olayında AudioContext'i uyandır; Firestore callback'i
+// geldiğinde artık ses güvenilir biçimde çalabilsin.
 let sesBaglam = null;
-function sesCal() {
+let sesKilitKuruldu = false;
+
+function sesBaglaminiAc() {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
+    if (!AC) return false;
     sesBaglam = sesBaglam || new AC();
-    if (sesBaglam.state === "suspended") sesBaglam.resume().catch(() => {});
+    if (sesBaglam.state === "suspended") {
+      const p = sesBaglam.resume();
+      if (p?.catch) p.catch(() => {});
+    }
+    return true;
+  } catch (_) { return false; }
+}
+
+function sesKilidiniKur() {
+  if (sesKilitKuruldu || typeof window === "undefined") return;
+  sesKilitKuruldu = true;
+  const ac = () => {
+    sesBaglaminiAc();
+    if (sesBaglam?.state === "running") {
+      window.removeEventListener("pointerdown", ac, true);
+      window.removeEventListener("touchstart", ac, true);
+      window.removeEventListener("keydown", ac, true);
+    }
+  };
+  window.addEventListener("pointerdown", ac, { capture:true, passive:true });
+  window.addEventListener("touchstart", ac, { capture:true, passive:true });
+  window.addEventListener("keydown", ac, true);
+}
+
+function sesCal() {
+  try {
+    if (!sesBaglaminiAc()) return;
+    // Tarayıcı hâlâ sesi kilitlediyse görünür bildirim çalışır; ilk kullanıcı
+    // etkileşiminden sonraki olaylarda ses devreye girer.
+    if (sesBaglam.state !== "running") return;
     const t0 = sesBaglam.currentTime + 0.02;
     [880, 1175].forEach((frekans, i) => {
       const o = sesBaglam.createOscillator(), g = sesBaglam.createGain();
@@ -373,6 +408,7 @@ function sesCal() {
       o.connect(g); g.connect(sesBaglam.destination);
       o.start(bas); o.stop(bas + 0.4);
     });
+    try { navigator.vibrate?.([80, 50, 80]); } catch (_) {}
   } catch (_) {}
 }
 
