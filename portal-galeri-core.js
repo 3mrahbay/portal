@@ -307,7 +307,7 @@ async function renderGaleri() {
 
     const yonetimMiG = B.yoneticiMi() || ["kurucu_mudur","mudur"].includes(B.rol());
     for (const d of sirali) {
-      const previewUrl = d.dosyaTipi === "video" ? d.kucukResim : d.bunnyUrl;
+      const previewUrl = d.dosyaTipi === "video" ? (d.kucukResim || d.thumbnail || "") : d.bunnyUrl;
       const thumbUrl = (d.dosyaTipi === "foto" && d.bunnyUrl) ? d.bunnyUrl + "?width=400" : previewUrl;
       const durum = d.durum || "onaylandi";
       const reddedildiMi = durum === "reddedildi";
@@ -326,7 +326,9 @@ async function renderGaleri() {
       gHtml += `
         <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:12px; overflow:hidden; cursor:pointer; ${galeriBekliyorMu(durum)?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626; opacity:.7;':''}" onclick="acGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video"
-            ? `<img src="${escapeHtml(previewUrl||'')}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center;"><i data-lucide='video'></i></div><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
+            ? (previewUrl
+              ? `<img src="${escapeHtml(previewUrl)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><video src="${escapeHtml(d.bunnyUrl||d.url||'')}" muted playsinline preload="metadata" style="display:none;width:100%;height:100%;object-fit:cover;pointer-events:none;" onloadedmetadata="try{this.currentTime=Math.min(.12,Math.max(0,(this.duration||1)/100))}catch(e){}"></video><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
+              : `<video src="${escapeHtml(d.bunnyUrl||d.url||'')}" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" onloadedmetadata="try{this.currentTime=Math.min(.12,Math.max(0,(this.duration||1)/100))}catch(e){}"></video><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`)
             : `<img src="${escapeHtml(thumbUrl||'')}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">`
           }
           ${rozet}
@@ -861,7 +863,11 @@ window.acGaleriLightbox = function(id) {
 
   const icerik = document.getElementById("galeriLightboxIcerik");
   if (oge.dosyaTipi === "video") {
-    icerik.innerHTML = `<iframe src="${escapeHtml(oge.bunnyUrl)}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
+    const videoUrl = oge.bunnyUrl || oge.url || "";
+    const iframeVideo = /iframe\.mediadelivery\.net|player\.bunnycdn\.com|player\.bunny\.net/i.test(videoUrl);
+    icerik.innerHTML = iframeVideo
+      ? `<iframe src="${escapeHtml(videoUrl)}${videoUrl.includes("?") ? "&" : "?"}autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay; fullscreen"></iframe>`
+      : `<video src="${escapeHtml(videoUrl)}" controls autoplay playsinline preload="metadata" poster="${escapeHtml(oge.kucukResim || oge.thumbnail || "")}" style="width:90vw; max-width:1200px; max-height:78vh; background:black; object-fit:contain;"></video>`;
   } else {
     icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:90vh; object-fit:contain;">`;
   }
@@ -1841,7 +1847,11 @@ function renderVeliLightbox() {
 
   const icerik = document.getElementById("galeriLightboxIcerik");
   if (oge.dosyaTipi === "video") {
-    icerik.innerHTML = `<iframe src="${escapeHtml(oge.bunnyUrl)}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
+    const videoUrl = oge.bunnyUrl || oge.url || "";
+    const iframeVideo = /iframe\.mediadelivery\.net|player\.bunnycdn\.com|player\.bunny\.net/i.test(videoUrl);
+    icerik.innerHTML = iframeVideo
+      ? `<iframe src="${escapeHtml(videoUrl)}${videoUrl.includes("?") ? "&" : "?"}autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay; fullscreen"></iframe>`
+      : `<video src="${escapeHtml(videoUrl)}" controls autoplay playsinline preload="metadata" poster="${escapeHtml(oge.kucukResim || oge.thumbnail || "")}" style="width:90vw; max-width:1200px; max-height:78vh; background:black; object-fit:contain;"></video>`;
   } else {
     icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:85vh; object-fit:contain;">`;
   }
