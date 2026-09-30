@@ -4,7 +4,7 @@
 // Ayrintili veli egitim + gelismis ogretmen gozlem koprusu de bu ortak
 // son-yuklenen modul uzerinden devreye girer; buyuk index.html'e dokunulmaz.
 import './zeky-veli-egitim-koprusu.js?v=9';
-import './zeky-galeri-onay-egitim.js?v=4';
+import './zeky-galeri-onay-egitim.js?v=5';
 
 const KOPRU_ANAHTARI = '__zekyGaleriFiligranKoprusuV6';
 

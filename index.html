@@ -13916,6 +13916,9 @@ import {
   documentId, deleteField, getCountFromServer, FieldPath
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
+import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=164";
+
 const firebaseConfig = {
   apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
   authDomain: "bcka-site.firebaseapp.com",
@@ -13934,7 +13937,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v163";
+window.PORTAL_SURUM = "v164";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -15351,6 +15354,195 @@ let mesajMesajUnsub = null;        // Açık sohbet mesaj dinleyicisi (unsubscri
 // FAZ 3d: Arka plan bildirim dinleyicisi (her sekmede çalışır)
 let mesajBildirimUnsub = null;     // Global okunmamış sayaç dinleyicisi
 let mesajBildirimToplam = 0;       // Toplam okunmamış mesaj sayısı
+let portalVeliGoruntulenenThreadId = null;
+let portalVeliSohbetSurumu = 0;
+let mesajGoruntulenenThreadId = null;
+let mesajListeSurumu = 0;
+let mesajSohbetSurumu = 0;         // Kapatılmış/değişmiş sohbetin geç callback'lerini yok say
+let mesajBaslatmaZamanlayici = null;
+let mesajBildirimSurumu = 0;
+const mesajUyariTakibi = createMessageNoticeTracker();
+
+// Yalnız gerçekten görülen personel sohbeti okunmuş sayılır.
+function mesajSohbetGorunurMu(threadId) {
+  return !!threadId && mesajAktifThread?.id === threadId && mesajGoruntulenenThreadId === threadId
+    && document.visibilityState === "visible"
+    && document.getElementById("dashboard")?.classList.contains("active")
+    && document.getElementById("tab-mesajlasma")?.classList.contains("active")
+    && !!document.getElementById("mesajSohbetAktif")
+    && document.getElementById("mesajSohbetAktif").style.display !== "none";
+}
+
+function mesajGorunenSohbetiOkunduIsaretle(threadId = mesajAktifThread?.id) {
+  const benim = String(currentUser?.email || "").toLowerCase();
+  if (!benim || !mesajSohbetGorunurMu(threadId)
+      || !(mesajAktifThread?.katilimcilar || []).includes(benim)) return;
+  const sonuc = mesajOkunduIsaretle(threadId);
+  window.portalBildirimMerkezi?.markThreadRead(threadId).catch(e => console.warn("Mesaj bildirim okuma:", e?.code || e?.message));
+  return sonuc;
+}
+
+function portalVeliSohbetGorunurMu(threadId) {
+  if (!threadId || portalVeliGoruntulenenThreadId !== threadId || document.visibilityState !== "visible"
+      || !document.getElementById("veliPanel")?.classList.contains("active")) return false;
+  const modern = typeof caMsgAktif !== "undefined" && caMsgAktif?.id === threadId
+    && typeof caEkran !== "undefined" && caEkran === "mesajlar"
+    && document.getElementById("veliPanel-yeniapp")?.classList.contains("active")
+    && document.getElementById("caMsgSohbetGorunum")?.style.display === "block";
+  const klasik = typeof veliMesajAktifThread !== "undefined" && veliMesajAktifThread?.id === threadId
+    && document.getElementById("veliPanel-iletisim")?.classList.contains("active")
+    && document.getElementById("veliMesajSohbetAktif")?.style.display === "flex";
+  return !!(modern || klasik);
+}
+function portalVeliGorunenSohbetiOkunduIsaretle(threadId = portalVeliGoruntulenenThreadId) {
+  if (!currentUser || !portalVeliSohbetGorunurMu(threadId)) return;
+  const sonuc = mesajOkunduIsaretle(threadId);
+  window.portalBildirimMerkezi?.markThreadRead(threadId).catch(e => console.warn("Veli mesaj bildirim okuma:", e?.code || e?.message));
+  return sonuc;
+}
+function portalGorunenSohbetleriOku() {
+  mesajGorunenSohbetiOkunduIsaretle();
+  portalVeliGorunenSohbetiOkunduIsaretle();
+}
+document.addEventListener("visibilitychange", portalGorunenSohbetleriOku);
+window.addEventListener("focus", portalGorunenSohbetleriOku);
+
+function mesajlasmaBaslatmayiPlanla() {
+  clearTimeout(mesajBaslatmaZamanlayici);
+  const email = currentUser?.email;
+  mesajBaslatmaZamanlayici = setTimeout(() => {
+    mesajBaslatmaZamanlayici = null;
+    if (currentUser?.email !== email
+        || !document.getElementById("tab-mesajlasma")?.classList.contains("active")) return;
+    mesajlasmaBaslat();
+  }, 50);
+}
+
+function mesajUyariGonderenAdi(thread) {
+  const email = String(thread.sonMesajGonderen || "").toLowerCase();
+  const bilgi = thread.katilimciBilgi?.[email] || {};
+  // Kayıtlı ad bile çocuk-adı fallback'i olabilir; genel uyarıda yalnız rol göster.
+  return bilgi.rol === "veli" || bilgi.tip === "veli" ? "Veli" : "Okul";
+}
+
+// Bildirimler yalnız oturum sahibine ait kök kayıtları dinler; veri yetkisi genişletilmez.
+let portalBildirimTercihUnsub = null;
+let portalBildirimTercihleri = null;
+function portalBildirimUyariAcikMi(tip) {
+  if (portalBildirimTercihleri === null) return false; // Tercih bilinmeden opt-out'u aşma.
+  const t = String(tip || "").toLowerCase();
+  const anahtar = /mesaj|kapidan/.test(t) ? "mesaj" : /duyuru|etkinlik/.test(t) ? "duyuru"
+    : /galeri|foto/.test(t) ? "galeri" : /rapor/.test(t) ? "rapor" : /odeme/.test(t) ? "odeme" : "";
+  return !anahtar || portalBildirimTercihleri[anahtar] !== false;
+}
+window.portalBildirimUyariAcikMi = portalBildirimUyariAcikMi;
+function portalBildirimMerkeziDurdur() {
+  if (portalBildirimTercihUnsub) portalBildirimTercihUnsub();
+  portalBildirimTercihUnsub = null;
+  portalBildirimTercihleri = null;
+  window.portalBildirimMerkezi?.stop();
+  window.portalBildirimMerkezi = null;
+}
+
+function portalBildirimMerkeziBaslat() {
+  const email = String(currentUser?.email || "").toLowerCase();
+  if (!email) return;
+  portalBildirimMerkeziDurdur();
+  portalBildirimTercihUnsub = onSnapshot(doc(db, "kullaniciTercihleri", email), {includeMetadataChanges:true}, snap => {
+    if (String(currentUser?.email || "").toLowerCase() !== email) return;
+    if (snap.metadata?.fromCache) return;
+    portalBildirimTercihleri = snap.exists() ? (snap.data()?.veliAyarlari?.bildirimler || {}) : {};
+  }, e => { portalBildirimTercihleri = null; console.warn("Bildirim tercihleri okunamadı; sesli uyarılar kapalı:", e?.code || e?.message); });
+  let merkez;
+  merkez = startNotificationCenter({
+    fb: window.PortalAPI.fb, db, email,
+    getCurrentEmail: () => String(currentUser?.email || "").toLowerCase(),
+    suppressAlert: b => b.sessizUyari === true || !portalBildirimUyariAcikMi(b.tip) || !!merkez?.ownedTypes?.has(b.tip),
+    excludeFromCount: b => !!merkez?.ownedTypes?.has(b.tip),
+    navigate: portalBildirimGit,
+    onStateChange: () => {
+      // Mikro-görev, aynı snapshot içindeki okuma/UI güncellemesine yeniden girmesin.
+      Promise.resolve().then(() => {
+        if (window.portalBildirimMerkezi === merkez && String(currentUser?.email || "").toLowerCase() === email) {
+          if (mesajSohbetGorunurMu(mesajAktifThread?.id)) merkez.markThreadRead(mesajAktifThread.id).catch(() => {});
+          if (portalVeliSohbetGorunurMu(portalVeliGoruntulenenThreadId)) merkez.markThreadRead(portalVeliGoruntulenenThreadId).catch(() => {});
+        }
+      });
+    }
+  });
+  window.portalBildirimMerkezi = merkez;
+}
+
+async function portalBildirimGit(b) {
+  const personelMi = isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif");
+  const tip = String(b?.tip || "");
+  if (tip === "mesaj") {
+    let id = String(b.kaynakId || "");
+    if (!id) {
+      const hedef = String(b.hedefSayfa || "");
+      if (/^(?:\.\/)?sohbet\.html\?/.test(hedef)) id = new URLSearchParams(hedef.split("?")[1]).get("thread") || "";
+    }
+    if (!id || id.includes("/")) throw new Error("Sohbet hedefi bulunamadı");
+    const snap = await getDoc(doc(db, "mesajlar", id));
+    if (!snap.exists()) throw new Error("Sohbet bulunamadı");
+    const thread = { id:snap.id, ...snap.data() };
+    if (!(thread.katilimcilar || []).includes(String(currentUser?.email || "").toLowerCase())) throw new Error("Sohbet erişimi yok");
+    if (personelMi) mesajBildirimSohbetAc(thread);
+    else {
+      window.veliSwitchTab("yeniapp"); window.caGo("mesajlar");
+      if (!caMsgThreads.some(t => t.id === id)) caMsgThreads.unshift(thread);
+      await window.caMsgAc(id);
+    }
+    return;
+  }
+  if (personelMi) {
+    const hedef = /^(pickup|sabah)/.test(tip) ? "ozet"
+      : /gorusme/.test(tip) ? "gorusmeNotlari"
+      : /galeri/.test(tip) ? "galeri"
+      : /duyuru/.test(tip) ? "duyurular"
+      : /etkinlik/.test(tip) ? "etkinlik"
+      : /izin/.test(tip) ? "ozlukM"
+      : /odeme|finans/.test(tip) ? "muhasebe" : "ozet";
+    window.modulSec(hedef);
+  } else {
+    if (b.ogrenciId) {
+      const cocuk = (typeof veliOgrenciler !== "undefined" ? veliOgrenciler : []).find(o => o.id === b.ogrenciId);
+      if (!cocuk) throw new Error("Bu bildirimin öğrenci bağlantısına erişilemiyor");
+      if (veliAktifOgrenci?.id !== cocuk.id) await setAktifVeliOgrenci(cocuk);
+    }
+    // Android sayfa isimlerini Portal URL'si gibi açma; izinli Portal ekranlarına git.
+    window.veliSwitchTab("yeniapp");
+    if (/galeri/.test(tip)) window.caGo("galeri");
+    else if (/etkinlik/.test(tip)) window.caGo("takvim");
+    else if (/egitim|kazanim|rozet/.test(tip)) window.caGo("egitim");
+    else if (/^(pickup|sabah)/.test(tip)) window.caGo("home");
+    else window.veliSwitchTab("bildirimler");
+  }
+}
+
+// Bu köprü yalnız kullanıcının yeni kaydettiği/yayınladığı olaydan çağrılır.
+async function portalHedefBildir(hedef, bildirim) {
+  try {
+    const m = await import("./js/zeky-bildirim-koprusu.js?v=164");
+    const alicilar = m.hedefVeliEmailleri(hedef);
+    if (!alicilar.length) { console.warn("Bildirim için uygun veli alıcısı bulunamadı"); return {ok:false,hata:"alici-yok"}; }
+    const sonuc = await m.bildirimKaydetVePush(alicilar, bildirim);
+    if (!sonuc.ok) showToast("Kayıt kaydedildi; bazı bildirim kayıtları oluşturulamadı.", "warn");
+    else if (sonuc.push?.ok === false) console.warn("Bildirim kaydı oluşturuldu; push sonucu:", sonuc.push.durum || sonuc.push.hata);
+    return sonuc;
+  } catch (e) {
+    console.warn("Portal bildirim köprüsü:", e?.code || e?.message || e);
+    showToast("Kayıt kaydedildi; bildirim işlemi tamamlanamadı.", "warn");
+    return {ok:false,hata:String(e?.message || e)};
+  }
+}
+
+function mesajBildirimSohbetAc(thread) {
+  window.modulSec("mesaj");
+  if (!document.getElementById("tab-mesajlasma")?.classList.contains("active")) return;
+  if (!mesajThreadListesi.some(t => t.id === thread.id)) mesajThreadListesi.unshift(thread);
+  window.mesajThreadAc(thread.id);
+}
 
 // İki e-postadan deterministik thread ID üret (sıra önemsiz, hep aynı sonuç)
 function mesajThreadIdUret(email1, email2) {
@@ -15904,34 +16096,66 @@ function mesajBildirimBaslat() {
   // PORTAL-MESAJ-ONARIM-2026-09: yönetim oturumu velinin "Okul Yönetimi" alıcısını güncel tutar
   try { if (typeof YONETIM_ROLLERI !== "undefined" && YONETIM_ROLLERI.includes(aktifKullaniciRol)) mesajRehberiSenkronla(); } catch (_) {}
 
-  // Önceki dinleyiciyi temizle
+  // Eski oturum callback'leri yeni hesaba sayaç/uyarı taşımasın.
   if (mesajBildirimUnsub) { mesajBildirimUnsub(); mesajBildirimUnsub = null; }
+  const bildirimSurumu = ++mesajBildirimSurumu;
+  mesajUyariTakibi.reset();
+  clearMessageNotices();
+  setupMessageSound();
 
-  // Bu kullanıcının katılımcı olduğu thread'leri dinle (hafif — sadece sayaç için)
+  // Aynı canlı sorgu hem okunmamış sayacı hem yeni mesaj uyarısını besler.
   const q = query(collection(db, "mesajlar"), where("katilimcilar", "array-contains", benim));
 
-  mesajBildirimUnsub = onSnapshot(q, (snap) => {
+  mesajBildirimUnsub = onSnapshot(q, { includeMetadataChanges: true }, (snap) => {
+    if (bildirimSurumu !== mesajBildirimSurumu || currentUser?.email?.toLowerCase() !== benim) return;
     let toplam = 0;
+    const threadler = [];
     snap.forEach(d => {
-      const t = d.data();
+      const t = { id: d.id, ...d.data() };
       // Danışma rozetine eski/yanlışlıkla açılmış veli konuşmaları düşmez.
       if (danismaRolMu() && mesajThreadKategoriBelirle(t, benim) !== "ic") return;
-      toplam += (t.okunmamis && t.okunmamis[benim]) || 0;
+      toplam += Number(t.okunmamis?.[benim]) || 0;
+      threadler.push(t);
     });
     mesajBildirimToplam = toplam;
     mesajBildirimRozetGuncelle(toplam);
+    const gorunenId = mesajSohbetGorunurMu(mesajAktifThread?.id) ? mesajAktifThread.id
+      : portalVeliSohbetGorunurMu(portalVeliGoruntulenenThreadId) ? portalVeliGoruntulenenThreadId : null;
+    const yeniler = mesajUyariTakibi.update({
+      threads: threadler, email: benim, fromCache: !!snap.metadata?.fromCache, viewedThreadId: gorunenId
+    });
+    // Aynı thread akışı personel ve veli Portalı için tek mesaj uyarısı sahibidir.
+    if (portalBildirimUyariAcikMi("mesaj")) {
+      for (const thread of yeniler) showMessageNotice(thread, {
+        senderName: mesajUyariGonderenAdi(thread),
+        onOpen: () => {
+          if (currentUser?.email?.toLowerCase() === benim) {
+            portalBildirimGit({tip:"mesaj",kaynakId:thread.id}).catch(e => showToast(e.message || "Sohbet açılamadı", "error"));
+          }
+        }
+      });
+    }
   }, (err) => {
     console.warn("Bildirim dinleme hatası:", err.code || err.message);
   });
 }
 
 function mesajBildirimDurdur() {
+  ++mesajBildirimSurumu;
   if (mesajBildirimUnsub) { mesajBildirimUnsub(); mesajBildirimUnsub = null; }
+  mesajUyariTakibi.reset();
+  clearMessageNotices();
   mesajBildirimToplam = 0;
+  mesajBildirimRozetGuncelle(0);
 }
 
 // Rozeti ilgili menü/sekmeye yerleştir (personel veya veli)
 function mesajBildirimRozetGuncelle(toplam) {
+  const hizliRozet = document.getElementById("hbRozetMesaj");
+  if (hizliRozet) {
+    hizliRozet.textContent = toplam > 0 ? (toplam > 99 ? "99+" : toplam) : "";
+    hizliRozet.classList.toggle("dolu", toplam > 0);
+  }
   const veliMi = !(isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif"));
 
   if (veliMi) {
@@ -15964,8 +16188,9 @@ function rozetYerlestir(btn, toplam, rozetClass, ekStil) {
 }
 
 function mesajlasmaBaslat() {
-  if (!currentUser) return;
+  if (!currentUser || !document.getElementById("tab-mesajlasma")?.classList.contains("active")) return;
   const benim = currentUser.email.toLowerCase();
+  const listeSurumu = ++mesajListeSurumu;
 
   const heroBaslik = document.getElementById("mesajHeroBaslik");
   const heroAlt = document.getElementById("mesajHeroAlt");
@@ -16003,6 +16228,8 @@ function mesajlasmaBaslat() {
   } catch (e) {}
 
   mesajThreadUnsub = onSnapshot(q, (snap) => {
+    if (listeSurumu !== mesajListeSurumu || currentUser?.email?.toLowerCase() !== benim
+        || !document.getElementById("tab-mesajlasma")?.classList.contains("active")) return;
     mesajThreadListesi = [];
     snap.forEach(d => {
       const thread = { id: d.id, ...d.data() };
@@ -16032,9 +16259,19 @@ function mesajlasmaBaslat() {
 
 // Mesajlaşma sekmesi kapanınca dinleyicileri temizle
 function mesajlasmaDurdur() {
+  clearTimeout(mesajBaslatmaZamanlayici);
+  mesajBaslatmaZamanlayici = null;
+  ++mesajSohbetSurumu;
+  ++mesajListeSurumu;
+  mesajGoruntulenenThreadId = null;
   if (mesajThreadUnsub) { mesajThreadUnsub(); mesajThreadUnsub = null; }
   if (mesajMesajUnsub) { mesajMesajUnsub(); mesajMesajUnsub = null; }
   mesajAktifThread = null;
+  const aktif = document.getElementById("mesajSohbetAktif");
+  const bos = document.getElementById("mesajSohbetBos");
+  if (aktif) aktif.style.display = "none";
+  if (bos) bos.style.display = "flex";
+  document.querySelector(".mesaj-konteyner")?.classList.remove("sohbet-acik");
 }
 
 // Thread listesini render et
@@ -16143,12 +16380,15 @@ function mesajThreadleriListele() {
 
 // Bir sohbeti aç ve mesajları gerçek zamanlı dinle
 window.mesajThreadAc = async function(threadId) {
+  if (!currentUser || !document.getElementById("tab-mesajlasma")?.classList.contains("active")) return;
   const thread = mesajThreadListesi.find(t => t.id === threadId);
   if (!thread) return;
   if (danismaRolMu() && mesajThreadKategoriBelirle(thread, currentUser?.email) !== "ic") {
     showToast("Danışma hesabı veli sohbetlerini açamaz", "error");
     return;
   }
+  const sohbetSurumu = ++mesajSohbetSurumu;
+  mesajGoruntulenenThreadId = null;
   mesajAktifThread = thread;
   const benim = currentUser.email.toLowerCase();
   const benimGozetimciMiyim = !((thread.katilimcilar || []).includes(benim));
@@ -16194,13 +16434,19 @@ window.mesajThreadAc = async function(threadId) {
   govde.innerHTML = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:20px;">Yükleniyor...</div>`;
 
   const mq = query(collection(db, "mesajlar", threadId, "messages"), orderBy("tarih", "asc"));
-  mesajMesajUnsub = onSnapshot(mq, (snap) => {
+  mesajMesajUnsub = onSnapshot(mq, { includeMetadataChanges: true }, (snap) => {
+    if (sohbetSurumu !== mesajSohbetSurumu || mesajAktifThread?.id !== threadId
+        || currentUser?.email?.toLowerCase() !== benim) return;
     const mesajlar = [];
     snap.forEach(d => mesajlar.push({ id: d.id, ...d.data() }));
     mesajBalonlariRender(mesajlar, benim, benimGozetimciMiyim);
-    // Açık sohbeti okundu işaretle (gözetimci değilsem)
-    if (!benimGozetimciMiyim) mesajOkunduIsaretle(threadId);
+    // Eski yerel önbellek, henüz ekrana gelmemiş sunucu mesajlarını okunmuş saymasın.
+    mesajGoruntulenenThreadId = snap.metadata?.fromCache ? null : threadId;
+    // Arka sekmede veya başka modüldeyken gelen mesaj okunmuş sayılmaz.
+    if (!benimGozetimciMiyim) mesajGorunenSohbetiOkunduIsaretle(threadId);
   }, (err) => {
+    if (sohbetSurumu !== mesajSohbetSurumu || mesajAktifThread?.id !== threadId) return;
+    mesajGoruntulenenThreadId = null;
     console.error("Mesaj dinleme hatası:", err);
     govde.innerHTML = `<div style="text-align:center; color:#dc2626; font-size:13px; padding:20px;">Mesajlar yüklenemedi.</div>`;
   });
@@ -16348,6 +16594,8 @@ window.mesajGirisKeydown = function(event) {
 
 // Sohbeti kapat (mobilde listeye dön)
 window.mesajSohbetKapat = function() {
+  ++mesajSohbetSurumu;
+  mesajGoruntulenenThreadId = null;
   if (mesajMesajUnsub) { mesajMesajUnsub(); mesajMesajUnsub = null; }
   mesajAktifThread = null;
   document.getElementById("mesajSohbetAktif").style.display = "none";
@@ -16651,13 +16899,19 @@ window.signOut = async function() {
   setTimeout(() => location.reload(), 500);
 };
 
+let portalOturumSurumu = 0;
 onAuthStateChanged(auth, async (user) => {
+  const oturumSurumu = ++portalOturumSurumu;
+  portalBildirimMerkeziDurdur();
+  window.personelAnlikBildirim?.durdur();
+  window.gorusmeNotlariBildirimDurdur?.();
   if (user) {
     currentUser = user;
     const email = (user.email || "").toLowerCase();
 
     // Aktif dönemi ayarlar/donem'den yükle (app ile ortak kaynak)
     await aktifDonemYukle();
+    if (oturumSurumu !== portalOturumSurumu || currentUser?.uid !== user.uid) return;
     // Sınıf seçim kutularını siniflar koleksiyonundan doldur
     sinifSecimleriniDoldur().catch(e => console.warn("sınıf dropdown", e));
     // Veli profil fotoğrafını yükle (avatar için)
@@ -16673,6 +16927,7 @@ onAuthStateChanged(auth, async (user) => {
 
     // Personel kaydını getir (admin de personeller'de kayıtlı olabilir)
     const personel = await personelGetir(email);
+    if (oturumSurumu !== portalOturumSurumu || currentUser?.uid !== user.uid) return;
 
     // Admin ise: personel kaydı varsa onu kullan, yoksa kurucu_mudur say (güvenlik ağı)
     if (isAdmin) {
@@ -16685,12 +16940,15 @@ onAuthStateChanged(auth, async (user) => {
       // Yalnız sınıf öğretmeni için sınıf kısıtı vardır. Muhasebe gibi diğer
       // roller gereksiz sinifAtamalari sorgusu çalıştırmaz.
       if (aktifKullaniciRol === "ogretmen") {
-        aktifKullaniciSiniflari = await personelSiniflariGetir(email, personel);
+        const siniflar = await personelSiniflariGetir(email, personel);
+        if (oturumSurumu !== portalOturumSurumu || currentUser?.uid !== user.uid) return;
+        aktifKullaniciSiniflari = siniflar;
       }
     }
 
     // ===== PERSONEL veya ADMIN → Dashboard =====
     const personelMi = isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif");
+    portalBildirimMerkeziBaslat();
 
     if (personelMi) {
       // Personel/Admin Dashboard
@@ -16751,6 +17009,7 @@ onAuthStateChanged(auth, async (user) => {
         console.error("loadOgrenciler hatası:", e);
         showToast("Veriler yüklenemedi: " + e.message, "error");
       }
+      if (oturumSurumu !== portalOturumSurumu || currentUser?.uid !== user.uid) return;
       // Onay bekleyenler sayacını arka planda yükle
       try {
         if (sekmeyeErisim("onay") && typeof initOnayBekleyenler === "function") initOnayBekleyenler();
@@ -16778,6 +17037,7 @@ onAuthStateChanged(auth, async (user) => {
 
       // Veli verilerini yükle
       await loadVeliPanel(user);
+      if (oturumSurumu !== portalOturumSurumu || currentUser?.uid !== user.uid) return;
 
       // <i data-lucide="bell" style="width:13px;height:13px;vertical-align:-2px;"></i> TUR C: URL'de kartTalep parametresi varsa yakala
       try {
@@ -19716,6 +19976,8 @@ function caMsgBaslat() {
 }
 
 function caMsgDurdur() {
+  ++portalVeliSohbetSurumu;
+  portalVeliGoruntulenenThreadId = null;
   if (caMsgThreadUnsub) { caMsgThreadUnsub(); caMsgThreadUnsub = null; }
   if (caMsgMsgUnsub) { caMsgMsgUnsub(); caMsgMsgUnsub = null; }
   caMsgAktif = null;
@@ -19768,6 +20030,8 @@ function caMsgListele() {
 window.caMsgAc = async function(threadId) {
   const thread = caMsgThreads.find(t => t.id === threadId);
   if (!thread) return;
+  const sohbetSurumu = ++portalVeliSohbetSurumu;
+  portalVeliGoruntulenenThreadId = null;
   caMsgAktif = thread;
   const benim = veliEpostam();
   const karsi = (thread.katilimcilar || []).find(e => e !== benim) || "";
@@ -19796,12 +20060,16 @@ window.caMsgAc = async function(threadId) {
   govde.innerHTML = `<div style="text-align:center; color:var(--c-muted); font-size:13px; padding:20px;">Yükleniyor…</div>`;
 
   const mq = query(collection(db, "mesajlar", threadId, "messages"), orderBy("tarih", "asc"));
-  caMsgMsgUnsub = onSnapshot(mq, (snap) => {
+  caMsgMsgUnsub = onSnapshot(mq, {includeMetadataChanges:true}, (snap) => {
+    if (sohbetSurumu !== portalVeliSohbetSurumu || caMsgAktif?.id !== threadId || currentUser?.email?.toLowerCase() !== benim) return;
     const mesajlar = [];
     snap.forEach(d => mesajlar.push({ id: d.id, ...d.data() }));
     caMsgBalonlar(mesajlar, benim);
-    mesajOkunduIsaretle(threadId);
+    portalVeliGoruntulenenThreadId = snap.metadata?.fromCache ? null : threadId;
+    portalVeliGorunenSohbetiOkunduIsaretle(threadId);
   }, (err) => {
+    if (sohbetSurumu !== portalVeliSohbetSurumu) return;
+    portalVeliGoruntulenenThreadId = null;
     console.error("ZEKY mesaj balon hatası:", err);
     govde.innerHTML = `<div style="text-align:center; color:var(--c-pink-deep); font-size:13px; padding:20px;">Mesajlar yüklenemedi.</div>`;
   });
@@ -20009,6 +20277,8 @@ window.caMsgGirisKeydown = function(event) {
 };
 
 window.caMsgKapat = function() {
+  ++portalVeliSohbetSurumu;
+  portalVeliGoruntulenenThreadId = null;
   if (caMsgMsgUnsub) { caMsgMsgUnsub(); caMsgMsgUnsub = null; }
   caMsgAktif = null;
   caMsgAtacKapat();
@@ -20875,15 +21145,8 @@ window.ozetRozetleriGuncelle = function(gecikenSayisi) {
     if (n > 0) { el.textContent = n > 99 ? "99+" : n; el.classList.add("dolu"); }
     else { el.textContent = ""; el.classList.remove("dolu"); }
   };
-  // Okunmamış mesaj
-  let mesajN = 0;
-  try {
-    const benim = (currentUser?.email || "").toLowerCase();
-    (typeof mesajThreadListesi !== "undefined" ? mesajThreadListesi : []).forEach(t => {
-      mesajN += (t.okunmamis && t.okunmamis[benim]) || 0;
-    });
-  } catch (e) {}
-  yaz("hbRozetMesaj", mesajN);
+  // Ana sayfa da sohbet-listesi önbelleği yerine canlı global sayacı kullanır.
+  yaz("hbRozetMesaj", mesajBildirimToplam);
 
   // Bekleyen başvuru
   let basvuruN = 0;
@@ -21719,6 +21982,13 @@ async function caGozlemDetayKaydet(st, alan, grup, ders, notMetin, foto) {
     kaydedilen = { anahtar, yeniDis, sonGozlem:detay[anahtar] };
   });
   tumGelisimOnbelleginiTemizle();
+  if (!foto || foto.durum === "onaylandi") {
+    const olay = foto?.id ? "egitim_"+foto.id : "gozlem:"+st.ogrId+":"+anahtar+":"+simdi;
+    await portalHedefBildir({hedefTur:"ogrenci",hedefDeger:st.ogrId}, {
+      tip:"egitim_gelisim",baslik:"Yeni eğitim gelişimi",metin:"Çocuğunuzun eğitim ekranında yeni bir gelişim kaydı var.",
+      hedefSayfa:"veli-egitim.html",ogrenciId:st.ogrId,kaynakId:olay,olayAnahtari:olay
+    });
+  }
   return kaydedilen;
 }
 
@@ -22937,6 +23207,8 @@ function veliMesajlasmaBaslat() {
 }
 
 function veliMesajlasmaDurdur() {
+  ++portalVeliSohbetSurumu;
+  portalVeliGoruntulenenThreadId = null;
   if (veliMesajThreadUnsub) { veliMesajThreadUnsub(); veliMesajThreadUnsub = null; }
   if (veliMesajMesajUnsub) { veliMesajMesajUnsub(); veliMesajMesajUnsub = null; }
   veliMesajAktifThread = null;
@@ -22995,6 +23267,8 @@ function veliMesajThreadleriListele() {
 window.veliMesajThreadAc = async function(threadId) {
   const thread = veliMesajThreadListesi.find(t => t.id === threadId);
   if (!thread) return;
+  const sohbetSurumu = ++portalVeliSohbetSurumu;
+  portalVeliGoruntulenenThreadId = null;
   veliMesajAktifThread = thread;
   const benim = veliEpostam();
   const karsi = (thread.katilimcilar || []).find(e => e !== benim) || "";
@@ -23017,12 +23291,16 @@ window.veliMesajThreadAc = async function(threadId) {
   govde.innerHTML = `<div style="text-align:center; color:#9ca3af; font-size:13px; padding:20px;">Yükleniyor...</div>`;
 
   const mq = query(collection(db, "mesajlar", threadId, "messages"), orderBy("tarih", "asc"));
-  veliMesajMesajUnsub = onSnapshot(mq, (snap) => {
+  veliMesajMesajUnsub = onSnapshot(mq, {includeMetadataChanges:true}, (snap) => {
+    if (sohbetSurumu !== portalVeliSohbetSurumu || veliMesajAktifThread?.id !== threadId || currentUser?.email?.toLowerCase() !== benim) return;
     const mesajlar = [];
     snap.forEach(d => mesajlar.push({ id: d.id, ...d.data() }));
     veliMesajBalonlariRender(mesajlar, benim);
-    mesajOkunduIsaretle(threadId);
+    portalVeliGoruntulenenThreadId = snap.metadata?.fromCache ? null : threadId;
+    portalVeliGorunenSohbetiOkunduIsaretle(threadId);
   }, (err) => {
+    if (sohbetSurumu !== portalVeliSohbetSurumu) return;
+    portalVeliGoruntulenenThreadId = null;
     console.error("Veli mesaj dinleme hatası:", err);
     govde.innerHTML = `<div style="text-align:center; color:#dc2626; font-size:13px; padding:20px;">Mesajlar yüklenemedi.</div>`;
   });
@@ -31211,7 +31489,11 @@ window.duyuruRolKisitiUygula = function() {
   } catch (e) { console.warn("duyuru rol kısıtı:", e); }
 };
 
+let portalDuyuruKaydediliyor = false;
 window.kaydetDuyuru = async function() {
+  if (portalDuyuruKaydediliyor) return;
+  portalDuyuruKaydediliyor = true;
+  try {
   if (danismaSaltOkunurEngelle("Duyurular")) return;
   const id = document.getElementById("duyuruDuzenleId").value;
   const baslik = document.getElementById("duyuruBaslik").value.trim();
@@ -31272,6 +31554,11 @@ window.kaydetDuyuru = async function() {
       // KVKK: okuyanVeliler / popupKapatanVeliler artık tutulmaz (okumalar alt kaydı)
       const ref = doc(collection(db, "duyurular"));
       await setDoc(ref, data);
+      await portalHedefBildir({hedefTur,hedefDeger}, {
+        tip:"duyuru",baslik:"Yeni okul duyurusu",metin:"Okuldan yeni bir duyurunuz var.",
+        hedefSayfa:"bildirimler.html",kaynakId:ref.id,olayAnahtari:"duyuru:"+ref.id,
+        sessizUyari:!!simsek
+      });
 
       // Mail gönderimi
       if (mailGonder) {
@@ -31285,6 +31572,7 @@ window.kaydetDuyuru = async function() {
   } catch (e) {
     showToast("Kaydedilemedi: " + e.message, "error");
   }
+  } finally { portalDuyuruKaydediliyor = false; }
 };
 
 // Hedef velilere mail gönder (arka planda)
@@ -31822,7 +32110,11 @@ window.etkinlikRolKisitiUygula = function() {
   } catch (e) { console.warn("etkinlik rol kısıtı:", e); }
 };
 
+let portalEtkinlikKaydediliyor = false;
 window.kaydetEtkinlik = async function() {
+  if (portalEtkinlikKaydediliyor) return;
+  portalEtkinlikKaydediliyor = true;
+  try {
   if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   const id = document.getElementById("etkinlikDuzenleId").value;
   const baslik = document.getElementById("etkinlikBaslik").value.trim();
@@ -31867,6 +32159,10 @@ window.kaydetEtkinlik = async function() {
       data.olusturan = currentUser.email;
       const ref = doc(collection(db, "etkinlikler"));
       await setDoc(ref, data);
+      await portalHedefBildir({hedefTur,hedefDeger}, {
+        tip:"etkinlik",baslik:"Yeni okul etkinliği",metin:"Okul takvimine yeni bir etkinlik eklendi.",
+        hedefSayfa:"veli-program.html",kaynakId:ref.id,olayAnahtari:"etkinlik:"+ref.id
+      });
       if (mailGonder) etkinlikMailGonder(data);
       showToast("✓ Etkinlik oluşturuldu");
     }
@@ -31876,6 +32172,7 @@ window.kaydetEtkinlik = async function() {
   } catch (e) {
     showToast("Kaydedilemedi: " + e.message, "error");
   }
+  } finally { portalEtkinlikKaydediliyor = false; }
 };
 
 async function etkinlikMailGonder(data) {
@@ -35907,40 +36204,52 @@ async function loadGaleri() {
 // ===== FAZ 4b: GALERİ MEDYA ONAY (sadece Müdür/Kurucu Müdür) =====
 window.galeriOnayla = async function(id) {
   const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
-  if (!yonetimMi) { showToast("Onay yetkiniz yok", "error"); return; }
+  if (!yonetimMi) { showToast("Onay yetkiniz yok", "error"); return false; }
   try {
-    const oge = galeriListesiVerisi.find(g => g.id === id) || { id };
-    await updateDoc(doc(db, "galeri", id), {
-      durum: "onaylandi",
-      onaylayanEmail: currentUser.email,
-      onayTarihi: new Date().toISOString()
+    const ref = doc(db, "galeri", id), onceki = await getDoc(ref);
+    if (!onceki.exists()) return false;
+    const oge = { id, ...onceki.data() };
+    if (!galeriBekliyorMu(oge.durum)) return false;
+    await updateDoc(ref, {
+      durum: "onaylandi", onaylayanEmail: currentUser.email, onayTarihi: new Date().toISOString()
     });
     await galeriGozlemOnayiEsitle(oge, "onaylandi");
+    if (!(oge.kazanimAnahtari && (oge.ogrenciId || oge.hedefOgrenciId || (oge.hedefTur === "ogrenci" && oge.hedefDeger)))) {
+      await galeriGuncellemeBildirimi({
+        etkinlikBaslik:oge.etkinlikBaslik || oge.baslik || "Galeri", etkinlikTarih:oge.etkinlikTarih || "",
+        hedefTur:oge.hedefTur || (oge.hedefOgrenciId ? "ogrenci" : ""),
+        hedefDeger:oge.hedefDeger || oge.hedefOgrenciId || "", hedefOgrenciAd:oge.hedefOgrenciAd || "",
+        fotoSayisi:1,videoSayisi:0,kaynakId:id,olayAnahtari:"galeri-onay:"+id
+      });
+    }
     showToast("✓ Fotoğraf onaylandı, veliler görebilir");
     await renderGaleri();
+    return true;
   } catch (e) {
     console.error("Onaylama hatası:", e);
     showToast("Onaylanamadı: " + e.message, "error");
+    return false;
   }
 };
 
 window.galeriReddet = async function(id) {
   const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
-  if (!yonetimMi) { showToast("Yetkiniz yok", "error"); return; }
-  if (!confirm("Bu fotoğraf reddedilecek. Veliler göremeyecek. Onaylıyor musunuz?")) return;
+  if (!yonetimMi) { showToast("Yetkiniz yok", "error"); return false; }
+  if (!confirm("Bu fotoğraf reddedilecek. Veliler göremeyecek. Onaylıyor musunuz?")) return false;
   try {
-    const oge = galeriListesiVerisi.find(g => g.id === id) || { id };
-    await updateDoc(doc(db, "galeri", id), {
-      durum: "reddedildi",
-      onaylayanEmail: currentUser.email,
-      onayTarihi: new Date().toISOString()
-    });
+    const ref = doc(db, "galeri", id), onceki = await getDoc(ref);
+    if (!onceki.exists()) return false;
+    const oge = { id, ...onceki.data() };
+    if (!galeriBekliyorMu(oge.durum)) return false;
+    await updateDoc(ref, { durum:"reddedildi",onaylayanEmail:currentUser.email,onayTarihi:new Date().toISOString() });
     await galeriGozlemOnayiEsitle(oge, "reddedildi");
     showToast("Fotoğraf reddedildi");
     await renderGaleri();
+    return true;
   } catch (e) {
     console.error("Reddetme hatası:", e);
     showToast("İşlem başarısız: " + e.message, "error");
+    return false;
   }
 };
 
@@ -36417,6 +36726,7 @@ window.galeriYukle = async function() {
   const klasorPath = `galeri/${hedefPath}/${etkinlikSlug}`;
 
   let basarili = 0, hatali = 0;
+  const yayinlananOgeIdleri = [];
   for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
     const f = galeriSecilenDosyalar[i];
     document.getElementById("galeriYuklemeDurum").textContent = `${f.name}...`;
@@ -36470,6 +36780,7 @@ window.galeriYukle = async function() {
       const ref = doc(collection(db, "galeri"));
       await setDoc(ref, oge);
       basarili++;
+      if (oge.durum === "onaylandi") yayinlananOgeIdleri.push(ref.id);
 
       const toplam = ((i + 1) / galeriSecilenDosyalar.length) * 100;
       document.getElementById("galeriYuklemeBar").style.width = `${toplam}%`;
@@ -36483,25 +36794,26 @@ window.galeriYukle = async function() {
   showToast(`✓ ${basarili} dosya yüklendi${hatali > 0 ? ` (${hatali} hatalı)` : ''}`);
 
   // Yüklenen dosyaların sayısını hesapla
-  const fotoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("image/")).length;
-  const videoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("video/")).length;
+  const fotoSayisi = yayinlananOgeIdleri.length;
+  const videoSayisi = 0; // Video yayını henüz etkin değil; başarısız/seçilmiş dosya bildirilmez.
 
   // Mail bildirim kontrolü (opsiyonel - YENİ yükleme modunda)
   const mailGonder = document.getElementById("galeriMailGonder")?.checked;
 
-  if (albumEkleMod && basarili > 0) {
-    // MEVCUT ALBÜME EKLEME: Sistem bildirimi oluştur (mail GİTMEZ)
+  if (yayinlananOgeIdleri.length > 0) {
+    // Yalnız başarıyla YAYINLANMIŞ medya; onay bekleyenler veliye haber vermez.
     document.getElementById("galeriYuklemeDurum").textContent = "🔔 Veli bildirimleri oluşturuluyor...";
     await galeriGuncellemeBildirimi({
       etkinlikBaslik: etkinlik,
       etkinlikTarih,
       hedefTur,
       hedefDeger,
-      hedefOgrenciAd: albumEkleMod.hedefOgrenciAd,
-      fotoSayisi,
-      videoSayisi
+      hedefOgrenciAd: albumEkleMod?.hedefOgrenciAd || hedefOgrenciAd,
+      fotoSayisi, videoSayisi,
+      kaynakId:yayinlananOgeIdleri[0],olayAnahtari:"galeri-yayin:"+yayinlananOgeIdleri.slice().sort().join(":")
     });
-  } else if (mailGonder && basarili > 0) {
+  }
+  if (!albumEkleMod && mailGonder && yayinlananOgeIdleri.length > 0) {
     // YENİ YÜKLEME: Mail gönder
     document.getElementById("galeriYuklemeDurum").innerHTML = `<i data-lucide="mail" style="width:13px;height:13px;vertical-align:-2px;"></i> Velilere mail gönderiliyor...`; window.lucideYenile && window.lucideYenile();
     await galeriBildirimMailGonder({
@@ -36510,7 +36822,7 @@ window.galeriYukle = async function() {
       aciklama,
       hedefTur,
       hedefDeger,
-      dosyaSayisi: basarili,
+      dosyaSayisi: yayinlananOgeIdleri.length,
       fotoSayisi,
       videoSayisi
     });
@@ -36907,7 +37219,7 @@ async function galeriGuncellemeBildirimi(grup) {
     // Hedef öğrencileri topla
     const hedefOgrenciler = [];
     for (const o of ogrenciList) {
-      if (getOgrenciDurum(o, ayarListesi[o.id]) !== "aktif") continue;
+      if (!veliAktifDonemOgrencisiMi(o)) continue;
       const ayar = ayarListesi[o.id] || {};
       const ogrSinif = (ayar.kayit?.sinif) || o.sinif || "";
 
@@ -36930,7 +37242,7 @@ async function galeriGuncellemeBildirimi(grup) {
     const tarihStr = etkinlikTarih ? new Date(etkinlikTarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "";
 
     // Her hedef öğrencinin bildirimler alt koleksiyonuna kaydet
-    for (const o of hedefOgrenciler) {
+    const cocukSonuclari = await Promise.allSettled(hedefOgrenciler.map(async o => {
       const bildirimRef = doc(collection(db, "ogrenciler", o.id, "bildirimler"));
       await setDoc(bildirimRef, {
         tip: "galeri_guncelleme",
@@ -36946,9 +37258,17 @@ async function galeriGuncellemeBildirimi(grup) {
         okundu: false,
         donem: AKTIF_DONEM
       });
-    }
+    }));
+    const cocukHatasi = cocukSonuclari.some(r => r.status === "rejected");
+    if (cocukHatasi) console.warn("Bazı öğrenci bildirim kayıtları oluşturulamadı; veli bildirim köprüsü ayrıca deneniyor.");
 
-    showToast(`🔔 ${hedefOgrenciler.length} öğrencinin velisine bildirim gönderildi`);
+    const kokSonuc = await portalHedefBildir({hedefTur,hedefDeger}, {
+      tip:"galeri",baslik:"Yeni galeri içeriği",metin:"Okul galerisinde yeni içerik yayınlandı.",
+      hedefSayfa:"galeri.html",kaynakId:String(grup.kaynakId || ""),
+      olayAnahtari:String(grup.olayAnahtari || "")
+    });
+    if (cocukHatasi || !kokSonuc?.ok) showToast("Galeri kaydedildi; bazı bildirim kayıtları tamamlanamadı.", "warn");
+    else showToast(`🔔 ${hedefOgrenciler.length} öğrenci için bildirim kaydı oluşturuldu`);
   } catch (e) {
     console.warn("Galeri bildirim hatası:", e);
     showToast("Bildirim oluşturulurken hata: " + e.message, "error");
@@ -42591,6 +42911,7 @@ document.querySelectorAll(".tab").forEach(tab => {
       showToast("Bu bölüme erişim yetkiniz yok", "error");
       return;
     }
+    if (tab.dataset.tab !== "mesajlasma") mesajlasmaDurdur();
     if (tab.dataset.tab !== "egitim") {
       egitimArkaPlanCalismasiniDurdur(true);
     }
@@ -42769,7 +43090,7 @@ document.querySelectorAll(".tab").forEach(tab => {
 
     // Mesajlaşma bağımsız sekmesi açıldı
     if (tab.dataset.tab === "mesajlasma") {
-      setTimeout(() => { if (typeof mesajlasmaBaslat === "function") mesajlasmaBaslat(); }, 50);
+      mesajlasmaBaslatmayiPlanla();
     }
 
     // Duyurular bağımsız sekmesi açıldı
@@ -47916,13 +48237,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=163");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=164");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v163";
+          const anahtar = "portalSwReload_v164";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

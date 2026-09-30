@@ -1,11 +1,14 @@
 // Yönetim galeri onayında eğitim fotoğrafını kazanım bağlamıyla gösterir.
 
+import { bildirimKaydetVePush, hedefVeliEmailleri } from './zeky-bildirim-koprusu.js';
+
 const KURULUM='__zekyGaleriOnayEgitimV3';
 const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi',degerlerPlus:'Değerler+'};
 const ASAMA={S:'Sunuldu',T:'Tekrar ediyor',U:'Ustalaştı'};
 let gozlemci=null;
 let onarimZamanlayici=0,onarimCalisiyor=false;
 const onarilanKayitlar=new Set();
+const onayIsleri=new Map();
 
 function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function programKodu(m){const ham=String(m?.program||m?.kategori||m?.etkinlikBaslik||'');if(PROGRAM[ham])return ham;const s=ham.toLocaleLowerCase('tr');if(s.includes('montessori'))return'montessori';if(s.includes('orman'))return'orman';if(s.includes('değerler+')||s.includes('degerler+')||s.includes('degerlerplus'))return'degerlerPlus';if(s.includes('değer')||s.includes('deger'))return'degerler';if(s.includes('ingiliz')||s.includes('english'))return'ingilizce';return'';}
@@ -34,7 +37,7 @@ function fonksiyonlariSar(){const eski=window.acGaleriLightbox;if(typeof eski!==
 
 function api(){const p=window.PortalAPI||{},b=window.BCK||{};return{db:p.db||b.db,fb:p.fb||b};}
 async function galeriBelgesi(id){const{db,fb}=api();if(!db||!fb?.getDoc||!fb?.doc)return null;const s=await fb.getDoc(fb.doc(db,'galeri',id));return s.exists()?{id,...(s.data()||{})}:null;}
-export async function egitimOnayiniEsitle(id,durum){
+export async function egitimOnayiniEsitle(id,durum,{canliOnay=false}={}){
   const{db,fb}=api();if(!db||!fb?.getDoc||!fb?.setDoc||!fb?.doc)return false;
   const m=await galeriBelgesi(id);if(!m||m.durum!==durum||!egitimMi(m))return false;
   const ogrenciId=m.ogrenciId||m.hedefOgrenciId||(m.hedefTur==='ogrenci'?m.hedefDeger:''),program=programKodu(m),anahtar=m.kazanimAnahtari||'',kod=m.gozlemDurum||'';
@@ -58,8 +61,33 @@ export async function egitimOnayiniEsitle(id,durum){
   await fb.setDoc(ref,yaz,{merge:true});
   if(durum==='onaylandi'){
     const bildirimRef=fb.doc(db,'ogrenciler',ogrenciId,'bildirimler',`egitim_${id}`);
-    try{await fb.setDoc(bildirimRef,{tip:'egitim_gelisim',baslik:`${m.kazanimAdi||m.baslik||'Eğitim sunumu'} · ${ASAMA[kod]}`,icerik:not||`${PROGRAM[program]||'Eğitim'} programında yeni bir gelişim aşaması onaylandı.`,program,programAd:PROGRAM[program]||m.programAd||'',alanId:m.alanId||'',alanAd:m.alanAd||'',grupAd:m.grupAd||'',kazanimAnahtari:anahtar,kazanimAdi:m.kazanimAdi||m.baslik||'',gozlemDurum:kod,galeriId:id,fotoDurum:'onaylandi',fotoUrl,tarih,olusturuldu:m.onayTarihi||simdi,gonderenAd:m.yukleyenAd||'',okundu:false,donem:m.donem||''},{merge:true});}
-    catch(e){console.warn('Eğitim bildirimi oluşturulamadı; gelişim kaydı yayınlandı',e?.code||e?.message||e);}
+    const icerik={tip:'egitim_gelisim',baslik:`${m.kazanimAdi||m.baslik||'Eğitim sunumu'} · ${ASAMA[kod]}`,icerik:not||`${PROGRAM[program]||'Eğitim'} programında yeni bir gelişim aşaması onaylandı.`,program,programAd:PROGRAM[program]||m.programAd||'',alanId:m.alanId||'',alanAd:m.alanAd||'',grupAd:m.grupAd||'',kazanimAnahtari:anahtar,kazanimAdi:m.kazanimAdi||m.baslik||'',gozlemDurum:kod,galeriId:id,fotoDurum:'onaylandi',fotoUrl,tarih,gonderenAd:m.yukleyenAd||'',donem:m.donem||''};
+    let bildirimHazir=false;
+    try{
+      const esitle=async okuVeYaz=>{
+        const mevcut=await okuVeYaz.get(bildirimRef);
+        // Onarım var olan okundu/olusturuldu değerlerini asla sıfırlamaz.
+        const veri=mevcut.exists()?icerik:{...icerik,okundu:false,olusturuldu:m.onayTarihi||tarih};
+        await okuVeYaz.set(bildirimRef,veri,{merge:true});
+      };
+      if(fb.runTransaction) await fb.runTransaction(db,esitle);
+      else await esitle({get:r=>fb.getDoc(r),set:(...args)=>fb.setDoc(...args)});
+      bildirimHazir=true;
+    }catch(e){console.warn('Eğitim bildirimi oluşturulamadı; gelişim kaydı yayınlandı',e?.code||e?.message||e);}
+    if(canliOnay&&!bildirimHazir)window.PortalAPI?.toast?.('Eğitim onaylandı · bildirim oluşturulamadı','warning');
+    // Bu bayrak yalnız başarılı açık beklemede→onaylandı işleminin sarmalayıcısında
+    // verilir. Sayfa açılışı/onarımı hiçbir zaman kök bildirim veya push üretmez.
+    if(canliOnay&&bildirimHazir){
+      const kaynakId=`egitim_${id}`;
+      const sonuc=await bildirimKaydetVePush(hedefVeliEmailleri({hedefTur:'ogrenci',hedefDeger:ogrenciId}),{
+        tip:'egitim_gelisim',baslik:'Yeni eğitim güncellemesi',metin:'Eğitim gelişiminde yeni bir güncelleme var.',
+        hedefSayfa:'veli-egitim.html',ogrenciId,kaynakId,olayAnahtari:kaynakId
+      });
+      if(sonuc.ok!==true||sonuc.push?.ok!==true){
+        console.warn('Eğitim onaylandı; bildirim teslimi doğrulanamadı');
+        window.PortalAPI?.toast?.('Eğitim onaylandı · bildirim teslimi doğrulanamadı','warning');
+      }
+    }
   }
   return true;
 }
@@ -82,11 +110,30 @@ async function onayliKayitlariOnar(){
 }
 function onarimiPlanla(){clearTimeout(onarimZamanlayici);onarimZamanlayici=setTimeout(onayliKayitlariOnar,450);}
 
-function onayFonksiyonlariniSar(){
+export function onayFonksiyonlariniSar(){
   let hazir=true;
   for(const [ad,durum] of [['galeriOnayla','onaylandi'],['galeriReddet','reddedildi']]){
     const eski=window[ad];if(typeof eski!=='function'){hazir=false;continue;}if(eski.__zekyEgitimOnayEsitle)continue;
-    const yeni=async function(id,...args){const r=await eski.call(this,id,...args);try{if(await egitimOnayiniEsitle(id,durum))onarilanKayitlar.add(id);}catch(e){console.warn('Eğitim onayı veliye eşitlenemedi',e?.code||e?.message||e);}return r;};
+    const yeni=function(id,...args){
+      const islemAnahtari=String(id);
+      if(onayIsleri.has(islemAnahtari))return onayIsleri.get(islemAnahtari);
+      const islem=(async()=>{
+        let onceki=null;
+        try{onceki=await galeriBelgesi(id);}catch(e){console.warn('Eğitim onayı önceki durum doğrulanamadı',e?.code||e?.message||e);}
+        const r=await eski.call(this,id,...args);
+        // Eski fonksiyon hatayı yakalayıp dönebilir. Açık başarı olmadan,
+        // iptal/red/başarısızlık üzerine bildirim üretmek güvenli değildir.
+        if(r!==true)return r;
+        try{
+          const canliOnay=durum==='onaylandi'&&bekliyor(onceki)&&yonetimMi();
+          if(await egitimOnayiniEsitle(id,durum,{canliOnay}))onarilanKayitlar.add(id);
+        }catch(e){console.warn('Eğitim onayı veliye eşitlenemedi',e?.code||e?.message||e);}
+        return r;
+      })();
+      onayIsleri.set(islemAnahtari,islem);
+      islem.finally(()=>onayIsleri.delete(islemAnahtari)).catch(()=>{});
+      return islem;
+    };
     yeni.__zekyEgitimOnayEsitle=true;yeni.__eski=eski;window[ad]=yeni;
   }
   return hazir;

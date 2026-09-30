@@ -23,7 +23,7 @@ test('portal mesaj gönderimi kök bildirim ve sesli push üretir', () => {
 
 test('ortak köprü kök bildirim yazıp aynı alıcılara push yollar', () => {
   assert.match(kopru,/bildirimKaydetVePush/);
-  assert.match(kopru,/collection\(B\.db,'bildirimler'\)/);
+  assert.match(kopru,/fb\.collection\(db,'bildirimler'\)/);
   assert.match(kopru,/genelPushGonder/);
   assert.match(push,/export async function genelPushGonder/);
   assert.match(push,/aliciEmailler/);

@@ -156,6 +156,8 @@ export function metinOlustur(tur, olaylar) {
 
 let aktif = null;            // { eposta, gun, unsubs, gunKontrol }
 let baslatmaSozu = null;
+let baslatmaEposta = "";
+let calismaSurumu = 0;
 let ayar = { ...VARSAYILAN };
 const tampon = { sabah: [], zil: [] };
 const tamponZamani = { sabah: null, zil: null };
@@ -167,9 +169,44 @@ function kullanici() {
   return { rol: s.rol || "", isAdmin: !!s.isAdmin, siniflar: s.siniflar || [], eposta: kucuk(s.currentUser?.email), personel: s.personel };
 }
 
-const gorulenAnahtari = () => `pab-gorulen:${aktif?.eposta || ""}`;
-function gorulenOku() { try { return new Set(JSON.parse(localStorage.getItem(gorulenAnahtari()) || "[]")); } catch (_) { return new Set(); } }
-function gorulenYaz(set) { try { localStorage.setItem(gorulenAnahtari(), JSON.stringify([...set].slice(-400))); } catch (_) {} }
+const gorulenAnahtari = (eposta = aktif?.eposta || "") => `pab-gorulen:${eposta}`;
+function gorulenOku(eposta) { try { return new Set(JSON.parse(localStorage.getItem(gorulenAnahtari(eposta)) || "[]")); } catch (_) { return new Set(); } }
+function gorulenYaz(set, eposta) { try { localStorage.setItem(gorulenAnahtari(eposta), JSON.stringify([...set].slice(-400))); return true; } catch (_) { return false; } }
+function ortakMerkez() {
+  const m = typeof window !== "undefined" && window.portalBildirimMerkezi;
+  return m?.setExternalItems && !["stopped", "inactive"].includes(m.status) ? m : null;
+}
+function oturumGecerli(oturum) { return aktif === oturum && kullanici().eposta === oturum.eposta; }
+function merkezKaynaginiBirak(oturum, tur) {
+  const kaynak = oturum?.kaynaklar?.get(tur);
+  if (!kaynak) return;
+  kaynak.merkez.setExternalItems(kaynak.ad, [], { initial:true });
+  kaynak.merkez.ownedTypes.delete(kaynak.tip);
+  kaynak.merkez.refresh();
+  oturum.kaynaklar.delete(tur);
+}
+function merkezeAktar(oturum, tur, olaylar, secenekler) {
+  const merkez = ortakMerkez();
+  if (!merkez || !oturumGecerli(oturum)) return false;
+  const tip = tur === "sabah" ? "sabah-yeni" : "pickup-yeni";
+  if (oturum.kaynaklar.get(tur)?.merkez !== merkez) merkezKaynaginiBirak(oturum,tur);
+  const ad = "personel-anlik-" + tur;
+  oturum.kaynaklar.set(tur,{merkez,ad,tip});
+  merkez.ownedTypes.add(tip); merkez.refresh();
+  const gorulen = gorulenOku(oturum.eposta);
+  merkez.setExternalItems(ad,olaylar.map(olay => ({
+    id:tur + ":" + olay.id, tip, okundu:gorulen.has(olay.anahtar),
+    olusturuldu:olay.zaman, olayAnahtari:olay.anahtar,rootOlayAnahtari:tip+":"+olay.id,kaynakId:olay.id,
+    sessizUyari:!canliGosterilsinMi(olay,Date.now()) || (typeof window.portalBildirimUyariAcikMi === "function" && !window.portalBildirimUyariAcikMi(tip)),
+    onRead:async () => {
+      if (!oturumGecerli(oturum) || ortakMerkez() !== merkez) return false;
+      const okunan = gorulenOku(oturum.eposta); okunan.add(olay.anahtar);
+      return gorulenYaz(okunan,oturum.eposta);
+    },
+    onOpen:() => { if (oturumGecerli(oturum)) listeyeGit(tur); }
+  })),secenekler);
+  return true;
+}
 
 async function ayarYukle(api) {
   try {
@@ -183,75 +220,100 @@ export function baslat() {
   const k = kullanici();
   if (!k.eposta || !(k.personel || k.isAdmin)) return Promise.resolve(false);
   if (aktif && aktif.eposta === k.eposta) return Promise.resolve(true);
-  if (baslatmaSozu) return baslatmaSozu;
-  baslatmaSozu = (async () => {
+  if (baslatmaSozu && baslatmaEposta === k.eposta) return baslatmaSozu;
+  durdur();
+  const surum = calismaSurumu;
+  baslatmaEposta = k.eposta;
+  const soz = (async () => {
     try {
       const api = P();
       if (!api?.fb || !api?.db) return false;
-      durdur();
-      ayar = await ayarYukle(api);
-      if (!ayar.acik) return false;
-      if (kullanici().eposta !== k.eposta) return false;   // bu arada oturum değişti
-      aktif = { eposta: k.eposta, gun: api.bugun(), unsubs: [], gunKontrol: null };
-      stilEkle();
-      sesKilidiniKur();
+      const yeniAyar = await ayarYukle(api);
+      if (surum !== calismaSurumu || kullanici().eposta !== k.eposta || !yeniAyar.acik) return false;
+      ayar = yeniAyar;
+      const oturum = { eposta:k.eposta, gun:api.bugun(), unsubs:[], gunKontrol:null, kaynaklar:new Map() };
+      aktif = oturum;
+      if (!ortakMerkez()) { stilEkle(); sesKilidiniKur(); }
       if (DANISMA_ROLLERI.includes(k.rol) && !k.isAdmin) danismaKuyrukDuzeltmeyiKur();
-      dinle(api, k);
-      // Gece yarısı geçerse yeni günün kayıtlarını dinle
-      aktif.gunKontrol = setInterval(() => {
-        if (aktif && P()?.bugun?.() !== aktif.gun) { durdur(); baslat(); }
-      }, 5 * 60000);
+      dinle(api,k,oturum);
+      oturum.gunKontrol = setInterval(() => {
+        if (!oturumGecerli(oturum)) { if (aktif === oturum) durdur(); return; }
+        if (P()?.bugun?.() !== oturum.gun) { durdur(); baslat(); }
+      },5 * 60000);
       return true;
     } catch (e) {
-      console.warn("Anlık bildirimler başlatılamadı:", e?.code || e?.message);
+      console.warn("Anlık bildirimler başlatılamadı:",e?.code || e?.message);
       return false;
     } finally {
-      baslatmaSozu = null;
+      if (surum === calismaSurumu) { baslatmaSozu = null; baslatmaEposta = ""; }
     }
   })();
-  return baslatmaSozu;
+  baslatmaSozu = soz;
+  return soz;
 }
 
 export function durdur() {
+  calismaSurumu++;
+  baslatmaSozu = null; baslatmaEposta = "";
   if (aktif) {
     aktif.unsubs.forEach(u => { try { u(); } catch (_) {} });
     clearInterval(aktif.gunKontrol);
+    for (const tur of [...aktif.kaynaklar.keys()]) merkezKaynaginiBirak(aktif,tur);
   }
   aktif = null;
   for (const t of Object.keys(tampon)) { tampon[t] = []; clearTimeout(tamponZamani[t]); tamponZamani[t] = null; }
+  danismaKuyrukObserver?.disconnect(); danismaKuyrukObserver = null;
+  clearTimeout(danismaKuyrukTimer); danismaKuyrukTimer = null;
+  if (typeof document !== "undefined") {
+    document.querySelectorAll?.(".pab-kart").forEach(k => k.remove());
+    document.removeEventListener?.("visibilitychange",baslikTemizle);
+    if (asilBaslik !== null) { document.title = asilBaslik; asilBaslik = null; }
+  }
 }
 
-function dinle(api, k) {
+function dinle(api, k, oturum) {
   const { fb, db } = api;
   const danisma = DANISMA_ROLLERI.includes(k.rol) && !k.isAdmin;
   for (const tur of Object.keys(TUR)) {
     const roller = tur === "sabah" ? ayar.sabahRolleri : ayar.zilRolleri;
-    if (!rolAliyorMu(k, roller)) continue;                                   // bu rol almıyor → sorgu da yok
-    if (k.rol === "ogretmen" && !k.isAdmin && !k.siniflar.length) continue;  // sınıfsız öğretmen almaz
+    if (!rolAliyorMu(k,roller)) continue;
+    if (k.rol === "ogretmen" && !k.isAdmin && !k.siniflar.length) continue;
     const koleksiyon = danisma ? TUR[tur].danisma : TUR[tur].ana;
-    let ilkAsama = true;   // sunucudan ilk tam görüntü gelene kadar "açılış" sayılır
+    let ilkAsama = true;
     try {
-      const q = fb.query(fb.collection(db, koleksiyon), fb.where("tarih", "==", aktif.gun));
-      const unsub = fb.onSnapshot(q, snap => {
-        if (!aktif) return;
+      const q = fb.query(fb.collection(db,koleksiyon),fb.where("tarih","==",oturum.gun));
+      const unsub = fb.onSnapshot(q,{includeMetadataChanges:true},snap => {
+        if (!oturumGecerli(oturum)) return;
         const simdi = Date.now();
-        const gorulen = gorulenOku();
-        let degisti = false;
+        if (ortakMerkez()) {
+          const olaylar = snap.docs.map(d => olayUret(tur,d.id,d.data())).filter(Boolean);
+          olaylar.forEach(zenginlestir);
+          merkezeAktar(oturum,tur,olaylar.filter(o => kullaniciyaUygunMu(o,k,ayar)),{
+            fromCache:!!snap.metadata?.fromCache, initial:ilkAsama
+          });
+          if (!snap.metadata?.fromCache) ilkAsama = false;
+          return;
+        }
+        const gorulen = gorulenOku(); let degisti = false;
         const belgeler = ilkAsama ? snap.docs : snap.docChanges().filter(c => c.type !== "removed").map(c => c.doc);
         for (const d of belgeler) {
-          const olay = olayUret(tur, d.id, d.data());
+          const olay = olayUret(tur,d.id,d.data());
           if (!olay || gorulen.has(olay.anahtar)) continue;
           zenginlestir(olay);
-          if (!kullaniciyaUygunMu(olay, k, ayar)) continue;
-          const gosterilsin = ilkAsama ? ilkYuklemedeGosterilsinMi(olay, simdi, ayar.ilkYuklemePencereDk) : canliGosterilsinMi(olay, simdi);
+          if (!kullaniciyaUygunMu(olay,k,ayar)) continue;
+          const gosterilsin = ilkAsama ? ilkYuklemedeGosterilsinMi(olay,simdi,ayar.ilkYuklemePencereDk) : canliGosterilsinMi(olay,simdi);
           if (gosterilsin) tamponaEkle(olay);
-          else { gorulen.add(olay.anahtar); degisti = true; }   // eski kayıt: sessizce görüldü say
+          else { gorulen.add(olay.anahtar); degisti = true; }
         }
         if (degisti) gorulenYaz(gorulen);
         if (!snap.metadata?.fromCache) ilkAsama = false;
-      }, e => console.warn(`Anlık bildirim (${koleksiyon}) dinlenemiyor:`, e?.code || e?.message));
-      aktif.unsubs.push(unsub);
-    } catch (e) { console.warn("Anlık bildirim sorgusu:", e?.code || e?.message); }
+      },e => {
+        if (!oturumGecerli(oturum)) return;
+        merkezKaynaginiBirak(oturum,tur);
+        console.warn(`Anlık bildirim (${koleksiyon}) dinlenemiyor:`,e?.code || e?.message);
+      });
+      oturum.unsubs.push(unsub);
+    } catch (e) { console.warn("Anlık bildirim sorgusu:",e?.code || e?.message); }
   }
 }
 
@@ -274,7 +336,7 @@ function tamponaEkle(olay) {
 function bosalt(tur) {
   tamponZamani[tur] = null;
   const liste = tampon[tur].splice(0);
-  if (!aktif || !liste.length) return;
+  if (!aktif || !liste.length || ortakMerkez()) return;
   const gorulen = gorulenOku();
   const yeni = liste.filter(o => !gorulen.has(o.anahtar));
   if (!yeni.length) return;
@@ -300,6 +362,7 @@ function yiginGetir() {
 }
 
 function goster(tur, olaylar) {
+  if (ortakMerkez()) return;
   stilEkle();
   const t = TUR[tur];
   const { baslik, satirlar, fazla } = metinOlustur(tur, olaylar);
