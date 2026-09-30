@@ -39,6 +39,30 @@ export function interactionPatch(previous, type, now, completed = false) {
     sonIndirme:now, sonIndirmeDurumu:completed ? 'tamamlandi' : 'baslatildi', indirmeSayisi:Number(previous.indirmeSayisi || 0) + 1 };
   return null;
 }
+export function eventTime(value) {
+  try {
+    const date = value?.toDate ? value.toDate() : value?.seconds != null ? new Date(Number(value.seconds) * 1000) : new Date(value);
+    return value && Number.isFinite(date.getTime()) ? date.toISOString() : '';
+  } catch (_) { return ''; }
+}
+const safeCount = value => Number.isFinite(Number(value)) ? Math.max(0, Math.floor(Number(value))) : 0;
+export function interactionSummary(records) {
+  const first = records.map(r => eventTime(r.ilkAcma || r.sonAcma)).filter(Boolean).sort();
+  const last = records.map(r => eventTime(r.sonAcma || r.ilkAcma)).filter(Boolean).sort();
+  const downloads = records.filter(r => r.indirmeBaslatildi || r.indirildi || safeCount(r.indirmeSayisi) > 0)
+    .map(r => ({...r, time:eventTime(r.sonIndirme)})).sort((a,b) => a.time.localeCompare(b.time));
+  const latestDownload = downloads.at(-1);
+  return {
+    opened:records.some(r => r.ilkAcma || r.sonAcma || safeCount(r.acmaSayisi) > 0),
+    firstOpen:first[0] || '', lastOpen:last.at(-1) || '',
+    openCount:records.reduce((sum,r) => sum + (safeCount(r.acmaSayisi) || (r.ilkAcma || r.sonAcma ? 1 : 0)), 0),
+    downloaded:records.some(r => r.indirildi === true), started:downloads.length > 0,
+    downloadCount:downloads.reduce((sum,r) => sum + (safeCount(r.indirmeSayisi) || 1), 0),
+    lastDownload:latestDownload?.time || '',
+    lastDownloadStatus:latestDownload?.sonIndirmeDurumu || (latestDownload ? latestDownload.indirildi === true ? 'tamamlandi' : 'baslatildi' : ''),
+    favorite:records.some(r => r.favori === true)
+  };
+}
 export function createInteractionService(getApi) {
   async function record(media, type, completed = false) {
     const api = getApi(), state = api?.state || {}, user = state.currentUser;
@@ -81,11 +105,7 @@ export function createInteractionService(getApi) {
       const matches = records.filter(r => hash && r.veliEmailHash === hash);
       rows.push({ name:displayName(value.adSoyad || [value.ad, value.soyad].filter(Boolean).join(' ')),
         children:children.map(id => displayName(byId.get(id).ogrenciAdSoyad || byId.get(id).adSoyad || byId.get(id).ad, 'Öğrenci')),
-        opened:matches.some(r => r.ilkAcma || Number(r.acmaSayisi) > 0),
-        downloaded:matches.some(r => r.indirildi === true),
-        started:matches.some(r => r.indirmeBaslatildi || Number(r.indirmeSayisi) > 0),
-        favorite:matches.some(r => r.favori === true),
-        lastOpen:matches.map(r => String(r.sonAcma || r.ilkAcma || '')).sort().at(-1) || '' });
+        ...interactionSummary(matches) });
     }
     if (getApi()?.state?.currentUser?.uid !== owner || !management(getApi()?.state)) throw new Error('Oturum değişti');
     return rows;

@@ -83,6 +83,26 @@ export async function downloadMedia(media, button = null) {
     return false;
   } finally { if (button) { button.disabled = false; button.textContent = label; } }
 }
+export function reportTime(value) {
+  const date = new Date(value);
+  return value && Number.isFinite(date.getTime()) ? date.toLocaleString('tr-TR', { timeZone:'Europe/Istanbul', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' }) : 'Zaman kaydı yok';
+}
+export function interactionRowHtml(row) {
+  const download = row.lastDownloadStatus === 'tamamlandi' ? 'Kaydetme doğrulandı' : 'İndirme başlatıldı';
+  return `<div style="padding:12px 0;border-bottom:1px solid #eee"><strong>${escape(row.name)}</strong><div style="font-size:12px;color:#687385">${row.children.map(escape).join(', ')}</div><div style="font-size:12px;line-height:1.7;margin-top:6px">${row.opened ? `İlk açılış: ${escape(reportTime(row.firstOpen))}<br>Son açılış: ${escape(reportTime(row.lastOpen))}<br>Açılış sayısı: ${Number(row.openCount) || 0}` : 'Açılış kaydı yok'}${row.started ? `<br>Son indirme: ${escape(reportTime(row.lastDownload))}<br>${download} · ${Number(row.downloadCount) || 0} işlem` : '<br>İndirme kaydı yok'}${row.favorite ? '<br>♥ Favori' : ''}</div></div>`;
+}
+function reportControl() {
+  const anchor = document.getElementById('galeriLightboxIndirBtn'); if (!anchor) return;
+  let button = document.getElementById('pgInteractionButton');
+  if (!button) {
+    button = document.createElement('button'); button.id = 'pgInteractionButton'; button.type = 'button';
+    button.textContent = 'Kim açtı? · Veli etkileşimleri';
+    button.style.cssText = 'padding:10px 15px;margin-right:8px;background:#eef2ff;color:#303b70;border:1px solid #c7d2fe;border-radius:10px;font-weight:700;cursor:pointer';
+    button.onclick = () => { if (active?.durum === 'onaylandi' && management(api()?.state)) reportPanel(active); };
+    anchor.before(button);
+  }
+  button.hidden = !(active?.durum === 'onaylandi' && management(api()?.state));
+}
 async function reportPanel(media) {
   if (!management(api()?.state)) return;
   document.getElementById('pgInteractionPanel')?.remove();
@@ -97,8 +117,8 @@ async function reportPanel(media) {
     const rows = await service.report(media);
     if (!panel.isConnected) return;
     const opened = rows.filter(row => row.opened), missing = rows.filter(row => !row.opened);
-    const rowHtml = row => `<div style="padding:12px 0;border-bottom:1px solid #eee"><strong>${escape(row.name)}</strong><div style="font-size:12px;color:#687385">${row.children.map(escape).join(', ')}</div><div style="font-size:12px;margin-top:5px">${row.opened ? 'Açtı' : 'Açılış kaydı yok'}${row.lastOpen ? ' · ' + escape(new Date(row.lastOpen).toLocaleString('tr-TR')) : ''}${row.downloaded ? ' · Kaydedildi' : row.started ? ' · İndirme başlatıldı' : ''}${row.favorite ? ' · ♥ Favori' : ''}</div></div>`;
-    panel.querySelector('[data-pg-report]').innerHTML = `<div style="font-size:13px;margin-bottom:12px">${opened.length}/${rows.length} veli hesabı açtı · ${rows.filter(r => r.started).length} indirme başlattı</div><p style="font-size:12px;color:#687385">Açtı, içeriğin açıldığını gösterir; videonun izlendiğini veya bitirildiğini kanıtlamaz. Tarayıcı indirmesinde kaydın tamamlandığı her zaman doğrulanamaz. Eski sürümlerdeki açılışlar kaydedilmemiş olabilir.</p><h4>Açanlar</h4>${opened.map(rowHtml).join('') || '<p>Henüz kayıt yok</p>'}<h4>Açılış kaydı olmayanlar</h4>${missing.map(rowHtml).join('') || '<p>Hedefteki tüm hesapların açılış kaydı var</p>'}`;
+    const rowHtml = interactionRowHtml;
+    panel.querySelector('[data-pg-report]').innerHTML = `<div style="font-size:13px;margin-bottom:12px">${opened.length}/${rows.length} veli hesabı açtı · ${rows.filter(r => r.started).length} indirme başlattı</div><p style="font-size:12px;color:#687385">Açtı, içeriğin açıldığını gösterir; videonun izlendiğini veya bitirildiğini kanıtlamaz. Tarayıcı indirmesinde kaydın tamamlandığı her zaman doğrulanamaz. Eski sürümlerdeki açılışlar kaydedilmemiş olabilir. Tarih ve saatler Türkiye saatidir.</p><h4>Açanlar</h4>${opened.map(rowHtml).join('') || '<p>Henüz kayıt yok</p>'}<h4>Açılış kaydı olmayanlar</h4>${missing.map(rowHtml).join('') || '<p>Hedefteki tüm hesapların açılış kaydı var</p>'}`;
   } catch (_) {
     if (panel.isConnected) panel.querySelector('[data-pg-report]').textContent = 'Etkileşim kayıtları okunamadı. Galeri etkileşim kurallarını ve bağlantıyı kontrol edin; bu durum hiç kimsenin açmadığı anlamına gelmez.';
   }
@@ -174,6 +194,7 @@ export function installLiveGallery(win = window) {
       disposeMedia(document.getElementById('galeriLightboxIcerik'));
       active = media; const ticket = ++sequence;
       const result = original.call(this, id, ...args);
+      reportControl();
       replaceActivePlayer(media, ticket);
       // Existing education approval wrapper adds the details pane asynchronously.
       win.setTimeout(() => replaceActivePlayer(media, ticket), 0);
@@ -182,7 +203,7 @@ export function installLiveGallery(win = window) {
     };
   }
   const close = win.closeGaleriLightbox;
-  win.closeGaleriLightbox = function(...args) { ++sequence; active = null; disposeMedia(document.getElementById('galeriLightboxIcerik')); return close?.apply(this, args); };
+  win.closeGaleriLightbox = function(...args) { ++sequence; active = null; reportControl(); disposeMedia(document.getElementById('galeriLightboxIcerik')); return close?.apply(this, args); };
   win.albumZipIndir = downloadAlbum;
   win.galeriLightboxIndir = () => downloadMedia(active, document.getElementById('galeriLightboxIndirBtn'));
   const observer = new win.MutationObserver(() => refreshGalleryCards());
