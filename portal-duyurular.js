@@ -228,6 +228,20 @@ window.kaydetDuyuru = async function() {
       const ref = doc(collection(db, "duyurular"));
       await setDoc(ref, data, { merge: true });
 
+      // Portal ve ZEKY artık aynı bildirim merkezini kullanır.
+      import("./js/zeky-bildirim-koprusu.js").then(async m => {
+        const alicilar = m.hedefVeliEmailleri({ hedefTur:data.hedefTur, hedefDeger:data.hedefDeger });
+        if (alicilar.length) {
+          await m.bildirimKaydetVePush(alicilar, {
+            tip:"duyuru",
+            baslik:data.baslik || "Yeni duyuru",
+            metin:String(data.icerik || "").slice(0, 220),
+            hedefSayfa:"duyurular.html",
+            kaynakId:ref.id
+          });
+        }
+      }).catch(e => console.warn("Duyuru ZEKY bildirimi:", e?.message || e));
+
       // Mail gönderimi
       if (mailGonder) {
         duyuruMailGonder(data);
