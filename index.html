@@ -13934,7 +13934,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v130";
+window.PORTAL_SURUM = "v163";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -15820,14 +15820,20 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
       console.warn("Mesaj bildirim kaydı yazılamadı:", e?.code || e?.message || e);
     }
 
-    import("./js/zeky-operasyon-push.js")
-      .then(m => m.genelPushGonder([karsiTaraf], {
+    try {
+      const pushMod = await import("./js/zeky-operasyon-push.js?v=163");
+      const pushSonuc = await pushMod.genelPushGonder([karsiTaraf], {
         tip: "mesaj",
         baslik: bildirimBaslik,
         metin: bildirimMetin,
         hedefSayfa
-      }))
-      .catch(e => console.warn("Mesaj push köprüsü:", e?.message || e));
+      });
+      if (pushSonuc && pushSonuc.ok === false) {
+        console.warn("Mesaj push gönderilemedi:", pushSonuc.hata || pushSonuc);
+      }
+    } catch (e) {
+      console.warn("Mesaj push köprüsü:", e?.message || e);
+    }
   }
 }
 
@@ -47908,9 +47914,22 @@ window.showBulkUpload = async function() {
 <!-- PWA: Service Worker kaydı (yalnızca güvenli bağlamda; localhost/https) -->
 <script>
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("serviceworker.js")
-        .catch((err) => console.warn("Service worker kaydı başarısız:", err));
+    window.addEventListener("load", async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=163");
+        reg.update().catch(() => {});
+        let yenilendi = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (yenilendi) return;
+          yenilendi = true;
+          const anahtar = "portalSwReload_v163";
+          if (sessionStorage.getItem(anahtar)) return;
+          sessionStorage.setItem(anahtar, "1");
+          location.reload();
+        });
+      } catch (err) {
+        console.warn("Service worker kaydı başarısız:", err);
+      }
     });
   }
 </script>
