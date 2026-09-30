@@ -359,6 +359,11 @@ async function rozetBildirimGonder(ogrenciId, yeniRozetler) {
     okundu: false,
     olusturuldu: new Date().toISOString()
   })));
+  import("./js/zeky-operasyon-push.js")
+    .then(m => m.genelPushGonder(aliciListe, {
+      tip:"rozet", baslik:"Yeni gelişim rozeti", metin, hedefSayfa:"gelisim"
+    }))
+    .catch(e => console.warn("[Rozet] push", e?.message || e));
 }
 
 // ══════════════════════════════════════════════════════════════
