@@ -466,6 +466,11 @@ async function bildirimGonder(not, alicilar) {
   Promise.all(alicilar.map(e => fb.addDoc(fb.collection(db, "bildirimler"), {
     aliciEmail: e, tip: "gorusme_notu", baslik, metin, hedefSayfa: "gorusmeNotlari", okundu: false, olusturuldu: new Date().toISOString()
   }))).catch(() => {});
+  import("../js/zeky-operasyon-push.js")
+    .then(m => m.genelPushGonder(alicilar, {
+      tip:"gorusme_notu", baslik, metin, hedefSayfa:"gorusmeNotlari"
+    }))
+    .catch(() => {});
   const kayit = notOnbellek?.get(not.randevuId || not.id);
   if (kayit) kayit.bildirimAlicilari = [...new Set([...(kayit.bildirimAlicilari || []), ...alicilar])];
 }
