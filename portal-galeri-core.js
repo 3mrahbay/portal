@@ -1536,7 +1536,7 @@ async function galeriGuncellemeBildirimi(grup) {
 
     const tarihStr = etkinlikTarih ? new Date(etkinlikTarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "";
 
-    // Her hedef öğrencinin bildirimler alt koleksiyonuna kaydet
+    // Öğrenci geçmişi için alt koleksiyon kaydını koru.
     for (const o of hedefOgrenciler) {
       const bildirimRef = doc(collection(db, "ogrenciler", o.id, "bildirimler"));
       await setDoc(bildirimRef, {
@@ -1554,6 +1554,23 @@ async function galeriGuncellemeBildirimi(grup) {
         donem: B.donem()
       }, { merge: true });
     }
+
+    // ZEKY ana zil/push ise kök bildirimler koleksiyonunu kullanır.
+    await import("./js/zeky-bildirim-koprusu.js").then(async m => {
+      const alicilar = m.hedefVeliEmailleri({
+        hedefTur, hedefDeger,
+        sinifEsle:(a,b)=>(sinifAdiResmiEsle(a) || a) === (sinifAdiResmiEsle(b) || b)
+      });
+      if (alicilar.length) {
+        await m.bildirimKaydetVePush(alicilar, {
+          tip:"galeri",
+          baslik:`📸 ${etkinlikBaslik} albümü güncellendi`,
+          metin:`${icerikMetni} eklendi${tarihStr ? " · " + tarihStr : ""}`,
+          hedefSayfa:"galeri.html",
+          kaynakId:String(etkinlikBaslik || "")
+        });
+      }
+    });
 
     showToast(`🔔 ${hedefOgrenciler.length} öğrencinin velisine bildirim gönderildi`);
   } catch (e) {
