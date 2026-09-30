@@ -17,3 +17,36 @@ export async function operasyonPushTetikle(olay, kayitId) {
     return false;
   }
 }
+
+
+export async function genelPushGonder(aliciEmailler, { baslik, metin = '', hedefSayfa = '', tip = 'genel' } = {}) {
+  const emailler = [...new Set((aliciEmailler || [])
+    .map(e => String(e || '').trim().toLowerCase())
+    .filter(Boolean))];
+  if (!emailler.length) return { ok:false, hata:'alici-yok' };
+  try {
+    const r = await fetch(PUSH_PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        aliciEmailler: emailler,
+        baslik: String(baslik || 'ZEKY'),
+        metin: String(metin || ''),
+        hedefSayfa: String(hedefSayfa || 'bildirimler.html'),
+        tip: String(tip || 'genel')
+      })
+    });
+    let sonuc = null;
+    try {
+      const t = await r.text();
+      if (t) sonuc = JSON.parse(t);
+    } catch (_) {}
+    if (!r.ok || sonuc?.ok === false) {
+      throw new Error(sonuc?.hata || ('push-http-' + r.status));
+    }
+    return sonuc || { ok:true };
+  } catch (e) {
+    console.warn('ZEKY genel push gönderilemedi:', e?.message || e);
+    return { ok:false, hata:String(e?.message || e) };
+  }
+}
