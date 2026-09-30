@@ -200,9 +200,11 @@ async function galeriEtkilesimRozetleriYenile(liste) {
       const oge = kuyruk.shift();
       try {
         const o = await galeriEtkilesimOzetGetir(oge);
-        document.querySelectorAll(`[data-galeri-etkilesim-badge="${CSS.escape(oge.id)}"]`).forEach(b => {
-          b.textContent = `👁 ${o.acan}/${o.hedef || 0} · ↓ ${o.indiren} · ♥ ${o.favori}`;
-        });
+        Array.from(document.querySelectorAll("[data-galeri-etkilesim-badge]"))
+          .filter(b => b.dataset.galeriEtkilesimBadge === String(oge.id))
+          .forEach(b => {
+            b.textContent = `👁 ${o.acan}/${o.hedef || 0} · ↓ ${o.indiren} · ♥ ${o.favori}`;
+          });
       } catch (e) {
         console.warn("Galeri etkileşim özeti okunamadı:", e?.code || e?.message);
       }
