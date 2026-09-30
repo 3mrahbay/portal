@@ -1,4 +1,6 @@
+import { createTitleResolver } from './portal-bildirim-basliklari.js?v=165';
 // Yalnız oturum sahibinin kök bildirimleri. Kapalı tarayıcı/FCM alıcısı değildir.
+import { createNotificationHeaderMounts, positionNotificationPanel } from './portal-bildirim-yerlesim.js?v=165';
 import { setupMessageSound, showPortalNotice, dismissPortalNotice } from './portal-mesaj-bildirim.js?v=164';
 
 const clean = value => String(value ?? '').trim();
@@ -82,14 +84,19 @@ function ensureStyles(doc) {
   if (doc.getElementById('portalBildirimMerkeziStil')) return;
   const style = doc.createElement('style'); style.id = 'portalBildirimMerkeziStil';
   style.textContent = `
-.pbm-yuva{display:inline-flex;align-items:center;font-family:inherit}.pbm-yuva.pbm-sabit{position:fixed;right:18px;bottom:max(82px,calc(env(safe-area-inset-bottom) + 82px));z-index:9990}
-.pbm-zil{position:relative;min-width:44px;min-height:44px;border:1px solid #d8deef;border-radius:14px;background:#fff;color:#28356a;cursor:pointer;font:inherit;font-size:22px;box-shadow:0 3px 12px #17264c12}
+.pbm-yuva,.pbm-baslik-yuvasi{display:inline-flex;align-items:center;flex-shrink:0;font-family:inherit}
+.pbm-veli-ustbar{position:sticky;top:0;z-index:55;display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:10px 18px;background:var(--cream,#f8f5ee);border-bottom:1px solid #e5e9f2;font-family:inherit}.pbm-ustbar-etiket{font-size:13px;font-weight:600;color:#4a5169}
+#veliPanel.pbm-veli-aktif .ca-topbar button[onclick="veliSwitchTab('bildirimler')"]{display:none}
+.pbm-baslik-aktif .user-menu{flex-wrap:wrap}.pbm-baslik-aktif .user-badge{min-width:0}.pbm-baslik-aktif .user-badge>div:last-child{min-width:0}.pbm-baslik-aktif #userName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+@media(max-width:900px){.pbm-baslik-aktif .dash-header-inner{flex-wrap:wrap;gap:12px}.pbm-baslik-aktif .user-menu{justify-content:flex-end;width:100%;gap:10px}}
+@media(max-width:480px){.pbm-baslik-aktif .dash-header-inner{padding:0 12px}.pbm-baslik-aktif .user-menu{gap:8px}.pbm-baslik-aktif #userName{max-width:150px}.pbm-veli-ustbar{padding:8px 12px}}
+.pbm-zil{position:relative;min-width:44px;min-height:44px;border:1px solid #d8deef;border-radius:14px;background:#fff;color:#28356a;cursor:pointer;font:inherit;font-size:22px;display:grid;place-items:center;box-shadow:0 3px 12px #17264c12}.pbm-zil svg{display:block;width:22px;height:22px}.pbm-zil:hover{background:#f1f3fc;border-color:#aeb9df}
 .pbm-sayac{position:absolute;right:-5px;top:-6px;min-width:20px;min-height:20px;padding:2px 5px;border-radius:12px;background:#b42338;color:white;font-size:11px;font-weight:800;box-sizing:border-box}
-.pbm-panel{position:fixed;top:76px;right:18px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 100px);display:flex;flex-direction:column;z-index:10060;background:#fff;color:#202944;border:1px solid #dbe1ed;border-radius:18px;box-shadow:0 20px 60px #17264c40;font-family:inherit;overflow:hidden}
+.pbm-panel{position:fixed;top:var(--pbm-panel-top,76px);right:18px;width:min(420px,calc(100vw - 24px));max-height:calc(100dvh - var(--pbm-panel-top,76px) - 12px);display:flex;flex-direction:column;z-index:10060;background:#fff;color:#202944;border:1px solid #dbe1ed;border-radius:18px;box-shadow:0 20px 60px #17264c40;font-family:inherit;overflow:hidden}
 .pbm-panel[hidden],.pbm-sayac[hidden]{display:none}.pbm-baslik{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #e5e9f2}.pbm-baslik h2{font-size:18px;margin:0}.pbm-kapat{width:40px;height:40px;border:0;border-radius:12px;background:#f1f4fa;color:#202944;font-size:24px;cursor:pointer}.pbm-durum{font-size:13px;padding:0 16px;line-height:1.5}.pbm-durum:empty{display:none}.pbm-durum[data-error="true"]{color:#9d2430}
-.pbm-liste{margin:0;padding:8px 10px;list-style:none;overflow:auto;overscroll-behavior:contain}.pbm-satir{width:100%;display:flex;gap:12px;align-items:center;text-align:left;min-height:66px;padding:12px;border:0;border-bottom:1px solid #eef1f6;background:white;font:inherit;color:#202944;cursor:pointer;border-radius:10px}.pbm-satir:hover{background:#f3f5fb}.pbm-satir[data-unread="true"]{background:#edf2ff}.pbm-satir:disabled{cursor:wait;opacity:.75}.pbm-metin{flex:1;min-width:0}.pbm-metin strong{display:block;font-size:14px}.pbm-metin time{display:block;font-size:12px;color:#606c85;margin-top:4px}.pbm-isaret{font-size:12px;color:#263f94}.pbm-bos{padding:24px 14px;text-align:center;color:#606c85;font-size:14px}
+.pbm-liste{margin:0;padding:8px 10px;list-style:none;overflow:auto;overscroll-behavior:contain}.pbm-satir{width:100%;display:flex;gap:12px;align-items:center;text-align:left;min-height:66px;padding:12px;border:0;border-bottom:1px solid #eef1f6;background:white;font:inherit;color:#202944;cursor:pointer;border-radius:10px}.pbm-satir:hover{background:#f3f5fb}.pbm-satir[data-unread="true"]{background:#edf2ff}.pbm-satir:disabled{cursor:wait;opacity:.75}.pbm-metin{flex:1;min-width:0}.pbm-metin strong{display:block;font-size:14px;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.pbm-kategori{display:block;font-size:12px;color:#606c85;margin-top:4px}.pbm-metin time{display:block;font-size:12px;color:#606c85;margin-top:4px}.pbm-isaret{font-size:12px;color:#263f94}.pbm-bos{padding:24px 14px;text-align:center;color:#606c85;font-size:14px}
 .pbm-zil:focus-visible,.pbm-kapat:focus-visible,.pbm-satir:focus-visible{outline:3px solid #5a6acf;outline-offset:2px}
-@media(max-width:600px){.pbm-panel{top:auto;bottom:max(12px,env(safe-area-inset-bottom));right:12px;max-height:80dvh}}`;
+@media(max-width:600px){.pbm-panel{right:12px}.pbm-satir{align-items:flex-start}}`;
   doc.head.appendChild(style);
 }
 
@@ -112,12 +119,16 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
   const confirmedEvents = new Set();
   const ownedTypes = new Set(), wrappers = [], buttons = [];
   let stopped = false, unsubscribe = null, panel = null, list = null, statusNode = null;
-  let closeButton = null, returnFocus = null, opened = false, rootFailed = false;
+  let closeButton = null, returnFocus = null, opened = false, rootFailed = false, headerMounts = null;
+  const reposition = () => { if (opened) positionNotificationPanel(panel, buttons); };
   let status = 'loading', errorMessage = '';
   const isActive = () => {
     try { return !!account && !!fb && !!db && !stopped && (!getCurrentEmail || clean(getCurrentEmail()) === account); }
     catch (_) { return false; }
   };
+  const requestedTitles = new Set();
+  const titleResolver = createTitleResolver({ fb, db, email: account, isActive,
+    getState: () => typeof window === 'undefined' ? {} : window.PortalAPI?.state || {} });
   const wasConfirmed = record => confirmed.get(keyFor(record)) === notificationEventKey(record);
   const keyFor = record => record._itemKey;
   const safeCallback = (callback, record) => {
@@ -183,10 +194,13 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
         const li = doc.createElement('li'), button = doc.createElement('button');
         button.type = 'button'; button.className = 'pbm-satir';
         button.setAttribute('data-unread', String(entry.unread));
-        button.setAttribute('aria-label', `${notificationLabel(entry.record)}${entry.unread ? ', okunmamış' : ', okundu'}`);
+        const presentation = titleResolver.peek(entry.record);
+        button.setAttribute('aria-label', `${presentation.title}${presentation.title !== notificationLabel(entry.record) ? `, ${notificationLabel(entry.record)}` : ''}${entry.unread ? ', okunmamış' : ', okundu'}`);
         button.disabled = entry.items.some(item => pending.has(keyFor(item)));
         const text = doc.createElement('span'); text.className = 'pbm-metin';
-        const title = doc.createElement('strong'); title.textContent = notificationLabel(entry.record);
+        const title = doc.createElement('strong'); title.textContent = presentation.title;
+        const category = doc.createElement('span'); category.className = 'pbm-kategori';
+        if (presentation.title !== notificationLabel(entry.record)) category.textContent = notificationLabel(entry.record);
         const time = doc.createElement('time');
         if (entry.time) {
           const date = new Date(entry.time);
@@ -195,8 +209,16 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
         } else time.textContent = 'Tarih bilgisi yok';
         const unread = doc.createElement('span'); unread.className = 'pbm-isaret';
         unread.textContent = entry.unread ? 'Yeni' : 'Okundu';
-        text.append(title, time); button.append(text, unread); li.appendChild(button); list.appendChild(li);
+        text.append(title, category, time); button.append(text, unread); li.appendChild(button); list.appendChild(li);
         button.addEventListener('click', () => { void activate(entry.key); });
+        // Başlık ayrıntıları yalnız kullanıcı merkezi açtığında yüklenir.
+        // Aynı render/okuma değişimi ağ isteği veya uyarı döngüsü oluşturmaz.
+        if (opened && !requestedTitles.has(entry.key)) {
+          requestedTitles.add(entry.key);
+          void titleResolver.resolve(entry.record).then(resolved => {
+            if (isActive() && opened && resolved.title !== presentation.title) render();
+          }).catch(() => {});
+        }
       }
       if (!entries.length) {
         const empty = doc.createElement('li'); empty.className = 'pbm-bos';
@@ -209,7 +231,7 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
   }
   function open() {
     if (!isActive() || !panel) return;
-    returnFocus = doc.activeElement; opened = true; panel.hidden = false; render(); closeButton.focus?.();
+    returnFocus = doc.activeElement; requestedTitles.clear(); opened = true; panel.hidden = false; render(); reposition(); closeButton.focus?.();
   }
   function close() {
     if (!panel) return;
@@ -220,14 +242,15 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
   function mount() {
     if (!doc?.body) return;
     ensureStyles(doc);
-    const targets = mounts == null ? [doc.body] : Array.isArray(mounts) ? mounts : [mounts];
+    if (mounts == null) headerMounts = createNotificationHeaderMounts(doc);
+    const targets = mounts == null ? headerMounts.targets : Array.isArray(mounts) ? mounts : [mounts];
     for (let target of targets) {
       if (typeof target === 'string') target = doc.getElementById(target);
       if (!target?.appendChild) continue;
-      const wrapper = doc.createElement('span'); wrapper.className = `pbm-yuva${mounts == null ? ' pbm-sabit' : ''}`;
+      const wrapper = doc.createElement('span'); wrapper.className = 'pbm-yuva';
       const button = doc.createElement('button'); button.type = 'button'; button.className = 'pbm-zil';
       button.setAttribute('aria-haspopup', 'dialog'); button.setAttribute('aria-controls', instance);
-      const icon = doc.createElement('span'); icon.textContent = '🔔'; icon.setAttribute('aria-hidden', 'true');
+      const icon = doc.createElement('span'); icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'; icon.setAttribute('aria-hidden', 'true');
       const badge = doc.createElement('span'); badge.className = 'pbm-sayac'; badge.setAttribute('aria-hidden', 'true');
       button.append(icon, badge); wrapper.appendChild(button); target.appendChild(wrapper);
       button.addEventListener('click', () => { if (opened) close(); else open(); });
@@ -244,6 +267,7 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
     statusNode.setAttribute('aria-live', 'polite');
     list = doc.createElement('ul'); list.className = 'pbm-liste';
     panel.append(heading, statusNode, list); doc.body.appendChild(panel); doc.addEventListener('keydown', onKey);
+    window.addEventListener?.('resize', reposition); window.addEventListener?.('scroll', reposition, true);
   }
   function alert(records, root = false) {
     if (!isActive() || doc?.visibilityState === 'hidden') return;
@@ -355,6 +379,8 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
     stopped = true; status = 'stopped'; opened = false;
     unsubscribe?.(); unsubscribe = null;
     doc?.removeEventListener('keydown', onKey);
+    if (typeof window !== 'undefined') { window.removeEventListener?.('resize', reposition); window.removeEventListener?.('scroll', reposition, true); }
+    headerMounts?.cleanup(); titleResolver.clear(); requestedTitles.clear();
     panel?.remove(); wrappers.forEach(wrapper => wrapper.remove()); dismissPortalNotice(instance);
     roots.clear(); externals.clear(); pending.clear(); confirmed.clear(); failedReads.clear(); confirmedEvents.clear(); tracker.reset(); ownedTypes.clear();
   }

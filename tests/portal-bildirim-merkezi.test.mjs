@@ -99,13 +99,15 @@ async function environment(run, options = {}) {
   };
   Object.assign(globalThis, { document, window, setTimeout(fn) { timers.set(++timer, fn); return timer; }, clearTimeout(id) { timers.delete(id); } });
   const helperURL = new URL(`../js/portal-mesaj-bildirim.js?center=${++sequence}`, import.meta.url).href;
-  const source = (await readFile(new URL('../js/portal-bildirim-merkezi.js', import.meta.url), 'utf8')).replace("'./portal-mesaj-bildirim.js?v=164'", JSON.stringify(helperURL));
+  const source = (await readFile(new URL('../js/portal-bildirim-merkezi.js', import.meta.url), 'utf8')).replace("'./portal-mesaj-bildirim.js?v=164'", JSON.stringify(helperURL)).replace("'./portal-bildirim-yerlesim.js?v=165'", JSON.stringify(new URL('../js/portal-bildirim-yerlesim.js', import.meta.url).href)).replace("'./portal-bildirim-basliklari.js?v=165'", JSON.stringify(new URL('../js/portal-bildirim-basliklari.js', import.meta.url).href));
   const module = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   const helper = await import(helperURL);
-  const subscriptions = [], writes = [], navigations = [];
-  let write = () => Promise.resolve(), currentEmail = email;
+  const subscriptions = [], writes = [], navigations = [], reads = [];
+  let write = () => Promise.resolve(), read = () => Promise.resolve({exists:()=>false}), currentEmail = email;
+  window.PortalAPI = {state: options.portalState || {currentUser:{email}}};
   const fb = { collection: (_db, ...parts) => parts.join('/'), where: (...parts) => parts, query: (...parts) => parts,
     doc: (_db, ...parts) => parts.join('/'),
+    getDoc(path) { reads.push(path); return read(path); },
     updateDoc(path, patch) { writes.push({ path, patch }); return write(path, patch); },
     onSnapshot(query, metadata, next, error) { const sub = { query, metadata, next, error, stopped: false }; subscriptions.push(sub); return () => { sub.stopped = true; }; }
   };
@@ -113,7 +115,7 @@ async function environment(run, options = {}) {
   const feed = (items, metadata = {}) => subscriptions[0].next({ metadata, forEach(fn) { items.forEach(item => fn({ id: item.id, data: () => item, metadata: { hasPendingWrites: !!item._pendingWrites } })); } });
   try { await run({ center, feed, document, events, audio, subscriptions, writes, navigations, timers, helper,
     writer: fn => { write = fn; }, changeAccount: value => { currentEmail = value; },
-    nodes: name => byClass(document.body, name), tick: flush }); }
+    reads, reader: fn => { read = fn; }, window, nodes: name => byClass(document.body, name), tick: flush }); }
   finally {
     center.stop(); helper.clearMessageNotices(); helper.clearPortalNotices();
     for (const [key, value] of Object.entries(old)) { if (value === undefined) delete globalThis[key]; else globalThis[key] = value; }
@@ -336,5 +338,36 @@ test('automatic thread-read failures do not retry on a rollback snapshot or UI r
     feed([item]);center.refresh();await center.markThreadRead('thread-failure');assert.equal(writes.length,1);
     assert.equal(center.getState().unreadCount,1);
     writer(async()=>{});assert.equal(await center.markRead('chat-read'),true);assert.equal(writes.length,2);
+  });
+});
+
+
+test('authenticated list shows full plain-text titles while toast stays generic', async () => {
+  await environment(({ feed, center, nodes }) => {
+    feed([]);
+    const title = 'Sonbahar gezisi ve aile atölyesi '.repeat(12) + '<img src=x onerror=bad>';
+    feed([record('event-title', { tip:'etkinlik', baslik:title }), record('sender-title', {tip:'mesaj',baslik:'Yeni mesaj · Deniz Örnek',metin:'MESSAGE BODY'})]);
+    center.open();
+    const rows=nodes('pbm-satir');
+    assert.ok(rows.some(row=>row.textContent.includes(title)));
+    assert.ok(rows.some(row=>row.textContent.includes('Deniz Örnek')));
+    assert.ok(rows.every(row=>!row.textContent.includes('MESSAGE BODY')));
+    const strong=nodes('pbm-metin').flatMap(node=>node.children).filter(node=>node.tagName==='strong');
+    assert.ok(strong.every(node=>node.children.length===0));
+    const toast=nodes('pmb-kart')[0];assert.ok(toast && !toast.textContent.includes(title));
+    assert.equal(center.getState().unreadCount,2);
+  });
+});
+
+test('historic sender lookup starts only on open; repeated open is cached and never marks read or alerts', async () => {
+  await environment(async ({ feed, center, nodes, reads, reader, tick, writes, audio }) => {
+    reader(async ()=>({exists:()=>true,data:()=>({katilimcilar:[email.toLowerCase(),'sender@example.test'],katilimciBilgi:{'sender@example.test':{ad:'Aylin Yılmaz'}}})}));
+    feed([record('old-message',{tip:'mesaj',baslik:'Yeni mesaj',kaynakId:'chat-old'})]);
+    await tick(); assert.equal(reads.length,0);
+    center.open(); await tick();
+    assert.deepEqual(reads,['mesajlar/chat-old']);
+    assert.match(nodes('pbm-satir')[0].textContent,/Aylin Yılmaz/);
+    center.close();center.open();await tick();assert.equal(reads.length,1);
+    assert.equal(center.getState().unreadCount,1);assert.equal(writes.length,0);assert.equal(audio.sounds.length,0);
   });
 });
