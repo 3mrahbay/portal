@@ -20368,6 +20368,9 @@ window.pickupHazirla = async function(ogrenciId, tarih) {
       hazirZamani: guncelleme.hazirZamani, guncellendi: serverTimestamp()
     }, { merge: true });
     await batch.commit();
+    import("./js/zeky-operasyon-push.js")
+      .then(m => m.operasyonPushTetikle("pickup-hazir", ogrenciId + "__" + tarih))
+      .catch(() => {});
     showToast("✓ Hazırlandı olarak işaretlendi");
     if (typeof okulZiliDoldur === "function") okulZiliDoldur();
   } catch (e) {
