@@ -15793,6 +15793,42 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
   if (karsiTaraf) alanlar.push(new FieldPath("okunmamis", karsiTaraf), increment(1));
   batch.update(threadRef, ...alanlar);
   await batch.commit();
+
+  // PORTAL ↔ ZEKY TEK BİLDİRİM HATTI:
+  // Mesajı sohbet koleksiyonuna yazmak tek başına ZEKY zil rozeti/push üretmiyordu.
+  // Karşı taraf için kök bildirim kaydı yaz; ardından aynı alıcıya FCM gönder.
+  // Bildirim/push başarısız olursa mesaj geri alınmaz.
+  if (karsiTaraf) {
+    const gonderenBilgi = (thread.katilimciBilgi || {})[gonderen] || {};
+    const gonderenAd = mesajGorunenAd(thread, gonderen, gonderenBilgi.rol === "veli" ? "Veli" : "Okul");
+    const bildirimBaslik = "Yeni mesaj · " + (gonderenAd || "Okul");
+    const bildirimMetin = ozetMetin || "Yeni mesajınız var";
+    const hedefSayfa = "sohbet.html?thread=" + encodeURIComponent(threadId);
+
+    try {
+      await addDoc(collection(db, "bildirimler"), {
+        aliciEmail: String(karsiTaraf).toLowerCase(),
+        tip: "mesaj",
+        baslik: bildirimBaslik,
+        metin: bildirimMetin,
+        hedefSayfa,
+        kaynakId: threadId,
+        okundu: false,
+        olusturuldu: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn("Mesaj bildirim kaydı yazılamadı:", e?.code || e?.message || e);
+    }
+
+    import("./js/zeky-operasyon-push.js")
+      .then(m => m.genelPushGonder([karsiTaraf], {
+        tip: "mesaj",
+        baslik: bildirimBaslik,
+        metin: bildirimMetin,
+        hedefSayfa
+      }))
+      .catch(e => console.warn("Mesaj push köprüsü:", e?.message || e));
+  }
 }
 
 // Bir thread'i okundu işaretle (mevcut kullanıcı için sayacı sıfırla)
