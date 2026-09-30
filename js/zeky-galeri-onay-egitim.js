@@ -6,6 +6,7 @@ const KURULUM='__zekyGaleriOnayEgitimV3';
 const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi',degerlerPlus:'Değerler+'};
 const ASAMA={S:'Sunuldu',T:'Tekrar ediyor',U:'Ustalaştı'};
 let gozlemci=null;
+let lightboxTicket=0;
 let onarimZamanlayici=0,onarimCalisiyor=false;
 const onarilanKayitlar=new Set();
 const onayIsleri=new Map();
@@ -30,10 +31,23 @@ function detayHTML(m){const p=PROGRAM[programKodu(m)]||m.programAd||'Eğitim',a=
 
 function lightboxZenginlestir(id){
   const m=veri(id),icerik=document.getElementById('galeriLightboxIcerik');if(!m||!icerik||!egitimMi(m))return;
-  const medya=icerik.innerHTML;icerik.classList.add('zgo-grid');icerik.style.cssText='background:white;border-radius:16px;overflow:hidden;max-height:92vh;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;justify-content:center;max-width:94vw';icerik.innerHTML=`<div class="zgo-medya" style="min-width:0;background:#111;display:grid;place-items:center;overflow:hidden">${medya}</div>${detayHTML(m)}`;const img=icerik.querySelector('.zgo-medya img');if(img)img.style.cssText='width:100%;height:100%;max-width:min(64vw,980px);max-height:92vh;object-fit:contain';icerik.querySelector('[data-zgo-onay]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriOnayla?.(id);});icerik.querySelector('[data-zgo-red]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriReddet?.(id);});
+  const medya=Array.from(icerik.childNodes);icerik.classList.add('zgo-grid');icerik.style.cssText='background:white;border-radius:16px;overflow:hidden;max-height:92vh;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;justify-content:center;max-width:94vw';icerik.innerHTML=`<div class="zgo-medya" style="min-width:0;background:#111;display:grid;place-items:center;overflow:hidden"></div>${detayHTML(m)}`;icerik.querySelector('.zgo-medya').append(...medya);const img=icerik.querySelector('.zgo-medya img');if(img)img.style.cssText='width:100%;height:100%;max-width:min(64vw,980px);max-height:92vh;object-fit:contain';icerik.querySelector('[data-zgo-onay]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriOnayla?.(id);});icerik.querySelector('[data-zgo-red]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriReddet?.(id);});
 }
 
-function fonksiyonlariSar(){const eski=window.acGaleriLightbox;if(typeof eski!=='function'||eski.__zekyEgitimDetay)return false;const yeni=function(id,...args){const r=eski.call(this,id,...args);setTimeout(()=>lightboxZenginlestir(id),0);return r;};yeni.__zekyEgitimDetay=true;yeni.__eski=eski;window.acGaleriLightbox=yeni;return true;}
+function fonksiyonlariSar(){
+  const eski=window.acGaleriLightbox;if(typeof eski!=='function'||eski.__zekyEgitimDetay)return false;
+  const yeni=function(id,...args){
+    const ticket=++lightboxTicket,icerik=document.getElementById('galeriLightboxIcerik');
+    if(icerik){icerik.classList.remove('zgo-grid');icerik.style.cssText='background:white;border-radius:14px;overflow:hidden;max-height:95vh;display:flex;align-items:center;justify-content:center';}
+    const r=eski.call(this,id,...args);
+    setTimeout(()=>{if(ticket===lightboxTicket&&document.getElementById('galeriLightbox')?.classList.contains('active'))lightboxZenginlestir(id);},0);
+    return r;
+  };
+  yeni.__zekyEgitimDetay=true;yeni.__eski=eski;window.acGaleriLightbox=yeni;
+  const kapat=window.closeGaleriLightbox;
+  if(typeof kapat==='function'&&!kapat.__zekyEgitimKapat){const yeniKapat=function(...args){++lightboxTicket;return kapat.apply(this,args);};yeniKapat.__zekyEgitimKapat=true;window.closeGaleriLightbox=yeniKapat;}
+  return true;
+}
 
 function api(){const p=window.PortalAPI||{},b=window.BCK||{};return{db:p.db||b.db,fb:p.fb||b};}
 async function galeriBelgesi(id){const{db,fb}=api();if(!db||!fb?.getDoc||!fb?.doc)return null;const s=await fb.getDoc(fb.doc(db,'galeri',id));return s.exists()?{id,...(s.data()||{})}:null;}
