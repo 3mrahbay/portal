@@ -120,38 +120,40 @@ async function galeriVeliEtkilesimKaydet(oge, tur, ek = {}) {
   return true;
 }
 
-function galeriHedefVeliler(oge) {
-  const harita = new Map();
+async function galeriHedefVeliler(oge) {
   const ogrenciler = B.ogrenciler?.() || [];
   const ayarlar = B.ayarlar?.() || {};
-  for (const o of ogrenciler) {
+  const hedefOgrenciler = ogrenciler.filter(o => {
     const ayar = ayarlar[o.id] || {};
-    try { if (getOgrenciDurum(o, ayar) !== "aktif") continue; } catch (_) {}
+    try { if (getOgrenciDurum(o, ayar) !== "aktif") return false; } catch (_) {}
     const sinif = ayar?.kayit?.sinif || o.sinif || o.sinifi || "";
     const tur = oge?.hedefTur || "tumOkul";
-    const dahil = tur === "tumOkul" ? true
-      : tur === "sinif" ? sinif === oge.hedefDeger
-      : tur === "ogrenci" ? o.id === (oge.hedefDeger || oge.hedefOgrenciId) : true;
-    if (!dahil) continue;
-    const cocuk = { id:o.id, ad:o.ogrenciAdSoyad || o.adSoyad || o.ad || "Öğrenci", sinif };
-    for (const [rol, v] of [["Anne", ayar.anne || {}], ["Baba", ayar.baba || {}]]) {
-      const eposta = String(v.eposta || v.email || "").trim().toLowerCase();
-      if (!eposta) continue;
-      const mevcut = harita.get(eposta);
-      if (mevcut) {
-        if (!mevcut.cocuklar.some(x => x.id === cocuk.id)) mevcut.cocuklar.push(cocuk);
-        if (!mevcut.roller.includes(rol)) mevcut.roller.push(rol);
-      } else {
-        harita.set(eposta, {
-          eposta,
-          ad: v.adSoyad || v.ad || rol,
-          roller:[rol],
-          cocuklar:[cocuk]
-        });
-      }
-    }
-  }
-  return [...harita.values()];
+    if (tur === "sinif") return sinif === oge.hedefDeger;
+    if (tur === "ogrenci") return o.id === (oge.hedefDeger || oge.hedefOgrenciId);
+    return true;
+  });
+  const hedefIds = new Set(hedefOgrenciler.map(o => o.id));
+  const ogrenciHarita = new Map(hedefOgrenciler.map(o => [
+    o.id,
+    { id:o.id, ad:o.ogrenciAdSoyad || o.adSoyad || o.ad || "Öğrenci",
+      sinif:(ayarlar[o.id]?.kayit?.sinif || o.sinif || o.sinifi || "") }
+  ]));
+
+  const snap = await getDocs(collection(db, "veliler"));
+  const veliler = [];
+  snap.forEach(d => {
+    const v = d.data() || {};
+    if (v.onaylandi !== true) return;
+    const ids = (Array.isArray(v.ogrenciIds) ? v.ogrenciIds : []).filter(id => hedefIds.has(id));
+    if (!ids.length) return;
+    veliler.push({
+      eposta:String(d.id || "").trim().toLowerCase(),
+      ad:v.adSoyad || [v.ad, v.soyad].filter(Boolean).join(" ") || "Veli",
+      roller:[v.yakinlik || v.rol || "Veli"],
+      cocuklar:ids.map(id => ogrenciHarita.get(id)).filter(Boolean)
+    });
+  });
+  return veliler.filter(v => v.eposta);
 }
 
 function galeriZamanYazi(v) {
@@ -164,15 +166,18 @@ function galeriZamanYazi(v) {
 async function galeriEtkilesimOzetGetir(oge, tazele = false) {
   if (!oge?.id) return { acan:0, indiren:0, favori:0, hedef:0, kayitlar:[] };
   if (!tazele && galeriEtkilesimOnbellek.has(oge.id)) return galeriEtkilesimOnbellek.get(oge.id);
-  const hedef = galeriHedefVeliler(oge).length;
-  const snap = await getDocs(collection(db, "galeri", oge.id, "etkilesimler"));
+  const [hedefVeliler, snap] = await Promise.all([
+    galeriHedefVeliler(oge),
+    getDocs(collection(db, "galeri", oge.id, "etkilesimler"))
+  ]);
   const kayitlar = snap.docs.map(x => ({ id:x.id, ...(x.data() || {}) }));
   const ozet = {
-    hedef,
+    hedef:hedefVeliler.length,
     acan: kayitlar.filter(x => Number(x.acmaSayisi || 0) > 0 || x.ilkAcma).length,
     indiren: kayitlar.filter(x => Number(x.indirmeSayisi || 0) > 0 || x.indirmeBaslatildi).length,
     favori: kayitlar.filter(x => x.favori === true).length,
-    kayitlar
+    kayitlar,
+    hedefVeliler
   };
   galeriEtkilesimOnbellek.set(oge.id, ozet);
   return ozet;
@@ -180,13 +185,12 @@ async function galeriEtkilesimOzetGetir(oge, tazele = false) {
 
 function galeriEtkilesimRozetHtml(oge, goster) {
   if (!goster || (oge?.durum && oge.durum !== "onaylandi")) return "";
-  const hedef = galeriHedefVeliler(oge).length;
   return `<button type="button" data-galeri-etkilesim-badge="${escapeHtml(oge.id)}"
     onclick="event.stopPropagation(); galeriEtkilesimPanelAc('${String(oge.id).replace(/'/g,"\\'")}')"
     title="Veli etkileşimlerini göster"
     style="position:absolute; left:6px; right:6px; bottom:6px; z-index:4; border:0; border-radius:8px; padding:5px 7px;
            background:rgba(31,37,68,.82); color:white; font-size:10px; font-weight:700; cursor:pointer; backdrop-filter:blur(5px);">
-    👁 …/${hedef || 0} · ↓ … · ♥ …
+    👁 …/… · ↓ … · ♥ …
   </button>`;
 }
 
@@ -238,10 +242,8 @@ window.galeriEtkilesimPanelAc = async function(id) {
   document.body.appendChild(wrap);
 
   try {
-    const [ozet, hedefVeliler] = await Promise.all([
-      galeriEtkilesimOzetGetir(oge, true),
-      Promise.resolve(galeriHedefVeliler(oge))
-    ]);
+    const ozet = await galeriEtkilesimOzetGetir(oge, true);
+    const hedefVeliler = ozet.hedefVeliler || [];
     const hashli = await Promise.all(hedefVeliler.map(async v => ({ ...v, hash:await galeriEmailHash(v.eposta) })));
     const kayitHarita = new Map(ozet.kayitlar.filter(x => x.veliEmailHash).map(x => [x.veliEmailHash, x]));
     const satirlar = hashli.map(v => ({ ...v, kayit:kayitHarita.get(v.hash) || null }));
