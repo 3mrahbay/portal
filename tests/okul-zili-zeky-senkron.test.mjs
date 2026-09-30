@@ -13,6 +13,7 @@ test('portal veli işlemleri ZEKY personel sesli push olaylarını tetikler', ()
   assert.match(pickup, /operasyonPushTetikle\("pickup-yeni", id\)/);
   assert.match(sabah, /operasyonPushTetikle\("sabah-yeni", id\)/);
   assert.match(randevu, /operasyonPushTetikle\("randevu-yeni", ref\.id\)/);
+  assert.match(index, /operasyonPushTetikle\("pickup-hazir", ogrenciId \+ "__" \+ tarih\)/);
   assert.match(kopru, /alıcı\/personel e-postası gönderilmez/i);
 });
 
@@ -31,4 +32,16 @@ test('portal aday randevu durum alanları ZEKY ile geriye uyumludur', () => {
   assert.match(randevu, /durumDegistiren: email/);
   assert.match(randevu, /\[yeni \+ "Zamani"\]: zaman/);
   assert.match(randevu, /guncelleyen: email/);
+});
+
+
+test('portal danışma aksiyonları ZEKY ile aynı operasyon alanlarını kullanır', () => {
+  assert.match(index, /pickupKapidaBildirPortal/);
+  assert.match(index, /pickupKimlikOnaylaPortal/);
+  assert.match(index, /pickupDanismaNotuPortal/);
+  assert.match(index, /Kapıda<\/button>/);
+  assert.match(index, /Kimlik ✓<\/button>/);
+  assert.match(index, /danismaNotu/);
+  assert.match(index, /pickupHazirla\('/);
+  assert.match(index, /pickupTeslimEt\('/);
 });
