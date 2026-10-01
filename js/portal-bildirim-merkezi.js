@@ -1,4 +1,4 @@
-import { createTitleResolver } from './portal-bildirim-basliklari.js?v=165';
+import { createTitleResolver, isUrgentNotification } from './portal-bildirim-basliklari.js?v=165';
 // Yalnız oturum sahibinin kök bildirimleri. Kapalı tarayıcı/FCM alıcısı değildir.
 import { createNotificationHeaderMounts, positionNotificationPanel } from './portal-bildirim-yerlesim.js?v=165';
 import { setupMessageSound, showPortalNotice, dismissPortalNotice } from './portal-mesaj-bildirim.js?v=164';
@@ -20,6 +20,12 @@ const TYPE_LABELS = Object.freeze({
 });
 export const notificationLabel = record => TYPE_LABELS[kind(record?.tip)] || 'Bildirim';
 export const isMessageNotification = record => ['mesaj', 'mesaj_yeni', 'sohbet'].includes(kind(record?.tip));
+
+export function notificationStatus(record, { unread = record?.okundu !== true, urgent = false } = {}) {
+  const isUrgent = urgent === true || isUrgentNotification(record);
+  return { state:isUrgent ? 'urgent' : unread ? 'unread' : 'read',
+    label:isUrgent ? `! Acil · ${unread ? 'Yeni' : 'Okundu'}` : unread ? '● Yeni' : '✓ Okundu' };
+}
 
 export function notificationTime(value) {
   try {
@@ -87,6 +93,9 @@ function ensureStyles(doc) {
 .pbm-yuva,.pbm-baslik-yuvasi{display:inline-flex;align-items:center;flex-shrink:0;font-family:inherit}
 .pbm-veli-ustbar{position:sticky;top:0;z-index:55;display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:10px 18px;background:var(--cream,#f8f5ee);border-bottom:1px solid #e5e9f2;font-family:inherit}.pbm-ustbar-etiket{font-size:13px;font-weight:600;color:#4a5169}
 #veliPanel.pbm-veli-aktif .ca-topbar button[onclick="veliSwitchTab('bildirimler')"]{display:none}
+#veliPanel .pbm-veli-baslik{gap:12px}#veliPanel .pbm-veli-baslik>.ca-row:first-child{min-width:0}#veliPanel .pbm-veli-baslik>.ca-row:first-child>div{min-width:0}#veliPanel .pbm-veli-baslik>.ca-row:last-child{flex-shrink:0}#veliPanel .pbm-veli-baslik .ca-avatar,#veliPanel .pbm-veli-baslik .ca-back{flex-shrink:0}#veliPanel .pbm-veli-baslik h2{overflow-wrap:anywhere}
+.cicek-app .pbm-veli-yuva .pbm-zil{width:44px;height:44px;border-color:var(--c-border);background:var(--c-surface);color:var(--c-ink);box-shadow:none}.cicek-app .pbm-veli-yuva .pbm-zil:hover{background:var(--c-tint)}.cicek-app .pbm-veli-yuva .pbm-zil svg{width:21px;height:21px}
+@media(max-width:480px){#veliPanel .pbm-veli-baslik{gap:8px}#veliPanel .pbm-veli-baslik>.ca-row:first-child{gap:8px}}
 .pbm-baslik-aktif .user-menu{flex-wrap:wrap}.pbm-baslik-aktif .user-badge{min-width:0}.pbm-baslik-aktif .user-badge>div:last-child{min-width:0}.pbm-baslik-aktif #userName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
 @media(max-width:900px){.pbm-baslik-aktif .dash-header-inner{flex-wrap:wrap;gap:12px}.pbm-baslik-aktif .user-menu{justify-content:flex-end;width:100%;gap:10px}}
 @media(max-width:480px){.pbm-baslik-aktif .dash-header-inner{padding:0 12px}.pbm-baslik-aktif .user-menu{gap:8px}.pbm-baslik-aktif #userName{max-width:150px}.pbm-veli-ustbar{padding:8px 12px}}
@@ -94,7 +103,7 @@ function ensureStyles(doc) {
 .pbm-sayac{position:absolute;right:-5px;top:-6px;min-width:20px;min-height:20px;padding:2px 5px;border-radius:12px;background:#b42338;color:white;font-size:11px;font-weight:800;box-sizing:border-box}
 .pbm-panel{position:fixed;top:var(--pbm-panel-top,76px);right:18px;width:min(420px,calc(100vw - 24px));max-height:calc(100dvh - var(--pbm-panel-top,76px) - 12px);display:flex;flex-direction:column;z-index:10060;background:#fff;color:#202944;border:1px solid #dbe1ed;border-radius:18px;box-shadow:0 20px 60px #17264c40;font-family:inherit;overflow:hidden}
 .pbm-panel[hidden],.pbm-sayac[hidden]{display:none}.pbm-baslik{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #e5e9f2}.pbm-baslik h2{font-size:18px;margin:0}.pbm-kapat{width:40px;height:40px;border:0;border-radius:12px;background:#f1f4fa;color:#202944;font-size:24px;cursor:pointer}.pbm-durum{font-size:13px;padding:0 16px;line-height:1.5}.pbm-durum:empty{display:none}.pbm-durum[data-error="true"]{color:#9d2430}
-.pbm-liste{margin:0;padding:8px 10px;list-style:none;overflow:auto;overscroll-behavior:contain}.pbm-satir{width:100%;display:flex;gap:12px;align-items:center;text-align:left;min-height:66px;padding:12px;border:0;border-bottom:1px solid #eef1f6;background:white;font:inherit;color:#202944;cursor:pointer;border-radius:10px}.pbm-satir:hover{background:#f3f5fb}.pbm-satir[data-unread="true"]{background:#edf2ff}.pbm-satir:disabled{cursor:wait;opacity:.75}.pbm-metin{flex:1;min-width:0}.pbm-metin strong{display:block;font-size:14px;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.pbm-kategori{display:block;font-size:12px;color:#606c85;margin-top:4px}.pbm-metin time{display:block;font-size:12px;color:#606c85;margin-top:4px}.pbm-isaret{font-size:12px;color:#263f94}.pbm-bos{padding:24px 14px;text-align:center;color:#606c85;font-size:14px}
+.pbm-liste{margin:0;padding:8px 10px;list-style:none;overflow:auto;overscroll-behavior:contain}.pbm-satir{width:100%;display:flex;gap:12px;align-items:center;text-align:left;min-height:66px;padding:12px;border:0;border-bottom:1px solid #eef1f6;background:white;font:inherit;color:#202944;cursor:pointer;border-radius:10px}.pbm-satir[data-state="unread"]{background:#fffbeb;border-color:#fcd34d}.pbm-satir[data-state="unread"]:hover{background:#fef3c7}.pbm-satir[data-state="read"]{background:#f0fdf4;border-color:#86efac}.pbm-satir[data-state="read"]:hover{background:#dcfce7}.pbm-satir[data-state="urgent"]{background:#fff1f2;border-color:#fda4af}.pbm-satir[data-state="urgent"]:hover{background:#ffe4e6}.pbm-satir[data-state="unread"] .pbm-isaret{color:#713f12}.pbm-satir[data-state="read"] .pbm-isaret{color:#166534}.pbm-satir[data-state="urgent"] .pbm-isaret{color:#9f1239}.pbm-satir:disabled{cursor:wait;opacity:.75}.pbm-metin{flex:1;min-width:0}.pbm-metin strong{display:block;font-size:14px;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.pbm-kategori{display:block;font-size:12px;color:#4b5563;margin-top:4px}.pbm-metin time{display:block;font-size:12px;color:#4b5563;margin-top:4px}.pbm-isaret{font-size:12px;font-weight:700;flex-shrink:0;max-width:100px;line-height:1.45;text-align:right}.pbm-bos{padding:24px 14px;text-align:center;color:#606c85;font-size:14px}
 .pbm-zil:focus-visible,.pbm-kapat:focus-visible,.pbm-satir:focus-visible{outline:3px solid #5a6acf;outline-offset:2px}
 @media(max-width:600px){.pbm-panel{right:12px}.pbm-satir{align-items:flex-start}}`;
   doc.head.appendChild(style);
@@ -195,7 +204,9 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
         button.type = 'button'; button.className = 'pbm-satir';
         button.setAttribute('data-unread', String(entry.unread));
         const presentation = titleResolver.peek(entry.record);
-        button.setAttribute('aria-label', `${presentation.title}${presentation.title !== notificationLabel(entry.record) ? `, ${notificationLabel(entry.record)}` : ''}${entry.unread ? ', okunmamış' : ', okundu'}`);
+        const displayStatus = notificationStatus(entry.record, {unread:entry.unread, urgent:presentation.urgent === true || entry.items.some(isUrgentNotification)});
+        button.setAttribute('data-state', displayStatus.state);
+        button.setAttribute('aria-label', `${presentation.title}${presentation.title !== notificationLabel(entry.record) ? `, ${notificationLabel(entry.record)}` : ''}${displayStatus.state === 'urgent' ? ', acil' : ''}${entry.unread ? ', okunmamış' : ', okundu'}`);
         button.disabled = entry.items.some(item => pending.has(keyFor(item)));
         const text = doc.createElement('span'); text.className = 'pbm-metin';
         const title = doc.createElement('strong'); title.textContent = presentation.title;
@@ -208,7 +219,7 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
           time.textContent = date.toLocaleString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
         } else time.textContent = 'Tarih bilgisi yok';
         const unread = doc.createElement('span'); unread.className = 'pbm-isaret';
-        unread.textContent = entry.unread ? 'Yeni' : 'Okundu';
+        unread.textContent = displayStatus.label;
         text.append(title, category, time); button.append(text, unread); li.appendChild(button); list.appendChild(li);
         button.addEventListener('click', () => { void activate(entry.key); });
         // Başlık ayrıntıları yalnız kullanıcı merkezi açtığında yüklenir.
@@ -216,7 +227,7 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
         if (opened && !requestedTitles.has(entry.key)) {
           requestedTitles.add(entry.key);
           void titleResolver.resolve(entry.record).then(resolved => {
-            if (isActive() && opened && resolved.title !== presentation.title) render();
+            if (isActive() && opened && (resolved.title !== presentation.title || resolved.urgent !== presentation.urgent)) render();
           }).catch(() => {});
         }
       }

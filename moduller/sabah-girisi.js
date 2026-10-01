@@ -13,11 +13,17 @@
 //   m.ogretmenKart("hedefElemanId")  → öğretmen ana sayfası
 // ═══════════════════════════════════════════════════════════════════
 
+import { bildirimZamani, enYeniBildirimOnce, canliListeOlustur } from "../js/okul-zili-liste-core.js?v=168";
+
+import { sabahBugun, sabahDurumu, sabahVerileriniDinle } from "../js/sabah-yoklama-core.js?v=168";
+
 const P = () => window.PortalAPI;
 
 function saatY(iso) {
   if (!iso) return "";
-  const d = new Date(iso);
+  const ms = bildirimZamani(iso);
+  if (!ms) return "";
+  const d = new Date(ms);
   return isNaN(d) ? "" : String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 function haftaSonuMu() { const g = new Date().getDay(); return g === 0 || g === 6; }
@@ -41,7 +47,7 @@ function sabahGuvenliVeri(v, ogrenciId = "", tarih = "") {
 export async function veliKart(hedefId) {
   const el = document.getElementById(hedefId);
   if (!el) return;
-  const { fb, db, state, esc, bugun } = P();
+  const { fb, db, state, esc } = P();
   const ogr = state.veliAktifOgrenci || state.veliOgrenciler[0];
   if (!ogr) { el.innerHTML = ""; return; }
 
@@ -53,7 +59,7 @@ export async function veliKart(hedefId) {
     return;
   }
 
-  const tarih = bugun();
+  const tarih = sabahBugun();
   let k = null;
   try {
     const s = await fb.getDoc(fb.doc(db, "sabahGirisleri", ogr.id + "__" + tarih));
@@ -146,7 +152,9 @@ async function veliBildir() {
   try {
     const { sabahGirisKaydet } = await import("../js/sabah-giris-kaydi.js?v=1");
     if (!active()) return;
-    const result = await sabahGirisKaydet(api);
+    const tarihliApi = Object.create(api); // Canlı state getter / oturum kontrolleri korunur.
+    tarihliApi.bugun = sabahBugun;
+    const result = await sabahGirisKaydet(tarihliApi);
     saved = result.anaKayitKaydedildi;
     if (!active()) return;
     if (result.zatenTeslimAlindi) {
@@ -182,19 +190,21 @@ async function veliBildir() {
 // ───────────────────────────────────────────────────────────────────
 // ÖĞRETMEN TARAFI — sınıfının bugünkü giriş listesi
 // ───────────────────────────────────────────────────────────────────
-let _unsub = null;
+const _canli = canliListeOlustur();
 
-export async function ogretmenKart(hedefId) {
+export function ogretmenKart(hedefId, veri = null) {
   const el = document.getElementById(hedefId);
-  if (!el) return;
-  const { fb, db, state, esc, bugun, ogrenciDurum, lucide } = P();
+  if (!el) { _canli.durdur(); return; }
+  const { state, esc, ogrenciDurum, lucide } = P();
 
   if (haftaSonuMu()) {
+    _canli.durdur();
     el.innerHTML = `<div class="ca-tile-sub">Hafta sonu · okul kapalı</div>`;
     return;
   }
 
-  const tarih = bugun();
+  if (!veri) { canliBaslat(hedefId); return; }
+
   const siniflarim = state.siniflar || [];
 
   // Sınıfımın aktif öğrencileri
@@ -206,61 +216,70 @@ export async function ogretmenKart(hedefId) {
     return !siniflarim.length || siniflarim.includes(sn);
   }).sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "", "tr"));
 
-  // Bugünkü kayıtlar
   const kayitlar = {};
-  try {
-    const snap = await fb.getDocs(fb.query(fb.collection(db, sabahKaynak()), fb.where("tarih", "==", tarih)));
-    snap.forEach(d => { const v = d.data(); if (v.ogrenciId) kayitlar[v.ogrenciId] = v; });
-  } catch (e) { console.warn("sabah girişleri:", e.code || e.message); }
-
-  const yolda = ogrenciler.filter(o => kayitlar[o.id]?.veliBildirdi && !kayitlar[o.id]?.sinifaGirisOnayi);
-  const girdi = ogrenciler.filter(o => kayitlar[o.id]?.sinifaGirisOnayi);
-  const bekliyor = ogrenciler.filter(o => !kayitlar[o.id]?.veliBildirdi && !kayitlar[o.id]?.sinifaGirisOnayi);
-
-  const satir = (o, tip) => {
-    const k = kayitlar[o.id] || {};
+  veri.sabah.forEach(d => { const v = d.data(); if (v.ogrenciId) kayitlar[v.ogrenciId] = v; });
+  const yoklamaHazir = veri.yoklamaDurum === "kapali" ||
+    (veri.yoklamaDurum === "hazir" && veri.izinDurum === "hazir");
+  const durumlar = Object.fromEntries(ogrenciler.map(o => [o.id,
+    sabahDurumu(kayitlar[o.id], veri.yoklama[o.id], veri.izinliler.has(o.id), yoklamaHazir)]));
+  const yeniOnce = (a, b) => enYeniBildirimOnce(
+    { id: a.id, veliBildirimSaati: kayitlar[a.id]?.veliBildirimSaati },
+    { id: b.id, veliBildirimSaati: kayitlar[b.id]?.veliBildirimSaati }, 'veliBildirimSaati');
+  const aktif = ogrenciler.filter(o => ["aktif", "kontrol"].includes(durumlar[o.id].grup)).sort(yeniOnce);
+  const gelmeyen = ogrenciler.filter(o => durumlar[o.id].grup === "gelmeyen");
+  const tamam = ogrenciler.filter(o => durumlar[o.id].grup === "tamam").sort(yeniOnce);
+  const yolda = aktif.filter(o => durumlar[o.id].durum === "yolda").length;
+  const bekliyor = aktif.filter(o => ["bekliyor", "belirsiz"].includes(durumlar[o.id].durum)).length;
+  const kontrol = aktif.filter(o => durumlar[o.id].grup === "kontrol").length;
+  const etiketler = { teslim: "Teslim alındı", geldi: "Yoklamada geldi", gec: "Yoklamada geç geldi", gelmedi: "Gelmedi", izinli: "İzinli", hasta: "Hasta",
+    yolda: "Yolda", bekliyor: "Bildirim yok", belirsiz: "Yoklama doğrulanıyor", diger: "Diğer yoklama kaydı" };
+  const satir = o => {
+    const k = kayitlar[o.id] || {}, d = durumlar[o.id];
     const ad = o.ogrenciAdSoyad || o.adSoyad || "—";
-    const sinif = (state.ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "";
-    const R = {
-      yolda:    { r: "#0E7490", bg: "#ECFEFF", et: "Yolda" },
-      girdi:    { r: "#059669", bg: "#ECFDF5", et: "Sınıfta" },
-      bekliyor: { r: "#94A3B8", bg: "#F8FAFC", et: "Bildirim yok" }
-    }[tip];
-    return `<div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #F1F2F7;">
-      <div style="width:30px; height:30px; border-radius:9px; background:${R.bg}; color:${R.r}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex-shrink:0;">${esc(ad.charAt(0).toUpperCase())}</div>
+    const sinif = state.ayarListesi[o.id]?.kayit?.sinif || o.sinif || "";
+    const renk = d.grup === "kontrol" ? "#B45309" : d.grup === "tamam" ? "#059669" : d.grup === "gelmeyen" ? "#7C3AED" : "#0E7490";
+    const detay = d.durum === "diger" ? "Tanımlanamayan yoklama durumu · Kaydı kontrol edin" : d.grup === "kontrol"
+      ? `${d.teslim ? "Teslim onayı" : "Geliş bildirimi"} var · Yoklama: ${etiketler[d.durum]} · Kayıtları kontrol edin`
+      : [siniflarim.length > 1 ? esc(sinif) : "", k.veliBildirimSaati ? "🚗 " + saatY(k.veliBildirimSaati) : "",
+         k.sinifaGirisOnayi ? "✅ " + saatY(k.sinifaGirisOnayi) + (k.onaylayanAd ? " · " + esc(k.onaylayanAd.split(" ")[0]) : "") : ""].filter(Boolean).join(" · ");
+    return `<div data-sabah-ogrenci="${esc(o.id)}" data-sabah-grup="${d.grup}" style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #F1F2F7;">
+      <div style="width:30px; height:30px; border-radius:9px; background:#F8FAFC; color:${renk}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex-shrink:0;">${esc(ad.charAt(0).toUpperCase())}</div>
       <div style="flex:1; min-width:0;">
-        <div style="font-weight:700; font-size:13px; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(ad)}</div>
-        <div style="font-size:11px; color:var(--c-muted);">
-          ${siniflarim.length > 1 ? esc(sinif) + " · " : ""}
-          ${k.veliBildirimSaati ? "🚗 " + saatY(k.veliBildirimSaati) : ""}
-          ${k.sinifaGirisOnayi ? " · ✅ " + saatY(k.sinifaGirisOnayi) + (k.onaylayanAd ? " · " + esc(k.onaylayanAd.split(" ")[0]) : "") : ""}
-        </div>
+        <div style="font-weight:700; font-size:13px; color:var(--c-ink);">${esc(ad)}</div>
+        <div style="font-size:11px; color:${d.grup === "kontrol" ? renk : "var(--c-muted)"};">${detay}</div>
       </div>
-      ${tip !== "girdi"
-        ? `<button class="btn-mini" onclick="window._sabahGirisi.onayla('${o.id}','${esc(sinif)}')"
-             style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:5px 10px; font-size:11px; white-space:nowrap;">Teslim aldım</button>`
-        : `<span style="font-size:10px; font-weight:800; color:${R.r}; background:${R.bg}; padding:3px 8px; border-radius:100px;">${R.et}</span>`}
+      ${d.eylem ? `<button class="btn-mini" onclick="window._sabahGirisi.onayla('${o.id}','${esc(sinif)}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:5px 10px; font-size:11px; white-space:nowrap;">Teslim aldım</button>`
+        : `<span style="font-size:10px; font-weight:800; color:${renk}; background:#F8FAFC; padding:3px 8px; border-radius:100px;">${d.grup === "kontrol" ? "Kontrol gerekli" : etiketler[d.durum]}</span>`}
     </div>`;
   };
-
+  const tamamAcik = el.querySelector('[data-sabah-tamam]')?.open === true;
+  const okumaHatasi = [veri.yoklamaDurum, veri.izinDurum].includes("hata");
   el.innerHTML = `
     <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
-      <span style="font-size:11px; font-weight:800; color:#0E7490; background:#ECFEFF; padding:3px 9px; border-radius:100px;">🚗 Yolda ${yolda.length}</span>
-      <span style="font-size:11px; font-weight:800; color:#059669; background:#ECFDF5; padding:3px 9px; border-radius:100px;">✅ Sınıfta ${girdi.length}</span>
-      <span style="font-size:11px; font-weight:800; color:#64748B; background:#F8FAFC; padding:3px 9px; border-radius:100px;">⏳ Bekleniyor ${bekliyor.length}</span>
+      <span style="font-size:11px; font-weight:800; color:#0E7490; background:#ECFEFF; padding:3px 9px; border-radius:100px;">🚗 Yolda ${yolda}</span>
+      <span style="font-size:11px; font-weight:800; color:#059669; background:#ECFDF5; padding:3px 9px; border-radius:100px;">✅ Geldi / teslim alındı ${tamam.length}</span>
+      <span style="font-size:11px; font-weight:800; color:#64748B; background:#F8FAFC; padding:3px 9px; border-radius:100px;">⏳ Bekleniyor ${yoklamaHazir ? bekliyor : "—"}</span>
+      ${gelmeyen.length ? `<span class="ca-tile-sub">Gelmedi / izinli / hasta ${gelmeyen.length}</span>` : ""}
+      ${kontrol ? `<span style="color:#B45309; font-size:12px;">Kontrol gerekli ${kontrol}</span>` : ""}
     </div>
-    ${yolda.map(o => satir(o, "yolda")).join("")}
-    ${bekliyor.slice(0, 8).map(o => satir(o, "bekliyor")).join("")}
-    ${girdi.map(o => satir(o, "girdi")).join("")}
+    ${!yoklamaHazir ? `<div role="status" class="ca-tile-sub">${okumaHatasi ? 'Yoklama veya izin bilgisi doğrulanamadı. <button class="btn-mini" data-sabah-tekrar>Yeniden dene</button>' : 'Yoklama ve izin bilgisi okunuyor…'}</div>` : ""}
+    ${aktif.map(satir).join("")}
+    ${!aktif.length && ogrenciler.length ? `<div class="ca-tile-sub" style="padding:8px 0;">Bekleyen geliş yok.</div>` : ""}
+    ${gelmeyen.length ? `<section aria-label="Gelmedi, izinli ve hasta öğrenciler" style="margin-top:10px;">
+      <div style="font-size:12px; font-weight:800; color:#64748B;">Gelmedi · İzinli · Hasta (${gelmeyen.length})</div>
+      ${gelmeyen.map(satir).join("")}</section>` : ""}
+    ${tamam.length ? `<details data-sabah-tamam ${tamamAcik ? "open" : ""} style="margin-top:10px;">
+      <summary style="cursor:pointer; font-size:12px; font-weight:700; color:#059669;">Geldi / teslim alındı (${tamam.length})</summary>
+      ${tamam.map(satir).join("")}</details>` : ""}
     ${!ogrenciler.length ? `<div class="ca-tile-sub">Sınıfınızda aktif öğrenci yok.</div>` : ""}`;
+  el.querySelector('[data-sabah-tekrar]')?.addEventListener('click', () => { _canli.durdur(); ogretmenKart(hedefId); });
 
   lucide();
-  canliBaslat(hedefId);
 }
 
 async function ogretmenOnayla(ogrenciId, sinif) {
-  const { fb, db, state, toast, bugun } = P();
-  const tarih = bugun();
+  const { fb, db, state, toast } = P();
+  const tarih = sabahBugun();
   try {
     const ROL_AD = { ogretmen: "Öğretmen", danisma: "Danışma", mudur: "Müdür", kurucu_mudur: "Kurucu Müdür", egitim_koordinator: "Koordinatör" };
     const tamGuncelleme = {
@@ -289,17 +308,28 @@ async function ogretmenOnayla(ogrenciId, sinif) {
   }
 }
 
+function sabahListeKimligi() {
+  const { state } = P();
+  return JSON.stringify([state.currentUser?.uid || "", state.rol, sabahKaynak(), sabahBugun(), state.siniflar || [], P().yoklamaGorebilir?.() === true]);
+}
 function canliBaslat(hedefId) {
-  if (_unsub) return;
-  const { fb, db, bugun } = P();
-  try {
-    const q = fb.query(fb.collection(db, sabahKaynak()), fb.where("tarih", "==", bugun()));
-    _unsub = fb.onSnapshot(q, () => {
-      if (document.getElementById(hedefId)) ogretmenKart(hedefId);
-      else { _unsub(); _unsub = null; }
-    }, (e) => console.warn("sabah canlı:", e.code || e.message));
-  } catch (e) { console.warn("sabah canlı:", e); }
+  const el = document.getElementById(hedefId);
+  if (!el) { _canli.durdur(); return; }
+  const { fb, db } = P();
+  const key = sabahListeKimligi();
+  _canli.baslat({
+    key, target: el,
+    onStart: () => { el.innerHTML = '<div class="ca-tile-sub">Sabah girişleri yükleniyor…</div>'; },
+    subscribe: (next, error) => sabahVerileriniDinle({ fb, db, kaynak: sabahKaynak(), tarih: sabahBugun(), yoklamaYetkisi: P().yoklamaGorebilir?.() === true }, next, error),
+    isCurrent: () => document.getElementById(hedefId) === el && sabahListeKimligi() === key,
+    render: veri => ogretmenKart(hedefId, veri),
+    onError: e => {
+      console.warn("sabah canlı:", e.code || e.message);
+      el.innerHTML = '<div role="status" class="ca-tile-sub">Sabah girişleri yüklenemedi. <button class="btn-mini" data-sabah-tekrar>Yeniden dene</button></div>';
+      el.querySelector('[data-sabah-tekrar]')?.addEventListener('click', () => ogretmenKart(hedefId));
+    }
+  });
 }
 
 // onclick'ler için global köprü
-window._sabahGirisi = { bildir: veliBildir, onayla: ogretmenOnayla };
+window._sabahGirisi = { bildir: veliBildir, onayla: ogretmenOnayla, durdur: () => _canli.durdur() };

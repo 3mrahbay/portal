@@ -95,7 +95,7 @@ test('popup title never falls back to student names, parent labels or email addr
 test('main import, service worker precache and version agree for the new helper',async()=>{
  const worker=await readFile(new URL('../serviceworker.js',import.meta.url),'utf8');
  assert.match(source,/portal-mesaj-bildirim\.js\?v=164/);assert.match(worker,/portal-mesaj-bildirim\.js\?v=164/);
- assert.match(source,/window\.PORTAL_SURUM = "v164"/);assert.match(worker,/v167-galeri-etkilesim-detay/);
+ assert.match(source,/window\.PORTAL_SURUM = "v164"/);assert.match(worker,/v168-okul-zili-canli-sira/);
 });
 
 test('parent Portal uses the same incoming-message alert owner and respects message opt-out',()=>{

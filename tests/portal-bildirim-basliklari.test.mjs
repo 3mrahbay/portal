@@ -144,3 +144,15 @@ test('approved targeted gallery and own child learning titles hydrate narrowly',
   await f.resolver.resolve(note('egitim_gelisim',{baslik:'Yeni eğitim güncellemesi',kaynakId:'egitim_1',ogrenciId:'other-child'}));
   assert.deepEqual(f.reads,['galeri/source','ogrenciler/own-child/bildirimler/egitim_1']);
 });
+
+
+test('source urgency is exposed only with the same allowed audience as its resolved title',async()=>{
+  const allowed=fixture({docs:{'duyurular/source':{baslik:'Yetkili başlık',aciliyet:'acil',hedefTur:'sinif',hedefDeger:'Papatya'}}});
+  const request=note('duyuru',{baslik:'Yeni okul duyurusu'});
+  assert.equal((await allowed.resolver.resolve(request)).urgent,true);
+  assert.deepEqual(allowed.reads,['duyurular/source']);
+  const denied=fixture({docs:{'duyurular/source':{baslik:'PRIVATE TITLE',aciliyet:'acil',hedefTur:'sinif',hedefDeger:'Lale'}}});
+  const result=await denied.resolver.resolve(request);assert.equal(result.urgent,undefined);assert.equal(result.title,'Yeni okul duyurusu');
+  const ordinary=fixture({docs:{'duyurular/source':{baslik:'Acil kelimesi var',simsek:true,aciliyet:'normal',hedefTur:'tumOkul'}}});
+  assert.equal((await ordinary.resolver.resolve(request)).urgent,undefined);
+});

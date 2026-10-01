@@ -13918,6 +13918,7 @@ import {
 
 import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
 import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=164";
+import { bildirimZamani, enYeniBildirimOnce, canliListeOlustur } from "./js/okul-zili-liste-core.js?v=168";
 
 const firebaseConfig = {
   apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
@@ -13963,6 +13964,7 @@ window.PortalAPI = {
   // Yardımcılar
   toast: (m, t) => { if (typeof showToast === "function") showToast(m, t); },
   lucide: () => { if (window.lucideYenile) window.lucideYenile(); },
+  yoklamaGorebilir: () => !["danisma", "halkla_iliskiler"].includes(aktifKullaniciRol) && sekmeyeErisim("devamsizlik"),
   ogretmenMi: () => (typeof ogretmenRolMu === "function") ? ogretmenRolMu() : false,
   ogrenciDurum: (o, a) => (typeof getOgrenciDurum === "function") ? getOgrenciDurum(o, a) : "",
   esc: (t) => String(t == null ? "" : t).replace(/</g, "&lt;").replace(/"/g, "&quot;"),
@@ -20786,65 +20788,71 @@ window.pickupDanismaNotuPortal = async function(ogrenciId, tarih, mevcut) {
   } catch (e) { showToast("Not kaydedilemedi: " + e.message, "error"); }
 };
 
-// Okul Zili canlı dinleme — veli bildirim gönderdiğinde kart kendini yeniler
-let _okulZiliUnsub = null;
+// Boş kuyrukta da tek canlı abonelik açık kalır. Snapshot doğrudan çizilir.
+const _okulZiliCanli = canliListeOlustur();
+function okulZiliListeKimligi() {
+  return JSON.stringify([currentUser?.uid || "", aktifKullaniciRol,
+    okulZiliKoleksiyonu(), vzBugun(), aktifKullaniciSiniflari || []]);
+}
 window.okulZiliCanliBaslat = function() {
-  if (_okulZiliUnsub) return; // zaten dinliyor
-  if (!document.getElementById("okulZiliListe")) return;
-  try {
-    const bugun = new Date().toISOString().substring(0, 10);
-    const q = query(collection(db, okulZiliKoleksiyonu()), where("tarih", "==", bugun));
-    _okulZiliUnsub = onSnapshot(q, () => {
-      if (document.getElementById("okulZiliListe") && typeof okulZiliDoldur === "function") okulZiliDoldur();
-    }, (e) => console.warn("okul zili dinleme:", e.code || e.message));
-  } catch (e) { console.warn("okul zili canlı:", e); }
+  const el = document.getElementById("okulZiliListe");
+  if (!el) { _okulZiliCanli.durdur(); return; }
+  const key = okulZiliListeKimligi();
+  const q = query(collection(db, okulZiliKoleksiyonu()), where("tarih", "==", vzBugun()));
+  _okulZiliCanli.baslat({
+    key, target: el,
+    subscribe: (next, error) => onSnapshot(q, next, error),
+    isCurrent: () => document.getElementById("okulZiliListe") === el && okulZiliListeKimligi() === key,
+    render: snap => window.okulZiliDoldur(snap),
+    onError: e => {
+      console.warn("okul zili dinleme:", e.code || e.message);
+      const ozet = document.getElementById("okulZiliOzet");
+      if (ozet) ozet.textContent = "Canlı liste yüklenemedi";
+      el.innerHTML = '<div role="status" class="ca-tile-sub">Çıkış bildirimleri yüklenemedi. <button class="btn-mini" onclick="okulZiliDoldur()">Yeniden dene</button></div>';
+    }
+  });
 };
-window.okulZiliCanliDurdur = function() {
-  if (_okulZiliUnsub) { _okulZiliUnsub(); _okulZiliUnsub = null; }
-};
+window.okulZiliCanliDurdur = () => _okulZiliCanli.durdur();
 
-window.okulZiliDoldur = async function() {
+window.okulZiliDoldur = function(snap = null) {
   const el = document.getElementById("okulZiliListe");
   const ozetEl = document.getElementById("okulZiliOzet");
-  if (!el) return;
+  if (!el) { window.okulZiliCanliDurdur(); return; }
+  if (!snap) { window.okulZiliCanliBaslat(); return; }
 
   // Danışma kişisel alan içermeyen projeksiyonu; diğer roller ortak asıl
   // pickupBildirimleri koleksiyonunu okur.
   // durum akışı: yolda → hazir → teslim   (veliOnay ayrı beyandır)
   const bugun = new Date().toISOString().substring(0, 10);
   let kayitlar = [];
-  try {
-    const q = query(collection(db, okulZiliKoleksiyonu()), where("tarih", "==", bugun));
-    const snap = await getDocs(q);
-    snap.forEach(d => {
-      const v = d.data() || {};
-      if (v.durum === "iptal") return;
-      const ogrenciOzeti = (ogrenciList || []).find(o => o.id === (v.ogrenciId || v.cocukId || ""));
-      // Teslim ekranında yalnız operasyon alanları tutulur. Belgedeki veli
-      // e-postası / onay e-postası gibi kimlik alanları arayüz durumuna alınmaz.
-      kayitlar.push({
-        id: d.id,
-        ogrenciId: v.ogrenciId || "",
-        ogrenciAd: v.ogrenciAd || ogrenciOzeti?.ogrenciAdSoyad || ogrenciOzeti?.adSoyad || "",
-        sinif: v.sinif || ogrenciOzeti?.sinif || ogrenciOzeti?.sinifi || "",
-        tarih: v.tarih || bugun,
-        hedefSaat: v.hedefSaat || "",
-        alanKisi: v.alanKisi || "Veli",
-        durum: v.durum || "yolda",
-        olusturuldu: v.olusturuldu || "",
-        hazirZamani: v.hazirZamani || "",
-        teslimZamani: v.teslimZamani || "",
-        teslimEden: v.teslimEden || "",
-        veliOnay: v.veliOnay === true,
-        veliOnayZamani: v.veliOnayZamani || "",
-        kapida: v.kapida === true,
-        kapidaZamani: v.kapidaZamani || "",
-        kimlikKontrol: v.kimlikKontrol === true,
-        kimlikKontrolZamani: v.kimlikKontrolZamani || "",
-        danismaNotu: v.danismaNotu || ""
-      });
+  snap.forEach(d => {
+    const v = d.data() || {};
+    if (v.durum === "iptal") return;
+    const ogrenciOzeti = (ogrenciList || []).find(o => o.id === (v.ogrenciId || v.cocukId || ""));
+    // Teslim ekranında yalnız operasyon alanları tutulur. Belgedeki veli
+    // e-postası / onay e-postası gibi kimlik alanları arayüz durumuna alınmaz.
+    kayitlar.push({
+      id: d.id,
+      ogrenciId: v.ogrenciId || "",
+      ogrenciAd: v.ogrenciAd || ogrenciOzeti?.ogrenciAdSoyad || ogrenciOzeti?.adSoyad || "",
+      sinif: v.sinif || ogrenciOzeti?.sinif || ogrenciOzeti?.sinifi || "",
+      tarih: v.tarih || bugun,
+      hedefSaat: v.hedefSaat || "",
+      alanKisi: v.alanKisi || "Veli",
+      durum: v.durum || "yolda",
+      olusturuldu: v.olusturuldu || "",
+      hazirZamani: v.hazirZamani || "",
+      teslimZamani: v.teslimZamani || "",
+      teslimEden: v.teslimEden || "",
+      veliOnay: v.veliOnay === true,
+      veliOnayZamani: v.veliOnayZamani || "",
+      kapida: v.kapida === true,
+      kapidaZamani: v.kapidaZamani || "",
+      kimlikKontrol: v.kimlikKontrol === true,
+      kimlikKontrolZamani: v.kimlikKontrolZamani || "",
+      danismaNotu: v.danismaNotu || ""
     });
-  } catch (e) { console.warn("pickupBildirimleri:", e.code || e.message); }
+  });
 
   // ÖĞRETMEN: yalnızca kendi sınıfının çocukları
   if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
@@ -20854,7 +20862,9 @@ window.okulZiliDoldur = async function() {
 
   const saatY = (iso) => {
     if (!iso) return null;
-    const d = new Date(iso);
+    const ms = bildirimZamani(iso);
+    if (!ms) return null;
+    const d = new Date(ms);
     if (isNaN(d)) return null;
     return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
   };
@@ -20867,10 +20877,10 @@ window.okulZiliDoldur = async function() {
       const [h, m] = b.hedefSaat.split(":").map(Number);
       const d = new Date(); d.setHours(h, m, 0, 0); bas = d.getTime();
     } else if (b.olusturuldu) {
-      bas = new Date(b.olusturuldu).getTime();
+      bas = bildirimZamani(b.olusturuldu);
     }
     if (!bas || isNaN(bas)) return 0;
-    const bitis = (b.durum === "teslim" && b.teslimZamani) ? new Date(b.teslimZamani).getTime() : Date.now();
+    const bitis = (b.durum === "teslim" && b.teslimZamani) ? bildirimZamani(b.teslimZamani) : Date.now();
     return Math.max(0, Math.round((bitis - bas) / 60000));
   };
   // ZEKY pickupSeviye: 5 / 10 / 15 dk eşikleri
@@ -20885,12 +20895,9 @@ window.okulZiliDoldur = async function() {
     return;
   }
 
-  // Kuyruk sırası: bekleyenler hedef saate göre, teslim edilenler sona
-  kayitlar.sort((a, b) => {
-    const at = a.durum === "teslim" ? 1 : 0, bt = b.durum === "teslim" ? 1 : 0;
-    if (at !== bt) return at - bt;
-    return String(a.hedefSaat || "99:99").localeCompare(String(b.hedefSaat || "99:99"));
-  });
+  // En yeni gelen bildirim en üstte; hedef saat ve sonraki işlem zamanı
+  // bildirim sırasını değiştirmez. Teslim bilgileri/işlemleri aynen korunur.
+  kayitlar.sort(enYeniBildirimOnce);
 
   const bekleyenler = kayitlar.filter(k => k.durum !== "teslim");
   const teslimler = kayitlar.filter(k => k.durum === "teslim");
@@ -20954,7 +20961,6 @@ window.okulZiliDoldur = async function() {
     ? `<div style="font-size:11.5px; color:#94A3B8; padding-top:8px;">+${kayitlar.length - 6} bildirim daha</div>` : "");
 
   if (window.lucideYenile) window.lucideYenile();
-  if (typeof okulZiliCanliBaslat === "function") okulZiliCanliBaslat();
 };
 
 // Özet sayfası hızlı işlem butonları
@@ -21302,6 +21308,7 @@ function adminHomeArkaPlanCalismasiniDurdur() {
   adminHomeRenderSurumu++;
   adminHomeZamanlayicilariniTemizle();
   if (typeof window.okulZiliCanliDurdur === "function") window.okulZiliCanliDurdur();
+  window._sabahGirisi?.durdur?.();
 }
 
 function adminHomeGorevPlanla(gorev, gecikme, renderSurumu, etiket) {

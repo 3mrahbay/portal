@@ -3,6 +3,8 @@ const text = value => typeof value === 'string' ? value.replace(/[\u0000-\u001f\
 const lower = value => text(value).toLocaleLowerCase('tr-TR');
 const emailKey = value => text(value).toLowerCase();
 const messages = new Set(['mesaj', 'mesaj_yeni', 'sohbet', 'kapidanmesaj', 'kapıdanmesaj']);
+// Yalnız açık şema alanları; başlık sözcüğü, şimşek popup'ı veya okuma durumu aciliyet değildir.
+export const isUrgentNotification = record => lower(record?.aciliyet) === 'acil' || record?.acil === true;
 const events = new Set(['etkinlik', 'etkinlik_yeni', 'takvim']);
 const announcements = new Set(['duyuru', 'duyuru_yeni', 'simsek']);
 const galleries = new Set(['galeri', 'foto_onay', 'galeri_guncelleme', 'galeri_onay']);
@@ -168,7 +170,10 @@ export function createTitleResolver({ fb, db, email, isActive = () => true, getS
       return notificationPresentation(record, {sourceTitle:allowed && approved ? text(source.baslik) : ''});
     }
     const approved = plan.kind !== 'gallery' || ['onaylandi', 'onaylı', 'onayli'].includes(lower(source.durum || source.fotoDurum));
-    return notificationPresentation(record, {sourceTitle:approved && sourceAllowed(source, state) ? text(source.baslik || source.etkinlikBaslik) : ''});
+    const allowed = approved && sourceAllowed(source, state);
+    const presentation = notificationPresentation(record, {sourceTitle:allowed ? text(source.baslik || source.etkinlikBaslik) : ''});
+    // Aynı başlık çözümünün zaten okuduğu yetkili kaynak metadatası. Yeni sorgu yok.
+    return allowed && isUrgentNotification(source) ? {...presentation, urgent:true} : presentation;
   }
   function needed(record) {
     return messages.has(lower(record?.tip)) ? !storedSender(record) : !meaningfulTitle(record?.baslik, labelFor(record));

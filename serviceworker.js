@@ -10,10 +10,13 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v167-galeri-etkilesim-detay";
+const CACHE_VERSION = "v168-okul-zili-canli-sira";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/sabah-yoklama-core.js?v=168",
+  "./js/okul-zili-liste-core.js?v=168",
+  "./moduller/sabah-girisi.js?v=v164",
   "./js/portal-galeri-canli.js?v=166",
   "./js/portal-galeri-medya.js?v=166",
   "./js/portal-galeri-etkilesim.js?v=166",

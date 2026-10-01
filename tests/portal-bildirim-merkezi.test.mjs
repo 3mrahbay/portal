@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createNotificationNoticeTracker, notificationEventKey, notificationTime, notificationThreadId, notificationLabel } from '../js/portal-bildirim-merkezi.js';
+import { createNotificationNoticeTracker, notificationEventKey, notificationTime, notificationThreadId, notificationLabel, notificationStatus } from '../js/portal-bildirim-merkezi.js';
 
 const email = 'Auth.User@example.test';
 const record = (id = 'n1', extra = {}) => ({ id, aliciEmail: email, tip: 'duyuru', okundu: false, olusturuldu: '2026-09-30T10:00:00Z', ...extra });
@@ -370,4 +370,62 @@ test('historic sender lookup starts only on open; repeated open is cached and ne
     center.close();center.open();await tick();assert.equal(reads.length,1);
     assert.equal(center.getState().unreadCount,1);assert.equal(writes.length,0);assert.equal(audio.sounds.length,0);
   });
+});
+
+
+test('notification status uses explicit urgency and read state, never title keywords or popup flags', () => {
+  assert.deepEqual(notificationStatus({}),{state:'unread',label:'● Yeni'});
+  assert.deepEqual(notificationStatus({okundu:true}),{state:'read',label:'✓ Okundu'});
+  for (const note of [{aciliyet:'acil'},{acil:true},{aciliyet:' ACİL '}]) {
+    assert.deepEqual(notificationStatus(note),{state:'urgent',label:'! Acil · Yeni'});
+    assert.deepEqual(notificationStatus({...note,okundu:true}),{state:'urgent',label:'! Acil · Okundu'});
+  }
+  for (const note of [{baslik:'Acil haber',metin:'urgent emergency'},{tip:'simsek',simsek:true},{aciliyet:'onemli'},{acil:'true'},{acil:{telefon:'private'}},{oncelik:'urgent'}]) assert.equal(notificationStatus(note).state,'unread');
+});
+
+test('unread yellow becomes read green only after success; urgent stays red with explicit read label', async () => {
+  await environment(async ({feed,center,nodes,writer,tick}) => {
+    feed([record('normal'),record('urgent',{aciliyet:'acil'})]);
+    const byTitle = id => nodes('pbm-satir').find(row=>row.getAttribute('data-state')===id);
+    assert.equal(byTitle('unread').getAttribute('data-unread'),'true');
+    assert.match(byTitle('urgent').textContent,/Acil · Yeni/);
+    const pending=deferred();writer(()=>pending.promise);
+    const mark=center.markRead('normal');assert.ok(byTitle('unread'));pending.resolve();await mark;await tick();
+    assert.match(byTitle('read').textContent,/✓ Okundu/);
+    writer(()=>Promise.resolve());await center.markRead('urgent');await tick();
+    assert.match(byTitle('urgent').textContent,/Acil · Okundu/);assert.equal(byTitle('urgent').getAttribute('data-unread'),'false');
+    assert.match(byTitle('urgent').getAttribute('aria-label'),/acil, okundu/);
+  });
+});
+
+test('failed read remains yellow, and duplicate urgent mirror is red without changing group count', async () => {
+  await environment(async ({feed,center,nodes,writer}) => {
+    feed([record('failure')]);writer(()=>Promise.reject(Error('denied')));
+    assert.equal(await center.markRead('failure'),false);assert.equal(nodes('pbm-satir')[0].getAttribute('data-state'),'unread');
+    feed([record('one',{olayAnahtari:'same',okundu:true}),record('two',{olayAnahtari:'same',acil:true})]);
+    assert.equal(center.getState().itemCount,1);assert.equal(center.getState().unreadCount,1);
+    assert.equal(nodes('pbm-satir')[0].getAttribute('data-state'),'urgent');
+  });
+});
+
+test('urgency from the existing authorized title read updates row styling without extra queries or alerts', async () => {
+  await environment(async ({feed,center,nodes,reader,reads,tick,writes,audio}) => {
+    reader(async()=>({exists:()=>true,data:()=>({baslik:'Yeni okul duyurusu',aciliyet:'acil',hedefTur:'tumOkul'})}));
+    feed([record('old-urgent',{baslik:'Yeni okul duyurusu',kaynakId:'source'})]);
+    assert.equal(reads.length,0);assert.equal(nodes('pbm-satir')[0].getAttribute('data-state'),'unread');
+    center.open();await tick();assert.deepEqual(reads,['duyurular/source']);
+    assert.equal(nodes('pbm-satir')[0].getAttribute('data-state'),'urgent');
+    assert.match(nodes('pbm-satir')[0].textContent,/Acil · Yeni/);
+    center.close();center.open();await tick();assert.equal(reads.length,1);assert.equal(writes.length,0);assert.equal(audio.sounds.length,0);
+  },{portalState:{currentUser:{email},isAdmin:true}});
+});
+
+test('yellow green and red status palettes retain readable status and body text',async()=>{
+  const source=await readFile(new URL('../js/portal-bildirim-merkezi.js',import.meta.url),'utf8');
+  const lum=hex=>{const rgb=hex.replace('#','').match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4);return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];};
+  const ratio=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
+  for(const [state,bg,hover,ink] of [['unread','#fffbeb','#fef3c7','#713f12'],['read','#f0fdf4','#dcfce7','#166534'],['urgent','#fff1f2','#ffe4e6','#9f1239']]){
+    assert.ok(source.includes(`data-state="${state}"]{background:${bg}`));
+    for(const surface of [bg,hover])for(const color of [ink,'#202944','#4b5563'])assert.ok(ratio(color,surface)>=4.5,`${state} ${color} contrast`);
+  }
 });
