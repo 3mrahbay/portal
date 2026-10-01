@@ -10,10 +10,14 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v169-sabah-yoklama-renkleri";
+const CACHE_VERSION = "v170-ogrenci-liste-indir";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/ogrenci-liste-core.js?v=170",
+  "./js/ogrenci-liste-xlsx.js?v=170",
+  "./js/ogrenci-liste-disa-aktar.js?v=170",
+  "./js/ogrenci-liste-pdf.js?v=170",
   "./js/sabah-yoklama-core.js?v=168",
   "./js/okul-zili-liste-core.js?v=168",
   "./moduller/sabah-girisi.js?v=v164",

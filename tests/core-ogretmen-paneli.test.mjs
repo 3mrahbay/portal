@@ -230,7 +230,7 @@ test('gizli öğrenci tablosu ve gelecek dönem okumaları açılış zincirinde
   const ayarlar = s.slice(ayarBas, ayarSon);
   assert.match(ayarlar, /tamDonemVerisiGerekli/);
   assert.match(ayarlar, /_anaKayitOzeti: true/);
-  assert.match(ayarlar, /Math\.min\(3, ogrenciList\.length\)/);
+  assert.match(ayarlar, /Math\.min\(3, ogrenciler\.length\)/);
   assert.doesNotMatch(ayarlar, /aktifDonemGuncellendi/);
   assert.doesNotMatch(ayarlar, /gelRef|gelSnap/);
 

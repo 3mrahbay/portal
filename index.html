@@ -9574,6 +9574,31 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         </div>
       </div>
 
+      <div id="ogrenciListeDisaAktar" hidden style="margin:0 0 14px; padding:14px; border:1px solid var(--c-line,#E2E8F0); border-radius:12px; background:var(--c-green-soft,#F1F6F2);">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
+          <div><strong style="font-size:14px;">Öğrenci listesini indir</strong>
+            <div id="ogrenciListeDisaAktarBilgi" role="status" aria-live="polite" style="font-size:12px; margin-top:5px; color:var(--c-muted,#64748B);"></div>
+          </div>
+          <div style="display:flex; gap:16px; flex-wrap:wrap;">
+            <div role="group" aria-label="Aktif öğrencileri indir">
+              <strong style="display:block; font-size:12px; margin-bottom:7px;">Aktif öğrenciler</strong>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="xlsx" data-ogrenci-kapsam="aktif" disabled style="background:#2D5E3E; color:#fff; border-color:#2D5E3E;">Excel (.xlsx) indir</button>
+                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="pdf" data-ogrenci-kapsam="aktif" disabled>PDF indir</button>
+              </div>
+            </div>
+            <div role="group" aria-label="Arşiv öğrencilerini indir">
+              <strong style="display:block; font-size:12px; margin-bottom:7px;">Arşiv öğrencileri</strong>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="xlsx" data-ogrenci-kapsam="arsiv" disabled>Excel (.xlsx) indir</button>
+                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="pdf" data-ogrenci-kapsam="arsiv" disabled>PDF indir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--c-muted,#64748B); margin-top:9px;">Öğrenci, anne ve baba kimlik bilgileri içerir. Dosyayı yalnız yetkili kişilerle paylaşın. Kayıtlı olmayan bilgiler boş bırakılır.</div>
+      </div>
+
       <div class="ogrenci-table" id="ogrenciTableWrap">
         <div class="loading">
           <div class="spinner"></div>
@@ -13806,6 +13831,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
+import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=170';
 import {receiptInput} from './js/expenses/receipt-input.js';
 import {CATEGORIES,localDate} from './js/expenses/receipt-core.js';
 import {odemePlani as ortakOdemePlani, satir as ortakOdemeSatiri, vade as ortakVade} from "./js/finans/core.js";
@@ -13955,6 +13981,7 @@ window.PortalAPI = {
       ogrenciList: (typeof ogrenciList !== "undefined") ? ogrenciList : [],
       ayarListesi: (typeof ayarListesi !== "undefined") ? ayarListesi : {},
       ogrenciVerileriHazirMi: (typeof ogrenciVerileriHazirMi !== "undefined") ? ogrenciVerileriHazirMi : false,
+      ogrenciDisAktarDurumu: (typeof ogrenciDisAktarDurumu !== "undefined") ? ogrenciDisAktarDurumu : null,
       veliOgrenciler: (typeof veliOgrenciler !== "undefined") ? veliOgrenciler : [],
       veliAktifOgrenci: (typeof veliAktifOgrenci !== "undefined") ? veliAktifOgrenci : null,
       aktifDonem: (typeof AKTIF_DONEM !== "undefined") ? AKTIF_DONEM : "",
@@ -14344,6 +14371,9 @@ let ogrenciList = [];      // Tüm öğrenciler (Firestore'dan)
 let ayarListesi = {};      // {ogrenciId: {aidat: 28500, taksit: 12, ...}}
 let gelecekDonemKayitlari = {}; // {ogrenciId: true} → gelecek dönemde kaydı olanlar (yenileme butonu kontrolü)
 let ogrenciVerileriHazirMi = false;
+let ogrenciVeriYuklemeSurumu = 0;
+let ogrenciDonemYuklemeSurumu = 0;
+let ogrenciDisAktarDurumu = { donem: "", uid: "", hazir: false, hataSayisi: 0 };
 let ogrenciTablosuYenilemeBekliyor = false;
 let gelecekDonemKayitlariHazirMi = false;
 let gelecekDonemKayitlariYuklemeSozu = null;
@@ -24568,8 +24598,14 @@ function veliBilgisiMaskele(deger, tip) {
 }
 
 async function loadOgrenciler() {
+  const yuklemeSurumu = ++ogrenciVeriYuklemeSurumu;
+  const uid = currentUser?.uid || "";
+  const halaGuncel = () => yuklemeSurumu === ogrenciVeriYuklemeSurumu && uid === (currentUser?.uid || "");
+  ++ogrenciDonemYuklemeSurumu;
   const wrap = document.getElementById("ogrenciTableWrap");
   ogrenciVerileriHazirMi = false;
+  ogrenciDisAktarDurumu = { donem: AKTIF_DONEM, uid: currentUser?.uid || "", hazir: false, hataSayisi: 0 };
+  ogrenciListeDisaAktarmaGuncelle();
   if (ogrenciSekmesiAktifMi()) {
     wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Öğrenciler yükleniyor...</p></div>';
   }
@@ -24581,11 +24617,14 @@ async function loadOgrenciler() {
       ? DANISMA_GUVENLI_KOLEKSIYONLAR.ogrenciler
       : "ogrenciler";
     const snap = await getDocs(collection(db, ogrenciKaynak));
+    if (!halaGuncel()) return;
     
     if (snap.empty) {
       ogrenciList = [];
       ayarListesi = {};
       ogrenciVerileriHazirMi = true;
+      ogrenciDisAktarDurumu = { donem: AKTIF_DONEM, uid, hazir: true, hataSayisi: 0 };
+      ogrenciListeDisaAktarmaGuncelle();
       if (danismaRolMu()) {
         if (ogrenciSekmesiAktifMi()) wrap.innerHTML = `
           <div class="empty"><h3>Güvenli öğrenci listesi hazırlanıyor</h3>
@@ -24638,6 +24677,7 @@ async function loadOgrenciler() {
     
     // Dönem ayarlarını ayrı sorgu
     await loadAyarlar();
+    if (!halaGuncel()) return;
 
     // Yönetim, tam kaynaktan güvenli danışma özetlerini eşitler. Hata ana
     // ekranı durdurmaz; danışma hesabına kaynak belgeler açılmaz.
@@ -24646,6 +24686,7 @@ async function loadOgrenciler() {
       catch (e) { console.warn("Danışma operasyon projeksiyonu:", e.code || e.message); }
     }
 
+    if (!halaGuncel()) return;
     // ===== FAZ 2a: ÖĞRETMEN SINIF FİLTRESİ =====
     // Öğretmen sadece atandığı sınıfların öğrencilerini görür
     ogrenciList = ogrenciListeyiRoleGoreFiltrele(ogrenciList);
@@ -24653,6 +24694,9 @@ async function loadOgrenciler() {
     ogrenciVerileriHazirMi = true;
     ogrenciArayuzunuGuncelle();
   } catch (e) {
+    if (!halaGuncel()) return;
+    ogrenciDisAktarDurumu = { donem: AKTIF_DONEM, uid, hazir: false, hataSayisi: 1 };
+    ogrenciListeDisaAktarmaGuncelle();
     console.error(e);
     if (ogrenciSekmesiAktifMi()) {
       wrap.innerHTML = `<div class="empty"><h3>Hata oluştu</h3><p>${e.message}</p></div>`;
@@ -24660,61 +24704,65 @@ async function loadOgrenciler() {
   } finally {
     // İlk ağır ana sayfa render'ı yalnızca öğrenci ve dönem zinciri bittikten
     // sonra yapılır. Hata/boş veri durumunda da yükleme görünümü takılı kalmaz.
-    try { adminHomeVeriYuklemesiTamamlandi(); }
+    try { if (halaGuncel()) adminHomeVeriYuklemesiTamamlandi(); }
     catch (e) { console.warn("Ana sayfa hazırlanamadı:", e); }
   }
 }
 
 async function loadAyarlar() {
+  // Capture one year/account and publish one complete result. Older loads may
+  // finish later, but must never mix historical and current-year documents.
+  const yuklemeSurumu = ++ogrenciDonemYuklemeSurumu;
+  const donem = String(AKTIF_DONEM), uid = currentUser?.uid || "";
+  const ogrenciler = [...ogrenciList], yeniAyarlar = {};
+  let hataSayisi = 0;
+  const halaGuncel = () => yuklemeSurumu === ogrenciDonemYuklemeSurumu
+    && donem === String(AKTIF_DONEM) && uid === (currentUser?.uid || "");
   ayarListesi = {};
   anaKayitDonemOzetiKullaniliyor = false;
-  gelecekDonemKayitlari = {}; // öğrencinin gelecek dönemde kaydı var mı?
+  ogrenciDisAktarDurumu = { donem, uid, hazir: false, hataSayisi: 0 };
+  ogrenciListeDisaAktarmaGuncelle();
+  gelecekDonemKayitlari = {};
   gelecekDonemKayitlariHazirMi = false;
   gelecekDonemKayitlariYuklemeSozu = null;
 
-  // Finans bilgisi görmeyen roller için dönem alt belgesi okumak gereksizdir.
-  // Ana öğrenci kaydındaki güvenli dönem/sınıf özeti; öğretmen, danışma,
-  // koordinatör ve PDR ekranlarının aktif öğrenci listesini kurmaya yeter.
   const tamDonemVerisiGerekli = isAdmin || ["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol);
   if (!tamDonemVerisiGerekli) {
-    ogrenciList.forEach(o => {
-      if (String(o.aktifDonem || "") !== String(AKTIF_DONEM)) return;
+    ogrenciler.forEach(o => {
+      if (String(o.aktifDonem || "") !== donem) return;
       const durum = String(o.aktifDonemDurum || o.durum || "aktif");
-      ayarListesi[o.id] = {
-        _anaKayitOzeti: true,
-        durum,
+      yeniAyarlar[o.id] = {
+        _anaKayitOzeti: true, durum,
         kayit: { sinif: o.sinif || o.sinifi || "" },
         ogrenci: { dogumTarihi: o.dogumTarihi || "" }
       };
     });
-    // Özet sonucu boş olsa bile bu kesin kaynaktır; eski dönem öğrencilerini
-    // "ayar listesi boş" geri dönüşüyle öğretmene yeniden açma.
+    if (!halaGuncel()) return;
+    ayarListesi = yeniAyarlar;
     anaKayitDonemOzetiKullaniliyor = true;
+    ogrenciListeDisaAktarmaGuncelle();
     return;
   }
 
-  // Her öğrencinin donem/AKTIF_DONEM subcollection'ını çek.
-  // Gelecek dönem kontrolü ve ana kayıt senkronu bu açılış zincirinde yapılmaz.
-  // Daha küçük işçi havuzu ve her kayıt sonrası event-loop'a dönüş, sonuçlar aynı
-  // anda geldiğinde tarayıcının uzun süre yanıt veremez hale gelmesini önler.
   let sonrakiOgrenciIdx = 0;
-  const isciSayisi = Math.min(3, ogrenciList.length);
-  const isciler = Array.from({ length: isciSayisi }, async () => {
-    while (sonrakiOgrenciIdx < ogrenciList.length) {
-      const o = ogrenciList[sonrakiOgrenciIdx++];
+  const isciler = Array.from({ length: Math.min(3, ogrenciler.length) }, async () => {
+    while (sonrakiOgrenciIdx < ogrenciler.length && halaGuncel()) {
+      const o = ogrenciler[sonrakiOgrenciIdx++];
       try {
-        const ref = doc(db, "ogrenciler", o.id, "donemler", AKTIF_DONEM);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          ayarListesi[o.id] = snap.data();
-        }
-      } catch (e) {
-        console.warn(`Ayar yüklenemedi: ${o.id}`);
+        const snap = await getDoc(doc(db, "ogrenciler", o.id, "donemler", donem));
+        if (snap.exists()) yeniAyarlar[o.id] = snap.data();
+      } catch (_) {
+        hataSayisi++;
+        // Do not include names, student IDs or identity numbers in logs.
       }
       await new Promise(resolve => setTimeout(resolve, 0));
     }
   });
   await Promise.all(isciler);
+  if (!halaGuncel()) return;
+  ayarListesi = yeniAyarlar;
+  ogrenciDisAktarDurumu = { donem, uid, hazir: true, hataSayisi };
+  ogrenciListeDisaAktarmaGuncelle();
 }
 
 function ogrenciSekmesiAktifMi() {
@@ -24722,6 +24770,7 @@ function ogrenciSekmesiAktifMi() {
 }
 
 function ogrenciArayuzunuGuncelle() {
+  ogrenciListeDisaAktarmaGuncelle();
   if (!ogrenciSekmesiAktifMi()) {
     ogrenciTablosuYenilemeBekliyor = true;
     return;
