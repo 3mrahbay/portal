@@ -318,3 +318,21 @@ test('switching an attendance-authorized session to reception drops all private 
   e.subscriptions[3].next(snapshot([]));assert.doesNotMatch(e.list.innerHTML,/Yoklama: Hasta|>Hasta<|Gelmedi · İzinli · Hasta/);
   const safe=e.list.innerHTML;old[1].next(attendanceDoc({'01':{durum:'hasta'}}));assert.equal(e.list.innerHTML,safe);e.bridge.durdur();
 });
+
+test('morning absence badges reuse exact attendance colors and icons with readable text', async () => {
+  const e=await morning({authorize:true});e.m.ogretmenKart('morning');
+  e.subscriptions[0].next(snapshot([]));e.subscriptions[1].next(attendanceDoc({'01':{durum:'gelmedi'},'02':{durum:'izinli'},'03':{durum:'hasta'}}));e.subscriptions[2].next(snapshot([]));
+  const palette=[['01','Gelmedi','❌','#dc2626','#991b1b','#fef2f2','#fecaca'],['02','İzinli','🏖','#d97706','#92400e','#fffbeb','#fde68a'],['03','Hasta','🤒','#9333ea','#6b21a8','#faf5ff','#e9d5ff']];
+  const attendance=await read('portal-devamsizlik.js');
+  for(const [id,label,icon,accent,text,bg,border] of palette) {
+    const html=section(e.list.innerHTML,id);
+    for(const value of [accent,text,bg,border,icon,label]) { assert.ok(html.includes(value),id+' missing '+value); assert.ok(attendance.includes(value),'canonical palette missing '+value); }
+    assert.match(html,/aria-hidden="true"/);assert.doesNotMatch(html,/window._sabahGirisi.onayla/);
+  }
+  assert.equal(e.writes.length,0);e.bridge.durdur();
+});
+test('absence palette never replaces the separate conflict warning', async () => {
+  const e=await morning({authorize:true});e.m.ogretmenKart('morning');
+  e.subscriptions[0].next(snapshot([arrival('01',10,{sinifaGirisOnayi:iso(15)})]));e.subscriptions[1].next(attendanceDoc({'01':{durum:'gelmedi',kayitZamani:iso(20)}}));e.subscriptions[2].next(snapshot([]));
+  const html=section(e.list.innerHTML,'01');assert.match(html,/Kontrol gerekli/);assert.match(html,/#B45309/);assert.doesNotMatch(html,/#dc2626|#fecaca/);e.bridge.durdur();
+});

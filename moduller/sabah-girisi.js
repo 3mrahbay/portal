@@ -19,6 +19,14 @@ import { sabahBugun, sabahDurumu, sabahVerileriniDinle } from "../js/sabah-yokla
 
 const P = () => window.PortalAPI;
 
+// Devamsızlık ekranıyla aynı vurgu, zemin ve çerçeve renkleri.
+// Etiket metni de o ekranın koyu özet tonlarını kullanır (küçük yazıda okunurluk).
+const SABAH_DEVAMSIZLIK_STILLERI = {
+  gelmedi: { ikon: "❌", renk: "#dc2626", metin: "#991b1b", bg: "#fef2f2", border: "#fecaca" },
+  izinli:  { ikon: "🏖", renk: "#d97706", metin: "#92400e", bg: "#fffbeb", border: "#fde68a" },
+  hasta:   { ikon: "🤒", renk: "#9333ea", metin: "#6b21a8", bg: "#faf5ff", border: "#e9d5ff" }
+};
+
 function saatY(iso) {
   if (!iso) return "";
   const ms = bildirimZamani(iso);
@@ -237,19 +245,20 @@ export function ogretmenKart(hedefId, veri = null) {
     const k = kayitlar[o.id] || {}, d = durumlar[o.id];
     const ad = o.ogrenciAdSoyad || o.adSoyad || "—";
     const sinif = state.ayarListesi[o.id]?.kayit?.sinif || o.sinif || "";
-    const renk = d.grup === "kontrol" ? "#B45309" : d.grup === "tamam" ? "#059669" : d.grup === "gelmeyen" ? "#7C3AED" : "#0E7490";
+    const yoklamaStili = d.grup === "gelmeyen" ? SABAH_DEVAMSIZLIK_STILLERI[d.durum] : null;
+    const renk = d.grup === "kontrol" ? "#B45309" : d.grup === "tamam" ? "#059669" : yoklamaStili?.renk || "#0E7490";
     const detay = d.durum === "diger" ? "Tanımlanamayan yoklama durumu · Kaydı kontrol edin" : d.grup === "kontrol"
       ? `${d.teslim ? "Teslim onayı" : "Geliş bildirimi"} var · Yoklama: ${etiketler[d.durum]} · Kayıtları kontrol edin`
       : [siniflarim.length > 1 ? esc(sinif) : "", k.veliBildirimSaati ? "🚗 " + saatY(k.veliBildirimSaati) : "",
          k.sinifaGirisOnayi ? "✅ " + saatY(k.sinifaGirisOnayi) + (k.onaylayanAd ? " · " + esc(k.onaylayanAd.split(" ")[0]) : "") : ""].filter(Boolean).join(" · ");
     return `<div data-sabah-ogrenci="${esc(o.id)}" data-sabah-grup="${d.grup}" style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #F1F2F7;">
-      <div style="width:30px; height:30px; border-radius:9px; background:#F8FAFC; color:${renk}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex-shrink:0;">${esc(ad.charAt(0).toUpperCase())}</div>
+      <div style="width:30px; height:30px; border-radius:9px; background:${yoklamaStili?.bg || "#F8FAFC"}; color:${renk}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex-shrink:0;">${esc(ad.charAt(0).toUpperCase())}</div>
       <div style="flex:1; min-width:0;">
         <div style="font-weight:700; font-size:13px; color:var(--c-ink);">${esc(ad)}</div>
         <div style="font-size:11px; color:${d.grup === "kontrol" ? renk : "var(--c-muted)"};">${detay}</div>
       </div>
       ${d.eylem ? `<button class="btn-mini" onclick="window._sabahGirisi.onayla('${o.id}','${esc(sinif)}')" style="background:#ECFDF5; color:#166534; border-color:#86EFAC; font-weight:700; padding:5px 10px; font-size:11px; white-space:nowrap;">Teslim aldım</button>`
-        : `<span style="font-size:10px; font-weight:800; color:${renk}; background:#F8FAFC; padding:3px 8px; border-radius:100px;">${d.grup === "kontrol" ? "Kontrol gerekli" : etiketler[d.durum]}</span>`}
+        : `<span style="font-size:10px; font-weight:800; color:${yoklamaStili?.metin || renk}; background:${yoklamaStili?.bg || "#F8FAFC"}; ${yoklamaStili ? "border:1px solid " + yoklamaStili.border + ";" : ""} padding:3px 8px; border-radius:100px;">${yoklamaStili ? `<span aria-hidden="true">${yoklamaStili.ikon}</span> ` : ""}${d.grup === "kontrol" ? "Kontrol gerekli" : etiketler[d.durum]}</span>`}
     </div>`;
   };
   const tamamAcik = el.querySelector('[data-sabah-tamam]')?.open === true;
