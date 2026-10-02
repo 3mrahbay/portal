@@ -63,8 +63,8 @@ test('danışma ana ekranında Okul Zili birincil ve tüm operasyon kısayollar�
   const bekleme = bolum(s, 'function adminHomeYukleniyorGoster()', 'function adminHomeVeriYuklemesiTamamlandi');
   assert.match(bekleme, /danismaMi && typeof okulZiliDoldur === "function"/);
   assert.match(bekleme, /Promise\.resolve\(okulZiliDoldur\(\)\)/);
-  const zil = bolum(s, 'window.okulZiliDoldur = async function()', '// Özet sayfası hızlı işlem butonları');
-  assert.match(zil, /where\("tarih", "==", bugun\)/);
+  const zil = bolum(s, 'window.okulZiliCanliBaslat = function()', '// Özet sayfası hızlı işlem butonları');
+  assert.match(zil, /where\("tarih", "==", vzBugun\(\)\)/);
   assert.doesNotMatch(zil, /veliEmail|veliOnayEmail/);
 });
 

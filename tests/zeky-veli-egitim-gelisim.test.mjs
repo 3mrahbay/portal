@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { installedPwa, assertPwaBootstrap, assertPrecachedImport } from './helpers/portal-pwa.mjs';
 import { bckUyumlulukKur } from '../js/zeky-veli-egitim-koprusu.js';
 
 const kok = new URL('../', import.meta.url);
@@ -128,19 +129,23 @@ test('aktif dönem senkronu yalnız güvenli dönem işaretlerini ana öğrenci 
   assert.doesNotMatch(kaynak, /veli1Eposta/);
 });
 
-test('PWA cache eğitim, güvenlik, modern gözlem ve aktif dönem veli zincirini tek sürümle taşır', async () => {
-  const sw = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(sw, /CACHE_VERSION = "v162-audit-cache"/);
-  assert.doesNotMatch(sw, /portal-data\.js\?v=3/);
-  assert.match(sw, /portal-data\.js\?v=8/);
-  assert.match(sw, /zeky-veli-egitim-koprusu\.js\?v=9/);
-  assert.match(sw, /zeky-veli-ogrenme-deneyimi\.js\?v=3/);
-  assert.match(sw, /zeky-galeri-onay-egitim\.js\?v=4/);
-  assert.match(sw, /zeky-egitim-portfolyo\.js\?v=2/);
-  assert.match(sw, /zeky-veli-donem-raporu\.js\?v=1/);
-  assert.match(sw, /zeky-ogrenci-guvenlik-koprusu\.js\?v=7/);
-  assert.match(sw, /zeky-aktif-donem-senkron\.js\?v=3/);
-  assert.match(sw, /veli-egitim-gelisim\.js\?v=8/);
-  assert.match(sw, /ogretmen-egitim-gozlem\.js\?v=6/);
-  assert.match(sw, /zeky-gozlem-modal-modern\.js\?v=1/);
+test('PWA cache eğitim, güvenlik ve gözlem zincirinin tam canlı import URLlerini taşır', async () => {
+  const pwa = await installedPwa();
+  await assertPwaBootstrap(pwa);
+  for (const [importer, target] of [
+    ['index.html', 'js/zeky-randevu-modal-koprusu.js'],
+    ['js/zeky-randevu-modal-koprusu.js', 'js/zeky-galeri-filigran-koprusu.js'],
+    ['js/zeky-randevu-modal-koprusu.js', 'js/zeky-gozlem-modal-modern.js'],
+    ['js/zeky-galeri-filigran-koprusu.js', 'js/zeky-veli-egitim-koprusu.js'],
+    ['js/zeky-galeri-filigran-koprusu.js', 'js/zeky-galeri-onay-egitim.js'],
+    ['js/zeky-veli-egitim-koprusu.js', 'portal-data.js'],
+    ['js/zeky-veli-egitim-koprusu.js', 'moduller/veli-egitim-gelisim.js'],
+    ['js/zeky-veli-egitim-koprusu.js', 'js/zeky-ogrenci-guvenlik-koprusu.js'],
+    ['js/zeky-veli-egitim-koprusu.js', 'js/zeky-aktif-donem-senkron.js'],
+    ['js/zeky-veli-egitim-koprusu.js', 'js/zeky-veli-ogrenme-deneyimi.js'],
+    ['js/zeky-veli-ogrenme-deneyimi.js', 'js/zeky-egitim-portfolyo.js'],
+    ['moduller/veli-egitim-gelisim.js', 'js/zeky-egitim-portfolyo.js'],
+    ['moduller/veli-egitim-gelisim.js', 'js/zeky-veli-donem-raporu.js'],
+    ['js/zeky-ogrenci-guvenlik-koprusu.js', 'moduller/ogretmen-egitim-gozlem.js']
+  ]) assertPrecachedImport(pwa, importer, target);
 });

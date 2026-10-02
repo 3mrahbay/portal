@@ -156,6 +156,8 @@ export function metinOlustur(tur, olaylar) {
 
 let aktif = null;            // { eposta, gun, unsubs, gunKontrol }
 let baslatmaSozu = null;
+let baslatmaEposta = "";
+let calismaSurumu = 0;
 let ayar = { ...VARSAYILAN };
 const tampon = { sabah: [], zil: [] };
 const tamponZamani = { sabah: null, zil: null };
@@ -167,9 +169,44 @@ function kullanici() {
   return { rol: s.rol || "", isAdmin: !!s.isAdmin, siniflar: s.siniflar || [], eposta: kucuk(s.currentUser?.email), personel: s.personel };
 }
 
-const gorulenAnahtari = () => `pab-gorulen:${aktif?.eposta || ""}`;
-function gorulenOku() { try { return new Set(JSON.parse(localStorage.getItem(gorulenAnahtari()) || "[]")); } catch (_) { return new Set(); } }
-function gorulenYaz(set) { try { localStorage.setItem(gorulenAnahtari(), JSON.stringify([...set].slice(-400))); } catch (_) {} }
+const gorulenAnahtari = (eposta = aktif?.eposta || "") => `pab-gorulen:${eposta}`;
+function gorulenOku(eposta) { try { return new Set(JSON.parse(localStorage.getItem(gorulenAnahtari(eposta)) || "[]")); } catch (_) { return new Set(); } }
+function gorulenYaz(set, eposta) { try { localStorage.setItem(gorulenAnahtari(eposta), JSON.stringify([...set].slice(-400))); return true; } catch (_) { return false; } }
+function ortakMerkez() {
+  const m = typeof window !== "undefined" && window.portalBildirimMerkezi;
+  return m?.setExternalItems && !["stopped", "inactive"].includes(m.status) ? m : null;
+}
+function oturumGecerli(oturum) { return aktif === oturum && kullanici().eposta === oturum.eposta; }
+function merkezKaynaginiBirak(oturum, tur) {
+  const kaynak = oturum?.kaynaklar?.get(tur);
+  if (!kaynak) return;
+  kaynak.merkez.setExternalItems(kaynak.ad, [], { initial:true });
+  kaynak.merkez.ownedTypes.delete(kaynak.tip);
+  kaynak.merkez.refresh();
+  oturum.kaynaklar.delete(tur);
+}
+function merkezeAktar(oturum, tur, olaylar, secenekler) {
+  const merkez = ortakMerkez();
+  if (!merkez || !oturumGecerli(oturum)) return false;
+  const tip = tur === "sabah" ? "sabah-yeni" : "pickup-yeni";
+  if (oturum.kaynaklar.get(tur)?.merkez !== merkez) merkezKaynaginiBirak(oturum,tur);
+  const ad = "personel-anlik-" + tur;
+  oturum.kaynaklar.set(tur,{merkez,ad,tip});
+  merkez.ownedTypes.add(tip); merkez.refresh();
+  const gorulen = gorulenOku(oturum.eposta);
+  merkez.setExternalItems(ad,olaylar.map(olay => ({
+    id:tur + ":" + olay.id, tip, okundu:gorulen.has(olay.anahtar),
+    olusturuldu:olay.zaman, olayAnahtari:olay.anahtar,rootOlayAnahtari:tip+":"+olay.id,kaynakId:olay.id,
+    sessizUyari:!canliGosterilsinMi(olay,Date.now()) || (typeof window.portalBildirimUyariAcikMi === "function" && !window.portalBildirimUyariAcikMi(tip)),
+    onRead:async () => {
+      if (!oturumGecerli(oturum) || ortakMerkez() !== merkez) return false;
+      const okunan = gorulenOku(oturum.eposta); okunan.add(olay.anahtar);
+      return gorulenYaz(okunan,oturum.eposta);
+    },
+    onOpen:() => { if (oturumGecerli(oturum)) listeyeGit(tur); }
+  })),secenekler);
+  return true;
+}
 
 async function ayarYukle(api) {
   try {
@@ -183,73 +220,100 @@ export function baslat() {
   const k = kullanici();
   if (!k.eposta || !(k.personel || k.isAdmin)) return Promise.resolve(false);
   if (aktif && aktif.eposta === k.eposta) return Promise.resolve(true);
-  if (baslatmaSozu) return baslatmaSozu;
-  baslatmaSozu = (async () => {
+  if (baslatmaSozu && baslatmaEposta === k.eposta) return baslatmaSozu;
+  durdur();
+  const surum = calismaSurumu;
+  baslatmaEposta = k.eposta;
+  const soz = (async () => {
     try {
       const api = P();
       if (!api?.fb || !api?.db) return false;
-      durdur();
-      ayar = await ayarYukle(api);
-      if (!ayar.acik) return false;
-      if (kullanici().eposta !== k.eposta) return false;   // bu arada oturum değişti
-      aktif = { eposta: k.eposta, gun: api.bugun(), unsubs: [], gunKontrol: null };
-      stilEkle();
-      dinle(api, k);
-      // Gece yarısı geçerse yeni günün kayıtlarını dinle
-      aktif.gunKontrol = setInterval(() => {
-        if (aktif && P()?.bugun?.() !== aktif.gun) { durdur(); baslat(); }
-      }, 5 * 60000);
+      const yeniAyar = await ayarYukle(api);
+      if (surum !== calismaSurumu || kullanici().eposta !== k.eposta || !yeniAyar.acik) return false;
+      ayar = yeniAyar;
+      const oturum = { eposta:k.eposta, gun:api.bugun(), unsubs:[], gunKontrol:null, kaynaklar:new Map() };
+      aktif = oturum;
+      if (!ortakMerkez()) { stilEkle(); sesKilidiniKur(); }
+      if (DANISMA_ROLLERI.includes(k.rol) && !k.isAdmin) danismaKuyrukDuzeltmeyiKur();
+      dinle(api,k,oturum);
+      oturum.gunKontrol = setInterval(() => {
+        if (!oturumGecerli(oturum)) { if (aktif === oturum) durdur(); return; }
+        if (P()?.bugun?.() !== oturum.gun) { durdur(); baslat(); }
+      },5 * 60000);
       return true;
     } catch (e) {
-      console.warn("Anlık bildirimler başlatılamadı:", e?.code || e?.message);
+      console.warn("Anlık bildirimler başlatılamadı:",e?.code || e?.message);
       return false;
     } finally {
-      baslatmaSozu = null;
+      if (surum === calismaSurumu) { baslatmaSozu = null; baslatmaEposta = ""; }
     }
   })();
-  return baslatmaSozu;
+  baslatmaSozu = soz;
+  return soz;
 }
 
 export function durdur() {
+  calismaSurumu++;
+  baslatmaSozu = null; baslatmaEposta = "";
   if (aktif) {
     aktif.unsubs.forEach(u => { try { u(); } catch (_) {} });
     clearInterval(aktif.gunKontrol);
+    for (const tur of [...aktif.kaynaklar.keys()]) merkezKaynaginiBirak(aktif,tur);
   }
   aktif = null;
   for (const t of Object.keys(tampon)) { tampon[t] = []; clearTimeout(tamponZamani[t]); tamponZamani[t] = null; }
+  danismaKuyrukObserver?.disconnect(); danismaKuyrukObserver = null;
+  clearTimeout(danismaKuyrukTimer); danismaKuyrukTimer = null;
+  if (typeof document !== "undefined") {
+    document.querySelectorAll?.(".pab-kart").forEach(k => k.remove());
+    document.removeEventListener?.("visibilitychange",baslikTemizle);
+    if (asilBaslik !== null) { document.title = asilBaslik; asilBaslik = null; }
+  }
 }
 
-function dinle(api, k) {
+function dinle(api, k, oturum) {
   const { fb, db } = api;
   const danisma = DANISMA_ROLLERI.includes(k.rol) && !k.isAdmin;
   for (const tur of Object.keys(TUR)) {
     const roller = tur === "sabah" ? ayar.sabahRolleri : ayar.zilRolleri;
-    if (!rolAliyorMu(k, roller)) continue;                                   // bu rol almıyor → sorgu da yok
-    if (k.rol === "ogretmen" && !k.isAdmin && !k.siniflar.length) continue;  // sınıfsız öğretmen almaz
+    if (!rolAliyorMu(k,roller)) continue;
+    if (k.rol === "ogretmen" && !k.isAdmin && !k.siniflar.length) continue;
     const koleksiyon = danisma ? TUR[tur].danisma : TUR[tur].ana;
-    let ilkAsama = true;   // sunucudan ilk tam görüntü gelene kadar "açılış" sayılır
+    let ilkAsama = true;
     try {
-      const q = fb.query(fb.collection(db, koleksiyon), fb.where("tarih", "==", aktif.gun));
-      const unsub = fb.onSnapshot(q, snap => {
-        if (!aktif) return;
+      const q = fb.query(fb.collection(db,koleksiyon),fb.where("tarih","==",oturum.gun));
+      const unsub = fb.onSnapshot(q,{includeMetadataChanges:true},snap => {
+        if (!oturumGecerli(oturum)) return;
         const simdi = Date.now();
-        const gorulen = gorulenOku();
-        let degisti = false;
+        if (ortakMerkez()) {
+          const olaylar = snap.docs.map(d => olayUret(tur,d.id,d.data())).filter(Boolean);
+          olaylar.forEach(zenginlestir);
+          merkezeAktar(oturum,tur,olaylar.filter(o => kullaniciyaUygunMu(o,k,ayar)),{
+            fromCache:!!snap.metadata?.fromCache, initial:ilkAsama
+          });
+          if (!snap.metadata?.fromCache) ilkAsama = false;
+          return;
+        }
+        const gorulen = gorulenOku(); let degisti = false;
         const belgeler = ilkAsama ? snap.docs : snap.docChanges().filter(c => c.type !== "removed").map(c => c.doc);
         for (const d of belgeler) {
-          const olay = olayUret(tur, d.id, d.data());
+          const olay = olayUret(tur,d.id,d.data());
           if (!olay || gorulen.has(olay.anahtar)) continue;
           zenginlestir(olay);
-          if (!kullaniciyaUygunMu(olay, k, ayar)) continue;
-          const gosterilsin = ilkAsama ? ilkYuklemedeGosterilsinMi(olay, simdi, ayar.ilkYuklemePencereDk) : canliGosterilsinMi(olay, simdi);
+          if (!kullaniciyaUygunMu(olay,k,ayar)) continue;
+          const gosterilsin = ilkAsama ? ilkYuklemedeGosterilsinMi(olay,simdi,ayar.ilkYuklemePencereDk) : canliGosterilsinMi(olay,simdi);
           if (gosterilsin) tamponaEkle(olay);
-          else { gorulen.add(olay.anahtar); degisti = true; }   // eski kayıt: sessizce görüldü say
+          else { gorulen.add(olay.anahtar); degisti = true; }
         }
         if (degisti) gorulenYaz(gorulen);
         if (!snap.metadata?.fromCache) ilkAsama = false;
-      }, e => console.warn(`Anlık bildirim (${koleksiyon}) dinlenemiyor:`, e?.code || e?.message));
-      aktif.unsubs.push(unsub);
-    } catch (e) { console.warn("Anlık bildirim sorgusu:", e?.code || e?.message); }
+      },e => {
+        if (!oturumGecerli(oturum)) return;
+        merkezKaynaginiBirak(oturum,tur);
+        console.warn(`Anlık bildirim (${koleksiyon}) dinlenemiyor:`,e?.code || e?.message);
+      });
+      oturum.unsubs.push(unsub);
+    } catch (e) { console.warn("Anlık bildirim sorgusu:",e?.code || e?.message); }
   }
 }
 
@@ -272,7 +336,7 @@ function tamponaEkle(olay) {
 function bosalt(tur) {
   tamponZamani[tur] = null;
   const liste = tampon[tur].splice(0);
-  if (!aktif || !liste.length) return;
+  if (!aktif || !liste.length || ortakMerkez()) return;
   const gorulen = gorulenOku();
   const yeni = liste.filter(o => !gorulen.has(o.anahtar));
   if (!yeni.length) return;
@@ -298,6 +362,7 @@ function yiginGetir() {
 }
 
 function goster(tur, olaylar) {
+  if (ortakMerkez()) return;
   stilEkle();
   const t = TUR[tur];
   const { baslik, satirlar, fazla } = metinOlustur(tur, olaylar);
@@ -353,14 +418,48 @@ function baslikTemizle() {
   if (asilBaslik !== null && document.visibilityState === "visible") { document.title = asilBaslik; asilBaslik = null; }
 }
 
-// Kısa iki notalı uyarı sesi (tarayıcı izin vermezse sessiz geçer)
+// Kısa iki notalı uyarı sesi.
+// Chrome/Safari Web Audio'yu kullanıcı etkileşimi olmadan başlatmaz. Portal açıldıktan
+// sonraki ilk dokunma/tıklama/tuş olayında AudioContext'i uyandır; Firestore callback'i
+// geldiğinde artık ses güvenilir biçimde çalabilsin.
 let sesBaglam = null;
-function sesCal() {
+let sesKilitKuruldu = false;
+
+function sesBaglaminiAc() {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
+    if (!AC) return false;
     sesBaglam = sesBaglam || new AC();
-    if (sesBaglam.state === "suspended") sesBaglam.resume().catch(() => {});
+    if (sesBaglam.state === "suspended") {
+      const p = sesBaglam.resume();
+      if (p?.catch) p.catch(() => {});
+    }
+    return true;
+  } catch (_) { return false; }
+}
+
+function sesKilidiniKur() {
+  if (sesKilitKuruldu || typeof window === "undefined") return;
+  sesKilitKuruldu = true;
+  const ac = () => {
+    sesBaglaminiAc();
+    if (sesBaglam?.state === "running") {
+      window.removeEventListener("pointerdown", ac, true);
+      window.removeEventListener("touchstart", ac, true);
+      window.removeEventListener("keydown", ac, true);
+    }
+  };
+  window.addEventListener("pointerdown", ac, { capture:true, passive:true });
+  window.addEventListener("touchstart", ac, { capture:true, passive:true });
+  window.addEventListener("keydown", ac, true);
+}
+
+function sesCal() {
+  try {
+    if (!sesBaglaminiAc()) return;
+    // Tarayıcı hâlâ sesi kilitlediyse görünür bildirim çalışır; ilk kullanıcı
+    // etkileşiminden sonraki olaylarda ses devreye girer.
+    if (sesBaglam.state !== "running") return;
     const t0 = sesBaglam.currentTime + 0.02;
     [880, 1175].forEach((frekans, i) => {
       const o = sesBaglam.createOscillator(), g = sesBaglam.createGain();
@@ -372,7 +471,126 @@ function sesCal() {
       o.connect(g); g.connect(sesBaglam.destination);
       o.start(bas); o.stop(bas + 0.4);
     });
+    try { navigator.vibrate?.([80, 50, 80]); } catch (_) {}
   } catch (_) {}
+}
+
+
+let danismaKuyrukObserver = null;
+let danismaKuyrukTimer = null;
+
+function danismaKuyrukDuzeltmeyiKur() {
+  if (typeof document === "undefined") return;
+  danismaMobilStilEkle();
+  const calistir = () => {
+    clearTimeout(danismaKuyrukTimer);
+    danismaKuyrukTimer = setTimeout(danismaKuyrukDuzelt, 60);
+  };
+  calistir();
+  if (danismaKuyrukObserver) return;
+  danismaKuyrukObserver = new MutationObserver(muts => {
+    if (muts.some(m => m.target?.id === "okulZiliListe" || m.target?.closest?.("#okulZiliListe") ||
+      [...(m.addedNodes || [])].some(n => n?.nodeType === 1 && (n.id === "okulZiliListe" || n.querySelector?.("#okulZiliListe"))))) {
+      calistir();
+    }
+  });
+  danismaKuyrukObserver.observe(document.body, { childList:true, subtree:true });
+}
+
+function danismaMobilStilEkle() {
+  if (document.getElementById("danismaKuyrukMobilStil")) return;
+  const st = document.createElement("style");
+  st.id = "danismaKuyrukMobilStil";
+  st.textContent = `
+    #okulZiliListe, #okulZiliListe * { box-sizing:border-box; min-width:0; }
+    @media (max-width:700px) {
+      #okulZiliListe { width:100% !important; max-width:100% !important; overflow-x:hidden !important; }
+      #okulZiliListe > * { width:100% !important; max-width:100% !important; min-width:0 !important; }
+      #okulZiliListe [style*="display:flex"],
+      #okulZiliListe [style*="display: flex"] {
+        flex-wrap:wrap !important;
+        max-width:100% !important;
+        min-width:0 !important;
+      }
+      #okulZiliListe [style*="justify-content:space-between"],
+      #okulZiliListe [style*="justify-content: space-between"] {
+        row-gap:8px !important;
+      }
+      #okulZiliListe button {
+        max-width:100% !important;
+        min-height:36px !important;
+        white-space:nowrap !important;
+        flex:0 0 auto !important;
+      }
+      #okulZiliListe .danisma-mobil-aksiyonlar {
+        display:flex !important;
+        flex-wrap:wrap !important;
+        gap:6px !important;
+        width:100% !important;
+        margin-top:7px !important;
+      }
+    }`;
+  document.head.appendChild(st);
+}
+
+function danismaKuyrukDuzelt() {
+  const liste = document.getElementById("okulZiliListe");
+  if (!liste) return;
+  const s = P()?.state || {};
+  const ogrenciler = Array.isArray(s.ogrenciList) ? s.ogrenciList : [];
+  const ayarlar = s.ayarListesi || {};
+
+  const idBul = row => {
+    const dataId = row.getAttribute?.("data-ogrenci-id") || row.dataset?.ogrenciId || "";
+    if (dataId) return dataId;
+    for (const b of row.querySelectorAll?.("button[onclick]") || []) {
+      const x = String(b.getAttribute("onclick") || "");
+      const m = x.match(/(?:pickup(?:Hazirla|TeslimEt|KapidaBildirPortal|KimlikOnaylaPortal)|pickupDanismaNotuPortal)\(\s*['"]([^'"]+)['"]/);
+      if (m?.[1]) return m[1];
+    }
+    return "";
+  };
+
+  const satirlar = [...liste.children].filter(x => x?.nodeType === 1);
+  for (const row of satirlar) {
+    // Dar ekranda butonlar bilgi kolonunu ezmesin: aksiyonları ayrı sarılabilir grup gibi davran.
+    const aksiyonlar = [...row.querySelectorAll("button")].filter(b =>
+      /Hazırla|Hazırlandı|Kapıda|Kimlik|Not|Teslim Et/i.test(String(b.textContent || "")));
+    if (aksiyonlar.length) {
+      const p = aksiyonlar[0].parentElement;
+      if (p && aksiyonlar.every(b => b.parentElement === p)) p.classList.add("danisma-mobil-aksiyonlar");
+    }
+
+    const ogrenciId = idBul(row);
+    if (!ogrenciId) continue;
+    const o = ogrenciler.find(x => x.id === ogrenciId);
+    if (!o) continue;
+    const ad = String(o.ogrenciAdSoyad || o.adSoyad || o.ad || "").trim();
+    const sinif = String(ayarlar[ogrenciId]?.kayit?.sinif || o.sinif || o.sinifi || "").trim();
+    if (!ad) continue;
+
+    const metin = String(row.textContent || "");
+    if (metin.includes(ad)) continue;
+
+    // İsim satırını "Anne/Baba/Veli alacak" satırının bulunduğu bilgi kolonundan güvenle bul.
+    const alan = [...row.querySelectorAll("*")].find(el => {
+      if (el.children.length) return false;
+      return /^(Anne|Baba|Veli|Yakın|Yetkili).*alacak$/i.test(String(el.textContent || "").trim());
+    });
+    const bilgi = alan?.parentElement;
+    if (!bilgi) continue;
+    let adEl = [...bilgi.children].find(el => {
+      const t = String(el.textContent || "").trim();
+      return t === "—" || t === "-" || !t;
+    });
+    if (!adEl) {
+      adEl = document.createElement("div");
+      adEl.style.cssText = "font-weight:800;color:#1f2544;font-size:14px;line-height:1.25;margin-bottom:2px;";
+      bilgi.insertBefore(adEl, alan);
+    }
+    adEl.textContent = ad + (sinif ? " · " + sinif : "");
+    adEl.setAttribute("data-danisma-ad-tamamlandi", "1");
+  }
 }
 
 function stilEkle() {

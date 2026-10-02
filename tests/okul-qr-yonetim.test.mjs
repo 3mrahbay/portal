@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { installedPwa, assertPwaBootstrap, assertPrecachedImport } from './helpers/portal-pwa.mjs';
 import { okulQrMetni, okulQrAyarDogrula, okulQrYeniJeton, okulQrPosterDosyaAdi } from '../js/okul-qr-core.js';
 
 test('ZEKY ve portal ayni okul QR bicimini kullanir', () => {
@@ -29,13 +30,13 @@ test('poster dosya adi baskiya uygun uretilir', () => {
 
 test('portal yonetim ekraninda QR indirme ve A4 baski vardir', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  const sw = await readFile(new URL('../serviceworker.js', import.meta.url), 'utf8');
+  const pwa = await installedPwa();
   assert.match(html, /data-o="qrayar"/);
   assert.match(html, /<span>Okul QR<\/span>/);
   assert.match(html, /okulQrPngIndir/);
   assert.match(html, /okulQrYazdir/);
   assert.match(html, /config", "okulQR"/);
   assert.match(html, /QR yenilenirse mevcut tüm basılı QR/);
-  assert.match(sw, /CACHE_VERSION = "v162-audit-cache"/);
-  assert.match(sw, /okul-qr-core\.js\?v=1/);
+  await assertPwaBootstrap(pwa, html);
+  assertPrecachedImport(pwa, 'index.html', 'js/okul-qr-core.js');
 });

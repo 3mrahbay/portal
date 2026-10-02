@@ -1,3 +1,4 @@
+import { operasyonPushTetikle } from "../js/zeky-operasyon-push.js";
 // ═══════════════════════════════════════════════════════════════════
 // PICKUP YETKİLİLERİ — moduller/pickup-yetkilileri.js
 // ZEKY ile ORTAK: pickupYetkilileri/{ogrenciId} → { kisiler: [{ad, yakinlik, telefon?}] }
@@ -333,6 +334,8 @@ async function veliOkulZiliGuvenliBildir() {
   } catch (e) {
     console.warn("Okul Zili danışma özeti güncellenemedi:", e.code || e.message);
   }
+
+  await operasyonPushTetikle("pickup-yeni", id);
 
   if (toast) toast("🔔 Bildiriminiz öğretmene iletildi");
   if (typeof window.veliOkulZiliDoldur === "function") {

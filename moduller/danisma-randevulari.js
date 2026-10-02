@@ -1,3 +1,4 @@
+import { operasyonPushTetikle } from "../js/zeky-operasyon-push.js";
 // ═══════════════════════════════════════════════════════════════════
 // DANIŞMA RANDEVULARI — moduller/danisma-randevulari.js
 // ZEKY ile ORTAK: danismaRandevulari/{otoId}
@@ -200,7 +201,7 @@ async function kaydet() {
   const veliAd = g("drVeliAd"), telefon = g("drTel"), tarih = g("drTarih"), saat = g("drSaat");
   if (!veliAd || !telefon || !tarih || !saat) { toast("Veli adı, telefon, tarih ve saat gerekli", "error"); return; }
   try {
-    await fb.addDoc(fb.collection(db, "danismaRandevulari"), {
+    const ref = await fb.addDoc(fb.collection(db, "danismaRandevulari"), {
       veliAd, telefon,
       eposta: g("drEposta").toLowerCase(),
       cocukAd: g("drCocuk"),
@@ -216,6 +217,7 @@ async function kaydet() {
       olusturuldu: new Date().toISOString(),
       guncellendi: fb.serverTimestamp()
     });
+    await operasyonPushTetikle("randevu-yeni", ref.id);
     toast("✓ Randevu kaydedildi");
     panelRender("danismaRandevuIcerik");
   } catch (e) {
@@ -229,10 +231,14 @@ async function durum(id, yeni) {
   const etiket = DURUM[yeni]?.ad || yeni;
   if (yeni === "kayit_oldu" && !confirm("Bu aday kayıt oldu olarak işaretlenecek. Onaylıyor musunuz?")) return;
   try {
+    const zaman = new Date().toISOString();
+    const email = (state.currentUser?.email || "").toLowerCase();
     await fb.setDoc(fb.doc(db, "danismaRandevulari", id), {
       durum: yeni,
-      [yeni + "Zamani"]: new Date().toISOString(),
-      guncelleyen: (state.currentUser?.email || "").toLowerCase(),
+      [yeni + "Zamani"]: zaman,
+      durumZamani: zaman,
+      guncelleyen: email,
+      durumDegistiren: email,
       guncellendi: fb.serverTimestamp()
     }, { merge: true });
     toast("✓ " + etiket);

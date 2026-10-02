@@ -200,6 +200,19 @@ window.kaydetEtkinlik = async function() {
       data.olusturan = B.kullanici().email;
       const ref = doc(collection(db, "etkinlikler"));
       await setDoc(ref, data, { merge: true });
+      import("./js/zeky-bildirim-koprusu.js").then(async m => {
+        const alicilar = m.hedefVeliEmailleri({ hedefTur:data.hedefTur, hedefDeger:data.hedefDeger });
+        if (alicilar.length) {
+          const tarihMetni = [data.tarih, data.baslangicSaat].filter(Boolean).join(" · ");
+          await m.bildirimKaydetVePush(alicilar, {
+            tip:"etkinlik",
+            baslik:"Yeni etkinlik · " + (data.baslik || ""),
+            metin:[tarihMetni, data.konum].filter(Boolean).join(" · "),
+            hedefSayfa:"etkinlikler.html",
+            kaynakId:ref.id
+          });
+        }
+      }).catch(e => console.warn("Etkinlik ZEKY bildirimi:", e?.message || e));
       if (mailGonder) etkinlikMailGonder(data);
       showToast("✓ Etkinlik oluşturuldu");
     }

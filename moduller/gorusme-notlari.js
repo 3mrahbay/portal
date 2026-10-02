@@ -80,13 +80,16 @@ async function servis() {
   }).catch(e => { servisSozu = null; throw e; });
   return servisSozu;
 }
-async function kutu() {
-  const s = await servis();
+async function kutu(eposta = durum().eposta) {
+  const d = durum();
+  const kontrol = () => { if (durum().eposta !== eposta) throw new Error("Oturum değişti"); };
+  const s = await servis(); kontrol();
   let yonetimKapsami = false, veri;
-  if (durum().yonetim) {
+  if (d.yonetim) {
     try { veri = await s.yonetimKutusu(); yonetimKapsami = veri?.kapsam === "okul"; } catch (_) { veri = null; }
+    kontrol();
   }
-  if (!veri) veri = await s.personelKutusu();
+  if (!veri) { kontrol(); veri = await s.personelKutusu(); kontrol(); }
   const liste = (Array.isArray(veri?.randevular) ? veri.randevular : [])
     .map(r => ({ ...r, ms: Number(r.baslangicMillis) })).filter(r => guvenliId(r.id) && Number.isFinite(r.ms));
   return { liste, yonetimKapsami };
@@ -103,72 +106,167 @@ function ogrenciBul(ad) {
 }
 
 // ═════════════════════════ AÇILIR PENCERE BİLDİRİMLERİ ═════════════════════════
-let bildirimAktif = false;
+let bildirimAktif = null;
 const YOKLAMA_ARALIK = 90 * 1000;
+function bildirimMerkezi() {
+  const m = window.portalBildirimMerkezi;
+  return m?.setExternalItems && !["stopped","inactive"].includes(m.status) ? m : null;
+}
+function bildirimOturumuGecerli(oturum) {
+  const d = durum();
+  return bildirimAktif === oturum && d.eposta === oturum.eposta && (d.s.currentUser?.uid || "") === oturum.uid;
+}
+function kaynakBirak(oturum, ad) {
+  const kaynak = oturum?.kaynaklar.get(ad);
+  if (!kaynak) return;
+  kaynak.merkez.setExternalItems(ad,[],{initial:true});
+  kaynak.merkez.ownedTypes.delete(kaynak.tip); kaynak.merkez.refresh();
+  oturum.kaynaklar.delete(ad);
+}
+function kaynakYayinla(oturum,ad,tip,items,options) {
+  const merkez = bildirimMerkezi();
+  if (!merkez || !bildirimOturumuGecerli(oturum)) return false;
+  if (oturum.kaynaklar.get(ad)?.merkez !== merkez) kaynakBirak(oturum,ad);
+  oturum.kaynaklar.set(ad,{merkez,tip});
+  merkez.ownedTypes.add(tip); merkez.refresh();
+  merkez.setExternalItems(ad,items,options);
+  return true;
+}
+function sessizBildirim(tip) {
+  return typeof window.portalBildirimUyariAcikMi === "function" && !window.portalBildirimUyariAcikMi(tip);
+}
 
 export function bildirimBaslat() {
-  if (bildirimAktif) return;
   const d = durum();
-  if (!d.s.personel || !d.eposta) return;
-  bildirimAktif = true;
-  stilEkle();
-  randevuYokla();
-  setInterval(() => { if (document.visibilityState === "visible") randevuYokla(); }, YOKLAMA_ARALIK);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") randevuYokla(); });
-  bildirimDinle();
+  if (!d.s.personel || !d.eposta) { bildirimDurdur(); return; }
+  if (bildirimAktif && bildirimOturumuGecerli(bildirimAktif)) return;
+  bildirimDurdur();
+  const oturum = {eposta:d.eposta,uid:d.s.currentUser?.uid || "",unsub:null,timer:null,
+    gorunurluk:null,kaynaklar:new Map(),yoklaniyor:false,randevuIlk:true,bildirimIlk:true,gosterilen:new Set()};
+  bildirimAktif = oturum;
+  if (!bildirimMerkezi()) stilEkle();
+  const yokla = () => {
+    if (!bildirimOturumuGecerli(oturum)) { if (bildirimAktif === oturum) bildirimDurdur(); return; }
+    if (document.visibilityState === "visible") randevuYokla(oturum);
+  };
+  randevuYokla(oturum);
+  oturum.timer = setInterval(yokla,YOKLAMA_ARALIK);
+  oturum.gorunurluk = yokla;
+  document.addEventListener("visibilitychange",yokla);
+  bildirimDinle(oturum);
+}
+
+export function bildirimDurdur() {
+  const oturum = bildirimAktif;
+  bildirimAktif = null;
+  if (oturum) {
+    clearInterval(oturum.timer);
+    try { oturum.unsub?.(); } catch (_) {}
+    document.removeEventListener("visibilitychange",oturum.gorunurluk);
+    for (const ad of [...oturum.kaynaklar.keys()]) kaynakBirak(oturum,ad);
+  }
+  sonKutu = null; notOnbellek = null;
+  document.querySelectorAll?.(".gn-acilir").forEach(el => el.remove());
 }
 
 function gorulenler(anahtar) { try { return new Set(JSON.parse(localStorage.getItem(anahtar) || "[]")); } catch (_) { return new Set(); } }
-function gorulduYaz(anahtar, set) { try { localStorage.setItem(anahtar, JSON.stringify([...set].slice(-300))); } catch (_) {} }
+function gorulduYaz(anahtar, set) { try { localStorage.setItem(anahtar, JSON.stringify([...set].slice(-300))); return true; } catch (_) { return false; } }
 
-let yoklaniyor = false;
-async function randevuYokla() {
-  if (yoklaniyor) return;
-  yoklaniyor = true;
+async function randevuYokla(oturum = bildirimAktif) {
+  if (!oturum || !bildirimOturumuGecerli(oturum) || oturum.yoklaniyor) return;
+  oturum.yoklaniyor = true;
   try {
-    const { liste } = await kutu();
+    const { liste } = await kutu(oturum.eposta);
+    if (!bildirimOturumuGecerli(oturum)) return;
     sonKutu = liste;
-    const anahtar = `gn-randevu-gorulen:${durum().eposta}`;
+    const anahtar = `gn-randevu-gorulen:${oturum.eposta}`;
     const gorulen = gorulenler(anahtar);
-    const yeni = liste.filter(r => r.durum === "talep" && r.ms > Date.now() - 3600000 && !gorulen.has(r.id)).sort((a, b) => a.ms - b.ms);
-    if (yeni.length) {
-      yeni.forEach(r => gorulen.add(r.id)); gorulduYaz(anahtar, gorulen);
-      acilirGoster({
-        tur: "randevu", ikon: "calendar-plus", renk: "#B45309", acik: "#FEF3C7",
-        baslik: yeni.length === 1 ? "Yeni randevu talebi" : `${yeni.length} yeni randevu talebi`,
-        satirlar: yeni.slice(0, 4).map(r => `${r.ogrenciAd || r.veliAd || "Veli"} · ${turBul(r.tip).ad} · ${gunYazi(r.ms)} ${saatYazi(r.ms)}`),
-        not: yeni[0].veliNotu || "",
-        eylem: { yazi: "Randevuları aç", ikon: "calendar-days", tikla: () => { location.href = "./randevu-talepleri.html"; } }
-      });
+    const bekleyen = liste.filter(r => r.durum === "talep" && r.ms > Date.now() - 3600000).sort((a,b) => a.ms - b.ms);
+    if (bildirimMerkezi()) {
+      kaynakYayinla(oturum,"gn-randevu","randevu_talep",bekleyen.map(r => ({
+        id:r.id,tip:"randevu_talep",okundu:gorulen.has(r.id),olusturuldu:new Date(r.ms).toISOString(),
+        olayAnahtari:"randevu_talep:" + r.id,kaynakId:r.id,sessizUyari:sessizBildirim("randevu_talep"),
+        onRead:async () => {
+          if (!bildirimOturumuGecerli(oturum)) return false;
+          const okunan = gorulenler(anahtar); okunan.add(r.id); return gorulduYaz(anahtar,okunan);
+        },
+        onOpen:() => { if (bildirimOturumuGecerli(oturum)) location.href = "./randevu-talepleri.html"; }
+      })),{initial:oturum.randevuIlk});
+    } else {
+      const yeni = bekleyen.filter(r => !gorulen.has(r.id) && !oturum.gosterilen.has("randevu:" + r.id));
+      if (yeni.length) {
+        yeni.forEach(r => oturum.gosterilen.add("randevu:" + r.id));
+        acilirGoster({
+          tur:"randevu",ikon:"calendar-plus",renk:"#B45309",acik:"#FEF3C7",
+          baslik:yeni.length === 1 ? "Yeni randevu talebi" : `${yeni.length} yeni randevu talebi`,
+          satirlar:yeni.slice(0,4).map(r => `${r.ogrenciAd || r.veliAd || "Veli"} · ${turBul(r.tip).ad} · ${gunYazi(r.ms)} ${saatYazi(r.ms)}`),
+          not:yeni[0].veliNotu || "",
+          eylem:{yazi:"Randevuları aç",ikon:"calendar-days",tikla:() => { if (bildirimOturumuGecerli(oturum)) location.href = "./randevu-talepleri.html"; }},
+          kapaninca:() => {
+            if (!bildirimOturumuGecerli(oturum)) return;
+            const okunan = gorulenler(anahtar); yeni.forEach(r => okunan.add(r.id)); gorulduYaz(anahtar,okunan);
+          }
+        });
+      }
     }
+    oturum.randevuIlk = false;
     document.querySelectorAll("[data-gn-ozet]").forEach(el => ozetCiz(el));
-  } catch (e) { console.warn("Randevu bildirimi okunamadı:", e?.code || e?.message); }
-  finally { yoklaniyor = false; }
+  } catch (e) {
+    if (!bildirimOturumuGecerli(oturum)) return;
+    kaynakBirak(oturum,"gn-randevu"); oturum.randevuIlk = true;
+    console.warn("Randevu bildirimi okunamadı:",e?.code || e?.message);
+  } finally { oturum.yoklaniyor = false; }
 }
 
-function bildirimDinle() {
+function bildirimDinle(oturum) {
   const a = P(); if (!a?.fb) return;
   const { db, fb } = a;
-  const anahtar = `gn-bildirim-gorulen:${durum().eposta}`;
+  const anahtar = `gn-bildirim-gorulen:${oturum.eposta}`;
   try {
-    fb.onSnapshot(fb.query(fb.collection(db, "personelBildirimleri"), fb.where("aliciEmail", "==", durum().eposta), fb.where("okundu", "==", false)), snap => {
-      const gorulen = gorulenler(anahtar);
-      snap.docs.forEach(dokuman => {
-        if (gorulen.has(dokuman.id)) return;
-        gorulen.add(dokuman.id); gorulduYaz(anahtar, gorulen);
-        const v = dokuman.data() || {};
-        acilirGoster({
-          tur: "not", ikon: "notebook-text", renk: "#2D5E3E", acik: "#E8F3EC",
-          baslik: v.baslik || "Yeni bildirim", satirlar: [v.metin || ""], alt: v.gonderenAd ? `Gönderen: ${v.gonderenAd}` : "",
-          eylem: v.kaynakId ? { yazi: "Notu aç", ikon: "eye", tikla: () => notGoster(v.kaynakId) } : null,
-          kapaninca: () => fb.updateDoc(dokuman.ref, { okundu: true, okunduZaman: fb.serverTimestamp() }).catch(() => {})
+    oturum.unsub = fb.onSnapshot(fb.query(fb.collection(db,"personelBildirimleri"),fb.where("aliciEmail","==",oturum.eposta),fb.where("okundu","==",false)),{includeMetadataChanges:true},snap => {
+      if (!bildirimOturumuGecerli(oturum)) return;
+      const belgeler = snap.docs.filter(d => kucuk(d.data()?.aliciEmail) === oturum.eposta);
+      const oku = async dokuman => {
+        if (!bildirimOturumuGecerli(oturum)) return false;
+        await fb.updateDoc(dokuman.ref,{okundu:true,okunduZaman:fb.serverTimestamp()});
+        if (!bildirimOturumuGecerli(oturum)) return false;
+        const okunan = gorulenler(anahtar); okunan.add(dokuman.id); gorulduYaz(anahtar,okunan);
+        return true;
+      };
+      if (bildirimMerkezi()) {
+        kaynakYayinla(oturum,"gn-personel","gorusme_notu",belgeler.map(dokuman => {
+          const v = dokuman.data() || {}, tip = v.tip || "gorusme_notu";
+          return {id:dokuman.id,tip,okundu:v.okundu === true,olusturuldu:v.olusturuldu,
+            olayAnahtari:v.olayAnahtari || "gorusme_notu:" + (v.kaynakId || dokuman.id),kaynakId:v.kaynakId || "",
+            sessizUyari:sessizBildirim(tip),onRead:() => oku(dokuman),
+            onOpen:() => { if (bildirimOturumuGecerli(oturum) && v.kaynakId) return notGoster(v.kaynakId); }
+          };
+        }),{fromCache:!!snap.metadata?.fromCache,initial:oturum.bildirimIlk});
+      } else {
+        const gorulen = gorulenler(anahtar);
+        belgeler.forEach(dokuman => {
+          if (gorulen.has(dokuman.id) || oturum.gosterilen.has("not:" + dokuman.id)) return;
+          oturum.gosterilen.add("not:" + dokuman.id);
+          const v = dokuman.data() || {};
+          acilirGoster({
+            tur:"not",ikon:"notebook-text",renk:"#2D5E3E",acik:"#E8F3EC",
+            baslik:v.baslik || "Yeni bildirim",satirlar:[v.metin || ""],alt:v.gonderenAd ? `Gönderen: ${v.gonderenAd}` : "",
+            eylem:v.kaynakId ? {yazi:"Notu aç",ikon:"eye",tikla:() => { if (bildirimOturumuGecerli(oturum)) notGoster(v.kaynakId); }} : null,
+            kapaninca:() => oku(dokuman).catch(() => {})
+          });
         });
-      });
-    }, e => console.warn("Personel bildirimleri dinlenemiyor (kural eklendi mi?):", e?.code || e?.message));
-  } catch (_) {}
+      }
+      if (!snap.metadata?.fromCache) oturum.bildirimIlk = false;
+    },e => {
+      if (!bildirimOturumuGecerli(oturum)) return;
+      kaynakBirak(oturum,"gn-personel"); oturum.bildirimIlk = true;
+      console.warn("Personel bildirimleri dinlenemiyor:",e?.code || e?.message);
+    });
+  } catch (e) { console.warn("Personel bildirim sorgusu:",e?.code || e?.message); }
 }
 
 function acilirGoster({ ikon: ik, renk, acik, baslik, satirlar = [], not = "", alt = "", eylem = null, kapaninca = null }) {
+  if (bildirimMerkezi()) return;
   stilEkle();
   let yigin = document.getElementById("gnYigin");
   if (!yigin) { yigin = document.createElement("div"); yigin.id = "gnYigin"; yigin.className = "gn-yigin"; yigin.setAttribute("aria-live", "assertive"); document.body.appendChild(yigin); }
@@ -454,9 +552,11 @@ async function bildirimGonder(not, alicilar) {
   const konular = (not.konular || []).slice(0, 3).join(", ");
   const baslik = `Görüşme notu · ${not.ogrenciAd || "Öğrenci"}`;
   const metin = `${d.ad} · ${kisaYazi(not.randevuMillis)}${konular ? ` · ${konular}` : ""}${not.takip?.gerekli ? " · takip gerekli" : ""}`;
+  const kaynakId = not.randevuId || not.id;
+  const olayAnahtari = `gorusme_notu:${kaynakId}:${new Date().toISOString()}`;
   const toplu = fb.writeBatch(db);
   alicilar.forEach(e => toplu.set(fb.doc(fb.collection(db, "personelBildirimleri")), {
-    aliciEmail: e, tip: "gorusme_notu", baslik, metin, kaynakId: not.randevuId || not.id,
+    aliciEmail: e, tip: "gorusme_notu", baslik, metin, kaynakId, olayAnahtari,
     gonderenEmail: d.eposta, gonderenAd: d.ad, okundu: false, olusturuldu: fb.serverTimestamp()
   }));
   toplu.set(fb.doc(db, "gorusmeNotlari", not.randevuId || not.id), {
@@ -465,8 +565,13 @@ async function bildirimGonder(not, alicilar) {
   await toplu.commit();
   // ZEKY uygulaması bildirimleri (eski biçim) — başarısız olsa da portal bildirimi gitti
   Promise.all(alicilar.map(e => fb.addDoc(fb.collection(db, "bildirimler"), {
-    aliciEmail: e, tip: "gorusme_notu", baslik, metin, hedefSayfa: "gorusmeNotlari", okundu: false, olusturuldu: new Date().toISOString()
+    aliciEmail: e, tip: "gorusme_notu", baslik, metin, kaynakId, olayAnahtari, hedefSayfa: "gorusmeNotlari", okundu: false, olusturuldu: new Date().toISOString()
   }))).catch(() => {});
+  import("../js/zeky-operasyon-push.js")
+    .then(m => m.genelPushGonder(alicilar, {
+      tip:"gorusme_notu", baslik:"Görüşme notu", metin:"Yeni bir görüşme bildiriminiz var.", hedefSayfa:"gorusmeNotlari"
+    }))
+    .catch(() => {});
   const kayit = notOnbellek?.get(not.randevuId || not.id);
   if (kayit) kayit.bildirimAlicilari = [...new Set([...(kayit.bildirimAlicilari || []), ...alicilar])];
 }
@@ -678,4 +783,7 @@ function stilEkle() {
   document.head.appendChild(st);
 }
 
-if (typeof window !== "undefined") window.gorusmeNotlari = { bildirimBaslat, ozetKart, panelRender, editorAc, notGoster };
+if (typeof window !== "undefined") {
+  window.gorusmeNotlari = { bildirimBaslat, bildirimDurdur, ozetKart, panelRender, editorAc, notGoster };
+  window.gorusmeNotlariBildirimDurdur = bildirimDurdur;
+}

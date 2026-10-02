@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { installedPwa, assertPwaBootstrap, assertPrecachedImport } from './helpers/portal-pwa.mjs';
 
 const kok = new URL('../', import.meta.url);
 
@@ -89,11 +90,12 @@ test('modern gözlem popup modülü canlı başlangıç zincirinde yüklenir', a
   assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
 });
 
-test('PWA dönem, gözlem, tek eğitim kartı ve aktif dönem velileri sürümü v145-okul-qr-baski', async () => {
-  const s = await readFile(new URL('serviceworker.js', kok), 'utf8');
-  assert.match(s, /CACHE_VERSION = "v162-audit-cache"/);
-  assert.match(s, /zeky-gozlem-modal-modern\.js\?v=1/);
-  assert.match(s, /personel-izin-core\.js\?v=1/);
+test('PWA dönem ve gözlem yardımcılarını canlı başlangıç sürümleriyle önbelleğe alır', async () => {
+  const pwa = await installedPwa();
+  await assertPwaBootstrap(pwa);
+  assertPrecachedImport(pwa, 'index.html', 'js/zeky-randevu-modal-koprusu.js');
+  assertPrecachedImport(pwa, 'js/zeky-randevu-modal-koprusu.js', 'js/zeky-gozlem-modal-modern.js');
+  assertPrecachedImport(pwa, 'index.html', 'js/personel-izin-core.js');
 });
 
 test('veli listesi yalnız aktif dönem öğrencilerinden türetilir', async () => {
@@ -230,7 +232,7 @@ test('gizli öğrenci tablosu ve gelecek dönem okumaları açılış zincirinde
   const ayarlar = s.slice(ayarBas, ayarSon);
   assert.match(ayarlar, /tamDonemVerisiGerekli/);
   assert.match(ayarlar, /_anaKayitOzeti: true/);
-  assert.match(ayarlar, /Math\.min\(3, ogrenciList\.length\)/);
+  assert.match(ayarlar, /Math\.min\(3, ogrenciler\.length\)/);
   assert.doesNotMatch(ayarlar, /aktifDonemGuncellendi/);
   assert.doesNotMatch(ayarlar, /gelRef|gelSnap/);
 
