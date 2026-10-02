@@ -1669,6 +1669,41 @@ body.rol-danisma .tb-grup-program { display:none !important; }
 .tb-grup-gorunum { --tb-renk: #5A6ACF; --tb-zemin: #F2F4FD; }
 .tb-grup-sinif   { --tb-renk: #2D7A4F; --tb-zemin: #EFF8F2; }
 .tb-grup-program { --tb-renk: #B45309; --tb-zemin: #FDF6EC; }
+.tb-grup-indir {
+  --tb-renk: #2D5E3E; --tb-zemin: #F1F6F2;
+  margin-left: auto;
+  flex: 1 1 500px;
+  min-width: 0;
+  justify-content: flex-start;
+}
+.ogrenci-indir-secimler {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  min-width: 0;
+}
+.ogrenci-indir-kume {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 4px 2px 7px;
+  background: rgba(255,255,255,.72);
+  border: 1px solid #DDE8E1;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.ogrenci-indir-kume strong {
+  font-size: 10.5px; color: #476052; margin-right: 1px;
+}
+.ogrenci-indir-kume .btn-csv-yukle {
+  padding: 5px 9px;
+  min-height: 30px;
+  font-size: 11.5px;
+  border-radius: 7px;
+}
+#ogrenciListeDisaAktarBilgi {
+  flex: 1 1 100%;
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--c-muted,#64748B);
+}
+#ogrenciListeDisaAktarBilgi:empty { display: none; }
 
 /* Çipler grup rengini alır */
 .toolbar-yeni .filter-chip {
@@ -1693,6 +1728,8 @@ body.rol-danisma .tb-grup-program { display:none !important; }
 @media (max-width: 768px) {
   .toolbar-yeni .tb-satir-filtre { gap: 8px; }
   .tb-grup { width: 100%; align-items: flex-start; }
+  .tb-grup-indir { margin-left: 0; flex: 1 1 100%; flex-wrap: wrap; }
+  .ogrenci-indir-secimler { width: 100%; }
 }
 
 .toolbar {
@@ -9571,32 +9608,25 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
               <button class="filter-chip" data-filter="yarimgun">Yarım Gün</button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div id="ogrenciListeDisaAktar" hidden style="margin:0 0 14px; padding:14px; border:1px solid var(--c-line,#E2E8F0); border-radius:12px; background:var(--c-green-soft,#F1F6F2);">
-        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
-          <div><strong style="font-size:14px;">Öğrenci listesini indir</strong>
-            <div id="ogrenciListeDisaAktarBilgi" role="status" aria-live="polite" style="font-size:12px; margin-top:5px; color:var(--c-muted,#64748B);"></div>
-          </div>
-          <div style="display:flex; gap:16px; flex-wrap:wrap;">
-            <div role="group" aria-label="Aktif öğrencileri indir">
-              <strong style="display:block; font-size:12px; margin-bottom:7px;">Aktif öğrenciler</strong>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="xlsx" data-ogrenci-kapsam="aktif" disabled style="background:#2D5E3E; color:#fff; border-color:#2D5E3E;">Excel (.xlsx) indir</button>
-                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="pdf" data-ogrenci-kapsam="aktif" disabled>PDF indir</button>
+          <div id="ogrenciListeDisaAktar" class="tb-grup tb-grup-indir" hidden
+               title="Çıktılar öğrenci, anne ve baba kimlik bilgileri içerir. Dosyaları yalnız yetkili kişilerle paylaşın.">
+            <span class="tb-grup-etiket">Liste indir</span>
+            <div class="ogrenci-indir-secimler">
+              <div class="ogrenci-indir-kume" role="group" aria-label="Aktif öğrencileri indir">
+                <strong>Aktif</strong>
+                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="xlsx" data-ogrenci-kapsam="aktif" disabled style="background:#2D5E3E; color:#fff; border-color:#2D5E3E;">Excel</button>
+                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="pdf" data-ogrenci-kapsam="aktif" disabled>PDF</button>
               </div>
-            </div>
-            <div role="group" aria-label="Arşiv öğrencilerini indir">
-              <strong style="display:block; font-size:12px; margin-bottom:7px;">Arşiv öğrencileri</strong>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="xlsx" data-ogrenci-kapsam="arsiv" disabled>Excel (.xlsx) indir</button>
-                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="pdf" data-ogrenci-kapsam="arsiv" disabled>PDF indir</button>
+              <div class="ogrenci-indir-kume" role="group" aria-label="Arşiv öğrencilerini indir">
+                <strong>Arşiv</strong>
+                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="xlsx" data-ogrenci-kapsam="arsiv" disabled>Excel</button>
+                <button type="button" class="btn-csv-yukle" data-ogrenci-indir="pdf" data-ogrenci-kapsam="arsiv" disabled>PDF</button>
               </div>
+              <div id="ogrenciListeDisaAktarBilgi" role="status" aria-live="polite"></div>
             </div>
           </div>
         </div>
-        <div style="font-size:11px; color:var(--c-muted,#64748B); margin-top:9px;">Öğrenci, anne ve baba kimlik bilgileri içerir. Dosyayı yalnız yetkili kişilerle paylaşın. Kayıtlı olmayan bilgiler boş bırakılır.</div>
       </div>
 
       <div class="ogrenci-table" id="ogrenciTableWrap">
