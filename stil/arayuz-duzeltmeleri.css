@@ -363,3 +363,139 @@ div[style*="place-items: center"][style*="width:"] {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* ── 8) Personel + veli ekranları · mobil yatay taşma koruması ───────── */
+@media (max-width: 768px) {
+  /* Personel rolleri yönetim kabuğunu kullanıyor: dış sayfa sabit, iç geniş alanlar lokal kayar. */
+  body.rol-ogretmen #dashboard,
+  body.rol-danisma #dashboard,
+  body.rol-muhasebe #dashboard,
+  body.rol-pdr #dashboard,
+  body.rol-egitim_koordinator #dashboard,
+  body.rol-mudur #dashboard {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body.rol-ogretmen #dashboard .tab-panel,
+  body.rol-danisma #dashboard .tab-panel,
+  body.rol-muhasebe #dashboard .tab-panel,
+  body.rol-pdr #dashboard .tab-panel,
+  body.rol-egitim_koordinator #dashboard .tab-panel,
+  body.rol-mudur #dashboard .tab-panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Personel kart/listeleri dar telefonda minimum kolon yüzünden taşmasın. */
+  #tab-personel .personel-liste {
+    grid-template-columns: 1fr !important;
+  }
+  #tab-personel .personel-hero-metin {
+    min-width: 0 !important;
+  }
+  #tab-personel .personel-durum-sekmeleri {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  /* Veli portalı kök kabuk: tüm sayfa yatayda sabit. */
+  #veliPanel,
+  #veliPanel.active,
+  #veliPanel .veli-layout,
+  #veliPanel .veli-main,
+  #veliPanel .veli-tab-panel,
+  #veliPanel .cicek-app,
+  #veliPanel .ca-page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  #veliPanel {
+    overflow-x: hidden;
+  }
+
+  #veliPanel .veli-main,
+  #veliPanel .veli-tab-panel {
+    overflow-x: hidden;
+  }
+
+  #veliPanel .veli-tab-panel > *,
+  #veliPanel .veli-card,
+  #veliPanel .ca-card,
+  #veliPanel .dash-karti {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  #veliPanel img,
+  #veliPanel video,
+  #veliPanel iframe,
+  #veliPanel canvas {
+    max-width: 100%;
+  }
+
+  #veliPanel input,
+  #veliPanel select,
+  #veliPanel textarea,
+  #veliPanel button {
+    max-width: 100%;
+  }
+
+  /* Geniş tablolar veli sayfasını değil kendi alanını kaydırır. */
+  #veliPanel .veli-tab-panel table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Eski sekmelerdeki geri çubuğu zil/başlıkla birlikte ekrana sığdır. */
+  #veliPanel .zeky-geri-bar {
+    min-width: 0;
+    max-width: 100%;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  #veliPanel .zeky-geri-bar .zeky-geri-baslik {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #veliPanel .zeky-geri-bar button {
+    flex-shrink: 0;
+  }
+
+  /* Veli Okul Hayatı tarih/hafta kontrolleri küçük ekranı genişletmesin. */
+  #veliZamanAyEtiketi,
+  #veliYemekHaftaEtiketi,
+  #veliDevamsizlikAyEtiketi {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  /* Mesajlaşma: liste/sohbet geçişi mobilde tek panel olarak kalsın. */
+  #veliPanel .mesaj-konteyner {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  #veliPanel .mesaj-liste-panel,
+  #veliPanel .mesaj-sohbet-panel {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Rapor ve gelişim kartlarında minimum grid kolonları dar ekranı zorlamasın. */
+  #veliPanel .rapor-disiplin-grid {
+    grid-template-columns: 1fr !important;
+  }
+  #veliPanel .veli-card-grid-2,
+  #veliPanel .veli-gelisim-radar-wrap {
+    grid-template-columns: 1fr !important;
+  }
+}
