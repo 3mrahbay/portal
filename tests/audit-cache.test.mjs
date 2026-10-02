@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import vm from 'node:vm';
+import { installedPwa } from './helpers/portal-pwa.mjs';
 const source=await fs.readFile(new URL('../serviceworker.js',import.meta.url),'utf8');
 function worker({cacheMatch=async()=>undefined,fetcher=async()=>{throw Error('offline')},keys=[]}={}) {
  const listeners={},deleted=[],puts=[];
@@ -30,6 +31,7 @@ test('stylesheets use the current network response',async()=>{
  w.listeners.fetch({request:request('/portal-stil.css',{destination:'style'}),respondWith(p){pending=p}});assert.equal(await (await pending).text(),'new');
 });
 test('activation only removes obsolete Portal caches',async()=>{
- const w=worker({keys:['unrelated-app','bircicek-portal-old','bircicek-portal-v162-audit-cache']});let pending;
+ const installed=await installedPwa();
+ const w=worker({keys:['unrelated-app','bircicek-portal-old',installed.cacheName]});let pending;
  w.listeners.activate({waitUntil(p){pending=p}});await pending;assert.deepEqual(w.deleted,['bircicek-portal-old']);
 });

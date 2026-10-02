@@ -3,7 +3,7 @@
 import { bildirimKaydetVePush, hedefVeliEmailleri } from './zeky-bildirim-koprusu.js';
 
 const KURULUM='__zekyGaleriOnayEgitimV3';
-const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi',degerlerPlus:'Değerler+'};
+const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi',degerlerPlus:'Değerler+',jimnastik:'Jimnastik',drama:'Drama',kodlama:'Kodlama'};
 const ASAMA={S:'Sunuldu',T:'Tekrar ediyor',U:'Ustalaştı'};
 let gozlemci=null;
 let lightboxTicket=0;
@@ -17,7 +17,7 @@ function egitimMi(m){return m?.egitimKaydi===true||m?.albumTuru==='egitim'||Bool
 function bekliyor(m){return m?.durum==='beklemede'||m?.durum==='onayBekliyor';}
 function yonetimMi(){const s=window.PortalAPI?.state||{};return!!s.isAdmin||['kurucu_mudur','mudur'].includes(String(s.rol||''));}
 function veri(id){return(window.galeriListesiVerisi||[]).find(x=>x.id===id)||null;}
-function kartId(k){const x=String(k?.getAttribute?.('onclick')||'').match(/acGaleriLightbox\('([^']+)'\)/);return x?.[1]||'';}
+function kartId(k){if(k?.dataset?.galleryMediaId)return k.dataset.galleryMediaId;const x=String(k?.getAttribute?.('onclick')||'').match(/acGaleriLightbox\('([^']+)'\)/);return x?.[1]||'';}
 function tarih(m){const d=new Date(m?.tarih||m?.yuklemeZamani||m?.olusturmaTarihi||'');return isNaN(d)?'':d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});}
 
 function stil(){if(document.getElementById('zeky-galeri-onay-egitim-stil'))return;const s=document.createElement('style');s.id='zeky-galeri-onay-egitim-stil';s.textContent=`.zgo-kisa{position:absolute;left:0;right:0;bottom:45px;padding:24px 8px 7px;background:linear-gradient(transparent,rgba(7,20,13,.86));color:#fff;pointer-events:none}.zgo-kisa b{display:block;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zgo-kisa span{display:block;font-size:9px;opacity:.82;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zgo-detay{width:min(390px,36vw);min-width:290px;padding:22px;overflow:auto;background:#fff;color:#26382E}.zgo-detay h3{font-size:18px;line-height:1.35;margin:6px 0 0}.zgo-rozetler{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}.zgo-rozet{font-size:10.5px;font-weight:800;padding:5px 9px;border-radius:999px;background:#EAF3EC;color:#2D6A45}.zgo-aciklama{font-size:13px;line-height:1.65;color:#526158;background:#F5F8F6;border-radius:13px;padding:12px;margin-top:14px}.zgo-bilgi{display:grid;grid-template-columns:92px 1fr;gap:7px;font-size:11.5px;margin-top:14px}.zgo-bilgi span{color:#89958E}.zgo-bilgi b{color:#35463C;overflow-wrap:anywhere}.zgo-actions{display:flex;gap:8px;margin-top:18px}.zgo-actions button{flex:1;border:0;border-radius:11px;padding:11px;color:#fff;font-weight:800;cursor:pointer}@media(max-width:760px){#galeriLightboxIcerik.zgo-grid{display:flex!important;flex-direction:column;overflow:auto!important;max-height:88vh!important}.zgo-detay{width:100%;min-width:0;box-sizing:border-box}.zgo-medya{min-height:42vh}.zgo-medya img{max-height:52vh!important}}`;document.head.appendChild(s);}

@@ -10,10 +10,12 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v173-staff-parent-mobile-stability";
+const CACHE_VERSION = "v175-galeri-veli-programlar";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/galeri-klasorleri.js",
+  "./js/portal-galeri-klasor-ui.js",
   "./js/ogretmen-sinif-core.js?v=173",
   "./js/ogrenci-liste-core.js?v=170",
   "./js/ogrenci-liste-xlsx.js?v=170",
@@ -65,7 +67,7 @@ const PRECACHE = [
   "./js/zeky-randevu-callable-adapter.js",
   "./js/zeky-randevu-parent-page.js",
   "./js/zeky-randevu-staff-page.js",
-  "./js/zeky-randevu-modal-koprusu.js?v=10",
+  "./js/zeky-randevu-modal-koprusu.js?v=11",
   "./js/zeky-veli-odeme-ozeti.js",
   "./js/zeky-galeri-filigran-koprusu.js?v=10",
   "./js/zeky-galeri-onay-egitim.js?v=5",
@@ -76,8 +78,8 @@ const PRECACHE = [
   "./js/zeky-ogrenci-guvenlik-koprusu.js?v=7",
   "./js/zeky-aktif-donem-senkron.js?v=3",
   "./js/zeky-gozlem-modal-modern.js?v=1",
-  "./moduller/veli-egitim-gelisim.js?v=8",
-  "./portal-data.js?v=8",
+  "./moduller/veli-egitim-gelisim.js?v8",
+  "./portal-data.js?v8",
   "./moduller/ogretmen-egitim-gozlem.js?v=7",
   "./moduller/sabah-girisi.js",
   "./moduller/veli-izinleri.js",

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { installedPwa, assertPwaBootstrap, assertPrecachedImport } from './helpers/portal-pwa.mjs';
 import { createMessageNoticeTracker } from '../js/portal-mesaj-bildirim.js';
 const source = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 function section(start, end) {
@@ -92,10 +93,14 @@ test('popup title never falls back to student names, parent labels or email addr
  const e=environment();e.ctx.testThread=thread(1,{ogrenciAd:'Synthetic Child',katilimciBilgi:{[parent]:{rol:'veli',ad:'Synthetic Child velisi'}}});
  assert.equal(e.run('mesajUyariGonderenAdi(testThread)'),'Veli');
 });
-test('main import, service worker precache and version agree for the new helper',async()=>{
- const worker=await readFile(new URL('../serviceworker.js',import.meta.url),'utf8');
- assert.match(source,/portal-mesaj-bildirim\.js\?v=164/);assert.match(worker,/portal-mesaj-bildirim\.js\?v=164/);
- assert.match(source,/window\.PORTAL_SURUM = "v164"/);assert.match(worker,/v173-ogretmen-sinif-eslesme/);
+test('main import, service worker precache and version agree for the message helper',async()=>{
+ const pwa=await installedPwa();
+ const helper=assertPrecachedImport(pwa,'index.html','js/portal-mesaj-bildirim.js');
+ const assignment=source.match(/window\.PORTAL_SURUM\s*=\s*(['"])(v\d+)\1/);
+ assert.ok(assignment,'the main module exports its runtime version');
+ const window={};vm.runInNewContext(assignment[0],{window});
+ assert.equal(window.PORTAL_SURUM,`v${helper.searchParams.get('v')}`);
+ await assertPwaBootstrap(pwa,source);
 });
 
 test('parent Portal uses the same incoming-message alert owner and respects message opt-out',()=>{

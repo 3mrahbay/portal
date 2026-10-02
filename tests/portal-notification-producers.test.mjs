@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { galleryText, galleryProgram } from '../js/galeri-klasorleri.js';
 import { hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js';
 
 const source=await readFile(new URL('../index.html',import.meta.url),'utf8');
@@ -65,7 +66,7 @@ function environment(t,{role='mudur'}={}){
   }};
   const quiet={warn(){},error(){},log(){}};
   const attachment={yuklemeSuruyor:()=>false,formEkleri:()=>[],kayitTamamlandi(){}};
-  ctx=vm.createContext({window,bridge,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
+  ctx=vm.createContext({window,bridge,galleryText,galleryProgram,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
     currentUser:{uid:'sender',email:'staff@example.invalid'},aktifPersonel:{adSoyad:'Private Teacher Name'},isAdmin:role==='mudur',aktifKullaniciRol:role,aktifKullaniciSiniflari:['A'],
     AKTIF_DONEM:donem,ogrenciList:students,ayarListesi:settings,db:window.PortalAPI.db,
     veliOgrenciler:students.slice(0,3),veliAktifOgrenci:students[0],

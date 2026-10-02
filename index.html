@@ -10951,7 +10951,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
             <div class="form-grid full">
               <div class="form-group">
-                <label>🏷 Etkinlik / Album Adı</label>
+                <label>🏷 Konu / Albüm Adı</label>
                 <input type="text" id="galeriEtkinlik" placeholder="Örn: Bahar Şenliği, Doğa Gezisi..." maxlength="100">
               </div>
             </div>
@@ -10970,6 +10970,9 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
                   <option value="degerler">Değerler Eğitimi</option>
                   <option value="ingilizce">İngilizce Eğitimi</option>
                   <option value="degerlerPlus">Değerler+</option>
+                  <option value="jimnastik">Jimnastik</option>
+                  <option value="drama">Drama</option>
+                  <option value="kodlama">Kodlama</option>
                   <option value="etkinlik">Etkinlik</option>
                   <option value="sanat">Sanat</option>
                   <option value="oyun">Oyun</option>
@@ -13862,6 +13865,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
+import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js';
+import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
 import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=171';
 import {receiptInput} from './js/expenses/receipt-input.js';
@@ -14014,6 +14019,8 @@ window.PortalAPI = {
       ayarListesi: (typeof ayarListesi !== "undefined") ? ayarListesi : {},
       ogrenciVerileriHazirMi: (typeof ogrenciVerileriHazirMi !== "undefined") ? ogrenciVerileriHazirMi : false,
       ogrenciDisAktarDurumu: (typeof ogrenciDisAktarDurumu !== "undefined") ? ogrenciDisAktarDurumu : null,
+      galeriOturumSurumu: (typeof portalOturumSurumu !== "undefined") ? portalOturumSurumu : 0,
+      galeriVeliUid: (typeof galeriVeliUid !== "undefined") ? galeriVeliUid : "",
       veliOgrenciler: (typeof veliOgrenciler !== "undefined") ? veliOgrenciler : [],
       veliAktifOgrenci: (typeof veliAktifOgrenci !== "undefined") ? veliAktifOgrenci : null,
       aktifDonem: (typeof AKTIF_DONEM !== "undefined") ? AKTIF_DONEM : "",
@@ -14118,6 +14125,7 @@ window.aktifDonemKaydet = async function(donem) {
   await setDoc(doc(db, "ayarlar", "donem"),
     { aktif: donem, guncellendi: new Date().toISOString(), guncelleyen: (currentUser?.email || "") },
     { merge: true });
+  window._vg?.invalidate?.();
   AKTIF_DONEM = donem;
   return true;
 };
@@ -16947,6 +16955,8 @@ window.signInWithGoogle = async function() {
 };
 
 window.signOut = async function() {
+  galeriVeliUid = "";
+  window._vg?.invalidate?.();
   await fbSignOut(auth);
   showToast("Çıkış yapıldı");
   setTimeout(() => location.reload(), 500);
@@ -16954,6 +16964,8 @@ window.signOut = async function() {
 
 let portalOturumSurumu = 0;
 onAuthStateChanged(auth, async (user) => {
+  galeriVeliUid = "";
+  window._vg?.invalidate?.();
   const oturumSurumu = ++portalOturumSurumu;
   portalBildirimMerkeziDurdur();
   window.personelAnlikBildirim?.durdur();
@@ -17157,11 +17169,14 @@ window.showToast = function(msg, type = "success") {
 };
 
 // ============ VELİ PANELİ ============
+let galeriVeliUid = ""; // Gallery-only binding after assigned children load for this session.
 let veliOgrenciler = [];     // Bu velinin tüm öğrencileri (kardeşler dahil)
 let veliAktifOgrenci = null; // Şu an görüntülenen öğrenci
 let veliAktifDonemVeri = null; // Aktif öğrencinin dönem verisi
 
 async function loadVeliPanel(user) {
+  const galeriOturumu = portalOturumSurumu, galeriDonemi = AKTIF_DONEM;
+  galeriVeliUid = "";
   const welcomeEl = document.getElementById("veliWelcomeName");
   const avatarEl = document.getElementById("veliAvatarInitial");
   const heroEl = document.getElementById("veliStudentHero");
@@ -17184,7 +17199,9 @@ async function loadVeliPanel(user) {
   // Bu veliye ait öğrencileri bul
   try {
     const bulunan = await findOgrenciForVeli(user);
+    if (galeriOturumu !== portalOturumSurumu || galeriDonemi !== AKTIF_DONEM || currentUser?.uid !== user.uid || isAdmin || aktifPersonel || aktifKullaniciRol != null) return;
     veliOgrenciler = bulunan;
+    galeriVeliUid = bulunan.length ? user.uid : "";
 
     if (bulunan.length === 0) {
       heroEl.style.display = "none";
@@ -17551,6 +17568,7 @@ window.veliOgrenciSec = async function(idx) {
 };
 
 async function setAktifVeliOgrenci(ogr) {
+  window._vg?.invalidate?.();
   veliAktifOgrenci = ogr;
 
   // Hero kartını doldur
@@ -17615,6 +17633,7 @@ function hesaplaYas(dogumTarihi) {
 }
 
 window.veliSwitchTab = function(tabName) {
+  window._vg?.invalidate?.();
   // Ayarlar sekmesi açılınca profil fotoğrafı önizlemesini tazele
   try {
     if (arguments[0] === "ayarlar" && typeof veliFotoYukleBaslangic === "function") {
@@ -17864,6 +17883,7 @@ if (typeof window.caTemaUygula === "undefined") {
 
 // Yeni Tasarım iç ekran geçişi
 window.caGo = function(ekran) {
+  window._vg?.invalidate?.();
   caEkran = ekran || "home";
   veliRenderYeniApp();
   const m = document.querySelector(".veli-main");
@@ -36119,29 +36139,14 @@ let aktifGaleriFilter = "tumu";
 let galeriSecilenDosyalar = [];
 let galeriGorunum = "grid"; // "grid" (Instagram) | "album" (gruplu)
 
-const GALERI_EGITIM_PROGRAMLARI = {
-  montessori: "Montessori",
-  orman: "Orman Okulu",
-  degerler: "Değerler Eğitimi",
-  ingilizce: "İngilizce Eğitimi",
-  degerlerPlus: "Değerler+"
-};
+const GALERI_EGITIM_PROGRAMLARI = GALLERY_PROGRAMS;
+const galeriKlasorGorunumu = createGalleryFolderView();
 
 function galeriBekliyorMu(durum) {
   return durum === "beklemede" || durum === "onayBekliyor";
 }
 
-function galeriProgramKodu(g) {
-  const ham = String(g?.program || g?.kategori || g?.etkinlikBaslik || "");
-  if (GALERI_EGITIM_PROGRAMLARI[ham]) return ham;
-  const n = ham.toLocaleLowerCase("tr");
-  if (n.includes("montessori")) return "montessori";
-  if (n.includes("orman")) return "orman";
-  if (n.includes("değerler+") || n.includes("degerler+")) return "degerlerPlus";
-  if (n.includes("değer") || n.includes("deger")) return "degerler";
-  if (n.includes("ingiliz") || n.includes("english")) return "ingilizce";
-  return "";
-}
+function galeriProgramKodu(g) { return galleryProgram(g); }
 
 async function galeriGozlemOnayiEsitle(oge, durum, duzenlenmisMetin = "") {
   const ogrenciId = oge?.ogrenciId || oge?.hedefOgrenciId ||
@@ -36237,6 +36242,7 @@ window.galeriGorunumToggle = function() {
 };
 
 window.galeriFilter = function(f) {
+  galeriKlasorGorunumu.reset();
   // "Albümler" ayrı bir medya türü değil, GÖRÜNÜM modudur (mobil app ile aynı mantık).
   // Seçilince albüm görünümüne geçilir; diğer kategorilerde ızgara görünümü kullanılır.
   if (f === "album") {
@@ -36355,6 +36361,16 @@ async function renderGaleri() {
   else if (aktifGaleriFilter === "onayBekliyor") liste = liste.filter(g => galeriBekliyorMu(g.durum));
   else if (aktifGaleriFilter === "egitim") liste = liste.filter(g => Boolean(galeriProgramKodu(g)));
 
+  if (aktifGaleriFilter === "egitim") {
+    galeriKlasorGorunumu.render(el, liste, {
+      management: yonetimMi,
+      activePeriod: AKTIF_DONEM,
+      addProgram: program => window.egitimAlbumuneEkle(program),
+      addTopic: media => window.galeriKonuEEkle(media.id)
+    });
+    return;
+  }
+
   // ═══ INSTAGRAM GRID GÖRÜNÜMÜ ═══
   if (galeriGorunum === "grid") {
     // Son eklenenler önce (olusturmaTarihi veya etkinlikTarih'e göre)
@@ -36435,9 +36451,9 @@ async function renderGaleri() {
   for (const g of liste) {
     const programKodu = galeriProgramKodu(g);
     const egitimAlbumu = aktifGaleriFilter === "egitim" && programKodu;
-    const albumBaslik = egitimAlbumu ? GALERI_EGITIM_PROGRAMLARI[programKodu] : (g.etkinlikBaslik || "Diğer");
+    const albumBaslik = programKodu && !galleryIsObservation(g) ? galleryTopic(g) : egitimAlbumu ? GALERI_EGITIM_PROGRAMLARI[programKodu] : (g.etkinlikBaslik || "Diğer");
     const albumTarih = egitimAlbumu ? "" : (g.etkinlikTarih || "");
-    const anahtar = egitimAlbumu
+    const anahtar = programKodu && !galleryIsObservation(g) ? galleryFolderKey(g) : egitimAlbumu
       ? `egitim|${programKodu}`
       : `${albumTarih || "tarihsiz"}|${albumBaslik}|${g.hedefTur || ""}|${g.hedefDeger || ""}`;
     if (!gruplar[anahtar]) {
@@ -36448,6 +36464,7 @@ async function renderGaleri() {
         hedefDeger: egitimAlbumu ? "" : g.hedefDeger,
         hedefOgrenciAd: egitimAlbumu ? "" : g.hedefOgrenciAd,
         programKodu: egitimAlbumu ? programKodu : "",
+        konuProgram: programKodu && !galleryIsObservation(g) ? programKodu : "",
         dosyalar: []
       };
     }
@@ -36484,7 +36501,10 @@ async function renderGaleri() {
 
     const zipArgs = `'${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '${grup.etkinlikTarih || ''}', '${grup.hedefTur || ''}', '${(grup.hedefDeger || '').replace(/'/g, "\\'")}'`;
     const eklArgs = `'${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '${grup.etkinlikTarih || ''}', '${grup.hedefTur || ''}', '${(grup.hedefDeger || '').replace(/'/g, "\\'")}', '${(grup.hedefOgrenciAd || '').replace(/'/g, "\\'")}'`;
-    const aksiyonlar = grup.programKodu
+    const konuId = escapeHtml(JSON.stringify(String(grup.dosyalar[0].id)));
+    const aksiyonlar = grup.konuProgram
+      ? `<button onclick="galeriKonuEEkle(${konuId})" ${grup.dosyalar[0].donem !== AKTIF_DONEM ? 'disabled title="Bu klasörün dönemi seçili dönemle eşleşmiyor; yeni yükleme için program ekranını kullanın."' : ""} style="padding:7px 12px;background:#9333ea;border:0;color:white;border-radius:8px;cursor:pointer">+ İçerik Ekle</button><button onclick="galeriKonuZipIndir(${konuId})" style="padding:7px 12px;background:white;border:1px solid #e9d5ff;color:#6b21a8;border-radius:8px;cursor:pointer">ZIP İndir</button>`
+      : grup.programKodu
       ? `<button onclick="egitimAlbumuneEkle('${grup.programKodu}')" style="padding:7px 12px; background:#9333ea; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ İçerik Ekle</button>
          <button onclick="albumZipIndir('${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '', '__egitim__', '${grup.programKodu}')" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> ZIP İndir</button>`
       : `<button onclick="albumEEkle(${eklArgs})" style="padding:7px 12px; background:#9333ea; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ İçerik Ekle</button>
@@ -36495,7 +36515,7 @@ async function renderGaleri() {
         <div style="padding:14px 18px; background:linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-bottom:1px solid #e9d5ff;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
-              <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#6b21a8;">${escapeHtml(grup.etkinlikBaslik)}</div>
+              <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#6b21a8;">${grup.konuProgram ? escapeHtml(GALERI_EGITIM_PROGRAMLARI[grup.konuProgram]) + " · " : ""}${escapeHtml(grup.etkinlikBaslik)}</div>
               <div style="font-size:12px; color:#7c3aed; margin-top:3px;">📅 ${tarihStr} · ${hedefLabel} · ${fotoSayi > 0 ? `🖼 ${fotoSayi}` : ''} ${videoSayi > 0 ? `🎥 ${videoSayi}` : ''}</div>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -36580,6 +36600,8 @@ window.openGaleriYuklemeModal = function(mod) {
   const ogrSel = document.getElementById("galeriHedefOgrenci");
   const aciklamaTxt = document.getElementById("galeriAciklama");
   const kategoriSel = document.getElementById("galeriKategori");
+
+  if (kategoriSel) kategoriSel.disabled = false;
 
   // Kilit sıfırlama (düzenlemeden normal moda geçiş)
   if (etkInp) { etkInp.readOnly = false; etkInp.style.background = ""; etkInp.style.cursor = ""; }
@@ -36770,12 +36792,14 @@ window.galeriYukle = async function() {
 
   if (galeriSecilenDosyalar.length === 0) return showToast("Dosya seçin", "error");
 
-  const etkinlik = document.getElementById("galeriEtkinlik").value.trim() || "Genel";
+  const konu = galleryText(document.getElementById("galeriEtkinlik").value);
+  const etkinlik = konu || "Genel";
   const etkinlikTarih = document.getElementById("galeriEtkinlikTarih").value || isoTarih(new Date());
   const aciklama = document.getElementById("galeriAciklama").value.trim();
   const hedefTur = document.getElementById("galeriHedefTur").value;
   const kategori = document.getElementById("galeriKategori")?.value || "";
   const program = galeriProgramKodu({ kategori });
+  if (program && !konu) return showToast("Program klasörü için konu adını yazın", "error");
 
   let hedefDeger = "", hedefOgrenciAd = "";
   if (hedefTur === "sinif") {
@@ -36810,6 +36834,8 @@ window.galeriYukle = async function() {
     try {
       let oge = {
         etkinlikBaslik: etkinlik,
+        konuBaslik: program ? konu : "",
+        konuAnahtari: program ? konu.toLocaleLowerCase("tr") : "",
         etkinlikTarih,
         aciklama,
         hedefTur, hedefDeger, hedefOgrenciAd,
@@ -36817,7 +36843,7 @@ window.galeriYukle = async function() {
         kategori,
         program,
         albumTuru: program ? "egitim" : "genel",
-        egitimKaydi: Boolean(program),
+        egitimKaydi: false,
         yukleyen: currentUser.email,
         yuklemeZamani: new Date().toISOString(),
         dosyaBoyutu: f.size,
@@ -36948,7 +36974,7 @@ window.galeriGonderiDuzenle = async function(id) {
   if (aciklama === null) return;
   const mevcutProgram = galeriProgramKodu(oge);
   const programGirisi = prompt(
-    "Program kodu (boş = Genel): montessori, orman, degerler, ingilizce, degerlerPlus",
+    "Program kodu (boş = Genel): montessori, orman, degerler, ingilizce, degerlerPlus, jimnastik, drama, kodlama",
     mevcutProgram
   );
   if (programGirisi === null) return;
@@ -36957,12 +36983,14 @@ window.galeriGonderiDuzenle = async function(id) {
 
   const guncelleme = {
     etkinlikBaslik: baslik.trim() || "Genel",
-    baslik: baslik.trim() || "Genel",
+    baslik: galleryText(baslik) || "Genel",
+    konuBaslik: !oge.kazanimAnahtari && program ? galleryText(baslik) || "Genel" : "",
+    konuAnahtari: !oge.kazanimAnahtari && program ? (galleryText(baslik) || "Genel").toLocaleLowerCase("tr") : "",
     aciklama: aciklama.trim(),
     kategori: program || (mevcutProgram ? "" : (oge.kategori || "")),
     program,
     albumTuru: program ? "egitim" : "genel",
-    egitimKaydi: Boolean(program),
+    egitimKaydi: Boolean(program && oge.kazanimAnahtari),
     guncellendi: new Date().toISOString()
   };
   try {
@@ -37086,7 +37114,7 @@ window.silGaleriOge = async function(id) {
 // ============ MEVCUT ALBÜME İÇERİK EKLEME (Düzenleme) ============
 let albumEkleMod = null; // { etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, hedefOgrenciAd }
 
-window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, hedefOgrenciAd) {
+window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, hedefOgrenciAd, program = "") {
   albumEkleMod = { etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger: hedefDeger || "", hedefOgrenciAd: hedefOgrenciAd || "" };
   openGaleriYuklemeModal();
 
@@ -37095,6 +37123,9 @@ window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger
     // Başlığı değiştir
     const header = document.querySelector("#galeriYuklemeModal .modal-header h3");
     if (header) header.innerHTML = `✏️ Albüme İçerik Ekle`;
+
+    const kategoriSel = document.getElementById("galeriKategori");
+    if (kategoriSel) { kategoriSel.value = program; kategoriSel.disabled = Boolean(program); }
 
     // Alanları doldur + kilitle
     const etkInp = document.getElementById("galeriEtkinlik");
@@ -37132,6 +37163,17 @@ window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger
   }, 50);
 };
 
+window.galeriKonuEEkle = function(id) {
+  const media = galeriListesiVerisi.find(g => g.id === id);
+  if (!media) return;
+  if (!media.donem || media.donem !== AKTIF_DONEM) return showToast("Bu klasörün dönemi seçili dönemle eşleşmiyor. Yeni yükleme için program ekranını kullanın.", "warning");
+  window.albumEEkle(galleryTopic(media), isoTarih(new Date()), media.hedefTur, media.hedefDeger, media.hedefOgrenciAd, galeriProgramKodu(media));
+};
+window.galeriKonuZipIndir = function(id) {
+  const media = galeriListesiVerisi.find(g => g.id === id);
+  if (media) return window.albumZipIndir(galleryTopic(media), "", "", "", { program:galeriProgramKodu(media), folderKey:galleryFolderKey(media) });
+};
+
 window.egitimAlbumuneEkle = function(programKodu) {
   albumEkleMod = null;
   openGaleriYuklemeModal("foto");
@@ -37141,7 +37183,7 @@ window.egitimAlbumuneEkle = function(programKodu) {
     const etkInp = document.getElementById("galeriEtkinlik");
     const kategoriSel = document.getElementById("galeriKategori");
     if (header) header.innerHTML = `<i data-lucide="image-plus"></i> ${escapeHtml(programAd)} Albümüne Ekle`;
-    if (etkInp) etkInp.value = programAd;
+    if (etkInp) { etkInp.value = ""; etkInp.placeholder = "Bu program için konu / albüm adı"; }
     if (kategoriSel) kategoriSel.value = programKodu;
     if (window.lucideYenile) window.lucideYenile();
   }, 80);
@@ -43382,6 +43424,7 @@ if (donemSelectorEl) {
     const yeniDonem = e.target.value;
     if (yeniDonem === AKTIF_DONEM) return;
 
+    window._vg?.invalidate?.();
     AKTIF_DONEM = yeniDonem;
     showToast(`Dönem değiştirildi: ${AKTIF_DONEM}`);
 
@@ -48312,13 +48355,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=173");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=175");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v173";
+          const anahtar = "portalSwReload_v175";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

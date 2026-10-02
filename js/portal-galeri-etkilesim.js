@@ -1,4 +1,17 @@
 // The same existing schema as ZEKY. No new permissions or tracking fields.
+// Portal intentionally uses null for a parent role. A session-bound gallery marker
+// is set only after the existing assigned-child loader succeeds; null alone is not enough.
+export function isGalleryParent(state = {}) {
+  const uid = state.currentUser?.uid, children = state.veliOgrenciler;
+  if (!uid || state.isAdmin || state.personel || !Array.isArray(children) || !children.some(c => c?.id)) return false;
+  if (state.veliAktifOgrenci && !children.some(c => c?.id === state.veliAktifOgrenci.id)) return false;
+  return state.rol === 'veli' || (state.rol == null && state.galeriVeliUid === uid);
+}
+export function galleryParentKey(state = {}) {
+  const child = state.veliAktifOgrenci || state.veliOgrenciler?.[0];
+  return JSON.stringify([state.currentUser?.uid || '', state.galeriOturumSurumu || 0,
+    state.galeriVeliUid || '', state.rol, child?.id || '', child ? childClass(child,state) : '', state.aktifDonem || '']);
+}
 export function management(state = {}) {
   return !!state.isAdmin || ['kurucu_mudur', 'mudur'].includes(state.rol);
 }
@@ -24,11 +37,15 @@ export function classKey(value) {
   if (s.includes('ilkadim')) return 'ilkadimlar';
   return s;
 }
+export function childTargetMatches(media, childId) {
+  const ids = [media?.hedefDeger,media?.hedefOgrenciId,media?.ogrenciId].filter(Boolean);
+  return !!childId && ids.length > 0 && ids.every(id => typeof id === 'string' && id === childId);
+}
 export function targetChild(media, children, state = {}) {
   if (media?.durum !== 'onaylandi') return null;
   return (children || []).find(child => {
     if (media.hedefTur === 'tumOkul') return true;
-    if (media.hedefTur === 'ogrenci') return [media.hedefDeger, media.hedefOgrenciId, media.ogrenciId].filter(Boolean).includes(child.id);
+    if (media.hedefTur === 'ogrenci') return childTargetMatches(media,child.id);
     if (media.hedefTur === 'sinif') return !!media.hedefDeger && classKey(media.hedefDeger) === classKey(childClass(child, state));
     return false;
   }) || null;
@@ -65,22 +82,23 @@ export function interactionSummary(records) {
 }
 export function createInteractionService(getApi) {
   async function record(media, type, completed = false) {
-    const api = getApi(), state = api?.state || {}, user = state.currentUser;
-    const child = targetChild(media, state.veliOgrenciler, state);
-    if (state.rol !== 'veli' || !user?.uid || !user?.email || !media?.id || !child) return false;
+    const api = getApi(), state = api?.state || {}, user = state.currentUser, context = galleryParentKey(state);
+    const selected = state.veliAktifOgrenci || state.veliOgrenciler?.[0];
+    const child = targetChild(media, selected ? [selected] : [], state);
+    if (!isGalleryParent(state) || !user?.uid || !user?.email || !media?.id || !child) return false;
     const hash = await emailHash(user.email), latest = getApi()?.state || {};
-    if (!hash || latest.currentUser?.uid !== user.uid || latest.rol !== 'veli') return false;
+    if (!hash || latest.currentUser?.uid !== user.uid || !isGalleryParent(latest) || galleryParentKey(latest) !== context) return false;
     const { fb, db } = api;
     if (!fb?.runTransaction) throw new Error('Etkileşim kaydı için işlem desteği bulunamadı');
     const ref = fb.doc(db, 'galeri', media.id, 'etkilesimler', user.uid);
-    await fb.runTransaction(db, async transaction => {
+    return fb.runTransaction(db, async transaction => {
       const snapshot = await transaction.get(ref);
       const previous = snapshot.exists() ? snapshot.data() || {} : {};
       const now = new Date().toISOString(), patch = interactionPatch(previous, type, now, completed);
-      if (!patch || getApi()?.state?.currentUser?.uid !== user.uid) return;
+      if (!patch || getApi()?.state?.currentUser?.uid !== user.uid || !isGalleryParent(getApi()?.state) || galleryParentKey(getApi()?.state) !== context || !targetChild(media,[child],getApi()?.state)) return false;
       transaction.set(ref, { veliUid:user.uid, veliEmailHash:hash, ogrenciId:child.id, uygulama:'portal', guncellendi:now, ...patch }, { merge:true });
+      return true;
     });
-    return true;
   }
   async function report(media) {
     const api = getApi(), state = api?.state || {}, owner = state.currentUser?.uid;

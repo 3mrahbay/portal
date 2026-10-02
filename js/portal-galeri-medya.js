@@ -1,3 +1,22 @@
+// Prefer explicit type metadata; legacy fallback recognizes direct video extensions and exact known player hosts.
+export function galleryMediaType(media = {}) {
+  const explicit = String(media.dosyaTipi || '').toLowerCase();
+  if (explicit === 'video' || explicit.startsWith('video/')) return 'video';
+  if (['foto', 'image', 'photo'].includes(explicit) || explicit.startsWith('image/')) return 'foto';
+  const tip = String(media.tip || media.mimeType || media.contentType || '').toLowerCase();
+  if (tip === 'video' || tip.startsWith('video/')) return 'video';
+  if (['foto', 'image', 'photo'].includes(tip) || tip.startsWith('image/')) return 'foto';
+  if (safeMediaUrl(media.mp4Url)) return 'video';
+  return [media.bunnyUrl, media.url, media.gorselUrl, isPlayerUrl(media.embedUrl) ? media.embedUrl : ''].some(value => {
+    const url = safeMediaUrl(value);if (!url) return false;
+    if (isPlayerUrl(url)) return true;
+    try { return /\.(mp4|m4v|mov|webm|ogv|m3u8|mpd)$/i.test(decodeURIComponent(new URL(url).pathname)); } catch (_) { return false; }
+  }) ? 'video' : 'foto';
+}
+export function galleryDisplayUrl(media = {}) {
+  const sources = mediaSources(media);
+  return galleryMediaType(media) === 'video' ? sources.direct[0] || sources.player : sources.image;
+}
 // Shared renderer for the live Portal approval and parent galleries.
 // Direct media URLs must never be embedded as HTML player pages.
 export function safeMediaUrl(value) {
@@ -11,11 +30,11 @@ export function isPlayerUrl(value) {
   catch (_) { return false; }
 }
 export function mediaSources(media = {}) {
-  const urls = [...new Set([media.mp4Url, media.bunnyUrl, media.url].map(safeMediaUrl).filter(Boolean))];
+  const urls = [...new Set([media.mp4Url, media.bunnyUrl, media.url, media.gorselUrl, isPlayerUrl(media.embedUrl) ? media.embedUrl : ''].map(safeMediaUrl).filter(Boolean))];
   const direct = urls.filter(url => !isPlayerUrl(url));
   const player = urls.find(isPlayerUrl) || '';
   return { direct, player, poster:safeMediaUrl(media.kucukResim || media.thumbnail),
-    image:safeMediaUrl(media.bunnyUrl || media.url) };
+    image:[media.bunnyUrl,media.url,media.gorselUrl].map(safeMediaUrl).find(url=>url&&!isPlayerUrl(url))||'' };
 }
 export function playerUrl(value) {
   if (!isPlayerUrl(value)) return '';
@@ -23,7 +42,9 @@ export function playerUrl(value) {
 }
 export function downloadSource(media) {
   const sources = mediaSources(media);
-  return media.dosyaTipi === 'video' ? sources.direct[0] || '' : sources.image;
+  return galleryMediaType(media) === 'video' ? sources.direct.find(url => {
+    try { return !/\.(m3u8|mpd)$/i.test(decodeURIComponent(new URL(url).pathname)); } catch (_) { return false; }
+  }) || '' : sources.image;
 }
 export function renderMedia(host, media, { thumbnail = false } = {}) {
   const document = host.ownerDocument, sources = mediaSources(media);
@@ -33,7 +54,7 @@ export function renderMedia(host, media, { thumbnail = false } = {}) {
   status.className = 'pg-media-status'; status.setAttribute('role', 'status');
   status.style.cssText = 'padding:18px;color:#e5e7eb;text-align:center;font:13px system-ui;background:#273449;box-sizing:border-box';
   if (thumbnail) status.style.cssText += ';position:absolute;left:0;right:0;bottom:0;padding:10px;background:#273449dd;font-size:11px;pointer-events:none';
-  const videoMode = media.dosyaTipi === 'video';
+  const videoMode = galleryMediaType(media) === 'video';
   const imageUrl = videoMode ? sources.poster : sources.image;
   let disposed = false, current = null;
   const showStatus = text => { status.textContent = text; status.hidden = false; if (!status.parentNode) host.append(status); };
@@ -79,6 +100,7 @@ export function renderMedia(host, media, { thumbnail = false } = {}) {
     image.style.cssText = thumbnail ? 'width:100%;height:100%;object-fit:cover' : 'max-width:100%;max-height:76vh;object-fit:contain';
     image.addEventListener('error', () => videoMode ? directVideo() : showStatus('Fotoğraf yüklenemedi.'));
     host.append(image); image.src = imageUrl;
+    if(videoMode&&thumbnail)showStatus('▶ Video · açmak için dokunun');
   } else { directVideo(); }
   return dispose;
 }

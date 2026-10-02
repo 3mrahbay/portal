@@ -1,5 +1,7 @@
+import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js';
+export { galleryProgram } from './galeri-klasorleri.js';
 import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=166';
-import { createInteractionService, management, targetChild } from './portal-galeri-etkilesim.js?v=166';
+import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=166';
 
 const api = () => window.PortalAPI;
 const service = createInteractionService(api);
@@ -23,17 +25,6 @@ async function recordDownload(media, completed, owner) {
   if (!owner || api()?.state?.currentUser?.uid !== owner) return false;
   return service.record(media, 'indirme', completed).catch(() => { trackingFailure(owner); return false; });
 }
-export function galleryProgram(media = {}) {
-  const raw = String(media.program || media.kategori || media.etkinlikBaslik || '');
-  if (['montessori','orman','degerler','ingilizce','degerlerPlus'].includes(raw)) return raw;
-  const s = raw.toLocaleLowerCase('tr');
-  if (s.includes('montessori')) return 'montessori';
-  if (s.includes('orman')) return 'orman';
-  if (s.includes('değerler+') || s.includes('degerler+') || s.includes('degerlerplus')) return 'degerlerPlus';
-  if (s.includes('değer') || s.includes('deger')) return 'degerler';
-  if (s.includes('ingiliz') || s.includes('english')) return 'ingilizce';
-  return '';
-}
 export function disposeMedia(root) {
   if (!root) return;
   [root, ...root.querySelectorAll('[data-pg-media]')].forEach(host => { host.__disposeMedia?.(); delete host.__disposeMedia; if (host.dataset) delete host.dataset.pgMedia; });
@@ -55,13 +46,16 @@ export async function fetchMediaBlob(media, win = window) {
   if (!blob.size || /text\/html|application\/json/.test(blob.type)) throw new Error('Medya dosyası alınamadı');
   return blob;
 }
-export async function saveBlob(blob, name, {win = window, handle = null} = {}) {
+export async function saveBlob(blob, name, {win = window, handle = null, guard = () => true} = {}) {
+  const check = () => { if (!guard()) throw Object.assign(new Error('Galeri bağlamı değişti'), {name:'AbortError'}); };
+  check();
   if (handle) {
     const writer = await handle.createWritable();
-    try { await writer.write(blob); await writer.close(); }
+    try { check(); await writer.write(blob); check(); await writer.close(); }
     catch (error) { try { await writer.abort?.(); } catch (_) {} throw error; }
     return true;
   }
+  check();
   const url = win.URL.createObjectURL(blob), anchor = win.document.createElement('a');
   anchor.href = url; anchor.download = name; win.document.body.append(anchor);
   try { anchor.click(); } finally { anchor.remove(); win.setTimeout(() => win.URL.revokeObjectURL(url), 60000); }
@@ -69,13 +63,19 @@ export async function saveBlob(blob, name, {win = window, handle = null} = {}) {
 }
 export async function downloadMedia(media, button = null) {
   if (!media || button?.disabled) return false;
-  const label = button?.textContent, owner = api()?.state?.currentUser?.uid;
+  const label = button?.textContent, initial = api()?.state || {}, owner = initial.currentUser?.uid;
+  const parent = isGalleryParent(initial), context = galleryParentKey(initial);
+  const guard = () => { const state=api()?.state || {}; return state.currentUser?.uid===owner && (!parent || (isGalleryParent(state)&&galleryParentKey(state)===context)); };
+  const check = () => { if(!guard())throw Object.assign(new Error('Galeri bağlamı değişti'),{name:'AbortError'}); };
   try {
     if (button) { button.disabled = true; button.textContent = 'İndiriliyor…'; }
+    check();
     if (!downloadSource(media)) throw new Error('Bu medya için indirilebilir dosya bulunamadı');
     const handle = window.showSaveFilePicker ? await window.showSaveFilePicker({suggestedName:fileName(media)}) : null;
-    const blob = await fetchMediaBlob(media), completed = await saveBlob(blob, fileName(media), {handle});
-    await recordDownload(media, completed, owner);
+    check();
+    const blob = await fetchMediaBlob(media);check();
+    const completed = await saveBlob(blob, fileName(media), {handle,guard});check();
+    await recordDownload(media, completed, owner);check();
     toast(completed ? 'Dosya kaydedildi' : 'İndirme başlatıldı');
     return true;
   } catch (error) {
@@ -124,12 +124,15 @@ async function reportPanel(media) {
   }
 }
 let albumBusy = false;
-export async function downloadAlbum(title, date, targetType, targetValue) {
+export async function downloadAlbum(title, date, targetType, targetValue, folderScope = null) {
   if (albumBusy) return false;
-  const state = api()?.state || {}, parent = state.rol === 'veli', owner = state.currentUser?.uid;
+  const state = api()?.state || {}, parent = isGalleryParent(state), owner = state.currentUser?.uid, context = galleryParentKey(state);
+  const guard = () => { const latest=api()?.state || {}; return latest.currentUser?.uid===owner && (!parent || (isGalleryParent(latest)&&galleryParentKey(latest)===context)); };
+  const check = () => { if(!guard())throw Object.assign(new Error('Galeri bağlamı değişti'),{name:'AbortError'}); };
   const list = parent ? window.veliGaleriVerisi || [] : window.galeriListesiVerisi || [];
   const media = list.filter(item => {
     if (parent && !targetChild(item, state.veliOgrenciler, state)) return false;
+    if (folderScope) return galleryProgram(item) === folderScope.program && galleryFolderKey(item) === folderScope.folderKey;
     if (targetType === '__egitim__') return galleryProgram(item) === targetValue;
     return item.etkinlikBaslik === title && item.etkinlikTarih === date &&
       (!targetType || item.hedefTur === targetType) && (!targetType || String(item.hedefDeger || '') === String(targetValue || ''));
@@ -140,17 +143,20 @@ export async function downloadAlbum(title, date, targetType, targetValue) {
   try {
     const name = String(title || 'Album').replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ-]/g, '-').slice(0, 80) + '.zip';
     const handle = window.showSaveFilePicker ? await window.showSaveFilePicker({suggestedName:name}) : null;
-    await window.portalAracYukle('zip');
+    check();await window.portalAracYukle('zip');check();
     const zip = new window.JSZip(), included = [];
     toast('Albüm hazırlanıyor…');
     for (const item of media) {
-      try { const blob = await fetchMediaBlob(item); zip.file(`${String(included.length + 1).padStart(3, '0')}_${fileName(item)}`, blob); included.push(item); }
+      check();
+      try { const blob = await fetchMediaBlob(item);check();zip.file(`${String(included.length + 1).padStart(3, '0')}_${fileName(item)}`, blob); included.push(item); }
       catch (_) { /* Only successfully included media receive a download event. */ }
     }
+    check();
     if (!included.length) throw new Error('Albüm dosyaları indirilemedi');
     const blob = await zip.generateAsync({type:'blob', compression:'STORE'});
-    const completed = await saveBlob(blob, name, {handle});
-    await Promise.allSettled(included.map(item => recordDownload(item, completed, owner)));
+    check();
+    const completed = await saveBlob(blob, name, {handle,guard});check();
+    await Promise.allSettled(included.map(item => recordDownload(item, completed, owner)));check();
     const failed = media.length - included.length;
     toast(`${completed ? 'Albüm kaydedildi' : 'Albüm indirmesi başlatıldı'} (${included.length} dosya${failed ? `, ${failed} alınamadı` : ''})`);
     return true;

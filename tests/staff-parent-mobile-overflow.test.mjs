@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { installedPwa, assertPwaBootstrap } from './helpers/portal-pwa.mjs';
 
 const root = new URL('../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
@@ -45,7 +46,9 @@ test('parent mobile: modern parent modules already use responsive breakpoints', 
   assert.match(read('js/zeky-randevu-veli-arayuz.js'), /@media\s*\(max-width:\s*520px\)/);
 });
 
-test('staff parent mobile: fresh stylesheet and cache versions are served', () => {
+test('staff parent mobile: fresh stylesheet and current cache generation are served', async () => {
   assert.match(read('index.html'), /stil\/arayuz-duzeltmeleri\.css\?v=4/);
-  assert.match(read('serviceworker.js'), /v173-staff-parent-mobile-stability/);
+  const pwa = await installedPwa();
+  assert.match(pwa.cacheVersion, /^v\d+/);
+  await assertPwaBootstrap(pwa);
 });

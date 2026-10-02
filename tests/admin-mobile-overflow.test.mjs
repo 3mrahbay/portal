@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { installedPwa, assertPwaBootstrap, serviceWorkerHarness } from './helpers/portal-pwa.mjs';
 
 const root = new URL('../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
@@ -39,7 +40,31 @@ test('admin mobile: complex management modules keep dedicated responsive layouts
   assert.match(read('js/finans/ui.css'), /@media\s*\(max-width:\s*700px\)/);
 });
 
-test('admin mobile: browser receives the fresh mobile-fix stylesheet', () => {
-  assert.match(read('index.html'), /stil\/arayuz-duzeltmeleri\.css\?v=3/);
-  assert.match(read('serviceworker.js'), /v173-ogretmen-sinif-eslesme/);
+test('admin mobile: browser receives and caches the linked versioned mobile-fix stylesheet', async () => {
+  const html = read('index.html');
+  const links = [...html.matchAll(/<link\b[^>]*>/g)].filter(([tag]) =>
+    /rel="stylesheet"/.test(tag) && /href="(?:\.\/)?stil\/arayuz-duzeltmeleri\.css\?/.test(tag));
+  assert.equal(links.length, 1, 'one active responsive stylesheet link');
+  const href = links[0][0].match(/href="([^"]+)"/)[1];
+  const url = new URL(href, 'https://portal.example.invalid/');
+  assert.match(url.searchParams.get('v'), /^\d+$/);
+  const css = read(url.pathname.slice(1));
+  assert.match(css, /#dashboard \.tab-panel table[\s\S]*overflow-x:\s*auto/);
+  const pwa = await installedPwa();
+  await assertPwaBootstrap(pwa, html);
+  const requests = [];
+  const worker = serviceWorkerHarness({
+    cacheMatch: async () => new Response('obsolete stylesheet'),
+    fetcher: async request => { requests.push(request); return new Response(css); }
+  });
+  const request = { url: url.href, method: 'GET', mode: 'cors', destination: 'style' };
+  let pending;
+  worker.listeners.fetch({ request, respondWith(promise) { pending = promise; } });
+  assert.ok(pending, 'the stylesheet uses the worker code-asset handler');
+  assert.equal(await (await pending).text(), css);
+  assert.deepEqual(requests, [request]);
+  assert.equal(worker.puts.length, 1);
+  assert.equal(worker.puts[0].name, pwa.cacheName);
+  assert.equal(worker.puts[0].args[0], request, 'cache key retains the linked stylesheet version');
+  assert.equal(await worker.puts[0].args[1].text(), css);
 });

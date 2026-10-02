@@ -12,13 +12,15 @@ const photo = (id, extra = {}) => ({ id, durum:'onaylandi', dosyaTipi:'foto',
   etkinlikTarih:'2026-09-30', bunnyUrl:`https://example.invalid/${id}.jpg`,
   orjinalAd:'same-photo.jpg', ...extra });
 
-test('modern gallery class aliases and all supported student ID fields remain openable', () => {
+test('modern gallery class aliases and consistent supported student ID fields remain openable', () => {
   for (const alias of ['Mimoza','Papatyalar Sınıfı','Montessori 1','Toddler',child.sinif]) {
     assert.equal(targetChild(photo('m',{hedefTur:'sinif',hedefDeger:alias}), [child]), child, alias);
   }
   assert.equal(targetChild(photo('m',{hedefTur:'sinif',hedefDeger:'Yasemin'}), [child]), null);
-  assert.equal(targetChild(photo('m',{hedefDeger:'legacy-value',hedefOgrenciId:child.id}), [child]), child);
-  assert.equal(targetChild(photo('m',{hedefDeger:'legacy-value',ogrenciId:child.id}), [child]), child);
+  assert.equal(targetChild(photo('m',{hedefDeger:undefined,hedefOgrenciId:child.id}), [child]), child);
+  assert.equal(targetChild(photo('m',{hedefDeger:'legacy-value',hedefOgrenciId:child.id}), [child]), null);
+  assert.equal(targetChild(photo('m',{hedefDeger:undefined,ogrenciId:child.id}), [child]), child);
+  assert.equal(targetChild(photo('m',{hedefDeger:'legacy-value',ogrenciId:child.id}), [child]), null);
   assert.equal(targetChild(photo('m',{durum:'beklemede'}), [child]), null);
 });
 
@@ -112,12 +114,12 @@ test('ZIP save failure never records a download or claims completion', async () 
   assert.match(f.toasts.at(-1)[0],/disk full/);
 });
 
-test('individual download and ZIP cannot be attributed to an account that signs in mid-fetch', async () => {
+test('individual download and ZIP are cancelled before save when another account signs in mid-fetch', async () => {
   for (const album of [false,true]) {
     const f=fixture([photo('one')]), fetch=f.win.fetch;
     f.win.fetch=async url => {f.changeParent();return fetch(url);};
-    await useWindow(f,async () => assert.equal(await (album?downloadAlbum(...albumArgs):downloadMedia(photo('one'))),true));
-    assert.equal(f.clicks.length,1);assert.equal(f.writes.length,0,album?'ZIP':'individual');
+    await useWindow(f,async () => assert.equal(await (album?downloadAlbum(...albumArgs):downloadMedia(photo('one'))),false));
+    assert.equal(f.clicks.length,0);assert.equal(f.writes.length,0,album?'ZIP':'individual');
   }
 });
 
@@ -219,4 +221,13 @@ test('installed live wrapper preserves media lifecycle across close, same-ID reo
     if(previousWindow===undefined)delete globalThis.window;else globalThis.window=previousWindow;
     if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument;
   }
+});
+
+test('topic ZIP includes only the same program, normalized topic, exact audience and period',async()=>{
+ const {galleryFolderKey}=await import('../js/galeri-klasorleri.js');
+ const base={program:'kodlama',konuBaslik:'Robot Köprüsü',donem:'2026-2027'};
+ const selected=photo('first',base);
+ const f=fixture([selected,photo('second',{...base,konuBaslik:' ROBOT   KÖPRÜSÜ ',etkinlikTarih:'2026-10-02'}),photo('other-topic',{...base,konuBaslik:'Başka Konu'}),photo('other-program',{...base,program:'drama'}),photo('other-period',{...base,donem:'2025-2026'}),photo('school',{...base,hedefTur:'tumOkul',hedefDeger:''}),photo('pending',{...base,durum:'beklemede'}),photo('rejected',{...base,durum:'reddedildi'})]);
+ await useWindow(f,async()=>assert.equal(await downloadAlbum('Robot Köprüsü','','','',{program:'kodlama',folderKey:galleryFolderKey(selected)}),true));
+ assert.equal(f.archives[0].entries.length,2);assert.deepEqual(f.writes.map(x=>x.ref).sort(),['galeri/first/etkilesimler/parent-one','galeri/second/etkilesimler/parent-one']);
 });

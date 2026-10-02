@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { installedPwa, assertPwaBootstrap, assertPrecachedImport } from './helpers/portal-pwa.mjs';
 import { sinifKimligi, sinifEslesir, ogrenciSinifiCoz } from '../js/ogretmen-sinif-core.js';
 
 const root = new URL('../', import.meta.url);
@@ -182,13 +183,10 @@ test('parent ownership and active enrollment still control parent child lookup',
   assert.equal(x.calls.includes('ogrenciler'), false);
 });
 
-test('bootstrap and PWA ship the exact versioned helper', () => {
-  const sw = fs.readFileSync(new URL('serviceworker.js', root), 'utf8');
-  const helperUrl = './js/ogretmen-sinif-core.js?v=173';
-  assert.ok(source.includes(`from '${helperUrl}'`)); assert.ok(sw.includes(`"${helperUrl}"`));
-  assert.match(source, /serviceworker\.js\?v=173/); assert.match(source, /portalSwReload_v173/);
-  const version = sw.match(/const CACHE_VERSION = "([^"]+)"/)[1];
-  assert.equal(version, 'v173-ogretmen-sinif-eslesme');
+test('bootstrap and PWA ship the exact versioned helper', async () => {
+  const pwa = await installedPwa();
+  assertPrecachedImport(pwa, 'index.html', 'js/ogretmen-sinif-core.js');
+  await assertPwaBootstrap(pwa, source);
   assert.ok(source.includes('class="tb-grup tb-grup-indir"')); // Preserve the approved export-toolbar change.
   const helper = fs.readFileSync(new URL('js/ogretmen-sinif-core.js', root), 'utf8');
   assert.doesNotMatch(helper, /window\.|document\.|getDoc\(|setDoc\(|fetch\(/);
