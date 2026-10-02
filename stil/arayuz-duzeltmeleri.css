@@ -265,3 +265,102 @@ div[style*="place-items: center"][style*="width:"] {
   -webkit-box-orient: vertical;
   overflow-wrap: normal;
 }
+
+
+/* ── 7) Yönetim ekranları · mobil yatay taşma koruması ─────────────
+   Amaç: sayfanın tamamı sağa-sola kaçmasın; yalnız gerçekten geniş veri
+   bileşenleri (tablo/sekme şeridi vb.) kendi içinde yatay kayabilsin. */
+@media (max-width: 768px) {
+  html, body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  #dashboard,
+  #dashboard.active,
+  #dashboard .dash-header,
+  #dashboard .dash-header-inner,
+  #dashboard .dash-container,
+  #dashboard .tab-panel,
+  #dashboard .cicek-app {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  #dashboard {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  #dashboard .dash-container {
+    width: 100%;
+  }
+
+  #dashboard .tab-panel > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  #dashboard img,
+  #dashboard video,
+  #dashboard iframe,
+  #dashboard canvas {
+    max-width: 100%;
+  }
+
+  #dashboard input,
+  #dashboard select,
+  #dashboard textarea {
+    max-width: 100%;
+  }
+
+  /* Geniş veri tabloları sayfayı değil, yalnız kendi alanını kaydırır. */
+  #dashboard .tab-panel table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Öğrenci listesi üst araçları: masaüstü tek satırı mobilde taşmasın. */
+  #tab-ogrenciler .toolbar-yeni .tb-satir-ust {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  #tab-ogrenciler .toolbar-yeni .tb-arama {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  #tab-ogrenciler .ogrenci-arac-grubu {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-left: 0 !important;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  #tab-ogrenciler .ogrenci-arac-grubu > .donem-selector {
+    flex: 1 1 220px;
+    min-width: 0;
+  }
+
+  #tab-ogrenciler .ogrenci-arac-grubu > button {
+    flex: 1 1 145px;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  /* Dinamik yönetim modüllerindeki masaüstü 2+ sütunlar dar ekranda tek sütun. */
+  #geriBildirimIcerik > div[style*="minmax(300px,1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  #programBelgelemeIcerik [style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
