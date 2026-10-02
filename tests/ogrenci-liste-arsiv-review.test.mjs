@@ -79,11 +79,11 @@ function fixture() {
   return { ctx, buttons, panel, label, downloads, messages, getState: () => current, setState: next => { current = next; } };
 }
 
-test('archive review: both groups display counts and independently disable empty categories', () => {
+test('archive review: compact menu hides normal count text and independently disables empty categories', () => {
   const f = fixture();
   f.ctx.ogrenciListeDisaAktarmaGuncelle();
   assert.equal(f.panel.hidden, false);
-  assert.match(f.label.textContent, /Aktif: 1 öğrenci · Arşiv: 1 öğrenci/);
+  assert.equal(f.label.textContent, '');
   assert.ok(f.buttons.every(button => !button.disabled));
   delete f.getState().ayarListesi['synthetic-active'];
   f.ctx.ogrenciListeDisaAktarmaGuncelle();
