@@ -13862,6 +13862,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
+import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
 import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=171';
 import {receiptInput} from './js/expenses/receipt-input.js';
 import {CATEGORIES,localDate} from './js/expenses/receipt-core.js';
@@ -14535,31 +14536,20 @@ function iletisimGorebilir() {
 // Diğer roller (yönetim, koordinatör, muhasebe) tüm sınıfları görür.
 function sinifKisitiVarMi() {
   if (typeof isAdmin !== "undefined" && isAdmin) return false;
-  return aktifKullaniciRol === "ogretmen" && (aktifKullaniciSiniflari || []).length > 0;
+  return aktifKullaniciRol === "ogretmen";
 }
 
-// Bu sınıf giriş yapan kullanıcıya görünür mü?
-// HATA DÜZELTMESİ: atama "Nar Çiçekleri", öğrenci kaydı "Nar Çiçekleri Sınıfı"
-// olarak yazılmış olabiliyordu; düz metin karşılaştırması eşleşmiyor ve
-// öğretmen hiç öğrenci göremiyordu. Artık İKİ TARAF da resmi ada çevrilip
-// karşılaştırılıyor (sinifAdiResmiEsle).
+// Öğretmen sınıf kapsamı ilk yüklemede de hazır olan saf eşleştiriciyi kullanır.
+// Boş atama hiçbir sınıfa erişim vermez; yönetim kapsamı değişmez.
 function sinifGorunur(sinifAdi) {
   if (!sinifKisitiVarMi()) return true;
-  const resmi = (x) => {
-    const r = (typeof sinifAdiResmiEsle === "function") ? sinifAdiResmiEsle(x) : x;
-    return String(r || "").toLocaleLowerCase("tr")
-      .replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u")
-      .replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c").replace(/\s+/g,"").trim();
-  };
-  const hedef = resmi(sinifAdi);
-  if (!hedef) return false;
-  return (aktifKullaniciSiniflari || []).some(x => resmi(x) === hedef);
+  return (aktifKullaniciSiniflari || []).some(x => ogretmenSinifEslesir(x, sinifAdi));
 }
 
 // Öğrenci listesini role göre süz
 function ogrencileriRoleGoreSuz(liste) {
   if (!sinifKisitiVarMi()) return liste;
-  return (liste || []).filter(o => sinifGorunur(o.sinif || o.sinifi || ""));
+  return (liste || []).filter(o => sinifGorunur(ogrenciSinifiAl(o)));
 }
 window.iletisimGorebilir = iletisimGorebilir;
 window.sinifGorunur = sinifGorunur;
@@ -23108,8 +23098,7 @@ async function ogretmenHomeVeriYukle() {
       const _a = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
       if (!_a) return false;
       if (typeof getOgrenciDurum === "function" && getOgrenciDurum(o, _a) !== "aktif") return false;
-      const _sinif = (_a.kayit && _a.kayit.sinif) || o.sinif || o.sinifi || "";
-      return !siniflarim.length || sinifGorunur(_sinif);
+      return sinifGorunur(ogrenciSinifiAl(o));
     });
   } catch (e) { console.warn("sınıf mevcudu", e); }
 
@@ -24580,8 +24569,7 @@ function veliRenderOgrenci() {
 
 // Bir öğrencinin sınıfını al (ayar > ogrenci > "")
 function ogrenciSinifiAl(o) {
-  const ayar = ayarListesi[o.id];
-  return (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "";
+  return ogrenciSinifiCoz(o, ayarListesi[o.id]);
 }
 
 // Öğretmen bu öğrenciye erişebilir mi? (sınıf bazlı)
@@ -24764,7 +24752,7 @@ async function loadAyarlar() {
       const durum = String(o.aktifDonemDurum || o.durum || "aktif");
       yeniAyarlar[o.id] = {
         _anaKayitOzeti: true, durum,
-        kayit: { sinif: o.sinif || o.sinifi || "" },
+        kayit: { sinif: ogrenciSinifiCoz(o) },
         ogrenci: { dogumTarihi: o.dogumTarihi || "" }
       };
     });
@@ -29975,9 +29963,7 @@ function zekiGozlemOgrenciListesi() {
   return (ogrenciList || []).filter(o => {
     if (!zekiAktifDonemOgrencisi(o)) return false;
     if (typeof sinifKisitiVarMi === "function" && sinifKisitiVarMi()) {
-      const ayar = ayarListesi[o.id];
-      const sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "";
-      if (!sinifGorunur(sinif)) return false;
+      if (!sinifGorunur(ogrenciSinifiAl(o))) return false;
     }
     return true;
   }).sort((a,b) => String(a.ogrenciAdSoyad || "").localeCompare(String(b.ogrenciAdSoyad || ""), "tr"));
@@ -30093,9 +30079,7 @@ function renderTable() {
     // ===== ROL KISITI =====
     // Öğretmen SADECE kendi atandığı sınıfın öğrencilerini görür.
     if (typeof sinifKisitiVarMi === "function" && sinifKisitiVarMi()) {
-      const dv = ayarListesi[o.id];
-      const sn = (dv && dv.kayit && dv.kayit.sinif) || o.sinif || o.sinifi || "";
-      if (!sinifGorunur(sn)) return false;
+      if (!sinifGorunur(ogrenciSinifiAl(o))) return false;
     }
 
     // ===== DÖNEM FİLTRESİ =====
@@ -30157,14 +30141,18 @@ function renderTable() {
     if (activeFilter === "ayarli") return ayar && ayar.aidatAyarlari && ayar.aidatAyarlari.aylikAidat > 0;
     if (activeFilter === "eksik") return !ayar || !ayar.aidatAyarlari || !ayar.aidatAyarlari.aylikAidat;
     // SINIF FİLTRELERİ — dinamik (çipler Firestore'daki sınıflardan üretilir)
-    const filtreSinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "";
+    const filtreSinif = ogrenciSinifiAl(o);
     const resmiFiltreSinif = (typeof sinifAdiResmiEsle === "function")
       ? sinifAdiResmiEsle(filtreSinif) : filtreSinif;
     if (activeFilter && activeFilter.startsWith("sinif::")) {
       const hedefSinif = activeFilter.slice(7).trim();
+      if (sinifKisitiVarMi()) return ogretmenSinifEslesir(filtreSinif, hedefSinif);
       return resmiFiltreSinif === hedefSinif || filtreSinif.trim() === hedefSinif;
     }
     // Geriye dönük: eski sabit çipler
+    if (sinifKisitiVarMi() && ["papatyalar", "kardelenler", "nar"].includes(activeFilter)) {
+      return ogretmenSinifEslesir(filtreSinif, activeFilter);
+    }
     if (activeFilter === "papatyalar")  return resmiFiltreSinif === "Papatyalar Sınıfı";
     if (activeFilter === "kardelenler") return resmiFiltreSinif === "Kardelenler Sınıfı";
     if (activeFilter === "nar")         return resmiFiltreSinif === "Nar Çiçekleri Sınıfı";
@@ -32382,10 +32370,10 @@ async function renderDevamsizlik() {
   }
 
   // Aktif öğrenciler
-  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
+  const aktif = ogrencileriRoleGoreSuz(ogrenciList).filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
   aktif.sort((a, b) => {
-    const sA = (ayarListesi[a.id]?.kayit?.sinif) || a.sinif || "";
-    const sB = (ayarListesi[b.id]?.kayit?.sinif) || b.sinif || "";
+    const sA = ogrenciSinifiAl(a);
+    const sB = ogrenciSinifiAl(b);
     if (sA !== sB) return sA.localeCompare(sB);
     return (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || "");
   });
@@ -32467,7 +32455,7 @@ async function renderDevamsizlik() {
   // Sınıfa göre grupla
   const sinifGruplari = {};
   for (const o of aktif) {
-    const sinif = (ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "Diğer";
+    const sinif = ogrenciSinifiAl(o) || "Diğer";
     if (!sinifGruplari[sinif]) sinifGruplari[sinif] = [];
     sinifGruplari[sinif].push(o);
   }
@@ -32620,7 +32608,7 @@ window.devamsizlikHepsiGeldi = async function() {
   if (!confirm("Tüm aktif öğrencileri 'Geldi' olarak işaretlemek istiyor musunuz?\n(Önceki işaretlemeler korunur, sadece boş olanlar 'Geldi' olur)")) return;
 
   aktifDevamsizlikVerisi.kayitlar = aktifDevamsizlikVerisi.kayitlar || {};
-  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
+  const aktif = ogrencileriRoleGoreSuz(ogrenciList).filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
   let degisen = 0;
   for (const o of aktif) {
     if (!aktifDevamsizlikVerisi.kayitlar[o.id] || !aktifDevamsizlikVerisi.kayitlar[o.id].durum) {
@@ -48324,13 +48312,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=164");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=173");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v164";
+          const anahtar = "portalSwReload_v173";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

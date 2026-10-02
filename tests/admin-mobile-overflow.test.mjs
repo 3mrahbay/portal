@@ -41,5 +41,5 @@ test('admin mobile: complex management modules keep dedicated responsive layouts
 
 test('admin mobile: browser receives the fresh mobile-fix stylesheet', () => {
   assert.match(read('index.html'), /stil\/arayuz-duzeltmeleri\.css\?v=3/);
-  assert.match(read('serviceworker.js'), /v172-admin-mobile-stability/);
+  assert.match(read('serviceworker.js'), /v173-ogretmen-sinif-eslesme/);
 });

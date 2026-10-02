@@ -10,10 +10,11 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v172-admin-mobile-stability";
+const CACHE_VERSION = "v173-ogretmen-sinif-eslesme";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/ogretmen-sinif-core.js?v=173",
   "./js/ogrenci-liste-core.js?v=170",
   "./js/ogrenci-liste-xlsx.js?v=170",
   "./js/ogrenci-liste-disa-aktar.js?v=171",
