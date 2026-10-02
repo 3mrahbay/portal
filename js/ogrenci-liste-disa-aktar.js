@@ -21,7 +21,7 @@ export function ogrenciListeDisaAktarmaGuncelle() {
     }
     catch (_) { problem = 'Dönem bilgileri tutarsız. Sayfayı yenileyip tekrar deneyin.'; }
   }
-  if (label) label.textContent = problem || `${s.aktifDonem} · Aktif: ${counts.aktif} öğrenci · Arşiv: ${counts.arsiv} öğrenci · Tüm sınıflar; ekran filtrelerinden bağımsız`;
+  if (label) label.textContent = problem || '';
   for (const button of panel.querySelectorAll('[data-ogrenci-indir]')) {
     const scope = button.dataset.ogrenciKapsam || 'aktif';
     const count = counts[scope] || 0;
