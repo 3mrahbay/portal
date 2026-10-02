@@ -252,7 +252,6 @@ div[style*="place-items: center"][style*="width:"] {
 .cicek-app .ca-topbar > .ca-row { flex: 1 1 auto; min-width: 0; }
 .cicek-app .ca-topbar > .ca-row h2 { overflow-wrap: normal; }
 .cicek-app .ca-topbar > .ca-pill { white-space: normal; line-height: 1.4; max-width: 100%; }
-}
 
 /* ── 6) Hızlı işlem etiketleri: "Galeri Y…" gibi kesilmesin, gerekirse iki satır ── */
 .cicek-app .ca-qlabel {
