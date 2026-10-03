@@ -91,6 +91,21 @@ export async function veliKart(hedefId) {
     </div>`;
 }
 
+// Form cards may be moved to a body-level compact sheet.
+function formStiliEkle() {
+  if (document.getElementById("veliIzinFormStil")) return;
+  const st = document.createElement("style");
+  st.id = "veliIzinFormStil";
+  st.textContent = `
+#veliIzinForm { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+.vz-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:10px; }
+.vz-form-grid > * { min-width:0; }
+#veliIzinForm :is(input:not([type="radio"]), select, textarea) { min-width:0; max-width:100%; width:100%; box-sizing:border-box; }
+@media (max-width:420px) { .vz-form-grid { grid-template-columns:minmax(0,1fr); } }
+`;
+  document.head.appendChild(st);
+}
+
 function formAc() {
   const f = document.getElementById("veliIzinForm");
   if (!f) return;
@@ -98,6 +113,7 @@ function formAc() {
   const b = P().bugun();
   const yarin = new Date(); yarin.setDate(yarin.getDate() + 1);
   const y = yarin.toISOString().slice(0, 10);
+  formStiliEkle();
   f.style.display = "block";
   f.innerHTML = `
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; margin-bottom:10px;">
@@ -107,7 +123,7 @@ function formAc() {
           <span>${s.ikon}</span><span>${s.ad}</span>
         </label>`).join("")}
     </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+    <div class="vz-form-grid">
       <div><label style="font-size:10.5px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Başlangıç</label>
         <input type="date" id="vzBas" value="${y}" min="${b}" style="width:100%; box-sizing:border-box; padding:9px; border:1px solid #E2E8F0; border-radius:9px; font-family:inherit; margin-top:3px;"></div>
       <div><label style="font-size:10.5px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Bitiş</label>

@@ -250,7 +250,7 @@ div[style*="place-items: center"][style*="width:"] {
 /* ── 5) Özet sayfası karşılama satırı: sınıf etiketi adı sıkıştırmasın ── */
 .cicek-app .ca-topbar { flex-wrap: wrap; gap: 10px 12px; }
 .cicek-app .ca-topbar > .ca-row { flex: 1 1 auto; min-width: 0; }
-.cicek-app .ca-topbar > .ca-row h2 { overflow-wrap: normal; }
+.cicek-app .ca-topbar > .ca-row h2 { overflow-wrap: anywhere; }
 .cicek-app .ca-topbar > .ca-pill { white-space: normal; line-height: 1.4; max-width: 100%; }
 
 /* ── 6) Hızlı işlem etiketleri: "Galeri Y…" gibi kesilmesin, gerekirse iki satır ── */
@@ -499,3 +499,147 @@ div[style*="place-items: center"][style*="width:"] {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ── 9) Yüklenen veri genişliği belirlemesin ──────────────────────
+   1fr'nin otomatik min-content alt sınırı boş kartta görünmez. Canlı
+   veri gelince tüm sütunu büyütür; dış overflow:hidden bunu yalnızca
+   keser. Sütunları ve iç flex/grid çocuklarını gerçekten küçült. */
+.ozet-v2,
+.ozet-v2 :is(.ozet-panel, .kpi-kart, .ozet-ikili-sol, .ozet-ikili-sag,
+  .ozet-gunplan, .ozet-grafik-kol, .ozet-ogr-stat),
+.cicek-app :is(.ca-page, .ca-stack, .ca-hero-row, .ca-dash, .ca-card,
+  .ca-card-green, .ca-card-cocoa, .ca-card-lavender, .ca-grid-2,
+  .ca-statpills, .ca-mini-grid, .ca-rings),
+.cicek-app :is(.ca-row, .ca-sectionhead, .ca-topbar, .ca-hero-row, .ca-grid-2,
+  .ca-statpills, .ca-mini-grid, .ca-rings, .ca-ring, .ca-msgitem) > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.ozet-v2,
+.cicek-app :is(.ca-card, .ca-card-green, .ca-card-cocoa, .ca-card-lavender) {
+  overflow-wrap: anywhere;
+}
+.ozet-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ozet-orta-grid { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+.ozet-alt-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ozet-ikili-alt, .ozet-donut-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ozet-hizli-islem { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cicek-app .ca-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cicek-app .ca-hero-row { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.cicek-app :is(.ca-row, .ca-sectionhead, .ca-topbar) { overflow-wrap: anywhere; }
+.cicek-app .ca-sectionhead { flex-wrap: wrap; gap: 8px 12px; }
+.cicek-app .ca-avatar { flex-shrink: 0; }
+.cicek-app .ca-statpills { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cicek-app .ca-mini-grid { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+.cicek-app .ca-rings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cicek-app :is(.ca-statpill, .ca-ring, .ca-msgitem) { overflow-wrap: anywhere; }
+.cicek-app .ca-search input { min-width: 0; width: 0; }
+.ozet-panel-head, .portal-summary-heading { flex-wrap: wrap; gap: 8px 12px; }
+.ozet-panel-head > div, .portal-summary-heading > div { min-width: 0; max-width: 100%; }
+.ozet-panel-etiket { max-width: 100%; white-space: normal; }
+.ozet-legend, .kpi-buyuk-row, .kpi-dark-alt { flex-wrap: wrap; }
+.ozet-legend { gap: 8px 16px; }
+.ozet-gunplan-satir { gap: 10px; align-items: flex-start; }
+.ozet-gunplan-satir > :first-child, .ozet-yemek-satir > :last-child { min-width: 0; }
+.ozet-gunplan-saat { flex-shrink: 0; }
+.ozet-grafik { gap: clamp(4px, 1vw, 14px); }
+.ozet-grafik-deger { max-width: 100%; text-align: center; overflow-wrap: anywhere; }
+.ozet-hizli-btn { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.ozet-dg-ad { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.ozet-dg-gun { flex-shrink: 0; }
+.portal-pickup-body, [data-sabah-ogrenci] > div { overflow-wrap: anywhere; }
+.portal-attendance-actions > button { max-width: 100%; white-space: normal; }
+
+/* Legacy chat is used by all three role shells. Keep the send/attachment
+   controls reachable when a recipient or message contains a long token. */
+.mesaj-sohbet-giris textarea { min-width: 0; width: 0; }
+.mesaj-sohbet-baslik, .mesaj-sohbet-ad, .mesaj-sohbet-alt,
+.mesaj-balon, .mesaj-balon > * { min-width: 0; overflow-wrap: anywhere; }
+.mesaj-sohbet-baslik > div { min-width: 0; }
+
+@media (max-width: 1100px) {
+  .ozet-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1000px) {
+  .ozet-orta-grid, .ozet-alt-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .ozet-ikili-alt { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 820px) {
+  .cicek-app .ca-hero-row { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 768px) {
+  .ozet-panel { padding: 16px; }
+  .ozet-donut-legend { grid-template-columns: minmax(0, 1fr); }
+  #aylikOzetAyEtiketi, #yemekHaftaEtiketi {
+    min-width: 0 !important;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  #tab-denetim [style*="grid-template-columns:1fr 1fr"],
+  #tab-denetim [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+@media (max-width: 600px) {
+  /* Actions get their own row instead of squeezing names or leaving the card.
+     Applies to admin, reception, teacher and reparented detail-sheet cards. */
+  .portal-pickup-row {
+    display: grid !important;
+    grid-template-columns: 28px 42px minmax(0, 1fr);
+    align-items: start !important;
+  }
+  .portal-pickup-name { white-space: normal !important; overflow: visible !important; }
+  .portal-pickup-actions {
+    grid-column: 2 / -1;
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .portal-pickup-actions > *,
+  #okulZiliListe .portal-pickup-actions > button { max-width: 100%; white-space: normal !important; }
+  .portal-attendance-actions > button { flex: 1 1 140px !important; min-width: 0 !important; }
+}
+@media (max-width: 560px) {
+  .ozet-kpi-grid { grid-template-columns: minmax(0, 1fr); }
+  .cicek-app .ca-mini-grid, .cicek-app .ca-rings { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 380px) {
+  [data-sabah-ogrenci] { flex-wrap: wrap; }
+  [data-sabah-ogrenci] > div:nth-child(2) { flex-basis: calc(100% - 40px) !important; }
+  [data-sabah-ogrenci] > :last-child { margin-left: 40px; max-width: calc(100% - 40px); }
+}
+
+/* Legacy parent details/settings are outside the modern theme namespace. */
+#veliPanel .veli-card { overflow-wrap: anywhere; }
+#veliPanel .veli-card-grid-2 > * { min-width: 0; max-width: 100%; }
+
+/* Plain legacy cards and injected fragments share the same shrink contract.
+   Intentional nowrap tables and independently scrollable timelines retain it. */
+#dashboard .tab-panel, #veliPanel .veli-tab-panel { overflow-wrap: anywhere; }
+#dashboard .tab-panel :is([style*="display:grid"], [style*="display: grid"]) > *,
+#veliPanel .veli-tab-panel :is([style*="display:grid"], [style*="display: grid"]) > *,
+.rapor-metrik-grid > *, .rapor-grid-2 > *, .rapor-grid-3 > *,
+.rapor-karti, .rapor-metrik, .portal-form-grid > * { min-width: 0; }
+.rapor-karti, .rapor-metrik { overflow-wrap: anywhere; }
+.rapor-metrik-row, .rapor-karti-header { flex-wrap: wrap; gap: 8px; }
+.portal-form-grid :is(input,select,textarea) { min-width: 0; width: 100%; box-sizing: border-box; }
+.portal-week-navigation { min-width: 0; max-width: 100%; }
+.portal-week-navigation > span { min-width: 0; white-space: normal !important; text-align: center; }
+.portal-week-navigation > button { flex-shrink: 0; }
+.portal-week-days > button { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .portal-form-grid { grid-template-columns: minmax(0, 1fr) !important; }
+}
+@media (max-width: 420px) {
+  .portal-profile-leave-summary { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* Body-level detail dialogs cannot inherit a page's wrapping contract. */
+.po-cekmece, .dok-panel, .gn-pencere, .zrv-pencere, .zego-kart {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.zego-bas { min-width: 0; }
+.zego-kapat { flex-shrink: 0; }

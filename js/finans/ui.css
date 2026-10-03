@@ -13,7 +13,7 @@
 .finans-app .list-summary,.finans-app .detail-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
 .finans-app .list-summary label{flex-direction:row;align-items:center}
 .finans-app dialog.finance-detail{width:min(1200px,96vw);max-width:1200px}
-.finans-app .due-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}
+.finans-app .due-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:12px}
 .finans-app .due-item{display:block;width:100%;text-align:left;margin-top:8px;white-space:normal}
 .finans-app tfoot{font-weight:700;background:#edf3ee}
 @media(max-width:700px){.finans-app .finance-nav{flex-wrap:nowrap;overflow-x:auto}.finans-app .finance-nav button{flex-shrink:0}.finans-app .bar{flex-wrap:wrap}.finans-app .list-summary{align-items:flex-start;flex-direction:column}.finans-app dialog.finance-detail{padding:14px}}
@@ -23,6 +23,40 @@
 .finans-app .analytic-row{margin:16px 0}.finans-app .analytic-row>div:first-child{display:flex;justify-content:space-between;gap:12px}.finans-app .analytic-track{background:#edf2ee;height:12px;border-radius:6px;margin-top:6px;overflow:hidden}.finans-app .analytic-track i{display:block;height:100%;border-radius:6px}
 
 .finans-app .charts>*,.finans-app .cards>*{min-width:0}.finans-app .finance-shortcuts button{overflow-wrap:anywhere}.finans-app .class-distribution b{float:none;display:block}.finans-app #staffFinance{scroll-margin-top:80px}
+
+/* Loaded records must shrink inside their own cards, including long names and
+   currency totals. Wide account tables retain their existing scroll owner. */
+.finans-app,
+.finans-app .card,
+.finans-app .section,
+.finans-app .detail-body,
+.finans-app .scroll,
+.finans-app .plan-table-scroll{min-width:0}
+.finans-app .scroll,
+.finans-app .plan-table-scroll{max-width:100%}
+.finans-app .card,
+.finans-app .section,
+.finans-app .detail-heading,
+.finans-app .plan-heading,
+.finans-app .plan-school{overflow-wrap:anywhere}
+.finans-app .card strong{max-width:100%;overflow-wrap:anywhere}
+.finans-app .toolbar>*,
+.finans-app .payment>*,
+.finans-app .detail-heading>*,
+.finans-app .plan-heading>*,
+.finans-app .plan-school>*{min-width:0;max-width:100%}
+.finans-app .detail-heading>button,
+.finans-app .plan-heading>button,
+.finans-app .plan-school>img{flex-shrink:0}
+.finans-app .analytic-row>div:first-child{flex-wrap:wrap}
+.finans-app .analytic-row>div:first-child>*{min-width:0;max-width:100%;overflow-wrap:anywhere}
+@media(max-width:700px){
+  .finans-app .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .finans-app .detail-heading,
+  .finans-app .plan-heading{flex-wrap:wrap}
+  .finans-app .bar span,
+  .finans-app .bar b{max-width:100%;overflow-wrap:anywhere;white-space:normal}
+}
 
 .finans-app .payment-plan-link button{border:0;background:none;color:var(--f);padding:0;text-decoration:underline;text-underline-offset:4px;font-weight:650}.finans-app .payment-plan-link small{margin-top:8px;color:#607166}.finans-app dialog.payment-plan-dialog{max-width:960px;width:96vw;padding:24px}.finans-app .plan-heading{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.finans-app .plan-heading h2{margin:0}.finans-app .plan-heading p{margin:5px 0;color:#607166}.finans-app .plan-school{display:flex;align-items:center;gap:16px;margin:20px 0}.finans-app .plan-school img{width:48px;height:60px;object-fit:contain}.finans-app .plan-table-scroll{overflow-x:auto}.finans-app .payment-plan-table{font-size:13px}.finans-app .payment-plan-table th{position:static}.finans-app .payment-plan-table td,.finans-app .payment-plan-table th{padding:10px}.finans-app .payment-plan-table td:nth-child(n+2):nth-child(-n+4){text-align:right;font-variant-numeric:tabular-nums}.finans-app .plan-group th{background:#edf3ee;color:#245840}.finans-app .plan-status{display:inline-block;border-radius:20px;background:#fff0df;padding:3px 8px}.finans-app .plan-status.paid{background:#e4f5e9;color:#245840}.finans-app .plan-error{color:#8a3c18}@media(max-width:600px){.finans-app dialog.payment-plan-dialog{padding:14px}.finans-app .payment-plan-table{font-size:12px}.finans-app .payment-plan-table td,.finans-app .payment-plan-table th{padding:8px}}
 

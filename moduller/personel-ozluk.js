@@ -751,7 +751,8 @@ function stilEkle() {
 .po-donen { width:16px; height:16px; border:2px solid #4A7C59; border-right-color:transparent; border-radius:50%; animation:poDon .8s linear infinite; }
 @keyframes poDon { to { transform:rotate(360deg); } }
 .po-kutular { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:10px; margin-bottom:12px; }
-.po-kutu { display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:10px; align-items:center; text-align:left; padding:12px 14px; border:1.5px solid #E2E8F0; border-radius:14px; background:#fff; cursor:pointer; font:inherit; color:#1E293B; transition:border-color .15s, box-shadow .15s; }
+.po-kutu { display:grid; grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto; column-gap:10px; align-items:center; text-align:left; padding:12px 14px; border:1.5px solid #E2E8F0; border-radius:14px; background:#fff; cursor:pointer; font:inherit; color:#1E293B; transition:border-color .15s, box-shadow .15s; }
+.po-kutu-sayi, .po-kutu-ad { min-width:0; overflow-wrap:anywhere; }
 .po-kutu:hover { border-color:var(--po-renk); }
 .po-kutu-secili { border-color:var(--po-renk); box-shadow:0 0 0 3px color-mix(in srgb, var(--po-renk) 18%, transparent); }
 .po-kutu-ikon { grid-row:1 / span 2; width:38px; height:38px; border-radius:11px; display:grid; place-items:center; color:var(--po-renk); background:color-mix(in srgb, var(--po-renk) 12%, #fff); }
@@ -761,7 +762,7 @@ function stilEkle() {
 .po-uyari-git { margin-left:auto; display:inline-flex; align-items:center; gap:4px; font-weight:700; white-space:nowrap; }
 .po-arac { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
 .po-ara { display:flex; align-items:center; gap:8px; flex:1; min-width:200px; max-width:340px; padding:0 12px; border:1.5px solid #E2E8F0; border-radius:10px; background:#fff; color:#94A3B8; }
-.po-ara input { border:0; outline:0; flex:1; min-height:40px; font:inherit; font-size:14px; background:transparent; color:#1E293B; }
+.po-ara input { border:0; outline:0; flex:1; min-width:0; min-height:40px; font:inherit; font-size:14px; background:transparent; color:#1E293B; }
 .po-arac select { min-height:42px; padding:8px 10px; border:1.5px solid #E2E8F0; border-radius:10px; background:#fff; font:inherit; font-size:14px; color:#1E293B; }
 .po-temizle { display:inline-flex; align-items:center; gap:4px; min-height:40px; padding:8px 12px; border:0; border-radius:10px; background:#F1F5F9; color:#475569; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
 .po-canli { margin-left:auto; display:inline-flex; align-items:center; gap:7px; font-size:12px; color:#64748B; }
@@ -788,6 +789,8 @@ function stilEkle() {
 .po-arka { position:fixed; inset:0; z-index:1060; background:rgba(15,23,42,.45); display:flex; justify-content:flex-end; animation:poAc .15s ease-out; }
 @keyframes poAc { from { opacity:0; } to { opacity:1; } }
 .po-cekmece { width:min(820px, 100%); height:100%; background:#F7F9F8; display:flex; flex-direction:column; box-shadow:-18px 0 40px rgba(15,23,42,.18); animation:poKay .2s ease-out; }
+.po-cekmece, .po-c-govde, .po-c-govde > * { min-width:0; }
+.po-c-kim, .po-c-govde { overflow-wrap:anywhere; }
 @keyframes poKay { from { transform:translateX(30px); } to { transform:none; } }
 .po-c-bas { display:flex; align-items:center; gap:14px; padding:20px 22px 14px; background:#fff; border-bottom:1px solid #E8EDF2; flex-shrink:0; }
 .po-c-kim { flex:1; min-width:0; } .po-c-kim h3 { margin:0; font-size:19px; font-weight:800; color:#1E293B; } .po-c-kim p { margin:2px 0 8px; font-size:13px; color:#64748B; }

@@ -692,6 +692,9 @@ function stilEkle() {
 .vk-etiket { font-size:11.5px; padding:3px 8px; border-radius:999px; background:var(--gray-100,#F1F2F7); color:var(--ink-soft,#4A5169); white-space:nowrap; }
 .vk-arka { position:fixed; inset:0; z-index:1050; background:rgba(15,23,42,.55); display:flex; align-items:center; justify-content:center; padding:20px; }
 .vk-detay { background:#fff; width:100%; max-width:640px; max-height:88vh; border-radius:var(--radius-lg,24px); display:flex; flex-direction:column; overflow:hidden; box-shadow:var(--shadow-lg,0 18px 40px rgba(30,41,90,.14)); }
+.vk-detay, .vk-detay-govde, .vk-detay-bas > div { min-width:0; }
+.vk-detay-bas > div { max-width:100%; overflow-wrap:anywhere; }
+.vk-detay-govde, .vk-kart-sayi { overflow-wrap:anywhere; }
 .vk-detay-bas { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:20px 20px 12px 24px; flex-shrink:0; }
 .vk-detay-bas h3 { margin:0; font-size:18px; color:var(--green-deep,#1F2544); }
 .vk-detay-bas p { margin:4px 0 0; font-size:13px; color:var(--ink-soft,#4A5169); }

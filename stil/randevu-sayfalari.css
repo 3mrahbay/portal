@@ -76,3 +76,27 @@ dialog { border-radius: 22px !important; }
   .rp-nav a { padding: 8px 10px; }
   .hero { padding: 18px 18px !important; }
 }
+
+/* Data-driven standalone pages keep their own responsive sizing contract. */
+.sayfa, .hero, .panel, .kart, .ozet-kart, .randevu-slot,
+.randevu-tarih-grubu, .tarih-grubu { min-width:0; overflow-wrap:anywhere; }
+.filtreler > *, .form-satir > *, .randevu-slot > *, .panel-baslik > *,
+.rp-marka > * { min-width:0; max-width:100%; }
+input, select, textarea { min-width:0; max-width:100%; }
+.ozet { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.filtreler { grid-template-columns:minmax(0,1.1fr) repeat(3,minmax(0,1fr)) minmax(0,1.4fr) auto; }
+.form-satir { grid-template-columns:repeat(2,minmax(0,1fr)) auto; }
+.ozet-kart strong { max-width:100%; overflow-wrap:anywhere; }
+.panel-baslik, .form-alt, .satir { flex-wrap:wrap; }
+.buton, .secenek, .kart button, .form-alt button { min-width:0; max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+@media (max-width:850px) {
+  .filtreler, .ozet { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:650px) {
+  .form-satir { grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width:520px) {
+  .filtreler, .randevu-slot { grid-template-columns:minmax(0,1fr); }
+  .ozet-kart { padding:13px !important; }
+  .ozet-kart .rp-ozet-ikon { position:static; transform:none; margin-bottom:6px; }
+}

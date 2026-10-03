@@ -259,7 +259,7 @@ function sayfaAc(k, el) {
   sayfaKapat();
   const alt = typeof k.alt === "function" ? k.alt() : "";
   const kok = document.createElement("div");
-  kok.className = "vkp-arka";
+  kok.className = "vkp-arka cicek-app";
   kok.innerHTML = `<div class="vkp-sayfa" role="dialog" aria-modal="true" aria-label="${esc(k.ad)}" style="--vkp-renk:${k.renk};--vkp-acik:${k.acik}">
     <div class="vkp-tutamak" aria-hidden="true"></div>
     <header class="vkp-sayfa-bas"><span class="vkp-ikon">${ikon(k.ikon, 20)}</span><div><h3>${esc(k.ad)}</h3>${alt ? `<p>${esc(alt)}</p>` : ""}</div>
@@ -326,7 +326,7 @@ function odemeAc(kart) {
   kopya.querySelectorAll("button, .vkp-odeme-ipucu").forEach(b => b.remove());
   kopya.style.cursor = "default";
   const kok = document.createElement("div");
-  kok.className = "vkp-arka";
+  kok.className = "vkp-arka cicek-app";
   kok.innerHTML = `<div class="vkp-sayfa" role="dialog" aria-modal="true" aria-label="Ödeme durumu">
     <div class="vkp-tutamak" aria-hidden="true"></div>
     <div class="vkp-govde"></div>
@@ -359,8 +359,8 @@ function stilEkle() {
 .vkp-karo:focus-visible { outline:3px solid color-mix(in srgb, var(--vkp-renk) 35%, transparent); outline-offset:2px; }
 .vkp-karo.vkp-etkin { border-color:color-mix(in srgb, var(--vkp-renk) 45%, #fff); box-shadow:0 0 0 3px color-mix(in srgb, var(--vkp-renk) 12%, transparent); }
 .vkp-ikon { width:40px; height:40px; border-radius:13px; display:grid; place-items:center; background:var(--vkp-acik); color:var(--vkp-renk); margin-bottom:2px; }
-.vkp-ad { font-size:14px; font-weight:700; line-height:1.2; }
-.vkp-durum { display:flex; align-items:center; gap:6px; max-width:100%; font-size:12px; color:var(--c-muted, #64748B); line-height:1.35; }
+.vkp-ad { min-width:0; max-width:100%; overflow-wrap:anywhere; font-size:14px; font-weight:700; line-height:1.2; }
+.vkp-durum { min-width:0; overflow-wrap:anywhere; display:flex; align-items:center; gap:6px; max-width:100%; font-size:12px; color:var(--c-muted, #64748B); line-height:1.35; }
 .vkp-durum i { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:#CBD5E1; }
 .vkp-durum span { overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 .vkp-karo.vkp-etkin .vkp-durum { color:var(--c-ink, #1F2544); font-weight:600; }
@@ -372,10 +372,17 @@ function stilEkle() {
 .vkp-sayfa { width:100%; max-width:520px; max-height:88vh; display:flex; flex-direction:column; background:var(--c-bg, #F7F8FB); border-radius:24px; overflow:hidden; box-shadow:0 24px 60px rgba(15,23,42,.25); animation:vkpYuksel .22s cubic-bezier(.2,.8,.2,1); }
 @keyframes vkpYuksel { from { transform:translateY(24px); opacity:.6; } to { transform:none; opacity:1; } }
 .vkp-tutamak { display:none; }
-.vkp-govde { overflow-y:auto; padding:14px; overscroll-behavior:contain; }
+/* Cards leave #veliPanel when opened; the sheet owns its sizing contract. */
+.vkp-sayfa, .vkp-govde, .vkp-govde > * { min-width:0; }
+.vkp-govde { min-height:0; max-width:100%; overflow-y:auto; padding:14px; overscroll-behavior:contain; overflow-wrap:anywhere; }
+.vkp-govde > * { max-width:100%; }
+.vkp-govde :is(input, select, textarea) { min-width:0; max-width:100%; }
+.vkp-govde :is(img, video, iframe, canvas) { max-width:100%; }
+.vkp-govde table { display:block; max-width:100%; overflow-x:auto; }
+.vkp-sayfa-bas h3, .vkp-sayfa-bas p { overflow-wrap:anywhere; }
 .vkp-govde > .ca-card { margin:0 !important; box-shadow:none !important; }
-.vkp-alt { display:flex; gap:8px; padding:10px 14px 16px; background:var(--c-bg, #F7F8FB); flex-shrink:0; }
-.vkp-tamam, .vkp-ikincil { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border-radius:14px; font:inherit; font-size:15px; font-weight:700; cursor:pointer; }
+.vkp-alt { display:flex; flex-wrap:wrap; gap:8px; padding:10px 14px 16px; background:var(--c-bg, #F7F8FB); flex-shrink:0; }
+.vkp-tamam, .vkp-ikincil { flex:1 1 130px; min-width:0; max-width:100%; white-space:normal; overflow-wrap:anywhere; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border-radius:14px; font:inherit; font-size:15px; font-weight:700; cursor:pointer; }
 .vkp-tamam { border:0; background:var(--c-green, #2B3674); color:#fff; }
 .vkp-ikincil { border:1.5px solid rgba(31,37,68,.12); background:#fff; color:var(--c-ink, #1F2544); }
 .vkp-odeme { position:relative; cursor:pointer; }

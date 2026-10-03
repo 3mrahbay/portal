@@ -47,7 +47,7 @@ test('parent mobile: modern parent modules already use responsive breakpoints', 
 });
 
 test('staff parent mobile: fresh stylesheet and current cache generation are served', async () => {
-  assert.match(read('index.html'), /stil\/arayuz-duzeltmeleri\.css\?v=4/);
+  assert.match(read('index.html'), /stil\/arayuz-duzeltmeleri\.css\?v=5/);
   const pwa = await installedPwa();
   assert.match(pwa.cacheVersion, /^v\d+/);
   await assertPwaBootstrap(pwa);

@@ -10,10 +10,12 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v176-galeri-gorunum-sinif";
+const CACHE_VERSION = "v177-dinamik-mobil-yerlesim";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./stil/arayuz-duzeltmeleri.css?v=5",
+  "./stil/randevu-sayfalari.css?v=2",
   "./js/galeri-klasorleri.js",
   "./js/portal-galeri-klasor-ui.js",
   "./js/ogretmen-sinif-core.js?v=173",

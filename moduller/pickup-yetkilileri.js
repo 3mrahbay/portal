@@ -108,13 +108,29 @@ export async function veliKart(hedefId) {
     </div>`;
 }
 
+// Form cards may be moved to a body-level compact sheet.
+function formStiliEkle() {
+  if (document.getElementById("pickupYetkiFormStil")) return;
+  const st = document.createElement("style");
+  st.id = "pickupYetkiFormStil";
+  st.textContent = `
+#pyForm { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+.py-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:10px; }
+.py-form-grid > * { min-width:0; }
+#pyForm :is(input:not([type="radio"]), select, textarea) { min-width:0; max-width:100%; width:100%; box-sizing:border-box; }
+@media (max-width:420px) { .py-form-grid { grid-template-columns:minmax(0,1fr); } }
+`;
+  document.head.appendChild(st);
+}
+
 function formAc() {
   const f = document.getElementById("pyForm");
   if (!f) return;
   if (f.style.display !== "none") { f.style.display = "none"; return; }
+  formStiliEkle();
   f.style.display = "block";
   f.innerHTML = `
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+    <div class="py-form-grid">
       <div>
         <label style="font-size:10.5px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Ad Soyad</label>
         <input type="text" id="pyAd" placeholder="Ayşe Yılmaz"

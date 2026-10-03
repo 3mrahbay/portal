@@ -173,7 +173,7 @@ let acik = null;
 function sayfaAc(k, el) {
   sayfaKapat();
   const kok = document.createElement("div");
-  kok.className = "oak-arka";
+  kok.className = "oak-arka cicek-app";
   const gun = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"][new Date().getDay()];
   kok.innerHTML = `<div class="oak-sayfa" role="dialog" aria-modal="true" aria-label="${esc(k.ad)}" style="--oak-renk:${k.renk};--oak-acik:${k.acik}">
     <div class="oak-tutamak" aria-hidden="true"></div>
@@ -214,7 +214,7 @@ function stilEkle() {
 [data-oak-gizli] { display:none !important; }
 .oak-akis { display:flex; flex-direction:column; gap:18px; margin-top:4px; }
 .oak-acik > .ca-card { margin-bottom:0 !important; }
-.ca-hero-row.oak-tek { grid-template-columns:1fr !important; }
+.ca-hero-row.oak-tek { grid-template-columns:minmax(0,1fr) !important; }
 .oak-grup { display:flex; flex-direction:column; gap:10px; }
 .oak-baslik { font-family:var(--c-font-head, inherit); font-size:15px; font-weight:700; color:var(--c-ink, #1F2544); }
 .oak-izgara { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
@@ -223,8 +223,8 @@ function stilEkle() {
 .oak-karo:focus-visible { outline:3px solid color-mix(in srgb, var(--oak-renk) 35%, transparent); outline-offset:2px; }
 .oak-karo.oak-etkin { border-color:color-mix(in srgb, var(--oak-renk) 45%, #fff); box-shadow:0 0 0 3px color-mix(in srgb, var(--oak-renk) 12%, transparent); }
 .oak-ikon { width:40px; height:40px; border-radius:13px; display:grid; place-items:center; background:var(--oak-acik); color:var(--oak-renk); flex-shrink:0; }
-.oak-ad { font-size:14px; font-weight:700; line-height:1.2; }
-.oak-durum { display:flex; align-items:center; gap:6px; max-width:100%; font-size:12px; color:var(--c-muted, #64748B); line-height:1.35; }
+.oak-ad { min-width:0; max-width:100%; overflow-wrap:anywhere; font-size:14px; font-weight:700; line-height:1.2; }
+.oak-durum { min-width:0; overflow-wrap:anywhere; display:flex; align-items:center; gap:6px; max-width:100%; font-size:12px; color:var(--c-muted, #64748B); line-height:1.35; }
 .oak-durum i { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:#CBD5E1; }
 .oak-durum span { overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 .oak-karo.oak-etkin .oak-durum { color:var(--c-ink, #1F2544); font-weight:600; }
@@ -241,10 +241,17 @@ function stilEkle() {
 .oak-sayfa-bas > div { flex:1; min-width:0; } .oak-sayfa-bas h3 { margin:0; font-size:17px; font-weight:800; color:var(--c-ink, #1F2544); }
 .oak-sayfa-bas p { margin:2px 0 0; font-size:12.5px; color:var(--c-muted, #64748B); }
 .oak-x { width:38px; height:38px; flex-shrink:0; border:0; border-radius:50%; background:rgba(31,37,68,.06); color:var(--c-ink, #1F2544); display:grid; place-items:center; cursor:pointer; }
-.oak-govde { overflow-y:auto; padding:6px 14px 14px; overscroll-behavior:contain; }
-.oak-govde > * { background:#fff; border-radius:18px; padding:12px 16px; box-shadow:none !important; margin:0 !important; }
-.oak-alt { display:flex; gap:8px; padding:10px 14px 16px; flex-shrink:0; }
-.oak-tamam, .oak-ikincil { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border-radius:14px; font:inherit; font-size:15px; font-weight:700; cursor:pointer; }
+/* Cards leave #dashboard when opened; keep live content locally contained. */
+.oak-sayfa, .oak-govde, .oak-govde > * { min-width:0; }
+.oak-govde { min-height:0; max-width:100%; overflow-y:auto; padding:6px 14px 14px; overscroll-behavior:contain; overflow-wrap:anywhere; }
+.oak-govde > * { max-width:100%; }
+.oak-govde :is(input, select, textarea) { min-width:0; max-width:100%; }
+.oak-govde :is(img, video, iframe, canvas) { max-width:100%; }
+.oak-govde table { display:block; max-width:100%; overflow-x:auto; }
+.oak-sayfa-bas h3, .oak-sayfa-bas p { overflow-wrap:anywhere; }
+.oak-govde > *, .oak-govde > .ca-card { background:#fff; border-radius:18px; padding:12px 16px; box-shadow:none !important; margin:0 !important; }
+.oak-alt { display:flex; flex-wrap:wrap; gap:8px; padding:10px 14px 16px; flex-shrink:0; }
+.oak-tamam, .oak-ikincil { flex:1 1 130px; min-width:0; max-width:100%; white-space:normal; overflow-wrap:anywhere; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border-radius:14px; font:inherit; font-size:15px; font-weight:700; cursor:pointer; }
 .oak-tamam { border:0; background:var(--c-green, #2B3674); color:#fff; }
 .oak-ikincil { border:1.5px solid rgba(31,37,68,.12); background:#fff; color:var(--c-ink, #1F2544); }
 body.oak-kilit { overflow:hidden; }

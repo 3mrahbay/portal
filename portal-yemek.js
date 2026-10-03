@@ -112,6 +112,24 @@ async function renderYemekMenusu() {
 
 // Menü düzenleme modalını aç
 window.yemekMenusuDuzenle = function() {
+  if (!document.getElementById("portalYemekEditorStil")) {
+    const stil = document.createElement("style");
+    stil.id = "portalYemekEditorStil";
+    stil.textContent = `
+      #yemekModalTablo .yemek-editor-gun { padding:16px; min-width:0; }
+      #yemekModalTablo .yemek-editor-ogun { padding:12px 14px; min-width:0; }
+      #yemekModalTablo .yemek-editor-grid { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.5fr); gap:8px; min-width:0; }
+      #yemekModalTablo .yemek-editor-grid > input { width:100%; min-width:0; max-width:100%; box-sizing:border-box; }
+      @media (max-width:640px) {
+        #yemekModalTablo .yemek-editor-grid { grid-template-columns:minmax(0,1fr); }
+      }
+      @media (max-width:480px) {
+        #yemekModalTablo .yemek-editor-gun { padding:12px; }
+        #yemekModalTablo .yemek-editor-ogun { padding:10px; }
+      }
+    `;
+    document.head.appendChild(stil);
+  }
   document.getElementById("yemekModal").classList.add("active");
   document.getElementById("yemekModalBaslik").textContent = `🍽 Menü - ${haftaEtiketi(aktifYemekHaftaBaslangic)}`;
 
@@ -128,7 +146,7 @@ window.yemekMenusuDuzenle = function() {
   for (let gunIdx = 0; gunIdx < 5; gunIdx++) {
     const t = gunTarihler[gunIdx];
     html += `
-      <div style="background:white; border:1px solid var(--gray-200); border-radius:12px; padding:16px;">
+      <div class="yemek-editor-gun" style="background:white; border:1px solid var(--gray-200); border-radius:12px;">
         <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#9a3412; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid #fed7aa;">
           ${YEMEK_GUNLER[gunIdx]} <span style="font-size:12px; color:var(--gray-500); font-weight:400;">${t.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })}</span>
         </div>
@@ -136,9 +154,9 @@ window.yemekMenusuDuzenle = function() {
     for (const ogun of YEMEK_OGUNLER) {
       const gunData = (aktifYemekVerisi?.gunler?.[gunIdx] || {})[ogun.key] || {};
       html += `
-        <div style="background:${ogun.renk}; border-radius:10px; padding:12px 14px; margin-bottom:10px;">
+        <div class="yemek-editor-ogun" style="background:${ogun.renk}; border-radius:10px; margin-bottom:10px;">
           <div style="font-size:12px; font-weight:700; color:var(--gray-700); margin-bottom:8px;">${ogun.label}</div>
-          <div style="display:grid; grid-template-columns:2fr 1fr 1.5fr; gap:8px;">
+          <div class="yemek-editor-grid">
             <input type="text" id="y_${gunIdx}_${ogun.key}_yemek" placeholder="Yemek adı" value="${escapeHtml(gunData.yemek || "")}" style="padding:8px; border:1px solid var(--gray-300); border-radius:8px; font-size:13px;">
             <input type="text" id="y_${gunIdx}_${ogun.key}_kalori" placeholder="Kalori (kcal)" value="${escapeHtml(gunData.kalori || "")}" style="padding:8px; border:1px solid var(--gray-300); border-radius:8px; font-size:13px;">
             <input type="text" id="y_${gunIdx}_${ogun.key}_alerjen" placeholder="Alerjen (ör: süt, buğday)" value="${escapeHtml(gunData.alerjen || "")}" style="padding:8px; border:1px solid var(--gray-300); border-radius:8px; font-size:13px;">

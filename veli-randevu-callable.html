@@ -9,6 +9,12 @@
   <style>
     :root{--koyu:#2d5e3e;--yesil:#4a7c59;--zemin:#fafaf7;--kart:#fff;--metin:#2d2d2d;--soluk:#7c8a82;--cizgi:#e5ece7;--sari:#fff0c2;--mavi:#e2eff8;--kirmizi:#fbe9e7}
     *{box-sizing:border-box}body{max-width:430px;margin:auto;padding:18px 18px 80px;background:var(--zemin);color:var(--metin);font:14px system-ui,sans-serif}h1{color:var(--koyu);font-size:24px}.portal-geri{color:var(--koyu);font-weight:700;text-decoration:none}.bolum{margin:20px 0 9px;color:var(--soluk);font-weight:800;text-transform:uppercase;font-size:12px}.secim{width:100%;padding:12px;border:1px solid var(--cizgi);border-radius:12px;background:#fff}.satir,.islemler,.slot-butonlar{display:flex;gap:8px;flex-wrap:wrap}.secim,.hedef,.saat,.islemler button{padding:10px 12px;border:1px solid var(--cizgi);border-radius:12px;background:#fff;font-weight:700}.secim.aktif,.hedef.aktif,.birincil{background:var(--koyu)!important;color:#fff}.kart,.slot-gun{background:var(--kart);border-radius:16px;padding:14px;margin-bottom:10px}.kart-ust{display:flex;justify-content:space-between;gap:8px}.rozet{font-size:11px;padding:5px 8px;border-radius:9px;background:var(--sari)}.rozet.dolu{background:#e7f4e9}.rozet.alternatif_teklif,.teklif{background:var(--mavi)}.rozet.reddedildi,.rozet.teklif_reddedildi,.rozet.iptal,.tehlike{background:var(--kirmizi)!important}.ikincil,.not,.bos{color:var(--soluk)}.not,.teklif{padding:9px;border-radius:10px}.islemler{margin-top:10px}.durum{padding:12px;border-radius:12px;background:var(--sari);margin:12px 0}.durum.hata{background:var(--kirmizi)}[hidden]{display:none!important}
+
+    /* This standalone route does not inherit the main portal's card sizing. */
+    main,.kart,.slot-gun{min-width:0;overflow-wrap:anywhere}
+    .kart-ust{flex-wrap:wrap;align-items:flex-start}
+    .kart-ust>*,.satir>*,.islemler>*,.slot-butonlar>*{min-width:0;max-width:100%}
+    .secim,.hedef,.saat,.islemler button{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}
   </style>
 </head>
 <body>

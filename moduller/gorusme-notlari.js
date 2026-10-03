@@ -731,6 +731,8 @@ function stilEkle() {
 .gn-cip { display:inline-flex; align-items:center; gap:5px; min-height:36px; padding:6px 12px; border:1.5px solid #E2E8F0; border-radius:999px; background:#fff; font:inherit; font-size:13px; font-weight:600; color:#334155; cursor:pointer; }
 .gn-cip.gn-secili { background:#2D5E3E; border-color:#2D5E3E; color:#fff; }
 .gn-olcutler { display:flex; flex-direction:column; gap:8px; }
+.gn-olcut > *, .gn-ara input, .gn-kisi-ad { min-width:0; }
+.gn-bas > div, .gn-detay-metin, .gn-soru p, .gn-kisi-ad, .gn-olcut-ad { overflow-wrap:anywhere; }
 .gn-olcut { display:grid; grid-template-columns:minmax(120px, 1fr) auto 120px; align-items:center; gap:10px; }
 .gn-olcut-ad { font-size:13.5px; font-weight:600; color:#1E293B; }
 .gn-puanlar { display:flex; gap:5px; }
@@ -776,6 +778,13 @@ function stilEkle() {
   .gn-puan { width:34px; height:34px; } .gn-iki { grid-template-columns:1fr; }
   .gn-yigin { top:auto; bottom:14px; right:12px; left:12px; width:auto; }
   .gn-ara { min-width:0; width:100%; }
+}
+@media (max-width:480px) {
+  /* Five score buttons stay complete below their label on narrow phones. */
+  .gn-olcut, .gn-olcut-oku { grid-template-columns:minmax(0,1fr); }
+  .gn-puanlar { flex-wrap:wrap; }
+  .gn-puan { flex:0 0 34px; }
+  .gn-puan-ad { grid-column:auto; margin-top:0; }
 }
 @media (prefers-reduced-motion:reduce) { .gn-acilir, .gn-acilir-ikon, .gn-donen { animation:none; } }
 `;

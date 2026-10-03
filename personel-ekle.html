@@ -195,13 +195,13 @@
       margin: 0 auto;
       padding: 24px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 24px;
     }
 
     @media (max-width: 900px) {
       .icerik {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
       }
     }
 
@@ -235,7 +235,7 @@
 
     .form-grup-2 {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
       margin-bottom: 16px;
     }
@@ -560,6 +560,25 @@
 
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    /* Loaded names and native controls must not set the mobile column width. */
+    .icerik, .panel, .form-grup, .form-grup-2 > *,
+    .header-baslik-grup, .header-baslik-grup > div,
+    .header-kullanici, .header-kullanici-adi { min-width: 0; max-width: 100%; }
+    .panel, .header, .personel-ad, .personel-detay { overflow-wrap: anywhere; }
+    .form-input, .form-select { min-width: 0; max-width: 100%; }
+    .header { flex-wrap: wrap; gap: 12px; }
+    .header-logo, .cikis-btn, .personel-aksiyon { flex-shrink: 0; }
+    @media (max-width: 560px) {
+      .icerik { padding: 16px; gap: 16px; }
+      .panel { padding: 16px; }
+      .form-grup-2 { grid-template-columns: minmax(0, 1fr); }
+      .header-kullanici { flex: 1 1 100%; }
+      .header-kullanici-adi { flex: 1; }
+      .personel-kart { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: start; }
+      .personel-rol, .personel-aksiyon { grid-column: 2; max-width: 100%; }
+      .personel-aksiyon { flex-wrap: wrap; }
     }
   </style>
 </head>

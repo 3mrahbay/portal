@@ -120,7 +120,16 @@
   .det-sinif-sec.mevcut{opacity:.5;cursor:default;}
   .det-uyari{background:#FDF3D6;color:#8A6A0B;border-radius:11px;padding:10px 12px;
     font-size:12.5px;line-height:1.5;margin-top:10px;}
-  </style>
+
+  /* Live search and detail-sheet values can be longer than the empty state. */
+  .arama input { min-width:0; width:0; }
+  .ust-bar, .det-ust, .det-satir, .det-cocuk, .veli-kart { min-width:0; overflow-wrap:anywhere; }
+  .ust-bar > *, .det-ust > *, .det-satir > *, .det-cocuk > * { min-width:0; max-width:100%; }
+  .ust-baslik, .ust-sayi, .grup-baslik, .ogr-alt, .vk-ad, .det-govde { overflow-wrap:anywhere; }
+  .det-girdi { min-width:0; max-width:100%; }
+  .det-veli-ara { flex-wrap:wrap; }
+  .veli-btn { min-width:0; max-width:100%; white-space:normal; }
+</style>
 </head>
 <body>
   <div class="ust-bar">

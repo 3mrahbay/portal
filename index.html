@@ -455,7 +455,7 @@ html, body {
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%,280px), 1fr));
   gap: 32px;
 }
 
@@ -1053,7 +1053,7 @@ html, body {
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%,200px), 1fr));
   gap: 16px;
   margin-bottom: 32px;
 }
@@ -4596,7 +4596,7 @@ body.rol-danisma .tb-grup-program { display:none !important; }
 
 .basvuru-detay-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%,220px), 1fr));
   gap: 12px;
   margin-bottom: 12px;
   padding: 12px;
@@ -5010,7 +5010,7 @@ body.rol-danisma .tb-grup-program { display:none !important; }
 /* Veli rapor dashboard - 3 disiplin mini kartları */
 .rapor-disiplin-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%,220px), 1fr));
   gap: 14px;
 }
 .rapor-disiplin-karti {
@@ -6199,7 +6199,7 @@ body.rol-danisma .tb-grup-program { display:none !important; }
 /* 3 disiplin seçim kutuları */
 .egitim-disiplin-secici {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%,260px), 1fr));
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -6272,7 +6272,7 @@ body.rol-danisma .tb-grup-program { display:none !important; }
 .ebk-metin small { font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ebk-ok { font-size: 16px; color: var(--b-renk, #7c3aed); font-weight: 700; flex-shrink: 0; }
 .ebk-ekle { border-style: dashed; }
-#egitimBransSecici { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important; }
+#egitimBransSecici { grid-template-columns: repeat(auto-fill, minmax(min(100%,280px), 1fr)) !important; }
 
 .egitim-disiplin-kutu {
   position: relative;
@@ -7536,7 +7536,7 @@ body.rol-danisma .tb-grup-program { display:none !important; }
 .personel-arama:focus { outline: none; border-color: #16a34a; }
 
 .personel-liste {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%,300px), 1fr)); gap: 12px;
 }
 .personel-kart {
   background: white; border: 1px solid #e5e7eb; border-radius: 14px;
@@ -9139,7 +9139,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 }
 </style>
 <!-- Arayüz düzeltmeleri: pencere başlıkları, logo, üst menü — stil/arayuz-duzeltmeleri.css -->
-<link rel="stylesheet" href="stil/arayuz-duzeltmeleri.css?v=4">
+<link rel="stylesheet" href="stil/arayuz-duzeltmeleri.css?v=5">
 </head>
 <body>
 
@@ -11204,7 +11204,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       </div>
 
       <!-- 3 KATMAN KARTI -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-bottom:22px;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:16px; margin-bottom:22px;">
 
         <!-- BFPM -->
         <div class="gelisim-kart" style="--gk:#3D8A5F;">
@@ -12993,7 +12993,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         </div>
         <div id="indirimNedenContent" style="display:none; padding:12px 16px; background:#fff;">
           <small style="display:block; margin-bottom:8px; color:#78716c;">Birden fazla seçebilirsiniz. Seçtikleriniz "İndirim Nedeni" alanına otomatik yazılır.</small>
-          <div id="indirimNedenList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px;">
+          <div id="indirimNedenList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%,220px), 1fr)); gap:8px;">
             <!-- JavaScript ile doldurulur -->
           </div>
           <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #d4d4d8;">
@@ -19152,7 +19152,7 @@ function oryYonetimCiz() {
           ${t ? `<span style="font-size:12px; color:#64748B;">${t.aralik}</span>` : ""}
         </div>
         ${gir("oryHAd" + i, "Hafta Adı", h.ad)}
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:11px;">
+        <div class="portal-form-grid" style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px;">
           ${gir("oryHBas" + i, "Başlangıç", h.baslangicSaat, "time")}
           ${gir("oryHBit" + i, "Bitiş", h.bitisSaat, "time")}
         </div>
@@ -19174,7 +19174,7 @@ function oryYonetimCiz() {
           ${t ? `<span style="font-size:12px; color:#64748B;">Cuma · ${t.cumaTarih}</span>` : ""}
         </div>
         ${gir("orySB" + i, "Başlık", x.baslik)}
-        <div style="display:grid; grid-template-columns:1fr 2fr; gap:11px;">
+        <div class="portal-form-grid" style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:11px;">
           ${gir("orySSaat" + i, "Saat", x.saat, "time")}
           ${gir("orySK" + i, "Konuşmacı", x.konusmaci, "text", "Opsiyonel")}
         </div>
@@ -21040,11 +21040,11 @@ window.okulZiliDoldur = function(snap = null) {
     if (k.veliOnay) adimlar.push(`<span style="color:#2D7A2D; font-weight:700;" title="Veli teyidi">👍 aldım${k.veliOnayZamani ? " " + saatY(k.veliOnayZamani) : ""}</span>`);
     if (k.danismaNotu) adimlar.push(`<span style="color:#7B5EA7;" title="Danışma notu">📝 ${esc(k.danismaNotu)}</span>`);
 
-    return `<div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #F1F2F7;">
+    return `<div class="portal-pickup-row" style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #F1F2F7;">
       <div style="width:28px; height:28px; border-radius:9px; background:${s.bg}; color:${s.renk}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex-shrink:0;">${siraNo}</div>
       <div style="min-width:42px; text-align:center; font-weight:800; font-size:13px; color:#2D5E3E; flex-shrink:0;">${esc(k.hedefSaat) || "—"}</div>
-      <div style="flex:1; min-width:0;">
-        <div style="font-weight:700; font-size:13px; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+      <div class="portal-pickup-body" style="flex:1; min-width:0;">
+        <div class="portal-pickup-name" style="font-weight:700; font-size:13px; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
           ${esc(ogrAd)}${k.sinif ? `<span style="font-weight:400; color:#94A3B8; font-size:11px;"> · ${esc(k.sinif)}</span>` : ""}
         </div>
         <div style="font-size:11px; color:var(--c-muted); display:flex; gap:8px; flex-wrap:wrap; margin-top:2px;">
@@ -21054,7 +21054,7 @@ window.okulZiliDoldur = function(snap = null) {
           ${dk > 0 && durumKey === "teslim" ? `<span style="color:#94A3B8;">⏱ ${dk} dk sürdü</span>` : ""}
         </div>
       </div>
-      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+      <div class="portal-pickup-actions" style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
         <span style="font-size:10px; font-weight:800; color:${s.renk}; background:${s.bg}; padding:3px 8px; border-radius:100px; white-space:nowrap;">${s.ad}</span>
         ${danismaRolMu() && durumKey !== "teslim" && !k.kapida ? `<button class="btn-mini" onclick="pickupKapidaBildirPortal('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}')" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;padding:4px 8px;font-size:11px;">Kapıda</button>` : ""}
         ${danismaRolMu() && durumKey !== "teslim" && !k.kimlikKontrol ? `<button class="btn-mini" onclick="pickupKimlikOnaylaPortal('${esc(k.ogrenciId || k.id.split("__")[0])}','${esc(k.tarih || bugun)}','${esc(k.alanKisi || "veli")}')" style="background:#ECFDF5;color:#166534;border-color:#86EFAC;padding:4px 8px;font-size:11px;">Kimlik ✓</button>` : ""}
@@ -21822,7 +21822,7 @@ function caAdminEgitimHTML(ogrenciler, tumGel, mufler) {
         <div style="font-size:12px; opacity:.9;">Montessori · İngilizce · Değerler — canlı ilerleme</div>
       </div>
       <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Sınıf İlerlemesi</h3></div>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px;">${kartlar || '<div class="ca-card"><div class="ca-tile-sub">Sınıf/öğrenci bulunamadı.</div></div>'}</div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:12px;">${kartlar || '<div class="ca-card"><div class="ca-tile-sub">Sınıf/öğrenci bulunamadı.</div></div>'}</div>
     </div>`;
 }
 function caAdminSinifHTML(sinif, ogrenciler, tumGel, mufler) {
@@ -22410,10 +22410,10 @@ function yonetimHomeHTML(ad) {
     </div>`;
   }
   const miniTakvimHTML = `
-    <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px; font-size:10.5px; color:var(--c-muted); text-align:center; margin-bottom:6px; font-weight:700;">
+    <div style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; font-size:10.5px; color:var(--c-muted); text-align:center; margin-bottom:6px; font-weight:700;">
       <div>Pt</div><div>Sa</div><div>Ça</div><div>Pe</div><div>Cu</div><div>Ct</div><div>Pz</div>
     </div>
-    <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px;">${takvimHucreler}</div>
+    <div style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px;">${takvimHucreler}</div>
     <div style="display:flex; gap:14px; margin-top:10px; font-size:11px; color:var(--c-muted);">
       <span>● <span style="color:#5A6ACF;">Etkinlik</span></span>
       <span>● <span style="color:#c2445a;">Tatil / özel gün</span></span>
@@ -22597,7 +22597,7 @@ function yonetimHomeHTML(ad) {
             <div class="ozet-ikili-sol">
               <!-- Sabah Girişi (veli "Yola çıktık") — moduller/sabah-girisi.js · yalnız yönetim/koordinatör -->
               ${(typeof danismaProjeksiyonYonetebilirMi === "function" && danismaProjeksiyonYonetebilirMi()) ? `
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div class="portal-summary-heading" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
                 <div style="display:flex; align-items:center; gap:7px;">
                   <span style="font-size:16px; display:inline-flex;"><i data-lucide="sunrise" style="width:16px;height:16px;color:#0E7490;"></i></span>
                   <span class="ozet-panel-baslik">Sabah Girişi · Geliş Akışı</span>
@@ -22607,7 +22607,7 @@ function yonetimHomeHTML(ad) {
               <div id="yonSabahGirisiKart" style="max-height:340px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #EEF1F5;">
                 <div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Yükleniyor…</div>
               </div>` : ""}
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div class="portal-summary-heading" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
                 <div style="display:flex; align-items:center; gap:7px;">
                   <span style="font-size:16px; display:inline-flex;"><i data-lucide="bell-ring" style="width:16px;height:16px;color:#B45309;"></i></span>
                   <span class="ozet-panel-baslik">Okul Zili · Çıkış Akışı</span>
@@ -22634,7 +22634,7 @@ function yonetimHomeHTML(ad) {
               <div id="yonVeliIzinKart" style="margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #EEF1F5;">
                 <div style="font-size:12.5px; color:var(--c-muted);">Yükleniyor…</div>
               </div>
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div class="portal-summary-heading" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
                 <div style="display:flex; align-items:center; gap:7px;">
                   <span style="font-size:16px; display:inline-flex;"><i data-lucide="graduation-cap" style="width:16px;height:16px;color:#6D28D9;"></i></span>
                   <span class="ozet-panel-baslik">Eğitim İlerlemesi</span>
@@ -24584,7 +24584,7 @@ function veliRenderOgrenci() {
   const baba = v.baba || {};
 
   el.innerHTML = `
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div class="veli-card-grid-2" style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px;">
       <div>
         <div style="font-weight:500; color:#2d6a4f; margin-bottom:10px;">Öğrenci Bilgileri</div>
         <div style="font-size:13px; line-height:2;">
@@ -29118,7 +29118,7 @@ async function ozlukDurumCiz() {
       <strong style="font-size:13px; color:#334155;">Personel Durumu</strong>
       <span style="font-size:11.5px; color:#94A3B8;">· çubuklar bugünkü net çalışma süresini gösterir</span>
     </div>
-    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr)); gap:10px;">
       ${personelKartlari || `<div style="padding:24px; text-align:center; color:#94A3B8; font-size:13px;">Personel kaydı bulunamadı.</div>`}
     </div>
     <div style="margin-top:16px; padding:12px 14px; background:#F8FAFC; border-radius:12px; font-size:11.5px; color:#64748B;">
@@ -29765,7 +29765,7 @@ window.ozlukBilgiCizFiltre = function() {
     ? `<div><span style="font-size:11.5px; color:#94A3B8;">${etiket}</span><div style="font-size:13px; color:#334155; font-weight:600;">${escapeHtml(String(deger))}</div></div>` : "";
 
   document.getElementById("ozlukIcerik").innerHTML = liste.length ? `
-    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr)); gap:12px;">
       ${liste.map(p => `
         <div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px; padding:15px 16px;">
           <div style="font-weight:700; font-size:15px; color:#1E293B;">${escapeHtml(p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email)}</div>
@@ -29869,7 +29869,7 @@ function renderTableDanisma(wrap) {
     return aa.localeCompare(bb, "tr");
   });
   wrap.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:12px;padding:4px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,275px),1fr));gap:12px;padding:4px;">
       ${sirali.map(o => {
         const ayar = ayarListesi[o.id] || {};
         const sinif = (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "Sınıf belirtilmemiş";
@@ -29909,7 +29909,7 @@ function renderTableEgitim(wrap) {
   }
   const bas = (ad) => (String(ad || "?")[0] || "?").toLocaleUpperCase("tr");
   wrap.innerHTML = `
-    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:12px; padding:4px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr)); gap:12px; padding:4px;">
       ${filteredList.map(o => {
         const ayar = ayarListesi[o.id] || {};
         const sinif = (ayar.kayit && ayar.kayit.sinif) || o.sinif || o.sinifi || "";
@@ -33728,7 +33728,7 @@ window.egitimDetayliRaporGoster = function(disiplin) {
         </div>
 
         <!-- İki ayrı bakış: kapsama ve ilerleme -->
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin-bottom:20px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:12px; margin-bottom:20px;">
           <div style="background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:14px 16px;">
             <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px;">
               <span style="font-size:12px; font-weight:700; color:#334155;">Kapsama</span>
@@ -38318,7 +38318,7 @@ window.profilimRender = async function() {
           <div style="font-size:12.5px; opacity:.88;">${esc(rolAd)}${siniflar.length ? " · " + esc(siniflar.join(", ")) : ""}</div>
         </div>
       </div>
-      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+      <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;">
         <div style="background:rgba(255,255,255,.13); border-radius:13px; padding:11px; text-align:center;">
           <div style="font-size:17px; font-weight:800;">${sure(bugunDk)}</div>
           <div style="font-size:10.5px; opacity:.85; margin-top:2px;">Bugün net</div></div>
@@ -38344,7 +38344,7 @@ window.profilimRender = async function() {
         <i data-lucide="refresh-cw" style="width:15px;height:15px;vertical-align:-3px;"></i> Yenile</button>
     </div>
 
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:14px;">
 
       ${kart("Bu Ayki Çalışmam", "clock", "#059669", `
         <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:#475569; margin-bottom:11px;">
@@ -38379,7 +38379,7 @@ window.profilimRender = async function() {
       `)}
 
       ${kart("İzinlerim", "calendar-x", "#7C3AED", `
-        <div style="display:grid;grid-template-columns:repeat(4,minmax(58px,1fr));gap:7px;margin-bottom:12px;">
+        <div class="portal-profile-leave-summary" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:12px;">
           <div style="background:#F8FAFC;border-radius:10px;padding:8px;text-align:center;"><strong style="display:block;color:#2D5E3E;font-size:15px;">${izinOzeti.kalan}</strong><span style="font-size:9.5px;color:#64748B;">Kalan</span></div>
           <div style="background:#F8FAFC;border-radius:10px;padding:8px;text-align:center;"><strong style="display:block;color:#7C3AED;font-size:15px;">${izinOzeti.kullanilan}</strong><span style="font-size:9.5px;color:#64748B;">Kullanılan</span></div>
           <div style="background:#FFFBEB;border-radius:10px;padding:8px;text-align:center;"><strong style="display:block;color:#B45309;font-size:15px;">${izinOzeti.bekleyen}</strong><span style="font-size:9.5px;color:#64748B;">Bekleyen</span></div>
@@ -38565,7 +38565,7 @@ window.devamKartiCiz = function(bugunVeri, hedefId) {
         ${durum === "iceride" && sonGiris ? `<span style="font-size:12px; color:#64748B;">· ${saat(sonGiris)}'ten beri</span>` : ""}
         ${durum === "molada" ? `<span style="font-size:12px; color:#B45309; font-weight:700;">· ${molaDk} dk</span>` : ""}
       </div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <div class="portal-attendance-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
         ${btn("giris", "Giriş Yap", "log-in", "#059669", durum === "disarida")}
         ${btn("mola-basla", "Molaya Çık", "coffee", "#D97706", durum === "iceride")}
         ${btn("mola-bitir", "Moladan Dön", "play", "#1D4ED8", durum === "molada")}
@@ -39007,7 +39007,7 @@ window.gunlukRaporRender = async function() {
               ${doldu ? `<span style="font-size:10.5px; font-weight:800; color:#059669; background:#ECFDF5; padding:3px 9px; border-radius:100px;">girildi</span>` : ""}
             </div>
 
-            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:12px;">
               <div>
                 <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase; margin-bottom:5px;">🥣 Kahvaltı</div>
                 ${secim(o.id, "yemek", "kahvalti", GR_YEMEK, y.kahvalti)}
@@ -39201,7 +39201,7 @@ window.haftalikPlanRender = async function() {
         <select onchange="hpSinifDegis(this.value)" style="padding:9px 13px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13px; font-weight:600;">
           ${siniflar.map(s => `<option ${s === hpSinif ? "selected" : ""}>${esc(s)}</option>`).join("")}
         </select>` : `<strong style="font-size:14px; color:#2D5E3E;">${esc(hpSinif)}</strong>`}
-      <div style="display:flex; align-items:center; gap:8px; margin-left:auto; background:#fff; border:1px solid #E2E8F0; border-radius:10px; padding:5px 8px;">
+      <div class="portal-week-navigation" style="display:flex; align-items:center; gap:8px; margin-left:auto; background:#fff; border:1px solid #E2E8F0; border-radius:10px; padding:5px 8px;">
         <button class="btn-mini" onclick="hpHaftaDegis(-1)" style="padding:4px 9px;">‹</button>
         <span style="font-size:12.5px; font-weight:700; color:#334155; white-space:nowrap;">${aralik}</span>
         <button class="btn-mini" onclick="hpHaftaDegis(1)" style="padding:4px 9px;">›</button>
@@ -39209,7 +39209,7 @@ window.haftalikPlanRender = async function() {
     </div>
 
     <!-- Gün sekmeleri -->
-    <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:16px;">
+    <div class="portal-week-days" style="display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin-bottom:16px;">
       ${HP_GUN_KISA.map((g, i) => {
         const sayi = (hpPlan.gunler[i] || []).length;
         const aktif = i === hpAktifGun;
@@ -39220,7 +39220,7 @@ window.haftalikPlanRender = async function() {
       }).join("")}
     </div>
 
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:14px;">
       <!-- Etkinlikler -->
       <div style="background:#fff; border:1px solid #E9EBF4; border-radius:14px; padding:15px 17px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
@@ -41790,7 +41790,7 @@ function renderRaporlarAltSekme() {
         </div>
       </div>
     </div>
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,240px), 1fr)); gap:14px;">
 
       <!-- 1. Aylık Tahsilat -->
       <div class="rapor-indirme-karti" onclick="raporIndirAylikTahsilat()" style="background:white; border:1px solid var(--gray-300); border-radius:14px; padding:20px; cursor:pointer; transition:all 0.2s;">
@@ -48392,13 +48392,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=176");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=177");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v176";
+          const anahtar = "portalSwReload_v177";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
