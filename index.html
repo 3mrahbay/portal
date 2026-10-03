@@ -14021,12 +14021,14 @@ window.PortalAPI = {
       ogrenciDisAktarDurumu: (typeof ogrenciDisAktarDurumu !== "undefined") ? ogrenciDisAktarDurumu : null,
       galeriOturumSurumu: (typeof portalOturumSurumu !== "undefined") ? portalOturumSurumu : 0,
       galeriVeliUid: (typeof galeriVeliUid !== "undefined") ? galeriVeliUid : "",
+      galeriSinifBaglami: veliGaleriSinifBaglamiOku(),
       veliOgrenciler: (typeof veliOgrenciler !== "undefined") ? veliOgrenciler : [],
       veliAktifOgrenci: (typeof veliAktifOgrenci !== "undefined") ? veliAktifOgrenci : null,
       aktifDonem: (typeof AKTIF_DONEM !== "undefined") ? AKTIF_DONEM : "",
       personel: (typeof aktifPersonel !== "undefined") ? aktifPersonel : null
     };
   },
+  galeriSinifYenile: () => setAktifVeliOgrenci(veliAktifOgrenci),
   // Yardımcılar
   toast: (m, t) => { if (typeof showToast === "function") showToast(m, t); },
   lucide: () => { if (window.lucideYenile) window.lucideYenile(); },
@@ -14110,6 +14112,7 @@ async function aktifDonemYukle() {
   try {
     const snap = await getDoc(doc(db, "ayarlar", "donem"));
     if (snap.exists() && snap.data().aktif) {
+      if (AKTIF_DONEM !== snap.data().aktif) veliGaleriSinifSifirla();
       AKTIF_DONEM = snap.data().aktif;
       console.log("Aktif dönem:", AKTIF_DONEM);
     }
@@ -14126,6 +14129,7 @@ window.aktifDonemKaydet = async function(donem) {
     { aktif: donem, guncellendi: new Date().toISOString(), guncelleyen: (currentUser?.email || "") },
     { merge: true });
   window._vg?.invalidate?.();
+  veliGaleriSinifSifirla();
   AKTIF_DONEM = donem;
   return true;
 };
@@ -16956,6 +16960,7 @@ window.signInWithGoogle = async function() {
 
 window.signOut = async function() {
   galeriVeliUid = "";
+  veliGaleriSinifSifirla();
   window._vg?.invalidate?.();
   await fbSignOut(auth);
   showToast("Çıkış yapıldı");
@@ -16965,6 +16970,7 @@ window.signOut = async function() {
 let portalOturumSurumu = 0;
 onAuthStateChanged(auth, async (user) => {
   galeriVeliUid = "";
+  veliGaleriSinifSifirla();
   window._vg?.invalidate?.();
   const oturumSurumu = ++portalOturumSurumu;
   portalBildirimMerkeziDurdur();
@@ -17174,9 +17180,34 @@ let veliOgrenciler = [];     // Bu velinin tüm öğrencileri (kardeşler dahil)
 let veliAktifOgrenci = null; // Şu an görüntülenen öğrenci
 let veliAktifDonemVeri = null; // Aktif öğrencinin dönem verisi
 
+// Gallery-only proof from the selected child's exact current-period document read.
+// Never treat the master class or an unbound _donemVeri object as class authority.
+let veliGaleriSinifBaglami = null;
+let veliGaleriSinifSurumu = 0;
+function veliGaleriSinifSifirla() {
+  ++veliGaleriSinifSurumu;
+  veliGaleriSinifBaglami = null;
+  window._vg?.invalidate?.();
+}
+function veliGaleriSinifGuncel(b) {
+  return !!b && b.user === currentUser && b.uid === currentUser?.uid &&
+    b.oturum === portalOturumSurumu && b.surum === veliGaleriSinifSurumu &&
+    b.donem === AKTIF_DONEM && !!b.donem && b.ogrenciId === veliAktifOgrenci?.id &&
+    veliOgrenciler.some(o => o?.id === b.ogrenciId) && galeriVeliUid === b.uid &&
+    !isAdmin && !aktifPersonel && (aktifKullaniciRol == null || aktifKullaniciRol === "veli");
+}
+function veliGaleriSinifBaglamiOku() {
+  const b = veliGaleriSinifBaglami;
+  if (!veliGaleriSinifGuncel(b)) return null;
+  // Only a bound class and status cross the module bridge, never the period document.
+  const {uid, oturum, surum, donem, ogrenciId, sinif, durum} = b;
+  return Object.freeze({uid, oturum, surum, donem, ogrenciId, sinif, durum});
+}
+
 async function loadVeliPanel(user) {
   const galeriOturumu = portalOturumSurumu, galeriDonemi = AKTIF_DONEM;
   galeriVeliUid = "";
+  veliGaleriSinifSifirla();
   const welcomeEl = document.getElementById("veliWelcomeName");
   const avatarEl = document.getElementById("veliAvatarInitial");
   const heroEl = document.getElementById("veliStudentHero");
@@ -17568,8 +17599,12 @@ window.veliOgrenciSec = async function(idx) {
 };
 
 async function setAktifVeliOgrenci(ogr) {
-  window._vg?.invalidate?.();
+  veliGaleriSinifSifirla();
   veliAktifOgrenci = ogr;
+  const baglam = {user:currentUser, uid:currentUser?.uid, oturum:portalOturumSurumu,
+    surum:veliGaleriSinifSurumu, donem:AKTIF_DONEM, ogrenciId:ogr?.id, sinif:"", durum:"yukleniyor"};
+  if (!veliGaleriSinifGuncel(baglam)) return;
+  veliGaleriSinifBaglami = baglam;
 
   // Hero kartını doldur
   const heroEl = document.getElementById("veliStudentHero");
@@ -17591,28 +17626,29 @@ async function setAktifVeliOgrenci(ogr) {
     }
   }
 
-  // Dönem verisini çek
+  // Reuse the exact current-period read for the gallery proof. An unbound cached
+  // _donemVeri may still serve other parent modules, but cannot authorize gallery class.
   try {
-    if (ogr._donemVeri) {
-      veliAktifDonemVeri = ogr._donemVeri;
-    } else {
-      const donemRef = doc(db, "ogrenciler", ogr.id, "donemler", AKTIF_DONEM);
-      const donemSnap = await getDoc(donemRef);
-      veliAktifDonemVeri = donemSnap.exists() ? donemSnap.data() : null;
-    }
+    const donemRef = doc(db, "ogrenciler", ogr.id, "donemler", baglam.donem);
+    const donemSnap = await getDoc(donemRef);
+    if (!veliGaleriSinifGuncel(baglam)) return;
+    const okunan = donemSnap.exists() ? donemSnap.data() || {} : null;
+    const durum = String(okunan?.durum || (okunan?.aktif === false ? "arsiv" : "aktif")).toLocaleLowerCase("tr").trim();
+    const sinif = durum === "aktif" && typeof okunan?.kayit?.sinif === "string" ? okunan.kayit.sinif.trim() : "";
+    veliGaleriSinifBaglami = {...baglam, sinif, durum:sinif ? "hazir" : "eksik"};
+    veliAktifDonemVeri = ogr._donemVeri || okunan;
 
-    // Dönem verisi yüklendikten sonra üst menüdeki veli adını güncelle
-    // (Google displayName yerine sistemdeki anne/baba/vasi adını göster)
-    if (currentUser && veliAktifDonemVeri) {
-      updateVeliWelcome(currentUser, veliAktifDonemVeri);
-    }
-
-    // Şu anki sekmeyi yenile
+    if (currentUser && veliAktifDonemVeri) updateVeliWelcome(currentUser, veliAktifDonemVeri);
     const aktifTab = document.querySelector(".veli-menu-item.active")?.dataset.veliTab || "dashboard";
     veliRenderTab(aktifTab);
   } catch (e) {
-    console.error("Dönem verisi yüklenemedi:", e);
-    veliAktifDonemVeri = null;
+    if (!veliGaleriSinifGuncel(baglam)) return;
+    veliGaleriSinifBaglami = {...baglam, durum:"hata"};
+    console.warn("Galeri sınıfı doğrulanamadı");
+    veliAktifDonemVeri = ogr._donemVeri || null;
+    if (currentUser && veliAktifDonemVeri) updateVeliWelcome(currentUser, veliAktifDonemVeri);
+    const aktifTab = document.querySelector(".veli-menu-item.active")?.dataset.veliTab || "dashboard";
+    veliRenderTab(aktifTab);
   }
 }
 
@@ -43425,6 +43461,7 @@ if (donemSelectorEl) {
     if (yeniDonem === AKTIF_DONEM) return;
 
     window._vg?.invalidate?.();
+    veliGaleriSinifSifirla();
     AKTIF_DONEM = yeniDonem;
     showToast(`Dönem değiştirildi: ${AKTIF_DONEM}`);
 
@@ -48355,13 +48392,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=175");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=176");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v175";
+          const anahtar = "portalSwReload_v176";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

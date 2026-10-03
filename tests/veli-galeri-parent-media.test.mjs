@@ -1,9 +1,10 @@
+import { galleryLightboxStyles, galleryLightboxIcons, lightboxDownload } from '../js/portal-galeri-lightbox-ui.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import * as folders from '../js/galeri-klasorleri.js';
-import {isGalleryParent,targetChild,childTargetMatches,createInteractionService} from '../js/portal-galeri-etkilesim.js';
+import {isGalleryParent,targetChild,childTargetMatches,createInteractionService,galleryChildClass,galleryParentKey} from '../js/portal-galeri-etkilesim.js';
 import {saveBlob,downloadMedia} from '../js/portal-galeri-canli.js';
 import {galleryMediaType,galleryDisplayUrl,downloadSource,isPlayerUrl} from '../js/portal-galeri-medya.js';
 const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
@@ -12,6 +13,9 @@ const child={id:'child-a',sinif:'Mimoza'},user={uid:'parent-a',email:'synthetic@
 const getter=index.match(/get state\(\) \{([\s\S]*?)\n  \},/)[1];
 function authState(overrides={}){
  const c={currentUser:user,aktifKullaniciRol:null,isAdmin:false,aktifPersonel:null,veliOgrenciler:[child],veliAktifOgrenci:child,ayarListesi:{},AKTIF_DONEM:'2026-2027',galeriVeliUid:user.uid,portalOturumSurumu:3,...overrides};
+ const boundUser=c.currentUser; c.binding={uid:c.currentUser?.uid,oturum:c.portalOturumSurumu,surum:1,donem:c.AKTIF_DONEM,ogrenciId:c.veliAktifOgrenci?.id,sinif:c.veliAktifOgrenci?.sinif||'',durum:'hazir'};
+ c.veliGaleriSinifBaglamiOku=()=>c.currentUser===boundUser&&c.binding?.oturum===c.portalOturumSurumu&&c.binding?.donem===c.AKTIF_DONEM&&c.binding?.ogrenciId===c.veliAktifOgrenci?.id?c.binding:null;
+ c.veliGaleriSinifSifirla=()=>{c.binding=null;};
  vm.runInNewContext('globalThis.api={get state(){'+getter+'}}',c);return c;
 }
 const photo=(id,extra={})=>({id,durum:'onaylandi',hedefTur:'sinif',hedefDeger:'Mimoza',bunnyUrl:`https://example.invalid/${id}.jpg`,dosyaTipi:'foto',etkinlikBaslik:id,...extra});
@@ -33,7 +37,7 @@ function fixture(rows,overrides={}){
  const emit=(name,event={})=>{for(const f of events.get(name)||[])f(event);};
  const history={get state(){return stack[at]},pushState(s){stack.splice(++at);stack[at]=s;},replaceState(s){stack[at]=s;},back(){backCalls++;backQueued=true;}};
  const window={PortalAPI:{get state(){return auth.api.state},esc,lucide(){},db:{},fb:{collection:()=> 'galeri',where:(field,op,value)=>({field,value}),query:(collection,...where)=>({collection,where}),getDocs:async q=>{calls.queries.push(q);return{forEach:f=>rows.forEach(r=>f({id:r.id,data:()=>r}))};}}},history,addEventListener:(n,f)=>events.set(n,[...events.get(n)||[],f])};
- const ctx={...folders,window,document,console,isGalleryParent,targetChild,childTargetMatches,galleryMediaType,galleryDisplayUrl,mountMedia:(h,m,o)=>calls.mount.push({id:m.id,opts:o}),disposeMedia:d=>calls.dispose.push(d),recordOpen:m=>calls.open.push(m.id),downloadMedia:m=>calls.download.push(m.id)};
+ const ctx={galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,...folders,window,document,console,isGalleryParent,targetChild,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,mountMedia:(h,m,o)=>calls.mount.push({id:m.id,opts:o}),disposeMedia:d=>calls.dispose.push(d),recordOpen:m=>calls.open.push(m.id),downloadMedia:m=>calls.download.push(m.id)};
  vm.runInNewContext(source+';globalThis.render=render;',ctx);
  return {auth,window,root,nodes,calls,document,history,emit,get backCalls(){return backCalls},
   render:()=>ctx.render('gallery'),html:()=>root.innerHTML,lightbox:()=>nodes.get('vgLightbox'),
@@ -100,7 +104,7 @@ test('actual logout start invalidates before signOut waits, and auth callback in
 test('tracking uses verified null-role context and rejects a same-UID epoch change during transaction',async()=>{
  const a=authState(),writes=[];let release;const api={get state(){return a.api.state},db:{},fb:{doc:()=>'',runTransaction:async(_,fn)=>fn({get:()=>new Promise(r=>release=r),set:(_,v)=>writes.push(v)})}};
  const p=createInteractionService(()=>api).record(photo('photo'),'acma');while(!release)await new Promise(r=>setTimeout(r,0));a.portalOturumSurumu++;release({exists:()=>false});assert.equal(await p,false);assert.equal(writes.length,0);
- api.fb.runTransaction=async(_,fn)=>fn({get:async()=>({exists:()=>false}),set:(_,v)=>writes.push(v)});assert.equal(await createInteractionService(()=>api).record(photo('photo'),'acma'),true);assert.equal(writes.length,1);assert.equal(writes[0].veliUid,user.uid);
+ a.binding.oturum=a.portalOturumSurumu;api.fb.runTransaction=async(_,fn)=>fn({get:async()=>({exists:()=>false}),set:(_,v)=>writes.push(v)});assert.equal(await createInteractionService(()=>api).record(photo('photo'),'acma'),true);assert.equal(writes.length,1);assert.equal(writes[0].veliUid,user.uid);
 });
 
 test('download guard aborts a writer before close on a context change and never starts a stale save',async()=>{
@@ -132,7 +136,7 @@ test('another route push during pending close popstate cannot permanently lock g
 });
 test('selected class mutation during a pending tracking write aborts the stale attribution',async()=>{
  const a=authState(),writes=[];let release;const api={get state(){return a.api.state},db:{},fb:{doc:()=>'',runTransaction:async(_,fn)=>fn({get:()=>new Promise(r=>release=r),set:(_,v)=>writes.push(v)})}};
- const p=createInteractionService(()=>api).record(photo('school',{hedefTur:'tumOkul'}),'acma');while(!release)await new Promise(r=>setTimeout(r,0));a.ayarListesi={['child-a']:{kayit:{sinif:'Yasemin'}}};release({exists:()=>false});assert.equal(await p,false);assert.equal(writes.length,0);
+ const p=createInteractionService(()=>api).record(photo('school',{hedefTur:'tumOkul'}),'acma');while(!release)await new Promise(r=>setTimeout(r,0));a.binding={...a.binding,sinif:'Yasemin',surum:2};release({exists:()=>false});assert.equal(await p,false);assert.equal(writes.length,0);
 });
 
 test('context change during pending download tracking suppresses stale success toast',async()=>{

@@ -1,5 +1,6 @@
+import { galleryLightboxStyles, galleryLightboxIcons, lightboxDownload } from '../js/portal-galeri-lightbox-ui.js';
 import { mountMedia, disposeMedia, recordOpen, downloadMedia } from '../js/portal-galeri-canli.js?v=166';
-import { targetChild, isGalleryParent, childTargetMatches } from '../js/portal-galeri-etkilesim.js?v=166';
+import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=166';
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryIsObservation, galleryFolderKey } from '../js/galeri-klasorleri.js';
 import { galleryMediaType, galleryDisplayUrl } from '../js/portal-galeri-medya.js?v=166';
 // VELİ GALERİSİ — hedefli okuma; klasör anahtarları erişim yetkisi vermez.
@@ -20,6 +21,8 @@ let _aktifKapsam = '';
 let _yuklenenKapsam = '';
 let _renderNo = 0;
 let _eylemNo = 0;
+let _okumaEksik = false;
+let _teknikDurum = null;
 const _eylemler = new Map();
 
 const PROGRAM_RENKLERI = {
@@ -52,8 +55,8 @@ function sinifAnahtar(v){let s=String(v||'').toLocaleLowerCase('tr').replace(/ı
 function sinifEslesir(a,b){return !!a&&!!b&&sinifAnahtar(a)===sinifAnahtar(b);}
 function sinifAdaylari(s){const h={mimoza:['Mimoza Çiçekleri Sınıfı','Mimoza','Papatyalar Sınıfı','Montessori 1','Toddler'],yasemin:['Yasemin Çiçekleri Sınıfı','Yasemin','Kardelenler Sınıfı','Montessori 2'],lavanta:['Lavanta Çiçekleri Sınıfı','Lavanta','Nar Çiçekleri Sınıfı','Montessori 3'],ilkadimlar:['İlk Adımlar','İlk Adımlar Sınıfı']};return[...new Set([s,...(h[sinifAnahtar(s)]||[])].filter(Boolean))];}
 function aktifOgrenci(){const s=P().state;return s.veliAktifOgrenci||s.veliOgrenciler?.[0];}
-function aktifSinif(ogr){return P().state.ayarListesi?.[ogr?.id]?.kayit?.sinif||ogr?.sinif||'';}
-function kapsamAnahtari(){const ogr=aktifOgrenci();return JSON.stringify([P().state.currentUser?.uid||'',P().state.rol,P().state.galeriVeliUid||'',P().state.galeriOturumSurumu||0,ogr?.id||'',aktifSinif(ogr),P().state.aktifDonem||'']);}
+function aktifSinif(ogr){return galleryChildClass(ogr,P().state);}
+function kapsamAnahtari(){return galleryParentKey(P().state);}
 function secimleriSifirla(){_acikAlbum='';_egitimProgram='';_egitimAlan='';}
 function erisebilir(m){const ogr=aktifOgrenci();return _yuklenenKapsam===kapsamAnahtari()&&isGalleryParent(P().state)&&!!ogr&&!!targetChild(m,[ogr],P().state);}
 // Only local numbers enter handlers; titles, IDs, targets and JSON keys stay in closures.
@@ -82,24 +85,31 @@ async function hedefliGaleriOku(fb,db,ogr,sinif){
   const sonuclar=await Promise.allSettled(sorgular.map(q=>fb.getDocs(q)));
   const benzersiz=new Map();
   sonuclar.forEach(r=>{
-    if(r.status!=='fulfilled'){console.warn('veli galeri hedefli sorgu',r.reason?.code||r.reason?.message);return;}
+    if(r.status!=='fulfilled')return;
     r.value.forEach(d=>{const v=d.data()||{};if(v.durum!=='onaylandi')return;benzersiz.set(d.id,{...v,id:d.id,bunnyUrl:galleryDisplayUrl(v),dosyaTipi:galleryMediaType(v)});});
   });
-  return [...benzersiz.values()];
+  const izinliKodlar=['permission-denied','failed-precondition','unavailable','deadline-exceeded','unauthenticated','resource-exhausted','cancelled'];
+  const hatalar=sonuclar.filter(r=>r.status!=='fulfilled').map(r=>izinliKodlar.includes(r.reason?.code)?r.reason.code:'unknown');
+  return {medya:[...benzersiz.values()],eksik:hatalar.length>0,sorgular:{toplam:sonuclar.length,basarili:sonuclar.length-hatalar.length,hataKodlari:[...new Set(hatalar)]}};
 }
 
 async function yukle(ogr,sinif,donem){
-  if(!ogr)return[];
+  if(!ogr)return{medya:[],eksik:false};
   const {fb,db}=P();
-  let medya=[];
+  let medya=[],eksik=false,tani={sinifDogrulandi:!!sinif,sorgular:{toplam:0,basarili:0,hataKodlari:[]},donem:{ayni:0,belirsiz:0,farkli:0}};
   try{
     const hedefli=await hedefliGaleriOku(fb,db,ogr,sinif);
-    medya=hedefli.filter(v=>{
+    eksik=hedefli.eksik;tani.sorgular=hedefli.sorgular;
+    medya=hedefli.medya.filter(v=>{
       const kapsam=v.hedefTur==='tumOkul'||(v.hedefTur==='sinif'&&sinifEslesir(v.hedefDeger,sinif))||(v.hedefTur==='ogrenci'&&childTargetMatches(v,ogr.id));
-      return kapsam&&Boolean(v.bunnyUrl)&&(!v.donem||!donem||v.donem===donem);
+      if(!kapsam||!v.bunnyUrl)return false;
+      tani.donem[!v.donem||!donem?'belirsiz':v.donem===donem?'ayni':'farkli']++;
+      return !v.donem||!donem||v.donem===donem;
     });
-  }catch(e){console.warn('veli galeri',e.code||e.message);}
-  return medya.sort((a,b)=>String(b.etkinlikTarih||b.yuklemeZamani||'').localeCompare(String(a.etkinlikTarih||a.yuklemeZamani||'')));
+  }catch(e){eksik=true;tani.sorgular.hataKodlari=['unknown'];}
+  tani.gorunen={toplam:medya.length,foto:medya.filter(m=>galleryMediaType(m)==='foto').length,video:medya.filter(m=>galleryMediaType(m)==='video').length};
+  tani.programlar=Object.fromEntries([...Object.keys(GALLERY_PROGRAMS),'diger'].map(k=>[k,medya.filter(m=>(programKodu(m)||'diger')===k).length]));
+  return {tani,medya:medya.sort((a,b)=>String(b.etkinlikTarih||b.yuklemeZamani||'').localeCompare(String(a.etkinlikTarih||a.yuklemeZamani||''))),eksik};
 }
 function albumleriHazirla(){
   const gruplar=new Map();
@@ -115,13 +125,14 @@ export async function render(hedefId){
   const {esc,lucide}=P(),renderNo=++_renderNo,kapsam=kapsamAnahtari(),ogr=aktifOgrenci();
   kapat();disposeMedia(el);_eylemler.clear();
   if(_aktifKapsam!==kapsam){secimleriSifirla();_tur='tumu';_aktifKapsam=kapsam;}
-  _medya=[];_albumler=[];_tekiller=[];_yuklenenKapsam='';
+  _medya=[];_albumler=[];_tekiller=[];_yuklenenKapsam='';_teknikDurum=null;
   el.innerHTML='<div class="ca-card" style="text-align:center;padding:24px;color:var(--c-muted);font-size:13px">Yükleniyor…</div>';
-  const medya=isGalleryParent(P().state)?await yukle(ogr,aktifSinif(ogr),P().state.aktifDonem):[];
+  const sonuc=isGalleryParent(P().state)?await yukle(ogr,aktifSinif(ogr),P().state.aktifDonem):{medya:[],eksik:false};
   if(renderNo!==_renderNo||kapsam!==kapsamAnahtari())return;
-  _medya=medya;_yuklenenKapsam=kapsam;albumleriHazirla();
+  _medya=sonuc.medya;_okumaEksik=sonuc.eksik;_teknikDurum=sonuc.tani||null;_yuklenenKapsam=kapsam;albumleriHazirla();
   if(window.__zekyGaleriBaslangicFiltre==='egitim'){_filtre='egitim';secimleriSifirla();window.__zekyGaleriBaslangicFiltre='';}
-  if(!_medya.length){el.innerHTML='<div class="ca-card" style="text-align:center;padding:36px 22px"><div style="font-size:38px">📷</div><div style="font-weight:700;margin-top:8px">Henüz paylaşılan anı yok</div><div class="ca-tile-sub" style="margin-top:5px">Öğretmenler fotoğraf veya video paylaştığında ve yönetim onayladığında burada görünecek.</div></div>';return;}
+  if(!_medya.length&&(sonuc.eksik||(isGalleryParent(P().state)&&!aktifSinif(ogr)))){el.innerHTML=okumaUyarisi(hedefId)+teknikDurum();return;}
+  if(!_medya.length){el.innerHTML='<div class="ca-card" style="text-align:center;padding:36px 22px"><div style="font-size:38px">📷</div><div style="font-weight:700;margin-top:8px">Henüz paylaşılan anı yok</div><div class="ca-tile-sub" style="margin-top:5px">Öğretmenler fotoğraf veya video paylaştığında ve yönetim onayladığında burada görünecek.</div></div>'+teknikDurum();return;}
   if(_acikAlbum&&!_albumler.some(a=>a.id===_acikAlbum))_acikAlbum='';
   if(_acikAlbum){albumDetay(el,hedefId);videoKapaklari(el);lucide();return;}
   if(_filtre==='egitim'){egitimKlasorleri(el,hedefId);videoKapaklari(el);lucide();return;}
@@ -136,8 +147,18 @@ export async function render(hedefId){
   videoKapaklari(el);lucide();
 }
 
+function okumaUyarisi(hedefId){
+  const sinifEksik=isGalleryParent(P().state)&&!aktifSinif(aktifOgrenci());
+  if(!_okumaEksik&&!sinifEksik)return'';
+  const mesaj=_okumaEksik?'Bazı galeri sorguları tamamlanamadı. Görünen içerik ve sayılar eksik olabilir.':'Güncel dönem sınıfı doğrulanamadı. Sınıf paylaşımları gösterilemiyor; görünen içerik eksik olabilir.';
+  return `<div role="status" class="ca-card" style="padding:14px;margin-bottom:12px"><div>${mesaj}</div><button type="button" class="ca-link" onclick="${eylem(()=>window._vg.tekrar(hedefId))}">Tekrar dene</button></div>`;
+}
+function teknikDurum(){
+  if(!_teknikDurum)return'';
+  return `<div style="margin-bottom:12px"><button type="button" class="ca-link" aria-expanded="false" onclick="${eylem(button=>window._vg.teknik(button))}">Teknik durum</button><pre hidden data-vg-diagnostic style="white-space:pre-wrap;font-size:11px">${P().esc(JSON.stringify(_teknikDurum,null,2))}</pre></div>`;
+}
 function turCubugu(hedefId){
-  return `<div class="ca-chips" role="group" aria-label="Medya türü" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${[['tumu','Tümü'],['foto','Fotoğraflar'],['video','Videolar']].map(([k,ad])=>`<button type="button" class="ca-chip ${_tur===k?'active':''}" aria-pressed="${_tur===k}" onclick="${eylem(()=>window._vg.tur(k,hedefId))}">${ad} <span style="opacity:.6">${_medya.filter(m=>k==='tumu'||galleryMediaType(m)===k).length}</span></button>`).join('')}</div>`;
+  return okumaUyarisi(hedefId)+teknikDurum()+`<div class="ca-chips" role="group" aria-label="Medya türü" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${[['tumu','Tümü'],['foto','Fotoğraflar'],['video','Videolar']].map(([k,ad])=>`<button type="button" class="ca-chip ${_tur===k?'active':''}" aria-pressed="${_tur===k}" onclick="${eylem(()=>window._vg.tur(k,hedefId))}">${ad} <span style="opacity:.6">${_medya.filter(m=>k==='tumu'||galleryMediaType(m)===k).length}</span></button>`).join('')}</div>`;
 }
 
 function klasorKart(ad,alt,sayi,renk,acik,onclick,kapak){const{esc}=P();return`<button type="button" onclick="${onclick}" style="min-width:0;border:0;background:#fff;border-radius:18px;overflow:hidden;padding:0;text-align:left;box-shadow:0 2px 12px rgba(15,23,42,.07);cursor:pointer"><div style="height:118px;background:linear-gradient(135deg,${acik},#fff);position:relative;overflow:hidden">${kapak?`<img src="${esc(kucuk(kapak,480))}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover">`:''}<span style="position:absolute;left:13px;bottom:12px;width:42px;height:42px;border-radius:14px;background:${renk};color:#fff;display:grid;place-items:center;font-size:20px">📁</span><span style="position:absolute;right:10px;top:10px;background:rgba(15,23,42,.68);color:#fff;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800">${sayi}</span></div><div style="padding:11px 13px;overflow-wrap:anywhere"><div style="font-size:13.5px;font-weight:850;color:var(--c-ink)">${esc(ad)}</div><div class="ca-tile-sub" style="font-size:10.5px;margin-top:3px">${esc(alt)}</div></div></button>`;}
@@ -172,8 +193,12 @@ function buyut(id,hedefId,origin){
   const m=havuz[i],gozlem=galleryIsObservation(m);if(!erisebilir(m))return;
   const replacing=!!_dialog;
   if(!replacing){_dialogOrigin=origin||document.activeElement;_bodyOverflow=document.body.style?.overflow||'';if(document.body.style)document.body.style.overflow='hidden';}
-  temizle(false);const d=document.createElement('div');_dialog=d;d.id='vgLightbox';d.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.96);z-index:10040;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px';d.setAttribute?.('role','dialog');d.setAttribute?.('aria-modal','true');d.setAttribute?.('aria-label',galleryMediaType(m)==='video'?'Video':'Fotoğraf');d.tabIndex=-1;d.onclick=e=>{if(e.target===d)kapat()};
-  d.innerHTML=`<div data-vg-media style="width:min(960px,100%);max-height:76vh;overflow:auto;border-radius:12px"></div><div style="color:#fff;text-align:center;margin-top:12px;max-width:720px;overflow-wrap:anywhere"><div style="font-weight:800">${esc(gozlem?m.baslik||m.etkinlikBaslik||'':galleryTopic(m))}</div>${egitimMi(m)?`<div style="font-size:11.5px;opacity:.78;margin-top:4px">${esc(PROGRAMLAR[programKodu(m)]?.ad||m.programAd||'Eğitim')}${gozlem?` · ${esc(alanAdi(m))}${m.gozlemDurum?` · ${esc(ASAMA[m.gozlemDurum]||m.gozlemDurum)}`:''}`:''}</div>${m.aciklama?`<div style="font-size:13px;line-height:1.55;margin-top:8px">${esc(m.aciklama)}</div>`:''}`:''}<div style="font-size:11.5px;opacity:.65;margin-top:4px">${esc(tarihYazi(tarih(m)))} · ${i+1}/${havuz.length}</div></div><div style="display:flex;gap:10px;margin-top:14px">${i>0?`<button onclick="${eylem(()=>buyut(havuz[i-1].id,hedefId))}" class="ca-back" aria-label="Önceki">‹</button>`:''}<button onclick="${eylem(button=>window._vg.indir(m.id,button))}" class="ca-back" style="width:auto;padding:8px 15px">İndir</button><button onclick="${eylem(kapat)}" aria-label="Kapat" class="ca-back">×</button>${i<havuz.length-1?`<button onclick="${eylem(()=>buyut(havuz[i+1].id,hedefId))}" class="ca-back" aria-label="Sonraki">›</button>`:''}</div>`;
+  temizle(false);const d=document.createElement('div');_dialog=d;d.id='vgLightbox';d.className='vg-lightbox';d.setAttribute?.('role','dialog');d.setAttribute?.('aria-modal','true');d.setAttribute?.('aria-label',galleryMediaType(m)==='video'?'Video':'Fotoğraf');d.tabIndex=-1;d.onclick=e=>{if(e.target===d)kapat()};
+  d.innerHTML=`<style>${galleryLightboxStyles}</style>
+    <div class="vg-lb-top"><span class="vg-lb-position">${galleryMediaType(m)==='video'?'Video':'Fotoğraf'} · ${i+1}/${havuz.length}</span><button type="button" class="vg-lb-btn" onclick="${eylem(kapat)}" aria-label="Kapat" title="Kapat (Esc)">${galleryLightboxIcons.close}</button></div>
+    <div data-vg-media></div>
+    <div class="vg-lb-footer"><div class="vg-lb-details"><div class="vg-lb-title">${esc(gozlem?m.baslik||m.etkinlikBaslik||'':galleryTopic(m))}</div>${egitimMi(m)?`<div class="vg-lb-subtitle">${esc(PROGRAMLAR[programKodu(m)]?.ad||m.programAd||'Eğitim')}${gozlem?` · ${esc(alanAdi(m))}${m.gozlemDurum?` · ${esc(ASAMA[m.gozlemDurum]||m.gozlemDurum)}`:''}`:''}</div>${m.aciklama?`<div class="vg-lb-caption">${esc(m.aciklama)}</div>`:''}`:''}<div class="vg-lb-date">${esc(tarihYazi(tarih(m)))}</div></div>
+    <div class="vg-lb-actions" role="group" aria-label="Medya işlemleri">${i>0?`<button type="button" data-vg-prev class="vg-lb-btn" onclick="${eylem(()=>buyut(havuz[i-1].id,hedefId))}" aria-label="Önceki" title="Önceki">${galleryLightboxIcons.previous}</button>`:'<span aria-hidden="true"></span>'}<button type="button" class="vg-lb-btn vg-lb-download" onclick="${eylem(button=>window._vg.indir(m.id,button))}" aria-label="İndir">${galleryLightboxIcons.download}<span>İndir</span></button>${i<havuz.length-1?`<button type="button" data-vg-next class="vg-lb-btn" onclick="${eylem(()=>buyut(havuz[i+1].id,hedefId))}" aria-label="Sonraki" title="Sonraki">${galleryLightboxIcons.next}</button>`:'<span aria-hidden="true"></span>'}</div></div>`;
   document.body.appendChild(d);mountMedia(d.querySelector('[data-vg-media]'),m);recordOpen(m);
   (d.querySelector('[aria-label="Kapat"]')||d).focus?.();
   if(!replacing&&window.history?.pushState){try{_dialogPriorState=window.history.state;const token='vg-'+(++_dialogNo);window.history.pushState({...window.history.state,__portalGalleryDialog:token},'');_dialogHistory=token;}catch(_){_dialogHistory='';}}
@@ -185,7 +210,7 @@ function kapat(){
   if(_dialogHistory&&window.history?.state?.__portalGalleryDialog===_dialogHistory){_closingHistory=true;try{window.history.back();}catch(_){_closingHistory=false;_dialogHistory='';}}
   else _dialogHistory='';
 }
-function invalidate(){++_renderNo;_yuklenenKapsam='';_eylemler.clear();kapat();disposeMedia(_hedefEl);if(_hedefEl)_hedefEl.innerHTML='';_medya=[];_albumler=[];_tekiller=[];}
+function invalidate(){++_renderNo;_yuklenenKapsam='';_eylemler.clear();kapat();disposeMedia(_hedefEl);if(_hedefEl)_hedefEl.innerHTML='';_medya=[];_albumler=[];_tekiller=[];_teknikDurum=null;}
 window.addEventListener?.('popstate',()=>{
   if(_closingHistory){
     if(window.history?.state?.__portalGalleryDialog===_dialogHistory){try{window.history.replaceState?.(_dialogPriorState,'');}catch(_){}}
@@ -206,9 +231,22 @@ window.addEventListener?.('keydown',event=>{
 });
 window._vg={
   kapat,buyut,invalidate,
+  teknik:button=>{
+    if(_yuklenenKapsam!==kapsamAnahtari())return;
+    const panel=button?.nextElementSibling;if(!panel?.hasAttribute?.('data-vg-diagnostic'))return;
+    panel.hidden=!panel.hidden;button.setAttribute?.('aria-expanded',String(!panel.hidden));
+  },
+  tekrar:async h=>{
+    const s=P().state,ogr=aktifOgrenci(),user=s.currentUser,oturum=s.galeriOturumSurumu,donem=s.aktifDonem;
+    if(!isGalleryParent(s))return;
+    if(!aktifSinif(ogr)&&P().galeriSinifYenile)await P().galeriSinifYenile();
+    const son=P().state;
+    if(son.currentUser!==user||son.galeriOturumSurumu!==oturum||son.aktifDonem!==donem||aktifOgrenci()?.id!==ogr?.id)return;
+    return render(h);
+  },
   tur:(k,h)=>{if(!['tumu','foto','video'].includes(k))return;_tur=k;return render(h);},
   eylem:(id,button)=>_eylemler.get(id)?.(button),
-  indir:(id,button)=>{const m=_medya.find(x=>x.id===id);if(m&&erisebilir(m))return downloadMedia(m,button);},
+  indir:(id,button)=>{const m=_medya.find(x=>x.id===id);if(m&&erisebilir(m))return lightboxDownload(button,()=>downloadMedia(m,button));},
   filtre:(k,h)=>{_filtre=k;secimleriSifirla();return render(h);},
   albumAc:(id,h)=>{_acikAlbum=id;_egitimProgram='';_egitimAlan='';return render(h);},
   albumKapat:h=>{_acikAlbum='';return render(h);},

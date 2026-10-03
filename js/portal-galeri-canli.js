@@ -65,7 +65,7 @@ export async function downloadMedia(media, button = null) {
   if (!media || button?.disabled) return false;
   const label = button?.textContent, initial = api()?.state || {}, owner = initial.currentUser?.uid;
   const parent = isGalleryParent(initial), context = galleryParentKey(initial);
-  const guard = () => { const state=api()?.state || {}; return state.currentUser?.uid===owner && (!parent || (isGalleryParent(state)&&galleryParentKey(state)===context)); };
+  const guard = () => { const state=api()?.state || {}; return state.currentUser?.uid===owner && (!parent || (isGalleryParent(state)&&galleryParentKey(state)===context&&!!targetChild(media,[state.veliAktifOgrenci||state.veliOgrenciler?.[0]].filter(Boolean),state))); };
   const check = () => { if(!guard())throw Object.assign(new Error('Galeri bağlamı değişti'),{name:'AbortError'}); };
   try {
     if (button) { button.disabled = true; button.textContent = 'İndiriliyor…'; }
@@ -131,7 +131,7 @@ export async function downloadAlbum(title, date, targetType, targetValue, folder
   const check = () => { if(!guard())throw Object.assign(new Error('Galeri bağlamı değişti'),{name:'AbortError'}); };
   const list = parent ? window.veliGaleriVerisi || [] : window.galeriListesiVerisi || [];
   const media = list.filter(item => {
-    if (parent && !targetChild(item, state.veliOgrenciler, state)) return false;
+    if (parent && !targetChild(item, [state.veliAktifOgrenci || state.veliOgrenciler?.[0]].filter(Boolean), state)) return false;
     if (folderScope) return galleryProgram(item) === folderScope.program && galleryFolderKey(item) === folderScope.folderKey;
     if (targetType === '__egitim__') return galleryProgram(item) === targetValue;
     return item.etkinlikBaslik === title && item.etkinlikTarih === date &&

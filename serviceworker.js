@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v175-galeri-veli-programlar";
+const CACHE_VERSION = "v176-galeri-gorunum-sinif";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -89,6 +89,7 @@ const PRECACHE = [
   "./moduller/program-belgeleme.js",
   "./moduller/geri-bildirim.js",
   "./moduller/veli-galeri.js",
+  "./js/portal-galeri-lightbox-ui.js",
   "./okul_logo.png",
   "./manifest.json",
 ];

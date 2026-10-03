@@ -10,7 +10,7 @@ export function isGalleryParent(state = {}) {
 export function galleryParentKey(state = {}) {
   const child = state.veliAktifOgrenci || state.veliOgrenciler?.[0];
   return JSON.stringify([state.currentUser?.uid || '', state.galeriOturumSurumu || 0,
-    state.galeriVeliUid || '', state.rol, child?.id || '', child ? childClass(child,state) : '', state.aktifDonem || '']);
+    state.galeriVeliUid || '', state.rol, child?.id || '', child ? galleryChildClass(child,state) : '', state.aktifDonem || '', state.galeriSinifBaglami?.surum || 0, state.galeriSinifBaglami?.durum || '']);
 }
 export function management(state = {}) {
   return !!state.isAdmin || ['kurucu_mudur', 'mudur'].includes(state.rol);
@@ -25,7 +25,15 @@ export async function emailHash(value) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
 }
-function childClass(child, state) {
+export function galleryChildClass(child, state = {}) {
+  if (!management(state) && ('galeriSinifBaglami' in state || isGalleryParent(state))) {
+    if (!isGalleryParent(state)) return '';
+    const b = state.galeriSinifBaglami, selected = state.veliAktifOgrenci || state.veliOgrenciler?.[0];
+    return b?.durum === 'hazir' && b.uid === state.currentUser?.uid &&
+      b.oturum === (state.galeriOturumSurumu || 0) && b.donem === state.aktifDonem && !!b.donem &&
+      b.ogrenciId === child?.id && selected?.id === child?.id && typeof b.sinif === 'string' ? b.sinif : '';
+  }
+
   return state.ayarListesi?.[child.id]?.kayit?.sinif || child._donemVeri?.kayit?.sinif || child.sinif || child.sinifi || '';
 }
 export function classKey(value) {
@@ -43,10 +51,14 @@ export function childTargetMatches(media, childId) {
 }
 export function targetChild(media, children, state = {}) {
   if (media?.durum !== 'onaylandi') return null;
+  if (isGalleryParent(state) && media.donem && state.aktifDonem && media.donem !== state.aktifDonem) return null;
   return (children || []).find(child => {
     if (media.hedefTur === 'tumOkul') return true;
     if (media.hedefTur === 'ogrenci') return childTargetMatches(media,child.id);
-    if (media.hedefTur === 'sinif') return !!media.hedefDeger && classKey(media.hedefDeger) === classKey(childClass(child, state));
+    if (media.hedefTur === 'sinif') {
+      const sinif = galleryChildClass(child, state);
+      return !!sinif && !!media.hedefDeger && classKey(media.hedefDeger) === classKey(sinif);
+    }
     return false;
   }) || null;
 }

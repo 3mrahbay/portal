@@ -1,10 +1,11 @@
+import { galleryLightboxStyles, galleryLightboxIcons, lightboxDownload } from '../js/portal-galeri-lightbox-ui.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { galleryMediaType, galleryDisplayUrl } from '../js/portal-galeri-medya.js';
 import * as folders from '../js/galeri-klasorleri.js';
-import { targetChild, isGalleryParent, childTargetMatches } from '../js/portal-galeri-etkilesim.js';
+import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js';
 
 const source = (await readFile(new URL('../moduller/veli-galeri.js', import.meta.url), 'utf8'))
   .replace(/^import .*;\n/gm, '').replace('export async function render(', 'async function render(');
@@ -25,13 +26,14 @@ function runtime(rows, options = {}) {
   }
   const root = new Element();nodes.set('gallery',root);
   const state = {rol:'veli',currentUser:{uid:'parent'},veliAktifOgrenci:{id:'child-a',sinif:'Mimoza'},veliOgrenciler:[{id:'child-a',sinif:'Mimoza'},{id:'child-b',sinif:'Yasemin'}],ayarListesi:{}};
+  state.aktifDonem='2026-2027';state.galeriSinifBaglami={uid:'parent',oturum:0,surum:1,donem:state.aktifDonem,ogrenciId:'child-a',sinif:'Mimoza',durum:'hazir'};
   const fb={collection:(_db,name)=>name,where:(field,operator,value)=>({field,operator,value}),query:(collection,...where)=>({collection,where}),getDocs:async query=>{
     calls.queries.push(query);
     const chosen=options.getRows?await options.getRows(query,rows):rows;
     return{forEach:fn=>chosen.forEach(row=>fn({id:row.id,data:()=>row}))};
   }};
   const window={PortalAPI:{fb,db:{},state,esc,lucide(){}},...options.window};
-  const context={...folders,window,console,document:{getElementById:id=>nodes.get(id)||null,createElement:()=>new Element(),body:{appendChild:el=>nodes.set(el.id,el)}},targetChild,isGalleryParent,childTargetMatches,galleryMediaType,galleryDisplayUrl,
+  const context={galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,...folders,window,console,document:{getElementById:id=>nodes.get(id)||null,createElement:()=>new Element(),body:{appendChild:el=>nodes.set(el.id,el)}},targetChild,isGalleryParent,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,
     mountMedia:(host,m,opts)=>calls.mount.push({host,id:m.id,opts}),disposeMedia:el=>calls.disposed.push(el),recordOpen:m=>calls.opens.push(m.id),downloadMedia:(m,button)=>calls.downloads.push({id:m.id,button})};
   vm.runInNewContext(source+'\nglobalThis.renderGallery=render;',context);
   const actions = html => [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].map(match=>({attributes:match[1],text:decode(match[2].replace(/<[^>]*>/g,'')),id:Number(match[1].match(/window\._vg\.eylem\((\d+),this\)/)?.[1])}));
@@ -69,8 +71,8 @@ test('topic folders preserve exact class, child, program, and period boundaries 
     media('drama',{...shared,program:'drama',donem:'2026-2027'})
   ]);
   await r.render();await r.click('Jimnastik');
-  assert.equal(r.actions(r.html()).filter(a=>a.text.includes('Aynı Konu')).length,5);
-  assert.match(r.html(),/2025-2026/);
+  assert.equal(r.actions(r.html()).filter(a=>a.text.includes('Aynı Konu')).length,4);
+  assert.doesNotMatch(r.html(),/2025-2026/);
   const folderIds=r.actions(r.html()).filter(a=>a.text.includes('Aynı Konu')).map(a=>a.id);
   await r.window._vg.eylem(folderIds[0],{});assert.equal(r.ids().length,1);
   assert.ok(!r.html().includes('sibling'));assert.ok(!r.html().includes('other-class'));
@@ -177,6 +179,7 @@ test('active-period filtering retains undated legacy records and switching perio
   r.window._vg.indir('current',{});r.window._vg.buyut('current','gallery');
   for(const a of staleActions)await r.window._vg.eylem(a.id,{});
   assert.equal(r.calls.downloads.length,0);assert.equal(r.calls.opens.length,1);
+  r.state.galeriSinifBaglami={...r.state.galeriSinifBaglami,donem:r.state.aktifDonem,surum:2};
   await r.render();assert.equal(r.lightbox(),undefined);await r.click('Jimnastik');
   assert.equal(r.actions(r.html()).filter(a=>a.text.includes('Denge')).length,2);assert.ok(!r.html().includes('2026-2027'));
   await r.click('2025-2026');assert.deepEqual(r.ids(),['previous']);
