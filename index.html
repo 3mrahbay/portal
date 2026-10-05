@@ -872,6 +872,11 @@ html, body {
   border-color: var(--green-medium);
 }
 
+.btn-google:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
 .btn-google svg {
   width: 20px;
   height: 20px;
@@ -9389,7 +9394,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
     <h2>Veli Portalına Giriş</h2>
     <p class="subtitle">Google hesabınızla güvenli giriş yapın</p>
 
-    <button class="btn-google" onclick="signInWithGoogle()">
+    <button id="googleSignInButton" class="btn-google" onclick="signInWithGoogle()">
       <svg viewBox="0 0 24 24">
         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -9398,6 +9403,11 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       </svg>
       Google ile Giriş Yap
     </button>
+
+    <details class="info-text" style="text-align:left;">
+      <summary>Google girişinde 400 hatası mı görüyorsunuz?</summary>
+      <p>Google giriş penceresini kapatın. Portalı Google uygulaması yerine Safari veya Chrome tarayıcısında açıp aynı hesabı yeniden seçin. Sorun sürerse okul yönetimine bildirin.</p>
+    </details>
 
     <p class="info-text">
       Sadece okul tarafından onaylanan veli e-postaları giriş yapabilir. Google hesabınızın e-posta adresi sistemimizde kayıtlı olmalıdır.
@@ -13979,6 +13989,8 @@ import {
   documentId, deleteField, getCountFromServer, FieldPath
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import { createGooglePopupFlow } from "./js/portal-google-login.js?v=178";
+
 import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
 import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=164";
 import { bildirimZamani, enYeniBildirimOnce, canliListeOlustur } from "./js/okul-zili-liste-core.js?v=168";
@@ -14054,7 +14066,8 @@ const _yuklenenModuller = {};
 window.modulYukle = async function(ad) {
   if (_yuklenenModuller[ad]) return _yuklenenModuller[ad];
   try {
-    const m = await import(`./moduller/${ad}.js?v=${window.PORTAL_SURUM || Date.now()}`);
+    const surum = ad === "veli-katilim" ? "178" : (window.PORTAL_SURUM || Date.now());
+    const m = await import(`./moduller/${ad}.js?v=${surum}`);
     _yuklenenModuller[ad] = m;
     return m;
   } catch (e) {
@@ -14063,9 +14076,6 @@ window.modulYukle = async function(ad) {
     return null;
   }
 };
-const provider = new GoogleAuthProvider();
-// Her girişte Google hesap seçim penceresi gösterilsin (son hesapla otomatik girişi engeller)
-provider.setCustomParameters({ prompt: "select_account" });
 
 const ADMIN_EMAIL = "emrahby@gmail.com";
 
@@ -16914,65 +16924,87 @@ async function isEmailWhitelisted(email) {
   return false;
 }
 
-window.signInWithGoogle = async function() {
-  try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
+const googleGiris = createGooglePopupFlow({
+  auth,
+  openPopup: signInWithPopup,
+  createProvider() {
+    const provider = new GoogleAuthProvider();
+    // Google'ın desteklediği seçim istemi; önceki hesabı otomatik kabul etme.
+    provider.setCustomParameters({ prompt: "select_account" });
+    return provider;
+  },
+  busy(value) {
+    const button = document.getElementById("googleSignInButton");
+    if (!button) return;
+    button.disabled = value;
+    button.setAttribute("aria-busy", String(value));
+  },
+  notify: (message, type) => showToast(message, type),
+  warn: code => console.warn("Google girişi tamamlanamadı:", code),
+  async admit(user, guncel) {
     const email = (user.email || "").toLowerCase();
-
-    // ===== FAZ 1a: ROL-FARKINDALIKLI GİRİŞ AKIŞI =====
-    // KONTROL 1: Admin (kalıcı güvenlik ağı) — her zaman kabul
+    if (!guncel()) return;
+    // Mevcut kabul koşulları korunur; eski giriş yeni hesabı kapatamaz.
     if (email === ADMIN_EMAIL.toLowerCase()) {
       showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
       return;
     }
-
-    // KONTROL 2: Sistemde PERSONEL mi?
     const personel = await personelGetir(email);
+    if (!guncel()) return;
     if (personel) {
-      // KONTROL 2a: Personel arşivde mi?
       if (personel.durum === "arsiv") {
         await fbSignOut(auth);
-        showToast(`Hesabınız arşivlenmiş. Okul yönetimiyle iletişime geçin.`, "error");
+        // Çıkış onAuthStateChanged tarafından da geçersizleştirilebilir.
+        if (!auth.currentUser) showToast("Hesabınız arşivlenmiş. Okul yönetimiyle iletişime geçin.", "error");
         return;
       }
-      // Aktif personel — kabul (rolüne göre yönlendirme onAuthStateChanged'de)
       showToast(`Hoş geldiniz, ${personel.adSoyad || user.displayName || user.email}!`);
       return;
     }
-
-    // KONTROL 3: Sistemde onaylı VELİ mi?
     const izinli = await isEmailWhitelisted(email);
+    if (!guncel()) return;
     if (izinli) {
       showToast(`Hoş geldiniz, ${user.displayName || user.email}!`);
       return;
     }
-
-    // KONTROL 4: Hiçbiri değil — reddet (generic mesaj, hint verme)
     await fbSignOut(auth);
-    showToast(`Bu e-posta sistemimizde kayıtlı değil. Okul yönetimiyle iletişime geçin.`, "error");
-
-  } catch (e) {
-    console.error(e);
-    showToast("Giriş yapılamadı: " + e.message, "error");
+    if (!auth.currentUser) showToast("Bu e-posta sistemimizde kayıtlı değil. Okul yönetimiyle iletişime geçin.", "error");
   }
-};
+});
+window.signInWithGoogle = () => googleGiris.start();
 
 window.signOut = async function() {
+  googleGiris.invalidate();
+  window.veliKatilim?.durdur?.();
   galeriVeliUid = "";
   veliGaleriSinifSifirla();
   window._vg?.invalidate?.();
   await fbSignOut(auth);
   showToast("Çıkış yapıldı");
-  setTimeout(() => location.reload(), 500);
+  setTimeout(() => {
+    if (!auth.currentUser && !googleGiris.isPending()) location.reload();
+  }, 500);
 };
 
 let portalOturumSurumu = 0;
 onAuthStateChanged(auth, async (user) => {
+  window.veliKatilim?.durdur?.();
+  if (!user && currentUser) googleGiris.invalidate();
   galeriVeliUid = "";
   veliGaleriSinifSifirla();
   window._vg?.invalidate?.();
   const oturumSurumu = ++portalOturumSurumu;
+  // Eski hesabın kimliği ve veli bağı yeni hesabın asenkron yüklemesine taşınmaz.
+  currentUser = user || null;
+  isAdmin = false;
+  aktifPersonel = null;
+  aktifKullaniciRol = null;
+  aktifKullaniciSiniflari = [];
+  veliOgrenciler = [];
+  veliAktifOgrenci = null;
+  veliAktifDonemVeri = null;
+  document.getElementById("dashboard").classList.remove("active");
+  document.getElementById("veliPanel").classList.remove("active");
   portalBildirimMerkeziDurdur();
   window.personelAnlikBildirim?.durdur();
   window.gorusmeNotlariBildirimDurdur?.();
@@ -17050,7 +17082,10 @@ onAuthStateChanged(auth, async (user) => {
       // Sekmeleri role göre göster/gizle (Faz 1c)
       try { sekmeleriRoleGoreAyarla(); } catch(e) { console.warn(e); }
       // Personelin uygulama kullanımı (giriş sıklığı, açılan bölümler) — moduller/veli-katilim.js
-      if (!isAdmin) modulYukle("veli-katilim").then(m => m && m.personelBaslat && m.personelBaslat());
+      if (!isAdmin) modulYukle("veli-katilim").then(m => {
+        if (oturumSurumu !== portalOturumSurumu || currentUser !== user || auth.currentUser?.uid !== user.uid || isAdmin || !aktifPersonel) return;
+        m?.personelBaslat?.();
+      });
       // Randevu talebi ve görüşme notu bildirimleri (açılır pencere) — moduller/gorusme-notlari.js
       modulYukle("gorusme-notlari").then(m => m && m.bildirimBaslat && m.bildirimBaslat());
       // Veli "Yola çıktık" / "Almaya geliyorum" → ilgili personele tek seferlik açılır pencere — moduller/personel-anlik-bildirim.js
@@ -17241,7 +17276,10 @@ async function loadVeliPanel(user) {
     }
 
     // Veli katılım kaydı (girişler, açılan bölümler) — moduller/veli-katilim.js
-    modulYukle("veli-katilim").then(m => m && m.veliBaslat());
+    modulYukle("veli-katilim").then(m => {
+      if (galeriOturumu !== portalOturumSurumu || currentUser !== user || auth.currentUser?.uid !== user.uid || galeriVeliUid !== user.uid || isAdmin || aktifPersonel) return;
+      m?.veliBaslat?.();
+    });
     // Ana sayfa kartları: kompakt karo + dokununca açılan sayfa — moduller/veli-kompakt.js
     modulYukle("veli-kompakt").then(m => m && m.baslat());
 
@@ -48392,13 +48430,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=177");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=178");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v177";
+          const anahtar = "portalSwReload_v178";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

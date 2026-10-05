@@ -61,15 +61,52 @@ const HEDEFLER = {
   veli:     { ozet: "veliKatilim",     akis: "veliKatilimAkisi",     sarilanlar: ["caGo", "veliSwitchTab"], atla: ["home", "menu", ""] },
   personel: { ozet: "personelKatilim", akis: "personelKatilimAkisi", sarilanlar: ["modulSec"],             atla: ["ozet", ""] }
 };
-let hedef = HEDEFLER.veli;
-let veliAktif = false;
-let veliEposta = "";
-let sonEkran = "";
-let sonEkranZaman = 0;
-let sonEtkilesim = Date.now();
+let izleme = null;
 
-function sonHareketOku() { try { return Number(localStorage.getItem(`vk-son:${veliEposta}`)) || 0; } catch (_) { return 0; } }
-function sonHareketYaz() { try { localStorage.setItem(`vk-son:${veliEposta}`, String(Date.now())); } catch (_) {} }
+function hataKodu(e) {
+  const kod = String(e?.code || "").replace(/^firestore\//, "");
+  return ["permission-denied", "unauthenticated", "unavailable", "deadline-exceeded", "failed-precondition", "resource-exhausted", "aborted", "invalid-argument"].includes(kod) ? kod : "unknown";
+}
+
+// Veli rolü yeni oturum sözleşmesinde null kalır. Bu tek başına veli kanıtı
+// değildir: güncel UID'ye bağlanmış, tamamlanan öğrenci sorgusu da gerekir.
+function kimlikOku(tur) {
+  const a = P(), s = a?.state || {}, user = s.currentUser;
+  const eposta = kucuk(user?.email);
+  if (!user?.uid || !eposta || !a?.db || !a?.fb || s.isAdmin || s.rol === "kurucu_mudur" || s.personel?.rol === "kurucu_mudur") return null;
+  if (a.auth && "currentUser" in a.auth &&
+      (a.auth.currentUser?.uid !== user.uid || kucuk(a.auth.currentUser?.email) !== eposta)) return null;
+  let idler = [];
+  if (tur === "veli") {
+    if (s.personel || (s.rol != null && s.rol !== "veli")) return null;
+    idler = [...new Set((s.veliOgrenciler || []).map(o => o?.id).filter(id => typeof id === "string" && id))].sort();
+    if (!idler.length) return null;
+    // Eski köprüde açık veli rolü vardı; yeni köprüde marker her rol için zorunlu.
+    if ("galeriVeliUid" in s ? s.galeriVeliUid !== user.uid : s.rol !== "veli") return null;
+  } else if (!s.personel || s.rol === "veli") return null;
+  return { a, user, uid: user.uid, eposta, oturum: s.galeriOturumSurumu,
+    donem: tur === "veli" ? s.aktifDonem : null, ogrenciAnahtari: JSON.stringify(idler), ogrenciIdler: idler.slice(0, 10) };
+}
+
+function guncelMi(o) {
+  if (!o || izleme !== o) return false;
+  const k = kimlikOku(o.tur);
+  return !!k && k.user === o.user && k.uid === o.uid && k.eposta === o.eposta &&
+    k.oturum === o.oturum && k.donem === o.donem && k.ogrenciAnahtari === o.ogrenciAnahtari &&
+    k.a.db === o.db && k.a.fb === o.fb;
+}
+
+function sonHareketOku(o) {
+  let zaman = o.sonHareket;
+  try { zaman = Math.max(zaman, Number(localStorage.getItem(`vk-son:${o.eposta}`)) || 0); } catch (_) {}
+  // İleri ayarlı cihaz saati yeni girişleri süresiz bastırmasın.
+  return Number.isFinite(zaman) && zaman > 0 && zaman <= Date.now() ? zaman : 0;
+}
+function sonHareketYaz(o, zaman = Date.now()) {
+  if (!guncelMi(o)) return;
+  o.sonHareket = Math.max(sonHareketOku(o), zaman);
+  try { localStorage.setItem(`vk-son:${o.eposta}`, String(o.sonHareket)); } catch (_) {}
+}
 function cihazTuru() {
   const ua = navigator.userAgent || "";
   if (/iPad|Tablet/i.test(ua)) return "tablet";
@@ -77,127 +114,201 @@ function cihazTuru() {
 }
 
 /** Veli paneli yüklendikten sonra çağrılır (index.html → loadVeliPanel). */
-export function veliBaslat() {
-  if (veliAktif) return;
-  const a = P();
-  const s = a?.state || {};
-  if (s.personel || s.isAdmin) return;           // personel önizlemesi kaydedilmez
-  veliEposta = kucuk(s.currentUser?.email);
-  if (!veliEposta || !a?.fb || !a?.db) return;
-  hedef = HEDEFLER.veli;
-  izlemeyiKur();
-}
+export function veliBaslat() { return izlemeyiBaslat("veli"); }
 
 /** Personel paneli açılınca çağrılır (kurucu müdür/admin kaydedilmez). */
-export function personelBaslat() {
-  if (veliAktif) return;
-  const a = P();
-  const s = a?.state || {};
-  if (!s.personel || s.isAdmin) return;
-  veliEposta = kucuk(s.currentUser?.email);
-  if (!veliEposta || !a?.fb || !a?.db) return;
-  hedef = HEDEFLER.personel;
-  izlemeyiKur();
+export function personelBaslat() { return izlemeyiBaslat("personel"); }
+
+/** Çıkış / auth değişiminde, bekleyen importlardan ve ağ isteklerinden önce. */
+export function izlemeyiDurdur() {
+  const o = izleme;
+  izleme = null;
+  if (!o) return;
+  clearInterval(o.nabiz);
+  o.zamanlayicilar.forEach(clearTimeout);
+  o.dinleyiciler.forEach(([ad, fn]) => document.removeEventListener(ad, fn, true));
+  o.sarmalar.forEach(({ ad, eski, yeni }) => { if (window[ad] === yeni) window[ad] = eski; });
 }
 
-function izlemeyiKur() {
-  veliAktif = true;
+/** Yazar ve yönetim okuyucusu aynı anda, özel veriyi ekrandan da temizleyerek kapanır. */
+export function durdur() { izlemeyiDurdur(); panelDurdur(); }
 
-  ziyaretKontrol();
-  gezinmeyiDinle();
-  ["pointerdown", "keydown", "touchstart", "scroll"].forEach(t =>
-    document.addEventListener(t, () => { sonEtkilesim = Date.now(); }, { passive: true, capture: true }));
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") { sonEtkilesim = Date.now(); ziyaretKontrol(); }
-  });
-  setInterval(nabiz, NABIZ_ARALIGI);
+/** Yalnız bu cihazdaki güncel oturumun tanısı; kimlik veya öğrenci verisi içermez. */
+export function kayitDurumu() {
+  if (!guncelMi(izleme)) return { aktif: false, durum: "kapali", hataKodu: "" };
+  return { aktif: true, durum: izleme.durum, hataKodu: izleme.hata };
 }
-
-function ziyaretKontrol() {
-  const onceki = sonHareketOku();
-  sonHareketYaz();
-  if (!onceki || Date.now() - onceki > OTURUM_ARASI) {
-    sonEkran = "";
-    kaydet("giris", "");
+function yazmaHatasi(o, e, giris = false) {
+  const kod = hataKodu(e);
+  console.warn("Katılım kaydı yazılamadı:", kod);
+  if (!guncelMi(o)) return;
+  o.durum = "hata";
+  o.hata = kod;
+  if (giris && !o.hataUyarildi) {
+    o.hataUyarildi = true;
+    try { P()?.toast?.("Son giriş bilgisi kaydedilemedi. Sonraki etkinlikte yeniden denenecek.", "warn"); } catch (_) {}
   }
 }
-
-function nabiz() {
-  if (!veliAktif || document.visibilityState !== "visible") return;
-  if (Date.now() - sonEtkilesim > ETKILESIM_ESIK) return;     // açık unutulan sekme yazmasın
-  if (Date.now() - sonHareketOku() > OTURUM_ARASI) { ziyaretKontrol(); return; }
-  sonHareketYaz();
-  const { db, fb } = P();
-  fb.setDoc(fb.doc(db, hedef.ozet, veliEposta),
-    { eposta: veliEposta, sonGorulme: fb.serverTimestamp(), sonUygulama: "portal" }, { merge: true })
-    .catch(e => console.warn("Katılım nabzı yazılamadı:", e?.code || e?.message));
-}
-
-function ekranGirdi(ham) {
-  if (!veliAktif || typeof ham !== "string") return;
-  const k = ((hedef === HEDEFLER.veli ? ESLEME[ham] : null) || ham).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
-  sonEtkilesim = Date.now();
-  if (Date.now() - sonHareketOku() > OTURUM_ARASI) ziyaretKontrol(); else sonHareketYaz();
-  if (hedef.atla.includes(k)) return;
-  if (k === sonEkran && Date.now() - sonEkranZaman < 5 * 60 * 1000) return;
-  sonEkran = k;
-  sonEkranZaman = Date.now();
-  kaydet("ekran", k);
-}
-
-function sar(ad) {
-  const eski = window[ad];
-  if (typeof eski !== "function" || eski.__vkSarili) return false;
-  const yeni = function (...args) {
-    const sonuc = eski.apply(this, args);
-    try { ekranGirdi(args[0]); } catch (_) {}
-    return sonuc;
-  };
-  Object.assign(yeni, eski);        // diğer köprülerin işaretleri korunsun
-  yeni.__vkSarili = true;
-  window[ad] = yeni;
+function yazmaTamam(o) {
+  if (!guncelMi(o)) return false;
+  o.durum = "kayitli";
+  o.hata = "";
+  sonHareketYaz(o);
   return true;
 }
 
-function gezinmeyiDinle() {
-  let deneme = 0;
-  const kur = () => {
-    const tamam = hedef.sarilanlar.map(sar).every(Boolean);
-    if (!tamam && ++deneme < 20) setTimeout(kur, 500);
+function izlemeyiBaslat(tur) {
+  if (izleme?.tur === tur && guncelMi(izleme)) return izleme.baslangic;
+  izlemeyiDurdur();
+  const k = kimlikOku(tur);
+  if (!k) return Promise.resolve(false);
+  const o = izleme = {
+    tur, hedef: HEDEFLER[tur], user: k.user, uid: k.uid, eposta: k.eposta, oturum: k.oturum,
+    db: k.a.db, fb: k.a.fb, donem: k.donem, ogrenciAnahtari: k.ogrenciAnahtari, ogrenciIdler: k.ogrenciIdler,
+    sonHareket: 0, sonEkran: "", sonEkranZaman: 0,
+    sonEtkilesim: Date.now(), durum: "bekliyor", hata: "", hataUyarildi: false, sira: Promise.resolve(),
+    dinleyiciler: [], zamanlayicilar: new Set(), sarmalar: [], sarmaKimligi: {}
   };
-  kur();
-  // Başka bir köprü sonradan sararsa bizimki içerde kalır; yine de ara ara kontrol et
-  setTimeout(() => hedef.sarilanlar.forEach(sar), 8000);
+  const dinle = (ad, fn) => {
+    document.addEventListener(ad, fn, { passive: true, capture: true });
+    o.dinleyiciler.push([ad, fn]);
+  };
+  ["pointerdown", "keydown", "touchstart", "scroll"].forEach(ad => dinle(ad, () => {
+    if (guncelMi(o)) o.sonEtkilesim = Date.now();
+  }));
+  dinle("visibilitychange", () => {
+    if (guncelMi(o) && document.visibilityState === "visible") {
+      o.sonEtkilesim = Date.now();
+      sirayaAl(o, () => ziyaretKontrol(o, true));
+    }
+  });
+  gezinmeyiDinle(o);
+  o.nabiz = setInterval(() => nabiz(o), NABIZ_ARALIGI);
+  // Aynı 30 dk ziyaret içindeki yeniden açılışta da sonGorulme hemen yenilenir.
+  // Giriş sayısı / sonGiris ise ortak Portal–ZEKY ziyaret tanımını korur.
+  o.baslangic = sirayaAl(o, () => ziyaretKontrol(o, true));
+  return o.baslangic;
 }
 
-async function kaydet(tur, ekran) {
-  const a = P();
-  if (!a?.fb?.writeBatch) return;
-  const { db, fb } = a;
-  const ozet = { eposta: veliEposta, sonGorulme: fb.serverTimestamp(), sonUygulama: "portal" };
-  if (tur === "giris") {
-    ozet.sonGiris = fb.serverTimestamp();
-    ozet.girisSayisi = fb.increment(1);
-    ozet.gunler = { [gunAnahtari()]: fb.increment(1) };
-    ozet.uygulamalar = { portal: fb.increment(1) };
-    if (hedef === HEDEFLER.veli) {
-      const idler = (a.state?.veliOgrenciler || []).map(o => o?.id).filter(Boolean).slice(0, 10);
-      if (idler.length) ozet.ogrenciIdler = idler;
-    }
-  } else {
-    ozet.sonEkran = ekran;
-    ozet.ekranlar = { [ekran]: fb.increment(1) };
+// Seri yazım: çift tıklamalar, ilk ekran ve görünürlük olayı aynı girişi çoğaltmaz.
+function sirayaAl(o, islem) {
+  o.sira = o.sira.then(() => guncelMi(o) ? islem() : false).catch(e => {
+    yazmaHatasi(o, e, true);
+    return false;
+  });
+  return o.sira;
+}
+
+async function ziyaretKontrol(o, nabizGerekli = false) {
+  if (!guncelMi(o)) return false;
+  const onceki = sonHareketOku(o);
+  if (!onceki || Date.now() - onceki > OTURUM_ARASI) {
+    if (!await kaydet(o, "giris", "")) return false;
+    o.sonEkran = "";
+    o.sonEkranZaman = 0;
+    return true;
   }
-  const akisId = `${veliEposta}__${String(Date.now()).padStart(13, "0")}${Math.random().toString(36).slice(2, 6)}`;
+  return nabizGerekli ? nabizYaz(o) : true;
+}
+
+function nabiz(o) {
+  if (!guncelMi(o) || document.visibilityState !== "visible") return;
+  if (Date.now() - o.sonEtkilesim > ETKILESIM_ESIK) return; // açık unutulan sekme yazmasın
+  return sirayaAl(o, () => ziyaretKontrol(o, true));
+}
+
+async function nabizYaz(o) {
+  if (!guncelMi(o)) return false;
   try {
+    await o.fb.setDoc(o.fb.doc(o.db, o.hedef.ozet, o.eposta),
+      { eposta: o.eposta, sonGorulme: o.fb.serverTimestamp(), sonUygulama: "portal" }, { merge: true });
+    return yazmaTamam(o);
+  } catch (e) {
+    yazmaHatasi(o, e, true);
+    return false;
+  }
+}
+
+function ekranGirdi(o, ham) {
+  if (!guncelMi(o) || typeof ham !== "string") return;
+  const k = ((o.tur === "veli" ? ESLEME[ham] : null) || ham).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+  o.sonEtkilesim = Date.now();
+  return sirayaAl(o, async () => {
+    if (!await ziyaretKontrol(o) || !guncelMi(o)) return false;
+    if (o.hedef.atla.includes(k) || (k === o.sonEkran && Date.now() - o.sonEkranZaman < 5 * 60 * 1000)) {
+      if (o.durum === "hata") return nabizYaz(o);
+      sonHareketYaz(o);
+      return true;
+    }
+    if (!await kaydet(o, "ekran", k)) return false;
+    o.sonEkran = k;
+    o.sonEkranZaman = Date.now();
+    return true;
+  });
+}
+
+function sar(o, ad) {
+  if (!guncelMi(o)) return true;
+  const eski = window[ad];
+  if (typeof eski !== "function") return false;
+  if (eski.__vkOturum === o.sarmaKimligi) return true;
+  const yeni = function (...args) {
+    const sonuc = eski.apply(this, args);
+    try { ekranGirdi(o, args[0]); } catch (_) {}
+    return sonuc;
+  };
+  Object.assign(yeni, eski); // diğer köprülerin işaretleri korunsun
+  yeni.__vkSarili = true;
+  yeni.__vkOturum = o.sarmaKimligi;
+  window[ad] = yeni;
+  o.sarmalar.push({ ad, eski, yeni });
+  return true;
+}
+
+function gezinmeyiDinle(o) {
+  const sonra = (fn, ms) => {
+    const id = setTimeout(() => { o.zamanlayicilar.delete(id); if (guncelMi(o)) fn(); }, ms);
+    o.zamanlayicilar.add(id);
+  };
+  let deneme = 0;
+  const kur = () => {
+    if (!guncelMi(o)) return;
+    const tamam = o.hedef.sarilanlar.map(ad => sar(o, ad)).every(Boolean);
+    if (!tamam && ++deneme < 20) sonra(kur, 500);
+  };
+  kur();
+  sonra(() => o.hedef.sarilanlar.forEach(ad => sar(o, ad)), 8000);
+}
+
+async function kaydet(o, tur, ekran) {
+  if (!guncelMi(o)) return false;
+  const { db, fb } = o;
+  try {
+    const ozet = { eposta: o.eposta, sonGorulme: fb.serverTimestamp(), sonUygulama: "portal" };
+    if (tur === "giris") {
+      ozet.sonGiris = fb.serverTimestamp();
+      ozet.girisSayisi = fb.increment(1);
+      ozet.gunler = { [gunAnahtari()]: fb.increment(1) };
+      ozet.uygulamalar = { portal: fb.increment(1) };
+      if (o.tur === "veli") {
+        ozet.ogrenciIdler = o.ogrenciIdler;
+      }
+    } else {
+      ozet.sonEkran = ekran;
+      ozet.ekranlar = { [ekran]: fb.increment(1) };
+    }
+    const akisId = `${o.eposta}__${String(Date.now()).padStart(13, "0")}${Math.random().toString(36).slice(2, 6)}`;
     const toplu = fb.writeBatch(db);
-    toplu.set(fb.doc(db, hedef.ozet, veliEposta), ozet, { merge: true });
-    toplu.set(fb.doc(db, hedef.akis, akisId), {
-      eposta: veliEposta, tur, ekran: ekran || "", uygulama: "portal", cihaz: cihazTuru(), zaman: fb.serverTimestamp()
+    toplu.set(fb.doc(db, o.hedef.ozet, o.eposta), ozet, { merge: true });
+    toplu.set(fb.doc(db, o.hedef.akis, akisId), {
+      eposta: o.eposta, tur, ekran: ekran || "", uygulama: "portal", cihaz: cihazTuru(), zaman: fb.serverTimestamp()
     });
     await toplu.commit();
+    // Başarısız / eski oturum yazımı bir sonraki giriş veya ekranı bastıramaz.
+    return yazmaTamam(o);
   } catch (e) {
-    console.warn("Katılım kaydı yazılamadı:", e?.code || e?.message);
+    yazmaHatasi(o, e, tur === "giris");
+    return false;
   }
 }
 
@@ -205,8 +316,15 @@ async function kaydet(tur, ekran) {
 let pnl = null;   // { kap, ozetler: Map, akis: [], abonelikler: [], hata, filtre, zamanlayici, cizBekliyor, yeniAkisIdleri }
 
 function yetkiliMi() {
+  const a = P(), s = a?.state || {}, user = s.currentUser;
+  if (!user?.uid || (!s.isAdmin && s.rol !== "kurucu_mudur")) return false;
+  return !a.auth || !("currentUser" in a.auth) ||
+    (a.auth.currentUser?.uid === user.uid && kucuk(a.auth.currentUser?.email) === kucuk(user.email));
+}
+function panelGuncel(p) {
   const s = P()?.state || {};
-  return !!s.isAdmin || s.rol === "kurucu_mudur";
+  return !!p && pnl === p && yetkiliMi() && p.user === s.currentUser &&
+    p.uid === s.currentUser?.uid && p.eposta === kucuk(s.currentUser?.email) && p.oturum === s.galeriOturumSurumu;
 }
 
 /** Yönetim sekmesi açıldığında çağrılır. */
@@ -215,20 +333,23 @@ export function panelRender(kapId) {
   if (!kap) return;
   stilEkle();
   if (!yetkiliMi()) {
+    panelDurdur();
     kap.innerHTML = `<div class="vk-bos">Bu bölüm yalnızca kurucu müdüre açıktır.</div>`;
     return;
   }
-  if (pnl && pnl.kap === kap && pnl.abonelikler.length) { ciz(); return; }
+  if (panelGuncel(pnl) && !pnl.hata && pnl.kap === kap && pnl.abonelikler.length) { ciz(); return; }
   panelDurdur();
   pnl = {
-    kap, ozetler: new Map(), akis: [], abonelikler: [], hata: "", ilkYukleme: true,
+    kap, user: P().state.currentUser, uid: P().state.currentUser.uid, eposta: kucuk(P().state.currentUser.email), oturum: P().state.galeriOturumSurumu,
+    ozetler: new Map(), akis: [], abonelikler: [], hata: "", hatalar: {}, hazir: {}, ilkYukleme: true,
     filtre: { sinif: "", durum: "", ara: "", sirala: "son" }, zamanlayici: null, cizBekliyor: false,
     gorulenAkis: new Set(), gorunmezSayac: 0
   };
   kap.innerHTML = `<div class="vk-bos"><span class="vk-donen"></span>Veli hareketleri yükleniyor</div>`;
   abone();
+  const panel = pnl;
   pnl.zamanlayici = setInterval(() => {
-    if (!pnl) return;
+    if (!panelGuncel(panel)) { if (pnl === panel) panelDurdur(); return; }
     if (!pnl.kap.isConnected || pnl.kap.offsetParent === null) {
       if (++pnl.gorunmezSayac >= 4) panelDurdur();      // 2 dk görünmezse dinlemeyi bırak
       return;
@@ -240,44 +361,58 @@ export function panelRender(kapId) {
 }
 
 export function panelDurdur() {
-  if (!pnl) return;
-  pnl.abonelikler.forEach(f => { try { f(); } catch (_) {} });
-  clearInterval(pnl.zamanlayici);
+  detayKapat();
+  const panel = pnl;
   pnl = null;
+  if (!panel) return;
+  panel.abonelikler.forEach(f => { try { f(); } catch (_) {} });
+  clearInterval(panel.zamanlayici);
+  panel.kap.innerHTML = "";
 }
 
 function abone() {
   const { db, fb } = P();
-  const hata = (e) => {
-    if (!pnl) return;
-    pnl.hata = /permission|insufficient/i.test(String(e?.code || e?.message)) ? "izin" : (e?.message || "hata");
+  const panel = pnl;
+  const hataYaz = (kaynak, kod) => {
+    panel.hatalar[kaynak] = kod;
+    panel.hata = Object.values(panel.hatalar).find(Boolean) || "";
+  };
+  const hata = kaynak => e => {
+    if (!panelGuncel(panel)) return;
+    hataYaz(kaynak, hataKodu(e));
     cizPlanla();
   };
   pnl.abonelikler.push(fb.onSnapshot(fb.collection(db, "veliKatilim"), snap => {
-    if (!pnl) return;
+    if (!panelGuncel(panel)) return;
     snap.docChanges().forEach(d => {
       if (d.type === "removed") pnl.ozetler.delete(d.doc.id);
       else pnl.ozetler.set(d.doc.id, d.doc.data() || {});
     });
-    pnl.hata = "";
+    hataYaz("ozet", "");
+    panel.hazir.ozet = true;
     cizPlanla();
-  }, hata));
+  }, hata("ozet")));
   pnl.abonelikler.push(fb.onSnapshot(
     fb.query(fb.collection(db, "veliKatilimAkisi"), fb.orderBy("zaman", "desc"), fb.limit(60)),
     snap => {
-      if (!pnl) return;
+      if (!panelGuncel(panel)) return;
       pnl.akis = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
+      hataYaz("akis", "");
+      panel.hazir.akis = true;
       cizPlanla();
-    }, hata));
+    }, hata("akis")));
 }
 
 function cizPlanla() {
-  if (!pnl || pnl.cizBekliyor) return;
+  if (!panelGuncel(pnl) || pnl.cizBekliyor) return;
+  const panel = pnl;
   pnl.cizBekliyor = true;
-  setTimeout(() => { if (pnl) { pnl.cizBekliyor = false; ciz(); } }, 300);
+  setTimeout(() => { if (panelGuncel(panel)) { panel.cizBekliyor = false; ciz(); } }, 300);
 }
 
 async function eskiAkisiTemizle() {
+  const panel = pnl;
+  if (!panelGuncel(panel)) return;
   try {
     const anahtar = "vk-temizlik";
     if (localStorage.getItem(anahtar) === gunAnahtari()) return;
@@ -285,11 +420,11 @@ async function eskiAkisiTemizle() {
     const { db, fb } = P();
     const sinir = new Date(Date.now() - SAKLAMA_GUN * 86400000);
     const snap = await fb.getDocs(fb.query(fb.collection(db, "veliKatilimAkisi"), fb.where("zaman", "<", sinir), fb.limit(400)));
-    if (snap.empty) return;
+    if (snap.empty || !panelGuncel(panel)) return;
     const toplu = fb.writeBatch(db);
     snap.docs.forEach(d => toplu.delete(d.ref));
     await toplu.commit();
-  } catch (e) { console.warn("Eski katılım kayıtları temizlenemedi:", e?.code || e?.message); }
+  } catch (e) { console.warn("Eski katılım kayıtları temizlenemedi:", hataKodu(e)); }
 }
 
 // ── veri birleştirme ──
@@ -377,15 +512,17 @@ const DURUM = {
 
 // ── çizim ──
 function ciz() {
-  if (!pnl) return;
+  if (!panelGuncel(pnl)) { panelDurdur(); return; }
   const kap = pnl.kap;
   // Açık bir açılır listeyi (özellikle telefonda) yenileme kapatmasın
   if (document.activeElement?.tagName === "SELECT" && kap.contains(document.activeElement)) {
     setTimeout(cizPlanla, 1500);
     return;
   }
-  if (pnl.hata === "izin") {
-    kap.innerHTML = `<div class="vk-uyari"><strong>Firestore kuralı eksik.</strong> Veli katılım kayıtlarını okumak için kurallara "VELİ KATILIMI" bloğu eklenmeli.</div>`;
+  const hataHtml = pnl.hata ? `<div class="vk-uyari"><strong>Katılım kayıtları okunamadı.</strong> ${pnl.hata === "permission-denied" ? "Bu oturumun kayıtları okuma izni doğrulanamadı." : "Bağlantıyı kontrol edip bu bölümü yeniden açın."} Gösterilen bilgiler eksik olabilir.</div>` : "";
+  if (pnl.hatalar.ozet) { kap.innerHTML = hataHtml; return; }
+  if (!pnl.hazir.ozet) {
+    kap.innerHTML = hataHtml + `<div class="vk-bos"><span class="vk-donen"></span>Veli hareketleri yükleniyor</div>`;
     return;
   }
   const tumu = veliKadrosu();
@@ -419,7 +556,7 @@ function ciz() {
     return (durumSira[x.durum] - durumSira[y.durum]) || ((y.sonGorulme?.getTime() || 0) - (x.sonGorulme?.getTime() || 0));
   });
 
-  kap.innerHTML = `
+  kap.innerHTML = `${hataHtml}
     <div class="vk-kartlar">
       ${kart("Şu an çevrimiçi", cevrimici.length, cevrimici.length ? cevrimici.slice(0, 3).map(v => v.ad).join(", ") + (cevrimici.length > 3 ? ` ve ${cevrimici.length - 3} veli` : "") : "Şu an kimse yok", "vk-kart-canli")}
       ${kart("Bugün giren", bugun.length, `${hesapli.length} velinin %${yuzde(bugun.length)}'i`)}
@@ -452,7 +589,7 @@ function ciz() {
               .map(([d, ad]) => `<option value="${d}"${d === f.durum ? " selected" : ""}>${ad}</option>`).join("")}
           </select>
           <select data-vk-filtre="sirala" aria-label="Sıralama">
-            ${[["son", "Son girişe göre"], ["siklik", "Giriş sıklığına göre"], ["ad", "Ada göre"]]
+            ${[["son", "Son görülmeye göre"], ["siklik", "Giriş sıklığına göre"], ["ad", "Ada göre"]]
               .map(([d, ad]) => `<option value="${d}"${d === f.sirala ? " selected" : ""}>${ad}</option>`).join("")}
           </select>
         </div>
@@ -503,6 +640,8 @@ function bolumGrafik(veliler) {
 }
 
 function akisHtml(veliler) {
+  if (pnl.hatalar.akis) return `<div class="vk-bos vk-bos-kucuk">Hareket akışı okunamadı. Bu bölümü yeniden açarak tekrar deneyin.</div>`;
+  if (!pnl.hazir.akis) return `<div class="vk-bos vk-bos-kucuk">Hareket akışı yükleniyor</div>`;
   const epostadan = new Map(veliler.filter(v => v.eposta).map(v => [v.eposta, v]));
   if (!pnl.akis.length) return `<div class="vk-bos vk-bos-kucuk">Henüz hareket yok.</div>`;
   const ilk = pnl.gorulenAkis.size === 0;
@@ -541,7 +680,7 @@ function satirHtml(v) {
     <span class="vk-durum-nokta" style="background:${d.renk}" title="${d.ad}"></span>
     <span class="vk-kim"><span class="vk-ad">${esc(v.ad)} <span class="vk-rol">${esc(v.roller.join(" ve "))}</span></span>
       <span class="vk-cocuk">${cocuk}${v.sinif ? `, ${esc(v.sinif)}` : ""}${v.aktifOgrenci ? "" : " (aktif kayıt yok)"}</span></span>
-    <span class="vk-son"><span class="vk-son-ana">${v.durum === "cevrimici" ? "Şu an çevrimiçi" : v.durum === "hesapsiz" ? "Portal hesabı yok" : goreceZaman(v.sonGiris)}</span>
+    <span class="vk-son"><span class="vk-son-ana">${v.durum === "cevrimici" ? "Şu an çevrimiçi" : v.durum === "hesapsiz" ? "Portal hesabı yok" : v.sonGorulme ? `Son görülme: ${goreceZaman(v.sonGorulme)}` : "Etkinlik kaydı yok"}</span>
       <span class="vk-son-alt">${v.eposta ? `30 günde ${v.giris30} giriş, ${v.gun30} farklı gün` : "E-posta kayıtlı değil"}</span></span>
     <span class="vk-serit-kap">${v.eposta ? seritHtml(v.gunler) : ""}</span>
     <span class="vk-ilgi">${enCok}${uyg}</span>
@@ -551,8 +690,11 @@ function satirHtml(v) {
 // ── veli ayrıntısı ──
 let detay = null;
 async function detayAc(anahtar) {
+  const panel = pnl;
+  if (!panelGuncel(panel)) return;
   const v = veliKadrosu().find(x => x.anahtar === anahtar);
   if (!v) return;
+  const kayitliGiris = tarihYap(v.oz?.sonGiris);
   detayKapat();
   const kok = document.createElement("div");
   kok.className = "vk-arka";
@@ -567,6 +709,7 @@ async function detayAc(anahtar) {
         ${kart("30 günde giriş", v.giris30, `${v.gun30} farklı gün`)}
         ${kart("Toplam giriş", Number(v.oz?.girisSayisi) || 0, [v.portal ? `Portal ${v.portal}` : "", v.zeky ? `ZEKY ${v.zeky}` : ""].filter(Boolean).join(", ") || "Kayıt yok")}
       </div>
+      <p class="vk-kutu-alt">Son kayıtlı giriş: ${kayitliGiris ? esc(tamTarih(kayitliGiris)) : "Kayıt yok"}. Giriş sayısı, 30 dakikadan uzun aradan sonra başlayan ziyaretleri gösterir.</p>
       <h4>Son 60 gün</h4>
       ${seritHtml(v.gunler, 60)}
       <h4>Baktığı bölümler</h4>
@@ -591,7 +734,7 @@ async function detayAc(anahtar) {
     const snap = await fb.getDocs(fb.query(fb.collection(db, "veliKatilimAkisi"),
       fb.where(fb.documentId(), ">=", on), fb.where(fb.documentId(), "<", on + "\uf8ff"),
       fb.orderBy(fb.documentId(), "desc"), fb.limit(80)));
-    if (!detay || detay.kok !== kok) return;
+    if (!panelGuncel(panel) || !detay || detay.kok !== kok) return;
     const hareketler = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
     kok.querySelector("[data-vk-hareketler]").innerHTML = hareketler.length
       ? hareketler.map(h => {
@@ -602,7 +745,7 @@ async function detayAc(anahtar) {
         }).join("")
       : `<div class="vk-bos vk-bos-kucuk">Kayıtlı hareket yok.</div>`;
   } catch (e) {
-    if (detay?.kok === kok) kok.querySelector("[data-vk-hareketler]").innerHTML = `<div class="vk-bos vk-bos-kucuk">Hareketler okunamadı: ${esc(e?.code || e?.message)}</div>`;
+    if (panelGuncel(panel) && detay?.kok === kok) kok.querySelector("[data-vk-hareketler]").innerHTML = `<div class="vk-bos vk-bos-kucuk">Hareketler okunamadı: ${esc(hataKodu(e))}</div>`;
   }
 }
 function detayTus(e) { if (e.key === "Escape") { e.preventDefault(); detayKapat(); } }
@@ -727,5 +870,5 @@ function stilEkle() {
 }
 
 if (typeof window !== "undefined") {
-  window.veliKatilim = { veliBaslat, personelBaslat, panelRender, panelDurdur, BOLUMLER };
+  window.veliKatilim = { veliBaslat, personelBaslat, izlemeyiDurdur, durdur, kayitDurumu, panelRender, panelDurdur, BOLUMLER };
 }

@@ -10,10 +10,12 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v177-dinamik-mobil-yerlesim";
+const CACHE_VERSION = "v178-giris-katilim";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/portal-google-login.js?v=178",
+  "./moduller/veli-katilim.js?v=178",
   "./stil/arayuz-duzeltmeleri.css?v=5",
   "./stil/randevu-sayfalari.css?v=2",
   "./js/galeri-klasorleri.js",
