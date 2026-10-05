@@ -92,6 +92,7 @@ function environment(t,{role='mudur'}={}){
     GALERI_EGITIM_PROGRAMLARI:{montessori:'Montessori',orman:'Orman Okulu'},
     isoTarih:()=> '2026-09-30',resimSikistir:async file=>file,
     medyaYukle:async file=>{if(controls.uploadFail===true||controls.uploadFail===file.name)throw Error('synthetic-upload-failed');return {url:'https://synthetic.invalid/image',yol:'synthetic/path'};},
+    galeriVideoYukle:async(file,{onProgress}={})=>{if(controls.uploadFail===true||controls.uploadFail===file.name)throw Error('synthetic-upload-failed');onProgress?.({percent:100});return{embedUrl:'https://iframe.mediadelivery.net/embed/lib/video',videoId:'video',libraryId:'lib',thumbnailUrl:''};},
     closeGaleriYuklemeModal(){},setTimeout,clearTimeout});
   vm.runInContext(production,ctx);
   Object.assign(element('duyuruBaslik'),{value:'Private announcement title'});
