@@ -38,7 +38,7 @@ function uploadFixture({topic='Denge Çalışması',program='jimnastik',admin=fa
  const values={galeriEtkinlik:topic,galeriEtkinlikTarih:'2026-10-02',galeriAciklama:'Sentetik',galeriHedefTur:audience,galeriKategori:program,galeriHedefSinif:'Test Sınıfı',galeriHedefOgrenci:'child-1'};
  const document={getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:values[id]||'',style:{},options:[{dataset:{ad:'Test Çocuk'}}],selectedIndex:0,checked:false});return nodes.get(id);}};
  let count=0;
- const ctx=vm.createContext({window:{},document,console:{error(){},warn(){}},galeriSecilenDosyalar:files,activeKullaniciRol:admin?'mudur':'ogretmen',aktifKullaniciRol:admin?'mudur':'ogretmen',isAdmin:admin,currentUser:{email:'synthetic@example.invalid'},AKTIF_DONEM:'2026-2027',db:{},galleryText,galeriProgramKodu:galleryProgram,ogretmenRolMu:()=>!admin,aktifKullaniciSiniflari:['Test Sınıfı'],isoTarih:()=> '2026-10-02',showToast:(...v)=>toasts.push(v),resimSikistir:async f=>f,medyaYukle:async(f,path)=>{uploads.push(path);return{url:'https://example.invalid/'+f.name,yol:path};},collection:()=>({}),doc:()=>({id:'new-'+(++count)}),setDoc:async(ref,data)=>writes.push({id:ref.id,...data}),galeriGuncellemeBildirimi:async data=>notifications.push(data),galeriBildirimMailGonder:async()=>{throw Error('Unrequested email');},albumEkleMod:null,closeGaleriYuklemeModal(){},renderGaleri(){}});
+ const ctx=vm.createContext({window:{},document,console:{error(){},warn(){}},galeriSecilenDosyalar:files,activeKullaniciRol:admin?'mudur':'ogretmen',aktifKullaniciRol:admin?'mudur':'ogretmen',isAdmin:admin,currentUser:{email:'synthetic@example.invalid'},AKTIF_DONEM:'2026-2027',db:{},galleryText,galeriProgramKodu:galleryProgram,ogretmenRolMu:()=>!admin,aktifKullaniciSiniflari:['Test Sınıfı'],isoTarih:()=> '2026-10-02',showToast:(...v)=>toasts.push(v),resimSikistir:async f=>f,medyaYukle:async(f,path,tur)=>{uploads.push({path,tur});return{url:'https://example.invalid/'+f.name,yol:path};},collection:()=>({}),doc:()=>({id:'new-'+(++count)}),setDoc:async(ref,data)=>writes.push({id:ref.id,...data}),galeriGuncellemeBildirimi:async data=>notifications.push(data),galeriBildirimMailGonder:async()=>{throw Error('Unrequested email');},albumEkleMod:null,closeGaleriYuklemeModal(){},renderGaleri(){}});
  const start=source.indexOf('window.galeriYukle = async function() {'),end=source.indexOf('// Lightbox',start);vm.runInContext(source.slice(start,end),ctx);
  return{run:()=>ctx.window.galeriYukle(),writes,notifications,toasts,uploads};
 }
@@ -53,8 +53,13 @@ test('teacher batch stores one topic and pending status without notifications',a
 test('management photo batch preserves exactly one published batch notification',async()=>{
  const f=uploadFixture({admin:true,files:[{name:'a.jpg',type:'image/jpeg',size:100},{name:'b.jpg',type:'image/jpeg',size:100}]});await f.run();assert.equal(f.writes.length,2);assert.equal(f.notifications.length,1);assert.equal(f.notifications[0].fotoSayisi,2);assert.equal(f.notifications[0].olayAnahtari,'galeri-yayin:new-1:new-2');
 });
-test('existing unsupported Portal video upload does not create a bogus topic record or notification',async()=>{
- const f=uploadFixture({admin:true,files:[{name:'movie.mp4',type:'video/mp4',size:200}]});await f.run();assert.equal(f.writes.length,0);assert.equal(f.notifications.length,0);assert.ok(f.toasts.some(x=>/Video yükleme/.test(x[0])));
+test('Portal video upload stores Bunny metadata and publishes one video notification',async()=>{
+ const f=uploadFixture({admin:true,files:[{name:'movie.mp4',type:'video/mp4',size:200}]});await f.run();
+ assert.equal(f.writes.length,1);assert.equal(f.writes[0].dosyaTipi,'video');assert.equal(f.writes[0].mimeType,'video/mp4');
+ assert.equal(f.writes[0].bunnyUrl,'https://example.invalid/movie.mp4');assert.equal(f.writes[0].mp4Url,f.writes[0].bunnyUrl);
+ assert.equal(f.uploads.length,1);assert.equal(f.uploads[0].tur,'video');
+ assert.equal(f.notifications.length,1);assert.equal(f.notifications[0].fotoSayisi,0);assert.equal(f.notifications[0].videoSayisi,1);
+ assert.equal(f.notifications[0].olayAnahtari,'galeri-yayin:new-1');
 });
 test('moderation changes do not alter folder identity and none are written by folder helpers',()=>{
  const base=row();for(const durum of ['beklemede','reddedildi','taslak','onaylandi'])assert.equal(galleryTopicKey({...base,durum}),galleryTopicKey(base));
