@@ -15280,10 +15280,13 @@ const MEDYA_AYAR = {
   PROXY_URL: "https://script.google.com/macros/s/AKfycbxEXHfPKjOdZUPSiyYB6W-n5y883sWFgBeIJC90GX1JZSiFFb2yYn7-nnwT0OOywD5F/exec",
   // Apps Script'teki PAYLASIM_ANAHTARI ile AYNI olmalı
   PAYLASIM_ANAHTARI: "bckMedya2026_g7Hk9pQ2xM",
-  // İzin verilen dosya türleri (resim — video sonraki fazda)
+  // İzin verilen dosya türleri
   IZINLI_RESIM: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-  // Maksimum dosya boyutu (MB)
-  MAKS_BOYUT_MB: 10
+  IZINLI_VIDEO: ["video/mp4", "video/webm", "video/quicktime"],
+  // Mevcut Apps Script -> Bunny proxy tek istekte çalışıyor.
+  // Video için 30 MB, base64 şişmesi ve 50 MB URL Fetch sınırına güvenli pay bırakır.
+  MAKS_BOYUT_MB: 10,
+  MAKS_VIDEO_BOYUT_MB: 30
 };
 
 // Bir dosyayı base64'e çevir (proxy'ye göndermek için)
@@ -15302,29 +15305,45 @@ function medyaDosyaBase64(dosya) {
 }
 
 // Dosya doğrulama (tür + boyut)
-function medyaDogrula(dosya, sadeceResim = true) {
+function medyaDogrula(dosya, tur = true) {
   if (!dosya) return { gecerli: false, hata: "Dosya yok" };
-  if (sadeceResim && !MEDYA_AYAR.IZINLI_RESIM.includes(dosya.type)) {
-    return { gecerli: false, hata: "Sadece resim yüklenebilir (JPG, PNG, WEBP, GIF)" };
+
+  // Geriye uyumluluk:
+  // true / boş => resim, false => belge, "video" => galeri videosu.
+  const mod = tur === "video" ? "video" : (tur === false ? "dosya" : "resim");
+  const uzanti = (String(dosya.name || "").split(".").pop() || "").toLowerCase();
+  const boyutMB = Number(dosya.size || 0) / (1024 * 1024);
+
+  if (mod === "video") {
+    const izinliUzanti = ["mp4", "webm", "mov"];
+    const mimeUygun = MEDYA_AYAR.IZINLI_VIDEO.includes(String(dosya.type || "").toLowerCase());
+    if (!mimeUygun && !izinliUzanti.includes(uzanti)) {
+      return { gecerli: false, hata: "Video türü desteklenmiyor (MP4, WEBM veya MOV)" };
+    }
+    if (boyutMB > MEDYA_AYAR.MAKS_VIDEO_BOYUT_MB) {
+      return { gecerli: false, hata: `Video çok büyük (${boyutMB.toFixed(1)} MB). Mevcut güvenli yükleme hattında en fazla ${MEDYA_AYAR.MAKS_VIDEO_BOYUT_MB} MB.` };
+    }
+    return { gecerli: true, tur: "video" };
   }
-  if (!sadeceResim) {
-    // Belge yükleme: izinli uzantıları kontrol et
+
+  if (mod === "dosya") {
     const izinliUzanti = ["pdf","doc","docx","xls","xlsx","txt","zip","jpg","jpeg","png","webp","gif"];
-    const uzanti = (dosya.name.split(".").pop() || "").toLowerCase();
     if (!izinliUzanti.includes(uzanti)) {
       return { gecerli: false, hata: "Bu dosya türü desteklenmiyor" };
     }
-    const belgeBoyutMB = dosya.size / (1024 * 1024);
-    if (belgeBoyutMB > 15) {
-      return { gecerli: false, hata: `Dosya çok büyük (${belgeBoyutMB.toFixed(1)} MB). En fazla 15 MB.` };
+    if (boyutMB > 15) {
+      return { gecerli: false, hata: `Dosya çok büyük (${boyutMB.toFixed(1)} MB). En fazla 15 MB.` };
     }
-    return { gecerli: true };
+    return { gecerli: true, tur: "dosya" };
   }
-  const boyutMB = dosya.size / (1024 * 1024);
+
+  if (!MEDYA_AYAR.IZINLI_RESIM.includes(String(dosya.type || "").toLowerCase())) {
+    return { gecerli: false, hata: "Sadece resim yüklenebilir (JPG, PNG, WEBP, GIF)" };
+  }
   if (boyutMB > MEDYA_AYAR.MAKS_BOYUT_MB) {
     return { gecerli: false, hata: `Dosya çok büyük (${boyutMB.toFixed(1)} MB). En fazla ${MEDYA_AYAR.MAKS_BOYUT_MB} MB.` };
   }
-  return { gecerli: true };
+  return { gecerli: true, tur: "resim" };
 }
 
 // Medya sunucusu (Apps Script) JSON yerine hata sayfası / boş yanıt dönerse,
@@ -15344,8 +15363,8 @@ async function medyaYanitOku(res) {
  * @param {string} klasor - hedef klasör (örn: "galeri/2026-05", "mesaj")
  * @returns {Promise<{url, yol}>} - CDN URL ve silme için yol
  */
-async function medyaYukle(dosya, klasor = "genel", sadeceResim = true) {
-  const dogrula = medyaDogrula(dosya, sadeceResim);
+async function medyaYukle(dosya, klasor = "genel", tur = true) {
+  const dogrula = medyaDogrula(dosya, tur);
   if (!dogrula.gecerli) throw new Error(dogrula.hata);
 
   const base64 = await medyaDosyaBase64(dosya);
@@ -15359,6 +15378,8 @@ async function medyaYukle(dosya, klasor = "genel", sadeceResim = true) {
       islem: "yukle",
       dosyaAdi: dosya.name,
       klasor: klasor,
+      mimeType: dosya.type || "application/octet-stream",
+      medyaTuru: dogrula.tur || "dosya",
       icerikBase64: base64
     })
   });
@@ -36792,8 +36813,17 @@ window.galeriDosyalarSecildi = function(e) {
 
 function galeriDosyalarEkle(files) {
   for (const f of files) {
-    // Max 500MB kontrolü
-    if (f.size > 500 * 1024 * 1024) {
+    const resimMi = String(f.type || "").startsWith("image/");
+    const videoMu = String(f.type || "").startsWith("video/");
+    if (!resimMi && !videoMu) {
+      showToast(`${f.name} desteklenmiyor. Yalnız fotoğraf veya video seçin.`, "error");
+      continue;
+    }
+    if (videoMu && f.size > MEDYA_AYAR.MAKS_VIDEO_BOYUT_MB * 1024 * 1024) {
+      showToast(`${f.name} çok büyük. Video en fazla ${MEDYA_AYAR.MAKS_VIDEO_BOYUT_MB} MB olabilir.`, "error");
+      continue;
+    }
+    if (resimMi && f.size > 500 * 1024 * 1024) {
       showToast(`${f.name} çok büyük (max 500MB)`, "error");
       continue;
     }
@@ -36899,6 +36929,7 @@ window.galeriYukle = async function() {
   const klasorPath = `galeri/${hedefPath}/${etkinlikSlug}`;
 
   let basarili = 0, hatali = 0;
+  let yayinlananFotoSayisi = 0, yayinlananVideoSayisi = 0;
   const yayinlananOgeIdleri = [];
   for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
     const f = galeriSecilenDosyalar[i];
@@ -36926,16 +36957,22 @@ window.galeriYukle = async function() {
       };
 
       if (f.type.startsWith("video/")) {
-        // VİDEO - henüz aktif değil (sonraki fazda güvenli Stream proxy ile gelecek)
-        showToast("Video yükleme yakında eklenecek. Şimdilik sadece fotoğraf.", "warn");
-        hatali++;
-        continue;
+        // VİDEO - güvenli Apps Script proxy üzerinden Bunny Storage'a yüklenir.
+        const sonuc = await medyaYukle(f, klasorPath, "video");
+        oge.dosyaTipi = "video";
+        oge.mimeType = f.type || "video/mp4";
+        oge.bunnyUrl = sonuc.url;
+        oge.mp4Url = sonuc.url;
+        oge.kucukResim = "";
+        oge.bunnyPath = sonuc.yol;
+        oge.dosyaBoyutu = f.size;
       } else if (f.type.startsWith("image/")) {
         // FOTOĞRAF - sıkıştır ve GÜVENLİ proxy üzerinden yükle (medya.js)
         const sikistirilmis = await resimSikistir(f, 1920, 0.85);
         // medyaYukle proxy'ye gönderir, API key tarayıcıda görünmez
         const sonuc = await medyaYukle(sikistirilmis, klasorPath);
         oge.dosyaTipi = "foto";
+        oge.mimeType = sikistirilmis.type || f.type || "image/jpeg";
         oge.bunnyUrl = sonuc.url;
         oge.kucukResim = sonuc.url; // fotoğraf için aynı (thumbnail Bunny ?width ile)
         oge.bunnyPath = sonuc.yol;
@@ -36955,7 +36992,11 @@ window.galeriYukle = async function() {
       const ref = doc(collection(db, "galeri"));
       await setDoc(ref, oge);
       basarili++;
-      if (oge.durum === "onaylandi") yayinlananOgeIdleri.push(ref.id);
+      if (oge.durum === "onaylandi") {
+        yayinlananOgeIdleri.push(ref.id);
+        if (oge.dosyaTipi === "video") yayinlananVideoSayisi++;
+        else if (oge.dosyaTipi === "foto") yayinlananFotoSayisi++;
+      }
 
       const toplam = ((i + 1) / galeriSecilenDosyalar.length) * 100;
       document.getElementById("galeriYuklemeBar").style.width = `${toplam}%`;
@@ -36968,9 +37009,9 @@ window.galeriYukle = async function() {
   document.getElementById("galeriYuklemeDurum").textContent = `✓ ${basarili} başarılı${hatali > 0 ? `, ${hatali} hatalı` : ''}`;
   showToast(`✓ ${basarili} dosya yüklendi${hatali > 0 ? ` (${hatali} hatalı)` : ''}`);
 
-  // Yüklenen dosyaların sayısını hesapla
-  const fotoSayisi = yayinlananOgeIdleri.length;
-  const videoSayisi = 0; // Video yayını henüz etkin değil; başarısız/seçilmiş dosya bildirilmez.
+  // Yalnız başarıyla kaydedilmiş ve doğrudan yayınlanmış medya bildirilir.
+  const fotoSayisi = yayinlananFotoSayisi;
+  const videoSayisi = yayinlananVideoSayisi;
 
   // Mail bildirim kontrolü (opsiyonel - YENİ yükleme modunda)
   const mailGonder = document.getElementById("galeriMailGonder")?.checked;
@@ -37020,7 +37061,11 @@ window.acGaleriLightbox = function(id) {
 
   const icerik = document.getElementById("galeriLightboxIcerik");
   if (oge.dosyaTipi === "video") {
-    icerik.innerHTML = `<iframe src="${escapeHtml(oge.bunnyUrl)}?autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay"></iframe>`;
+    const videoUrl = oge.bunnyUrl || oge.mp4Url || oge.url || "";
+    const iframeVideo = /iframe\.mediadelivery\.net|player\.bunnycdn\.com|player\.bunny\.net/i.test(videoUrl);
+    icerik.innerHTML = iframeVideo
+      ? `<iframe src="${escapeHtml(videoUrl)}${videoUrl.includes("?") ? "&" : "?"}autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay; fullscreen"></iframe>`
+      : `<video src="${escapeHtml(videoUrl)}" controls autoplay playsinline preload="metadata" poster="${escapeHtml(oge.kucukResim || oge.thumbnail || "")}" style="width:90vw; max-width:1200px; max-height:78vh; background:black; object-fit:contain;"></video>`;
   } else {
     icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:90vh; object-fit:contain;">`;
   }
