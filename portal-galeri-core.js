@@ -889,8 +889,17 @@ window.galeriDosyalarSecildi = function(e) {
 
 function galeriDosyalarEkle(files) {
   for (const f of files) {
-    // Max 500MB kontrolü
-    if (f.size > 500 * 1024 * 1024) {
+    const resimMi = String(f.type || "").startsWith("image/");
+    const videoMu = String(f.type || "").startsWith("video/");
+    if (!resimMi && !videoMu) {
+      showToast(`${f.name} desteklenmiyor. Yalnız fotoğraf veya video seçin.`, "error");
+      continue;
+    }
+    if (videoMu && f.size > 30 * 1024 * 1024) {
+      showToast(`${f.name} çok büyük. Video en fazla 30 MB olabilir.`, "error");
+      continue;
+    }
+    if (resimMi && f.size > 500 * 1024 * 1024) {
       showToast(`${f.name} çok büyük (max 500MB)`, "error");
       continue;
     }
@@ -964,6 +973,7 @@ window.galeriYukle = async function() {
   const klasorPath = `galeri/${hedefPath}/${etkinlikSlug}`;
 
   let basarili = 0, hatali = 0;
+  let yayinlananFotoSayisi = 0, yayinlananVideoSayisi = 0;
   for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
     const f = galeriSecilenDosyalar[i];
     document.getElementById("galeriYuklemeDurum").textContent = `${f.name}...`;
@@ -991,16 +1001,21 @@ window.galeriYukle = async function() {
       };
 
       if (f.type.startsWith("video/")) {
-        // VİDEO - henüz aktif değil (sonraki fazda güvenli Stream proxy ile gelecek)
-        showToast("Video yükleme yakında eklenecek. Şimdilik sadece fotoğraf.", "warn");
-        hatali++;
-        continue;
+        const sonuc = await medyaYukle(f, klasorPath, "video");
+        oge.dosyaTipi = "video";
+        oge.mimeType = f.type || "video/mp4";
+        oge.bunnyUrl = sonuc.url;
+        oge.mp4Url = sonuc.url;
+        oge.kucukResim = "";
+        oge.bunnyPath = sonuc.yol;
+        oge.dosyaBoyutu = f.size;
       } else if (f.type.startsWith("image/")) {
         // FOTOĞRAF - sıkıştır ve GÜVENLİ proxy üzerinden yükle (medya.js)
         const sikistirilmis = await resimSikistir(f, 1920, 0.85);
         // medyaYukle proxy'ye gönderir, API key tarayıcıda görünmez
         const sonuc = await medyaYukle(sikistirilmis, klasorPath);
         oge.dosyaTipi = "foto";
+        oge.mimeType = sikistirilmis.type || f.type || "image/jpeg";
         oge.bunnyUrl = sonuc.url;
         oge.kucukResim = sonuc.url; // fotoğraf için aynı (thumbnail Bunny ?width ile)
         oge.bunnyPath = sonuc.yol;
@@ -1025,6 +1040,10 @@ window.galeriYukle = async function() {
       const ref = doc(collection(db, "galeri"));
       await setDoc(ref, oge, { merge: true });
       basarili++;
+      if (oge.durum === "onaylandi") {
+        if (oge.dosyaTipi === "video") yayinlananVideoSayisi++;
+        else if (oge.dosyaTipi === "foto") yayinlananFotoSayisi++;
+      }
 
       const toplam = ((i + 1) / galeriSecilenDosyalar.length) * 100;
       document.getElementById("galeriYuklemeBar").style.width = `${toplam}%`;
@@ -1061,14 +1080,15 @@ window.galeriYukle = async function() {
     }
   } catch (e) {}
 
-  // Yüklenen dosyaların sayısını hesapla
-  const fotoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("image/")).length;
-  const videoSayisi = galeriSecilenDosyalar.filter(f => f.type.startsWith("video/")).length;
+  // Yalnız başarıyla yayınlanan medya veli bildirimlerine girer.
+  const fotoSayisi = yayinlananFotoSayisi;
+  const videoSayisi = yayinlananVideoSayisi;
+  const yayinlananToplam = fotoSayisi + videoSayisi;
 
   // Mail bildirim kontrolü (opsiyonel - YENİ yükleme modunda)
   const mailGonder = document.getElementById("galeriMailGonder")?.checked;
 
-  if (albumEkleMod && basarili > 0) {
+  if (albumEkleMod && yayinlananToplam > 0) {
     // MEVCUT ALBÜME EKLEME: Sistem bildirimi oluştur (mail GİTMEZ)
     document.getElementById("galeriYuklemeDurum").textContent = "🔔 Veli bildirimleri oluşturuluyor...";
     await galeriGuncellemeBildirimi({
@@ -1080,7 +1100,7 @@ window.galeriYukle = async function() {
       fotoSayisi,
       videoSayisi
     });
-  } else if (mailGonder && basarili > 0) {
+  } else if (mailGonder && yayinlananToplam > 0) {
     // YENİ YÜKLEME: Mail gönder
     document.getElementById("galeriYuklemeDurum").innerHTML = `<i data-lucide="mail" style="width:13px;height:13px;vertical-align:-2px;"></i> Velilere mail gönderiliyor...`; window.lucideYenile && window.lucideYenile();
     await galeriBildirimMailGonder({
