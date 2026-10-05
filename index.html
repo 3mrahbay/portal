@@ -36879,6 +36879,15 @@ window.galeriRolKisitiUygula = function() {
   } catch (e) { console.warn("galeri rol kısıtı:", e); }
 };
 
+async function galeriVideoYukle(file, options = {}) {
+  const stream = await import("./js/bunny-stream-upload.js?v=180");
+  return stream.bunnyStreamVideoYukle(file, {
+    proxyUrl: MEDYA_AYAR.PROXY_URL,
+    sharedKey: MEDYA_AYAR.PAYLASIM_ANAHTARI,
+    ...options
+  });
+}
+
 window.galeriYukle = async function() {
   // ── ÖĞRETMEN KISITI (sunucu tarafı Rules'a ek olarak arayüz koruması) ──
   if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
@@ -36962,10 +36971,7 @@ window.galeriYukle = async function() {
       if (f.type.startsWith("video/")) {
         // VİDEO - 500 MB'a kadar doğrudan Bunny Stream TUS yüklemesi.
         // Dosya Apps Script'e/base64'e girmez; proxy yalnız kısa ömürlü imza üretir.
-        const stream = await import("./js/bunny-stream-upload.js?v=180");
-        const sonuc = await stream.bunnyStreamVideoYukle(f, {
-          proxyUrl: MEDYA_AYAR.PROXY_URL,
-          sharedKey: MEDYA_AYAR.PAYLASIM_ANAHTARI,
+        const sonuc = await galeriVideoYukle(f, {
           onProgress: ({percent}) => {
             const toplam = ((i + Math.max(0, Math.min(100, percent)) / 100) / galeriSecilenDosyalar.length) * 100;
             const bar = document.getElementById("galeriYuklemeBar");
