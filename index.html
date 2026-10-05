@@ -15286,7 +15286,10 @@ const MEDYA_AYAR = {
   // Mevcut Apps Script -> Bunny proxy tek istekte çalışıyor.
   // Video için 30 MB, base64 şişmesi ve 50 MB URL Fetch sınırına güvenli pay bırakır.
   MAKS_BOYUT_MB: 10,
-  MAKS_VIDEO_BOYUT_MB: 30
+  // Eski Apps Script/base64 video yolu yalnız küçük dosyalar için güvenli fallback'tir.
+  MAKS_VIDEO_BOYUT_MB: 30,
+  // Galeri videoları Bunny Stream TUS ile doğrudan yüklenir.
+  MAKS_STREAM_VIDEO_BOYUT_MB: 500
 };
 
 // Bir dosyayı base64'e çevir (proxy'ye göndermek için)
@@ -36819,8 +36822,8 @@ function galeriDosyalarEkle(files) {
       showToast(`${f.name} desteklenmiyor. Yalnız fotoğraf veya video seçin.`, "error");
       continue;
     }
-    if (videoMu && f.size > MEDYA_AYAR.MAKS_VIDEO_BOYUT_MB * 1024 * 1024) {
-      showToast(`${f.name} çok büyük. Video en fazla ${MEDYA_AYAR.MAKS_VIDEO_BOYUT_MB} MB olabilir.`, "error");
+    if (videoMu && f.size > MEDYA_AYAR.MAKS_STREAM_VIDEO_BOYUT_MB * 1024 * 1024) {
+      showToast(`${f.name} çok büyük. Video en fazla ${MEDYA_AYAR.MAKS_STREAM_VIDEO_BOYUT_MB} MB olabilir.`, "error");
       continue;
     }
     if (resimMi && f.size > 500 * 1024 * 1024) {
@@ -36957,14 +36960,30 @@ window.galeriYukle = async function() {
       };
 
       if (f.type.startsWith("video/")) {
-        // VİDEO - güvenli Apps Script proxy üzerinden Bunny Storage'a yüklenir.
-        const sonuc = await medyaYukle(f, klasorPath, "video");
+        // VİDEO - 500 MB'a kadar doğrudan Bunny Stream TUS yüklemesi.
+        // Dosya Apps Script'e/base64'e girmez; proxy yalnız kısa ömürlü imza üretir.
+        const stream = await import("./js/bunny-stream-upload.js?v=180");
+        const sonuc = await stream.bunnyStreamVideoYukle(f, {
+          proxyUrl: MEDYA_AYAR.PROXY_URL,
+          sharedKey: MEDYA_AYAR.PAYLASIM_ANAHTARI,
+          onProgress: ({percent}) => {
+            const toplam = ((i + Math.max(0, Math.min(100, percent)) / 100) / galeriSecilenDosyalar.length) * 100;
+            const bar = document.getElementById("galeriYuklemeBar");
+            if (bar) bar.style.width = `${toplam}%`;
+            const durum = document.getElementById("galeriYuklemeDurum");
+            if (durum) durum.textContent = `${f.name} · %${Math.round(percent)}`;
+          }
+        });
         oge.dosyaTipi = "video";
         oge.mimeType = f.type || "video/mp4";
-        oge.bunnyUrl = sonuc.url;
-        oge.mp4Url = sonuc.url;
-        oge.kucukResim = "";
-        oge.bunnyPath = sonuc.yol;
+        oge.bunnyUrl = sonuc.embedUrl;
+        oge.embedUrl = sonuc.embedUrl;
+        oge.mp4Url = "";
+        oge.kucukResim = sonuc.thumbnailUrl || "";
+        oge.bunnyPath = "";
+        oge.streamVideoId = sonuc.videoId;
+        oge.streamLibraryId = sonuc.libraryId;
+        oge.videoSaglayici = "bunny-stream";
         oge.dosyaBoyutu = f.size;
       } else if (f.type.startsWith("image/")) {
         // FOTOĞRAF - sıkıştır ve GÜVENLİ proxy üzerinden yükle (medya.js)
@@ -37003,6 +37022,9 @@ window.galeriYukle = async function() {
     } catch (e) {
       console.error("Yükleme hatası:", e);
       hatali++;
+      if (f.type.startsWith("video/") && /Stream|stream|imza|signer|hazırlık|hazirlik/i.test(String(e?.message || ""))) {
+        showToast("Bunny Stream video servisi hazır değil: " + String(e?.message || e), "error");
+      }
     }
   }
 
@@ -37127,8 +37149,14 @@ window.galeriGonderiDuzenle = async function(id) {
 
 window.galeriLightboxIndir = async function() {
   if (!aktifLightboxOge) return;
-  const url = aktifLightboxOge.dosyaTipi === "video" ? aktifLightboxOge.mp4Url : aktifLightboxOge.bunnyUrl;
+  const url = aktifLightboxOge.dosyaTipi === "video"
+    ? (aktifLightboxOge.mp4Url || (!aktifLightboxOge.embedUrl ? aktifLightboxOge.bunnyUrl : ""))
+    : aktifLightboxOge.bunnyUrl;
   const btn = document.getElementById("galeriLightboxIndirBtn");
+  if (aktifLightboxOge.dosyaTipi === "video" && !url) {
+    showToast("Bu video Bunny Stream üzerinden oynatılıyor; indirilebilir MP4 henüz hazır değil.", "info");
+    return;
+  }
 
   try {
     if (btn) { btn.disabled = true; btn.textContent = "⏳ İndiriliyor..."; }
