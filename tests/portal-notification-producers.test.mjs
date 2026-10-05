@@ -158,13 +158,17 @@ test('teacher pending photo upload sends neither child notices, root notices nor
   assert.equal(e.notices.length,0);assert.equal(e.mails.length,0);
 });
 
-test('admin photo upload notifies only successfully published new media',async t=>{
+test('admin mixed gallery upload notifies only successfully published photo and video',async t=>{
   const e=environment(t);e.ctx.galeriSecilenDosyalar=[{name:'one.jpg',type:'image/jpeg',size:100},{name:'failed.jpg',type:'image/jpeg',size:100},{name:'video.mp4',type:'video/mp4',size:100}];
   e.controls.uploadFail='failed.jpg';await e.window.galeriYukle();
-  assert.equal(e.sources('galeri').length,1);assert.equal(e.notices.length,1);
-  assert.ok(e.childWrites().every(w=>w.data.fotoSayisi===1&&w.data.videoSayisi===0));
+  const published=e.sources('galeri');
+  assert.equal(published.length,2);assert.equal(e.notices.length,1);
+  assert.equal(published.filter(x=>x.data.dosyaTipi==='foto').length,1);
+  assert.equal(published.filter(x=>x.data.dosyaTipi==='video').length,1);
+  assert.ok(e.childWrites().every(w=>w.data.fotoSayisi===1&&w.data.videoSayisi===1));
   assert.deepEqual(e.notices[0].emails,['a1@example.invalid','a2@example.invalid']);
-  assert.equal(e.notices[0].notice.olayAnahtari,`galeri-yayin:${e.sources('galeri')[0].path.split('/')[1]}`);
+  const ids=published.map(x=>x.path.split('/')[1]).sort();
+  assert.equal(e.notices[0].notice.olayAnahtari,`galeri-yayin:${ids.join(':')}`);
 });
 
 test('actual pending gallery approval notifies after approved write, while repeated approval is silent',async t=>{
