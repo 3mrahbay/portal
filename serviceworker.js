@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v179-galeri-video";
+const CACHE_VERSION = "v180-bunny-stream-500";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -94,6 +94,7 @@ const PRECACHE = [
   "./moduller/geri-bildirim.js",
   "./moduller/veli-galeri.js",
   "./js/portal-galeri-lightbox-ui.js",
+  "./js/bunny-stream-upload.js",
   "./okul_logo.png",
   "./manifest.json",
 ];
