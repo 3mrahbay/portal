@@ -29,11 +29,21 @@ export function isPlayerUrl(value) {
   try { return ['iframe.mediadelivery.net', 'player.bunnycdn.com', 'player.bunny.net'].includes(new URL(value).hostname); }
   catch (_) { return false; }
 }
+export function streamThumbnailUrl(media = {}) {
+  const libraryId = String(media.streamLibraryId || '').trim();
+  const videoId = String(media.streamVideoId || '').trim();
+  if (!/^\d+$/.test(libraryId) || !/^[a-zA-Z0-9-]{8,}$/.test(videoId)) return '';
+  const explicitHost = String(media.streamCdnHost || '').trim().toLowerCase();
+  const host = explicitHost && /^[a-z0-9.-]+$/.test(explicitHost) ? explicitHost : `vz-${libraryId}.b-cdn.net`;
+  const file = String(media.streamThumbnailFileName || 'thumbnail.jpg').replace(/[^a-zA-Z0-9._-]/g, '') || 'thumbnail.jpg';
+  return safeMediaUrl(`https://${host}/${videoId}/${file}`);
+}
 export function mediaSources(media = {}) {
   const urls = [...new Set([media.mp4Url, media.bunnyUrl, media.url, media.gorselUrl, isPlayerUrl(media.embedUrl) ? media.embedUrl : ''].map(safeMediaUrl).filter(Boolean))];
   const direct = urls.filter(url => !isPlayerUrl(url));
   const player = urls.find(isPlayerUrl) || '';
-  return { direct, player, poster:safeMediaUrl(media.kucukResim || media.thumbnail),
+  const poster = safeMediaUrl(media.kucukResim || media.thumbnail) || streamThumbnailUrl(media);
+  return { direct, player, poster,
     image:[media.bunnyUrl,media.url,media.gorselUrl].map(safeMediaUrl).find(url=>url&&!isPlayerUrl(url))||'' };
 }
 export function playerUrl(value) {
@@ -58,18 +68,28 @@ export function renderMedia(host, media, { thumbnail = false } = {}) {
   const imageUrl = videoMode ? sources.poster : sources.image;
   let disposed = false, current = null;
   const showStatus = text => { status.textContent = text; status.hidden = false; if (!status.parentNode) host.append(status); };
-  const dispose = () => { disposed = true; if (current?.tagName === 'VIDEO') { current.pause(); current.removeAttribute('src'); current.load(); } };
+  const dispose = () => {
+    disposed = true;
+    if (current?.tagName === 'VIDEO') { current.pause(); current.removeAttribute('src'); current.load(); }
+    if (current?.tagName === 'IFRAME') current.removeAttribute('src');
+  };
   host.__disposeMedia = dispose;
   function directVideo(index = 0) {
     if (disposed) return;
     current?.remove();
     const src = sources.direct[index];
     if (!src) {
-      if (sources.player && !thumbnail) {
+      if (sources.player) {
         const iframe = document.createElement('iframe'); current = iframe;
-        iframe.src = playerUrl(sources.player); iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-        iframe.allowFullscreen = true; iframe.title = 'Video oynatıcı';
-        iframe.style.cssText = 'width:100%;height:65vh;border:0;background:#111'; host.prepend(iframe); status.hidden = true;
+        iframe.src = playerUrl(sources.player);
+        iframe.allow = 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen';
+        iframe.allowFullscreen = true;
+        iframe.loading = thumbnail ? 'lazy' : 'eager';
+        iframe.title = thumbnail ? 'Video önizlemesi' : 'Video oynatıcı';
+        iframe.style.cssText = thumbnail
+          ? 'width:100%;height:100%;border:0;background:#111;pointer-events:none;display:block'
+          : 'display:block;width:100%;aspect-ratio:16/9;min-height:220px;max-height:76vh;border:0;background:#111';
+        host.prepend(iframe); status.hidden = true;
         return;
       }
       showStatus(thumbnail ? '▶ Video · açmak için dokunun' : 'Video kaynağı bulunamadı.'); return;
