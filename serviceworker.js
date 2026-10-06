@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v183-gallery-stream-readiness";
+const CACHE_VERSION = "v184-gallery-upload-mail-fix";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -28,7 +28,7 @@ const PRECACHE = [
   "./js/sabah-yoklama-core.js?v=168",
   "./js/okul-zili-liste-core.js?v=168",
   "./moduller/sabah-girisi.js?v=v164",
-  "./js/portal-galeri-canli.js?v=182",
+  "./js/portal-galeri-canli.js?v=183",
   "./js/portal-galeri-medya.js?v=182",
   "./js/portal-galeri-etkilesim.js?v=166",
   "./js/portal-bildirim-yerlesim.js?v=165",
@@ -94,7 +94,7 @@ const PRECACHE = [
   "./moduller/geri-bildirim.js",
   "./moduller/veli-galeri.js?v=v182",
   "./js/portal-galeri-lightbox-ui.js",
-  "./js/bunny-stream-upload.js",
+  "./js/bunny-stream-upload.js?v=183",
   "./okul_logo.png",
   "./manifest.json",
 ];
