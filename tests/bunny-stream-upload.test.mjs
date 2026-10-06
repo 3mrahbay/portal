@@ -33,7 +33,7 @@ test('signer request sends metadata only, never video bytes/base64',async()=>{
   assert.equal(auth.videoId,'vid');
 });
 
-test('TUS uploader uses presigned headers, 8 MB chunks and resumes prior upload',async()=>{
+test('TUS uploader uses presigned headers and starts a clean upload for each new video authorization',async()=>{
   const calls={started:0,resumed:0,progress:[]};
   class Upload {
     constructor(f,options){this.file=f;this.options=options;this.url='https://video.bunnycdn.com/tusupload/example';calls.options=options;}
@@ -54,7 +54,7 @@ test('TUS uploader uses presigned headers, 8 MB chunks and resumes prior upload'
   assert.equal(calls.options.headers.AuthorizationSignature,'sig');
   assert.equal(calls.options.headers.VideoId,'vid');
   assert.equal(calls.options.headers.LibraryId,'lib');
-  assert.equal(calls.resumed,1);
+  assert.equal(calls.resumed,0);
   assert.equal(calls.started,1);
   assert.equal(Math.round(calls.progress[0].percent),50);
   assert.equal(result.embedUrl,'https://iframe.mediadelivery.net/embed/lib/vid');
