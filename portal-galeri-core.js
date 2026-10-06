@@ -895,8 +895,8 @@ function galeriDosyalarEkle(files) {
       showToast(`${f.name} desteklenmiyor. Yalnız fotoğraf veya video seçin.`, "error");
       continue;
     }
-    if (videoMu && f.size > 30 * 1024 * 1024) {
-      showToast(`${f.name} çok büyük. Video en fazla 30 MB olabilir.`, "error");
+    if (videoMu && f.size > 500 * 1024 * 1024) {
+      showToast(`${f.name} çok büyük. Video en fazla 500 MB olabilir.`, "error");
       continue;
     }
     if (resimMi && f.size > 500 * 1024 * 1024) {
@@ -1001,13 +1001,28 @@ window.galeriYukle = async function() {
       };
 
       if (f.type.startsWith("video/")) {
-        const sonuc = await medyaYukle(f, klasorPath, "video");
+        if (typeof window.galeriVideoYukle !== "function") {
+          throw new Error("Bunny Stream video yükleyicisi hazır değil.");
+        }
+        const sonuc = await window.galeriVideoYukle(f, {
+          onProgress: ({ percent }) => {
+            const toplam = ((i + Math.max(0, Math.min(100, percent)) / 100) / galeriSecilenDosyalar.length) * 100;
+            const bar = document.getElementById("galeriYuklemeBar");
+            if (bar) bar.style.width = `${toplam}%`;
+            const durum = document.getElementById("galeriYuklemeDurum");
+            if (durum) durum.textContent = `${f.name} · %${Math.round(percent)}`;
+          }
+        });
         oge.dosyaTipi = "video";
         oge.mimeType = f.type || "video/mp4";
-        oge.bunnyUrl = sonuc.url;
-        oge.mp4Url = sonuc.url;
-        oge.kucukResim = "";
-        oge.bunnyPath = sonuc.yol;
+        oge.bunnyUrl = sonuc.embedUrl;
+        oge.embedUrl = sonuc.embedUrl;
+        oge.mp4Url = "";
+        oge.kucukResim = sonuc.thumbnailUrl || "";
+        oge.bunnyPath = "";
+        oge.streamVideoId = sonuc.videoId;
+        oge.streamLibraryId = sonuc.libraryId;
+        oge.videoSaglayici = "bunny-stream";
         oge.dosyaBoyutu = f.size;
       } else if (f.type.startsWith("image/")) {
         // FOTOĞRAF - sıkıştır ve GÜVENLİ proxy üzerinden yükle (medya.js)
