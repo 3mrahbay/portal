@@ -14052,6 +14052,7 @@ window.PortalAPI = {
   // Medya (Bunny proxy) — moduller/duyuru-ekleri.js gibi modüller kullanır
   medya: {
     yukle: (dosya, klasor, sadeceResim) => medyaYukle(dosya, klasor, sadeceResim),
+    videoYukle: (dosya, options) => galeriVideoYukle(dosya, options),
     sil: (yol) => medyaSil(yol)
   },
   // E-posta (Brevo) — moduller/duyuru-okunma.js hatırlatmaları kullanır
