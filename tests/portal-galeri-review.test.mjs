@@ -231,3 +231,88 @@ test('topic ZIP includes only the same program, normalized topic, exact audience
  await useWindow(f,async()=>assert.equal(await downloadAlbum('Robot Köprüsü','','','',{program:'kodlama',folderKey:galleryFolderKey(selected)}),true));
  assert.equal(f.archives[0].entries.length,2);assert.deepEqual(f.writes.map(x=>x.ref).sort(),['galeri/first/etkilesimler/parent-one','galeri/second/etkilesimler/parent-one']);
 });
+
+const streamOnly=(id='stream')=>photo(id,{dosyaTipi:'video',bunnyUrl:'https://iframe.mediadelivery.net/embed/123/synthetic'});
+test('player-only ZIP selection reports no source before any picker, fetch, archive or tracking',async()=>{
+ const f=fixture([streamOnly('one'),streamOnly('two')]);let picker=0,confirm=0,loader=0;
+ f.win.showSaveFilePicker=async()=>{picker++;};f.win.confirm=()=>{confirm++;return true;};f.win.portalAracYukle=async()=>{loader++;};
+ await useWindow(f,async()=>assert.equal(await downloadAlbum(...albumArgs),false));
+ assert.equal(picker,0);assert.equal(confirm,0);assert.equal(loader,0);assert.equal(f.archives.length,0);assert.deepEqual(f.fetched,[]);assert.deepEqual(f.writes,[]);
+ assert.match(f.toasts.at(-1)[0],/indirilebilir dosya bağlantısı yok \(2 dosya\)/);
+});
+test('mixed ZIP preserves exact Firebase source, includes only eligible files and identifies source-less omissions',async()=>{
+ const url='https://firebasestorage.googleapis.com/v0/b/synthetic/o/video.mp4?alt=media&token=synthetic';
+ const f=fixture([photo('photo'),photo('direct',{dosyaTipi:'video',bunnyUrl:url}),streamOnly()]);
+ await useWindow(f,async()=>assert.equal(await downloadAlbum(...albumArgs),true));
+ assert.deepEqual(f.fetched,['https://example.invalid/photo.jpg',url]);assert.equal(f.archives[0].entries.length,2);
+ assert.deepEqual(f.writes.map(x=>x.ref).sort(),['galeri/direct/etkilesimler/parent-one','galeri/photo/etkilesimler/parent-one']);
+ assert.ok(f.toasts.some(([text])=>/2 dosya ZIP'e alınabilir; 1 dosyanın indirme bağlantısı yok/.test(text)));
+ assert.match(f.toasts.at(-1)[0],/başlatıldı \(2 dosya, 1 bağlantı yok \(atlandı\)\)/);assert.doesNotMatch(f.toasts.at(-1)[0],/kaydedildi/);
+});
+test('mixed ZIP distinguishes known missing sources from failed fetches and tracks included files only',async()=>{
+ const f=fixture([photo('good'),photo('bad'),streamOnly()]);const fetch=f.win.fetch;f.win.fetch=url=>url.includes('/bad.')?{ok:false}:fetch(url);
+ await useWindow(f,async()=>assert.equal(await downloadAlbum(...albumArgs),true));
+ assert.equal(f.writes.length,1);assert.match(f.writes[0].ref,/galeri\/good\//);
+ assert.match(f.toasts.at(-1)[0],/1 dosya, 1 bağlantı yok \(atlandı\), 1 alınamadı/);
+});
+test('empty resulting ZIP reports failed eligible and omitted source-less counts without a save claim',async()=>{
+ const f=fixture([photo('bad'),streamOnly()]);f.win.fetch=async()=>({ok:false});
+ await useWindow(f,async()=>assert.equal(await downloadAlbum(...albumArgs),false));
+ assert.equal(f.clicks.length,0);assert.equal(f.writes.length,0);assert.match(f.toasts.at(-1)[0],/İndirilebilir 1 dosya alınamadı; 1 dosyanın indirme bağlantısı yok/);
+});
+
+function adminDownloadFixture() {
+ const nodes=new Map(),fetches=[],clicks=[],toasts=[];
+ const document={querySelectorAll:()=>[],body:{append(){}},getElementById:id=>nodes.get(id)||null};
+ document.createElement=tag=>{const element=new MediaElement(tag,document);if(tag==='a')element.click=()=>clicks.push(element.href);return element;};
+ const content=document.createElement('div');nodes.set('galeriLightboxIcerik',content);
+ const button=document.createElement('button');button.id='galeriLightboxIndirBtn';button.innerHTML='<svg></svg> İndir';button.textContent='İndir';button.before=element=>nodes.set(element.id,element);nodes.set(button.id,button);
+ const rows=[photo('A'),photo('B'),streamOnly()];
+ const win={document,PortalAPI:{state:{rol:'mudur',currentUser:{uid:'manager'}},toast:(...args)=>toasts.push(args)},galeriListesiVerisi:rows,veliGaleriVerisi:[],
+   acGaleriLightbox(){content.replaceChildren();},veliAcGaleriLightbox(){content.replaceChildren();},closeGaleriLightbox(){content.replaceChildren();},
+   setTimeout(){},MutationObserver:class{observe(){}},URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL(){}},
+   fetch:async url=>{fetches.push(url);return {ok:true,blob:async()=>new Blob(['synthetic'],{type:'image/jpeg'})};}};
+ return {win,document,button,fetches,clicks,toasts,rows};
+}
+async function useAdminDownload(f,action) {
+ const previousWindow=globalThis.window,previousDocument=globalThis.document;globalThis.window=f.win;globalThis.document=f.document;
+ try {assert.equal(installLiveGallery(f.win),true);return await action();}
+ finally {if(previousWindow===undefined)delete globalThis.window;else globalThis.window=previousWindow;if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument;}
+}
+const downloadGate=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
+const downloadResponse=()=>({ok:true,blob:async()=>new Blob(['synthetic'],{type:'image/jpeg'})});
+
+test('admin shared download control disables player-only media and restores direct-image label',async()=>{
+ const f=adminDownloadFixture();await useAdminDownload(f,async()=>{
+  f.win.acGaleriLightbox('stream');assert.equal(f.button.disabled,true);assert.match(f.button.textContent,/bağlantısı yok/);assert.match(f.button.title,/dosya bağlantısı yok/);
+  assert.equal(await f.win.galeriLightboxIndir(),false);assert.deepEqual(f.fetches,[]);
+  f.win.acGaleriLightbox('A');assert.equal(f.button.disabled,false);assert.equal(f.button.innerHTML,'<svg></svg> İndir');assert.equal(f.button.title,'');
+  assert.equal(await f.win.galeriLightboxIndir(),true);assert.equal(f.button.disabled,false);assert.equal(f.clicks.length,1);
+ });
+});
+for(const outcome of ['resolve','reject'])test(`old admin download ${outcome} cannot re-enable newer player-only media`,async()=>{
+ const f=adminDownloadFixture(),gate=downloadGate();f.win.fetch=()=>gate.promise;
+ await useAdminDownload(f,async()=>{
+  f.win.acGaleriLightbox('A');const pending=f.win.galeriLightboxIndir();f.win.acGaleriLightbox('stream');assert.equal(f.button.disabled,true);
+  if(outcome==='resolve')gate.resolve(downloadResponse());else gate.reject(Error('synthetic fetch failure'));
+  await pending;assert.equal(f.button.disabled,true);assert.match(f.button.textContent,/bağlantısı yok/);assert.match(f.button.title,/dosya bağlantısı yok/);
+ });
+});
+test('older admin completion leaves a newer direct-item download busy until its own completion',async()=>{
+ const f=adminDownloadFixture(),a=downloadGate(),b=downloadGate();let requests=0;f.win.fetch=()=>++requests===1?a.promise:b.promise;
+ await useAdminDownload(f,async()=>{
+  f.win.acGaleriLightbox('A');const first=f.win.galeriLightboxIndir();f.win.acGaleriLightbox('B');const second=f.win.galeriLightboxIndir();
+  a.resolve(downloadResponse());await first;assert.equal(f.button.disabled,true);assert.match(f.button.textContent,/İndiriliyor/);
+  b.resolve(downloadResponse());await second;assert.equal(f.button.disabled,false);assert.equal(f.button.innerHTML,'<svg></svg> İndir');
+ });
+});
+test('completion after closing the admin lightbox cannot activate a control with no selected media',async()=>{
+ const f=adminDownloadFixture(),gate=downloadGate();f.win.fetch=()=>gate.promise;
+ await useAdminDownload(f,async()=>{f.win.acGaleriLightbox('A');const pending=f.win.galeriLightboxIndir();f.win.closeGaleriLightbox();gate.resolve(downloadResponse());await pending;assert.equal(f.button.disabled,true);});
+});
+
+test('legacy fallback copy does not promise that a Stream MP4 will become ready',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const start=html.indexOf('window.galeriLightboxIndir = async function()');const excerpt=html.slice(start,html.indexOf('\n  try {',start));
+ assert.match(excerpt,/Bu video için indirilebilir dosya bağlantısı yok/);assert.doesNotMatch(excerpt,/henüz hazır|MP4/);
+});

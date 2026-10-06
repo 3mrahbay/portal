@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { galleryMediaType, galleryDisplayUrl } from '../js/portal-galeri-medya.js';
+import { galleryMediaType, galleryDisplayUrl, downloadSource } from '../js/portal-galeri-medya.js';
 import * as folders from '../js/galeri-klasorleri.js';
 import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js';
 
@@ -33,7 +33,7 @@ function runtime(rows, options = {}) {
     return{forEach:fn=>chosen.forEach(row=>fn({id:row.id,data:()=>row}))};
   }};
   const window={PortalAPI:{fb,db:{},state,esc,lucide(){}},...options.window};
-  const context={galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,...folders,window,console,document:{getElementById:id=>nodes.get(id)||null,createElement:()=>new Element(),body:{appendChild:el=>nodes.set(el.id,el)}},targetChild,isGalleryParent,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,
+  const context={galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,...folders,window,console,document:{getElementById:id=>nodes.get(id)||null,createElement:()=>new Element(),body:{appendChild:el=>nodes.set(el.id,el)}},targetChild,isGalleryParent,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,downloadSource,
     mountMedia:(host,m,opts)=>calls.mount.push({host,id:m.id,opts}),disposeMedia:el=>calls.disposed.push(el),recordOpen:m=>calls.opens.push(m.id),downloadMedia:(m,button)=>calls.downloads.push({id:m.id,button})};
   vm.runInNewContext(source+'\nglobalThis.renderGallery=render;',context);
   const actions = html => [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].map(match=>({attributes:match[1],text:decode(match[2].replace(/<[^>]*>/g,'')),id:Number(match[1].match(/window\._vg\.eylem\((\d+),this\)/)?.[1])}));

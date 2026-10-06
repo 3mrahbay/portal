@@ -13877,7 +13877,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js';
-import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js';
+import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=188';
 import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
 import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
@@ -13993,6 +13993,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { createGooglePopupFlow } from "./js/portal-google-login.js?v=178";
+import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-upload.js?v=188";
 
 import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
 import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=187";
@@ -14016,7 +14017,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v187";
+window.PORTAL_SURUM = "v188";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -19477,30 +19478,63 @@ window.caPdrAc = function(i) {
 // Portal ve ZEKY app aynı alan adlarını kullanır.
 // ═══════════════════════════════════════════════════════════════════
 
+// Aynı hedefte daha yeni bir seçim eski asenkron yüklemeyi geçersiz kılar.
+const profilFotoYuklemeIslemleri = new Map();
+
 // Ortak yükleme: dosya seç → sıkıştır → Bunny → Firestore'a URL yaz
 async function profilFotoYukle(dosya, koleksiyon, belgeId, klasor) {
   if (!dosya) return null;
   if (!dosya.type.startsWith("image/")) throw new Error("Lütfen bir görsel dosyası seçin.");
   if (dosya.size > 8 * 1024 * 1024) throw new Error("Görsel 8 MB'tan küçük olmalı.");
 
-  // Profil fotoğrafı için 800px yeterli — hem hızlı hem CDN dostu
-  const kucuk = await resimSikistir(dosya, 800, 0.85);
-  const sonuc = await medyaYukle(kucuk, klasor);
+  const kullanici = currentUser;
+  const oturum = portalOturumSurumu;
+  const hedef = doc(db, koleksiyon, belgeId);
+  const anahtar = `${koleksiyon}/${belgeId}`;
+  const islem = {};
+  profilFotoYuklemeIslemleri.set(anahtar, islem);
+  const gecerli = () => Boolean(kullanici?.uid) && currentUser === kullanici &&
+    portalOturumSurumu === oturum && profilFotoYuklemeIslemleri.get(anahtar) === islem;
+  const kontrol = () => {
+    if (!gecerli()) throw Object.assign(new Error("Fotoğraf yüklemesi oturum veya yeni seçim nedeniyle iptal edildi."), {code:"profil-foto-iptal"});
+  };
 
-  // Eski fotoğrafı Bunny'den temizle (yer kaplamasın)
   try {
-    const mevcut = await getDoc(doc(db, koleksiyon, belgeId));
-    const eskiYol = mevcut.exists() ? mevcut.data().fotoYol : null;
-    if (eskiYol && eskiYol !== sonuc.yol) await medyaSil(eskiYol);
-  } catch (e) { console.warn("eski foto silinemedi", e?.message); }
+    kontrol();
+    // Profil fotoğrafı için 800px yeterli — hem hızlı hem CDN dostu
+    const kucuk = await resimSikistir(dosya, 800, 0.85);
+    kontrol();
+    const sonuc = await medyaYukle(kucuk, klasor);
+    kontrol();
 
-  await setDoc(doc(db, koleksiyon, belgeId), {
-    fotoUrl: sonuc.url,
-    fotoYol: sonuc.yol,
-    fotoGuncellendi: new Date().toISOString()
-  }, { merge: true });
-
-  return sonuc.url;
+    // Eski dosya yalnız yeni metadata başarıyla kaydedildikten sonra temizlenir.
+    // Transaction, başka sekmedeki eşzamanlı değişimde de güncel eski yolu okur.
+    let eskiYol = null;
+    await runTransaction(db, async (transaction) => {
+      kontrol();
+      const mevcut = await transaction.get(hedef);
+      kontrol();
+      eskiYol = mevcut.exists() ? mevcut.data().fotoYol : null;
+      transaction.set(hedef, {
+        fotoUrl: sonuc.url,
+        fotoYol: sonuc.yol,
+        fotoGuncellendi: new Date().toISOString()
+      }, { merge: true });
+    });
+    kontrol();
+    if (eskiYol && eskiYol !== sonuc.yol) {
+      try { await medyaSil(eskiYol); }
+      catch (e) { console.warn("eski foto silinemedi", e?.message); }
+    }
+    kontrol();
+    return sonuc.url;
+  } catch (e) {
+    // Reddedilen await de eski oturum/seçim hatasını yeni arayüze taşıyamaz.
+    kontrol();
+    throw e;
+  } finally {
+    if (profilFotoYuklemeIslemleri.get(anahtar) === islem) profilFotoYuklemeIslemleri.delete(anahtar);
+  }
 }
 
 // Fotoğrafı kaldır
@@ -19528,10 +19562,13 @@ function fotoSecicAc(geriCagir) {
 
 // ── ÖĞRENCİ FOTOĞRAFI (yönetim: öğrenci detayı) ──
 window.ogrenciFotoDegistir = function(ogrenciId) {
+  const fotoOturumu = portalOturumSurumu;
   fotoSecicAc(async function (dosya) {
+    if (fotoOturumu !== portalOturumSurumu) return;
     if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
     try {
       const url = await profilFotoYukle(dosya, "ogrenciler", ogrenciId, "ogrenci-foto");
+      if (fotoOturumu !== portalOturumSurumu) return;
       // Yerel listeyi de güncelle ki ekran hemen yansısın
       const o = (typeof ogrenciList !== "undefined") ? ogrenciList.find(x => x.id === ogrenciId) : null;
       if (o) o.fotoUrl = url;
@@ -19544,6 +19581,7 @@ window.ogrenciFotoDegistir = function(ogrenciId) {
       });
       if (typeof showToast === "function") showToast("Fotoğraf güncellendi", "success");
     } catch (e) {
+      if (e?.code === "profil-foto-iptal") return;
       console.error("öğrenci fotoğrafı", e);
       alert("Yüklenemedi: " + (e.message || e));
     }
@@ -19565,10 +19603,13 @@ window.ogrenciFotoKaldir = async function(ogrenciId) {
 window.veliFotoDegistir = function() {
   const eposta = (currentUser?.email || "").toLowerCase();
   if (!eposta) return;
+  const fotoOturumu = portalOturumSurumu;
   fotoSecicAc(async function (dosya) {
+    if (fotoOturumu !== portalOturumSurumu) return;
     if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
     try {
       const url = await profilFotoYukle(dosya, "veliler", eposta, "veli-foto");
+      if (fotoOturumu !== portalOturumSurumu) return;
       window._veliFotoUrl = url;
       document.querySelectorAll('[data-foto-veli]').forEach(el => {
         el.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
@@ -19576,6 +19617,7 @@ window.veliFotoDegistir = function() {
       });
       if (typeof showToast === "function") showToast("Profil fotoğrafınız güncellendi", "success");
     } catch (e) {
+      if (e?.code === "profil-foto-iptal") return;
       console.error("veli fotoğrafı", e);
       alert("Yüklenemedi: " + (e.message || e));
     }
@@ -20751,10 +20793,13 @@ function caProfilYas(dogumTarihi) {
 // alanlarına izin verir; sınıf/aidat gibi alanlara dokunulamaz).
 window.veliCocukFotoDegistir = function(ogrenciId) {
   if (!ogrenciId) return;
+  const fotoOturumu = portalOturumSurumu;
   fotoSecicAc(async function (dosya) {
+    if (fotoOturumu !== portalOturumSurumu) return;
     if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
     try {
       const url = await profilFotoYukle(dosya, "ogrenciler", ogrenciId, "ogrenci-foto");
+      if (fotoOturumu !== portalOturumSurumu) return;
       if (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci && veliAktifOgrenci.id === ogrenciId) {
         veliAktifOgrenci.fotoUrl = url;
       }
@@ -20768,6 +20813,7 @@ window.veliCocukFotoDegistir = function(ogrenciId) {
       });
       if (typeof showToast === "function") showToast("Fotoğraf güncellendi", "success");
     } catch (e) {
+      if (e?.code === "profil-foto-iptal") return;
       console.error("çocuk fotoğrafı", e);
       alert("Yüklenemedi: " + (e.message || e));
     }
@@ -36954,14 +37000,16 @@ window.galeriDosyalarSecildi = function(e) {
 
 function galeriDosyalarEkle(files) {
   for (const f of files) {
-    const resimMi = String(f.type || "").startsWith("image/");
-    const videoMu = String(f.type || "").startsWith("video/");
+    const dosyaTuru = classifyGalleryFile(f);
+    const resimMi = dosyaTuru?.kind === "foto";
+    const videoMu = dosyaTuru?.kind === "video";
     if (!resimMi && !videoMu) {
       showToast(`${f.name} desteklenmiyor. Yalnız fotoğraf veya video seçin.`, "error");
       continue;
     }
-    if (videoMu && f.size > MEDYA_AYAR.MAKS_STREAM_VIDEO_BOYUT_MB * 1024 * 1024) {
-      showToast(`${f.name} çok büyük. Video en fazla ${MEDYA_AYAR.MAKS_STREAM_VIDEO_BOYUT_MB} MB olabilir.`, "error");
+    const videoDogrulama = videoMu ? validateStreamVideo(f) : null;
+    if (videoDogrulama && !videoDogrulama.ok) {
+      showToast(`${f.name}: ${videoDogrulama.error}`, "error");
       continue;
     }
     if (resimMi && f.size > 500 * 1024 * 1024) {
@@ -36983,7 +37031,7 @@ function renderGaleriSecilenDosyalar() {
   for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
     const f = galeriSecilenDosyalar[i];
     const boyutMB = (f.size / 1024 / 1024).toFixed(1);
-    const tip = f.type.startsWith("video/") ? "🎥" : "🖼";
+    const tip = classifyGalleryFile(f)?.kind === "video" ? "🎥" : "🖼";
     html += `
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; background:white; border-radius:8px; font-size:12px;">
         <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${tip} ${escapeHtml(f.name)}</div>
@@ -37018,7 +37066,7 @@ window.galeriRolKisitiUygula = function() {
 };
 
 async function galeriVideoYukle(file, options = {}) {
-  const stream = await import("./js/bunny-stream-upload.js?v=183");
+  const stream = await import("./js/bunny-stream-upload.js?v=188");
   return stream.bunnyStreamVideoYukle(file, {
     proxyUrl: MEDYA_AYAR.PROXY_URL,
     sharedKey: MEDYA_AYAR.PAYLASIM_ANAHTARI,
@@ -37113,7 +37161,8 @@ window.galeriYukle = async function() {
         donem: AKTIF_DONEM
       };
 
-      if (f.type.startsWith("video/")) {
+      const dosyaTuru = classifyGalleryFile(f);
+      if (dosyaTuru?.kind === "video") {
         // VİDEO - 500 MB'a kadar doğrudan Bunny Stream TUS yüklemesi.
         // Dosya Apps Script'e/base64'e girmez; proxy yalnız kısa ömürlü imza üretir.
         const sonuc = await galeriVideoYukle(f, {
@@ -37126,7 +37175,7 @@ window.galeriYukle = async function() {
           }
         });
         oge.dosyaTipi = "video";
-        oge.mimeType = f.type || "video/mp4";
+        oge.mimeType = dosyaTuru.mimeType;
         oge.bunnyUrl = sonuc.embedUrl;
         oge.embedUrl = sonuc.embedUrl;
         oge.mp4Url = "";
@@ -37136,7 +37185,7 @@ window.galeriYukle = async function() {
         oge.streamLibraryId = sonuc.libraryId;
         oge.videoSaglayici = "bunny-stream";
         oge.dosyaBoyutu = f.size;
-      } else if (f.type.startsWith("image/")) {
+      } else if (dosyaTuru?.kind === "foto") {
         // FOTOĞRAF - sıkıştır ve GÜVENLİ proxy üzerinden yükle (medya.js)
         const sikistirilmis = await resimSikistir(f, 1920, 0.85);
         // medyaYukle proxy'ye gönderir, API key tarayıcıda görünmez
@@ -37342,7 +37391,7 @@ window.galeriLightboxIndir = async function() {
     : aktifLightboxOge.bunnyUrl;
   const btn = document.getElementById("galeriLightboxIndirBtn");
   if (aktifLightboxOge.dosyaTipi === "video" && !url) {
-    showToast("Bu video Bunny Stream üzerinden oynatılıyor; indirilebilir MP4 henüz hazır değil.", "info");
+    showToast("Bu video için indirilebilir dosya bağlantısı yok.", "info");
     return;
   }
 
@@ -48728,13 +48777,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=187");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=188");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v187";
+          const anahtar = "portalSwReload_v188";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
@@ -48745,7 +48794,7 @@ window.showBulkUpload = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=11"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=188"></script>
 
 <!-- Read-only, user-triggered pickup diagnosis. No automatic data requests. -->
 <script>

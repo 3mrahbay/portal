@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v187-notification-chat-safety";
+const CACHE_VERSION = "v188-media-delivery";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -21,7 +21,7 @@ const PRECACHE = [
   "./stil/arayuz-duzeltmeleri.css?v=5",
   "./stil/randevu-sayfalari.css?v=2",
   "./js/galeri-klasorleri.js?v=182",
-  "./js/portal-galeri-klasor-ui.js",
+  "./js/portal-galeri-klasor-ui.js?v=188",
   "./js/ogretmen-sinif-core.js?v=173",
   "./js/ogrenci-liste-core.js?v=170",
   "./js/ogrenci-liste-xlsx.js?v=170",
@@ -30,8 +30,8 @@ const PRECACHE = [
   "./js/sabah-yoklama-core.js?v=168",
   "./js/okul-zili-liste-core.js?v=168",
   "./moduller/sabah-girisi.js?v=v164",
-  "./js/portal-galeri-canli.js?v=183",
-  "./js/portal-galeri-medya.js?v=182",
+  "./js/portal-galeri-canli.js?v=188",
+  "./js/portal-galeri-medya.js?v=188",
   "./js/portal-galeri-etkilesim.js?v=166",
   "./js/portal-bildirim-yerlesim.js?v=165",
   "./js/portal-bildirim-basliklari.js?v=165",
@@ -73,9 +73,9 @@ const PRECACHE = [
   "./js/zeky-randevu-callable-adapter.js",
   "./js/zeky-randevu-parent-page.js",
   "./js/zeky-randevu-staff-page.js",
-  "./js/zeky-randevu-modal-koprusu.js?v=11",
+  "./js/zeky-randevu-modal-koprusu.js?v=188",
   "./js/zeky-veli-odeme-ozeti.js",
-  "./js/zeky-galeri-filigran-koprusu.js?v=10",
+  "./js/zeky-galeri-filigran-koprusu.js?v=188",
   "./js/zeky-galeri-onay-egitim.js?v=5",
   "./js/zeky-veli-egitim-koprusu.js?v=9",
   "./js/zeky-veli-ogrenme-deneyimi.js?v=3",
@@ -94,9 +94,9 @@ const PRECACHE = [
   "./moduller/pdr.js",
   "./moduller/program-belgeleme.js",
   "./moduller/geri-bildirim.js",
-  "./moduller/veli-galeri.js?v=v182",
+  "./moduller/veli-galeri.js?v=v188",
   "./js/portal-galeri-lightbox-ui.js",
-  "./js/bunny-stream-upload.js?v=183",
+  "./js/bunny-stream-upload.js?v=188",
   "./okul_logo.png",
   "./manifest.json",
 ];

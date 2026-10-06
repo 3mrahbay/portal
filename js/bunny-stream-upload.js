@@ -5,25 +5,36 @@
 export const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 export const TUS_ENDPOINT = 'https://video.bunnycdn.com/tusupload';
 const TUS_MODULE = 'https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/+esm';
-const ALLOWED_EXTENSIONS = new Set(['mp4','webm','mov','m4v','mkv','avi','mpeg','mpg']);
-const ALLOWED_MIME = new Set([
-  'video/mp4','video/webm','video/quicktime','video/x-m4v',
-  'video/x-matroska','video/x-msvideo','video/mpeg'
-]);
+const VIDEO_MIME_BY_EXTENSION = Object.freeze({
+  mp4:'video/mp4', webm:'video/webm', mov:'video/quicktime', m4v:'video/x-m4v',
+  mkv:'video/x-matroska', avi:'video/x-msvideo', mpeg:'video/mpeg', mpg:'video/mpeg'
+});
+const ALLOWED_MIME = new Set(Object.values(VIDEO_MIME_BY_EXTENSION));
+const GENERIC_MIME = new Set(['', 'application/octet-stream', 'binary/octet-stream']);
 
 function extension(name='') {
   const bits=String(name).toLowerCase().split('.');
   return bits.length>1?bits.pop():'';
 }
+// Selection, upload routing, signer requests and TUS metadata share one contract.
+// An extension supplies a MIME only when the browser has no specific MIME.
+export function classifyGalleryFile(file) {
+  if (!file) return null;
+  const type=String(file.type||'').trim().toLowerCase();
+  if (type.startsWith('image/')) return {kind:'foto',mimeType:type};
+  if (ALLOWED_MIME.has(type)) return {kind:'video',mimeType:type};
+  const mimeType=VIDEO_MIME_BY_EXTENSION[extension(file.name)];
+  return GENERIC_MIME.has(type) && ALLOWED_MIME.has(mimeType) ? {kind:'video',mimeType} : null;
+}
 export function validateStreamVideo(file) {
   if (!file) return {ok:false,error:'Video seçilmedi.'};
-  const size=Number(file.size||0), type=String(file.type||'').toLowerCase(), ext=extension(file.name);
-  if (!ALLOWED_MIME.has(type) && !ALLOWED_EXTENSIONS.has(ext))
+  const size=Number(file.size||0), classified=classifyGalleryFile(file);
+  if (classified?.kind!=='video')
     return {ok:false,error:'Video türü desteklenmiyor. MP4, WEBM, MOV, M4V, MKV, AVI veya MPEG seçin.'};
-  if (size<=0) return {ok:false,error:'Video dosyası boş.'};
+  if (!Number.isFinite(size) || size<=0) return {ok:false,error:'Video dosyası boş veya boyutu geçersiz.'};
   if (size>MAX_VIDEO_BYTES)
     return {ok:false,error:`Video çok büyük (${(size/1024/1024).toFixed(1)} MB). En fazla 500 MB yüklenebilir.`};
-  return {ok:true};
+  return {ok:true,mimeType:classified.mimeType};
 }
 
 async function jsonResponse(response) {
@@ -54,7 +65,7 @@ export async function requestStreamAuthorization(file, {
       islem:'stream_hazirla',
       dosyaAdi:file.name,
       dosyaBoyutu:Number(file.size||0),
-      mimeType:file.type||'application/octet-stream'
+      mimeType:valid.mimeType
     })
   });
   const data=await jsonResponse(response);
@@ -96,7 +107,7 @@ export async function uploadStreamVideo(file, {
       removeFingerprintOnSuccess:true,
       metadata:{
         filename:file.name||'video',
-        filetype:file.type||'video/mp4',
+        filetype:valid.mimeType,
         title:file.name||'video',
         ...(auth.collectionId?{collection:auth.collectionId}:{})
       },

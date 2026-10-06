@@ -24,7 +24,7 @@ function fixture(rows,overrides={}){
  const auth=authState(overrides),nodes=new Map(),events=new Map(),calls={mount:[],open:[],dispose:[],download:[],queries:[]};let document;
  class Element{
   constructor(tag='div'){this.tagName=tag.toUpperCase();this.style={};this.dataset={};this.attributes={};this._html='';this.controls=[];this.isConnected=true;}
-  set innerHTML(s){this._html=s;this.controls=[...s.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].map(m=>{const e=new Element('button');e.parent=this;e.text=m[2].replace(/<[^>]*>/g,'');e.action=Number(m[1].match(/eylem\((\d+),this\)/)?.[1]);e.label=m[1].match(/aria-label="([^"]*)"/)?.[1];return e;});}
+  set innerHTML(s){this._html=s;this.controls=[...s.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].map(m=>{const e=new Element('button');e.parent=this;e.text=m[2].replace(/<[^>]*>/g,'');e.action=Number(m[1].match(/eylem\((\d+),this\)/)?.[1]);e.label=m[1].match(/aria-label="([^"]*)"/)?.[1];e.disabled=/\bdisabled(?:\s|$)/.test(m[1]);return e;});}
   get innerHTML(){return this._html;}
   setAttribute(k,v){this.attributes[k]=v;}
   focus(){document.activeElement=this;}
@@ -37,7 +37,7 @@ function fixture(rows,overrides={}){
  const emit=(name,event={})=>{for(const f of events.get(name)||[])f(event);};
  const history={get state(){return stack[at]},pushState(s){stack.splice(++at);stack[at]=s;},replaceState(s){stack[at]=s;},back(){backCalls++;backQueued=true;}};
  const window={PortalAPI:{get state(){return auth.api.state},esc,lucide(){},db:{},fb:{collection:()=> 'galeri',where:(field,op,value)=>({field,value}),query:(collection,...where)=>({collection,where}),getDocs:async q=>{calls.queries.push(q);return{forEach:f=>rows.forEach(r=>f({id:r.id,data:()=>r}))};}}},history,addEventListener:(n,f)=>events.set(n,[...events.get(n)||[],f])};
- const ctx={galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,...folders,window,document,console,isGalleryParent,targetChild,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,mountMedia:(h,m,o)=>calls.mount.push({id:m.id,opts:o}),disposeMedia:d=>calls.dispose.push(d),recordOpen:m=>calls.open.push(m.id),downloadMedia:m=>calls.download.push(m.id)};
+ const ctx={galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,...folders,window,document,console,isGalleryParent,targetChild,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,downloadSource,mountMedia:(h,m,o)=>calls.mount.push({id:m.id,opts:o}),disposeMedia:d=>calls.dispose.push(d),recordOpen:m=>calls.open.push(m.id),downloadMedia:m=>calls.download.push(m.id)};
  vm.runInNewContext(source+';globalThis.render=render;',ctx);
  return {auth,window,root,nodes,calls,document,history,emit,get backCalls(){return backCalls},
   render:()=>ctx.render('gallery'),html:()=>root.innerHTML,lightbox:()=>nodes.get('vgLightbox'),
@@ -158,4 +158,27 @@ test('contradictory explicit child target IDs fail closed in listing, open and t
  const r=fixture([conflicting,consistent]);await r.render();assert.deepEqual(r.ids(),['consistent']);r.window._vg.buyut('conflict','gallery');assert.equal(r.lightbox(),undefined);
  assert.equal(targetChild(conflicting,[child,{id:'child-b'}]),null);assert.equal(targetChild(consistent,[child]).id,'child-a');
  const reverse={...conflicting,hedefDeger:'child-a',hedefOgrenciId:'child-b'};assert.equal(targetChild(reverse,[child,{id:'child-b'}]),null);
+});
+
+test('player-only parent lightbox has a disabled Download, visible reason and no usable download handler',async()=>{
+ const r=fixture([photo('stream',{dosyaTipi:'video',bunnyUrl:'https://iframe.mediadelivery.net/embed/123/synthetic'})]);
+ await r.render();r.card('stream');const button=r.lightbox().controls.find(e=>e.label==='İndir');
+ assert.equal(button.disabled,true);assert.equal(Number.isNaN(button.action),true);
+ assert.match(r.lightbox().innerHTML,/id="vgDownloadReason"[^>]*>İndirilebilir dosya bağlantısı yok/);
+ assert.match(r.lightbox().innerHTML,/aria-describedby="vgDownloadReason"/);
+ r.window._vg.indir('stream',button);assert.deepEqual(r.calls.download,[]);
+});
+test('legacy direct Firebase URL remains downloadable and parent navigation recalculates eligibility',async()=>{
+ const url='https://firebasestorage.googleapis.com/v0/b/synthetic/o/video.mp4?alt=media&token=synthetic';
+ const r=fixture([photo('stream',{dosyaTipi:'video',bunnyUrl:'https://iframe.mediadelivery.net/embed/123/synthetic'}),photo('direct',{dosyaTipi:'video',bunnyUrl:undefined,url})]);
+ await r.render();r.card('stream');assert.equal(r.lightbox().controls.find(e=>e.label==='İndir').disabled,true);
+ r.window._vg.buyut('direct','gallery');const button=r.lightbox().controls.find(e=>e.label==='İndir');assert.equal(button.disabled,false);
+ assert.doesNotMatch(r.lightbox().innerHTML,/id="vgDownloadReason"/);r.window._vg.indir('direct',button);assert.deepEqual(r.calls.download,['direct']);
+ r.window._vg.buyut('stream','gallery');assert.equal(r.lightbox().controls.find(e=>e.label==='İndir').disabled,true);
+ assert.equal(downloadSource({dosyaTipi:'video',url}),url);
+});
+test('a parent HLS playlist is playable without being offered as a downloadable file',async()=>{
+ const r=fixture([photo('hls',{dosyaTipi:'video',bunnyUrl:'https://example.invalid/playlist.m3u8'})]);await r.render();r.card('hls');
+ assert.equal(r.lightbox().controls.find(e=>e.label==='İndir').disabled,true);assert.equal(r.calls.mount.at(-1).id,'hls');
+ r.window._vg.indir('hls',{});assert.deepEqual(r.calls.download,[]);
 });

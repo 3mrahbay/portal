@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { installedPwa, assertPrecachedImport } from './helpers/portal-pwa.mjs';
 
 const kok = new URL('../', import.meta.url);
 
 test('portal galeri uyumluluk katmanı BÇKA filigranını ve %60 saydamlığı tanımlar', async () => {
   const kaynak = await readFile(new URL('portal-galeri.js', kok), 'utf8');
   const kopru = await readFile(new URL('js/zeky-galeri-filigran-koprusu.js', kok), 'utf8');
-  const yukleyici = await readFile(new URL('js/zeky-randevu-modal-koprusu.js', kok), 'utf8');
   assert.match(kaynak, /BÇKA/);
   assert.match(kaynak, /Bir Çiçek Koleji Anaokulu/);
   assert.match(kaynak, /saydamlik:\s*0\.60/);
@@ -17,7 +17,7 @@ test('portal galeri uyumluluk katmanı BÇKA filigranını ve %60 saydamlığı 
   assert.match(kopru, /globalAlpha\s*=\s*0\.40/);
   assert.match(kopru, /Bir Çiçek Koleji Anaokulu/);
   assert.match(kopru, /BÇKA/);
-  assert.match(yukleyici, /zeky-galeri-filigran-koprusu\.js\?v=10/);
+  assertPrecachedImport(await installedPwa(), 'js/zeky-randevu-modal-koprusu.js', 'js/zeky-galeri-filigran-koprusu.js');
 });
 
 test('veli galerisi yalnız onaylı medyayı ister ve sınıf adlarını güvenli eşler', async () => {

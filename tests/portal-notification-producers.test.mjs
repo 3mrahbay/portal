@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import {classifyGalleryFile} from '../js/bunny-stream-upload.js';
 import {gallerySession,galleryApprovalTarget} from '../js/galeri-onay-canli.js';
 import { galleryText, galleryProgram } from '../js/galeri-klasorleri.js';
 import { hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js';
@@ -67,7 +68,7 @@ function environment(t,{role='mudur'}={}){
   }};
   const quiet={warn(){},error(){},log(){}};
   const attachment={yuklemeSuruyor:()=>false,formEkleri:()=>[],kayitTamamlandi(){}};
-  ctx=vm.createContext({window,bridge,gallerySession,galleryApprovalTarget,notifyGalleryApproval:async media=>{approvalNotices.push(media);return{ok:true};},galleryText,galleryProgram,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
+  ctx=vm.createContext({window,bridge,classifyGalleryFile,gallerySession,galleryApprovalTarget,notifyGalleryApproval:async media=>{approvalNotices.push(media);return{ok:true};},galleryText,galleryProgram,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
     currentUser:{uid:'sender',email:'staff@example.invalid'},aktifPersonel:{adSoyad:'Private Teacher Name'},isAdmin:role==='mudur',aktifKullaniciRol:role,aktifKullaniciSiniflari:['A'],
     AKTIF_DONEM:donem,ogrenciList:students,ayarListesi:settings,db:window.PortalAPI.db,
     veliOgrenciler:students.slice(0,3),veliAktifOgrenci:students[0],

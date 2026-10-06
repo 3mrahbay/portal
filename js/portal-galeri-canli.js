@@ -1,11 +1,12 @@
 import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js';
 export { galleryProgram } from './galeri-klasorleri.js';
-import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=182';
+import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=188';
 import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=166';
 
 const api = () => window.PortalAPI;
 const service = createInteractionService(api);
 let active = null, sequence = 0, reportOwner = '';
+const downloadOperations = new WeakMap();
 const toast = (text, type) => api()?.toast?.(text, type);
 const escape = value => String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const currentMedia = (id, parent = false) => (parent ? window.veliGaleriVerisi : window.galeriListesiVerisi)?.find(item => item.id === id);
@@ -63,6 +64,8 @@ export async function saveBlob(blob, name, {win = window, handle = null, guard =
 }
 export async function downloadMedia(media, button = null) {
   if (!media || button?.disabled) return false;
+  const operation = {mediaId:media.id};
+  if (button) downloadOperations.set(button, operation);
   const label = button?.textContent, initial = api()?.state || {}, owner = initial.currentUser?.uid;
   const parent = isGalleryParent(initial), context = galleryParentKey(initial);
   const guard = () => { const state=api()?.state || {}; return state.currentUser?.uid===owner && (!parent || (isGalleryParent(state)&&galleryParentKey(state)===context&&!!targetChild(media,[state.veliAktifOgrenci||state.veliOgrenciler?.[0]].filter(Boolean),state))); };
@@ -81,7 +84,13 @@ export async function downloadMedia(media, button = null) {
   } catch (error) {
     if (error?.name !== 'AbortError') toast(error.message || 'İndirilemedi', 'error');
     return false;
-  } finally { if (button) { button.disabled = false; button.textContent = label; } }
+  } finally {
+    if (button && downloadOperations.get(button) === operation) {
+      downloadOperations.delete(button);
+      if (button.id === 'galeriLightboxIndirBtn') downloadControl();
+      else { button.disabled = false; button.textContent = label; }
+    }
+  }
 }
 export function reportTime(value) {
   const date = new Date(value);
@@ -90,6 +99,18 @@ export function reportTime(value) {
 export function interactionRowHtml(row) {
   const download = row.lastDownloadStatus === 'tamamlandi' ? 'Kaydetme doğrulandı' : 'İndirme başlatıldı';
   return `<div style="padding:12px 0;border-bottom:1px solid #eee"><strong>${escape(row.name)}</strong><div style="font-size:12px;color:#687385">${row.children.map(escape).join(', ')}</div><div style="font-size:12px;line-height:1.7;margin-top:6px">${row.opened ? `İlk açılış: ${escape(reportTime(row.firstOpen))}<br>Son açılış: ${escape(reportTime(row.lastOpen))}<br>Açılış sayısı: ${Number(row.openCount) || 0}` : 'Açılış kaydı yok'}${row.started ? `<br>Son indirme: ${escape(reportTime(row.lastDownload))}<br>${download} · ${Number(row.downloadCount) || 0} işlem` : '<br>İndirme kaydı yok'}${row.favorite ? '<br>♥ Favori' : ''}</div></div>`;
+}
+function downloadControl() {
+  const button = document.getElementById('galeriLightboxIndirBtn'); if (!button) return;
+  if (!('pgDownloadLabel' in button.dataset)) button.dataset.pgDownloadLabel = button.innerHTML;
+  const available = Boolean(active && downloadSource(active));
+  const busy = available && downloadOperations.get(button)?.mediaId === active.id;
+  button.disabled = !available || busy;
+  button.setAttribute('aria-disabled', String(button.disabled));
+  button.title = available ? '' : 'İndirilebilir dosya bağlantısı yok';
+  if (busy) button.textContent = 'İndiriliyor…';
+  else if (available) button.innerHTML = button.dataset.pgDownloadLabel;
+  else button.textContent = 'İndirme bağlantısı yok';
 }
 function reportControl() {
   const anchor = document.getElementById('galeriLightboxIndirBtn'); if (!anchor) return;
@@ -138,7 +159,11 @@ export async function downloadAlbum(title, date, targetType, targetValue, folder
       (!targetType || item.hedefTur === targetType) && (!targetType || String(item.hedefDeger || '') === String(targetValue || ''));
   });
   if (!media.length) { toast('Dosya bulunamadı', 'error'); return false; }
-  if (media.some(item => item.dosyaTipi === 'video') && !window.confirm('Bu albüm video içeriyor. ZIP indirmesi zaman alabilir. Devam edilsin mi?')) return false;
+  const downloadable = media.filter(item => downloadSource(item));
+  const unavailable = media.length - downloadable.length;
+  if (!downloadable.length) { toast(`Bu albümde indirilebilir dosya bağlantısı yok (${unavailable} dosya).`, 'error'); return false; }
+  if (unavailable) toast(`${downloadable.length} dosya ZIP'e alınabilir; ${unavailable} dosyanın indirme bağlantısı yok, atlanacak.`, 'warning');
+  if (downloadable.some(item => item.dosyaTipi === 'video') && !window.confirm('Bu albüm video içeriyor. ZIP indirmesi zaman alabilir. Devam edilsin mi?')) return false;
   albumBusy = true;
   try {
     const name = String(title || 'Album').replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ-]/g, '-').slice(0, 80) + '.zip';
@@ -146,19 +171,19 @@ export async function downloadAlbum(title, date, targetType, targetValue, folder
     check();await window.portalAracYukle('zip');check();
     const zip = new window.JSZip(), included = [];
     toast('Albüm hazırlanıyor…');
-    for (const item of media) {
+    for (const item of downloadable) {
       check();
       try { const blob = await fetchMediaBlob(item);check();zip.file(`${String(included.length + 1).padStart(3, '0')}_${fileName(item)}`, blob); included.push(item); }
       catch (_) { /* Only successfully included media receive a download event. */ }
     }
     check();
-    if (!included.length) throw new Error('Albüm dosyaları indirilemedi');
+    if (!included.length) throw new Error(`İndirilebilir ${downloadable.length} dosya alınamadı${unavailable ? `; ${unavailable} dosyanın indirme bağlantısı yok` : ''}.`);
     const blob = await zip.generateAsync({type:'blob', compression:'STORE'});
     check();
     const completed = await saveBlob(blob, name, {handle,guard});check();
     await Promise.allSettled(included.map(item => recordDownload(item, completed, owner)));check();
-    const failed = media.length - included.length;
-    toast(`${completed ? 'Albüm kaydedildi' : 'Albüm indirmesi başlatıldı'} (${included.length} dosya${failed ? `, ${failed} alınamadı` : ''})`);
+    const failed = downloadable.length - included.length;
+    toast(`${completed ? 'Albüm kaydedildi' : 'Albüm indirmesi başlatıldı'} (${included.length} dosya${unavailable ? `, ${unavailable} bağlantı yok (atlandı)` : ''}${failed ? `, ${failed} alınamadı` : ''})`);
     return true;
   } catch (error) { if (error?.name !== 'AbortError') toast(error.message || 'Albüm indirilemedi', 'error'); return false; }
   finally { albumBusy = false; }
@@ -201,6 +226,7 @@ export function installLiveGallery(win = window) {
       active = media; const ticket = ++sequence;
       const result = original.call(this, id, ...args);
       reportControl();
+      downloadControl();
       replaceActivePlayer(media, ticket);
       // Existing education approval wrapper adds the details pane asynchronously.
       win.setTimeout(() => replaceActivePlayer(media, ticket), 0);
@@ -209,7 +235,7 @@ export function installLiveGallery(win = window) {
     };
   }
   const close = win.closeGaleriLightbox;
-  win.closeGaleriLightbox = function(...args) { ++sequence; active = null; reportControl(); disposeMedia(document.getElementById('galeriLightboxIcerik')); return close?.apply(this, args); };
+  win.closeGaleriLightbox = function(...args) { ++sequence; active = null; reportControl(); downloadControl(); disposeMedia(document.getElementById('galeriLightboxIcerik')); return close?.apply(this, args); };
   win.albumZipIndir = downloadAlbum;
   win.galeriLightboxIndir = () => downloadMedia(active, document.getElementById('galeriLightboxIndirBtn'));
   const observer = new win.MutationObserver(() => refreshGalleryCards());

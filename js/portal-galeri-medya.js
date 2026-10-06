@@ -34,7 +34,8 @@ export function streamThumbnailUrl(media = {}) {
   const videoId = String(media.streamVideoId || '').trim();
   if (!/^\d+$/.test(libraryId) || !/^[a-zA-Z0-9-]{8,}$/.test(videoId)) return '';
   const explicitHost = String(media.streamCdnHost || '').trim().toLowerCase();
-  const host = explicitHost && /^[a-z0-9.-]+$/.test(explicitHost) ? explicitHost : `vz-${libraryId}.b-cdn.net`;
+  if (!explicitHost || !/^[a-z0-9.-]+$/.test(explicitHost)) return '';
+  const host = explicitHost;
   const file = String(media.streamThumbnailFileName || 'thumbnail.jpg').replace(/[^a-zA-Z0-9._-]/g, '') || 'thumbnail.jpg';
   return safeMediaUrl(`https://${host}/${videoId}/${file}`);
 }
@@ -163,7 +164,8 @@ export function renderMedia(host, media, { thumbnail = false } = {}) {
   const bunnyStream = videoMode && Boolean(streamStatusUrl(media));
   if (bunnyStream) {
     const yuklendi = Date.parse(media.yuklemeZamani || media.yuklenmeTarihi || media.olusturmaTarihi || '');
-    const eskiKayit = Number.isFinite(yuklendi) && (Date.now() - yuklendi) > 5 * 60 * 1000;
+    const kontrolBaslangici = Date.now();
+    const eskiKayit = () => Date.now() - Math.min(Number.isFinite(yuklendi) ? yuklendi : kontrolBaslangici, kontrolBaslangici) >= 5 * 60 * 1000;
     const kontrol = async () => {
       if (disposed) return;
       streamChecks++;
@@ -184,14 +186,16 @@ export function renderMedia(host, media, { thumbnail = false } = {}) {
         streamTimer = setTimeout(kontrol, 5000);
       } catch (_) {
         if (disposed) return;
-        // Eski ve daha önce çalıştığı bilinen videolarda durum servisi geçici
-        // olarak erişilemezse oynatmayı engelleme. Yeni videoda ise Bunny'nin
-        // teknik "Processing video" ekranını veliye göstermemek için bekle.
-        if (eskiKayit && streamChecks >= 2) {
+        // Ağ hatası kodlama hatası değildir. Kaydın yaşı her kontrolde ilerler;
+        // tarih eksik/gelecekte olsa bile durum servisi oynatmayı sonsuza dek engellemez.
+        if (eskiKayit() && streamChecks >= 2) {
           renderReadyVideo();
+          showStatus(sources.direct.length || sources.player
+            ? 'Video durumu doğrulanamadı; oynatmayı deneyebilirsiniz.'
+            : 'Video durumu doğrulanamadı ve oynatılabilir kaynak bulunamadı.');
           return;
         }
-        showStatus('Video hazırlanıyor…');
+        showStatus('Video durumu şu anda doğrulanamıyor. Yeniden deneniyor…');
         streamTimer = setTimeout(kontrol, 8000);
       }
     };
