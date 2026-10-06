@@ -10,6 +10,11 @@
   const eskiSikistir = B.resimSikistir;
   const eskiSetDoc = B.setDoc;
 
+  // Büyük videolar: ana portalın Bunny Stream TUS yükleyicisini legacy galeriye bağla.
+  if (typeof window.galeriVideoYukle !== 'function' && typeof window.PortalAPI?.medya?.videoYukle === 'function') {
+    window.galeriVideoYukle = (file, options) => window.PortalAPI.medya.videoYukle(file, options);
+  }
+
   function resimYukle(blob) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(blob);
