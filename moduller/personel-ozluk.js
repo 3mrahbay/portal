@@ -67,6 +67,16 @@ function kisaSure(dk) { const s = Math.floor(dk / 60), d = Math.round(dk % 60); 
 function saat(t) { return t ? `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}` : "—"; }
 function tarihYaz(t, yil = false) { return `${t.getDate()} ${AYLAR[t.getMonth()]}${yil || t.getFullYear() !== new Date().getFullYear() ? " " + t.getFullYear() : ""}`; }
 function tarihOku(z) { if (!z) return null; if (typeof z.toDate === "function") return z.toDate(); const t = new Date(z); return isNaN(t) ? null : t; }
+export function canliDurumBuguneAitMi(durum, bugun = gunKodu(new Date())) {
+  if (!durum || typeof durum !== "object") return false;
+  const acikTarih = String(durum.tarih || "").slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(acikTarih)) return acikTarih === bugun;
+  for (const alan of ["sonZaman", "guncellendi", "girisZamani", "cikisZamani", "zaman"]) {
+    const t = tarihOku(durum[alan]);
+    if (t) return gunKodu(t) === bugun;
+  }
+  return false;
+}
 function goreceZaman(t) {
   if (!t) return "Kayıt yok";
   const f = Date.now() - t.getTime();
@@ -223,7 +233,10 @@ function kisiDurumu(p) {
   const izinler = pnl.izinler.filter(v => kucuk(v.personelEmail) === p.email);
   const izin = gunIzni(izinler, bugun);
   const izinOnayli = izin && izinDurumKodu(izin.durum) === "onaylandi";
-  const canli = pnl.durumlar[p.email]?.durum;
+  const canliKayit = pnl.durumlar[p.email] || null;
+  // personelDurum anlık bir önbellektir; önceki günden "iceride" kalmış bir
+  // belge bugünün puantajını asla ezemez. Canlı durum yalnız bugüne aitse yedektir.
+  const canli = canliDurumBuguneAitMi(canliKayit, bugun) ? canliKayit.durum : "";
   let kod, etiket, alt = "", renk, acik, ik;
   if (izin && izinOnayli && g.durum === "disarida" && !g.kayitlar.length) {
     const gor = izinGorunum(izin.tur), b = izinBitisi(izin);
