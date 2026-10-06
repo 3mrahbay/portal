@@ -33,6 +33,22 @@ function galeriBekliyorMu(durum) {
   return durum === "beklemede" || durum === "onayBekliyor";
 }
 
+function galeriPlayerUrlMu(value) {
+  try {
+    return ["iframe.mediadelivery.net", "player.bunnycdn.com", "player.bunny.net", "player.mediadelivery.net"].includes(new URL(String(value || "")).hostname);
+  } catch (_) { return false; }
+}
+
+function galeriStreamKapakUrl(d) {
+  if (d?.kucukResim || d?.thumbnail) return d.kucukResim || d.thumbnail;
+  const libraryId = String(d?.streamLibraryId || "").trim();
+  const videoId = String(d?.streamVideoId || "").trim();
+  if (!/^\d+$/.test(libraryId) || !/^[a-zA-Z0-9-]{8,}$/.test(videoId)) return "";
+  const host = String(d?.streamCdnHost || "").trim().toLowerCase();
+  const cdn = host && /^[a-z0-9.-]+$/.test(host) ? host : `vz-${libraryId}.b-cdn.net`;
+  return `https://${cdn}/${videoId}/thumbnail.jpg`;
+}
+
 function galeriProgramKodu(g) {
   const ham = String(g?.program || g?.kategori || g?.etkinlikBaslik || "");
   if (GALERI_EGITIM_PROGRAMLARI[ham]) return ham;
@@ -550,7 +566,8 @@ async function renderGaleri() {
 
     const yonetimMiG = B.yoneticiMi() || ["kurucu_mudur","mudur"].includes(B.rol());
     for (const d of sirali) {
-      const previewUrl = d.dosyaTipi === "video" ? (d.kucukResim || d.thumbnail || "") : d.bunnyUrl;
+      const playerUrl = galeriPlayerUrlMu(d.embedUrl) ? d.embedUrl : (galeriPlayerUrlMu(d.bunnyUrl) ? d.bunnyUrl : "");
+      const previewUrl = d.dosyaTipi === "video" ? galeriStreamKapakUrl(d) : d.bunnyUrl;
       const thumbUrl = (d.dosyaTipi === "foto" && d.bunnyUrl) ? d.bunnyUrl + "?width=400" : previewUrl;
       const durum = d.durum || "onaylandi";
       const reddedildiMi = durum === "reddedildi";
@@ -571,8 +588,12 @@ async function renderGaleri() {
         <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:12px; overflow:hidden; cursor:pointer; ${galeriBekliyorMu(durum)?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626; opacity:.7;':''}" onclick="acGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video"
             ? (previewUrl
-              ? `<img src="${escapeHtml(previewUrl)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><video src="${escapeHtml(d.bunnyUrl||d.url||'')}" muted playsinline preload="metadata" style="display:none;width:100%;height:100%;object-fit:cover;pointer-events:none;" onloadedmetadata="try{this.currentTime=Math.min(.12,Math.max(0,(this.duration||1)/100))}catch(e){}"></video><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
-              : `<video src="${escapeHtml(d.bunnyUrl||d.url||'')}" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" onloadedmetadata="try{this.currentTime=Math.min(.12,Math.max(0,(this.duration||1)/100))}catch(e){}"></video><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`)
+              ? `<img src="${escapeHtml(previewUrl)}" style="width:100%; height:100%; object-fit:cover;" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">${playerUrl
+                ? `<iframe src="${escapeHtml(playerUrl)}?autoplay=false" title="Video önizlemesi" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;fullscreen" style="display:none;width:100%;height:100%;border:0;background:#111;pointer-events:none;"></iframe>`
+                : `<video src="${escapeHtml(d.bunnyUrl||d.url||'')}" muted playsinline preload="metadata" style="display:none;width:100%;height:100%;object-fit:cover;pointer-events:none;" onloadedmetadata="try{this.currentTime=Math.min(.12,Math.max(0,(this.duration||1)/100))}catch(e){}"></video>`}<div style="position:absolute; inset:0; background:rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.92); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
+              : (playerUrl
+                ? `<iframe src="${escapeHtml(playerUrl)}?autoplay=false" title="Video önizlemesi" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;fullscreen" style="width:100%;height:100%;border:0;background:#111;pointer-events:none;"></iframe><div style="position:absolute; inset:0; background:rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.92); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
+                : `<video src="${escapeHtml(d.bunnyUrl||d.url||'')}" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" onloadedmetadata="try{this.currentTime=Math.min(.12,Math.max(0,(this.duration||1)/100))}catch(e){}"></video><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`))
             : `<img src="${escapeHtml(thumbUrl||'')}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">`
           }
           ${rozet}
