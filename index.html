@@ -36961,6 +36961,7 @@ window.galeriYukle = async function() {
   const klasorPath = `galeri/${hedefPath}/${etkinlikSlug}`;
 
   let basarili = 0, hatali = 0;
+  const yuklemeHatalari = [];
   let yayinlananFotoSayisi = 0, yayinlananVideoSayisi = 0;
   const yayinlananOgeIdleri = [];
   for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
@@ -37048,14 +37049,34 @@ window.galeriYukle = async function() {
     } catch (e) {
       console.error("Yükleme hatası:", e);
       hatali++;
-      if (f.type.startsWith("video/") && /Stream|stream|imza|signer|hazırlık|hazirlik/i.test(String(e?.message || ""))) {
-        showToast("Bunny Stream video servisi hazır değil: " + String(e?.message || e), "error");
-      }
+      const hamHata = String(e?.message || e || "Bilinmeyen yükleme hatası");
+      const kullaniciHatasi =
+        /network|failed to fetch|load failed|connection|internet/i.test(hamHata)
+          ? "İnternet bağlantısı kesildi veya Bunny yükleme servisine ulaşılamadı."
+        : /401|403|authorization|signature|expire/i.test(hamHata)
+          ? "Bunny video yükleme yetkilendirmesi kabul edilmedi. Sayfayı yenileyip yeniden deneyin."
+        : /409|resume|upload url|tus/i.test(hamHata)
+          ? "Önceki video yükleme oturumu çakıştı. Yeni temiz yükleme ile tekrar deneyin."
+        : /413|too large|çok büyük/i.test(hamHata)
+          ? "Video boyutu servis sınırını aşıyor."
+        : hamHata.slice(0, 220);
+      yuklemeHatalari.push(`${f.name}: ${kullaniciHatasi}`);
+      const durum = document.getElementById("galeriYuklemeDurum");
+      if (durum) durum.textContent = `✗ ${f.name}: ${kullaniciHatasi}`;
+      showToast(`Video/dosya yüklenemedi: ${kullaniciHatasi}`, "error");
     }
   }
 
-  document.getElementById("galeriYuklemeDurum").textContent = `✓ ${basarili} başarılı${hatali > 0 ? `, ${hatali} hatalı` : ''}`;
-  showToast(`✓ ${basarili} dosya yüklendi${hatali > 0 ? ` (${hatali} hatalı)` : ''}`);
+  const yuklemeOzet = `${basarili} başarılı${hatali > 0 ? `, ${hatali} hatalı` : ''}`;
+  const ilkHata = yuklemeHatalari[0] || "";
+  document.getElementById("galeriYuklemeDurum").textContent =
+    `${hatali && !basarili ? "✗" : "✓"} ${yuklemeOzet}${ilkHata ? ` · ${ilkHata}` : ""}`;
+  showToast(
+    hatali && !basarili
+      ? `Yükleme başarısız: ${ilkHata || "Ayrıntı için bağlantıyı ve video dosyasını kontrol edin."}`
+      : `✓ ${yuklemeOzet}`,
+    hatali && !basarili ? "error" : (hatali ? "warning" : "success")
+  );
 
   // Yalnız başarıyla kaydedilmiş ve doğrudan yayınlanmış medya bildirilir.
   const fotoSayisi = yayinlananFotoSayisi;
@@ -37569,25 +37590,60 @@ async function galeriBildirimMailGonder(grup) {
   try {
     const { etkinlikBaslik, etkinlikTarih, aciklama, hedefTur, hedefDeger, dosyaSayisi, fotoSayisi, videoSayisi } = grup;
 
-    // Hedef velileri topla
-    const hedefMailler = [];
-    for (const o of ogrenciList) {
-      if (getOgrenciDurum(o, ayarListesi[o.id]) !== "aktif") continue;
+    // Hedef velileri güncel kaynaklardan topla.
+    // Portal/ZEKY erişiminin source-of-truth'u veliler/{email}.ogrenciIds'dir.
+    // Eski ayarListesi anne/baba alanları yalnız geriye dönük fallback'tir.
+    const hedefOgrenciler = (ogrenciList || []).filter(o => {
+      if (getOgrenciDurum(o, ayarListesi[o.id]) !== "aktif") return false;
       const ayar = ayarListesi[o.id] || {};
-      const ogrSinif = (ayar.kayit?.sinif) || o.sinif || "";
+      const ogrSinif = ayar.kayit?.sinif || o.sinif || o.sinifi || "";
+      if (hedefTur === "tumOkul") return true;
+      if (hedefTur === "sinif") return ogrSinif === hedefDeger;
+      if (hedefTur === "ogrenci") return o.id === hedefDeger;
+      return false;
+    });
+    const hedefOgrenciIdleri = new Set(hedefOgrenciler.map(o => String(o.id)));
+    const hedefMailHarita = new Map();
+    const mailEkle = (mail, ad, ogrAd = "") => {
+      const temiz = String(mail || "").trim().toLowerCase();
+      if (!temiz || !temiz.includes("@")) return;
+      if (!hedefMailHarita.has(temiz)) {
+        hedefMailHarita.set(temiz, { mail:temiz, ad:String(ad || "Veli").trim() || "Veli", ogrAd });
+      }
+    };
 
-      let dahil = false;
-      if (hedefTur === "tumOkul") dahil = true;
-      else if (hedefTur === "sinif" && ogrSinif === hedefDeger) dahil = true;
-      else if (hedefTur === "ogrenci" && o.id === hedefDeger) dahil = true;
+    // 1) Güncel veli profilleri: veliler/{email} + ogrenciIds
+    try {
+      const veliSnap = await getDocs(collection(db, "veliler"));
+      veliSnap.forEach(d => {
+        const v = d.data() || {};
+        const ids = Array.isArray(v.ogrenciIds) ? v.ogrenciIds.map(String) : [];
+        if (!ids.some(id => hedefOgrenciIdleri.has(id))) return;
+        const docMail = String(d.id || "").includes("@") ? d.id : "";
+        mailEkle(v.eposta || v.email || v.gmail || docMail,
+          v.adSoyad || v.veliAdSoyad || v.ad || v.displayName || "Veli");
+      });
+    } catch (e) {
+      console.warn("Galeri maili: veliler koleksiyonu okunamadı, öğrenci fallback'i kullanılacak.", e?.code || e?.message || e);
+    }
 
-      if (!dahil) continue;
-
+    // 2) Öğrenci ana belgesi + eski anne/baba ayar alanları
+    for (const o of hedefOgrenciler) {
+      const ayar = ayarListesi[o.id] || {};
       const anne = ayar.anne || {};
       const baba = ayar.baba || {};
-      if (anne.eposta) hedefMailler.push({ mail: anne.eposta, ad: anne.adSoyad || "Anne", ogrAd: o.ogrenciAdSoyad });
-      if (baba.eposta) hedefMailler.push({ mail: baba.eposta, ad: baba.adSoyad || "Baba", ogrAd: o.ogrenciAdSoyad });
+      mailEkle(anne.eposta || anne.email, anne.adSoyad || anne.ad || "Anne", o.ogrenciAdSoyad || o.adSoyad || "");
+      mailEkle(baba.eposta || baba.email, baba.adSoyad || baba.ad || "Baba", o.ogrenciAdSoyad || o.adSoyad || "");
+
+      mailEkle(o.veli1Eposta || o.veli1Email, o.veli1AdSoyad || o.veli1Ad || "Veli", o.ogrenciAdSoyad || o.adSoyad || "");
+      mailEkle(o.veli2Eposta || o.veli2Email, o.veli2AdSoyad || o.veli2Ad || "Veli", o.ogrenciAdSoyad || o.adSoyad || "");
+      mailEkle(o.veliEposta || o.veliEmail, o.veliAdSoyad || o.veliAd || "Veli", o.ogrenciAdSoyad || o.adSoyad || "");
+
+      const veliler = Array.isArray(o.veliler) ? o.veliler : [];
+      veliler.forEach(v => mailEkle(v?.eposta || v?.email, v?.adSoyad || v?.ad || "Veli", o.ogrenciAdSoyad || o.adSoyad || ""));
     }
+
+    const hedefMailler = [...hedefMailHarita.values()];
 
     if (hedefMailler.length === 0) {
       showToast("Mail gönderilecek veli bulunamadı", "info");
@@ -37631,7 +37687,7 @@ async function galeriBildirimMailGonder(grup) {
 
       await brevoMail({
         to: v.mail, toName: v.ad,
-        subject: `Yeni Fotoğraflar: ${etkinlikBaslik} - Bir Çiçek Koleji`,
+        subject: `Yeni Galeri İçeriği: ${etkinlikBaslik} - Bir Çiçek Koleji`,
         htmlContent: portalMailSablon(etkinlikBaslik, icerik, "Portal'daki galeriye yeni içerik eklendi.")
       });
       await new Promise(r => setTimeout(r, 300));
