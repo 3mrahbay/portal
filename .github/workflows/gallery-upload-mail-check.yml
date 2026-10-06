@@ -1,0 +1,22 @@
+name: Gallery Upload Mail Check
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/gallery-upload-mail-check.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Bunny clean TUS session
+        run: node --experimental-default-type=module --test tests/bunny-stream-upload.test.mjs
+      - name: Gallery folder routing
+        run: node --experimental-default-type=module --test tests/galeri-konu-klasorleri.test.mjs
+      - name: Parent mail targets and upload diagnostics
+        run: node --experimental-default-type=module --test tests/galeri-mail-hedefleri.test.mjs
