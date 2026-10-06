@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { mediaSources, isPlayerUrl, playerUrl, downloadSource, renderMedia } from '../js/portal-galeri-medya.js';
 import { createInteractionService, interactionPatch, targetChild, displayName, emailHash } from '../js/portal-galeri-etkilesim.js';
 import { saveBlob, fetchMediaBlob } from '../js/portal-galeri-canli.js';
+import {installedPwa,assertPrecachedImport} from './helpers/portal-pwa.mjs';
 const url = 'https://firebasestorage.googleapis.com/v0/b/example/o/video.mp4?alt=media&token=synthetic';
 const media = {id:'m', durum:'onaylandi', dosyaTipi:'video', url, hedefTur:'ogrenci', hedefDeger:'child'};
 class Element {
@@ -94,7 +95,7 @@ test('active import chain and modern parent module use shared player and analyti
  const bridge=await readFile(new URL('../js/zeky-galeri-filigran-koprusu.js',import.meta.url),'utf8');
  const parent=await readFile(new URL('../moduller/veli-galeri.js',import.meta.url),'utf8');
  const education=await readFile(new URL('../js/zeky-galeri-onay-egitim.js',import.meta.url),'utf8');
- assert.match(bridge,/import '\.\/portal-galeri-canli\.js\?v=166'/);
+ assertPrecachedImport(await installedPwa(),'js/zeky-galeri-filigran-koprusu.js','js/portal-galeri-canli.js');
  assert.match(parent,/mountMedia\(d.querySelector\('\[data-vg-media\]'\),m\);recordOpen\(m\)/);
  assert.match(parent,/downloadMedia\(m,button\)/);assert.match(parent,/disposeMedia\(d\)/);
  assert.match(education,/Array\.from\(icerik.childNodes\)/);assert.match(education,/append\(\.\.\.medya\)/);

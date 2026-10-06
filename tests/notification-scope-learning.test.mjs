@@ -152,7 +152,7 @@ function teacherHarness(f){
   window.__zekyGelismisGozlemV1=true;
   window.BCK={db:window.PortalAPI.db,...f.fb,personel:()=>({ad:'Öğretmen adı'}),kullanici:()=>({})};
   const context={window,console,bildirimKaydetVePush,hedefVeliEmailleri};
-  const source=teacherSource.replace(/^import .*;\n/m,'').replace(/export /g,'')+'\nthis.harness={bildirimOlustur,kaydet,kapat,gozlemAc,setState:value=>S=value};';
+  const source=teacherSource.replace(/^import .*;\n/gm,'').replace(/export /g,'')+'\nthis.harness={bildirimOlustur,kaydet,kapat,gozlemAc,setState:value=>S=value};';
   vm.runInNewContext(source,context);
   context.harness.setState({ogrId:'child',program:'montessori',durum:'S',not:gallery.aciklama});
   return context.harness;

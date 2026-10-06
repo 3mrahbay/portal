@@ -9477,7 +9477,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <button class="side-item yonetim-only" data-modul="programBelgeleme" onclick="modulSec('programBelgeleme')"><span class="side-ikon"><i data-lucide="folder-check"></i></span><span class="side-ad">Evrak Takibi</span></button>
         <button class="side-item" data-modul="haftalikPlan" onclick="modulSec('haftalikPlan')"><span class="side-ikon"><i data-lucide="calendar-range"></i></span><span class="side-ad">Haftalık Plan</span></button>
         <button class="side-item" data-modul="devamsizlik" onclick="modulSec('devamsizlik')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">Devamsızlık</span></button>
-        <button class="side-item" data-modul="galeri" onclick="modulSec('galeri')"><span class="side-ikon"><i data-lucide="image"></i></span><span class="side-ad">Galeri</span></button>
+        <button class="side-item" data-modul="galeri" onclick="modulSec('galeri')"><span class="side-ikon"><i data-lucide="image"></i></span><span class="side-ad">Galeri</span><span id="galeriMenuOnayRozet" aria-label="Onay bekleyen galeri içeriği" style="display:none;background:#f59e0b;color:#422006;border-radius:9px;padding:0 6px;font-size:11px;margin-left:auto;"></span></button>
         <button class="side-item" data-modul="duyurular" onclick="modulSec('duyurular')"><span class="side-ikon"><i data-lucide="megaphone"></i></span><span class="side-ad">Duyurular</span></button>
         <button class="side-item" data-modul="yemek" onclick="modulSec('yemek')"><span class="side-ikon"><i data-lucide="utensils"></i></span><span class="side-ad">Yemek Menüsü</span></button>
         <button class="side-item" data-modul="etkinlik" onclick="modulSec('etkinlik')"><span class="side-ikon"><i data-lucide="calendar-heart"></i></span><span class="side-ad">Etkinlik &amp; Takvim</span></button>
@@ -10378,6 +10378,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
           </div>
 
           <!-- Liste (Instagram grid veya albüm görünümü) -->
+          <div id="galeriOnayCanliDurum" role="status" aria-live="polite" style="font-size:13px;color:#92400e;margin:10px 0;"></div>
           <div id="galeriListesi">
             <div class="loading"><div class="spinner"></div><p>Galeri yükleniyor...</p></div>
           </div>
@@ -13877,6 +13878,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 <script type="module">
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js';
 import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js';
+import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
+import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
 import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=171';
 import {receiptInput} from './js/expenses/receipt-input.js';
@@ -15595,6 +15598,10 @@ async function portalBildirimGit(b) {
     }
     return;
   }
+  if (personelMi && galleryApprovalTarget(b)) {
+    await galeriOnayBildirimiAc(b);
+    return;
+  }
   if (personelMi) {
     const hedef = /^(pickup|sabah)/.test(tip) ? "ozet"
       : /gorusme/.test(tip) ? "gorusmeNotlari"
@@ -17031,6 +17038,7 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById("dashboard").classList.remove("active");
   document.getElementById("veliPanel").classList.remove("active");
   portalBildirimMerkeziDurdur();
+  galeriOnayTakibiniDurdur();
   window.personelAnlikBildirim?.durdur();
   window.gorusmeNotlariBildirimDurdur?.();
   if (user) {
@@ -17077,6 +17085,7 @@ onAuthStateChanged(auth, async (user) => {
     // ===== PERSONEL veya ADMIN → Dashboard =====
     const personelMi = isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif");
     portalBildirimMerkeziBaslat();
+    galeriOnayTakibiniBaslat();
 
     if (personelMi) {
       // Personel/Admin Dashboard
@@ -36261,6 +36270,10 @@ let galeriListesiVerisi = [];
 let aktifGaleriFilter = "tumu";
 let galeriSecilenDosyalar = [];
 let galeriGorunum = "grid"; // "grid" (Instagram) | "album" (gruplu)
+let galeriOnayTakibi = null;
+let galeriOnayDurumu = { status:"idle", items:[], error:"" };
+let galeriRenderSurumu = 0;
+let galeriOnayGezinmeSurumu = 0;
 
 const GALERI_EGITIM_PROGRAMLARI = GALLERY_PROGRAMS;
 const galeriKlasorGorunumu = createGalleryFolderView();
@@ -36365,6 +36378,7 @@ window.galeriGorunumToggle = function() {
 };
 
 window.galeriFilter = function(f) {
+  ++galeriOnayGezinmeSurumu;
   galeriKlasorGorunumu.reset();
   // "Albümler" ayrı bir medya türü değil, GÖRÜNÜM modudur (mobil app ile aynı mantık).
   // Seçilince albüm görünümüne geçilir; diğer kategorilerde ızgara görünümü kullanılır.
@@ -36393,16 +36407,84 @@ window.galeriFilter = function(f) {
   renderGaleri();
 };
 
-async function loadGaleri() {
-  try {
-    const snap = await getDocs(collection(db, "galeri"));
-    galeriListesiVerisi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    window.galeriListesiVerisi = galeriListesiVerisi; // ZIP indir için global erişim
-  } catch (e) {
-    console.warn("Galeri yüklenemedi:", e);
-    galeriListesiVerisi = [];
-    window.galeriListesiVerisi = [];
+// Pending gallery is a separate read-only queue, including older ZEKY uploads.
+function galeriOnayRozetGuncelle() {
+  const izinli = galleryApprover(window.PortalAPI.state);
+  const hata = galeriOnayDurumu.status === "error";
+  const sayi = galeriOnayDurumu.items.length;
+  for (const id of ["galeriOnayBekleyenRozet", "galeriMenuOnayRozet"]) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.textContent = hata ? "!" : String(sayi);
+    el.style.display = izinli && (hata || sayi > 0) ? "" : "none";
+    el.title = hata ? "Bekleyen galeri içeriği alınamadı" : `${sayi} içerik yönetim onayı bekliyor`;
   }
+  const durum = document.getElementById("galeriOnayCanliDurum");
+  if (durum) {
+    durum.replaceChildren();
+    if (izinli && hata) {
+      durum.append("Onay bekleyenler alınamadı. Liste boş olarak doğrulanmadı. ");
+      const retry = document.createElement("button"); retry.type = "button";
+      retry.className = "btn-mini"; retry.textContent = "Yeniden dene";
+      retry.onclick = () => galeriOnayTakibiniBaslat(); durum.append(retry);
+    } else if (izinli && galeriOnayDurumu.status === "cached") {
+      durum.textContent = "Önbellekteki onay listesi gösteriliyor. Sunucuyla güncellenmesi bekleniyor.";
+    }
+  }
+}
+function galeriOnayTakibiniDurdur() {
+  galeriOnayTakibi?.stop(); galeriOnayTakibi = null;
+  galeriOnayDurumu = {status:"idle",items:[],error:""};
+  ++galeriRenderSurumu; ++galeriOnayGezinmeSurumu;
+  galeriListesiVerisi = []; window.galeriListesiVerisi = [];
+  aktifGaleriFilter = "tumu";
+  const liste = document.getElementById("galeriListesi"); if (liste) liste.replaceChildren();
+  window.closeGaleriLightbox?.();
+  aktifLightboxOge = null;
+  document.getElementById("galeriLightbox")?.classList.remove("active");
+  document.getElementById("galeriLightboxIcerik")?.replaceChildren();
+  galeriOnayRozetGuncelle();
+}
+function galeriOnayTakibiniBaslat() {
+  galeriOnayTakibi?.stop(); galeriOnayTakibi = null;
+  galeriOnayDurumu = {status:"idle",items:[],error:""};
+  if (!galleryApprover(window.PortalAPI.state)) { galeriOnayRozetGuncelle(); return; }
+  galeriOnayTakibi = startGalleryApprovalFeed({fb:window.PortalAPI.fb,db,
+    getState:() => window.PortalAPI.state,
+    onChange:state => {
+      galeriOnayDurumu = state; galeriOnayRozetGuncelle();
+      if (aktifGaleriFilter === "onayBekliyor" && document.getElementById("tab-galeri")?.classList.contains("active")) {
+        renderGaleri();
+      }
+    }
+  });
+}
+async function galeriOnayBildirimiAc(bildirim) {
+  if (!galleryApprover(window.PortalAPI.state)) throw new Error("Galeri onay yetkiniz yok");
+  const hedef = galleryApprovalTarget(bildirim);
+  if (!hedef) return;
+  const oturum = gallerySession(window.PortalAPI.state);
+  window.modulSec("galeri");
+  window.galeriFilter("onayBekliyor");
+  const gezinme = ++galeriOnayGezinmeSurumu;
+  const gecerli = () => gezinme === galeriOnayGezinmeSurumu && oturum === gallerySession(window.PortalAPI.state)
+    && aktifGaleriFilter === "onayBekliyor" && document.getElementById("tab-galeri")?.classList.contains("active");
+  if (!hedef.id) return; // Existing ZEKY notices safely open the queue.
+  const snap = await getDoc(doc(db,"galeri",hedef.id));
+  if (!gecerli()) return;
+  if (!snap.exists()) { showToast("Bu galeri içeriği artık bulunamıyor", "warning"); return; }
+  const media = {...snap.data(),id:snap.id};
+  if (!galeriBekliyorMu(media.durum)) { showToast("Bu içeriğin onay işlemi tamamlanmış", "info"); return; }
+  // The single authorized read can arrive before the queue's first snapshot.
+  if (!galeriListesiVerisi.some(x => x.id === media.id)) galeriListesiVerisi.push(media);
+  window.galeriListesiVerisi = galeriListesiVerisi;
+  window.acGaleriLightbox(media.id);
+}
+async function loadGaleri() {
+  const oturum = gallerySession(window.PortalAPI.state);
+  const snap = await getDocs(collection(db, "galeri"));
+  if (oturum !== gallerySession(window.PortalAPI.state)) throw Object.assign(new Error("Oturum değişti"), {name:"AbortError"});
+  return snap.docs.map(d => ({ ...d.data(), id: d.id }));
 }
 
 // ===== FAZ 4b: GALERİ MEDYA ONAY (sadece Müdür/Kurucu Müdür) =====
@@ -36465,18 +36547,38 @@ function galeriOnayBekleyenSayisi() {
 async function renderGaleri() {
   const el = document.getElementById("galeriListesi");
   if (!el) return;
-  await loadGaleri();
+  const renderSurumu = ++galeriRenderSurumu;
+  const oturum = gallerySession(window.PortalAPI.state);
+  let kayitlar;
+  if (aktifGaleriFilter === "onayBekliyor" && galleryApprover(window.PortalAPI.state)) {
+    if (galeriOnayDurumu.status === "idle" || galeriOnayDurumu.status === "stopped") galeriOnayTakibiniBaslat();
+    if (["idle", "loading"].includes(galeriOnayDurumu.status)) {
+      el.innerHTML = '<div class="loading"><div class="spinner"></div><p>Onay bekleyenler yükleniyor...</p></div>';
+      return;
+    }
+    if (galeriOnayDurumu.status === "error") {
+      el.innerHTML = '<div style="padding:24px;color:#991b1b;">Onay listesi yüklenemedi. Üstteki Yeniden dene düğmesini kullanın.</div>';
+      return;
+    }
+    kayitlar = [...galeriOnayDurumu.items];
+  } else {
+    try { kayitlar = await loadGaleri(); }
+    catch (error) {
+      if (renderSurumu !== galeriRenderSurumu || oturum !== gallerySession(window.PortalAPI.state)) return;
+      console.warn("Galeri yüklenemedi:", error?.code || error?.message);
+      el.innerHTML = '<div style="padding:24px;color:#991b1b;">Galeri yüklenemedi. Bağlantınızı ve oturumunuzu kontrol edin. <button class="btn-mini" type="button" data-gallery-retry>Yeniden dene</button></div>';
+      el.querySelector('[data-gallery-retry]')?.addEventListener('click', () => renderGaleri());
+      return;
+    }
+  }
+  if (renderSurumu !== galeriRenderSurumu || oturum !== gallerySession(window.PortalAPI.state)) return;
+  galeriListesiVerisi = kayitlar; window.galeriListesiVerisi = kayitlar;
 
   // Yönetim ise onay filtre butonunu + rozeti göster
   const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
   const onayBtn = document.getElementById("galeriOnayFiltreBtn");
   if (onayBtn) onayBtn.style.display = yonetimMi ? "" : "none";
-  const bekleyenSayi = galeriOnayBekleyenSayisi();
-  const rozet = document.getElementById("galeriOnayBekleyenRozet");
-  if (rozet) {
-    rozet.textContent = bekleyenSayi;
-    rozet.style.display = bekleyenSayi > 0 ? "" : "none";
-  }
+  galeriOnayRozetGuncelle();
 
   let liste = [...galeriListesiVerisi];
   if (aktifGaleriFilter === "foto") liste = liste.filter(g => g.dosyaTipi === "foto");
@@ -36917,6 +37019,9 @@ async function galeriVideoYukle(file, options = {}) {
 window.galeriVideoYukle = galeriVideoYukle;
 
 window.galeriYukle = async function() {
+  const yuklemeOturumu = gallerySession(window.PortalAPI.state);
+  const yuklemeGecerli = () => yuklemeOturumu === gallerySession(window.PortalAPI.state);
+  let onayBildirimHatasi = 0;
   // ── ÖĞRETMEN KISITI (sunucu tarafı Rules'a ek olarak arayüz koruması) ──
   if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
     const hedef = document.getElementById("galeriHedefTur")?.value;
@@ -37043,9 +37148,17 @@ window.galeriYukle = async function() {
       oge.onayTarihi = yonetimYuklemesi ? new Date().toISOString() : "";
 
       // Firestore'a metadata kaydet
+      if (!yuklemeGecerli()) return;
       const ref = doc(collection(db, "galeri"));
       await setDoc(ref, oge);
+      if (!yuklemeGecerli()) return;
       basarili++;
+      if (galeriBekliyorMu(oge.durum)) {
+        const bildirim = await notifyGalleryApproval({id:ref.id,durum:oge.durum}, window.PortalAPI)
+          .catch(() => ({ok:false}));
+        if (!yuklemeGecerli()) return;
+        if (!bildirim.ok || bildirim.push?.ok === false) onayBildirimHatasi++;
+      }
       if (oge.durum === "onaylandi") {
         yayinlananOgeIdleri.push(ref.id);
         if (oge.dosyaTipi === "video") yayinlananVideoSayisi++;
@@ -37055,6 +37168,7 @@ window.galeriYukle = async function() {
       const toplam = ((i + 1) / galeriSecilenDosyalar.length) * 100;
       document.getElementById("galeriYuklemeBar").style.width = `${toplam}%`;
     } catch (e) {
+      if (!yuklemeGecerli()) return;
       console.error("Yükleme hatası:", e);
       hatali++;
       const hamHata = String(e?.message || e || "Bilinmeyen yükleme hatası");
@@ -37121,6 +37235,12 @@ window.galeriYukle = async function() {
     });
   }
 
+  if (!yuklemeGecerli()) return;
+  if (onayBildirimHatasi) {
+    const uyari = `${basarili} dosya kaydedildi; ${onayBildirimHatasi} içeriğin yönetici onay bildirimi tam olarak iletilemedi. İçerik onay listesinde bulunabilir.`;
+    document.getElementById("galeriYuklemeDurum").textContent = uyari;
+    showToast(uyari, "warning");
+  }
   btn.textContent = "Kapat";
   btn.onclick = closeGaleriYuklemeModal;
   btn.disabled = false;
@@ -37131,6 +37251,7 @@ window.galeriYukle = async function() {
 let aktifLightboxOge = null;
 
 window.acGaleriLightbox = function(id) {
+  ++galeriOnayGezinmeSurumu;
   const oge = galeriListesiVerisi.find(g => g.id === id);
   if (!oge) return;
   aktifLightboxOge = oge;
@@ -37153,6 +37274,7 @@ window.acGaleriLightbox = function(id) {
 };
 
 window.closeGaleriLightbox = function() {
+  ++galeriOnayGezinmeSurumu;
   document.getElementById("galeriLightbox").classList.remove("active");
   document.getElementById("galeriLightboxIcerik").innerHTML = "";
   aktifLightboxOge = null;
@@ -43166,6 +43288,7 @@ let aktifModul = "ozet";
 
 // Modül seç: alt sekmeleri filtrele + varsayılan sekmeye geç
 window.modulSec = function(modulKey, tabTikla = true) {
+  ++galeriOnayGezinmeSurumu;
   const tanim = MODUL_HARITASI[modulKey];
   if (!tanim) return;
   // Giriş yapılmamışsa sessizce çık (açılış çağrısında yetki uyarısı gösterme)
@@ -43260,6 +43383,7 @@ window.modulBarYenile = function() {
 
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
+    ++galeriOnayGezinmeSurumu;
     // Faz 1c: Yetkisiz sekmeye geçişi engelle (konsol bypass koruması)
     if (!sekmeyeErisim(tab.dataset.tab)) {
       showToast("Bu bölüme erişim yetkiniz yok", "error");
@@ -48593,13 +48717,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=185");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=186");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v185";
+          const anahtar = "portalSwReload_v186";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

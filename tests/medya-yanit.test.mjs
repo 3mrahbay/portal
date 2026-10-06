@@ -43,6 +43,6 @@ test('galeri video doğrulaması MP4/WEBM/MOV kabul eder ve belge kanalından ay
   assert.equal(medyaDogrula({name:'clip.mp4',type:'video/mp4',size:30*1024*1024+1}, 'video').gecerli, false);
   assert.equal(medyaDogrula({name:'clip.pdf',type:'application/pdf',size:1}, 'video').gecerli, false);
   assert.equal(medyaDogrula({name:'clip.mp4',type:'video/mp4',size:1}, false).gecerli, false);
-  assert.match(kaynak, /medyaYukle\(f, klasorPath, "video"\)/);
+  assert.ok(kaynak.includes("const sonuc = await galeriVideoYukle(f,"), "current gallery video uploads use the already-deployed Bunny Stream path");
   assert.match(kaynak, /medyaTuru: dogrula\.tur/);
 });

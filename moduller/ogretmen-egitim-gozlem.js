@@ -5,6 +5,8 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { bildirimKaydetVePush, hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js';
+import { notifyGalleryApproval } from '../js/galeri-onay-bildirimi.js?v=186';
+import { gallerySession } from '../js/galeri-onay-canli.js?v=186';
 
 const B = () => window.BCK;
 const D = () => window.PortalData;
@@ -94,19 +96,27 @@ async function filigranla(blob){
 }
 
 async function fotoYukle(anahtar,ders,alan,grup){
-  if(!S.foto)return null;const b=B();
+  if(!S.foto)return null;const b=B(),oturum=gallerySession(window.PortalAPI?.state||{});
+  const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};
   if(!b?.resimSikistir||!b?.medyaYukle)throw new Error('Medya yükleyici hazır değil.');
   const sik=await b.resimSikistir(S.foto,1920,.85);const isaretli=await filigranla(sik);
   const tarih=new Date().toISOString().slice(0,10),alanId=alan?.id||'genel',klasor=`galeri/ogrenci/${S.ogrId}/egitim/${S.program}/${alanId}/${tarih}`;
   const sonuc=await b.medyaYukle(isaretli,klasor);const dogrudan=yonetimMi(),durum=dogrudan?'onaylandi':'beklemede';
-  const ref=b.doc(b.collection(b.db,'galeri'));
+  kontrol();const ref=b.doc(b.collection(b.db,'galeri'));
   const p=programBilgi(S.program),simdi=new Date().toISOString(),donem=window.PortalAPI?.state?.aktifDonem||'';
-  await b.setDoc(ref,{url:sonuc.url,bunnyUrl:sonuc.url,bunnyPath:sonuc.yol||'',dosyaTipi:'foto',tip:'image',baslik:ders,kazanimAdi:ders,etkinlikBaslik:p.ad,aciklama:(S.not||'').trim(),sinif:S.sinif||'',hedefTur:'ogrenci',hedefDeger:S.ogrId,hedefOgrenciId:S.ogrId,hedefOgrenciAd:ogrAd(),kategori:S.program,program:S.program,programAd:p.ad,alanId,alanAd:alan?.ad||'',grupAd:grup?.ad||'',albumId:`egitim|${S.program}|${alanId}`,albumTuru:'egitim',egitimKaydi:true,durum,kazanimAnahtari:anahtar,gozlemDurum:S.durum,ogrenciId:S.ogrId,donem,filigran:'BÇKA · Bir Çiçek Koleji Anaokulu',filigranVersiyon:2,yukleyen:b.kullanici?.()?.email||'',yukleyenAd:personelAd(),tarih:simdi,yuklemeZamani:simdi,olusturuldu:b.serverTimestamp?b.serverTimestamp():simdi},{merge:true});
-  return {id:ref.id,url:sonuc.url,durum,yol:sonuc.yol||''};
+  const galeriVerisi={url:sonuc.url,bunnyUrl:sonuc.url,bunnyPath:sonuc.yol||'',dosyaTipi:'foto',tip:'image',baslik:ders,kazanimAdi:ders,etkinlikBaslik:p.ad,aciklama:(S.not||'').trim(),sinif:S.sinif||'',hedefTur:'ogrenci',hedefDeger:S.ogrId,hedefOgrenciId:S.ogrId,hedefOgrenciAd:ogrAd(),kategori:S.program,program:S.program,programAd:p.ad,alanId,alanAd:alan?.ad||'',grupAd:grup?.ad||'',albumId:`egitim|${S.program}|${alanId}`,albumTuru:'egitim',egitimKaydi:true,durum,kazanimAnahtari:anahtar,gozlemDurum:S.durum,ogrenciId:S.ogrId,donem,filigran:'BÇKA · Bir Çiçek Koleji Anaokulu',filigranVersiyon:2,yukleyen:b.kullanici?.()?.email||'',yukleyenAd:personelAd(),tarih:simdi,yuklemeZamani:simdi,olusturuldu:b.serverTimestamp?b.serverTimestamp():simdi};
+  kontrol();
+  // Both documents are committed together below. The live approval queue must
+  // never expose a photo before its observation data has been saved.
+  return {id:ref.id,url:sonuc.url,durum,yol:sonuc.yol||'',galeriKaydi:{ref,veri:galeriVerisi}};
 }
 
 async function gelisimKaydet(anahtar,ders,alan,grup,foto){
-  const b=B(),ref=b.doc(b.db,'ogrenciGelisim',S.ogrId),snap=await b.getDoc(ref),tum=snap.exists()?(snap.data()||{}):{},dis=tum[S.program]||{};
+  const b=B(),ref=b.doc(b.db,'ogrenciGelisim',S.ogrId),oturum=gallerySession(window.PortalAPI?.state||{});
+  if(!b.runTransaction)throw new Error('Gözlem kayıt altyapısı hazır değil. Sayfayı yenileyin.');
+  await b.runTransaction(b.db,async tx=>{
+  const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};
+  kontrol();const snap=await tx.get(ref);kontrol();const tum=snap.exists()?(snap.data()||{}):{},dis=tum[S.program]||{};
   const kayitlar={...(dis.kayitlar||{})},tarihler={...(dis.tarihler||{})},detay={...(dis.detay||{})},onceki=detay[anahtar]||{},asamalar={...(onceki.asamalar||{})},eski=asamalar[S.durum]||{};
   const simdi=new Date().toISOString(),not=(S.not||'').trim(),onayli=!foto||foto.durum==='onaylandi';
   const yeni={...eski,durum:S.durum,not:not||eski.not||'',tarih:simdi,yazar:personelAd(),paylas:true,...(foto?{fotoUrl:onayli?foto.url:'',fotoDurum:foto.durum,galeriId:foto.id,fotoYol:foto.yol||''}:{})};
@@ -115,7 +125,10 @@ async function gelisimKaydet(anahtar,ders,alan,grup,foto){
   detay[anahtar]={...onceki,...(guncel?{durum:S.durum,not:yeni.not,tarih:yeni.tarih,yazar:yeni.yazar,paylas:true,fotoUrl:yeni.fotoUrl||'',fotoDurum:yeni.fotoDurum||'',galeriId:yeni.galeriId||'',dersAd:ders}:{}),asamalar};
   const yaz={[S.program]:{...dis,kayitlar,tarihler,detay,guncellendi:b.serverTimestamp?b.serverTimestamp():simdi}};
   if(guncel)yaz.sonGozlem={disiplin:S.program,programAd:programBilgi(S.program).ad,anahtar,dersAd:ders,alanId:alan?.id||'',alanAd:alan?.ad||'',grupAd:grup?.ad||'',not:yeni.not,fotoUrl:yeni.fotoUrl||'',fotoDurum:yeni.fotoDurum||'',galeriId:yeni.galeriId||'',durum:S.durum,tarih:simdi,yazar:yeni.yazar,paylas:true};
-  await b.setDoc(ref,yaz,{merge:true});
+  kontrol();
+  if(foto?.galeriKaydi)tx.set(foto.galeriKaydi.ref,foto.galeriKaydi.veri);
+  tx.set(ref,yaz,{merge:true});
+  });
 }
 
 async function bildirimOlustur(anahtar,ders,alan,grup,foto){
@@ -144,8 +157,9 @@ async function kaydet(){
   const root=document.getElementById('zegoArka'),btn=root?.querySelector('[data-act="kaydet"]'),pr=root?.querySelector('#zegoProgress');if(btn)btn.disabled=true;if(pr){pr.classList.add('on');pr.textContent=S.foto?'Fotoğraf işleniyor ve gözlem kaydediliyor…':'Gözlem kaydediliyor…';}
   S.kaydediliyor=true;root?.querySelectorAll('button,select,textarea,input').forEach(el=>el.disabled=true);
   const anahtar=`${alan.id}__${grup.ad||''}__${ders}`;
-  try{const foto=await fotoYukle(anahtar,ders,alan,grup);await gelisimKaydet(anahtar,ders,alan,grup,foto);const bildirim=await bildirimOlustur(anahtar,ders,alan,grup,foto).catch(e=>{console.warn('eğitim bildirimi',e);return{ok:false};});const eksik=bildirim&&(bildirim.ok!==true||bildirim.push?.ok!==true);toast(eksik?'Gözlem kaydedildi · bildirim teslimi doğrulanamadı':foto&&foto.durum==='beklemede'?'Gözlem kaydedildi · fotoğraf yönetim onayında':'✓ Gözlem kaydedildi',eksik?'warning':'success');const geriSinif=S.sinif;kapat(true);try{if(typeof window.caAdminGo==='function')window.caAdminGo('egitim',geriSinif);}catch(_){}}
-  catch(e){console.error('gelişmiş gözlem',e);toast('Gözlem kaydedilemedi: '+(e.message||e),'error');if(S)S.kaydediliyor=false;root?.querySelectorAll('button,select,textarea,input').forEach(el=>el.disabled=false);if(btn)btn.disabled=false;if(pr){pr.textContent='Kayıt tamamlanamadı.';}}
+  const kayitOturumu=S;
+  try{const oturum=gallerySession(window.PortalAPI?.state||{});const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};const foto=await fotoYukle(anahtar,ders,alan,grup);kontrol();await gelisimKaydet(anahtar,ders,alan,grup,foto);kontrol();if(foto&&['beklemede','onayBekliyor'].includes(foto.durum))foto.onayBildirim=await notifyGalleryApproval({id:foto.id,durum:foto.durum},window.PortalAPI).catch(()=>({ok:false}));kontrol();const bildirim=await bildirimOlustur(anahtar,ders,alan,grup,foto).catch(e=>{console.warn('eğitim bildirimi',e);return{ok:false};});const onayEksik=foto?.onayBildirim?.ok===false||foto?.onayBildirim?.push?.ok===false;const eksik=onayEksik||(bildirim&&(bildirim.ok!==true||bildirim.push?.ok!==true));toast(onayEksik?'Gözlem kaydedildi · yönetici onay bildirimi tam iletilemedi':eksik?'Gözlem kaydedildi · bildirim teslimi doğrulanamadı':foto&&foto.durum==='beklemede'?'Gözlem kaydedildi · fotoğraf yönetim onayında':'✓ Gözlem kaydedildi',eksik?'warning':'success');const geriSinif=S.sinif;kapat(true);try{if(typeof window.caAdminGo==='function')window.caAdminGo('egitim',geriSinif);}catch(_){}}
+  catch(e){if(e?.name==='AbortError'){if(S===kayitOturumu){S.kaydediliyor=false;kapat(true);}return;}console.error('gelişmiş gözlem',e);toast('Gözlem kaydedilemedi: '+(e.message||e),'error');if(S)S.kaydediliyor=false;root?.querySelectorAll('button,select,textarea,input').forEach(el=>el.disabled=false);if(btn)btn.disabled=false;if(pr){pr.textContent='Kayıt tamamlanamadı.';}}
 }
 
 export async function gozlemAc(ogrId,ogrAdValue,sinif){

@@ -10,10 +10,12 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v185-announcement-attachments";
+const CACHE_VERSION = "v186-gallery-admin-approval";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/galeri-onay-canli.js?v=186",
+  "./js/galeri-onay-bildirimi.js?v=186",
   "./js/portal-google-login.js?v=178",
   "./moduller/veli-katilim.js?v=178",
   "./stil/arayuz-duzeltmeleri.css?v=5",

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {gallerySession,pendingGallery} from '../js/galeri-onay-canli.js';
 import {GALLERY_PROGRAMS, galleryText, galleryProgram, galleryTopic, galleryTopicKey, galleryFolderKey, galleryIsObservation, galleryTopicGroups} from '../js/galeri-klasorleri.js';
 import {folderDateRange, managementTopicFolders} from '../js/portal-galeri-klasor-ui.js';
 const source=readFileSync(new URL('../index.html',import.meta.url),'utf8');
@@ -41,21 +42,21 @@ test('historical manual child titles recover without moving true observations in
  const m=row({konuAnahtari:'fake',albumId:'same'}),n=row({hedefDeger:'Other',konuAnahtari:'fake',albumId:'same'});assert.notEqual(galleryFolderKey(m),galleryFolderKey(n));
 });
 function uploadFixture({topic='Denge Çalışması',program='jimnastik',admin=false,files=[{name:'synthetic.jpg',type:'image/jpeg',size:100}],audience='sinif'}={}) {
- const nodes=new Map(), writes=[], notifications=[], toasts=[],uploads=[];
+ const nodes=new Map(), writes=[], notifications=[], approvalNotices=[], toasts=[],uploads=[];
  const values={galeriEtkinlik:topic,galeriEtkinlikTarih:'2026-10-02',galeriAciklama:'Sentetik',galeriHedefTur:audience,galeriKategori:program,galeriHedefSinif:'Test Sınıfı',galeriHedefOgrenci:'child-1'};
  const document={getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:values[id]||'',style:{},options:[{dataset:{ad:'Test Çocuk'}}],selectedIndex:0,checked:false});return nodes.get(id);}};
  let count=0;
- const ctx=vm.createContext({window:{},document,console:{error(){},warn(){}},galeriSecilenDosyalar:files,activeKullaniciRol:admin?'mudur':'ogretmen',aktifKullaniciRol:admin?'mudur':'ogretmen',isAdmin:admin,currentUser:{email:'synthetic@example.invalid'},AKTIF_DONEM:'2026-2027',db:{},galleryText,galeriProgramKodu:galleryProgram,ogretmenRolMu:()=>!admin,aktifKullaniciSiniflari:['Test Sınıfı'],isoTarih:()=> '2026-10-02',showToast:(...v)=>toasts.push(v),resimSikistir:async f=>f,medyaYukle:async(f,path,tur)=>{uploads.push({path,tur});return{url:'https://example.invalid/'+f.name,yol:path};},galeriVideoYukle:async(f,{onProgress}={})=>{uploads.push({path:'stream',tur:'video'});onProgress?.({percent:100});return{embedUrl:'https://iframe.mediadelivery.net/embed/lib/video',videoId:'video',libraryId:'lib',thumbnailUrl:''};},collection:()=>({}),doc:()=>({id:'new-'+(++count)}),setDoc:async(ref,data)=>writes.push({id:ref.id,...data}),galeriGuncellemeBildirimi:async data=>notifications.push(data),galeriBildirimMailGonder:async()=>{throw Error('Unrequested email');},albumEkleMod:null,closeGaleriYuklemeModal(){},renderGaleri(){}});
+ const ctx=vm.createContext({gallerySession,galeriBekliyorMu:pendingGallery,notifyGalleryApproval:async data=>{approvalNotices.push(data);return{ok:true};},window:{PortalAPI:{state:{currentUser:{uid:'fixture',email:'synthetic@example.invalid'}}}},document,console:{error(){},warn(){}},galeriSecilenDosyalar:files,activeKullaniciRol:admin?'mudur':'ogretmen',aktifKullaniciRol:admin?'mudur':'ogretmen',isAdmin:admin,currentUser:{email:'synthetic@example.invalid'},AKTIF_DONEM:'2026-2027',db:{},galleryText,galeriProgramKodu:galleryProgram,ogretmenRolMu:()=>!admin,aktifKullaniciSiniflari:['Test Sınıfı'],isoTarih:()=> '2026-10-02',showToast:(...v)=>toasts.push(v),resimSikistir:async f=>f,medyaYukle:async(f,path,tur)=>{uploads.push({path,tur});return{url:'https://example.invalid/'+f.name,yol:path};},galeriVideoYukle:async(f,{onProgress}={})=>{uploads.push({path:'stream',tur:'video'});onProgress?.({percent:100});return{embedUrl:'https://iframe.mediadelivery.net/embed/lib/video',videoId:'video',libraryId:'lib',thumbnailUrl:''};},collection:()=>({}),doc:()=>({id:'new-'+(++count)}),setDoc:async(ref,data)=>writes.push({id:ref.id,...data}),galeriGuncellemeBildirimi:async data=>notifications.push(data),galeriBildirimMailGonder:async()=>{throw Error('Unrequested email');},albumEkleMod:null,closeGaleriYuklemeModal(){},renderGaleri(){}});
  const start=source.indexOf('window.galeriYukle = async function() {'),end=source.indexOf('// Lightbox',start);vm.runInContext(source.slice(start,end),ctx);
- return{run:()=>ctx.window.galeriYukle(),writes,notifications,toasts,uploads};
+ return{run:()=>ctx.window.galeriYukle(),writes,notifications,approvalNotices,toasts,uploads};
 }
 test('blank program topic aborts before upload/write, while historical/general behavior remains',async()=>{
  const f=uploadFixture({topic:' \n '});await f.run();assert.equal(f.uploads.length,0);assert.equal(f.writes.length,0);assert.match(f.toasts[0][0],/konu/);
  const g=uploadFixture({topic:'',program:''});await g.run();assert.equal(g.writes[0].etkinlikBaslik,'Genel');
 });
-test('teacher batch stores one topic and pending status without notifications',async()=>{
+test('teacher batch stores one topic and pending status with approval notices only',async()=>{
  const f=uploadFixture({files:[{name:'a.jpg',type:'image/jpeg',size:100},{name:'b.jpg',type:'image/jpeg',size:100}]});await f.run();assert.equal(f.writes.length,2);assert.equal(new Set(f.writes.map(galleryTopicKey)).size,1);
- for(const m of f.writes){assert.equal(m.konuBaslik,'Denge Çalışması');assert.equal(m.konuAnahtari,'denge çalışması');assert.equal(m.program,'jimnastik');assert.equal(m.durum,'beklemede');assert.equal(m.egitimKaydi,false);assert.equal(m.donem,'2026-2027');}assert.equal(f.notifications.length,0);
+ for(const m of f.writes){assert.equal(m.konuBaslik,'Denge Çalışması');assert.equal(m.konuAnahtari,'denge çalışması');assert.equal(m.program,'jimnastik');assert.equal(m.durum,'beklemede');assert.equal(m.egitimKaydi,false);assert.equal(m.donem,'2026-2027');}assert.equal(f.notifications.length,0);assert.equal(f.approvalNotices.length,2);
 });
 test('management photo batch preserves exactly one published batch notification',async()=>{
  const f=uploadFixture({admin:true,files:[{name:'a.jpg',type:'image/jpeg',size:100},{name:'b.jpg',type:'image/jpeg',size:100}]});await f.run();assert.equal(f.writes.length,2);assert.equal(f.notifications.length,1);assert.equal(f.notifications[0].fotoSayisi,2);assert.equal(f.notifications[0].olayAnahtari,'galeri-yayin:new-1:new-2');

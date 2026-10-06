@@ -29,7 +29,7 @@ function environment() {
  const doc = {visibilityState:'visible',getElementById:element,addEventListener:(name,fn)=>listeners[name]=fn,
  querySelector:q=>element(q),querySelectorAll:q=>q==='.tab'?tabs:q==='.tab-panel'?['anasayfa','mesajlasma','egitim'].map(x=>element('tab-'+x)):[]};
  element('dashboard').classList.add('active');element('tab-anasayfa').classList.add('active');element('mesajSohbetAktif').style.display='none';
- const ctx = vm.createContext({document:doc,currentUser:{email:teacher},isAdmin:false,aktifPersonel:{durum:'aktif'},aktifKullaniciRol:'ogretmen',db:{},
+ const ctx = vm.createContext({galeriOnayGezinmeSurumu:0,document:doc,currentUser:{email:teacher},isAdmin:false,aktifPersonel:{durum:'aktif'},aktifKullaniciRol:'ogretmen',db:{},
  window:{addEventListener:(name,fn)=>windowListeners[name]=fn},console:{warn(){},error(){}},
  createMessageNoticeTracker,setupMessageSound(){},showMessageNotice:(t,o)=>notices.push({t,o}),clearMessageNotices:()=>notices.splice(0),
  setTimeout:(fn)=>{const id=++nextTimer;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),
@@ -99,7 +99,7 @@ test('main import, service worker precache and version agree for the message hel
  const assignment=source.match(/window\.PORTAL_SURUM\s*=\s*(['"])(v\d+)\1/);
  assert.ok(assignment,'the main module exports its runtime version');
  const window={};vm.runInNewContext(assignment[0],{window});
- assert.equal(window.PORTAL_SURUM,`v${helper.searchParams.get('v')}`);
+ assert.ok(Number(window.PORTAL_SURUM.slice(1))>=Number(helper.searchParams.get('v')), 'app releases may retain an older unchanged helper; its exact import must remain precached');
  await assertPwaBootstrap(pwa,source);
 });
 

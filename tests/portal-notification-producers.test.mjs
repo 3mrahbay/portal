@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import {gallerySession,galleryApprovalTarget} from '../js/galeri-onay-canli.js';
 import { galleryText, galleryProgram } from '../js/galeri-klasorleri.js';
 import { hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js';
 
@@ -29,7 +30,7 @@ const production=[
 ].join('\n');
 const donem='2026-2027';
 function environment(t,{role='mudur'}={}){
-  const oldWindow=globalThis.window,elements=new Map(),docs=new Map(),writes=[],notices=[],toasts=[],mails=[],trace=[];
+  const oldWindow=globalThis.window,elements=new Map(),docs=new Map(),writes=[],notices=[],approvalNotices=[],toasts=[],mails=[],trace=[];
   let sequence=0,ctx;
   const controls={fail:path=>false,uploadFail:false,confirmed:true};
   const element=id=>{
@@ -66,7 +67,7 @@ function environment(t,{role='mudur'}={}){
   }};
   const quiet={warn(){},error(){},log(){}};
   const attachment={yuklemeSuruyor:()=>false,formEkleri:()=>[],kayitTamamlandi(){}};
-  ctx=vm.createContext({window,bridge,galleryText,galleryProgram,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
+  ctx=vm.createContext({window,bridge,gallerySession,galleryApprovalTarget,notifyGalleryApproval:async media=>{approvalNotices.push(media);return{ok:true};},galleryText,galleryProgram,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
     currentUser:{uid:'sender',email:'staff@example.invalid'},aktifPersonel:{adSoyad:'Private Teacher Name'},isAdmin:role==='mudur',aktifKullaniciRol:role,aktifKullaniciSiniflari:['A'],
     AKTIF_DONEM:donem,ogrenciList:students,ayarListesi:settings,db:window.PortalAPI.db,
     veliOgrenciler:students.slice(0,3),veliAktifOgrenci:students[0],
@@ -104,7 +105,7 @@ function environment(t,{role='mudur'}={}){
   element('galeriHedefTur').value='sinif';element('galeriHedefSinif').value='A';element('galeriHedefOgrenci').value='b';
   const childWrites=()=>writes.filter(x=>/^ogrenciler\/[^/]+\/bildirimler\//.test(x.path));
   const seeds=(id,extra={})=>docs.set(`galeri/${id}`,{durum:'beklemede',hedefTur:'sinif',hedefDeger:'A',etkinlikBaslik:'Private album title',...extra});
-  return {ctx,window,element,docs,writes,notices,toasts,mails,trace,controls,childWrites,seeds,
+  return {ctx,window,element,docs,writes,notices,approvalNotices,toasts,mails,trace,controls,childWrites,seeds,
     run:code=>vm.runInContext(code,ctx),sources:kind=>writes.filter(x=>new RegExp(`^${kind}/[^/]+$`).test(x.path))};
 }
 function assertGeneric(notice,forbidden){
@@ -152,11 +153,11 @@ for(const [kind,handler,idField] of [['duyurular','kaydetDuyuru','duyuruDuzenleI
   });
 }
 
-test('teacher pending photo upload sends neither child notices, root notices nor mail',async t=>{
+test('teacher pending photo upload sends approval notice without child/parent notices or mail',async t=>{
   const e=environment(t,{role:'ogretmen'});e.element('galeriMailGonder').checked=true;
   await e.window.galeriYukle();assert.equal(e.sources('galeri').length,1);
   assert.equal(e.sources('galeri')[0].data.durum,'beklemede');assert.equal(e.childWrites().length,0);
-  assert.equal(e.notices.length,0);assert.equal(e.mails.length,0);
+  assert.equal(e.notices.length,0);assert.equal(e.mails.length,0);assert.equal(e.approvalNotices.length,1);
 });
 
 test('admin mixed gallery upload notifies only successfully published photo and video',async t=>{
