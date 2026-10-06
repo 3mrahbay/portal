@@ -1008,6 +1008,7 @@ window.galeriYukle = async function() {
   const klasorPath = `galeri/${hedefPath}/${etkinlikSlug}`;
 
   let basarili = 0, hatali = 0;
+  const yuklemeHatalari = [];
   let yayinlananFotoSayisi = 0, yayinlananVideoSayisi = 0;
   for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
     const f = galeriSecilenDosyalar[i];
@@ -1653,26 +1654,53 @@ async function galeriBildirimMailGonder(grup) {
   try {
     const { etkinlikBaslik, etkinlikTarih, aciklama, hedefTur, hedefDeger, dosyaSayisi, fotoSayisi, videoSayisi } = grup;
 
-    // Hedef velileri topla
-    const hedefMailler = [];
-    for (const o of B.ogrenciler()) {
-      if (getOgrenciDurum(o, B.ayarlar()[o.id]) !== "aktif") continue;
-      const ayar = B.ayarlar()[o.id] || {};
-      const ogrSinif = (ayar.kayit?.sinif) || o.sinif || "";
+    // Güncel veli kaynağı: veliler/{email}.ogrenciIds. Eski öğrenci
+    // anne/baba alanları yalnız geriye dönük uyumluluk için fallback'tir.
+    const hedefOgrenciler = (B.ogrenciler?.() || []).filter(o => {
+      const ayar = (B.ayarlar?.() || {})[o.id] || {};
+      try { if (B.getOgrenciDurum?.(o, ayar) !== "aktif") return false; } catch (_) {}
+      const ogrSinif = ayar.kayit?.sinif || o.sinif || o.sinifi || "";
+      if (hedefTur === "tumOkul") return true;
+      if (hedefTur === "sinif") return ogrSinif === hedefDeger;
+      if (hedefTur === "ogrenci") return o.id === hedefDeger;
+      return false;
+    });
+    const hedefIds = new Set(hedefOgrenciler.map(o => String(o.id)));
+    const mailHarita = new Map();
+    const mailEkle = (mail, ad, ogrAd = "") => {
+      const temiz = String(mail || "").trim().toLowerCase();
+      if (!temiz || !temiz.includes("@")) return;
+      if (!mailHarita.has(temiz)) mailHarita.set(temiz, {mail:temiz, ad:String(ad || "Veli").trim() || "Veli", ogrAd});
+    };
 
-      let dahil = false;
-      if (hedefTur === "tumOkul") dahil = true;
-      else if (hedefTur === "sinif" &&
-               (sinifAdiResmiEsle(ogrSinif) || ogrSinif) === (sinifAdiResmiEsle(hedefDeger) || hedefDeger)) dahil = true;
-      else if (hedefTur === "ogrenci" && o.id === hedefDeger) dahil = true;
-
-      if (!dahil) continue;
-
-      const anne = ayar.anne || {};
-      const baba = ayar.baba || {};
-      if (anne.eposta) hedefMailler.push({ mail: anne.eposta, ad: anne.adSoyad || "Anne", ogrAd: o.ogrenciAdSoyad });
-      if (baba.eposta) hedefMailler.push({ mail: baba.eposta, ad: baba.adSoyad || "Baba", ogrAd: o.ogrenciAdSoyad });
+    try {
+      const veliSnap = await getDocs(collection(db, "veliler"));
+      veliSnap.forEach(d => {
+        const v = d.data() || {};
+        const ids = Array.isArray(v.ogrenciIds) ? v.ogrenciIds.map(String) : [];
+        if (!ids.some(id => hedefIds.has(id))) return;
+        const docMail = String(d.id || "").includes("@") ? d.id : "";
+        mailEkle(v.eposta || v.email || v.gmail || docMail,
+          v.adSoyad || v.veliAdSoyad || v.ad || v.displayName || "Veli");
+      });
+    } catch (e) {
+      console.warn("Galeri maili veli profili okunamadı; öğrenci fallback'i kullanılacak.", e?.code || e?.message || e);
     }
+
+    const ayarlar = B.ayarlar?.() || {};
+    for (const o of hedefOgrenciler) {
+      const ayar = ayarlar[o.id] || {}, anne = ayar.anne || {}, baba = ayar.baba || {};
+      const ogrAd = o.ogrenciAdSoyad || o.adSoyad || "";
+      mailEkle(anne.eposta || anne.email, anne.adSoyad || anne.ad || "Anne", ogrAd);
+      mailEkle(baba.eposta || baba.email, baba.adSoyad || baba.ad || "Baba", ogrAd);
+      mailEkle(o.veli1Eposta || o.veli1Email, o.veli1AdSoyad || o.veli1Ad || "Veli", ogrAd);
+      mailEkle(o.veli2Eposta || o.veli2Email, o.veli2AdSoyad || o.veli2Ad || "Veli", ogrAd);
+      mailEkle(o.veliEposta || o.veliEmail, o.veliAdSoyad || o.veliAd || "Veli", ogrAd);
+      (Array.isArray(o.veliler) ? o.veliler : []).forEach(v =>
+        mailEkle(v?.eposta || v?.email, v?.adSoyad || v?.ad || "Veli", ogrAd));
+    }
+
+    const hedefMailler = [...mailHarita.values()];
 
     if (hedefMailler.length === 0) {
       showToast("Mail gönderilecek veli bulunamadı", "info");
