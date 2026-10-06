@@ -1,6 +1,6 @@
 import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js';
 export { galleryProgram } from './galeri-klasorleri.js';
-import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=166';
+import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=181';
 import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=166';
 
 const api = () => window.PortalAPI;
