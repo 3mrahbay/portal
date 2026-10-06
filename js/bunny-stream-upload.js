@@ -120,12 +120,16 @@ export async function uploadStreamVideo(file, {
       })
     });
 
-    Promise.resolve(upload.findPreviousUploads?.())
-      .then(previous=>{
-        if (Array.isArray(previous)&&previous.length) upload.resumeFromPreviousUpload(previous[0]);
-        upload.start();
-      })
-      .catch(reject);
+    // Her imza isteği Bunny'de YENİ bir videoId üretir. Dosya adına göre
+    // önceki TUS oturumunu körlemesine resume etmek eski upload URL'sini yeni
+    // VideoId/imza ile eşleştirip 4xx hatasına yol açabilir. Aynı sayfadaki
+    // ağ kesintileri tus-js-client retryDelays ile zaten sürdürülür; yeni
+    // denemede temiz bir TUS oturumu başlatmak daha güvenlidir.
+    try {
+      upload.start();
+    } catch (error) {
+      reject(error instanceof Error ? error : new Error(String(error)));
+    }
   });
 }
 
