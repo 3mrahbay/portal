@@ -18,12 +18,31 @@ export function galleryProgram(m = {}) {
     ingilizce:'ingilizce', 'ingilizce eğitimi':'ingilizce', 'ingilizce egitimi':'ingilizce', english:'ingilizce',
     jimnastik:'jimnastik', cimnastik:'jimnastik', drama:'drama', dram:'drama', kodlama:'kodlama'
   };
-  // Serbest konu içinde geçen program sözcükleri sınıflandırmayı değiştirmez.
-  for (const deger of [m.program, m.kategori, m.etkinlikBaslik]) {
-    const kod = aliases[galleryText(deger).toLocaleLowerCase('tr')];
-    if (Object.hasOwn(aliases, galleryText(deger).toLocaleLowerCase('tr'))) return kod;
+  const kod = value => {
+    const key = galleryText(value).toLocaleLowerCase('tr');
+    return Object.hasOwn(aliases, key) ? aliases[key] : '';
+  };
+
+  // Yeni kayıtlarda albumTuru kaynağın niyetidir. "Genel" seçilmiş bir
+  // kaydı eski başlık/program kalıntıları eğitim klasörüne taşıyamaz.
+  const albumTuru = galleryText(m.albumTuru).toLocaleLowerCase('tr');
+  if (albumTuru === 'genel') return '';
+
+  // Açık program alanı her zaman önceliklidir.
+  const program = galleryText(m.program);
+  if (program) return kod(program);
+
+  // Kategori açıkça Genel/Kategorisiz ise başlıktan program tahmin etme.
+  const kategori = galleryText(m.kategori);
+  if (kategori) {
+    const anahtar = kategori.toLocaleLowerCase('tr');
+    if (['genel','kategorisiz','diğer','diger'].includes(anahtar)) return '';
+    return kod(kategori);
   }
-  return '';
+
+  // Yalnız eski kayıtlarda program/kategori alanı hiç yoksa başlıktan
+  // geriye dönük uyumluluk için kesin program adı kurtarılır.
+  return kod(m.etkinlikBaslik);
 }
 export function galleryIsObservation(media = {}) {
   return Boolean(galleryText(media.kazanimAnahtari));
