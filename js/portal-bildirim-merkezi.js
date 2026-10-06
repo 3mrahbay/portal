@@ -16,7 +16,8 @@ const TYPE_LABELS = Object.freeze({
   'pickup-yeni': 'Okul zili', 'pickup-kapida': 'Okul zili', 'pickup-hazir': 'Okul zili', 'pickup-hazir-personel': 'Okul zili', 'pickup-teslim': 'Okul zili',
   gorusme: 'Görüşme', gorusme_talebi: 'Görüşme', gorusme_notu: 'Görüşme', randevu: 'Randevu', 'randevu-yeni': 'Randevu', randevu_talep: 'Randevu',
   randevu_talebi: 'Randevu', odeme: 'Ödeme', odeme_bildirim: 'Ödeme', odeme_hatirlatma: 'Ödeme', finans: 'Finans',
-  izin: 'İzin', izin_talep: 'İzin', izin_sonuc: 'İzin', devamsizlik: 'Devamsızlık', rozet: 'Rozet', rapor: 'Rapor', 'gunluk-rapor': 'Rapor'
+  izin: 'İzin', izin_talep: 'İzin', izin_sonuc: 'İzin', devamsizlik: 'Devamsızlık', rozet: 'Rozet', rapor: 'Rapor', 'gunluk-rapor': 'Rapor',
+  'personel-giris-hatirlatma': 'Giriş / Çıkış'
 });
 export const notificationLabel = record => TYPE_LABELS[kind(record?.tip)] || 'Bildirim';
 export const isMessageNotification = record => ['mesaj', 'mesaj_yeni', 'sohbet'].includes(kind(record?.tip));
