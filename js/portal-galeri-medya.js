@@ -26,7 +26,7 @@ export function safeMediaUrl(value) {
   } catch (_) { return ''; }
 }
 export function isPlayerUrl(value) {
-  try { return ['iframe.mediadelivery.net', 'player.bunnycdn.com', 'player.bunny.net'].includes(new URL(value).hostname); }
+  try { return ['iframe.mediadelivery.net', 'player.mediadelivery.net', 'player.bunnycdn.com', 'player.bunny.net'].includes(new URL(value).hostname); }
   catch (_) { return false; }
 }
 export function streamThumbnailUrl(media = {}) {
