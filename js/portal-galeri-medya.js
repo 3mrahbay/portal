@@ -50,6 +50,31 @@ export function playerUrl(value) {
   if (!isPlayerUrl(value)) return '';
   const u = new URL(value); u.searchParams.set('autoplay', 'false'); return u.href;
 }
+export function streamStatusUrl(media = {}) {
+  const libraryId = String(media.streamLibraryId || '').trim();
+  const videoId = String(media.streamVideoId || '').trim();
+  if (!/^\d+$/.test(libraryId) || !/^[a-zA-Z0-9-]{8,}$/.test(videoId)) return '';
+  return `https://video.bunnycdn.com/library/${encodeURIComponent(libraryId)}/videos/${encodeURIComponent(videoId)}/play/heatmap`;
+}
+export async function streamPlaybackInfo(media = {}, fetchImpl = globalThis.fetch) {
+  const url = streamStatusUrl(media);
+  if (!url || typeof fetchImpl !== 'function') return null;
+  const response = await fetchImpl(url, {method:'GET', credentials:'omit', cache:'no-store'});
+  if (!response.ok) throw new Error('Stream durumu okunamadı (' + response.status + ')');
+  const data = await response.json();
+  const video = data?.video || {};
+  const status = Number(video.status);
+  const progress = Math.max(0, Math.min(100, Number(video.encodeProgress || 0)));
+  const ready = [3,4,9,10].includes(status) ||
+    (progress >= 100 && Boolean(String(video.availableResolutions || '').trim()));
+  const failed = [5,8].includes(status);
+  return {
+    ready, failed, status, progress,
+    thumbnailUrl: safeMediaUrl(data?.thumbnailUrl || ''),
+    previewUrl: safeMediaUrl(data?.previewUrl || ''),
+    availableResolutions: String(video.availableResolutions || '')
+  };
+}
 export function downloadSource(media) {
   const sources = mediaSources(media);
   return galleryMediaType(media) === 'video' ? sources.direct.find(url => {
@@ -66,10 +91,11 @@ export function renderMedia(host, media, { thumbnail = false } = {}) {
   if (thumbnail) status.style.cssText += ';position:absolute;left:0;right:0;bottom:0;padding:10px;background:#273449dd;font-size:11px;pointer-events:none';
   const videoMode = galleryMediaType(media) === 'video';
   const imageUrl = videoMode ? sources.poster : sources.image;
-  let disposed = false, current = null;
+  let disposed = false, current = null, streamTimer = null, streamChecks = 0;
   const showStatus = text => { status.textContent = text; status.hidden = false; if (!status.parentNode) host.append(status); };
   const dispose = () => {
     disposed = true;
+    if (streamTimer) clearTimeout(streamTimer);
     if (current?.tagName === 'VIDEO') { current.pause(); current.removeAttribute('src'); current.load(); }
     if (current?.tagName === 'IFRAME') current.removeAttribute('src');
   };
@@ -113,13 +139,70 @@ export function renderMedia(host, media, { thumbnail = false } = {}) {
     showStatus(thumbnail ? '▶ Video' : 'Video yükleniyor… Oynat düğmesini kullanın.');
     host.prepend(video); video.src = src;
   }
-  if (!videoMode && !imageUrl) { showStatus('Fotoğraf kaynağı bulunamadı.'); return dispose; }
-  if (!videoMode || (thumbnail && imageUrl)) {
+  function renderImage(url, fallbackToVideo = false) {
+    if (disposed) return;
+    current?.remove();
     const image = document.createElement('img'); current = image;
     image.alt = videoMode ? 'Video kapağı' : 'Galeri fotoğrafı';
     image.style.cssText = thumbnail ? 'width:100%;height:100%;object-fit:cover' : 'max-width:100%;max-height:76vh;object-fit:contain';
-    image.addEventListener('error', () => videoMode ? directVideo() : showStatus('Fotoğraf yüklenemedi.'));
-    host.append(image); image.src = imageUrl;
+    image.addEventListener('load', () => { if (!disposed) status.hidden = true; });
+    image.addEventListener('error', () => fallbackToVideo ? directVideo() : showStatus('Fotoğraf yüklenemedi.'));
+    host.prepend(image); image.src = url;
+  }
+
+  function renderReadyVideo() {
+    if (disposed) return;
+    if (thumbnail && sources.poster) {
+      renderImage(sources.poster, true);
+      showStatus('▶ Video · açmak için dokunun');
+    } else {
+      directVideo();
+    }
+  }
+
+  const bunnyStream = videoMode && Boolean(streamStatusUrl(media));
+  if (bunnyStream) {
+    const yuklendi = Date.parse(media.yuklemeZamani || media.yuklenmeTarihi || media.olusturmaTarihi || '');
+    const eskiKayit = Number.isFinite(yuklendi) && (Date.now() - yuklendi) > 5 * 60 * 1000;
+    const kontrol = async () => {
+      if (disposed) return;
+      streamChecks++;
+      try {
+        const info = await streamPlaybackInfo(media);
+        if (disposed) return;
+        if (info?.thumbnailUrl) sources.poster = info.thumbnailUrl;
+        if (info?.failed) {
+          showStatus('Video işlenirken bir sorun oluştu. Yönetimin videoyu yeniden yüklemesi gerekiyor.');
+          return;
+        }
+        if (info?.ready) {
+          renderReadyVideo();
+          return;
+        }
+        const yuzde = Number.isFinite(info?.progress) && info.progress > 0 ? ' · %' + Math.round(info.progress) : '';
+        showStatus('Video hazırlanıyor' + yuzde + '…');
+        streamTimer = setTimeout(kontrol, 5000);
+      } catch (_) {
+        if (disposed) return;
+        // Eski ve daha önce çalıştığı bilinen videolarda durum servisi geçici
+        // olarak erişilemezse oynatmayı engelleme. Yeni videoda ise Bunny'nin
+        // teknik "Processing video" ekranını veliye göstermemek için bekle.
+        if (eskiKayit && streamChecks >= 2) {
+          renderReadyVideo();
+          return;
+        }
+        showStatus('Video hazırlanıyor…');
+        streamTimer = setTimeout(kontrol, 8000);
+      }
+    };
+    showStatus('Video hazırlanıyor…');
+    kontrol();
+    return dispose;
+  }
+
+  if (!videoMode && !imageUrl) { showStatus('Fotoğraf kaynağı bulunamadı.'); return dispose; }
+  if (!videoMode || (thumbnail && imageUrl)) {
+    renderImage(imageUrl, videoMode);
     if(videoMode&&thumbnail)showStatus('▶ Video · açmak için dokunun');
   } else { directVideo(); }
   return dispose;
