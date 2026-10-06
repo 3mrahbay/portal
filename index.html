@@ -36888,6 +36888,9 @@ async function galeriVideoYukle(file, options = {}) {
   });
 }
 
+// Legacy portal-galeri-core.js aynı güvenli Stream hattını kullansın.
+window.galeriVideoYukle = galeriVideoYukle;
+
 window.galeriYukle = async function() {
   // ── ÖĞRETMEN KISITI (sunucu tarafı Rules'a ek olarak arayüz koruması) ──
   if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
