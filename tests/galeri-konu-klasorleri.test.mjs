@@ -12,6 +12,13 @@ test('all upload programs include Jimnastik, Drama and Kodlama for the shared ph
  assert.equal(galleryProgram({kategori:'Dram'}),'drama');
  assert.equal(galleryProgram({kategori:'Değerler+'}),'degerlerPlus');
 });
+test('Genel secimi eski veya serbest Orman basligindan egitim klasorune kaymaz',()=>{
+ assert.equal(galleryProgram({albumTuru:'genel',program:'orman',kategori:'orman',etkinlikBaslik:'Orman Okulu'}),'');
+ assert.equal(galleryProgram({kategori:'Genel',etkinlikBaslik:'Orman Okulu'}),'');
+ assert.equal(galleryProgram({kategori:'Kategorisiz',etkinlikBaslik:'Montessori'}),'');
+ assert.equal(galleryProgram({etkinlikBaslik:'Orman Okulu'}),'orman');
+ assert.equal(galleryProgram({albumTuru:'egitim',program:'orman',etkinlikBaslik:'Genel'}),'orman');
+});
 test('same topic across repeated/new batches and dates groups mixed media without mutation',()=>{
  const input=[row({id:'1',dosyaTipi:'foto',etkinlikTarih:'2026-09-30'}),row({id:'2',dosyaTipi:'video',etkinlikBaslik:'  DENGE   ÇALIŞMASI ',etkinlikTarih:'2026-10-02'})];
  const before=JSON.stringify(input);assert.equal(galleryTopicGroups(input).length,1);assert.equal(folderDateRange(input),'30.09.2026 – 02.10.2026');assert.equal(JSON.stringify(input),before);
