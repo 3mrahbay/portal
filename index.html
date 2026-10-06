@@ -21658,17 +21658,26 @@ async function hbOgretmenDoldur() {
     // Ayrılmış/pasif personeli listeleme
     tumP = tumP.filter(p => p.durum !== "ayrildi" && p.durum !== "pasif" && p.durum !== "arsiv");
 
-    // Anlık durumlar (personelDurum) — QR ile güncellenir
-    const anlik = {};
+    // Durumun tek doğruluk kaynağı bugünün puantaj hareketleridir.
+    // personelDurum kalıcı bir önbellek olduğu için önceki günün "iceride"
+    // değeri yeni güne taşınabiliyordu; bu ekranda artık statü belirlemez.
+    const bugunStr = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Istanbul" }).format(new Date());
+    const bugunHareket = {};
     try {
-      const snap = await getDocs(collection(db, "personelDurum"));
-      snap.forEach(d => { anlik[(d.id || "").toLowerCase()] = d.data(); });
-    } catch (e) { /* koleksiyon yoksa herkes dışarıda sayılır */ }
+      const snap = await getDocs(query(collection(db, "puantaj"), where("tarih", "==", bugunStr)));
+      snap.forEach(d => {
+        const v = d.data();
+        const e = (v.personelEmail || "").toLowerCase();
+        (bugunHareket[e] = bugunHareket[e] || []).push(v);
+      });
+      Object.keys(bugunHareket).forEach(e =>
+        bugunHareket[e].sort((a, b) => new Date(a.zaman) - new Date(b.zaman))
+      );
+    } catch (e) { /* puantaj okunamazsa güvenli varsayım: dışarıda */ }
 
     // Bugün onaylı izinliler
     const izinliMap = {};
     try {
-      const bugunStr = new Date().toISOString().substring(0, 10);
       const snap = await getDocs(collection(db, "izinTalepleri"));
       snap.forEach(d => {
         const v = d.data();
@@ -21682,12 +21691,16 @@ async function hbOgretmenDoldur() {
 
     const durumBul = (p) => {
       const e = (p.email || "").toLowerCase();
-      if (izinliMap[e]) return "izinli";
-      const a = anlik[e];
-      const d = a && a.durum;
-      if (d === "iceride") return "iceride";
-      if (d === "molada") return "molada";
-      return "disarida";
+      const h = bugunHareket[e] || [];
+      let durum = "disarida";
+      h.forEach(x => {
+        if (x.tip === "giris") durum = "iceride";
+        else if (x.tip === "mola-basla" && durum === "iceride") durum = "molada";
+        else if (x.tip === "mola-bitir" && durum === "molada") durum = "iceride";
+        else if (x.tip === "cikis") durum = "disarida";
+      });
+      if (!h.length && izinliMap[e]) return "izinli";
+      return durum;
     };
 
     const say = { iceride: 0, molada: 0, izinli: 0, disarida: 0 };
@@ -28738,8 +28751,10 @@ function ozlukTarihSaat(iso) {
   const d = new Date(iso);
   return isNaN(d) ? "—" : d.toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
-function ozlukBugun() { return new Date().toISOString().slice(0, 10); }
-function ozlukBuAy() { return new Date().toISOString().slice(0, 7); }
+function ozlukBugun() {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Istanbul" }).format(new Date());
+}
+function ozlukBuAy() { return ozlukBugun().slice(0, 7); }
 
 window.ozlukSekme = function(sekme) {
   ozlukAktifSekme = sekme;
@@ -28991,12 +29006,8 @@ async function ozlukDurumCiz() {
     <span style="font-size:11.5px; color:#94A3B8;">Son güncelleme: ${new Date().toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"})}</span>`;
 
   // ---- VERİ ----
-  const durumlar = {};
-  try {
-    const snap = await getDocs(collection(db, "personelDurum"));
-    snap.forEach(d => { durumlar[(d.id || "").toLowerCase()] = d.data(); });
-  } catch (e) { console.warn("personelDurum", e); }
-
+  // "Çalışıyor / Molada / Dışarıda" yalnız bugünkü puantajdan hesaplanır.
+  // Önceki günden kalan personelDurum belgesi bu ekranda kullanılmaz.
   const hareket = {};
   try {
     const q = query(collection(db, "puantaj"), where("tarih", "==", ozlukBugun()));
@@ -29038,9 +29049,14 @@ async function ozlukDurumCiz() {
   const personelVeri = ozlukPersoneller.map(p => {
     const e = (p.email || "").toLowerCase();
     const h = hareket[e] || [];
-    const d = durumlar[e];
-    let durum = (d && d.durum) || "disarida";
-    if (izinliler[e]) durum = "izinli";
+    let durum = "disarida";
+    h.forEach(x => {
+      if (x.tip === "giris") durum = "iceride";
+      else if (x.tip === "mola-basla" && durum === "iceride") durum = "molada";
+      else if (x.tip === "mola-bitir" && durum === "molada") durum = "iceride";
+      else if (x.tip === "cikis") durum = "disarida";
+    });
+    if (!h.length && izinliler[e]) durum = "izinli";
 
     let calismaMs = 0, molaMs = 0, molaSayisi = 0;
     let acikGiris = null, acikMola = null;
@@ -29067,7 +29083,7 @@ async function ozlukDurumCiz() {
       ad: p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email,
       rol: p.rol || p.unvan || "",
       ilkGirisSaat: ilkGiris ? ozlukSaat(ilkGiris.zaman) : null,
-      sonHareketSaat: sonHareket ? ozlukSaat(sonHareket.zaman) : (d && d.sonZaman ? ozlukSaat(d.sonZaman) : null),
+      sonHareketSaat: sonHareket ? ozlukSaat(sonHareket.zaman) : null,
       netCalismaDk: dk(netCalisma),
       molaDk: dk(molaMs),
       molaSayisi,
