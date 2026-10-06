@@ -14013,7 +14013,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v164";
+window.PORTAL_SURUM = "v181";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -36881,7 +36881,7 @@ window.galeriRolKisitiUygula = function() {
 };
 
 async function galeriVideoYukle(file, options = {}) {
-  const stream = await import("./js/bunny-stream-upload.js?v=180");
+  const stream = await import("./js/bunny-stream-upload.js?v=181");
   return stream.bunnyStreamVideoYukle(file, {
     proxyUrl: MEDYA_AYAR.PROXY_URL,
     sharedKey: MEDYA_AYAR.PAYLASIM_ANAHTARI,
