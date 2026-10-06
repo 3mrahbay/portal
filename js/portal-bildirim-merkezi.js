@@ -105,7 +105,8 @@ function ensureStyles(doc) {
 .pbm-panel{position:fixed;top:var(--pbm-panel-top,76px);right:18px;width:min(420px,calc(100vw - 24px));max-height:calc(100dvh - var(--pbm-panel-top,76px) - 12px);display:flex;flex-direction:column;z-index:10060;background:#fff;color:#202944;border:1px solid #dbe1ed;border-radius:18px;box-shadow:0 20px 60px #17264c40;font-family:inherit;overflow:hidden}
 .pbm-panel[hidden],.pbm-sayac[hidden]{display:none}.pbm-baslik{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #e5e9f2}.pbm-baslik h2{font-size:18px;margin:0}.pbm-kapat{width:40px;height:40px;border:0;border-radius:12px;background:#f1f4fa;color:#202944;font-size:24px;cursor:pointer}.pbm-durum{font-size:13px;padding:0 16px;line-height:1.5}.pbm-durum:empty{display:none}.pbm-durum[data-error="true"]{color:#9d2430}
 .pbm-liste{margin:0;padding:8px 10px;list-style:none;overflow:auto;overscroll-behavior:contain}.pbm-satir{width:100%;display:flex;gap:12px;align-items:center;text-align:left;min-height:66px;padding:12px;border:0;border-bottom:1px solid #eef1f6;background:white;font:inherit;color:#202944;cursor:pointer;border-radius:10px}.pbm-satir[data-state="unread"]{background:#fffbeb;border-color:#fcd34d}.pbm-satir[data-state="unread"]:hover{background:#fef3c7}.pbm-satir[data-state="read"]{background:#f0fdf4;border-color:#86efac}.pbm-satir[data-state="read"]:hover{background:#dcfce7}.pbm-satir[data-state="urgent"]{background:#fff1f2;border-color:#fda4af}.pbm-satir[data-state="urgent"]:hover{background:#ffe4e6}.pbm-satir[data-state="unread"] .pbm-isaret{color:#713f12}.pbm-satir[data-state="read"] .pbm-isaret{color:#166534}.pbm-satir[data-state="urgent"] .pbm-isaret{color:#9f1239}.pbm-satir:disabled{cursor:wait;opacity:.75}.pbm-metin{flex:1;min-width:0}.pbm-metin strong{display:block;font-size:14px;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.pbm-kategori{display:block;font-size:12px;color:#4b5563;margin-top:4px}.pbm-metin time{display:block;font-size:12px;color:#4b5563;margin-top:4px}.pbm-isaret{font-size:12px;font-weight:700;flex-shrink:0;max-width:100px;line-height:1.45;text-align:right}.pbm-bos{padding:24px 14px;text-align:center;color:#606c85;font-size:14px}
-.pbm-zil:focus-visible,.pbm-kapat:focus-visible,.pbm-satir:focus-visible{outline:3px solid #5a6acf;outline-offset:2px}
+.pbm-islemler{display:flex;justify-content:flex-end;padding:4px 16px;border-bottom:1px solid #e5e9f2;flex-shrink:0}.pbm-hepsini-oku{min-height:44px;max-width:100%;padding:8px 10px;border:0;border-radius:10px;background:#eef2ff;color:#28356a;font:inherit;font-size:13px;font-weight:700;cursor:pointer;overflow-wrap:anywhere}.pbm-hepsini-oku:hover:not(:disabled){background:#dfe6ff}.pbm-hepsini-oku:disabled{color:#5f677a;background:#f1f4fa;cursor:default}
+.pbm-zil:focus-visible,.pbm-kapat:focus-visible,.pbm-hepsini-oku:focus-visible,.pbm-satir:focus-visible{outline:3px solid #5a6acf;outline-offset:2px}
 @media(max-width:600px){.pbm-panel{right:12px}.pbm-satir{align-items:flex-start}}`;
   doc.head.appendChild(style);
 }
@@ -126,10 +127,10 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
   const instance = `bildirim-merkezi-${++serial}`;
   const tracker = createNotificationNoticeTracker();
   const roots = new Map(), externals = new Map(), pending = new Map(), confirmed = new Map(), failedReads = new Map();
-  const confirmedEvents = new Set();
+  const confirmedEvents = new Set(), bulkMirrors = new Map();
   const ownedTypes = new Set(), wrappers = [], buttons = [];
   let stopped = false, unsubscribe = null, panel = null, list = null, statusNode = null;
-  let closeButton = null, returnFocus = null, opened = false, rootFailed = false, headerMounts = null;
+  let closeButton = null, markAllButton = null, bulkRead = null, bulkRenderTimer = null, readNotice = '', returnFocus = null, opened = false, rootFailed = false, headerMounts = null;
   const reposition = () => { if (opened) positionNotificationPanel(panel, buttons); };
   let status = 'loading', errorMessage = '';
   const isActive = () => {
@@ -145,7 +146,8 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
     try { return typeof callback === 'function' && callback(record) === true; } catch (_) { return true; }
   };
   function effectiveRecord(record) {
-    const state = pending.get(keyFor(record));
+    const candidate = pending.get(keyFor(record));
+    const state = candidate?.event === notificationEventKey(record) ? candidate : null;
     const failed = failedReads.get(keyFor(record)) === notificationEventKey(record);
     return { ...record, okundu: state ? state.wasRead : failed ? false : wasConfirmed(record) || record.okundu === true };
   }
@@ -161,8 +163,9 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
       else if (sourceKeys.has(notificationEventKey(record))) {
         // Gizlenen ayna aynı satırın okuma durumuna katılır; ayrı sayaç/uyarı üretmez.
         values.push({...record,_displayEventKey:sourceKeys.get(notificationEventKey(record))});
-      } else if (failedReads.get(keyFor(record)) === notificationEventKey(record)
-          && confirmedEvents.has(notificationEventKey(record))) values.push(record);
+      } else if (bulkMirrors.get(keyFor(record)) === notificationEventKey(record)
+          || (failedReads.get(keyFor(record)) === notificationEventKey(record)
+          && confirmedEvents.has(notificationEventKey(record)))) values.push(record);
     }
     return values.map(effectiveRecord);
   }
@@ -182,10 +185,16 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
     const entries = groups();
     return { status, ready: tracker.ready && !rootFailed && isActive(), open: opened,
       unreadCount: entries.filter(entry => entry.unread).length, itemCount: entries.length,
-      error: errorMessage, items: entries.map(entry => ({ ...entry.record, okundu: !entry.unread })) };
+      error: errorMessage, markingAll: !!bulkRead, items: entries.map(entry => ({ ...entry.record, okundu: !entry.unread })) };
   }
-  function render() {
+  function render(immediate = false) {
     if (!isActive()) return;
+    // Large read sets generate many acknowledgements. Keep the live counter
+    // responsive without rebuilding the entire list for every document write.
+    if (bulkRead && !immediate) {
+      if (bulkRenderTimer == null) bulkRenderTimer = setTimeout(() => { bulkRenderTimer = null; render(true); }, 100);
+      return;
+    }
     const state = getState();
     for (const { button, badge } of buttons) {
       button.setAttribute('aria-label', `Bildirimler${state.unreadCount ? `, ${state.unreadCount} okunmamış` : ', okunmamış bildirim yok'}`);
@@ -194,8 +203,13 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
       badge.hidden = state.unreadCount === 0;
     }
     if (statusNode) {
-      statusNode.textContent = errorMessage || (status === 'loading' ? 'Bildirimler yükleniyor…' : '');
+      statusNode.textContent = errorMessage || (bulkRead ? `Bildirimler okundu olarak kaydediliyor… (${bulkRead.completed}/${bulkRead.total})` : readNotice) || (status === 'loading' ? 'Bildirimler yükleniyor…' : '');
       statusNode.setAttribute('data-error', String(!!errorMessage));
+    }
+    if (markAllButton) {
+      markAllButton.disabled = !!bulkRead || !state.ready || !state.unreadCount || pending.size > 0;
+      markAllButton.textContent = bulkRead ? 'Kaydediliyor…' : 'Hepsini okundu yap';
+      markAllButton.setAttribute('aria-busy', String(!!bulkRead));
     }
     if (list) {
       list.replaceChildren();
@@ -208,7 +222,7 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
         const displayStatus = notificationStatus(entry.record, {unread:entry.unread, urgent:presentation.urgent === true || entry.items.some(isUrgentNotification)});
         button.setAttribute('data-state', displayStatus.state);
         button.setAttribute('aria-label', `${presentation.title}${presentation.title !== notificationLabel(entry.record) ? `, ${notificationLabel(entry.record)}` : ''}${displayStatus.state === 'urgent' ? ', acil' : ''}${entry.unread ? ', okunmamış' : ', okundu'}`);
-        button.disabled = entry.items.some(item => pending.has(keyFor(item)));
+        button.disabled = !!bulkRead || entry.items.some(item => pending.has(keyFor(item)));
         const text = doc.createElement('span'); text.className = 'pbm-metin';
         const title = doc.createElement('strong'); title.textContent = presentation.title;
         const category = doc.createElement('span'); category.className = 'pbm-kategori';
@@ -243,11 +257,11 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
   }
   function open() {
     if (!isActive() || !panel) return;
-    returnFocus = doc.activeElement; requestedTitles.clear(); opened = true; panel.hidden = false; render(); reposition(); closeButton.focus?.();
+    returnFocus = doc.activeElement; requestedTitles.clear(); opened = true; panel.hidden = false; render(true); reposition(); closeButton.focus?.();
   }
   function close() {
     if (!panel) return;
-    opened = false; panel.hidden = true; render();
+    opened = false; panel.hidden = true; render(true);
     if (returnFocus?.isConnected !== false) returnFocus?.focus?.();
   }
   const onKey = event => { if (opened && event.key === 'Escape') { event.preventDefault?.(); close(); } };
@@ -277,8 +291,12 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
     heading.append(title, closeButton);
     statusNode = doc.createElement('p'); statusNode.className = 'pbm-durum'; statusNode.setAttribute('role', 'status');
     statusNode.setAttribute('aria-live', 'polite');
+    const actions = doc.createElement('div'); actions.className = 'pbm-islemler';
+    markAllButton = doc.createElement('button'); markAllButton.type = 'button'; markAllButton.className = 'pbm-hepsini-oku';
+    markAllButton.textContent = 'Hepsini okundu yap';
+    markAllButton.addEventListener('click', () => { void markAllRead(); }); actions.appendChild(markAllButton);
     list = doc.createElement('ul'); list.className = 'pbm-liste';
-    panel.append(heading, statusNode, list); doc.body.appendChild(panel); doc.addEventListener('keydown', onKey);
+    panel.append(heading, actions, statusNode, list); doc.body.appendChild(panel); doc.addEventListener('keydown', onKey);
     window.addEventListener?.('resize', reposition); window.addEventListener?.('scroll', reposition, true);
   }
   function alert(records, root = false) {
@@ -292,12 +310,16 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
   }
   async function persist(record) {
     const key = keyFor(record);
-    if (!isActive() || record.okundu === true || wasConfirmed(record)) return true;
+    if (!isActive()) return false;
+    if (record.okundu === true || wasConfirmed(record)) {
+      if (bulkMirrors.get(key) === notificationEventKey(record)) bulkMirrors.delete(key);
+      return true;
+    }
     if (pending.has(key)) return pending.get(key).promise;
     // External adapters own their own read semantics. Merely opening a source
     // with no onRead callback must not decrement its count.
     if (record._source && typeof record.onRead !== 'function') return true;
-    const entry = { wasRead: record.okundu === true, promise: null };
+    const entry = { wasRead: record.okundu === true, event: notificationEventKey(record), promise: null };
     pending.set(key, entry); render();
     entry.promise = (async () => {
       try {
@@ -306,13 +328,13 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
           if (result === false) throw Error('read-not-persisted');
         } else await fb.updateDoc(fb.doc(db, 'bildirimler', record.id), { okundu: true });
         if (!isActive()) return false;
-        confirmed.set(key, notificationEventKey(record)); failedReads.delete(key); pending.delete(key); render(); return true;
+        confirmed.set(key, notificationEventKey(record)); failedReads.delete(key); bulkMirrors.delete(key); pending.delete(key); render(); return true;
       } catch (_) {
         if (!isActive()) return false;
         pending.delete(key); failedReads.set(key, notificationEventKey(record));
         const items = record._source ? externals.get(record._source)?.items : roots;
-        if (items?.has(record.id)) items.set(record.id, { ...items.get(record.id), okundu: false });
-        errorMessage = 'Bildirim okundu olarak kaydedilemedi. Lütfen tekrar deneyin.';
+        if (items?.has(record.id) && notificationEventKey(items.get(record.id)) === entry.event) items.set(record.id, { ...items.get(record.id), okundu: false });
+        if (!rootFailed) errorMessage = 'Bildirim okundu olarak kaydedilemedi. Lütfen tekrar deneyin.';
         render(); return false;
       }
     })();
@@ -327,7 +349,7 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
   }
   async function markGroup(entry) {
     if (!entry || !isActive()) return false;
-    errorMessage = '';
+    errorMessage = ''; readNotice = '';
     const results = await Promise.all(entry.items.map(persist));
     entry.items.forEach((record,index) => {
       if (results[index] && (!record._source || typeof record.onRead === 'function')) confirmedEvents.add(rootEventKey(record));
@@ -338,12 +360,13 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
     return isActive() && results.every(Boolean);
   }
   async function markRead(id) {
+    if (bulkRead) return false;
     const entry = groups().find(group => group.key === id || group.items.some(item => item.id === id || keyFor(item) === id));
     return markGroup(entry);
   }
   async function activate(key) {
     const entry = groups().find(group => group.key === key);
-    if (!entry || !isActive() || entry.items.some(item => pending.has(keyFor(item)))) return;
+    if (!entry || !isActive() || bulkRead || entry.items.some(item => pending.has(keyFor(item)))) return;
     if (!await markGroup(entry) || !isActive()) return;
     try {
       // No record URL is followed here. The parent supplies allowlisted routing.
@@ -356,8 +379,59 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
       if (isActive()) { errorMessage = 'Bildirim ekranı açılamadı. Lütfen tekrar deneyin.'; render(); }
     }
   }
+  // Freeze logical events, not a timestamp or a source-wide read flag. Later
+  // notifications (including a reused source id with a new event) stay unread.
+  // Eight sequential workers avoid unbounded writes and Firestore batch limits.
+  function markAllRead() {
+    if (bulkRead) return bulkRead.promise;
+    if (!isActive() || !tracker.ready || rootFailed || pending.size) {
+      return Promise.resolve({ status: 'unavailable', total: 0, readCount: 0, failedCount: 0 });
+    }
+    const entries = groups().filter(entry => entry.unread);
+    for (const entry of entries) for (const record of entry.items) {
+      if (record._displayEventKey && record.okundu !== true) bulkMirrors.set(keyFor(record), notificationEventKey(record));
+    }
+    const operation = { total: entries.length, completed: 0, promise: null };
+    bulkRead = operation; errorMessage = ''; readNotice = '';
+    // Defer execution until the promise is installed, including synchronous
+    // observer/adaptor re-entry into markAllRead during the first render.
+    operation.promise = Promise.resolve().then(async () => {
+      let next = 0, readCount = 0;
+      const worker = async () => {
+        while (isActive() && !rootFailed && next < entries.length) {
+          const entry = entries[next++]; let succeeded = true;
+          for (const record of entry.items) {
+            if (record.okundu === true) continue;
+            if (!isActive() || rootFailed) { succeeded = false; break; }
+            const items = record._source ? externals.get(record._source)?.items : roots;
+            const current = items?.get(record.id);
+            if (!current || notificationEventKey(current) !== notificationEventKey(record)
+                || (record._source && effectiveRecord(current).okundu !== true && typeof current.onRead !== 'function')) { succeeded = false; continue; }
+            if (!await persist(effectiveRecord(current))) succeeded = false;
+          }
+          if (!isActive()) break;
+          if (succeeded) readCount++;
+          operation.completed++; render();
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(8, entries.length) }, worker));
+      const failedCount = entries.length - readCount;
+      if (!isActive()) return { status: 'cancelled', total: entries.length, readCount, failedCount };
+      // Bulk acknowledges exactly the click-time snapshot. Unlike opening one
+      // source item, it never authorizes automatic backfill of later arrivals.
+      if (!rootFailed) {
+        errorMessage = failedCount ? `${readCount} bildirim okundu. ${failedCount} bildirim kaydedilemedi; tekrar deneyin.` : '';
+        readNotice = failedCount ? '' : entries.length ? `${readCount} bildirim okundu olarak kaydedildi.` : 'Okunmamış bildirim yok.';
+      }
+      return { status: rootFailed || failedCount ? 'partial' : 'complete', total: entries.length, readCount, failedCount };
+    }).finally(() => {
+      if (bulkRead === operation) { clearTimeout(bulkRenderTimer); bulkRenderTimer = null; bulkRead = null; render(); }
+    });
+    render(true);
+    return operation.promise;
+  }
   async function markThreadRead(threadId) {
-    const id = clean(threadId); if (!id || !isActive()) return false;
+    const id = clean(threadId); if (!id || !isActive() || bulkRead) return false;
     const matches = [...roots.values()].map(effectiveRecord).filter(record => record.okundu !== true
       && notificationThreadId(record) === id
       && failedReads.get(keyFor(record)) !== notificationEventKey(record));
@@ -388,15 +462,16 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
   }
   function stop() {
     if (stopped) return;
-    stopped = true; status = 'stopped'; opened = false;
+    stopped = true; status = 'stopped'; opened = false; bulkRead = null; readNotice = '';
+    clearTimeout(bulkRenderTimer); bulkRenderTimer = null;
     unsubscribe?.(); unsubscribe = null;
     doc?.removeEventListener('keydown', onKey);
     if (typeof window !== 'undefined') { window.removeEventListener?.('resize', reposition); window.removeEventListener?.('scroll', reposition, true); }
     headerMounts?.cleanup(); titleResolver.clear(); requestedTitles.clear();
     panel?.remove(); wrappers.forEach(wrapper => wrapper.remove()); dismissPortalNotice(instance);
-    roots.clear(); externals.clear(); pending.clear(); confirmed.clear(); failedReads.clear(); confirmedEvents.clear(); tracker.reset(); ownedTypes.clear();
+    roots.clear(); externals.clear(); pending.clear(); confirmed.clear(); failedReads.clear(); confirmedEvents.clear(); bulkMirrors.clear(); tracker.reset(); ownedTypes.clear();
   }
-  const api = { stop, open, close, markRead, markThreadRead, setExternalItems, refresh: render, getState, ownedTypes,
+  const api = { stop, open, close, markRead, markAllRead, markThreadRead, setExternalItems, refresh: render, getState, ownedTypes,
     get status() { return status; }, get ready() { return tracker.ready && !rootFailed && isActive(); } };
   if (!account || !fb || !db) { status = 'inactive'; return api; }
   mount(); setupMessageSound(); render();
@@ -418,6 +493,7 @@ export function startNotificationCenter({ fb, db, email, mounts, navigate,
         roots.set(record.id, record);
         if (!snapshot.metadata?.fromCache && !record._pendingWrites && !pending.has(keyFor(record))) {
           confirmed.delete(keyFor(record));
+          if (record.okundu === true && bulkMirrors.get(keyFor(record)) === notificationEventKey(record)) bulkMirrors.delete(keyFor(record));
           if (record.okundu === true || failedReads.get(keyFor(record)) !== notificationEventKey(record)) failedReads.delete(keyFor(record));
         }
       }

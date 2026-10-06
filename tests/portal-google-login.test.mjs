@@ -143,7 +143,7 @@ test('logout delayed reload cannot interrupt an immediately restarted Google pop
   const source = html.match(/window.signOut = async function\(\) \{([\s\S]*?)\n\};/)[1];
   for (const state of ['idle', 'popup', 'signed-in']) {
     let timer, reloads = 0, pending = false;
-    const c = { auth: { currentUser: user() }, googleGiris: { invalidate() { pending = false; }, isPending: () => pending },
+    const c = { portalOturumSurumu: 1, auth: { currentUser: user() }, googleGiris: { invalidate() { pending = false; }, isPending: () => pending },
       window: {}, galeriVeliUid: 'parent', veliGaleriSinifSifirla() {}, showToast() {},
       setTimeout: fn => { timer = fn; }, location: { reload() { reloads++; } } };
     c.fbSignOut = async () => { c.auth.currentUser = null; };

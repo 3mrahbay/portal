@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v186-gallery-admin-approval";
+const CACHE_VERSION = "v187-notification-chat-safety";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -36,7 +36,7 @@ const PRECACHE = [
   "./js/portal-bildirim-yerlesim.js?v=165",
   "./js/portal-bildirim-basliklari.js?v=165",
   "./js/portal-mesaj-bildirim.js?v=164",
-  "./js/portal-bildirim-merkezi.js?v=164",
+  "./js/portal-bildirim-merkezi.js?v=187",
   "./js/zeky-bildirim-koprusu.js?v=164",
   "./js/zeky-bildirim-koprusu.js",
   "./js/zeky-operasyon-push.js",

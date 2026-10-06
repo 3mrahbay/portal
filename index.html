@@ -13995,7 +13995,7 @@ import {
 import { createGooglePopupFlow } from "./js/portal-google-login.js?v=178";
 
 import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
-import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=164";
+import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=187";
 import { bildirimZamani, enYeniBildirimOnce, canliListeOlustur } from "./js/okul-zili-liste-core.js?v=168";
 
 const firebaseConfig = {
@@ -14016,7 +14016,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v181";
+window.PORTAL_SURUM = "v187";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -16031,22 +16031,108 @@ async function mesajIcThreadGetirVeyaOlustur(hedefPersonel) {
   return { id: threadId, ...yeniThread };
 }
 
+// Gönderim kimliği e-postadan ibaret değildir: Firebase kullanıcı nesnesi ve
+// oturum nesli, aynı hesaba yeniden girişte bile eski işi geçersiz kılar.
+function mesajGonderimOturumuAl() {
+  const user = currentUser, firebaseUser = auth.currentUser;
+  const uid = user?.uid, email = user?.email, surum = portalOturumSurumu;
+  const guncel = () => !!uid && !!email && user === firebaseUser &&
+    currentUser === user && auth.currentUser === firebaseUser &&
+    user.uid === uid && user.email === email && portalOturumSurumu === surum;
+  return {
+    guncel,
+    dogrula() {
+      if (!guncel()) throw Object.assign(new Error("Gönderim oturumu değişti"), { name: "AbortError" });
+    }
+  };
+}
+
+// Aynı sohbetin çift tıklama/Enter gönderimini kilitle; başka sohbeti veya yeni
+// oturumu kilitleme. Paylaşılan DOM düğmesi asenkron işin mülkiyetinde değildir.
+const mesajBekleyenGonderimler = new Map();
+async function mesajTaslagiGonder({ inputId, onizlemeId, dosyaInputIds,
+  threadOku, sohbetSurumuOku, ekleriOku, ekleriAyarla }) {
+  const input = document.getElementById(inputId), threadId = threadOku()?.id;
+  const oturum = mesajGonderimOturumuAl();
+  if (!input || !threadId || !oturum.guncel()) return;
+  if (mesajBekleyenGonderimler.get(threadId)?.guncel()) return;
+  const metin = input.value.trim(), ekler = ekleriOku();
+  if (!metin && !ekler.resim && !ekler.belge) return;
+  const sohbetSurumu = sohbetSurumuOku();
+  const onizleme = document.getElementById(onizlemeId);
+  const eskiOnizleme = onizleme && { html: onizleme.innerHTML, display: onizleme.style.display };
+  const arayuzGuncel = () => oturum.guncel() && threadOku()?.id === threadId &&
+    sohbetSurumuOku() === sohbetSurumu && document.getElementById(inputId) === input &&
+    document.getElementById(onizlemeId) === onizleme;
+  let metinDegisti = false, ekDegisti = false;
+  const metinDegistiIsaretle = () => { metinDegisti = true; };
+  const ekDegistiIsaretle = () => { ekDegisti = true; };
+  const dosyaInputlari = dosyaInputIds.map(id => document.getElementById(id)).filter(Boolean);
+  input.addEventListener("input", metinDegistiIsaretle);
+  dosyaInputlari.forEach(el => el.addEventListener("change", ekDegistiIsaretle));
+  onizleme?.addEventListener("click", ekDegistiIsaretle);
+  mesajBekleyenGonderimler.set(threadId, oturum);
+
+  // Dosyayı da hemen tüket: A yüklenirken B açıldığında A'nın eki yeni taslağa
+  // taşınamaz. Başarısızlıkta yalnız hâlâ aynı ve değiştirilmemiş taslak geri gelir.
+  input.value = "";
+  input.style.height = "auto";
+  ekleriAyarla({ resim: null, belge: null });
+  if (onizleme) { onizleme.style.display = "none"; onizleme.innerHTML = ""; }
+  try {
+    let resimUrl = "", resimYol = "", belgeUrl = "", belgeYol = "", belgeAd = "";
+    oturum.dogrula();
+    if (ekler.resim) {
+      const sikistirilmis = await resimSikistir(ekler.resim, 1600, 0.85);
+      oturum.dogrula();
+      const sonuc = await medyaYukle(sikistirilmis, "mesaj/" + threadId);
+      oturum.dogrula();
+      if (!sonuc?.url) throw new Error("Resim yüklenemedi");
+      resimUrl = sonuc.url; resimYol = sonuc.yol;
+    } else if (ekler.belge) {
+      const sonuc = await medyaYukle(ekler.belge, "mesaj/" + threadId, false);
+      oturum.dogrula();
+      if (!sonuc?.url) throw new Error("Belge yüklenemedi");
+      belgeUrl = sonuc.url; belgeYol = sonuc.yol; belgeAd = ekler.belge.name;
+    }
+    oturum.dogrula();
+    await mesajGonder(threadId, metin, resimUrl, resimYol, belgeUrl, belgeYol, belgeAd);
+  } catch (e) {
+    if (!arayuzGuncel()) return;
+    if (e?.name !== "AbortError") showToast("Mesaj gönderilemedi: " + e.message, "error");
+    const simdikiEkler = ekleriOku();
+    // Metin ve ek tek taslaktır; eski eki yeni metne (veya tersine) karıştırma.
+    if (!metinDegisti && !ekDegisti && !input.value && !simdikiEkler.resim && !simdikiEkler.belge) {
+      input.value = metin;
+      ekleriAyarla(ekler);
+      if (onizleme && document.getElementById(onizlemeId) === onizleme) {
+        onizleme.innerHTML = eskiOnizleme.html;
+        onizleme.style.display = eskiOnizleme.display;
+      }
+    }
+  } finally {
+    input.removeEventListener("input", metinDegistiIsaretle);
+    dosyaInputlari.forEach(el => el.removeEventListener("change", ekDegistiIsaretle));
+    onizleme?.removeEventListener("click", ekDegistiIsaretle);
+    if (mesajBekleyenGonderimler.get(threadId) === oturum) mesajBekleyenGonderimler.delete(threadId);
+  }
+}
+
 // Bir thread'e mesaj gönder
 async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeUrl = "", belgeYol = "", belgeAd = "") {
   const temizMetin = (metin || "").trim();
   // Metin VEYA resim VEYA belge olmalı
   if (!temizMetin && !resimUrl && !belgeUrl) return;
-  if (!currentUser) return;
+  const oturum = mesajGonderimOturumuAl();
+  oturum.dogrula();
 
   const gonderen = currentUser.email.toLowerCase();
   const threadRef = doc(db, "mesajlar", threadId);
 
   // Thread bilgisini al (karşı tarafı belirlemek için)
   const threadSnap = await getDoc(threadRef);
-  if (!threadSnap.exists()) {
-    showToast("Sohbet bulunamadı", "error");
-    return;
-  }
+  oturum.dogrula();
+  if (!threadSnap.exists()) throw new Error("Sohbet bulunamadı");
   const thread = threadSnap.data();
   if ((danismaRolMu() && mesajThreadVeliIceriyor(thread)) || mesajThreadDanismaVeliMi(thread)) {
     throw new Error("Danışma hesabı ile veli mesajlaşması kapalıdır");
@@ -16091,7 +16177,9 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
   const alanlar = ["sonMesaj", ozetMetin, "sonMesajTarihi", serverTimestamp(), "sonMesajGonderen", gonderen];
   if (karsiTaraf) alanlar.push(new FieldPath("okunmamis", karsiTaraf), increment(1));
   batch.update(threadRef, ...alanlar);
+  oturum.dogrula();
   await batch.commit();
+  if (!oturum.guncel()) return;
 
   // PORTAL ↔ ZEKY TEK BİLDİRİM HATTI:
   // Mesajı sohbet koleksiyonuna yazmak tek başına ZEKY zil rozeti/push üretmiyordu.
@@ -16119,8 +16207,10 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
       console.warn("Mesaj bildirim kaydı yazılamadı:", e?.code || e?.message || e);
     }
 
+    if (!oturum.guncel()) return;
     try {
       const pushMod = await import("./js/zeky-operasyon-push.js?v=163");
+      if (!oturum.guncel()) return;
       const pushSonuc = await pushMod.genelPushGonder([karsiTaraf], {
         tip: "mesaj",
         baslik: bildirimBaslik,
@@ -16651,40 +16741,13 @@ window.mesajResimIptal = function() {
 };
 
 window.mesajGonderTikla = async function() {
-  const input = document.getElementById("mesajGirisInput");
-  if (!input || !mesajAktifThread) return;
-  const metin = input.value.trim();
-  // Metin yoksa ve resim de yoksa çık
-  if (!metin && !mesajSeciliResim) return;
-
-  const gonderilecekResim = mesajSeciliResim;
-  const eskiMetin = metin;
-  const gonderBtn = document.querySelector("#mesajSohbetAktif .mesaj-gonder-btn");
-
-  // UI temizle (iyimser)
-  input.value = "";
-  input.style.height = "auto";
-  if (gonderBtn) gonderBtn.disabled = true;
-
-  try {
-    let resimUrl = "", resimYol = "";
-    if (gonderilecekResim) {
-      const onizleme = document.getElementById("mesajResimOnizleme");
-      if (onizleme) onizleme.innerHTML = `<span style="font-size:12px; color:#2563eb;">⏳ Resim yükleniyor...</span>`;
-      const sikistirilmis = await resimSikistir(gonderilecekResim, 1600, 0.85);
-      const sonuc = await medyaYukle(sikistirilmis, "mesaj/" + mesajAktifThread.id);
-      resimUrl = sonuc.url;
-      resimYol = sonuc.yol;
-      mesajResimIptal();
-    }
-    await mesajGonder(mesajAktifThread.id, eskiMetin, resimUrl, resimYol);
-  } catch (e) {
-    console.error("Mesaj gönderme hatası:", e);
-    showToast("Mesaj gönderilemedi: " + e.message, "error");
-    input.value = eskiMetin; // Geri yükle
-  } finally {
-    if (gonderBtn) gonderBtn.disabled = false;
-  }
+  return mesajTaslagiGonder({
+    inputId: "mesajGirisInput", onizlemeId: "mesajResimOnizleme",
+    dosyaInputIds: ["mesajResimInput"],
+    threadOku: () => mesajAktifThread, sohbetSurumuOku: () => mesajSohbetSurumu,
+    ekleriOku: () => ({ resim: mesajSeciliResim }),
+    ekleriAyarla: ekler => { mesajSeciliResim = ekler.resim; }
+  });
 };
 
 // Enter ile gönder (Shift+Enter = yeni satır)
@@ -17006,6 +17069,7 @@ const googleGiris = createGooglePopupFlow({
 window.signInWithGoogle = () => googleGiris.start();
 
 window.signOut = async function() {
+  ++portalOturumSurumu; // Firebase çıkış callback'i beklenmeden eski gönderimleri durdur.
   googleGiris.invalidate();
   window.veliKatilim?.durdur?.();
   galeriVeliUid = "";
@@ -20414,41 +20478,13 @@ window.caMsgResimIptal = function() {
 };
 
 window.caMsgGonder = async function() {
-  const input = document.getElementById("caMsgGirisInput");
-  if (!input || !caMsgAktif) return;
-  const metin = input.value.trim();
-  if (!metin && !caMsgSeciliResim && !caMsgSeciliBelge) return;
-  const gonderilecekResim = caMsgSeciliResim;
-  const gonderilecekBelge = caMsgSeciliBelge;
-  const eskiMetin = metin;
-  const btn = document.getElementById("caMsgGonderBtn");
-  input.value = ""; input.style.height = "auto";
-  if (btn) btn.disabled = true;
-  try {
-    let resimUrl = "", resimYol = "";
-    let belgeUrl = "", belgeYol = "", belgeAd = "";
-    const onizleme = document.getElementById("caMsgResimOnizleme");
-
-    if (gonderilecekResim) {
-      if (onizleme) onizleme.innerHTML = `<span style="font-size:13px; color:var(--c-green-deep);">⏳ Fotoğraf yükleniyor…</span>`;
-      const sikistirilmis = await resimSikistir(gonderilecekResim, 1600, 0.85);
-      const sonuc = await medyaYukle(sikistirilmis, "mesaj/" + caMsgAktif.id);
-      resimUrl = sonuc.url; resimYol = sonuc.yol;
-      caMsgResimIptal();
-    } else if (gonderilecekBelge) {
-      if (onizleme) onizleme.innerHTML = `<span style="font-size:13px; color:var(--c-green-deep);">⏳ Belge yükleniyor…</span>`;
-      const sonuc = await medyaYukle(gonderilecekBelge, "mesaj/" + caMsgAktif.id, false);
-      belgeUrl = sonuc.url; belgeYol = sonuc.yol; belgeAd = gonderilecekBelge.name;
-      caMsgResimIptal();
-    }
-    await mesajGonder(caMsgAktif.id, eskiMetin, resimUrl, resimYol, belgeUrl, belgeYol, belgeAd);
-  } catch (e) {
-    console.error("ZEKY mesaj gönderme hatası:", e);
-    showToast("Mesaj gönderilemedi: " + e.message, "error");
-    input.value = eskiMetin;
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+  return mesajTaslagiGonder({
+    inputId: "caMsgGirisInput", onizlemeId: "caMsgResimOnizleme",
+    dosyaInputIds: ["caMsgResimInput", "caMsgBelgeInput", "caMsgKameraInput"],
+    threadOku: () => caMsgAktif, sohbetSurumuOku: () => portalVeliSohbetSurumu,
+    ekleriOku: () => ({ resim: caMsgSeciliResim, belge: caMsgSeciliBelge }),
+    ekleriAyarla: ekler => { caMsgSeciliResim = ekler.resim; caMsgSeciliBelge = ekler.belge; }
+  });
 };
 
 window.caMsgGirisKeydown = function(event) {
@@ -23562,38 +23598,13 @@ window.veliMesajResimIptal = function() {
 };
 
 window.veliMesajGonderTikla = async function() {
-  const input = document.getElementById("veliMesajGirisInput");
-  if (!input || !veliMesajAktifThread) return;
-  const metin = input.value.trim();
-  if (!metin && !veliMesajSeciliResim) return;
-
-  const gonderilecekResim = veliMesajSeciliResim;
-  const eskiMetin = metin;
-  const gonderBtn = document.querySelector("#veliMesajSohbetAktif .mesaj-gonder-btn");
-
-  input.value = "";
-  input.style.height = "auto";
-  if (gonderBtn) gonderBtn.disabled = true;
-
-  try {
-    let resimUrl = "", resimYol = "";
-    if (gonderilecekResim) {
-      const onizleme = document.getElementById("veliMesajResimOnizleme");
-      if (onizleme) onizleme.innerHTML = `<span style="font-size:12px; color:#2563eb;">⏳ Resim yükleniyor...</span>`;
-      const sikistirilmis = await resimSikistir(gonderilecekResim, 1600, 0.85);
-      const sonuc = await medyaYukle(sikistirilmis, "mesaj/" + veliMesajAktifThread.id);
-      resimUrl = sonuc.url;
-      resimYol = sonuc.yol;
-      veliMesajResimIptal();
-    }
-    await mesajGonder(veliMesajAktifThread.id, eskiMetin, resimUrl, resimYol);
-  } catch (e) {
-    console.error("Veli mesaj gönderme hatası:", e);
-    showToast("Mesaj gönderilemedi: " + e.message, "error");
-    input.value = eskiMetin;
-  } finally {
-    if (gonderBtn) gonderBtn.disabled = false;
-  }
+  return mesajTaslagiGonder({
+    inputId: "veliMesajGirisInput", onizlemeId: "veliMesajResimOnizleme",
+    dosyaInputIds: ["veliMesajResimInput"],
+    threadOku: () => veliMesajAktifThread, sohbetSurumuOku: () => portalVeliSohbetSurumu,
+    ekleriOku: () => ({ resim: veliMesajSeciliResim }),
+    ekleriAyarla: ekler => { veliMesajSeciliResim = ekler.resim; }
+  });
 };
 
 window.veliMesajGirisKeydown = function(event) {
@@ -48717,13 +48728,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=186");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=187");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v186";
+          const anahtar = "portalSwReload_v187";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

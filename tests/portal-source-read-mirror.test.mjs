@@ -94,3 +94,26 @@ test('failed operation mirror stays in one source row while source is still pres
   assert.equal(await f.center.markRead('pickup-source'),false);
   assert.equal(f.center.getState().unreadCount,1);assert.equal(f.center.getState().itemCount,1);
 });
+
+test('bulk reads only captured visible groups and exact mirrors, never unrelated hidden roots or later arrivals',async t=>{
+  const f=fixture();t.after(()=>f.center.stop());
+  f.feed([f.root('exact'),f.root('unrelated','another-event'),f.root('other-account','note-event',{aliciEmail:'other@example.invalid'})]);f.publish([f.source()]);
+  const result=await f.center.markAllRead();assert.equal(result.status,'complete');assert.equal(result.total,1);
+  assert.deepEqual(f.sourceReads,['source-1']);assert.deepEqual(f.writes.map(x=>x.path),['bildirimler/exact']);assert.equal(f.center.getState().unreadCount,0);
+  f.feed([f.root('exact','note-event',{okundu:true}),f.root('late-copy'),f.root('new','new-event',{tip:'galeri'})]);await tick();
+  assert.equal(f.writes.length,1,'bulk must not authorize late-root writes');assert.equal(f.center.getState().unreadCount,2);
+});
+
+test('bulk source filtering cannot hide a failed captured mirror and deliberate retry can target it',async t=>{
+  const f=fixture({rootFails:true});t.after(()=>f.center.stop());f.feed([f.root('exact')]);
+  f.publish([f.source('source-1','note-event',{onRead:async()=>{f.publish([]);return true;}})]);
+  const result=await f.center.markAllRead();assert.equal(result.status,'partial');assert.equal(result.failedCount,1);
+  assert.equal(f.center.getState().unreadCount,1);assert.equal(f.center.getState().items[0].id,'exact');
+  const retry=await f.center.markAllRead();assert.equal(retry.status,'partial');assert.equal(f.writes.length,2);
+});
+
+test('bulk failure of scoped source still preserves unread even when its root mirror succeeds',async t=>{
+  const f=fixture({sourceFails:true});t.after(()=>f.center.stop());f.feed([f.root('exact')]);f.publish([f.source()]);
+  const result=await f.center.markAllRead();assert.equal(result.status,'partial');assert.equal(result.failedCount,1);assert.equal(f.center.getState().unreadCount,1);
+  assert.equal(f.writes.length,1);assert.equal(f.sourceReads.length,1);
+});

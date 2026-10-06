@@ -48,3 +48,14 @@ test('PWA delivery rejects a reload guard left on another generation', async () 
   const html = readPortal('index.html').replace(/portalSwReload_v\d+/, 'portalSwReload_v0');
   await assert.rejects(() => assertPwaBootstrap(pwa, html), { code: 'ERR_ASSERTION' });
 });
+
+test('PWA installs the exact notification-center module used by the mark-all-read UI', async () => {
+  const pwa = await installedPwa();
+  await assertPwaBootstrap(pwa);
+  assertPrecachedImport(pwa, 'index.html', 'js/portal-bildirim-merkezi.js');
+  const generation = pwa.cacheVersion.match(/^v\d+/)[0];
+  assert.ok(readPortal('index.html').includes(`window.PORTAL_SURUM = "${generation}";`), 'exported runtime release matches the installed cache generation');
+  const center = readPortal('js/portal-bildirim-merkezi.js');
+  assert.match(center, /function markAllRead\(/);
+  assert.match(center, /Hepsini okundu yap/);
+});

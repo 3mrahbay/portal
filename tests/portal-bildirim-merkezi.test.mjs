@@ -429,3 +429,113 @@ test('yellow green and red status palettes retain readable status and body text'
     for(const surface of [bg,hover])for(const color of [ink,'#202944','#4b5563'])assert.ok(ratio(color,surface)>=4.5,`${state} ${color} contrast`);
   }
 });
+
+test('bulk action marks click-time own unread groups only, skips read rows, never navigates, and clears the badge', async () => {
+  await environment(async ({feed,center,writes,navigations,nodes}) => {
+    assert.equal(nodes('pbm-hepsini-oku')[0].disabled,true);
+    feed([record('a',{olayAnahtari:'duplicate'}),record('b',{olayAnahtari:'duplicate'}),record('read',{okundu:true}),record('other',{aliciEmail:'other@example.test'})]);
+    center.open();const button=nodes('pbm-hepsini-oku')[0];assert.equal(button.type,'button');assert.equal(nodes('pbm-durum')[0].getAttribute('aria-live'),'polite');assert.equal(button.textContent,'Hepsini okundu yap');assert.equal(button.disabled,false);
+    const result=await center.markAllRead();
+    assert.deepEqual(result,{status:'complete',total:1,readCount:1,failedCount:0});
+    assert.deepEqual(writes.map(x=>x.path),['bildirimler/a','bildirimler/b']);
+    assert.ok(writes.every(x=>JSON.stringify(x.patch)==='{"okundu":true}'));assert.equal(navigations.length,0);
+    assert.equal(center.getState().unreadCount,0);assert.equal(center.getState().open,true);
+    assert.equal(nodes('pbm-sayac')[0].hidden,true);assert.equal(button.disabled,true);
+    assert.match(nodes('pbm-durum')[0].textContent,/1 bildirim okundu olarak kaydedildi/);
+  });
+});
+
+test('bulk repeated clicks share one promise; pending state is pessimistic; fresh arrivals remain unread', async () => {
+  await environment(async ({feed,center,writer,writes,nodes,tick}) => {
+    const rows=[record('first'),record('second')],wait=deferred();feed(rows);writer(()=>wait.promise);
+    const work=center.markAllRead();assert.equal(work,center.markAllRead());assert.equal(center.getState().markingAll,true);await tick();
+    assert.equal(writes.length,2);assert.equal(nodes('pbm-hepsini-oku')[0].disabled,true);
+    assert.equal(nodes('pbm-hepsini-oku')[0].getAttribute('aria-busy'),'true');
+    feed([...rows.map(x=>({...x,okundu:true,_pendingWrites:true})),record('new')],{fromCache:true});
+    assert.equal(center.getState().unreadCount,3);assert.ok(nodes('pbm-satir').every(x=>x.disabled));
+    assert.equal(await center.markRead('new'),false);assert.equal(await center.markThreadRead('new'),false);
+    wait.resolve();const result=await work;assert.equal(result.readCount,2);assert.equal(center.getState().unreadCount,1);
+    assert.equal(center.getState().items.find(x=>x.id==='new').okundu,false);assert.equal(writes.length,2);
+    assert.equal(nodes('pbm-hepsini-oku')[0].disabled,false);assert.equal(nodes('pbm-hepsini-oku')[0].getAttribute('aria-busy'),'false');
+  });
+});
+
+test('bulk partial failure preserves successful reads, unread failure and accurate retry feedback', async () => {
+  await environment(async ({feed,center,writer,writes,nodes}) => {
+    const rows=[record('good'),record('bad')];feed(rows);writer(async path=>{if(path.endsWith('/bad'))throw Error('denied');});
+    const result=await center.markAllRead();assert.deepEqual(result,{status:'partial',total:2,readCount:1,failedCount:1});
+    assert.equal(center.getState().unreadCount,1);assert.match(nodes('pbm-durum')[0].textContent,/1 bildirim okundu\. 1 bildirim kaydedilemedi/);
+    writer(async()=>{});const retry=await center.markAllRead();assert.deepEqual(retry,{status:'complete',total:1,readCount:1,failedCount:0});
+    assert.deepEqual(writes.map(x=>x.path).sort(),['bildirimler/bad','bildirimler/bad','bildirimler/good']);assert.equal(center.getState().unreadCount,0);
+  });
+});
+
+test('bulk external reads use the scoped callback; no callback or false return never produces all-read success', async () => {
+  await environment(async ({feed,center,writes}) => {
+    feed([]);let reads=0;
+    center.setExternalItems('scoped',[record('good',{onRead:async()=>{reads++;return true;}}),record('unavailable'),record('false',{onRead:async()=>false})]);
+    const result=await center.markAllRead();assert.deepEqual(result,{status:'partial',total:3,readCount:1,failedCount:2});
+    assert.equal(reads,1);assert.equal(writes.length,0);assert.equal(center.getState().unreadCount,2);
+  });
+});
+
+test('bulk refuses cache-only/unavailable listener and stops starting writes if listener fails', async () => {
+  await environment(async ({feed,center,subscriptions,writer,writes,tick,nodes}) => {
+    feed([record('cache')],{fromCache:true});assert.equal((await center.markAllRead()).status,'unavailable');assert.equal(writes.length,0);
+    feed(Array.from({length:12},(_,i)=>record(String(i))));const wait=deferred();writer(()=>wait.promise);const work=center.markAllRead();await tick();
+    assert.equal(writes.length,8);subscriptions[0].error(Error('unavailable'));wait.resolve();
+    assert.equal((await work).status,'partial');assert.equal(writes.length,8);assert.equal(center.getState().unreadCount,4);
+    assert.match(nodes('pbm-durum')[0].textContent,/alınamadı/);assert.equal(nodes('pbm-hepsini-oku')[0].disabled,true);
+    assert.equal((await center.markAllRead()).status,'unavailable');
+  });
+});
+
+test('bulk account switch and stop cancel queued work without updating the replacement session', async () => {
+  for(const method of ['switch','stop'])await environment(async ({feed,center,changeAccount,writer,writes,tick}) => {
+    feed(Array.from({length:20},(_,i)=>record(String(i))));const wait=deferred();writer(()=>wait.promise);
+    const work=center.markAllRead();await tick();assert.equal(writes.length,8);
+    if(method==='stop')center.stop();else changeAccount('next@example.test');wait.resolve();
+    const result=await work;assert.equal(result.status,'cancelled');assert.equal(writes.length,8);assert.equal(center.ready,false);
+    assert.equal((await center.markAllRead()).status,'unavailable');
+  });
+});
+
+test('bulk checks same-id event identity before queued writes and does not clear a replacement event on failure', async () => {
+  await environment(async ({feed,center,writer,writes,tick}) => {
+    const rows=Array.from({length:10},(_,i)=>record(String(i),{olayAnahtari:'old-'+i}));feed(rows);
+    const wait=deferred();writer(()=>wait.promise);const work=center.markAllRead();await tick();assert.equal(writes.length,8);
+    feed(rows.map(x=>x.id==='8'?{...x,olayAnahtari:'new-8'}:x));wait.resolve();
+    const result=await work;assert.equal(result.readCount,9);assert.equal(result.failedCount,1);
+    assert.ok(!writes.some(x=>x.path==='bildirimler/8'));assert.equal(center.getState().items.find(x=>x.id==='8').okundu,false);
+  });
+});
+
+test('bulk supports more than 500 writes with bounded concurrency, including duplicate logical-event documents', async () => {
+  await environment(async ({feed,center,writer,writes}) => {
+    const rows=Array.from({length:520},(_,i)=>record(String(i),{olayAnahtari:i<20?'duplicate':`event-${i}`}));feed(rows);
+    let active=0,peak=0;writer(async()=>{active++;peak=Math.max(peak,active);await Promise.resolve();active--;});
+    const result=await center.markAllRead();assert.equal(result.status,'complete');assert.equal(result.readCount,501);
+    assert.equal(writes.length,520);assert.ok(peak<=8);assert.equal(center.getState().unreadCount,0);
+  },{mounts:[]});
+});
+
+test('bulk button remains disabled during a single read and close/reopen preserves the bulk operation', async () => {
+  await environment(async ({feed,center,writer,nodes,tick,writes}) => {
+    feed([record('one')]);const wait=deferred();writer(()=>wait.promise);const single=center.markRead('one');
+    assert.equal(nodes('pbm-hepsini-oku')[0].disabled,true);assert.equal((await center.markAllRead()).status,'unavailable');wait.resolve();await single;
+    feed([record('next')]);const wait2=deferred();writer(()=>wait2.promise);center.open();nodes('pbm-hepsini-oku')[0].emit('click');await tick();
+    center.close();center.open();assert.equal(nodes('pbm-hepsini-oku')[0].disabled,true);assert.equal(center.getState().markingAll,true);
+    const work=center.markAllRead();wait2.resolve();await work;assert.equal(writes.length,2);assert.equal(center.getState().open,true);
+  });
+});
+
+test('bulk treats a missing read flag as unread and rejects an adapter becoming read-only before dispatch', async () => {
+  await environment(async ({feed,center,writer,tick,writes}) => {
+    const missing=record('missing');delete missing.okundu;feed([missing]);assert.equal((await center.markAllRead()).readCount,1);assert.equal(writes.length,1);
+    const roots=Array.from({length:8},(_,i)=>record(String(i),{olusturuldu:'2026-10-06T10:00:00Z'}));feed(roots);
+    center.setExternalItems('adapter',[record('queued',{onRead:async()=>true})]);
+    const wait=deferred();writer(()=>wait.promise);const work=center.markAllRead();await tick();
+    center.setExternalItems('adapter',[record('queued')]);wait.resolve();
+    const result=await work;assert.equal(result.status,'partial');assert.equal(result.failedCount,1);assert.equal(result.readCount,8);assert.equal(center.getState().unreadCount,1);
+  });
+});
