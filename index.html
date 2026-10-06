@@ -31602,6 +31602,7 @@ async function renderDuyurular() {
 
 // Modal aç
 window.openDuyuruModal = function(mevcutEkler) {
+  if (portalDuyuruKaydediliyor || portalEtkinlikKaydediliyor) return showToast("Kayıt işlemi sürüyor, lütfen bekleyin", "info");
   if (danismaSaltOkunurEngelle("Duyurular")) return;
   document.getElementById("duyuruModal").classList.add("active");
   if (typeof duyuruRolKisitiUygula === "function") duyuruRolKisitiUygula();
@@ -31622,7 +31623,8 @@ window.openDuyuruModal = function(mevcutEkler) {
   modulYukle("duyuru-ekleri").then(m => m && m.formHazirla(Array.isArray(mevcutEkler) ? mevcutEkler : []));
 };
 
-window.closeDuyuruModal = function() {
+window.closeDuyuruModal = function(kayitSonrasi = false) {
+  if (portalDuyuruKaydediliyor && kayitSonrasi !== true) return showToast("Kayıt işlemi sürüyor, lütfen bekleyin", "info");
   document.getElementById("duyuruModal").classList.remove("active");
   window.duyuruEkleri?.formKapandi();
 };
@@ -31758,12 +31760,15 @@ window.kaydetDuyuru = async function() {
   try {
     if (id) {
       await updateDoc(doc(db, "duyurular", id), data);
+      duyuruEkModul?.kayitTamamlandi();
       showToast("✓ Duyuru güncellendi");
     } else {
       data.olusturuldu = new Date().toISOString();
       // KVKK: okuyanVeliler / popupKapatanVeliler artık tutulmaz (okumalar alt kaydı)
       const ref = doc(collection(db, "duyurular"));
       await setDoc(ref, data);
+      // Ekler artık kayıt tarafından kullanılıyor; bildirim beklenirken silinmemeli.
+      duyuruEkModul?.kayitTamamlandi();
       await portalHedefBildir({hedefTur,hedefDeger}, {
         tip:"duyuru",baslik:"Yeni okul duyurusu",metin:"Okuldan yeni bir duyurunuz var.",
         hedefSayfa:"bildirimler.html",kaynakId:ref.id,olayAnahtari:"duyuru:"+ref.id,
@@ -31776,8 +31781,7 @@ window.kaydetDuyuru = async function() {
       }
       showToast("✓ Duyuru yayınlandı");
     }
-    if (duyuruEkModul) duyuruEkModul.kayitTamamlandi();
-    closeDuyuruModal();
+    closeDuyuruModal(true);
     renderDuyurular();
   } catch (e) {
     showToast("Kaydedilemedi: " + e.message, "error");
@@ -32253,6 +32257,7 @@ async function renderEtkinlikler() {
 }
 
 window.openEtkinlikModal = function(mevcutEkler) {
+  if (portalDuyuruKaydediliyor || portalEtkinlikKaydediliyor) return showToast("Kayıt işlemi sürüyor, lütfen bekleyin", "info");
   if (danismaSaltOkunurEngelle("Etkinlikler")) return;
   document.getElementById("etkinlikModal").classList.add("active");
   if (typeof etkinlikRolKisitiUygula === "function") etkinlikRolKisitiUygula();
@@ -32274,7 +32279,8 @@ window.openEtkinlikModal = function(mevcutEkler) {
   modulYukle("duyuru-ekleri").then(m => m && m.formHazirla(Array.isArray(mevcutEkler) ? mevcutEkler : [], "etkinlik"));
 };
 
-window.closeEtkinlikModal = function() {
+window.closeEtkinlikModal = function(kayitSonrasi = false) {
+  if (portalEtkinlikKaydediliyor && kayitSonrasi !== true) return showToast("Kayıt işlemi sürüyor, lütfen bekleyin", "info");
   document.getElementById("etkinlikModal").classList.remove("active");
   window.duyuruEkleri?.formKapandi();
 };
@@ -32363,12 +32369,15 @@ window.kaydetEtkinlik = async function() {
   try {
     if (id) {
       await updateDoc(doc(db, "etkinlikler", id), data);
+      etkEkModul?.kayitTamamlandi();
       showToast("✓ Etkinlik güncellendi");
     } else {
       data.olusturuldu = new Date().toISOString();
       data.olusturan = currentUser.email;
       const ref = doc(collection(db, "etkinlikler"));
       await setDoc(ref, data);
+      // Duyurularla aynı ek modülü: kayıt tamamlanınca dosyaları koru.
+      etkEkModul?.kayitTamamlandi();
       await portalHedefBildir({hedefTur,hedefDeger}, {
         tip:"etkinlik",baslik:"Yeni okul etkinliği",metin:"Okul takvimine yeni bir etkinlik eklendi.",
         hedefSayfa:"veli-program.html",kaynakId:ref.id,olayAnahtari:"etkinlik:"+ref.id
@@ -32376,8 +32385,7 @@ window.kaydetEtkinlik = async function() {
       if (mailGonder) etkinlikMailGonder(data);
       showToast("✓ Etkinlik oluşturuldu");
     }
-    if (etkEkModul) etkEkModul.kayitTamamlandi();
-    closeEtkinlikModal();
+    closeEtkinlikModal(true);
     renderEtkinlikler();
   } catch (e) {
     showToast("Kaydedilemedi: " + e.message, "error");
@@ -48585,13 +48593,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=178");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=185");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v178";
+          const anahtar = "portalSwReload_v185";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
