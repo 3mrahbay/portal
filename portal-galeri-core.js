@@ -50,15 +50,29 @@ function galeriStreamKapakUrl(d) {
 }
 
 function galeriProgramKodu(g) {
-  const ham = String(g?.program || g?.kategori || g?.etkinlikBaslik || "");
-  if (GALERI_EGITIM_PROGRAMLARI[ham]) return ham;
-  const n = ham.toLocaleLowerCase("tr");
-  if (n.includes("montessori")) return "montessori";
-  if (n.includes("orman")) return "orman";
-  if (n.includes("değerler+") || n.includes("degerler+")) return "degerlerPlus";
-  if (n.includes("değer") || n.includes("deger")) return "degerler";
-  if (n.includes("ingiliz") || n.includes("english")) return "ingilizce";
-  return "";
+  const albumTuru = String(g?.albumTuru || "").trim().toLocaleLowerCase("tr");
+  if (albumTuru === "genel") return "";
+
+  const esle = value => {
+    const ham = String(value || "").trim();
+    if (!ham) return "";
+    if (GALERI_EGITIM_PROGRAMLARI[ham]) return ham;
+    const n = ham.toLocaleLowerCase("tr");
+    if (n === "montessori") return "montessori";
+    if (n === "orman" || n === "orman okulu") return "orman";
+    if (n === "değerler+" || n === "degerler+") return "degerlerPlus";
+    if (n === "değerler" || n === "degerler" || n === "değerler eğitimi" || n === "degerler egitimi") return "degerler";
+    if (n === "ingilizce" || n === "ingilizce eğitimi" || n === "ingilizce egitimi" || n === "english") return "ingilizce";
+    return "";
+  };
+
+  if (String(g?.program || "").trim()) return esle(g.program);
+  if (String(g?.kategori || "").trim()) {
+    const k = String(g.kategori).trim().toLocaleLowerCase("tr");
+    if (["genel","kategorisiz","diğer","diger"].includes(k)) return "";
+    return esle(g.kategori);
+  }
+  return esle(g?.etkinlikBaslik);
 }
 
 const galeriEtkilesimOnbellek = new Map();
