@@ -11,7 +11,7 @@
  * before this function is called.
  */
 
-const BCKA_STREAM_MAX_BYTES = 500 * 1024 * 1024;
+const BCKA_STREAM_MAX_BYTES = 600 * 1024 * 1024;
 const BCKA_STREAM_TYPES = [
   'video/mp4','video/webm','video/quicktime','video/x-m4v',
   'video/x-matroska','video/x-msvideo','video/mpeg'
@@ -44,7 +44,7 @@ function bckaStreamHazirla_(istek) {
 
   if (!ad) throw new Error('Video dosya adı eksik.');
   if (!(boyut > 0) || boyut > BCKA_STREAM_MAX_BYTES)
-    throw new Error('Video en fazla 500 MB olabilir.');
+    throw new Error('Video en fazla 600 MB olabilir.');
   if (mime && BCKA_STREAM_TYPES.indexOf(mime) === -1)
     throw new Error('Desteklenmeyen video türü.');
 
