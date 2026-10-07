@@ -10925,7 +10925,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
             <div style="font-size:48px; margin-bottom:10px;">📤</div>
             <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:#6b21a8; margin-bottom:6px;">Dosyaları Buraya Sürükleyin</div>
             <div style="font-size:13px; color:#7c3aed;">veya tıklayıp seçin</div>
-            <div style="font-size:11px; color:#a855f7; margin-top:10px;">JPG, PNG, MP4, MOV desteklenir · Max 500MB/dosya</div>
+            <div style="font-size:11px; color:#a855f7; margin-top:10px;">JPG, PNG, MP4, MOV desteklenir · Video max 600MB · Fotoğraf max 500MB</div>
             <input type="file" id="galeriFileInput" multiple accept="image/*" style="display:none;" onchange="galeriDosyalarSecildi(event)">
           </div>
 
@@ -13993,7 +13993,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { createGooglePopupFlow } from "./js/portal-google-login.js?v=178";
-import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-upload.js?v=188";
+import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-upload.js?v=189";
 
 import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
 import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=187";
@@ -37066,7 +37066,7 @@ window.galeriRolKisitiUygula = function() {
 };
 
 async function galeriVideoYukle(file, options = {}) {
-  const stream = await import("./js/bunny-stream-upload.js?v=188");
+  const stream = await import("./js/bunny-stream-upload.js?v=189");
   return stream.bunnyStreamVideoYukle(file, {
     proxyUrl: MEDYA_AYAR.PROXY_URL,
     sharedKey: MEDYA_AYAR.PAYLASIM_ANAHTARI,
@@ -37163,7 +37163,7 @@ window.galeriYukle = async function() {
 
       const dosyaTuru = classifyGalleryFile(f);
       if (dosyaTuru?.kind === "video") {
-        // VİDEO - 500 MB'a kadar doğrudan Bunny Stream TUS yüklemesi.
+        // VİDEO - 600 MB'a kadar doğrudan Bunny Stream TUS yüklemesi.
         // Dosya Apps Script'e/base64'e girmez; proxy yalnız kısa ömürlü imza üretir.
         const sonuc = await galeriVideoYukle(f, {
           onProgress: ({percent}) => {
