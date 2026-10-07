@@ -1,0 +1,24 @@
+name: Gallery 600MB Check
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/gallery-600mb-check.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Bunny uploader limit
+        run: node --experimental-default-type=module --test tests/bunny-stream-upload.test.mjs
+      - name: Gallery file contract
+        run: node --experimental-default-type=module --test tests/portal-gallery-file-contract.test.mjs
+      - name: Signer source limit
+        run: |
+          grep -F "BCKA_STREAM_MAX_BYTES = 600 * 1024 * 1024" server/BCKA-Medya-bunny-stream-signer.gs
+          grep -F "Video en fazla 600 MB olabilir." server/BCKA-Medya-bunny-stream-signer.gs
