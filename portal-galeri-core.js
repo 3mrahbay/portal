@@ -930,8 +930,8 @@ function galeriDosyalarEkle(files) {
       showToast(`${f.name} desteklenmiyor. Yalnız fotoğraf veya video seçin.`, "error");
       continue;
     }
-    if (videoMu && f.size > 500 * 1024 * 1024) {
-      showToast(`${f.name} çok büyük. Video en fazla 500 MB olabilir.`, "error");
+    if (videoMu && f.size > 600 * 1024 * 1024) {
+      showToast(`${f.name} çok büyük. Video en fazla 600 MB olabilir.`, "error");
       continue;
     }
     if (resimMi && f.size > 500 * 1024 * 1024) {
