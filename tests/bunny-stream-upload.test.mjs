@@ -6,10 +6,10 @@ import {
 
 const file=(over={})=>({name:'movie.mp4',type:'video/mp4',size:100*1024*1024,...over});
 
-test('Bunny Stream gallery videos allow up to 500 MB',()=>{
-  assert.equal(MAX_VIDEO_BYTES,500*1024*1024);
-  assert.equal(validateStreamVideo(file({size:500*1024*1024})).ok,true);
-  assert.equal(validateStreamVideo(file({size:500*1024*1024+1})).ok,false);
+test('Bunny Stream gallery videos allow up to 600 MB',()=>{
+  assert.equal(MAX_VIDEO_BYTES,600*1024*1024);
+  assert.equal(validateStreamVideo(file({size:600*1024*1024})).ok,true);
+  assert.equal(validateStreamVideo(file({size:600*1024*1024+1})).ok,false);
   assert.equal(validateStreamVideo(file({name:'movie.pdf',type:'application/pdf'})).ok,false);
 });
 
