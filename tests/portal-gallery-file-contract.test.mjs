@@ -35,10 +35,10 @@ test('specific incompatible MIME, unsupported MIME and disguised or inherited ex
   assert.deepEqual(classifyGalleryFile(file({name:'synthetic.jpg',type:'image/jpeg'})),{kind:'foto',mimeType:'image/jpeg'});
 });
 test('zero, negative, nonfinite and oversized video sizes fail before any signer request',async()=>{
-  for(const size of [0,-1,NaN,Infinity,'bad',500*1024*1024+1]){
+  for(const size of [0,-1,NaN,Infinity,'bad',600*1024*1024+1]){
     let calls=0;await assert.rejects(requestStreamAuthorization(file({size}),{proxyUrl:'https://example.invalid',fetchImpl:()=>{calls++;throw Error('must not fetch');}}));assert.equal(calls,0);
   }
-  assert.equal(validateStreamVideo(file({size:500*1024*1024})).ok,true);
+  assert.equal(validateStreamVideo(file({size:600*1024*1024})).ok,true);
 });
 test('all accepted extension fallbacks send MIME accepted by the unchanged signer and matching TUS metadata',async()=>{
   for(const [ext,mimeType] of Object.entries(types))for(const type of ['', 'application/octet-stream']){
