@@ -2,7 +2,7 @@
 // The browser never receives the Bunny Stream API key.
 // A trusted backend creates the video entry and returns a short-lived presigned TUS signature.
 
-export const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 600 * 1024 * 1024;
 export const TUS_ENDPOINT = 'https://video.bunnycdn.com/tusupload';
 const TUS_MODULE = 'https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/+esm';
 const VIDEO_MIME_BY_EXTENSION = Object.freeze({
@@ -33,7 +33,7 @@ export function validateStreamVideo(file) {
     return {ok:false,error:'Video türü desteklenmiyor. MP4, WEBM, MOV, M4V, MKV, AVI veya MPEG seçin.'};
   if (!Number.isFinite(size) || size<=0) return {ok:false,error:'Video dosyası boş veya boyutu geçersiz.'};
   if (size>MAX_VIDEO_BYTES)
-    return {ok:false,error:`Video çok büyük (${(size/1024/1024).toFixed(1)} MB). En fazla 500 MB yüklenebilir.`};
+    return {ok:false,error:`Video çok büyük (${(size/1024/1024).toFixed(1)} MB). En fazla 600 MB yüklenebilir.`};
   return {ok:true,mimeType:classified.mimeType};
 }
 
