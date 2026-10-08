@@ -1,0 +1,42 @@
+name: Finalize Portal Bunny v191
+
+on:
+  push:
+    branches:
+      - fix/bunny-upload-resilience-20261008
+    paths:
+      - .github/workflows/finalize-portal-bunny-v191-20261008.yml
+      - .github/scripts/patch-portal-parent-gallery-v191.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/bunny-upload-resilience-20261008
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install PDF verification tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+      - name: Align parent-gallery cache URL
+        run: node .github/scripts/patch-portal-parent-gallery-v191.mjs
+      - name: Run full Portal suite
+        run: node --test tests/*.test.mjs
+      - name: Commit verified final release alignment
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/scripts/patch-portal-parent-gallery-v191.mjs .github/workflows/finalize-portal-bunny-v191-20261008.yml
+          git add serviceworker.js
+          git commit -m "fix: finalize Portal Bunny v191 cache delivery"
+          git push origin HEAD:fix/bunny-upload-resilience-20261008
