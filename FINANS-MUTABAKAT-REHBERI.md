@@ -17,7 +17,7 @@ test -n "$PROJECT" && test "$PROJECT" != "(unset)" || { echo "Önce gcloud proje
 node scripts/finans-canli-kontrol.cjs --project "$PROJECT" --period 2026-2027 --month 2026-10 --focus "<öğrenci adı>"
 ```
 
-Dönen rapor: aktif ve arşiv dönem öğrenci sayısı, dönem planı, ilgili ayın aidatına işlenen, ayın gerçek tahsilatı, tarihsiz hareketler ve kayıt uyarıları. Aranan öğrenci için kayıt ID'si ve ödeme tarihleri görüntülenir. Çıktı kişisel finans verileri içerir: **ortak sohbet veya herkese açık GitHub'a yapıştırmayın**. Önce yalnızca özet tutarları paylaşın.
+Dönen rapor: aktif ve arşiv dönem öğrenci sayısı, dönem planı, ilgili ayın aidatına işlenen, ayın gerçek tahsilatı, tarihsiz hareketler ve kayıt uyarıları. Varsayılan çıktı öğrenci adını ve belge ID'sini GİZLER; istenen öğrencinin ödeme tarihleri ve tutarları yine gösterilir. Belge ID'sini yalnızca yetkili kişinin kendi terminalinde görmek gerekirse aynı komuta `--show-sensitive` eklenebilir; **bu ayrıntılı çıktıyı sohbetlere veya GitHub'a paylaşmayın**. Çıktı kişisel finans verileri içerir: **ortak sohbet veya herkese açık GitHub'a yapıştırmayın**. Önce yalnızca özet tutarları paylaşın.
 
 ## B) Geçmiş tarihli toplu havale düzeltmesi (önce dry-run)
 
