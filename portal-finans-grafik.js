@@ -116,11 +116,17 @@ function cizAylikTahsilatVsHedef() {
     return toplam;
   });
 
-  const gercekAylik = aylar.map(ayKod => {
-    return B.gelirler()
-      .filter(g => g.tur === "aylik" && g.ayKod === ayKod)
-      .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
-  });
+  // Aylık aidat performansı: tahsilatın gerçekleştiği tarih değil,
+  // ödemenin ait olduğu ay esas alınır. Nakit akışı ayrı raporlanır.
+  const gercekAylik = aylar.map(ayKod => B.ogrenciler().reduce((tutar,o) => {
+    const ayar = B.ayarlar()[o.id];
+    if (!ayar || getOgrenciDurum(o,ayar) !== "aktif") return tutar;
+    const r = (ayar.aylikOdemeler || {})[ayKod];
+    if (!r) return tutar;
+    const plan = hedefAylik[aylar.indexOf(ayKod)];
+    const paid = Number(r.odenenTutar ?? (r.odendi === true ? r.beklenenTutar : 0)) || 0;
+    return tutar + Math.max(0, paid);
+  }, 0));
 
   const etiketler = aylar.map(ayKod => AY_ISIMLERI[parseInt(ayKod.split("-")[1]) - 1].substring(0, 3));
 
@@ -132,7 +138,7 @@ function cizAylikTahsilatVsHedef() {
       labels: etiketler,
       datasets: [
         { label: "Hedef", data: hedefAylik, backgroundColor: "rgba(250,204,21,0.6)", borderColor: "#facc15", borderWidth: 1, borderRadius: 4 },
-        { label: "Gerçekleşen", data: gercekAylik, backgroundColor: "rgba(45,106,79,0.85)", borderColor: "#2d6a4f", borderWidth: 1, borderRadius: 4 }
+        { label: "Aidatlara işlenen", data: gercekAylik, backgroundColor: "rgba(45,106,79,0.85)", borderColor: "#2d6a4f", borderWidth: 1, borderRadius: 4 }
       ]
     },
     options: {
@@ -340,9 +346,12 @@ function cizTahsilatTrendi() {
   // Ödenen: aylık aidat kaleminde o ay ödenen (KÜMÜLATİF)
   let kumulatifOdenen = 0;
   const odenenSeri = aylar.map(ayKod => {
-    const ayOdenen = B.gelirler()
-      .filter(g => g.tur === "aylik" && g.ayKod === ayKod)
-      .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
+    const ayOdenen = B.ogrenciler().reduce((sum,o) => {
+      const ayar = B.ayarlar()[o.id];
+      if (!ayar || getOgrenciDurum(o,ayar) !== "aktif") return sum;
+      const r = (ayar.aylikOdemeler || {})[ayKod];
+      return sum + Math.max(0,Number(r?.odenenTutar ?? (r?.odendi === true ? r?.beklenenTutar : 0)) || 0);
+    },0);
     kumulatifOdenen += ayOdenen;
     return kumulatifOdenen;
   });
