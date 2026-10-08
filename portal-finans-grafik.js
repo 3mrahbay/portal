@@ -98,9 +98,20 @@ function cizAylikTahsilatVsHedef() {
       if (!ayar) continue;
       if (getOgrenciDurum(o, ayar) !== "aktif") continue;
       const a = ayar.aidatAyarlari || {};
-      const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-      const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-      toplam += (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
+      // Kayıtlı ödeme planındaki ay tutarı, genel tarifenin önüne geçer.
+      // ?? operatörü özellikle 0 TL tanımlanan aylarda önemlidir.
+      const r = (ayar.aylikOdemeler || {})[ayKod] || {};
+      const varsayilan = (ayNum >= 9 || ayNum <= 1)
+        ? (a.iDonemAylik ?? a.aylikAidat ?? 0)
+        : (a.iiDonemAylik ?? a.aylikAidat ?? 0);
+      const aySayisi = Number(a.gercekAySayisi ?? a.taksitSayisi);
+      const baslangic = a.baslangicAyi;
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(baslangic || '') || !Number.isInteger(aySayisi) || aySayisi <= 0) continue;
+      const [by, bm] = baslangic.split('-').map(Number);
+      const [yy, mm] = ayKod.split('-').map(Number);
+      const offset = (yy - by) * 12 + mm - bm;
+      if (offset < 0 || offset >= aySayisi) continue;
+      toplam += Number(r.beklenenTutar ?? varsayilan) || 0;
     }
     return toplam;
   });
@@ -303,22 +314,28 @@ function cizTahsilatTrendi() {
     aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
   }
 
-  // Beklenen: Aktif öğrencilerin o ayki aidat toplamı (KÜMÜLATİF yıllık)
-  let kumulatifBeklenen = 0;
-  const beklenenSeri = [];
-  for (const ayKod of aylar) {
-    const ayNum = parseInt(ayKod.split("-")[1], 10);
-    for (const o of B.ogrenciler()) {
+  // Aynı aylık plan hesabını kullan; peşin tahsilat sonraki aylarda
+  // ikinci bir nakit girişi sayılmamalı. Bu çizgi aidatlara mahsuptur.
+  const beklenenAylik = aylar.map(ayKod => {
+    const ayNum = Number(ayKod.slice(5));
+    return B.ogrenciler().reduce((toplam, o) => {
       const ayar = B.ayarlar()[o.id];
-      if (!ayar) continue;
-      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
+      if (!ayar || getOgrenciDurum(o, ayar) !== "aktif") return toplam;
       const a = ayar.aidatAyarlari || {};
-      const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-      const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-      kumulatifBeklenen += (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-    }
-    beklenenSeri.push(kumulatifBeklenen);
-  }
+      const n = Number(a.gercekAySayisi ?? a.taksitSayisi);
+      if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(a.baslangicAyi || '') || !Number.isInteger(n) || n <= 0) return toplam;
+      const [by, bm] = a.baslangicAyi.split('-').map(Number);
+      const [yy, mm] = ayKod.split('-').map(Number);
+      const fark = (yy - by) * 12 + mm - bm;
+      if (fark < 0 || fark >= n) return toplam;
+      const tarife = (ayNum >= 9 || ayNum <= 1)
+        ? (a.iDonemAylik ?? a.aylikAidat ?? 0)
+        : (a.iiDonemAylik ?? a.aylikAidat ?? 0);
+      return toplam + (Number((ayar.aylikOdemeler || {})[ayKod]?.beklenenTutar ?? tarife) || 0);
+    }, 0);
+  });
+  let kumulatifBeklenen = 0;
+  const beklenenSeri = beklenenAylik.map(t => (kumulatifBeklenen += t));
 
   // Ödenen: aylık aidat kaleminde o ay ödenen (KÜMÜLATİF)
   let kumulatifOdenen = 0;
