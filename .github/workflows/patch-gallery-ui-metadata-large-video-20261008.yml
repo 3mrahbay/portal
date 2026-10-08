@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/patch-gallery-ui-metadata-large-video-20261008.yml
       - .github/scripts/patch-gallery-ui-metadata-large-video-20261008.mjs
+      - .github/scripts/fix-gallery-seven-errors-20261008.mjs
 
 permissions:
   contents: write
@@ -26,6 +27,8 @@ jobs:
           node-version: '22'
       - name: Apply gallery patch
         run: node .github/scripts/patch-gallery-ui-metadata-large-video-20261008.mjs
+      - name: Repair seven remaining contracts
+        run: node .github/scripts/fix-gallery-seven-errors-20261008.mjs
       - name: Run focused gallery and PWA tests
         run: >-
           node --test
@@ -39,11 +42,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/scripts/patch-gallery-ui-metadata-large-video-20261008.mjs .github/workflows/patch-gallery-ui-metadata-large-video-20261008.yml
+          git rm .github/scripts/patch-gallery-ui-metadata-large-video-20261008.mjs \
+            .github/scripts/fix-gallery-seven-errors-20261008.mjs \
+            .github/workflows/patch-gallery-ui-metadata-large-video-20261008.yml
           git add index.html serviceworker.js portal-galeri-core.js \
             js/portal-galeri-medya.js js/portal-galeri-canli.js js/zeky-galeri-onay-egitim.js \
-            js/zeky-galeri-filigran-koprusu.js js/portal-galeri-klasor-ui.js \
-            js/bunny-stream-upload.js moduller/veli-galeri.js \
+            js/zeky-galeri-filigran-koprusu.js js/zeky-randevu-modal-koprusu.js \
+            js/portal-galeri-klasor-ui.js js/bunny-stream-upload.js moduller/veli-galeri.js \
             server/BCKA-Medya-bunny-stream-signer.gs \
             tests/bunny-stream-upload.test.mjs tests/portal-stream-status-recovery.test.mjs \
             tests/portal-media-release-delivery.test.mjs tests/gallery-media-ui-metadata.test.mjs
