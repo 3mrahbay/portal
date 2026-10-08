@@ -94,7 +94,7 @@ const PRECACHE = [
   "./moduller/pdr.js",
   "./moduller/program-belgeleme.js",
   "./moduller/geri-bildirim.js",
-  "./moduller/veli-galeri.js?v=v189",
+  "./moduller/veli-galeri.js?v=v191",
   "./js/portal-galeri-lightbox-ui.js",
   "./js/bunny-stream-upload.js?v=191",
   "./okul_logo.png",
