@@ -3,6 +3,7 @@
 // Sadece okuma: Firestore öğrenci veya finans verilerini değiştirmez.
 const params=args=>{
  const a={};for(let i=0;i<args.length;i++){
+  if(args[i]==='--show-sensitive'){a.showSensitive=true;continue;}
   if(!args[i].startsWith('--')||!args[i+1]||args[i+1].startsWith('--'))throw Error('Parametre eksik: '+args[i]);
   a[args[i].slice(2)]=args[++i];
  }return a;
@@ -43,19 +44,19 @@ const normalize=s=>String(s||'').toLocaleLowerCase('tr-TR').replace(/\s+/g,' ').
  const warnings=[];
  for(const o of donemDocs){
   const p=odemePlani(o.veri,now);
-  for(const w of p.uyarilar||[])warnings.push({ogrenciId:o.id,tur:'bakiye_uyusmazligi',aciklama:w});
+  for(const w of p.uyarilar||[])warnings.push({...(a.showSensitive?{ogrenciId:o.id}:{}),tur:'bakiye_uyusmazligi',aciklama:w});
   for(const r of p.satirlar){
    if(r.odenen>0 && !r.record?.hareketler?.length && !r.record?.odemeTarihi)
-    warnings.push({ogrenciId:o.id,kalem:r.id,tur:'tahsilat_tarihi_eksik'});
+    warnings.push({...(a.showSensitive?{ogrenciId:o.id}:{}),kalem:r.id,tur:'tahsilat_tarihi_eksik'});
    if(r.record?.hareketler?.some(m=>m.tutar&&(!m.tarih||!/^\d{4}-\d{2}-\d{2}$/.test(m.tarih))))
-    warnings.push({ogrenciId:o.id,kalem:r.id,tur:'tarihsiz_hareket'});
+    warnings.push({...(a.showSensitive?{ogrenciId:o.id}:{}),kalem:r.id,tur:'tarihsiz_hareket'});
   }
  }
  const focus=(a.focus||'').trim();
  const matches=focus?donemDocs.filter(o=>normalize(o.profil.ogrenciAdSoyad||o.profil.ad).includes(normalize(focus))):[];
- const candidates=matches.map(o=>{
+ const candidates=matches.map((o,i)=>{
   const p=odemePlani(o.veri,now);
-  return {ogrenciId:o.id,ogrenciAd:o.profil.ogrenciAdSoyad||o.profil.ad||'',aktif:aktifDonemKaydi(o.veri,o.profil),
+  return {eslesmeSirasi:i+1,...(a.showSensitive?{ogrenciId:o.id,ogrenciAd:o.profil.ogrenciAdSoyad||o.profil.ad||''}:{}),aktif:aktifDonemKaydi(o.veri,o.profil),
     donemBeklenen:p.toplam,donemOdenen:p.odenen,donemKalan:p.kalan,
     odemeler:p.satirlar.filter(r=>r.odenen>0).map(r=>({ayKalem:r.id,beklenen:r.beklenen,odenen:r.odenen,tarih:r.record.odemeTarihi||'',kaynakTahsilatId:r.record.kaynakTahsilatId||''}))};
  });
@@ -82,7 +83,7 @@ const normalize=s=>String(s||'').toLocaleLowerCase('tr-TR').replace(/\s+/g,' ').
     aidataIslenen:finansAktif.aidatOdenen[m]||0,
     nakitAktif:finansAktif.nakitAylar[m]||0,nakitTumDonem:finansDonem.nakitAylar[m]||0})),
   uyariSayisi:warnings.length,uyarilar:warnings.slice(0,50),
-  ...(focus?{arananOgrenci:focus,eslesenOgrenci:matches.length,eslesenKayitlar:candidates}:{})
+  ...(focus?{arananOgrenci:a.showSensitive?focus:'Gizlendi',eslesenOgrenci:matches.length,eslesenKayitlar:candidates}:{})
  };
  console.log(JSON.stringify(out,null,2));
  if(warnings.length>50)console.error(warnings.length-50+' uyarı daha var. Bu çıktı ilk 50 tanesini gösterir.');
