@@ -323,7 +323,7 @@ function cizTahsilatTrendi() {
       if (!ayar || getOgrenciDurum(o, ayar) !== "aktif") return toplam;
       const a = ayar.aidatAyarlari || {};
       const n = Number(a.gercekAySayisi ?? a.taksitSayisi);
-      if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(a.baslangicAyi || '') || !Number.isInteger(n) || n <= 0) return toplam;
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(a.baslangicAyi || '') || !Number.isInteger(n) || n <= 0) return toplam;
       const [by, bm] = a.baslangicAyi.split('-').map(Number);
       const [yy, mm] = ayKod.split('-').map(Number);
       const fark = (yy - by) * 12 + mm - bm;
