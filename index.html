@@ -31373,7 +31373,7 @@ function hesaplaFinansGelirler() {
   const veri=ayarListesi[o.id];if(!veri)return [];
   return ortakOdemePlani(veri).satirlar.flatMap(r=>{
    const hareketler=r.record.hareketler?.length?r.record.hareketler:r.odenen>0?[{tutar:r.odenen,tarih:r.record.odemeTarihi||'',yontem:r.record.odemeYontemi||r.record.yontem||''}]:[];
-   return hareketler.map(h=>({ogrenciId:o.id,ogrenciAd:o.ogrenciAdSoyad||'',sinif:o.sinif||'',tur:r.id==='__onOdeme'?'onOdeme':r.id.startsWith('diger-')?'diger':'aylik',etiket:r.ad,ayKod:r.id,kalemKod:r.id.startsWith('diger-')?r.id.slice(6):'',beklenen:r.beklenen,odenen:Number(h.tutar)||0,odemeTarihi:h.tarih||'',yontem:h.yontem||''}));
+   return hareketler.map(h=>({ogrenciId:o.id,ogrenciAd:o.ogrenciAdSoyad||'',sinif:o.sinif||'',tur:r.id==='__onOdeme'?'onOdeme':r.id.startsWith('diger-')?'diger':'aylik',etiket:r.ad,ayKod:r.id,kalemKod:r.id.startsWith('diger-')?r.id.slice(6):'',beklenen:r.beklenen,odenen:Number(h.tutar)||0,odemeTarihi:h.tarih||'',yontem:h.yontem||'',kaynakTahsilatId:h.kaynakTahsilatId||r.record.kaynakTahsilatId||'',sistemeGirisTarihi:r.record.sistemeGirisTarihi||r.record.kayitTarihi||''}));
   });
  }).sort((a,b)=>b.odemeTarihi.localeCompare(a.odemeTarihi));
 }
@@ -41851,24 +41851,31 @@ window.gelirFilter = function(filter) {
   renderFinansGelirler();
 };
 
-function renderFinansGelirler() {
-  const el = document.getElementById("gelirlerListesi");
-  if (!el) return;
+// Ekran ve Excel kesinlikle aynı aktif tarih + kalem filtresini kullanır.
+function seciliFinansGelirleri() {
   let liste = finansFiltreleByView(finansalGelirler, "odemeTarihi");
   if (aktifGelirFilter === "aylik") liste = liste.filter(g => g.tur === "aylik");
   else if (aktifGelirFilter === "diger") liste = liste.filter(g => g.tur === "diger");
   else if (aktifGelirFilter === "onOdeme") liste = liste.filter(g => g.tur === "onOdeme");
+  return liste;
+}
+
+function renderFinansGelirler() {
+  const el = document.getElementById("gelirlerListesi");
+  if (!el) return;
+  const liste = seciliFinansGelirleri();
 
   if (liste.length === 0) {
     el.innerHTML = '<div class="ozel-madde-empty">Bu filtrede gelir yok.</div>';
     return;
   }
-  const toplam = liste.reduce((s, g) => s + g.odenen, 0);
+  const toplam = liste.reduce((s, g) => s + Math.round(Number(g.odenen||0)*100), 0)/100;
   let html = `
     <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:12px 16px; margin-bottom:12px; display:flex; justify-content:space-between; font-size:14px;">
-      <span><strong>${liste.length}</strong> gelir kaydı</span>
+      <span><strong>${liste.length}</strong> tahsilat dağıtım satırı</span>
       <span style="font-weight:700; color:#166534;">Toplam: ${toplam.toLocaleString("tr-TR")} TL</span>
     </div>
+    <div style="font-size:12px;color:#64748b;margin:0 0 12px;">Bu ay / bu yıl filtreleri gerçek tahsilat tarihine göredir; “Aylık Aidat” filtresi ödemenin ait olduğu ayı değil, ödeme türünü seçer. Peşin tahsilatlar birden fazla aidata mahsup edilmiş olabilir.</div>
     <div style="background:white; border:1px solid var(--gray-300); border-radius:12px; overflow:hidden;">
       <div style="display:grid; grid-template-columns:2fr 1fr 1.5fr 1.2fr 1fr; gap:8px; padding:12px 16px; background:#f9fafb; border-bottom:1px solid var(--gray-200); font-size:11px; color:var(--gray-500); font-weight:600; text-transform:uppercase;">
         <div>Öğrenci</div><div>Sınıf</div><div>Kalem</div><div style="text-align:right;">Tutar</div><div>Tarih</div>
@@ -41892,13 +41899,16 @@ function renderFinansGelirler() {
 
 window.gelirlerExcel = async function() {
   if (!(await xlsxHazirla())) return;
-  const liste = finansFiltreleByView(finansalGelirler, "odemeTarihi");
-  if (liste.length === 0) return showToast("İndirilecek gelir yok", "error");
+  const liste = seciliFinansGelirleri();
+  if (liste.length === 0) return showToast("Seçili filtrede indirilecek gelir yok", "error");
   try {
     const data = liste.map(g => ({
       "Öğrenci": g.ogrenciAd, "Sınıf": g.sinif, "Kalem": g.etiket,
+      "Aidatın Ait Olduğu Ay": g.tur === "aylik" ? g.ayKod : "",
       "Beklenen (TL)": g.beklenen, "Ödenen (TL)": g.odenen,
-      "Ödeme Tarihi": g.odemeTarihi || ""
+      "Gerçek Tahsilat Tarihi": g.odemeTarihi || "",
+      "Sisteme Giriş Tarihi": g.sistemeGirisTarihi || "",
+      "Banka/Havale Referansı": g.kaynakTahsilatId || ""
     }));
     const ws = window.XLSX.utils.json_to_sheet(data);
     const wb = window.XLSX.utils.book_new();
