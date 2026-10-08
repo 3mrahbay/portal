@@ -1,0 +1,50 @@
+name: Patch gallery media UI and large videos
+
+on:
+  push:
+    branches:
+      - fix/gallery-ui-metadata-large-video-20261008
+    paths:
+      - .github/workflows/patch-gallery-ui-metadata-large-video-20261008.yml
+      - .github/scripts/patch-gallery-ui-metadata-large-video-20261008.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/gallery-ui-metadata-large-video-20261008
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply gallery patch
+        run: node .github/scripts/patch-gallery-ui-metadata-large-video-20261008.mjs
+      - name: Run focused gallery and PWA tests
+        run: >-
+          node --test
+          tests/bunny-stream-upload.test.mjs
+          tests/portal-galeri-canli.test.mjs
+          tests/portal-stream-status-recovery.test.mjs
+          tests/gallery-media-ui-metadata.test.mjs
+          tests/portal-media-release-delivery.test.mjs
+          tests/pwa-delivery-contract.test.mjs
+      - name: Commit verified patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/scripts/patch-gallery-ui-metadata-large-video-20261008.mjs .github/workflows/patch-gallery-ui-metadata-large-video-20261008.yml
+          git add index.html serviceworker.js portal-galeri-core.js \
+            js/portal-galeri-medya.js js/portal-galeri-canli.js js/zeky-galeri-onay-egitim.js \
+            js/zeky-galeri-filigran-koprusu.js js/portal-galeri-klasor-ui.js \
+            js/bunny-stream-upload.js moduller/veli-galeri.js \
+            server/BCKA-Medya-bunny-stream-signer.gs \
+            tests/bunny-stream-upload.test.mjs tests/portal-stream-status-recovery.test.mjs \
+            tests/portal-media-release-delivery.test.mjs tests/gallery-media-ui-metadata.test.mjs
+          git commit -m "fix: normalize gallery media UI metadata and large uploads"
+          git push origin HEAD:fix/gallery-ui-metadata-large-video-20261008
