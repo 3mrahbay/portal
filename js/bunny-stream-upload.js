@@ -5,6 +5,8 @@
 export const MAX_VIDEO_BYTES = 600 * 1024 * 1024;
 export const TUS_ENDPOINT = 'https://video.bunnycdn.com/tusupload';
 const TUS_MODULE = 'https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/+esm';
+export const DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024;
+export const DEFAULT_RETRY_DELAYS = Object.freeze([0,1000,3000,5000,10000,20000,30000,45000,60000,90000]);
 const VIDEO_MIME_BY_EXTENSION = Object.freeze({
   mp4:'video/mp4', webm:'video/webm', mov:'video/quicktime', m4v:'video/x-m4v',
   mkv:'video/x-matroska', avi:'video/x-msvideo', mpeg:'video/mpeg', mpg:'video/mpeg'
@@ -84,11 +86,51 @@ export async function requestStreamAuthorization(file, {
   };
 }
 
+function uploadStatus(error) {
+  const candidates = [
+    error?.status,
+    error?.statusCode,
+    error?.response?.status,
+    error?.originalResponse?.getStatus?.()
+  ];
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isInteger(value) && value >= 100 && value <= 599) return value;
+  }
+  const match = String(error?.message || error || '').match(/(?:HTTP\s*)?([45]\d{2})/i);
+  return match ? Number(match[1]) : 0;
+}
+
+export function formatTusUploadError(error) {
+  const technicalMessage = String(error?.message || error || 'Bilinmeyen TUS yükleme hatası').trim();
+  const status = uploadStatus(error);
+  let retryable = false;
+  let userMessage = '';
+
+  if (status === 409 || /conflict|resumeFromPreviousUpload|upload url[^.]{0,80}(?:used|invalid|expired)/i.test(technicalMessage)) {
+    userMessage = 'Önceki video yükleme oturumu çakıştı. Yeni temiz yükleme ile tekrar deneyin.';
+  } else if (status === 401 || status === 403 || /authorization|signature|forbidden|unauthori[sz]ed|expired signature/i.test(technicalMessage)) {
+    userMessage = 'Bunny video yükleme yetkilendirmesi kabul edilmedi. Sayfayı yenileyip yeniden deneyin.';
+  } else if (status === 413 || /payload too large|request entity too large|too large|çok büyük/i.test(technicalMessage)) {
+    userMessage = 'Video boyutu servis sınırını aşıyor.';
+  } else if ([408,425,429,500,502,503,504].includes(status)) {
+    retryable = true;
+    userMessage = 'Video servisi geçici olarak yanıt vermedi. Bağlantı korunarak yeniden denendi; lütfen tekrar deneyin.';
+  } else if (/network|failed to fetch|load failed|connection|internet|offline|timeout|timed out/i.test(technicalMessage)) {
+    retryable = true;
+    userMessage = 'İnternet bağlantısı kesildi veya Bunny yükleme servisine ulaşılamadı.';
+  } else {
+    userMessage = 'Video yüklenemedi: ' + technicalMessage.slice(0, 180);
+  }
+
+  return { status, retryable, technicalMessage, userMessage };
+}
+
 export async function uploadStreamVideo(file, {
   authorization,
   onProgress=()=>{},
   tusLoader=()=>import(TUS_MODULE),
-  chunkSize=8*1024*1024
+  chunkSize=DEFAULT_CHUNK_SIZE
 }={}) {
   const valid=validateStreamVideo(file);
   if (!valid.ok) throw new Error(valid.error);
@@ -102,7 +144,7 @@ export async function uploadStreamVideo(file, {
   return new Promise((resolve,reject)=>{
     const upload=new Upload(file,{
       endpoint:auth.endpoint||TUS_ENDPOINT,
-      retryDelays:[0,1000,3000,5000,10000,20000],
+      retryDelays:[...DEFAULT_RETRY_DELAYS],
       chunkSize,
       removeFingerprintOnSuccess:true,
       metadata:{
@@ -117,7 +159,15 @@ export async function uploadStreamVideo(file, {
         VideoId:String(auth.videoId),
         LibraryId:String(auth.libraryId)
       },
-      onError:error=>reject(error instanceof Error?error:new Error(String(error))),
+      onError:error=>{
+        const source=error instanceof Error?error:new Error(String(error));
+        const info=formatTusUploadError(source);
+        source.status=info.status;
+        source.retryable=info.retryable;
+        source.technicalMessage=info.technicalMessage;
+        source.userMessage=info.userMessage;
+        reject(source);
+      },
       onProgress:(uploaded,total)=>{
         const pct=total>0?(uploaded/total)*100:0;
         onProgress({uploaded,total,percent:pct});
