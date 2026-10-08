@@ -29,3 +29,21 @@ test('reject conflicting payment date, amount, reversals, duplicate replay',()=>
  const first=planlaTahsilatTarihDuzeltmesi(source(),parameters);
  assert.throws(()=>planlaTahsilatTarihDuzeltmesi({...source(),aylikOdemeler:first.yeniAylikOdemeler},parameters),/tarihi uyuşmuyor/);
 });
+
+test('Firestore Timestamp-like typed fields are preserved without changing unrelated months',()=>{
+ class Timestamp {constructor(seconds){this.seconds=seconds;}toDate(){return new Date(this.seconds*1000);}}
+ const v=source();
+ v.aylikOdemeler['2026-09'].olusturuldu=new Timestamp(1780000000);
+ v.aylikOdemeler['2026-11'].olusturuldu=new Timestamp(1790000000);
+ v.aylikOdemeler['2026-11'].not='özel kayıt alanı';
+ v.aylikOdemeler['2027-07']={beklenenTutar:0,odenenTutar:0,olusturuldu:new Timestamp(1795000000)};
+ const original=v.aylikOdemeler['2026-09'];
+ const untouched=v.aylikOdemeler['2027-07'];
+ const result=planlaTahsilatTarihDuzeltmesi(v,parameters);
+ assert.equal(result.yeniAylikOdemeler['2026-09'].olusturuldu instanceof Timestamp,true);
+ assert.equal(result.yeniAylikOdemeler['2026-11'].olusturuldu instanceof Timestamp,true);
+ assert.equal(result.yeniAylikOdemeler['2026-11'].not,'özel kayıt alanı');
+ assert.strictEqual(result.yeniAylikOdemeler['2027-07'],untouched);
+ assert.strictEqual(result.eskiKayitlar['2026-09'],original);
+ assert.equal(v.aylikOdemeler['2026-09'].odemeTarihi,'2026-10-08');
+});
