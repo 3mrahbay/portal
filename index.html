@@ -11051,7 +11051,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
               <div class="rapor-metrik-icon">💰</div>
               <div class="rapor-metrik-trend" id="raporBuAyTrend">+0%</div>
             </div>
-            <div class="rapor-metrik-label">BU AY TAHSİLAT</div>
+            <div class="rapor-metrik-label">BU AY AİDATA İŞLENEN</div>
             <div class="rapor-metrik-row">
               <span class="rapor-metrik-odenen" id="raporBuAyOdenen">₺0</span>
               <span class="rapor-metrik-beklenen" id="raporBuAyBeklenen">/ ₺0</span>
@@ -39781,26 +39781,12 @@ function cizAylikTahsilatVsHedef() {
     aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
   }
 
-  const hedefAylik = aylar.map(ayKod => {
-    let toplam = 0;
-    const ayNum = parseInt(ayKod.split("-")[1], 10);
-    for (const o of ogrenciList) {
-      const ayar = ayarListesi[o.id];
-      if (!ayar) continue;
-      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
-      const a = ayar.aidatAyarlari || {};
-      const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-      const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-      toplam += (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-    }
-    return toplam;
-  });
-
-  const gercekAylik = aylar.map(ayKod => {
-    return finansalGelirler
-      .filter(g => g.tur === "aylik" && g.ayKod === ayKod)
-      .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
-  });
+  // Aynı finans çekirdeği: mahsup edilen aidat, nakit tahsilatından farklıdır.
+  const grafikFinans = okulFinansOzeti(ogrenciList.filter(o=>{
+    const a=ayarListesi[o.id];return !!a && getOgrenciDurum(o,a)==="aktif";
+  }).map(o=>({id:o.id,veri:ayarListesi[o.id]})));
+  const hedefAylik = aylar.map(ayKod=>grafikFinans.aidatBeklenen[ayKod]||0);
+  const gercekAylik = aylar.map(ayKod=>grafikFinans.aidatOdenen[ayKod]||0);
 
   const etiketler = aylar.map(ayKod => AY_ISIMLERI[parseInt(ayKod.split("-")[1]) - 1].substring(0, 3));
 
@@ -39812,7 +39798,7 @@ function cizAylikTahsilatVsHedef() {
       labels: etiketler,
       datasets: [
         { label: "Hedef", data: hedefAylik, backgroundColor: "rgba(250,204,21,0.6)", borderColor: "#facc15", borderWidth: 1, borderRadius: 4 },
-        { label: "Gerçekleşen", data: gercekAylik, backgroundColor: "rgba(45,106,79,0.85)", borderColor: "#2d6a4f", borderWidth: 1, borderRadius: 4 }
+        { label: "Aidata Mahsup Edilen", data: gercekAylik, backgroundColor: "rgba(45,106,79,0.85)", borderColor: "#2d6a4f", borderWidth: 1, borderRadius: 4 }
       ]
     },
     options: {
@@ -39997,32 +39983,12 @@ function cizTahsilatTrendi() {
     aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
   }
 
-  // Beklenen: Aktif öğrencilerin o ayki aidat toplamı (KÜMÜLATİF yıllık)
-  let kumulatifBeklenen = 0;
-  const beklenenSeri = [];
-  for (const ayKod of aylar) {
-    const ayNum = parseInt(ayKod.split("-")[1], 10);
-    for (const o of ogrenciList) {
-      const ayar = ayarListesi[o.id];
-      if (!ayar) continue;
-      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
-      const a = ayar.aidatAyarlari || {};
-      const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-      const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-      kumulatifBeklenen += (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-    }
-    beklenenSeri.push(kumulatifBeklenen);
-  }
-
-  // Ödenen: aylık aidat kaleminde o ay ödenen (KÜMÜLATİF)
-  let kumulatifOdenen = 0;
-  const odenenSeri = aylar.map(ayKod => {
-    const ayOdenen = finansalGelirler
-      .filter(g => g.tur === "aylik" && g.ayKod === ayKod)
-      .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
-    kumulatifOdenen += ayOdenen;
-    return kumulatifOdenen;
-  });
+  const grafikFinans = okulFinansOzeti(ogrenciList.filter(o=>{
+    const a=ayarListesi[o.id];return !!a && getOgrenciDurum(o,a)==="aktif";
+  }).map(o=>({id:o.id,veri:ayarListesi[o.id]})));
+  let kumulatifBeklenen=0, kumulatifOdenen=0;
+  const beklenenSeri=aylar.map(k=>(kumulatifBeklenen+=(grafikFinans.aidatBeklenen[k]||0)));
+  const odenenSeri=aylar.map(k=>(kumulatifOdenen+=(grafikFinans.aidatOdenen[k]||0)));
 
   const etiketler = aylar.map(ayKod => {
     const [y, a] = ayKod.split("-");
@@ -40044,7 +40010,7 @@ function cizTahsilatTrendi() {
       labels: etiketler,
       datasets: [
         {
-          label: "Ödenen",
+          label: "Aidata İşlenen",
           data: odenenSeri,
           borderColor: "#2d6a4f",
           backgroundColor: "rgba(45,106,79,0.15)",
@@ -40057,7 +40023,7 @@ function cizTahsilatTrendi() {
           pointBorderWidth: 2
         },
         {
-          label: "Beklenen",
+          label: "Planlanan",
           data: beklenenSeri,
           borderColor: "#facc15",
           backgroundColor: "transparent",
@@ -40181,12 +40147,13 @@ function renderOdemeYontemleri() {
     "Havale/EFT": 0,
     "Kredi Kartı": 0,
     "Nakit": 0,
-    "Çek/Senet": 0
+    "Çek/Senet": 0,
+    "Belirtilmemiş": 0
   };
   let toplam = 0;
   for (const g of finansalGelirler) {
-    const yontem = g.odemeYontemi || "Havale/EFT";
-    const mapped = yontemler.hasOwnProperty(yontem) ? yontem : "Havale/EFT";
+    const yontem = g.yontem || g.odemeYontemi || "Belirtilmemiş";
+    const mapped = Object.prototype.hasOwnProperty.call(yontemler,yontem) ? yontem : "Belirtilmemiş";
     yontemler[mapped] += parseFloat(g.odenen) || 0;
     toplam += parseFloat(g.odenen) || 0;
   }
@@ -40195,13 +40162,15 @@ function renderOdemeYontemleri() {
     "Havale/EFT": "#2d6a4f",
     "Kredi Kartı": "#facc15",
     "Nakit": "#3b82f6",
-    "Çek/Senet": "#8b5cf6"
+    "Çek/Senet": "#8b5cf6",
+    "Belirtilmemiş": "#94a3b8"
   };
   const ikonlar = {
     "Havale/EFT": "🏦",
     "Kredi Kartı": "💳",
     "Nakit": "💵",
-    "Çek/Senet": "📝"
+    "Çek/Senet": "📝",
+    "Belirtilmemiş": "❔"
   };
 
   let html = "";
