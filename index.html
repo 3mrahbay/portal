@@ -2489,6 +2489,11 @@ body.rol-danisma .tb-grup-program { display:none !important; }
 .aylik-input-row input[type="date"] {
   max-width: 130px;
 }
+.aylik-input-row input.finans-tarih-input {
+  max-width: 145px;
+  min-width: 115px;
+  font-variant-numeric: tabular-nums;
+}
 
 .aylik-input-row select {
   padding: 5px 8px;
@@ -11051,7 +11056,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
               <div class="rapor-metrik-icon">💰</div>
               <div class="rapor-metrik-trend" id="raporBuAyTrend">+0%</div>
             </div>
-            <div class="rapor-metrik-label">BU AY TAHSİLAT</div>
+            <div class="rapor-metrik-label">BU AY AİDATA İŞLENEN</div>
             <div class="rapor-metrik-row">
               <span class="rapor-metrik-odenen" id="raporBuAyOdenen">₺0</span>
               <span class="rapor-metrik-beklenen" id="raporBuAyBeklenen">/ ₺0</span>
@@ -13884,7 +13889,8 @@ import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogr
 import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=171';
 import {receiptInput} from './js/expenses/receipt-input.js';
 import {CATEGORIES,localDate} from './js/expenses/receipt-core.js';
-import {odemePlani as ortakOdemePlani, satir as ortakOdemeSatiri, vade as ortakVade} from "./js/finans/core.js";
+import {odemePlani as ortakOdemePlani, satir as ortakOdemeSatiri, vade as ortakVade, gecerliTarih as ortakGecerliTarih, bugun as ortakBugun} from "./js/finans/core.js";
+import {okulFinansOzeti,sonAyKodlari} from "./js/finans/school-summary.js";
 import {
   IZIN_TURLERI as PERSONEL_IZIN_TURLERI,
   izinDurumKodu as personelIzinDurumKodu,
@@ -22344,76 +22350,22 @@ function yonetimHomeHTML(ad) {
   aktifOgrenciler.forEach(o => { if (o.sinif) sinifSet.add(o.sinif); });
   const sinifSayisi = sinifSet.size || 3;
 
-  // Bu ay tahsilatı + toplam beklenen/ödenen
-  const buAyKod = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  })();
-  let buAyTahsilat = 0;
-  let toplamBeklenenYil = 0;
-  let toplamOdenenYil = 0;
-  let odeyenSayisi = 0, bekleyenSayisi = 0, gecikenSayisi = 0;
-
-  aktifOgrenciler.forEach(o => {
-    const ayar = ayarListesi[o.id] || {};
-    const aylikOd = ayar.aylikOdemeler || {};
-    const a = ayar.aidatAyarlari || {};
-    const aidat = a.aylikAidat || 0;
-    const iDonem = a.iDonemAylik || aidat;
-    const iiDonem = a.iiDonemAylik || aidat;
-    const onOdeme = a.onOdeme || 0;
-
-    // Bu ay ödendi mi?
-    const buAyKayit = aylikOd[buAyKod];
-    if (buAyKayit && (buAyKayit.odendi || buAyKayit.odenenTutar)) {
-      buAyTahsilat += parseFloat(buAyKayit.odenenTutar) || 0;
-    }
-
-    // Öğrenci bazında toplam ödenen/beklenen (kabaca tahsilat durumu için)
-    let ogrBeklenen = onOdeme;
-    let ogrOdenen = 0;
-    // Peşinat ödendi mi
-    const onKayit = aylikOd["__onOdeme"];
-    if (onKayit && (onKayit.odendi || onKayit.odenenTutar)) {
-      ogrOdenen += parseFloat(onKayit.odenenTutar) || onOdeme;
-    }
-    // Tüm aylar
-    Object.keys(aylikOd).forEach(k => {
-      if (k === "__onOdeme") return;
-      const ayNum = parseInt((k.split("-")[1] || "0"), 10);
-      const beklenen = (aylikOd[k].beklenenTutar !== undefined && aylikOd[k].beklenenTutar !== "")
-        ? parseFloat(aylikOd[k].beklenenTutar)
-        : ((ayNum >= 9 || ayNum <= 1) ? iDonem : iiDonem);
-      ogrBeklenen += beklenen;
-      if (aylikOd[k].odendi || aylikOd[k].odenenTutar) {
-        ogrOdenen += parseFloat(aylikOd[k].odenenTutar) || beklenen;
-      }
-    });
-    toplamBeklenenYil += ogrBeklenen;
-    toplamOdenenYil += ogrOdenen;
-
-    // Tahsilat durumu sınıflandırması (basit): bu ay ödedi mi?
-    if (buAyKayit && (buAyKayit.odendi)) odeyenSayisi++;
-    else {
-      // gecikmiş mi? (bu aydan önceki en yakın ödenmemiş ay varsa)
-      const buAyNum = parseInt(buAyKod.split("-")[1], 10);
-      const buYil = parseInt(buAyKod.split("-")[0], 10);
-      let gecikme = false;
-      Object.keys(aylikOd).forEach(k => {
-        if (k === "__onOdeme") return;
-        if (k < buAyKod && !(aylikOd[k].odendi)) gecikme = true;
-      });
-      if (gecikme) gecikenSayisi++;
-      else bekleyenSayisi++;
-    }
-  });
-
+  // Ana sayfa ve muhasebe aynı ödeme planı çekirdeğini kullanır.
+  // "Bu ay" = ilgili ayın aidatına işlenen; nakit giriş tarihi ayrı tutulur.
+  const finans = okulFinansOzeti(aktifOgrenciler.map(o=>({id:o.id,veri:ayarListesi[o.id],profil:o})));
+  const buAyKod = finans.ay;
+  const buAyTahsilat = finans.buAyAidataIslenen;
+  const toplamBeklenenYil = finans.toplamBeklenen;
+  const toplamOdenenYil = finans.toplamOdenen;
+  const odeyenSayisi = finans.buAyOdeyen;
+  const gecikenSayisi = finans.gecikenOgrenci;
+  const bekleyenSayisi = Math.max(0,ogrenciSayisi-odeyenSayisi-gecikenSayisi);
   // Doluluk: 3 sınıf, her sınıf ~25 kapasite varsayımı (toplam ~75)
   const kapasiteToplam = 75;
   const dolulukYuzde = kapasiteToplam > 0 ? Math.round((ogrenciSayisi / kapasiteToplam) * 100) : 0;
 
   // Tahsilat yüzdesi (yıllık)
-  const tahsilatYuzde = toplamBeklenenYil > 0 ? Math.round((toplamOdenenYil / toplamBeklenenYil) * 100) : 0;
+  const tahsilatYuzde = finans.buAyAidatOrani;
 
   // Para formatı: 512000 → "512K", 1250000 → "1.25M"
   function paraKisa(n) {
@@ -22456,46 +22408,11 @@ function yonetimHomeHTML(ad) {
   const buAyTahsilatTam = "₺" + Math.round(buAyTahsilat).toLocaleString("tr-TR");
 
   // ===== HIZLI BAKIŞ WIDGET VERİLERİ =====
-  // 1) Ay bazlı tahsilat serisi (ödemeler grafiği)
-  const ayToplamlari = {};
-  aktifOgrenciler.forEach(o => {
-    const aylikOd = (ayarListesi[o.id] && ayarListesi[o.id].aylikOdemeler) || {};
-    Object.keys(aylikOd).forEach(k => {
-      const kayit = aylikOd[k];
-      const tutar = parseFloat(kayit.odenenTutar) || 0;
-      if (tutar <= 0) return;
-      // Peşinat: ödeme tarihi ayına say; yoksa atla
-      let hedefAy = k;
-      if (k === "__onOdeme") {
-        hedefAy = (kayit.odemeTarihi || "").substring(0, 7);
-        if (!hedefAy) return;
-      }
-      ayToplamlari[hedefAy] = (ayToplamlari[hedefAy] || 0) + tutar;
-    });
-  });
-  // Sadece bugüne kadarki aylar (gelecek aylar grafikte gösterilmez)
-  const _buAyKodGrafik = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-  const grafikAylar = Object.keys(ayToplamlari)
-    .filter(k => k <= _buAyKodGrafik)
-    .sort()
-    .slice(-8); // son 8 ay
-  const grafikMax = Math.max(1, ...grafikAylar.map(k => ayToplamlari[k]));
+  // Son 7 ay, aidatın ait olduğu ay bazında. Nakit tarihine göre değildir.
+  const ayToplamlari = finans.aidatOdenen;
+  const grafikAylar = sonAyKodlari(finans.ay,7);
+  const grafikMax = Math.max(1,...grafikAylar.map(k=>ayToplamlari[k]||0));
   const KISA_AY = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
-  const grafikBarlarHTML = grafikAylar.length === 0
-    ? `<div style="font-size:13px; color:var(--c-muted); text-align:center; padding:24px 0;">Henüz ödeme kaydı yok — ödemeler girildikçe grafik oluşur.</div>`
-    : `<div style="display:flex; align-items:flex-end; gap:10px; height:120px;">
-        ${grafikAylar.map(k => {
-          const v = ayToplamlari[k];
-          const h = Math.max(8, Math.round(v / grafikMax * 100));
-          const ayNum = parseInt(k.split("-")[1], 10);
-          return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
-            <div style="font-size:10px; color:var(--c-muted); font-weight:600;">${v >= 1000 ? Math.round(v/1000) + "K" : v}</div>
-            <div style="width:100%; max-width:38px; height:${h}px; background:linear-gradient(180deg,#5A6ACF,#2B3674); border-radius:8px 8px 4px 4px;"></div>
-            <div style="font-size:11px; color:var(--c-body); font-weight:600;">${KISA_AY[ayNum-1] || k}</div>
-          </div>`;
-        }).join("")}
-      </div>`;
-
   // 2) Son kayıt olan öğrenciler (onayTarihi'ne göre)
   // Son kayıt olan öğrenciler — en yeni en üstte (birden çok tarih alanı denenir)
   const _tarihAl = (v) => {
@@ -22646,7 +22563,7 @@ function yonetimHomeHTML(ad) {
   } catch(e) {}
 
   // Aidat açık (beklenen - ödenen)
-  const aidatAcik = Math.max(0, toplamBeklenenYil - toplamOdenenYil);
+  const aidatAcik = finans.toplamKalan;
   const buAyOdeyenOgrenci = odeyenSayisi;
 
   // Görsel referans grafiği: çizgili yeşil barlar + hover değerleri
@@ -22654,13 +22571,13 @@ function yonetimHomeHTML(ad) {
     ? `<div style="font-size:13px; color:var(--c-muted); text-align:center; padding:40px 0;">Henüz ödeme kaydı yok — ödemeler girildikçe grafik oluşur.</div>`
     : `<div class="ozet-grafik">
         ${grafikAylar.map(k => {
-          const v = ayToplamlari[k];
-          const h = Math.max(10, Math.round(v / grafikMax * 100));
+          const v = ayToplamlari[k] || 0;
+          const h = v > 0 ? Math.max(10, Math.round(v / grafikMax * 100)) : 0;
           const ayNum = parseInt(k.split("-")[1], 10);
           return `<div class="ozet-grafik-kol">
             <div class="ozet-grafik-deger">${v >= 1000 ? "₺"+Math.round(v/1000)+"K" : "₺"+v}</div>
             <div class="ozet-grafik-bar" style="height:${h}%;"></div>
-            <div class="ozet-grafik-ay">${KISA_AY[ayNum-1] || k}</div>
+            <div class="ozet-grafik-ay">${(KISA_AY[ayNum-1] || k) + " '" + k.slice(2,4)}</div>
           </div>`;
         }).join("")}
       </div>`;
@@ -22692,16 +22609,16 @@ function yonetimHomeHTML(ad) {
         <div class="kpi-kart">
           <div class="kpi-head">
             <span class="kpi-ikon" style="background:#E9EBF4;"><i data-lucide="receipt-text" style="width:17px;height:17px;"></i></span>
-            <span class="kpi-baslik">Aidat Tahsilatı</span>
+            <span class="kpi-baslik">Aylık Aidata İşlenen</span>
             <span class="kpi-more">···</span>
           </div>
           <div class="kpi-buyuk-row">
             <span class="kpi-buyuk-dark">${buAyTahsilatTam}</span>
-            <span class="kpi-trend-up light">↑ %${tahsilatYuzde}</span>
+            <span class="kpi-trend-up light">%${tahsilatYuzde}</span>
           </div>
-          <div class="kpi-alt">${buAyIsim} · ${ogrenciSayisi} öğrencinin ${buAyOdeyenOgrenci}'inden ödeme alındı.</div>
+          <div class="kpi-alt">${buAyIsim} aidatına mahsup · ${buAyOdeyenOgrenci}/${ogrenciSayisi} öğrenci</div>
           <div class="kpi-progress"><div class="kpi-progress-fill" style="width:${tahsilatYuzde}%;"></div></div>
-          <div class="kpi-alt2">${paraKisa(aidatAcik)} açık</div>
+          <div class="kpi-alt2">Dönem kalan alacak: ${paraKisa(aidatAcik)}</div>
         </div>
 
         <!-- Sınıf Doluluğu -->
@@ -22748,14 +22665,12 @@ function yonetimHomeHTML(ad) {
           <div class="ozet-panel-head">
             <div>
               <span style="font-size:16px; display:inline-flex;"><i data-lucide="trending-up" style="width:16px;height:16px;"></i></span>
-              <span class="ozet-panel-baslik">Gelir & Tahsilat Özeti</span>
+              <span class="ozet-panel-baslik">Aidatların Aylara Göre Tahsilat Durumu</span>
             </div>
             <span class="ozet-panel-etiket">Son ${grafikAylar.length || 6} ay</span>
           </div>
           <div class="ozet-legend">
-            <span><span class="lg" style="background:#2B3674;"></span>Tahsil edilen</span>
-            <span><span class="lg" style="background:#7FA88B;"></span>Beklenen</span>
-            <span><span class="lg" style="background:#D8DCE9;"></span>Geciken</span>
+            <span><span class="lg" style="background:#2B3674;"></span>Aidat ayına mahsup edilen · nakit akışı değildir</span>
           </div>
           ${grafikBarlarHTML2}
 
@@ -31463,7 +31378,7 @@ function hesaplaFinansGelirler() {
   const veri=ayarListesi[o.id];if(!veri)return [];
   return ortakOdemePlani(veri).satirlar.flatMap(r=>{
    const hareketler=r.record.hareketler?.length?r.record.hareketler:r.odenen>0?[{tutar:r.odenen,tarih:r.record.odemeTarihi||'',yontem:r.record.odemeYontemi||r.record.yontem||''}]:[];
-   return hareketler.map(h=>({ogrenciId:o.id,ogrenciAd:o.ogrenciAdSoyad||'',sinif:o.sinif||'',tur:r.id==='__onOdeme'?'onOdeme':r.id.startsWith('diger-')?'diger':'aylik',etiket:r.ad,ayKod:r.id,kalemKod:r.id.startsWith('diger-')?r.id.slice(6):'',beklenen:r.beklenen,odenen:Number(h.tutar)||0,odemeTarihi:h.tarih||'',yontem:h.yontem||''}));
+   return hareketler.map(h=>({ogrenciId:o.id,ogrenciAd:o.ogrenciAdSoyad||'',sinif:o.sinif||'',tur:r.id==='__onOdeme'?'onOdeme':r.id.startsWith('diger-')?'diger':'aylik',etiket:r.ad,ayKod:r.id,kalemKod:r.id.startsWith('diger-')?r.id.slice(6):'',beklenen:r.beklenen,odenen:Number(h.tutar)||0,odemeTarihi:h.tarih||'',yontem:h.yontem||'',kaynakTahsilatId:h.kaynakTahsilatId||r.record.kaynakTahsilatId||'',sistemeGirisTarihi:r.record.sistemeGirisTarihi||r.record.kayitTarihi||''}));
   });
  }).sort((a,b)=>b.odemeTarihi.localeCompare(a.odemeTarihi));
 }
@@ -39743,45 +39658,22 @@ window.ogrenciModalRolAyari = function() {
 };
 
 function hesaplaFinansGecikenler() {
-  const bugun = new Date();
-  const gecikenler = [];
-  for (const o of ogrenciList) {
-    const ayar = ayarListesi[o.id];
-    if (!ayar) continue;
-    if (getOgrenciDurum(o, ayar) !== "aktif") continue;
-    const a = ayar.aidatAyarlari || {};
-    const baslangic = a.baslangicAyi;
-    if (!baslangic) continue;
-    const taksit = a.taksitSayisi || 10;
-    const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-    const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-    const aylikOdemeler = ayar.aylikOdemeler || {};
-    const ayListesi = getAyListesi(baslangic, taksit);
-
-    let toplamBorc = 0, gecikenAySayisi = 0;
-    const gecikenAylar = [];
-    for (const ay of ayListesi) {
-      const ayTarihi = new Date(parseInt(ay.ayKod.split("-")[0]), parseInt(ay.ayKod.split("-")[1]) - 1, 10);
-      if (ayTarihi >= bugun) continue;
-      const ayNum = parseInt(ay.ayKod.split("-")[1], 10);
-      const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-      const od = aylikOdemeler[ay.ayKod] || {};
-      if (!od.odendi) {
-        toplamBorc += beklenen;
-        gecikenAySayisi++;
-        gecikenAylar.push(ay.tam || ay.ayKod);
-      }
-    }
-    if (gecikenAySayisi > 0) {
-      gecikenler.push({
-        ogrenciId: o.id, ogrenciAd: o.ogrenciAdSoyad || "",
-        sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
-        gecikenAySayisi, toplamBorc, gecikenAylar
-      });
-    }
+  const gecikenler=[];
+  for(const o of ogrenciList) {
+    const ayar=ayarListesi[o.id];
+    if(!ayar||getOgrenciDurum(o,ayar)!=="aktif")continue;
+    const plan=ortakOdemePlani(ayar);
+    const acik=plan.satirlar.filter(r=>r.gecikmis && /^\d{4}-(0[1-9]|1[0-2])$/.test(r.id));
+    if(!acik.length)continue;
+    gecikenler.push({
+      ogrenciId:o.id,ogrenciAd:o.ogrenciAdSoyad||"",
+      sinif:o.sinif||(ayar.kayit&&ayar.kayit.sinif)||"",
+      gecikenAySayisi:acik.length,
+      toplamBorc:acik.reduce((n,r)=>n+Math.round(r.kalan*100),0)/100,
+      gecikenAylar:acik.map(r=>r.ad)
+    });
   }
-  gecikenler.sort((a, b) => b.toplamBorc - a.toplamBorc);
-  return gecikenler;
+  return gecikenler.sort((a,b)=>b.toplamBorc-a.toplamBorc);
 }
 
 function renderFinansalOzet() {
@@ -39871,26 +39763,12 @@ function cizAylikTahsilatVsHedef() {
     aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
   }
 
-  const hedefAylik = aylar.map(ayKod => {
-    let toplam = 0;
-    const ayNum = parseInt(ayKod.split("-")[1], 10);
-    for (const o of ogrenciList) {
-      const ayar = ayarListesi[o.id];
-      if (!ayar) continue;
-      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
-      const a = ayar.aidatAyarlari || {};
-      const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-      const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-      toplam += (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-    }
-    return toplam;
-  });
-
-  const gercekAylik = aylar.map(ayKod => {
-    return finansalGelirler
-      .filter(g => g.tur === "aylik" && g.ayKod === ayKod)
-      .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
-  });
+  // Aynı finans çekirdeği: mahsup edilen aidat, nakit tahsilatından farklıdır.
+  const grafikFinans = okulFinansOzeti(ogrenciList.filter(o=>{
+    const a=ayarListesi[o.id];return !!a && getOgrenciDurum(o,a)==="aktif";
+  }).map(o=>({id:o.id,veri:ayarListesi[o.id]})));
+  const hedefAylik = aylar.map(ayKod=>grafikFinans.aidatBeklenen[ayKod]||0);
+  const gercekAylik = aylar.map(ayKod=>grafikFinans.aidatOdenen[ayKod]||0);
 
   const etiketler = aylar.map(ayKod => AY_ISIMLERI[parseInt(ayKod.split("-")[1]) - 1].substring(0, 3));
 
@@ -39902,7 +39780,7 @@ function cizAylikTahsilatVsHedef() {
       labels: etiketler,
       datasets: [
         { label: "Hedef", data: hedefAylik, backgroundColor: "rgba(250,204,21,0.6)", borderColor: "#facc15", borderWidth: 1, borderRadius: 4 },
-        { label: "Gerçekleşen", data: gercekAylik, backgroundColor: "rgba(45,106,79,0.85)", borderColor: "#2d6a4f", borderWidth: 1, borderRadius: 4 }
+        { label: "Aidata Mahsup Edilen", data: gercekAylik, backgroundColor: "rgba(45,106,79,0.85)", borderColor: "#2d6a4f", borderWidth: 1, borderRadius: 4 }
       ]
     },
     options: {
@@ -40087,32 +39965,12 @@ function cizTahsilatTrendi() {
     aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
   }
 
-  // Beklenen: Aktif öğrencilerin o ayki aidat toplamı (KÜMÜLATİF yıllık)
-  let kumulatifBeklenen = 0;
-  const beklenenSeri = [];
-  for (const ayKod of aylar) {
-    const ayNum = parseInt(ayKod.split("-")[1], 10);
-    for (const o of ogrenciList) {
-      const ayar = ayarListesi[o.id];
-      if (!ayar) continue;
-      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
-      const a = ayar.aidatAyarlari || {};
-      const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-      const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-      kumulatifBeklenen += (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-    }
-    beklenenSeri.push(kumulatifBeklenen);
-  }
-
-  // Ödenen: aylık aidat kaleminde o ay ödenen (KÜMÜLATİF)
-  let kumulatifOdenen = 0;
-  const odenenSeri = aylar.map(ayKod => {
-    const ayOdenen = finansalGelirler
-      .filter(g => g.tur === "aylik" && g.ayKod === ayKod)
-      .reduce((s, g) => s + (parseFloat(g.odenen) || 0), 0);
-    kumulatifOdenen += ayOdenen;
-    return kumulatifOdenen;
-  });
+  const grafikFinans = okulFinansOzeti(ogrenciList.filter(o=>{
+    const a=ayarListesi[o.id];return !!a && getOgrenciDurum(o,a)==="aktif";
+  }).map(o=>({id:o.id,veri:ayarListesi[o.id]})));
+  let kumulatifBeklenen=0, kumulatifOdenen=0;
+  const beklenenSeri=aylar.map(k=>(kumulatifBeklenen+=(grafikFinans.aidatBeklenen[k]||0)));
+  const odenenSeri=aylar.map(k=>(kumulatifOdenen+=(grafikFinans.aidatOdenen[k]||0)));
 
   const etiketler = aylar.map(ayKod => {
     const [y, a] = ayKod.split("-");
@@ -40134,7 +39992,7 @@ function cizTahsilatTrendi() {
       labels: etiketler,
       datasets: [
         {
-          label: "Ödenen",
+          label: "Aidata İşlenen",
           data: odenenSeri,
           borderColor: "#2d6a4f",
           backgroundColor: "rgba(45,106,79,0.15)",
@@ -40147,7 +40005,7 @@ function cizTahsilatTrendi() {
           pointBorderWidth: 2
         },
         {
-          label: "Beklenen",
+          label: "Planlanan",
           data: beklenenSeri,
           borderColor: "#facc15",
           backgroundColor: "transparent",
@@ -40271,12 +40129,13 @@ function renderOdemeYontemleri() {
     "Havale/EFT": 0,
     "Kredi Kartı": 0,
     "Nakit": 0,
-    "Çek/Senet": 0
+    "Çek/Senet": 0,
+    "Belirtilmemiş": 0
   };
   let toplam = 0;
   for (const g of finansalGelirler) {
-    const yontem = g.odemeYontemi || "Havale/EFT";
-    const mapped = yontemler.hasOwnProperty(yontem) ? yontem : "Havale/EFT";
+    const yontem = g.yontem || g.odemeYontemi || "Belirtilmemiş";
+    const mapped = Object.prototype.hasOwnProperty.call(yontemler,yontem) ? yontem : "Belirtilmemiş";
     yontemler[mapped] += parseFloat(g.odenen) || 0;
     toplam += parseFloat(g.odenen) || 0;
   }
@@ -40285,13 +40144,15 @@ function renderOdemeYontemleri() {
     "Havale/EFT": "#2d6a4f",
     "Kredi Kartı": "#facc15",
     "Nakit": "#3b82f6",
-    "Çek/Senet": "#8b5cf6"
+    "Çek/Senet": "#8b5cf6",
+    "Belirtilmemiş": "#94a3b8"
   };
   const ikonlar = {
     "Havale/EFT": "🏦",
     "Kredi Kartı": "💳",
     "Nakit": "💵",
-    "Çek/Senet": "📝"
+    "Çek/Senet": "📝",
+    "Belirtilmemiş": "❔"
   };
 
   let html = "";
@@ -41941,24 +41802,31 @@ window.gelirFilter = function(filter) {
   renderFinansGelirler();
 };
 
-function renderFinansGelirler() {
-  const el = document.getElementById("gelirlerListesi");
-  if (!el) return;
+// Ekran ve Excel kesinlikle aynı aktif tarih + kalem filtresini kullanır.
+function seciliFinansGelirleri() {
   let liste = finansFiltreleByView(finansalGelirler, "odemeTarihi");
   if (aktifGelirFilter === "aylik") liste = liste.filter(g => g.tur === "aylik");
   else if (aktifGelirFilter === "diger") liste = liste.filter(g => g.tur === "diger");
   else if (aktifGelirFilter === "onOdeme") liste = liste.filter(g => g.tur === "onOdeme");
+  return liste;
+}
+
+function renderFinansGelirler() {
+  const el = document.getElementById("gelirlerListesi");
+  if (!el) return;
+  const liste = seciliFinansGelirleri();
 
   if (liste.length === 0) {
     el.innerHTML = '<div class="ozel-madde-empty">Bu filtrede gelir yok.</div>';
     return;
   }
-  const toplam = liste.reduce((s, g) => s + g.odenen, 0);
+  const toplam = liste.reduce((s, g) => s + Math.round(Number(g.odenen||0)*100), 0)/100;
   let html = `
     <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:12px 16px; margin-bottom:12px; display:flex; justify-content:space-between; font-size:14px;">
-      <span><strong>${liste.length}</strong> gelir kaydı</span>
+      <span><strong>${liste.length}</strong> tahsilat dağıtım satırı</span>
       <span style="font-weight:700; color:#166534;">Toplam: ${toplam.toLocaleString("tr-TR")} TL</span>
     </div>
+    <div style="font-size:12px;color:#64748b;margin:0 0 12px;">Bu ay / bu yıl filtreleri gerçek tahsilat tarihine göredir; “Aylık Aidat” filtresi ödemenin ait olduğu ayı değil, ödeme türünü seçer. Peşin tahsilatlar birden fazla aidata mahsup edilmiş olabilir.</div>
     <div style="background:white; border:1px solid var(--gray-300); border-radius:12px; overflow:hidden;">
       <div style="display:grid; grid-template-columns:2fr 1fr 1.5fr 1.2fr 1fr; gap:8px; padding:12px 16px; background:#f9fafb; border-bottom:1px solid var(--gray-200); font-size:11px; color:var(--gray-500); font-weight:600; text-transform:uppercase;">
         <div>Öğrenci</div><div>Sınıf</div><div>Kalem</div><div style="text-align:right;">Tutar</div><div>Tarih</div>
@@ -41982,13 +41850,16 @@ function renderFinansGelirler() {
 
 window.gelirlerExcel = async function() {
   if (!(await xlsxHazirla())) return;
-  const liste = finansFiltreleByView(finansalGelirler, "odemeTarihi");
-  if (liste.length === 0) return showToast("İndirilecek gelir yok", "error");
+  const liste = seciliFinansGelirleri();
+  if (liste.length === 0) return showToast("Seçili filtrede indirilecek gelir yok", "error");
   try {
     const data = liste.map(g => ({
       "Öğrenci": g.ogrenciAd, "Sınıf": g.sinif, "Kalem": g.etiket,
+      "Aidatın Ait Olduğu Ay": g.tur === "aylik" ? g.ayKod : "",
       "Beklenen (TL)": g.beklenen, "Ödenen (TL)": g.odenen,
-      "Ödeme Tarihi": g.odemeTarihi || ""
+      "Gerçek Tahsilat Tarihi": g.odemeTarihi || "",
+      "Sisteme Giriş Tarihi": g.sistemeGirisTarihi || "",
+      "Banka/Havale Referansı": g.kaynakTahsilatId || ""
     }));
     const ws = window.XLSX.utils.json_to_sheet(data);
     const wb = window.XLSX.utils.book_new();
@@ -42252,93 +42123,69 @@ function renderRaporlarAltSekme() {
 window.raporIndirAylikTahsilat = async function() {
   if (!(await xlsxHazirla())) return;
   try {
-    const bugun = new Date();
-    const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
-    ? parseInt(AKTIF_DONEM.substring(0, 4), 10)
-    : (bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1);
-    const aylar = [];
-    for (let i = 0; i < 12; i++) {
-      const ay = 9 + i;
-      const hedefYil = ay > 12 ? donemBasYil + 1 : donemBasYil;
-      const hedefAy = ay > 12 ? ay - 12 : ay;
-      aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
-    }
-
-    const rows = [];
-    for (const ayKod of aylar) {
-      let beklenen = 0, odenen = 0, odeyenSayi = 0, odemeyenSayi = 0;
-      for (const o of ogrenciList) {
-        const ayar = ayarListesi[o.id];
-        if (!ayar || getOgrenciDurum(o, ayar) !== "aktif") continue;
-        const a = ayar.aidatAyarlari || {};
-        const ayNum = parseInt(ayKod.split("-")[1], 10);
-        const aylikBeklenen = (ayNum >= 9 || ayNum <= 1) ? (a.iDonemAylik || a.aylikAidat || 0) : (a.iiDonemAylik || a.aylikAidat || 0);
-        beklenen += aylikBeklenen;
-        const od = (ayar.aylikOdemeler || {})[ayKod] || {};
-        if (od.odendi) { odenen += parseFloat(od.odenenTutar) || aylikBeklenen; odeyenSayi++; }
-        else { odemeyenSayi++; }
+    const basYil = typeof AKTIF_DONEM==="string" && /^\d{4}/.test(AKTIF_DONEM)
+      ? Number(AKTIF_DONEM.slice(0,4)):(new Date().getMonth()>=8?new Date().getFullYear():new Date().getFullYear()-1);
+    const aylar=Array.from({length:12},(_,i)=>new Date(Date.UTC(basYil,8+i,1)).toISOString().slice(0,7));
+    const aktifPlanlar=ogrenciList.filter(o=>{
+      const a=ayarListesi[o.id];return !!a&&getOgrenciDurum(o,a)==="aktif";
+    }).map(o=>({id:o.id,plan:ortakOdemePlani(ayarListesi[o.id])}));
+    const rows=aylar.map(ayKod=>{
+      let beklenenKurus=0,odenenKurus=0,odeyenSayi=0,odemeyenSayi=0;
+      for(const o of aktifPlanlar){
+        const r=o.plan.satirlar.find(r=>r.id===ayKod);
+        if(!r)continue;
+        beklenenKurus+=Math.round(r.beklenen*100);
+        odenenKurus+=Math.round(r.odenen*100);
+        if(r.odenen>0)odeyenSayi++;
+        if(r.kalan>0)odemeyenSayi++;
       }
-      rows.push({
-        "Ay": (function(ak){const [y,a]=ak.split("-"); return `${AY_ISIMLERI[parseInt(a)-1]} ${y}`;})(ayKod),
-        "Beklenen (TL)": beklenen,
-        "Tahsil Edilen (TL)": odenen,
-        "Fark (TL)": odenen - beklenen,
-        "Oran (%)": beklenen > 0 ? Math.round((odenen / beklenen) * 100) : 0,
-        "Ödeyen": odeyenSayi,
-        "Ödemeyen": odemeyenSayi
-      });
-    }
-    const ws = window.XLSX.utils.json_to_sheet(rows);
-    const wb = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(wb, ws, "Aylık Tahsilat");
-    window.XLSX.writeFile(wb, `Aylik_Tahsilat_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
-    showToast("✓ Aylık tahsilat indirildi");
-  } catch (e) { showToast("Hata: " + e.message, "error"); }
+      const beklenen=beklenenKurus/100,odenen=odenenKurus/100;
+      const [y,m]=ayKod.split("-").map(Number);
+      return {
+        "Aidat Ayı":AY_ISIMLERI[m-1]+" "+y,
+        "Planlanan Aidat (TL)":beklenen,
+        "Aidat Ayına İşlenen (TL)":odenen,
+        "Kalan (TL)":Math.max(0,(beklenenKurus-odenenKurus)/100),
+        "Tamamlanma (%)":beklenen>0?Math.round(odenen/beklenen*100):0,
+        "Ödeme İşlenmiş Öğrenci":odeyenSayi,"Açık Aidatı Olan Öğrenci":odemeyenSayi
+      };
+    });
+    const ws=window.XLSX.utils.json_to_sheet(rows),wb=window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb,ws,"Aidat Ayları");
+    window.XLSX.writeFile(wb,`Aylik_Aidata_Islenen_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Aidat aylarına işlenen tutarlar indirildi. Nakit akışı değildir.");
+  } catch(e){showToast("Hata: "+e.message,"error");}
 };
 
 // Rapor: Ödeme Detayı (ay ay öğrenci matrisi)
 window.raporIndirOdemeDetayi = async function() {
   if (!(await xlsxHazirla())) return;
   try {
-    const bugun = new Date();
-    const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
-    ? parseInt(AKTIF_DONEM.substring(0, 4), 10)
-    : (bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1);
-    const aylar = [];
-    for (let i = 0; i < 12; i++) {
-      const ay = 9 + i;
-      const hedefYil = ay > 12 ? donemBasYil + 1 : donemBasYil;
-      const hedefAy = ay > 12 ? ay - 12 : ay;
-      aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
-    }
-
-    const data = [];
-    for (const o of ogrenciList) {
-      const ayar = ayarListesi[o.id] || {};
-      const a = ayar.aidatAyarlari || {};
-      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
-      const aylikOdemeler = ayar.aylikOdemeler || {};
-      const row = {
-        "Öğrenci": o.ogrenciAdSoyad || "",
-        "Sınıf": (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
-        "Aylık": a.aylikAidat || 0,
-        "Ön Ödeme": (aylikOdemeler["__onOdeme"] && aylikOdemeler["__onOdeme"].odendi) ? "✓" : "—"
-      };
-      for (const ayKod of aylar) {
-        const od = aylikOdemeler[ayKod] || {};
-        const ayNum = parseInt(ayKod.split("-")[1], 10);
-        const beklenen = (ayNum >= 9 || ayNum <= 1) ? (a.iDonemAylik || a.aylikAidat || 0) : (a.iiDonemAylik || a.aylikAidat || 0);
-        const ayAdi = AY_ISIMLERI[parseInt(ayKod.split("-")[1]) - 1].substring(0, 3);
-        row[ayAdi] = od.odendi ? `✓ ${parseFloat(od.odenenTutar || beklenen).toLocaleString("tr-TR")}` : "—";
+    const basYil = typeof AKTIF_DONEM==="string" && /^\d{4}/.test(AKTIF_DONEM)
+      ? Number(AKTIF_DONEM.slice(0,4)):(new Date().getMonth()>=8?new Date().getFullYear():new Date().getFullYear()-1);
+    const aylar=Array.from({length:12},(_,i)=>new Date(Date.UTC(basYil,8+i,1)).toISOString().slice(0,7));
+    const data=[];
+    for(const o of ogrenciList){
+      const ayar=ayarListesi[o.id];
+      if(!ayar||getOgrenciDurum(o,ayar)!=="aktif")continue;
+      const plan=ortakOdemePlani(ayar);
+      const row={"Öğrenci":o.ogrenciAdSoyad||"","Sınıf":ayar.kayit?.sinif||o.sinif||"",
+        "Dönem Beklenen":plan.toplam,"Dönem Ödenen":plan.odenen,"Dönem Kalan":plan.kalan};
+      for(const ayKod of aylar){
+        const r=plan.satirlar.find(x=>x.id===ayKod);
+        const [y,m]=ayKod.split("-").map(Number);
+        const key=AY_ISIMLERI[m-1]+" "+y;
+        row[key]=!r?"Plan dışı":r.beklenen===0?"0 TL":r.kalan===0?"Ödendi: "+r.odenen.toLocaleString("tr-TR")+" TL":
+          r.odenen>0?"Kısmi: "+r.odenen.toLocaleString("tr-TR")+" / "+r.beklenen.toLocaleString("tr-TR")+" TL":
+          "Bekliyor: "+r.beklenen.toLocaleString("tr-TR")+" TL";
       }
       data.push(row);
     }
-    const ws = window.XLSX.utils.json_to_sheet(data);
-    const wb = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(wb, ws, "Ödeme Detayı");
-    window.XLSX.writeFile(wb, `Odeme_Detayi_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
-    showToast("✓ Ödeme detayı indirildi");
-  } catch (e) { showToast("Hata: " + e.message, "error"); }
+    const ws=window.XLSX.utils.json_to_sheet(data),wb=window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb,ws,"Öğrenci Ödeme Detayı");
+    window.XLSX.writeFile(wb,`Odeme_Detayi_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Ödeme planı detayları indirildi");
+  }catch(e){showToast("Hata: "+e.message,"error");}
 };
 
 // Rapor: Gelir-Gider (3 sayfalı rapor)
@@ -42702,157 +42549,49 @@ async function renderRaporlar() {
 
 // Tüm verileri hesapla
 function hesaplaRaporVerileri() {
-  const bugun = new Date();
-  const buYil = bugun.getFullYear();
-  const buAy = bugun.getMonth() + 1;
-  const buAyKod = `${buYil}-${String(buAy).padStart(2, "0")}`;
-
-  let toplamBeklenen = 0;
-  let toplamOdenen = 0;
-  let buAyBeklenen = 0;
-  let buAyOdenen = 0;
-  let tamamSayi = 0;
-  let gecikenSayi = 0;
-  let aktifSayi = 0;
-  const sinifSayaci = { "Papatyalar Sınıfı": 0, "Kardelenler Sınıfı": 0, "Nar Çiçekleri Sınıfı": 0 };
-
-  // Aylık tahsilat trendi için
-  const aylikTahsilat = {}; // { "2025-09": 30000, ... }
-
-  // Ödeme yöntemleri
-  const odemeYontemleri = {
-    "Havale/EFT": 0,
-    "Kredi Kartı": 0,
-    "Nakit": 0,
-    "Çek/Senet": 0
-  };
-
-  // Geciken öğrenciler
-  const gecikenOgrenciler = [];
-
-  for (const o of ogrenciList) {
-    const ayar = ayarListesi[o.id];
-    const durum = getOgrenciDurum(o, ayar);
-
-    // Sadece aktif öğrencileri say
-    if (durum !== "aktif") continue;
-    aktifSayi++;
-
-    // Önce dönem kayıt sınıfını oku (güncel), yoksa ana dokümandan
-    const resmiSinif = sinifAdiResmiEsle((ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "");
-    if (sinifSayaci[resmiSinif] !== undefined) sinifSayaci[resmiSinif]++;
-
-    if (!ayar || !ayar.aidatAyarlari || !ayar.aidatAyarlari.aylikAidat) continue;
-
-    const a = ayar.aidatAyarlari;
-    const aylikAidat = a.aylikAidat || 0;
-    const iDonemAylik = a.iDonemAylik || aylikAidat;
-    const iiDonemAylik = a.iiDonemAylik || aylikAidat;
-    const onOdeme = a.onOdeme || 0;
-    const gercekAy = a.gercekAySayisi || a.taksitSayisi || 10;
-
-    // Beklenen toplam: Ön ödeme + I. dönem 5 ay + II. dönem 5 ay
-    // Eğer eski şemadan geliyorsa (sadece aylikAidat), gercekAy × aylikAidat kullan
-    let ogrenciBeklenen;
-    if (iDonemAylik !== aylikAidat || iiDonemAylik !== aylikAidat) {
-      // Dönem farklı - gerçek toplam
-      ogrenciBeklenen = onOdeme + (iDonemAylik * 5) + (iiDonemAylik * 5);
-    } else {
-      // Eski düz şema
-      ogrenciBeklenen = aylikAidat * gercekAy;
-    }
-    toplamBeklenen += ogrenciBeklenen;
-
-    const odemeler = ayar.aylikOdemeler || {};
-    let ogrenciOdenen = 0;
-    let ogrenciGecikti = false;
-
-    if (a.baslangicAyi && !a.pesinOdeme) {
-      const ayListesi = getAyListesi(a.baslangicAyi, gercekAy);
-      ayListesi.forEach((ay, idx) => {
-        const od = odemeler[ay.ayKod] || {};
-        const odenTutar = parseFloat(od.odenenTutar) || 0;
-        ogrenciOdenen += odenTutar;
-
-        // Bu ayın beklenen aidatı (I. dönem / II. dönem ayrımı)
-        // İlk 5 ay I. dönem, sonraki 5 ay II. dönem
-        const beklenenAidat = idx < 5 ? iDonemAylik : iiDonemAylik;
-
-        // Aylık tahsilat trendi
-        if (!aylikTahsilat[ay.ayKod]) aylikTahsilat[ay.ayKod] = { odenen: 0, beklenen: 0, ay: ay };
-        aylikTahsilat[ay.ayKod].odenen += odenTutar;
-        aylikTahsilat[ay.ayKod].beklenen += beklenenAidat;
-
-        // Bu ay
-        if (ay.ayKod === buAyKod) {
-          buAyBeklenen += beklenenAidat;
-          buAyOdenen += odenTutar;
-        }
-
-        // Ödeme yöntemi
-        if (od.odemeSekli && odenTutar > 0) {
-          odemeYontemleri[od.odemeSekli] = (odemeYontemleri[od.odemeSekli] || 0) + odenTutar;
-        }
-
-        // Gecikme kontrolü
-        const durumA = getOdemeDurumu(ay, od, beklenenAidat);
-        if (durumA === "gecikmis") ogrenciGecikti = true;
-      });
-    } else if (a.pesinOdeme) {
-      // Peşin ödeyenler için tümü ödenmiş say
-      ogrenciOdenen = ogrenciBeklenen;
-    }
-
-    // Ön ödeme (varsa) ayrı saklanır
-    if (onOdeme > 0 && a.onOdemeOdendi) {
-      ogrenciOdenen += onOdeme;
-    }
-
-    // Diğer ödemeler (eğitim materyali, kıyafet, servis vs.)
-    const digerOdemeler = ayar.digerOdemeler || {};
-    for (const k in digerOdemeler) {
-      const d = digerOdemeler[k];
-      const tutar = parseFloat(d.tutar) || 0;
-      // Beklenene ekle
-      toplamBeklenen += tutar;
-      // Ödenmişse tahsilata da ekle
-      if (d.odendi && tutar > 0) {
-        ogrenciOdenen += tutar;
-        // Bu ay ödenmişse bu ay tahsilatına da ekle
-        if (d.odemeTarihi && d.odemeTarihi.startsWith(buAyKod)) {
-          buAyOdenen += tutar;
-        }
-      }
-    }
-
-    toplamOdenen += ogrenciOdenen;
-
-    // %100 tamam mı
-    if (ogrenciBeklenen > 0 && ogrenciOdenen >= ogrenciBeklenen) tamamSayi++;
-
-    // Geciken
-    if (ogrenciGecikti) {
-      gecikenSayi++;
-      gecikenOgrenciler.push({
-        id: o.id,
-        ad: o.ogrenciAdSoyad,
-        sinif: o.sinif,
-        veli: o.veli1AdSoyad || o.veli2AdSoyad || "-",
-        telefon: o.veli1Telefon || o.veli2Telefon || "",
-        eposta: o.veli1Eposta || o.veli2Eposta || "",
-        kalan: ogrenciBeklenen - ogrenciOdenen,
-        yuzde: ogrenciBeklenen > 0 ? Math.round((ogrenciOdenen / ogrenciBeklenen) * 100) : 0
-      });
-    }
+  const aktif = (typeof ogrenciList !== "undefined" ? ogrenciList : []).filter(o=>{
+    const ayar = (typeof ayarListesi !== "undefined") ? ayarListesi[o.id] : null;
+    return !!ayar && getOgrenciDurum(o,ayar)==="aktif";
+  });
+  const finans = okulFinansOzeti(aktif.map(o=>({id:o.id,veri:ayarListesi[o.id],profil:o})));
+  const ayIsimleri = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const aylikTahsilat = {};
+  const aylar = new Set([...Object.keys(finans.aidatBeklenen),...Object.keys(finans.aidatOdenen)]);
+  for(const k of [...aylar].sort()){
+    if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(k))continue;
+    const [y,m] = k.split('-').map(Number);
+    aylikTahsilat[k] = {
+      odenen:finans.aidatOdenen[k]||0,
+      beklenen:finans.aidatBeklenen[k]||0,
+      ay:{ayKod:k,isim:ayIsimleri[m-1],yil:y}
+    };
   }
-
+  const sinifSayaci = {};
+  for(const o of aktif) {
+    const a = ayarListesi[o.id];
+    const sinif = sinifAdiResmiEsle((a?.kayit?.sinif)||o.sinif||'Sınıfsız');
+    sinifSayaci[sinif] = (sinifSayaci[sinif]||0)+1;
+  }
+  const odemeYontemleri = {"Havale/EFT":0,"Kredi Kartı":0,"Nakit":0,"Çek/Senet":0};
+  for(const h of finans.hareketler) {
+    const yontem=h.yontem||'Belirtilmemiş';
+    odemeYontemleri[yontem]=(odemeYontemleri[yontem]||0)+h.tutar;
+  }
+  const gecikenOgrenciler = finans.planlar.filter(o=>o.plan.geciken>0).map(({profil:o,plan,id})=>({
+    id,ad:o.ogrenciAdSoyad||o.ad||'',sinif:o.sinif||'',
+    veli:o.veli1AdSoyad||o.veli2AdSoyad||'-',
+    telefon:o.veli1Telefon||o.veli2Telefon||'',
+    eposta:o.veli1Eposta||o.veli2Eposta||'',
+    kalan:plan.geciken,
+    yuzde:plan.toplam>0?Math.min(100,Math.round(plan.odenen/plan.toplam*100)):0
+  }));
   return {
-    toplamBeklenen, toplamOdenen,
-    buAyBeklenen, buAyOdenen,
-    tamamSayi, gecikenSayi, aktifSayi,
-    sinifSayaci,
-    aylikTahsilat, odemeYontemleri,
-    gecikenOgrenciler
+    toplamBeklenen:finans.toplamBeklenen,toplamOdenen:finans.toplamOdenen,
+    buAyBeklenen:finans.buAyAidatBeklenen,buAyOdenen:finans.buAyAidataIslenen,
+    buAyNakit:finans.buAyNakit,tarihsizTahsilat:finans.tarihsizTahsilat,
+    tamamSayi:finans.planlar.filter(o=>o.plan.toplam>0&&o.plan.kalan===0).length,
+    gecikenSayi:gecikenOgrenciler.length,aktifSayi:aktif.length,
+    sinifSayaci,aylikTahsilat,odemeYontemleri,gecikenOgrenciler
   };
 }
 
@@ -43125,12 +42864,12 @@ window.raporExcelAylikTahsilat = async function() {
   const d = hesaplaRaporVerileri();
   const kodlar = Object.keys(d.aylikTahsilat).sort();
 
-  const rows = [["Ay", "Beklenen (TL)", "Ödenen (TL)", "Kalan (TL)", "Yüzde"]];
+  const rows = [["Aidatın Ait Olduğu Ay", "Planlanan Aidat (TL)", "Aidata İşlenen (TL)", "Kalan (TL)", "Yüzde"]];
   for (const k of kodlar) {
     const a = d.aylikTahsilat[k];
     const kalan = a.beklenen - a.odenen;
     const yuzde = a.beklenen > 0 ? Math.round((a.odenen / a.beklenen) * 100) : 0;
-    rows.push([a.ay.tam, Math.round(a.beklenen), Math.round(a.odenen), Math.round(kalan), yuzde + "%"]);
+    rows.push([a.ay.isim+" "+a.ay.yil, a.beklenen, a.odenen, kalan, yuzde + "%"]);
   }
 
   const ws = window.XLSX.utils.aoa_to_sheet(rows);
@@ -43185,44 +42924,21 @@ window.raporExcelOgrenciListesi = async function() {
 };
 
 window.raporExcelOdemeDetay = async function() {
-  if (!window.XLSX) await loadSheetJS();
-
-  // Her öğrenci için 12 ay + toplam
-  const rows = [["Öğrenci", "Sınıf", "Aylık Aidat", "Ay Sayısı", "Toplam Beklenen", "Toplam Ödenen", "Kalan", "Yüzde"]];
-
-  for (const o of ogrenciList) {
-    const ayar = ayarListesi[o.id];
-    const durum = getOgrenciDurum(o, ayar);
-    if (durum !== "aktif") continue;
-    if (!ayar?.aidatAyarlari?.aylikAidat) continue;
-
-    const a = ayar.aidatAyarlari;
-    const gercekAy = a.gercekAySayisi || a.taksitSayisi || 10;
-    const beklenen = a.aylikAidat * gercekAy;
-
-    let odenen = 0;
-    const odemeler = ayar.aylikOdemeler || {};
-    for (const k in odemeler) {
-      odenen += parseFloat(odemeler[k].odenenTutar) || 0;
-    }
-    if (a.pesinOdeme) odenen = beklenen;
-
-    const kalan = Math.max(0, beklenen - odenen);
-    const yuzde = beklenen > 0 ? Math.round((odenen / beklenen) * 100) : 0;
-
-    rows.push([
-      o.ogrenciAdSoyad, o.sinif || "-",
-      Math.round(a.aylikAidat), gercekAy,
-      Math.round(beklenen), Math.round(odenen), Math.round(kalan),
-      yuzde + "%"
-    ]);
+  if(!(await xlsxHazirla()))return;
+  const rows=[["Öğrenci","Sınıf","Standart Aidat","Ay Sayısı","Dönem Planı","Dönem Ödenen","Dönem Kalan","Yüzde"]];
+  for(const o of ogrenciList){
+    const ayar=ayarListesi[o.id];
+    if(!ayar||getOgrenciDurum(o,ayar)!=="aktif")continue;
+    const p=ortakOdemePlani(ayar);
+    const aidatAySayisi=p.satirlar.filter(r=>/^\d{4}-(0[1-9]|1[0-2])$/.test(r.id)).length;
+    const yuzde=p.toplam>0?Math.min(100,Math.round(p.odenen/p.toplam*100)):0;
+    rows.push([o.ogrenciAdSoyad||"",ayar.kayit?.sinif||o.sinif||"-",Number(ayar.aidatAyarlari?.aylikAidat)||0,
+      aidatAySayisi,p.toplam,p.odenen,p.kalan,yuzde+"%"]);
   }
-
-  const ws = window.XLSX.utils.aoa_to_sheet(rows);
-  const wb = window.XLSX.utils.book_new();
-  window.XLSX.utils.book_append_sheet(wb, ws, "Ödeme Detayı");
-  window.XLSX.writeFile(wb, `Odeme_Detayi_${AKTIF_DONEM}.xlsx`);
-  showToast("✓ Excel indiriliyor...");
+  const ws=window.XLSX.utils.aoa_to_sheet(rows),wb=window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(wb,ws,"Dönem Ödeme Planı");
+  window.XLSX.writeFile(wb,`Odeme_Detayi_${AKTIF_DONEM}.xlsx`);
+  showToast("✓ Dönem ödeme planı indiriliyor");
 };
 
 // SheetJS dinamik yükleyici (yedek kaynaklı)
@@ -46455,8 +46171,8 @@ function renderAylikOdeme() {
           <input type="number" placeholder="Ödenen" value="${onOdenenTutar || ""}"
                  min="0" step="100" data-alan="odenenTutar" data-ay="__onOdeme"
                  onchange="aylikDegisti('__onOdeme', 'odenenTutar', this.value)">
-          <input type="date" value="${onTarih}" data-alan="odemeTarihi" data-ay="__onOdeme"
-                 onchange="aylikDegisti('__onOdeme', 'odemeTarihi', this.value)">
+          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="GG.AA.YYYY" aria-label="Ön ödeme tarihi (GG.AA.YYYY)" value="${finansTarihGoster(onTarih)}" data-alan="odemeTarihi" data-ay="__onOdeme"
+                 onchange="finansTarihGirisiKaydet(this, 'aylik', '__onOdeme')">
         </div>
         <div class="aylik-input-row">
           <select data-alan="odemeSekli" data-ay="__onOdeme" onchange="aylikDegisti('__onOdeme', 'odemeSekli', this.value)">
@@ -46516,8 +46232,8 @@ function renderAylikOdeme() {
           <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
                  min="0" step="100" data-alan="odenenTutar" data-ay="${ay.ayKod}"
                  onchange="aylikDegisti('${ay.ayKod}', 'odenenTutar', this.value)">
-          <input type="date" value="${odemeTarihi}" data-alan="odemeTarihi" data-ay="${ay.ayKod}"
-                 onchange="aylikDegisti('${ay.ayKod}', 'odemeTarihi', this.value)">
+          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="GG.AA.YYYY" aria-label="Aylık ödeme tarihi (GG.AA.YYYY)" value="${finansTarihGoster(odemeTarihi)}" data-alan="odemeTarihi" data-ay="${ay.ayKod}" title="Gerçek tahsilat tarihi (GG.AA.YYYY): banka hesabına paranın ulaştığı gün"
+                 onchange="finansTarihGirisiKaydet(this, 'aylik', '${ay.ayKod}')">
         </div>
         <div class="aylik-input-row">
           <select data-alan="odemeSekli" data-ay="${ay.ayKod}"
@@ -46880,8 +46596,8 @@ function renderDigerOdeme() {
           <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
                  min="0" step="100"
                  onchange="digerDegisti('${kalem.kod}', 'odenenTutar', this.value)">
-          <input type="date" value="${odemeTarihi}"
-                 onchange="digerDegisti('${kalem.kod}', 'odemeTarihi', this.value)">
+          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="GG.AA.YYYY" aria-label="Diğer ücret tahsilat tarihi (GG.AA.YYYY)" value="${finansTarihGoster(odemeTarihi)}"
+                 onchange="finansTarihGirisiKaydet(this, 'diger', '${kalem.kod}')">
         </div>
         <div class="aylik-input-row">
           <select onchange="digerDegisti('${kalem.kod}', 'odemeSekli', this.value)">
@@ -46926,8 +46642,49 @@ function updateDigerOzet(odenen, beklenen, bekleyen) {
   if (kalemEl) kalemEl.textContent = bekleyen;
 }
 
+// Muhasebe kartlari: tarayicinin parcali yil (0006) girisini onlemek icin
+// GG.AA.YYYY metin alani + katı takvim / gelecekteki tarih kontrolu.
+function finansTarihGoster(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  return m ? m[3] + "." + m[2] + "." + m[1] : "";
+}
+function finansTarihISOgecerli(iso) {
+  if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const yil = Number(iso.slice(0, 4));
+  if (yil < 2020 || yil > 2100) return false;
+  const tarih = new Date(iso + "T12:00:00Z");
+  return Number.isFinite(tarih.getTime()) && tarih.toISOString().slice(0, 10) === iso && iso <= ortakBugun();
+}
+function finansTarihMetniISO(metin) {
+  let deger = String(metin || "").trim();
+  // Sayisal klavyede noktalar olmadan yazilan GG A A YYYY (8 rakam).
+  if (/^\d{8}$/.test(deger)) deger = deger.slice(0,2) + "." + deger.slice(2,4) + "." + deger.slice(4);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(deger)) return finansTarihISOgecerli(deger) ? deger : "";
+  const m = /^(\d{2})[.\/-](\d{2})[.\/-](\d{4})$/.exec(deger);
+  if (!m) return "";
+  const iso = m[3] + "-" + m[2] + "-" + m[1];
+  return finansTarihISOgecerli(iso) ? iso : "";
+}
+function finansTarihGirisiKaydet(input, tur, kod) {
+  const iso = finansTarihMetniISO(input.value);
+  if (!iso) {
+    showToast("Tarihi GG.AA.YYYY olarak girin (ornegin 10.08.2026). Gecersiz veya gelecek tarih kaydedilmedi.", "error");
+    input.focus();
+    input.select();
+    return;
+  }
+  if (tur === "diger") window.digerDegisti(kod, "odemeTarihi", iso);
+  else window.aylikDegisti(kod, "odemeTarihi", iso);
+}
+
 window.digerDegisti = function(kalemKod, alan, deger) {
   if (!currentOgrenci) return;
+  if (alan === "odemeTarihi") {
+    if (!finansTarihISOgecerli(deger)) {showToast("Geçersiz tahsilat tarihi; değişiklik kaydedilmedi.", "error");return;}
+    if (ayarListesi[currentOgrenci.id]?.digerOdemeler?.[kalemKod]?.hareketler?.length) {
+      showToast("Bu ücrette tahsilat hareketleri var. Tarih, hareket geçmişiyle birlikte muhasebe düzeltmesi üzerinden değiştirilmelidir.", "error");return;
+    }
+  }
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
   if (!ayarListesi[currentOgrenci.id].digerOdemeler) ayarListesi[currentOgrenci.id].digerOdemeler = {};
   if (!ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod]) ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] = {};
@@ -46950,27 +46707,20 @@ window.digerDegisti = function(kalemKod, alan, deger) {
 
 window.digerOdendiIsaretle = function(kalemKod) {
   if (!currentOgrenci) return;
-  const kalem = DIGER_ODEME_KALEMLERI.find(k => k.kod === kalemKod);
-  if (!kalem) return;
-
-  const beklenenTutar = parseFloat(document.getElementById(kalem.inputId)?.value) || 0;
-  if (beklenenTutar <= 0) {
-    showToast("Önce Diğer Ücretler alanında tutar girilmelidir", "error");
-    return;
+  const kalem = DIGER_ODEME_KALEMLERI.find(k=>k.kod===kalemKod);
+  if(!kalem)return;
+  const beklenenTutar=Number(document.getElementById(kalem.inputId)?.value)||0;
+  if (beklenenTutar<=0){showToast("Önce diğer ücret tutarını girin","error");return;}
+  const ayarlar=ayarListesi[currentOgrenci.id]||(ayarListesi[currentOgrenci.id]={});
+  const odemeler=ayarlar.digerOdemeler||(ayarlar.digerOdemeler={});
+  const mevcut=odemeler[kalemKod]||{};
+  if((Number(mevcut.odenenTutar)||0)>0||mevcut.odendi||mevcut.hareketler?.length){
+    showToast("Bu kalem için ödeme mevcut. Önce hareket geçmişini kontrol edin.","error");return;
   }
-
-  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
-  if (!ayarListesi[currentOgrenci.id].digerOdemeler) ayarListesi[currentOgrenci.id].digerOdemeler = {};
-
-  const mevcut = ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] || {};
-  ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] = {
-    ...mevcut,
-    odendi: true,
-    odenenTutar: beklenenTutar,
-    beklenenTutar: beklenenTutar,
-    odemeTarihi: mevcut.odemeTarihi || new Date().toISOString().substring(0, 10)
-  };
-
+  const tarih=prompt("Gerçek tahsilat tarihi (YYYY-AA-GG). Sistem giriş tarihi değildir:",mevcut.odemeTarihi||"");
+  if(!ortakGecerliTarih(tarih)){showToast("Geçerli gerçek ödeme tarihi gerekli; işlem yapılmadı.","error");return;}
+  odemeler[kalemKod]={...mevcut,odendi:true,odenenTutar:beklenenTutar,beklenenTutar,
+    odemeTarihi:tarih,sistemeGirisTarihi:ortakBugun()};
   renderDigerOdeme();
 };
 
@@ -47040,6 +46790,12 @@ function ayBeklenenTutar(ayKod) {
 
 window.aylikDegisti = function(ayKod, alan, deger) {
   if (!currentOgrenci) return;
+  if (alan === "odemeTarihi") {
+    if (!finansTarihISOgecerli(deger)) {showToast("Geçersiz tahsilat tarihi; değişiklik kaydedilmedi.", "error");return;}
+    if (ayarListesi[currentOgrenci.id]?.aylikOdemeler?.[ayKod]?.hareketler?.length) {
+      showToast("Bu aidatta tahsilat hareketleri var. Tarih, hareket geçmişiyle birlikte muhasebe düzeltmesi üzerinden değiştirilmelidir.", "error");return;
+    }
+  }
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
   if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
   if (!ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod]) ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] = {};
@@ -47064,23 +46820,18 @@ window.aylikDegisti = function(ayKod, alan, deger) {
 window.aylikOdendiIsaretle = function(ayKod) {
   if (!currentOgrenci) return;
   const beklenen = ayBeklenenTutar(ayKod);
-  if (beklenen <= 0) {
-    showToast("Önce aylık aidat / peşinat girilmelidir", "error");
+  if (beklenen <= 0) {showToast("Önce aidat / peşinat tutarını tanımlayın","error");return;}
+  const ayarlar = ayarListesi[currentOgrenci.id] || (ayarListesi[currentOgrenci.id] = {});
+  const odemeler = ayarlar.aylikOdemeler || (ayarlar.aylikOdemeler = {});
+  const mevcut=odemeler[ayKod]||{};
+  if ((Number(mevcut.odenenTutar)||0)>0 || mevcut.odendi || mevcut.hareketler?.length) {
+    showToast("Bu ay için önceden ödeme var. Üzerine yazmayın; hareket detayından kontrol edin.","error");
     return;
   }
-
-  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
-  if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
-
-  const mevcut = ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] || {};
-  ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] = {
-    ...mevcut,
-    odendi: true,
-    odenenTutar: beklenen,
-    beklenenTutar: beklenen,
-    odemeTarihi: mevcut.odemeTarihi || new Date().toISOString().substring(0, 10)
-  };
-
+  const tarih = prompt("Gerçek tahsilat tarihi (YYYY-AA-GG). Ödemenin sisteme işlendiği gün değil, paranın geldiği gün:",mevcut.odemeTarihi||"");
+  if (!ortakGecerliTarih(tarih)) {showToast("Geçerli gerçek tahsilat tarihi gerekli; işlem yapılmadı.","error");return;}
+  odemeler[ayKod] = {...mevcut,odendi:true,odenenTutar:beklenen,beklenenTutar:beklenen,
+    odemeTarihi:tarih,sistemeGirisTarihi:ortakBugun()};
   renderAylikOdeme();
 };
 
@@ -47093,49 +46844,51 @@ window.aylikSifirla = function(ayKod) {
 };
 
 window.aylikToplu = function(tip) {
-  if (!currentOgrenci) return;
-  const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
-  const taksit = parseInt(document.getElementById("ayarTaksit").value) || 12;
-  const baslangic = document.getElementById("ayarBaslangic").value;
-
-  if (!baslangic || aidat <= 0) {
-    showToast("Önce aidat ve dönem başlangıcı girilmelidir", "error");
-    return;
+  if(!currentOgrenci)return;
+  const aidat=Number(document.getElementById("ayarAidat")?.value)||0;
+  const taksit=Number(document.getElementById("ayarTaksit")?.value)||0;
+  const baslangic=document.getElementById("ayarBaslangic")?.value||"";
+  if(!baslangic||aidat<=0||!Number.isInteger(taksit)||taksit<=0){
+    showToast("Önce geçerli aidat ve başlangıç ayı girin","error");return;
   }
-
-  if (tip === "sifirla") {
-    if (!confirm("Bu öğrencinin TÜM aylık ödeme kayıtlarını silmek istediğinize emin misiniz?")) return;
-    if (ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
-    renderAylikOdeme();
-    showToast("✓ Tüm ödemeler sıfırlandı");
-    return;
+  const ayarlar=ayarListesi[currentOgrenci.id]||(ayarListesi[currentOgrenci.id]={});
+  if(tip==="sifirla"){
+    if(!confirm("Bu öğrencinin TÜM aylık ödeme kayıtlarını silmek istediğinize emin misiniz?"))return;
+    ayarlar.aylikOdemeler={};renderAylikOdeme();showToast("✓ Tüm aylık kayıtlar sıfırlandı");return;
   }
-
-  const ayListesi = getAyListesi(baslangic, taksit);
-  const bugun = new Date();
-
-  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
-  if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
-
-  let islemSayisi = 0;
-  for (const ay of ayListesi) {
-    const ayIlk = new Date(ay.yil, ay.ay - 1, 1);
-    const isPast = ayIlk <= bugun;
-
-    if (tip === "tumu" || (tip === "gecmis" && isPast)) {
-      ayarListesi[currentOgrenci.id].aylikOdemeler[ay.ayKod] = {
-        odendi: true,
-        odenenTutar: aidat,
-        beklenenTutar: aidat,
-        odemeTarihi: new Date().toISOString().substring(0, 10),
-        odemeSekli: "Havale/EFT"
-      };
-      islemSayisi++;
-    }
+  if(tip!=="tumu"&&tip!=="gecmis")return;
+  const kaynakPlan=ortakOdemePlani({...ayarlar,aidatAyarlari:{
+    ...(ayarlar.aidatAyarlari||{}),baslangicAyi:baslangic,gercekAySayisi:taksit,aylikAidat:aidat
+  }});
+  const aylar=kaynakPlan.satirlar.filter(r=>/^\d{4}-(0[1-9]|1[0-2])$/.test(r.id) &&
+    r.beklenen>0 && (tip==="tumu"||r.id<=ortakBugun().slice(0,7)));
+  if(!aylar.length){showToast("Seçili dönem için işaretlenecek ödeme yok","warn");return;}
+  const odemeler=ayarlar.aylikOdemeler||(ayarlar.aylikOdemeler={});
+  if(aylar.some(r=>(Number(odemeler[r.id]?.odenenTutar)||0)>0 ||
+    odemeler[r.id]?.odendi===true || odemeler[r.id]?.hareketler?.length)){
+    showToast("Seçili aylarda mevcut tahsilat bulundu. Önce bu kayıtları kontrol edin; toplu işlem üzerine yazmaz.","error");return;
   }
-
+  const tarih=prompt("Tek seferlik toplu ödemenin GERÇEK tahsilat tarihi (YYYY-AA-GG):","");
+  if(!ortakGecerliTarih(tarih)){showToast("Geçerli ödeme tarihi girilmedi; değişiklik yapılmadı.","error");return;}
+  const yontem=prompt("Gerçek ödeme şekli (Havale/EFT, Kredi Kartı, Nakit, Çek/Senet):","Havale/EFT");
+  if(!["Havale/EFT","Kredi Kartı","Nakit","Çek/Senet"].includes(yontem)){
+    showToast("Ödeme yöntemi seçimi geçersiz; işlem durduruldu","error");return;
+  }
+  const bankaReferans=yontem==="Havale/EFT"
+    ? prompt("Havale dekont referansı (banka eşleştirmesi için; bilinmiyorsa boş bırakın):","")
+    : "";
+  if(bankaReferans===null)return;
+  const toplam=aylar.reduce((s,r)=>s+Math.round(r.beklenen*100),0)/100;
+  if(!confirm(aylar.length+" ay için "+toplam.toLocaleString("tr-TR")+" TL'nin "+tarih+
+    " tarihinde "+yontem+" ile TEK SEFERDE gerçekten tahsil edildiğini onaylıyor musunuz?"))return;
+  for(const r of aylar){
+    odemeler[r.id]={...(odemeler[r.id]||{}),odendi:true,odenenTutar:r.beklenen,beklenenTutar:r.beklenen,
+      odemeTarihi:tarih,odemeSekli:yontem,odemeYontemi:yontem,
+      ...(bankaReferans.trim()?{kaynakTahsilatId:bankaReferans.trim()}:{}),
+      sistemeGirisTarihi:ortakBugun()};
+  }
   renderAylikOdeme();
-  showToast(`✓ ${islemSayisi} ay ödendi olarak işaretlendi`);
+  showToast("✓ "+aylar.length+" aya tek gerçek tahsilat tarihiyle mahsup edildi. Değişiklikleri kaydedin.");
 };
 
 window.togglePesin = function() {

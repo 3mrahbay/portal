@@ -6,7 +6,7 @@ export const para = v => new Intl.NumberFormat('tr-TR',{style:'currency',currenc
 export const esc = v => String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function bugun(now=new Date()){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);}
 export function gecerliTarih(value,now=new Date()){
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||'') || Number(value.slice(0,4))<2000)return false;
   const date=new Date(value+'T12:00:00Z');
   return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value&&value<=bugun(now);
 }
