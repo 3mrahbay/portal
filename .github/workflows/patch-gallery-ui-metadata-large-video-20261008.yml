@@ -1,6 +1,6 @@
 name: Patch gallery media UI and large videos
 
-# Re-run after repairing the patch helper.
+# Re-run after aligning the helper with the current v191 source.
 on:
   push:
     branches:
