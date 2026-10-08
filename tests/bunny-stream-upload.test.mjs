@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MAX_VIDEO_BYTES, DEFAULT_CHUNK_SIZE, DEFAULT_RETRY_DELAYS, formatTusUploadError,
-  validateStreamVideo, requestStreamAuthorization, uploadStreamVideo
+  MAX_VIDEO_BYTES, DEFAULT_CHUNK_SIZE, LARGE_VIDEO_CHUNK_SIZE, DEFAULT_RETRY_DELAYS, formatTusUploadError,
+  validateStreamVideo, requestStreamAuthorization, uploadStreamVideo, chunkSizeForVideo
 } from '../js/bunny-stream-upload.js';
 
 const file=(over={})=>({name:'movie.mp4',type:'video/mp4',size:100*1024*1024,...over});
@@ -34,7 +34,7 @@ test('signer request sends metadata only, never video bytes/base64',async()=>{
   assert.equal(auth.videoId,'vid');
 });
 
-test('TUS uploader uses presigned headers and starts a clean upload for each new video authorization',async()=>{
+test('TUS uploader resumes only the same video authorization and uses mobile-safe large chunks',async()=>{
   const calls={started:0,resumed:0,progress:[]};
   class Upload {
     constructor(f,options){this.file=f;this.options=options;this.url='https://video.bunnycdn.com/tusupload/example';calls.options=options;}
@@ -52,11 +52,12 @@ test('TUS uploader uses presigned headers and starts a clean upload for each new
     onProgress:p=>calls.progress.push(p)
   });
   assert.equal(calls.options.chunkSize,DEFAULT_CHUNK_SIZE);
+  assert.equal(chunkSizeForVideo(file({size:501*1024*1024})),LARGE_VIDEO_CHUNK_SIZE);
   assert.deepEqual(calls.options.retryDelays,[...DEFAULT_RETRY_DELAYS]);
   assert.equal(calls.options.headers.AuthorizationSignature,'sig');
   assert.equal(calls.options.headers.VideoId,'vid');
   assert.equal(calls.options.headers.LibraryId,'lib');
-  assert.equal(calls.resumed,0);
+  assert.equal(calls.resumed,1);
   assert.equal(calls.started,1);
   assert.equal(Math.round(calls.progress[0].percent),50);
   assert.equal(result.embedUrl,'https://iframe.mediadelivery.net/embed/lib/vid');

@@ -29,7 +29,7 @@ import {
   guvenliId, gunAnahtari, zamanYazi
 } from './zeky-randevu-cutover-runtime.js';
 import { kartOzeti } from './finans/core.js';
-import './zeky-galeri-filigran-koprusu.js?v=188';
+import './zeky-galeri-filigran-koprusu.js?v=192';
 import './zeky-gozlem-modal-modern.js?v=1';
 import './zeky-randevu-veli-arayuz.js?v=1';
 

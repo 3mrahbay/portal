@@ -6,7 +6,10 @@ export const MAX_VIDEO_BYTES = 600 * 1024 * 1024;
 export const TUS_ENDPOINT = 'https://video.bunnycdn.com/tusupload';
 const TUS_MODULE = 'https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/+esm';
 export const DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024;
-export const DEFAULT_RETRY_DELAYS = Object.freeze([0,1000,3000,5000,10000,20000,30000,45000,60000,90000]);
+export const LARGE_VIDEO_THRESHOLD = 500 * 1024 * 1024;
+export const LARGE_VIDEO_CHUNK_SIZE = 2 * 1024 * 1024;
+export const DEFAULT_RETRY_DELAYS = Object.freeze([0,1000,3000,5000,10000,20000,30000,45000,60000,90000,120000]);
+const activeAuthorizations = new Map();
 const VIDEO_MIME_BY_EXTENSION = Object.freeze({
   mp4:'video/mp4', webm:'video/webm', mov:'video/quicktime', m4v:'video/x-m4v',
   mkv:'video/x-matroska', avi:'video/x-msvideo', mpeg:'video/mpeg', mpg:'video/mpeg'
@@ -82,6 +85,8 @@ export async function requestStreamAuthorization(file, {
     libraryId:String(data.libraryId),
     embedUrl:data.embedUrl||`https://iframe.mediadelivery.net/embed/${data.libraryId}/${data.videoId}`,
     thumbnailUrl:data.thumbnailUrl||'',
+    cdnHost:data.cdnHost||'',
+    thumbnailFileName:data.thumbnailFileName||'thumbnail.jpg',
     collectionId:data.collectionId||''
   };
 }
@@ -126,11 +131,20 @@ export function formatTusUploadError(error) {
   return { status, retryable, technicalMessage, userMessage };
 }
 
+export function chunkSizeForVideo(file) {
+  return Number(file?.size || 0) > LARGE_VIDEO_THRESHOLD ? LARGE_VIDEO_CHUNK_SIZE : DEFAULT_CHUNK_SIZE;
+}
+function uploadFingerprint(file, auth) {
+  return ['bcka-stream',auth.libraryId,auth.videoId,file.name||'',file.type||'',file.size||0,file.lastModified||0].join('-');
+}
+function fileAuthorizationKey(file) {
+  return [file?.name||'',file?.type||'',file?.size||0,file?.lastModified||0].join('|');
+}
 export async function uploadStreamVideo(file, {
   authorization,
   onProgress=()=>{},
   tusLoader=()=>import(TUS_MODULE),
-  chunkSize=DEFAULT_CHUNK_SIZE
+  chunkSize
 }={}) {
   const valid=validateStreamVideo(file);
   if (!valid.ok) throw new Error(valid.error);
@@ -141,11 +155,14 @@ export async function uploadStreamVideo(file, {
   const Upload=tus.Upload||tus.default?.Upload;
   if (typeof Upload!=='function') throw new Error('TUS yükleyicisi başlatılamadı.');
 
+  const selectedChunkSize = Number(chunkSize) > 0 ? Number(chunkSize) : chunkSizeForVideo(file);
+  let lastUploaded = 0, lastTotal = Number(file.size || 0);
   return new Promise((resolve,reject)=>{
     const upload=new Upload(file,{
       endpoint:auth.endpoint||TUS_ENDPOINT,
       retryDelays:[...DEFAULT_RETRY_DELAYS],
-      chunkSize,
+      chunkSize:selectedChunkSize,
+      fingerprint:()=>Promise.resolve(uploadFingerprint(file,auth)),
       removeFingerprintOnSuccess:true,
       metadata:{
         filename:file.name||'video',
@@ -162,22 +179,29 @@ export async function uploadStreamVideo(file, {
       onError:error=>{
         const source=error instanceof Error?error:new Error(String(error));
         const info=formatTusUploadError(source);
+        const pct=lastTotal>0?(lastUploaded/lastTotal)*100:0;
         source.status=info.status;
         source.retryable=info.retryable;
+        source.uploadedBytes=lastUploaded;
+        source.totalBytes=lastTotal;
+        source.uploadPercent=pct;
         source.technicalMessage=info.technicalMessage;
-        source.userMessage=info.userMessage;
+        source.userMessage=info.userMessage + (lastUploaded>0 ? ` Yükleme %${Math.floor(pct)} (${(lastUploaded/1024/1024).toFixed(1)}/${(lastTotal/1024/1024).toFixed(1)} MB) aşamasında durdu.` : '');
         reject(source);
       },
       onProgress:(uploaded,total)=>{
-        const pct=total>0?(uploaded/total)*100:0;
-        onProgress({uploaded,total,percent:pct});
+        lastUploaded=Number(uploaded||0);lastTotal=Number(total||file.size||0);
+        const pct=lastTotal>0?(lastUploaded/lastTotal)*100:0;
+        onProgress({uploaded:lastUploaded,total:lastTotal,percent:pct});
       },
       onSuccess:()=>resolve({
         uploadUrl:upload.url||'',
         videoId:String(auth.videoId),
         libraryId:String(auth.libraryId),
         embedUrl:auth.embedUrl||`https://iframe.mediadelivery.net/embed/${auth.libraryId}/${auth.videoId}`,
-        thumbnailUrl:auth.thumbnailUrl||''
+        thumbnailUrl:auth.thumbnailUrl||'',
+        cdnHost:auth.cdnHost||'',
+        thumbnailFileName:auth.thumbnailFileName||'thumbnail.jpg'
       })
     });
 
@@ -186,15 +210,31 @@ export async function uploadStreamVideo(file, {
     // VideoId/imza ile eşleştirip 4xx hatasına yol açabilir. Aynı sayfadaki
     // ağ kesintileri tus-js-client retryDelays ile zaten sürdürülür; yeni
     // denemede temiz bir TUS oturumu başlatmak daha güvenlidir.
-    try {
-      upload.start();
-    } catch (error) {
-      reject(error instanceof Error ? error : new Error(String(error)));
-    }
+    Promise.resolve().then(async()=>{
+      try {
+        const previous = typeof upload.findPreviousUploads === 'function' ? await upload.findPreviousUploads() : [];
+        if (previous?.length && typeof upload.resumeFromPreviousUpload === 'function') upload.resumeFromPreviousUpload(previous[0]);
+        upload.start();
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    });
   });
 }
 
 export async function bunnyStreamVideoYukle(file, options={}) {
-  const authorization=await requestStreamAuthorization(file,options);
-  return uploadStreamVideo(file,{...options,authorization});
+  const key=fileAuthorizationKey(file),now=Math.floor(Date.now()/1000);
+  let authorization=activeAuthorizations.get(key);
+  if (!authorization || Number(authorization.expirationTime||0) <= now + 300) {
+    authorization=await requestStreamAuthorization(file,options);
+    activeAuthorizations.set(key,authorization);
+  }
+  try {
+    const result=await uploadStreamVideo(file,{...options,authorization});
+    activeAuthorizations.delete(key);
+    return result;
+  } catch (error) {
+    if ([401,403,409,413].includes(Number(error?.status||0))) activeAuthorizations.delete(key);
+    throw error;
+  }
 }

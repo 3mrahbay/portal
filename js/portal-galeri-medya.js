@@ -161,7 +161,33 @@ export function renderMedia(host, media, { thumbnail = false } = {}) {
     }
   }
 
+  function renderStreamThumbnail() {
+    if (disposed) return;
+    current?.remove();
+    status.remove?.();
+    const shell = document.createElement('div'); current = shell;
+    shell.className = 'pg-video-thumbnail';
+    shell.style.cssText = 'position:relative;width:100%;height:100%;overflow:hidden;background:#202c3d;display:grid;place-items:center';
+    const play = document.createElement('span');
+    play.setAttribute('aria-hidden', 'true'); play.textContent = '▶';
+    play.style.cssText = 'position:relative;z-index:2;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#fffffff0;color:#7c3aed;font:700 22px/1 system-ui;box-shadow:0 4px 16px #0003;padding-left:3px';
+    shell.append(play); host.prepend(shell);
+    if (!sources.poster) return;
+    const image = document.createElement('img');
+    image.alt = 'Video kapağı';
+    image.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1';
+    image.addEventListener('load', () => { if (!disposed && !image.parentNode) shell.prepend(image); });
+    image.addEventListener('error', () => image.remove());
+    image.src = sources.poster;
+    // Keep the play control visible while the image loads; append only after a
+    // successful load so a broken thumbnail never exposes browser error text.
+  }
+
   const bunnyStream = videoMode && Boolean(streamStatusUrl(media));
+  if (bunnyStream && thumbnail) {
+    renderStreamThumbnail();
+    return dispose;
+  }
   if (bunnyStream) {
     const yuklendi = Date.parse(media.yuklemeZamani || media.yuklenmeTarihi || media.olusturmaTarihi || '');
     const kontrolBaslangici = Date.now();
@@ -186,16 +212,20 @@ export function renderMedia(host, media, { thumbnail = false } = {}) {
         streamTimer = setTimeout(kontrol, 5000);
       } catch (_) {
         if (disposed) return;
-        // Ağ hatası kodlama hatası değildir. Kaydın yaşı her kontrolde ilerler;
-        // tarih eksik/gelecekte olsa bile durum servisi oynatmayı sonsuza dek engellemez.
-        if (eskiKayit() && streamChecks >= 2) {
+        // Status/heatmap endpoint is advisory. CORS, network or privacy controls
+        // must not block an already supplied Bunny player or direct video URL.
+        if (sources.direct.length || sources.player) {
           renderReadyVideo();
-          showStatus(sources.direct.length || sources.player
-            ? 'Video durumu doğrulanamadı; oynatmayı deneyebilirsiniz.'
-            : 'Video durumu doğrulanamadı ve oynatılabilir kaynak bulunamadı.');
+          status.hidden = true;
           return;
         }
-        showStatus('Video durumu şu anda doğrulanamıyor. Yeniden deneniyor…');
+        // With no playable source, keep the bounded retry behaviour so a newly
+        // created record can still recover if its metadata arrives shortly after.
+        if (eskiKayit() && streamChecks >= 2) {
+          showStatus('Video kaynağı henüz hazır değil.');
+          return;
+        }
+        showStatus('Video hazırlanıyor…');
         streamTimer = setTimeout(kontrol, 8000);
       }
     };

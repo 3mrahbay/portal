@@ -18,12 +18,12 @@ const edges=[
 ];
 for(const [importer,target] of edges) test(`media release installs exact current edge ${importer} -> ${target}`,async()=>{
  const pwa=await installedPwa(),url=assertPrecachedImport(pwa,importer,target);
- assert.equal(url.search,target==='js/bunny-stream-upload.js'?'?v=191':'?v=188');
+ assert.equal(url.search,new Set(['js/bunny-stream-upload.js','js/portal-galeri-klasor-ui.js','js/zeky-galeri-filigran-koprusu.js','js/portal-galeri-canli.js','js/portal-galeri-medya.js']).has(target)?'?v=192':'?v=188');
 });
 test('media release runtime, service worker registration, reload guard and cache generation agree',async()=>{
  const pwa=await installedPwa();await assertPwaBootstrap(pwa);
- assert.equal(pwa.cacheVersion,'v191-bunny-upload-resilience');
- assert.ok(readPortal('index.html').includes('window.PORTAL_SURUM = "v191";'));
+ assert.equal(pwa.cacheVersion,'v192-gallery-media-ui');
+ assert.ok(readPortal('index.html').includes('window.PORTAL_SURUM = "v192";'));
 });
 test('actual parent gallery dynamic loader matches the one installed parent-gallery URL',async()=>{
  const html=readPortal('index.html'),start=html.indexOf('const _yuklenenModuller = {}'),end=html.indexOf('\n};',start)+3;
@@ -49,16 +49,16 @@ test('every service-worker precache path exists and each changed media asset has
  }
 });
 
-test('new controller generation reloads once after an earlier v188 reload',async()=>{
+test('new controller generation reloads once after an earlier v191 reload',async()=>{
  const html=readPortal('index.html');
  const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
   .map(match=>match[1]).filter(code=>/navigator\.serviceWorker\.register\(/.test(code));
  assert.equal(scripts.length,1);
- const events={},stored=new Map([['portalSwReload_v188','1']]);let reloads=0;
+ const events={},stored=new Map([['portalSwReload_v191','1']]);let reloads=0;
  vm.runInNewContext(scripts[0],{console,window:{addEventListener:(name,fn)=>{events[name]=fn;}},
   navigator:{serviceWorker:{register:async()=>({update:async()=>{}}),addEventListener:(name,fn)=>{events[name]=fn;}}},
   sessionStorage:{getItem:key=>stored.get(key),setItem:(key,value)=>stored.set(key,value)},
   location:{reload:()=>{reloads++;}}});
  await events.load();events.controllerchange();events.controllerchange();
- assert.equal(reloads,1);assert.equal(stored.get('portalSwReload_v191'),'1');
+ assert.equal(reloads,1);assert.equal(stored.get('portalSwReload_v192'),'1');
 });

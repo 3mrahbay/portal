@@ -1,6 +1,6 @@
 import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js';
 export { galleryProgram } from './galeri-klasorleri.js';
-import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=188';
+import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=192';
 import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=166';
 
 const api = () => window.PortalAPI;
@@ -195,10 +195,12 @@ export function refreshGalleryCards(root = document) {
     const id = cardId(card), parent = /veliAcGaleriLightbox/.test(card.getAttribute('onclick') || '');
     const media = currentMedia(id, parent); if (!media) return;
     if (media.dosyaTipi === 'video' && !card.querySelector('[data-pg-media]')) {
-      const old = card.querySelector(':scope > img, :scope > video');
-      if (old) { const fallback = old.nextElementSibling; if (fallback?.style.background.includes('31, 41, 55') || fallback?.style.background === '#1f2937') fallback.remove(); old.remove(); }
-      const host = document.createElement('div'); host.style.cssText = 'width:100%;height:100%;background:#273449'; card.prepend(host);
-      mountMedia(host, media, {thumbnail:true});
+      const old = card.querySelector(':scope > img, :scope > video, :scope > iframe');
+      const oldPoster = old?.tagName === 'IMG' ? (old.currentSrc || old.src || old.getAttribute?.('src') || '') : '';
+      if (old) { const fallback = old.nextElementSibling; if (fallback?.style?.background?.includes('31, 41, 55') || fallback?.style?.background === '#1f2937') fallback.remove(); old.remove(); }
+      const host = document.createElement('div'); host.className = 'pg-gallery-card-media'; host.style.cssText = 'width:100%;height:100%;background:#273449;overflow:hidden'; card.prepend(host);
+      const cardMedia = oldPoster && !media.kucukResim && !media.thumbnail ? {...media,kucukResim:oldPoster} : media;
+      mountMedia(host, cardMedia, {thumbnail:true});
     }
     const badge = card.querySelector('[data-pg-report-button]');
     if (!parent && management(api()?.state) && media.durum === 'onaylandi' && !badge) {
@@ -208,19 +210,36 @@ export function refreshGalleryCards(root = document) {
     } else if (badge && (!management(api()?.state) || media.durum !== 'onaylandi')) badge.remove();
   });
 }
+function lightboxMediaHost(container) {
+  const panel = container.querySelector('.zgo-medya') || container;
+  const existing = Array.from(panel.children || []).filter(node => node?.dataset?.pgLightboxMediaHost === 'true');
+  const host = existing.shift() || panel.ownerDocument.createElement('div');
+  for (const duplicate of existing) { duplicate.__disposeMedia?.(); duplicate.remove(); }
+  for (const child of Array.from(panel.children || [])) {
+    if (child === host) continue;
+    const mediaNode = ['VIDEO','IFRAME','IMG'].includes(child.tagName) || child.className === 'pg-media-status' || child?.dataset?.pgMedia;
+    if (mediaNode) { child.__disposeMedia?.(); child.remove(); }
+  }
+  host.dataset.pgLightboxMediaHost = 'true';
+  host.className = 'pg-lightbox-media-host';
+  host.style.cssText = 'width:100%;height:100%;min-width:0;min-height:220px;display:grid;place-items:center;background:#111;overflow:hidden';
+  if (!host.parentNode) panel.prepend(host);
+  return host;
+}
 function replaceActivePlayer(media, ticket) {
   if (ticket !== sequence || active?.id !== media.id) return;
   const container = document.getElementById('galeriLightboxIcerik'); if (!container) return;
-  const host = container.querySelector('.zgo-medya') || container;
+  const host = lightboxMediaHost(container);
   if (host.dataset.pgMedia === media.id) return;
-  disposeMedia(host); host.querySelectorAll('video').forEach(video => {video.pause();video.removeAttribute('src');video.load();}); mountMedia(host, media);
+  disposeMedia(host); mountMedia(host, media);
 }
 export function installLiveGallery(win = window) {
-  if (win.__portalGaleriCanli166) return true;
+  if (win.__portalGaleriCanli192) return true;
   if (!win.PortalAPI || typeof win.acGaleriLightbox !== 'function' || typeof win.veliAcGaleriLightbox !== 'function') return false;
+  win.__portalGaleriCanliAktif = true;
   for (const [name, parent] of [['acGaleriLightbox', false], ['veliAcGaleriLightbox', true]]) {
     const original = win[name];
-    win[name] = function(id, ...args) {
+    const wrapped = function(id, ...args) {
       const media = currentMedia(id, parent); if (!media) return;
       disposeMedia(document.getElementById('galeriLightboxIcerik'));
       active = media; const ticket = ++sequence;
@@ -233,14 +252,21 @@ export function installLiveGallery(win = window) {
       if (parent) recordOpen(media);
       return result;
     };
+    wrapped.__portalGaleriCanli = true;
+    if (original.__zekyEgitimDetay) wrapped.__zekyEgitimDetay = true;
+    wrapped.__eski = original;
+    win[name] = wrapped;
   }
   const close = win.closeGaleriLightbox;
-  win.closeGaleriLightbox = function(...args) { ++sequence; active = null; reportControl(); downloadControl(); disposeMedia(document.getElementById('galeriLightboxIcerik')); return close?.apply(this, args); };
+  const wrappedClose = function(...args) { ++sequence; active = null; reportControl(); downloadControl(); disposeMedia(document.getElementById('galeriLightboxIcerik')); return close?.apply(this, args); };
+  if (close?.__zekyEgitimKapat) wrappedClose.__zekyEgitimKapat = true;
+  wrappedClose.__eski = close;
+  win.closeGaleriLightbox = wrappedClose;
   win.albumZipIndir = downloadAlbum;
   win.galeriLightboxIndir = () => downloadMedia(active, document.getElementById('galeriLightboxIndirBtn'));
   const observer = new win.MutationObserver(() => refreshGalleryCards());
   observer.observe(document.body, {childList:true, subtree:true}); refreshGalleryCards();
-  win.__portalGaleriCanli166 = true; return true;
+  win.__portalGaleriCanli192 = true; return true;
 }
 if (typeof window !== 'undefined') {
   let tries = 0;

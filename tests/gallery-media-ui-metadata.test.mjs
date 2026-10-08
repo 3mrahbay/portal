@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const core=fs.readFileSync(new URL('../portal-galeri-core.js',import.meta.url),'utf8');
+const live=fs.readFileSync(new URL('../js/portal-galeri-canli.js',import.meta.url),'utf8');
+const media=fs.readFileSync(new URL('../js/portal-galeri-medya.js',import.meta.url),'utf8');
+const education=fs.readFileSync(new URL('../js/zeky-galeri-onay-egitim.js',import.meta.url),'utf8');
+const upload=fs.readFileSync(new URL('../js/bunny-stream-upload.js',import.meta.url),'utf8');
+test('gallery cards are visual-only and lightbox has one stable media host',()=>{assert.match(media,/bunnyStream && thumbnail/);assert.match(media,/pg-video-thumbnail/);assert.doesNotMatch(media,/Video durumu doğrulanamadı; oynatmayı deneyebilirsiniz/);assert.match(live,/dataset(?:\?\.)?pgLightboxMediaHost/);assert.match(core,/data-pg-lightbox-media-host/);});
+test('upload records target and sender labels for parent teacher and management views',()=>{for(const field of ['hedefSinifAd','hedefEtiket','yukleyenAd','yukleyenRol','yukleyenUid'])assert.match(core,new RegExp(field));assert.match(education,/Gönderim hedefi/);assert.match(education,/Gönderen rolü/);assert.match(education,/yukleyenEtiketi/);});
+test('edit action receives the active media id instead of relying on inline scope',()=>{assert.match(core,/duzenleBtn\.onclick[\s\S]*galeriGonderiDuzenle\?\.\(oge\.id\)/);assert.match(core,/id = id \|\| aktifLightboxOge\?\.id/);});
+test('large uploads use 2 MiB chunks, same-authorization resume and progress diagnostics',()=>{assert.match(upload,/LARGE_VIDEO_CHUNK_SIZE\s*=\s*2\s*\*\s*1024\s*\*\s*1024/);assert.match(upload,/resumeFromPreviousUpload/);assert.match(upload,/uploadPercent/);assert.match(upload,/activeAuthorizations/);});
