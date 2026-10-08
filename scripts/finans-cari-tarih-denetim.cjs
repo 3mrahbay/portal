@@ -18,6 +18,7 @@ const normalize=s=>String(s||'').toLocaleLowerCase('tr-TR').replace(/\s+/g,' ').
  const {odemePlani}=await import('../js/finans/core.js');
  const {aktifDonemKaydi}=await import('../js/finans/data.js');
  const db=getFirestore(),students=await db.collection('ogrenciler').get();
+ const showSensitive=process.argv.includes('--show-sensitive');
  const suspect={},focused=[];let active=0,periodCount=0,checkedMovements=0;
  for(const d of students.docs){
   const ds=await db.doc('ogrenciler/'+d.id+'/donemler/'+period).get();
@@ -36,7 +37,8 @@ const normalize=s=>String(s||'').toLocaleLowerCase('tr-TR').replace(/\s+/g,' ').
     if(validDate(date))continue;
     const label=String(date||'(bos)');
     const key=label+' | '+r.id;
-    if(!suspect[key])suspect[key]={tarih:label,kalem:r.id,hareketSayisi:0,toplamTutar:0,eskiKayitSayisi:0};
+    if(!suspect[key])suspect[key]={tarih:label,kalem:r.id,hareketSayisi:0,toplamTutar:0,eskiKayitSayisi:0,...(showSensitive?{ogrenciKayitlari:[]}:{} )};
+    if(showSensitive&&!suspect[key].ogrenciKayitlari.some(x=>x.id===d.id))suspect[key].ogrenciKayitlari.push({id:d.id,ad:name,aktif:isActive});
     suspect[key].hareketSayisi++;
     suspect[key].toplamTutar=Math.round((suspect[key].toplamTutar+(Number(m.tutar)||0))*100)/100;
     if(m.eskiKayit)suspect[key].eskiKayitSayisi++;
