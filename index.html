@@ -46679,7 +46679,12 @@ function finansTarihGirisiKaydet(input, tur, kod) {
 
 window.digerDegisti = function(kalemKod, alan, deger) {
   if (!currentOgrenci) return;
-  if (alan === "odemeTarihi" && !finansTarihISOgecerli(deger)) {showToast("Gecersiz tahsilat tarihi; degisiklik kaydedilmedi.", "error");return;}
+  if (alan === "odemeTarihi") {
+    if (!finansTarihISOgecerli(deger)) {showToast("Geçersiz tahsilat tarihi; değişiklik kaydedilmedi.", "error");return;}
+    if (ayarListesi[currentOgrenci.id]?.digerOdemeler?.[kalemKod]?.hareketler?.length) {
+      showToast("Bu ücrette tahsilat hareketleri var. Tarih, hareket geçmişiyle birlikte muhasebe düzeltmesi üzerinden değiştirilmelidir.", "error");return;
+    }
+  }
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
   if (!ayarListesi[currentOgrenci.id].digerOdemeler) ayarListesi[currentOgrenci.id].digerOdemeler = {};
   if (!ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod]) ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] = {};
@@ -46785,7 +46790,12 @@ function ayBeklenenTutar(ayKod) {
 
 window.aylikDegisti = function(ayKod, alan, deger) {
   if (!currentOgrenci) return;
-  if (alan === "odemeTarihi" && !finansTarihISOgecerli(deger)) {showToast("Gecersiz tahsilat tarihi; degisiklik kaydedilmedi.", "error");return;}
+  if (alan === "odemeTarihi") {
+    if (!finansTarihISOgecerli(deger)) {showToast("Geçersiz tahsilat tarihi; değişiklik kaydedilmedi.", "error");return;}
+    if (ayarListesi[currentOgrenci.id]?.aylikOdemeler?.[ayKod]?.hareketler?.length) {
+      showToast("Bu aidatta tahsilat hareketleri var. Tarih, hareket geçmişiyle birlikte muhasebe düzeltmesi üzerinden değiştirilmelidir.", "error");return;
+    }
+  }
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
   if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
   if (!ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod]) ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] = {};
