@@ -1101,9 +1101,11 @@ window.galeriYukle = async function() {
     } catch (e) {
       console.error("Yükleme hatası:", e);
       hatali++;
-      // Proxy 404 / HTML dönerse "not valid JSON" hatası gelir.
-      // Kullanıcı sebebini görsün, sessizce kaybolmasın.
-      const m = String(e && e.message || "");
+      const m = String(e?.technicalMessage || e?.message || e || "Bilinmeyen yükleme hatası");
+      const mesaj = String(e?.userMessage || "").trim() || ("Video/dosya yüklenemedi: " + m.slice(0, 180));
+      yuklemeHatalari.push(f.name + ": " + mesaj);
+      const durum = document.getElementById("galeriYuklemeDurum");
+      if (durum) durum.textContent = "✗ " + f.name + ": " + mesaj;
       if (m.includes("not valid JSON") || m.includes("Unexpected token")) {
         window._galeriProxyHatasi = true;
       }
