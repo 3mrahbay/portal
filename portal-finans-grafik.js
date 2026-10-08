@@ -123,7 +123,6 @@ function cizAylikTahsilatVsHedef() {
     if (!ayar || getOgrenciDurum(o,ayar) !== "aktif") return tutar;
     const r = (ayar.aylikOdemeler || {})[ayKod];
     if (!r) return tutar;
-    const plan = hedefAylik[aylar.indexOf(ayKod)];
     const paid = Number(r.odenenTutar ?? (r.odendi === true ? r.beklenenTutar : 0)) || 0;
     return tutar + Math.max(0, paid);
   }, 0));
