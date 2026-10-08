@@ -1,0 +1,20 @@
+name: Verify Portal Bunny full suite
+
+on:
+  push:
+    branches:
+      - test/portal-bunny-full-20261008
+
+permissions:
+  contents: read
+
+jobs:
+  full-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run every Portal Node test
+        run: node --test tests/*.test.mjs
