@@ -1,4 +1,4 @@
-name: Diagnose full Portal suite for gallery v192
+name: Verify full Portal suite for gallery v192
 
 on:
   push:
@@ -8,10 +8,11 @@ on:
       - .github/workflows/full-portal-suite-gallery-v192.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diagnose:
+  verify:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -22,25 +23,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run every test file and print only failures
-        shell: bash
+      - name: Install PDF parser required by the existing student-list tests
         run: |
-          set +e
-          failed=0
-          total=0
-          for f in tests/*.test.mjs; do
-            total=$((total + 1))
-            node --test "$f" > /tmp/portal-test.log 2>&1
-            code=$?
-            if [ "$code" -ne 0 ]; then
-              failed=$((failed + 1))
-              echo "::group::FAILED $f"
-              echo "--- failing assertions ---"
-              grep -nE "not ok|AssertionError|ERR_|error:|Expected|expected:|actual:|failureType|operator:" /tmp/portal-test.log | head -n 160 || true
-              echo "--- final 180 log lines ---"
-              tail -n 180 /tmp/portal-test.log
-              echo "::endgroup::"
-            fi
-          done
-          echo "TEST_FILES=$total FAILED_FILES=$failed"
-          if [ "$failed" -ne 0 ]; then exit 1; fi
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+      - name: Run complete Portal test suite
+        run: node --test tests/*.test.mjs
+      - name: Record successful verification and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/full-portal-suite-gallery-v192.yml
+          git commit -m "ci: complete full gallery v192 verification"
+          git push origin HEAD:fix/gallery-ui-metadata-large-video-20261008
