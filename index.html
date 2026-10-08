@@ -13877,7 +13877,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js';
-import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=188';
+import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=192';
 import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
 import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
@@ -13993,7 +13993,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { createGooglePopupFlow } from "./js/portal-google-login.js?v=178";
-import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-upload.js?v=191";
+import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-upload.js?v=192";
 
 import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
 import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=187";
@@ -14017,7 +14017,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v191";
+window.PORTAL_SURUM = "v192";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -37066,7 +37066,7 @@ window.galeriRolKisitiUygula = function() {
 };
 
 async function galeriVideoYukle(file, options = {}) {
-  const stream = await import("./js/bunny-stream-upload.js?v=191");
+  const stream = await import("./js/bunny-stream-upload.js?v=192");
   return stream.bunnyStreamVideoYukle(file, {
     proxyUrl: MEDYA_AYAR.PROXY_URL,
     sharedKey: MEDYA_AYAR.PAYLASIM_ANAHTARI,
@@ -48778,13 +48778,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=191");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=192");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v191";
+          const anahtar = "portalSwReload_v192";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

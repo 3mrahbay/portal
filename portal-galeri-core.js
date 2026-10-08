@@ -875,6 +875,7 @@ function doldurGaleriOgrenciSecici() {
     opt.value = o.id;
     opt.textContent = `${o.ogrenciAdSoyad || ""}${sinif ? ` (${sinif})` : ""}`;
     opt.dataset.ad = o.ogrenciAdSoyad || "";
+    opt.dataset.sinif = sinif || "";
     sel.appendChild(opt);
   }
 }
@@ -980,10 +981,12 @@ window.galeriYukle = async function() {
   const aciklama = document.getElementById("galeriAciklama").value.trim();
   const hedefTur = document.getElementById("galeriHedefTur").value;
 
-  let hedefDeger = "", hedefOgrenciAd = "";
+  let hedefDeger = "", hedefOgrenciAd = "", hedefSinifAd = "";
   if (hedefTur === "sinif") {
-    hedefDeger = document.getElementById("galeriHedefSinif").value;
+    const sinifSecici = document.getElementById("galeriHedefSinif");
+    hedefDeger = sinifSecici.value;
     if (!hedefDeger) return showToast("Sınıf seçin", "error");
+    hedefSinifAd = sinifSecici.options?.[sinifSecici.selectedIndex]?.textContent?.trim() || hedefDeger;
     // Öğretmen yalnızca atandığı sınıfa yükleyebilir
     if (B.rol() === "ogretmen" && typeof sinifGorunur === "function" && !sinifGorunur(hedefDeger)) {
       return showToast("Yalnızca kendi sınıfınıza medya yükleyebilirsiniz", "error");
@@ -993,6 +996,7 @@ window.galeriYukle = async function() {
     if (!hedefDeger) return showToast("Öğrenci seçin", "error");
     const sel = document.getElementById("galeriHedefOgrenci");
     hedefOgrenciAd = sel.options[sel.selectedIndex]?.dataset?.ad || "";
+    hedefSinifAd = sel.options[sel.selectedIndex]?.dataset?.sinif || "";
   }
 
   const btn = document.getElementById("btnGaleriYukle");
@@ -1018,6 +1022,14 @@ window.galeriYukle = async function() {
     try {
       const kategori = (document.getElementById("galeriKategori") || {}).value || "";
       const program = galeriProgramKodu({ kategori });
+      const aktifKullanici = B.kullanici() || {};
+      const yukleyenAd = aktifKullanici.adSoyad || aktifKullanici.displayName ||
+        [aktifKullanici.ad, aktifKullanici.soyad].filter(Boolean).join(" ") ||
+        aktifKullanici.email || "";
+      const yukleyenRol = B.rol() || aktifKullanici.rol || "";
+      const hedefEtiket = hedefTur === "tumOkul" ? "Tüm okul" :
+        hedefTur === "sinif" ? (hedefSinifAd || hedefDeger) :
+        (hedefOgrenciAd || hedefDeger);
       let oge = {
         etkinlikBaslik: etkinlik,
         kategori,
@@ -1026,10 +1038,13 @@ window.galeriYukle = async function() {
         egitimKaydi: Boolean(program),
         etkinlikTarih,
         aciklama,
-        hedefTur, hedefDeger, hedefOgrenciAd,
+        hedefTur, hedefDeger, hedefOgrenciAd, hedefSinifAd, hedefEtiket,
         // Öğrenci hedefliyse id'yi ayrıca yaz — okuma tarafı iki adı da destekler
         hedefOgrenciId: (hedefTur === "ogrenci" ? hedefDeger : ""),
-        yukleyen: B.kullanici().email,
+        yukleyen: aktifKullanici.email || "",
+        yukleyenAd,
+        yukleyenRol,
+        yukleyenUid: aktifKullanici.uid || "",
         yuklemeZamani: new Date().toISOString(),
         dosyaBoyutu: f.size,
         orjinalAd: f.name,
@@ -1058,6 +1073,8 @@ window.galeriYukle = async function() {
         oge.bunnyPath = "";
         oge.streamVideoId = sonuc.videoId;
         oge.streamLibraryId = sonuc.libraryId;
+        oge.streamCdnHost = sonuc.cdnHost || "";
+        oge.streamThumbnailFileName = sonuc.thumbnailFileName || "thumbnail.jpg";
         oge.videoSaglayici = "bunny-stream";
         oge.dosyaBoyutu = f.size;
       } else if (f.type.startsWith("image/")) {
@@ -1184,18 +1201,26 @@ window.acGaleriLightbox = function(id) {
   document.getElementById("galeriLightbox").classList.add("active");
 
   const icerik = document.getElementById("galeriLightboxIcerik");
-  if (oge.dosyaTipi === "video") {
-    const videoUrl = oge.bunnyUrl || oge.url || "";
+  if (window.__portalGaleriCanliAktif) {
+    icerik.innerHTML = '<div data-pg-lightbox-media-host="true" class="pg-lightbox-media-host" style="width:100%;height:100%;min-height:220px;display:grid;place-items:center;background:#111;overflow:hidden"></div>';
+  } else if (oge.dosyaTipi === "video") {
+    const videoUrl = oge.embedUrl || oge.bunnyUrl || oge.url || "";
     const iframeVideo = /iframe\.mediadelivery\.net|player\.bunnycdn\.com|player\.bunny\.net/i.test(videoUrl);
     icerik.innerHTML = iframeVideo
       ? `<iframe src="${escapeHtml(videoUrl)}${videoUrl.includes("?") ? "&" : "?"}autoplay=true" style="width:90vw; max-width:1200px; height:70vh; border:none; background:black;" allowfullscreen allow="autoplay; fullscreen"></iframe>`
       : `<video src="${escapeHtml(videoUrl)}" controls autoplay playsinline preload="metadata" poster="${escapeHtml(oge.kucukResim || oge.thumbnail || "")}" style="width:90vw; max-width:1200px; max-height:78vh; background:black; object-fit:contain;"></video>`;
   } else {
-    icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl)}" style="max-width:95vw; max-height:90vh; object-fit:contain;">`;
+    icerik.innerHTML = `<img src="${escapeHtml(oge.bunnyUrl || oge.url || "")}" style="max-width:95vw; max-height:90vh; object-fit:contain;">`;
   }
   const duzenleBtn = document.getElementById("galeriLightboxDuzenleBtn");
   const yonetimMi = B.yoneticiMi() || ["kurucu_mudur", "mudur"].includes(B.rol());
-  if (duzenleBtn) duzenleBtn.style.display = yonetimMi ? "inline-flex" : "none";
+  if (duzenleBtn) {
+    duzenleBtn.style.display = yonetimMi ? "inline-flex" : "none";
+    duzenleBtn.onclick = event => {
+      event?.stopPropagation?.();
+      window.galeriGonderiDuzenle?.(oge.id);
+    };
+  }
   if (window.lucideYenile) setTimeout(window.lucideYenile, 30);
 };
 
@@ -1206,6 +1231,7 @@ window.closeGaleriLightbox = function() {
 };
 
 window.galeriGonderiDuzenle = async function(id) {
+  id = id || aktifLightboxOge?.id || "";
   const yonetimMi = B.yoneticiMi() || ["kurucu_mudur", "mudur"].includes(B.rol());
   if (!yonetimMi) return showToast("Düzenleme yetkiniz yok", "error");
   const oge = galeriListesiVerisi.find(g => g.id === id);

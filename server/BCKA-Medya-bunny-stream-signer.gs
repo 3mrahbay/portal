@@ -36,7 +36,9 @@ function bckaStreamHazirla_(istek) {
   var props = PropertiesService.getScriptProperties();
   var libraryId = String(props.getProperty('BUNNY_STREAM_LIBRARY_ID') || '').trim();
   var apiKey = String(props.getProperty('BUNNY_STREAM_API_KEY') || '').trim();
+  var cdnHost = String(props.getProperty('BUNNY_STREAM_CDN_HOST') || '').trim().toLowerCase();
   if (!libraryId || !apiKey) throw new Error('Bunny Stream Script Properties eksik.');
+  if (cdnHost && !/^[a-z0-9.-]+$/.test(cdnHost)) throw new Error('BUNNY_STREAM_CDN_HOST geçersiz.');
 
   var ad = String(istek.dosyaAdi || '').trim();
   var boyut = Number(istek.dosyaBoyutu || 0);
@@ -81,7 +83,10 @@ function bckaStreamHazirla_(istek) {
     videoId: String(video.guid),
     signature: signature,
     expirationTime: expirationTime,
-    embedUrl: 'https://iframe.mediadelivery.net/embed/' + libraryId + '/' + video.guid
+    embedUrl: 'https://iframe.mediadelivery.net/embed/' + libraryId + '/' + video.guid,
+    cdnHost: cdnHost,
+    thumbnailFileName: 'thumbnail.jpg',
+    thumbnailUrl: cdnHost ? ('https://' + cdnHost + '/' + video.guid + '/thumbnail.jpg') : ''
   };
 }
 
