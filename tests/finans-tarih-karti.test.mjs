@@ -39,8 +39,12 @@ test('eksik / imkansiz / ileri tarihler reddedilir',()=>{
 test('uc finans odeme karti ortak metin girisi kullanir',()=>{
   assert.equal((html.match(/onchange="finansTarihGirisiKaydet\(this, '/g)||[]).length,3);
   assert.equal((html.match(/class="finans-tarih-input"/g)||[]).length,3);
-  assert.match(html,/window\.aylikDegisti = function[\s\S]*?alan === "odemeTarihi" && !finansTarihISOgecerli\(deger\)/);
-  assert.match(html,/window\.digerDegisti = function[\s\S]*?alan === "odemeTarihi" && !finansTarihISOgecerli\(deger\)/);
+  assert.match(html,/window\.aylikDegisti = function[\s\S]*?if \(alan === "odemeTarihi"\)[\s\S]*?!finansTarihISOgecerli\(deger\)/);
+  assert.match(html,/window\.digerDegisti = function[\s\S]*?if \(alan === "odemeTarihi"\)[\s\S]*?!finansTarihISOgecerli\(deger\)/);
+});
+test('dogrudan tarih degisimi hareket gecmisini korur',()=>{
+  assert.ok(html.includes('aylikOdemeler?.[ayKod]?.hareketler?.length'));
+  assert.ok(html.includes('digerOdemeler?.[kalemKod]?.hareketler?.length'));
 });
 test('gecersiz tarih kaydedilmez; gecerli tarih sadece ilgili handlera gider',()=>{
   let focused=0,selected=0;
