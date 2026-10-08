@@ -2489,6 +2489,11 @@ body.rol-danisma .tb-grup-program { display:none !important; }
 .aylik-input-row input[type="date"] {
   max-width: 130px;
 }
+.aylik-input-row input.finans-tarih-input {
+  max-width: 145px;
+  min-width: 115px;
+  font-variant-numeric: tabular-nums;
+}
 
 .aylik-input-row select {
   padding: 5px 8px;
@@ -46166,8 +46171,8 @@ function renderAylikOdeme() {
           <input type="number" placeholder="Ödenen" value="${onOdenenTutar || ""}"
                  min="0" step="100" data-alan="odenenTutar" data-ay="__onOdeme"
                  onchange="aylikDegisti('__onOdeme', 'odenenTutar', this.value)">
-          <input type="date" value="${onTarih}" data-alan="odemeTarihi" data-ay="__onOdeme"
-                 onchange="aylikDegisti('__onOdeme', 'odemeTarihi', this.value)">
+          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="GG.AA.YYYY" aria-label="Ön ödeme tarihi (GG.AA.YYYY)" value="${finansTarihGoster(onTarih)}" data-alan="odemeTarihi" data-ay="__onOdeme"
+                 onchange="finansTarihGirisiKaydet(this, 'aylik', '__onOdeme')">
         </div>
         <div class="aylik-input-row">
           <select data-alan="odemeSekli" data-ay="__onOdeme" onchange="aylikDegisti('__onOdeme', 'odemeSekli', this.value)">
@@ -46227,8 +46232,8 @@ function renderAylikOdeme() {
           <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
                  min="0" step="100" data-alan="odenenTutar" data-ay="${ay.ayKod}"
                  onchange="aylikDegisti('${ay.ayKod}', 'odenenTutar', this.value)">
-          <input type="date" value="${odemeTarihi}" data-alan="odemeTarihi" data-ay="${ay.ayKod}" title="Gerçek tahsilat tarihi: banka hesabına paranın ulaştığı gün"
-                 onchange="aylikDegisti('${ay.ayKod}', 'odemeTarihi', this.value)">
+          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="GG.AA.YYYY" aria-label="Aylık ödeme tarihi (GG.AA.YYYY)" value="${finansTarihGoster(odemeTarihi)}" data-alan="odemeTarihi" data-ay="${ay.ayKod}" title="Gerçek tahsilat tarihi (GG.AA.YYYY): banka hesabına paranın ulaştığı gün"
+                 onchange="finansTarihGirisiKaydet(this, 'aylik', '${ay.ayKod}')">
         </div>
         <div class="aylik-input-row">
           <select data-alan="odemeSekli" data-ay="${ay.ayKod}"
@@ -46591,8 +46596,8 @@ function renderDigerOdeme() {
           <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
                  min="0" step="100"
                  onchange="digerDegisti('${kalem.kod}', 'odenenTutar', this.value)">
-          <input type="date" value="${odemeTarihi}"
-                 onchange="digerDegisti('${kalem.kod}', 'odemeTarihi', this.value)">
+          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="GG.AA.YYYY" aria-label="Diğer ücret tahsilat tarihi (GG.AA.YYYY)" value="${finansTarihGoster(odemeTarihi)}"
+                 onchange="finansTarihGirisiKaydet(this, 'diger', '${kalem.kod}')">
         </div>
         <div class="aylik-input-row">
           <select onchange="digerDegisti('${kalem.kod}', 'odemeSekli', this.value)">
@@ -46637,8 +46642,44 @@ function updateDigerOzet(odenen, beklenen, bekleyen) {
   if (kalemEl) kalemEl.textContent = bekleyen;
 }
 
+// Muhasebe kartlari: tarayicinin parcali yil (0006) girisini onlemek icin
+// GG.AA.YYYY metin alani + katı takvim / gelecekteki tarih kontrolu.
+function finansTarihGoster(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  return m ? m[3] + "." + m[2] + "." + m[1] : "";
+}
+function finansTarihISOgecerli(iso) {
+  if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const yil = Number(iso.slice(0, 4));
+  if (yil < 2020 || yil > 2100) return false;
+  const tarih = new Date(iso + "T12:00:00Z");
+  return Number.isFinite(tarih.getTime()) && tarih.toISOString().slice(0, 10) === iso && iso <= ortakBugun();
+}
+function finansTarihMetniISO(metin) {
+  let deger = String(metin || "").trim();
+  // Sayisal klavyede noktalar olmadan yazilan GG A A YYYY (8 rakam).
+  if (/^\d{8}$/.test(deger)) deger = deger.slice(0,2) + "." + deger.slice(2,4) + "." + deger.slice(4);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(deger)) return finansTarihISOgecerli(deger) ? deger : "";
+  const m = /^(\d{2})[.\/-](\d{2})[.\/-](\d{4})$/.exec(deger);
+  if (!m) return "";
+  const iso = m[3] + "-" + m[2] + "-" + m[1];
+  return finansTarihISOgecerli(iso) ? iso : "";
+}
+function finansTarihGirisiKaydet(input, tur, kod) {
+  const iso = finansTarihMetniISO(input.value);
+  if (!iso) {
+    showToast("Tarihi GG.AA.YYYY olarak girin (ornegin 10.08.2026). Gecersiz veya gelecek tarih kaydedilmedi.", "error");
+    input.focus();
+    input.select();
+    return;
+  }
+  if (tur === "diger") window.digerDegisti(kod, "odemeTarihi", iso);
+  else window.aylikDegisti(kod, "odemeTarihi", iso);
+}
+
 window.digerDegisti = function(kalemKod, alan, deger) {
   if (!currentOgrenci) return;
+  if (alan === "odemeTarihi" && !finansTarihISOgecerli(deger)) {showToast("Gecersiz tahsilat tarihi; degisiklik kaydedilmedi.", "error");return;}
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
   if (!ayarListesi[currentOgrenci.id].digerOdemeler) ayarListesi[currentOgrenci.id].digerOdemeler = {};
   if (!ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod]) ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] = {};
@@ -46744,6 +46785,7 @@ function ayBeklenenTutar(ayKod) {
 
 window.aylikDegisti = function(ayKod, alan, deger) {
   if (!currentOgrenci) return;
+  if (alan === "odemeTarihi" && !finansTarihISOgecerli(deger)) {showToast("Gecersiz tahsilat tarihi; degisiklik kaydedilmedi.", "error");return;}
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
   if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
   if (!ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod]) ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] = {};
