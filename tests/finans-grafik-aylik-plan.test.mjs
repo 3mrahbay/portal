@@ -9,7 +9,7 @@ test('charts use actual contract months and month-specific fee overrides', () =>
   const student = {id:'s1'};
   const period = {
     aidatAyarlari:{baslangicAyi:'2026-09',gercekAySayisi:2,aylikAidat:100,iDonemAylik:100},
-    aylikOdemeler:{'2026-09':{beklenenTutar:0},'2026-10':{beklenenTutar:80}}
+    aylikOdemeler:{'2026-09':{beklenenTutar:0},'2026-10':{beklenenTutar:80,odenenTutar:60}}
   };
   class FakeDate extends Date {
     constructor(...args){super(...(args.length?args:['2026-10-08T12:00:00Z']));}
@@ -27,6 +27,8 @@ test('charts use actual contract months and month-specific fee overrides', () =>
   runInNewContext(readFileSync(new URL('../portal-finans-grafik.js',import.meta.url),'utf8'),context);
   window.cizAylikTahsilatVsHedef();
   assert.deepEqual(Array.from(charts.at(-1).data.datasets[0].data),[0,80,0,0,0,0,0,0,0,0,0,0]);
+  assert.deepEqual(Array.from(charts.at(-1).data.datasets[1].data),[0,60,0,0,0,0,0,0,0,0,0,0]);
   window.cizTahsilatTrendi();
+  assert.deepEqual(Array.from(charts.at(-1).data.datasets[0].data),[0,60,60,60,60,60,60,60,60,60,60,60]);
   assert.deepEqual(Array.from(charts.at(-1).data.datasets[1].data),[0,80,80,80,80,80,80,80,80,80,80,80]);
 });
