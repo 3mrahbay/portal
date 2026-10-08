@@ -8,7 +8,7 @@ function replaceExact(path,before,after,expected=1){
   write(path,source.replaceAll(before,after));
 }
 function replaceRegex(path,pattern,replacement,expected=1){
-  const source=read(path); const matches=[...source.matchAll(pattern)];
+  const source=read(path); const matcher=new RegExp(pattern.source,pattern.flags.includes('g')?pattern.flags:pattern.flags+'g'); const matches=[...source.matchAll(matcher)];
   if(matches.length!==expected) throw new Error(`${path}: expected ${expected} regex match(es), found ${matches.length}: ${pattern}`);
   write(path,source.replace(pattern,replacement));
 }
