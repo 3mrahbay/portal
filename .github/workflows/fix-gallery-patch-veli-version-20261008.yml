@@ -1,0 +1,41 @@
+name: Repair gallery PWA source version expectation
+
+on:
+  push:
+    branches:
+      - fix/gallery-ui-metadata-large-video-20261008
+    paths:
+      - .github/workflows/fix-gallery-patch-veli-version-20261008.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/gallery-ui-metadata-large-video-20261008
+          fetch-depth: 0
+      - name: Align current v191 source expectation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/scripts/patch-gallery-ui-metadata-large-video-20261008.mjs')
+          s=p.read_text()
+          old="['./moduller/veli-galeri.js?v=v189','./moduller/veli-galeri.js?v=v192']"
+          new="['./moduller/veli-galeri.js?v=v191','./moduller/veli-galeri.js?v=v192']"
+          if s.count(old)!=1:
+              raise SystemExit(f'expected one old version pair, found {s.count(old)}')
+          p.write_text(s.replace(old,new))
+          PY
+      - name: Commit repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/fix-gallery-patch-veli-version-20261008.yml
+          git add .github/scripts/patch-gallery-ui-metadata-large-video-20261008.mjs
+          git commit -m "ci: align gallery patch with current v191 source"
+          git push origin HEAD:fix/gallery-ui-metadata-large-video-20261008
