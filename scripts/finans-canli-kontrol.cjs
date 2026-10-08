@@ -13,27 +13,37 @@ function limitMap(items,fn,n=6){
  return Promise.all(Array.from({length:Math.min(n,items.length)},async()=>{for(;;){const i=next++;if(i>=items.length)return;arr[i]=await fn(items[i],i);}})).then(()=>arr);
 }
 const normalize=s=>String(s||'').toLocaleLowerCase('tr-TR').replace(/\s+/g,' ').trim();
+let kontrolAsamasi='parametre doğrulama';
 (async()=>{
  const a=params(process.argv.slice(2));
  if(!/^[A-Za-z0-9._~-]+$/.test(a.project||''))throw Error('Firebase proje ID gerekli: --project ...');
  if(!/^\d{4}-\d{4}$/.test(a.period||''))throw Error('Dönem --period 2026-2027 olmalı.');
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(a.month||''))throw Error('Kontrol ayı --month 2026-10 olmalı.');
+ kontrolAsamasi='Firebase Admin modülünü yükleme';
  let admin;try{admin=require('firebase-admin');}catch{throw Error('firebase-admin modülünü kuruluma ekleyin: npm install --no-save firebase-admin');}
+ kontrolAsamasi='Firebase Admin kimlik doğrulama ve proje başlatma';
  if(!admin.apps.length)admin.initializeApp({credential:admin.credential.applicationDefault(),projectId:a.project});
  const {okulFinansOzeti,sonAyKodlari}=await import('../js/finans/school-summary.js');
  const {aktifDonemKaydi}=await import('../js/finans/data.js');
  const {odemePlani}=await import('../js/finans/core.js');
+ kontrolAsamasi='Firestore bağlantısını başlatma';
  const db=admin.firestore();
+ kontrolAsamasi='Firestore ogrenciler koleksiyonunu okuma';
  const students=await db.collection('ogrenciler').get();
+ if(!students||!Array.isArray(students.docs))throw Error('Firestore öğrenci sorgusu beklenen listeyi döndürmedi.');
+ kontrolAsamasi='Öğrencilerin dönem belgelerini salt okunur toplama';
  const docs=await limitMap(students.docs,async d=>{
   const snap=await db.doc('ogrenciler/'+d.id+'/donemler/'+a.period).get();
   return snap.exists ? {id:d.id,profil:d.data(),veri:snap.data()} : null;
  });
+ kontrolAsamasi='Dönem kayıtlarını filtreleme';
  const donemDocs=docs.filter(Boolean);
  const active=donemDocs.filter(o=>aktifDonemKaydi(o.veri,o.profil));
  const past=donemDocs.filter(o=>!aktifDonemKaydi(o.veri,o.profil));
  const now=new Date();
+ kontrolAsamasi='Aktif öğrencilerin finans hesaplarını toplama';
  const finansAktif=okulFinansOzeti(active,now);
+ kontrolAsamasi='Dönemin tüm finans hesaplarını toplama';
  const finansDonem=okulFinansOzeti(donemDocs,now);
  const months=[...new Set([...sonAyKodlari(a.month,7),
   ...Object.keys(finansAktif.aidatBeklenen),...Object.keys(finansAktif.aidatOdenen),
@@ -41,6 +51,7 @@ const normalize=s=>String(s||'').toLocaleLowerCase('tr-TR').replace(/\s+/g,' ').
  const money=n=>Math.round((n||0)*100)/100;
  const sliceMonth=(o)=>o.nakitAylar[a.month]||0;
  const paymentCount=o=>o.hareketler.filter(m=>m.nakitAy===a.month).length;
+ kontrolAsamasi='Ödeme kayıtlarının tutarlılık uyarılarını tarama';
  const warnings=[];
  for(const o of donemDocs){
   const p=odemePlani(o.veri,now);
@@ -52,6 +63,7 @@ const normalize=s=>String(s||'').toLocaleLowerCase('tr-TR').replace(/\s+/g,' ').
     warnings.push({...(a.showSensitive?{ogrenciId:o.id}:{}),kalem:r.id,tur:'tarihsiz_hareket'});
   }
  }
+ kontrolAsamasi='Aranan öğrencinin kayıtlarını eşleştirme';
  const focus=(a.focus||'').trim();
  const matches=focus?donemDocs.filter(o=>normalize(o.profil.ogrenciAdSoyad||o.profil.ad).includes(normalize(focus))):[];
  const candidates=matches.map((o,i)=>{
@@ -85,6 +97,11 @@ const normalize=s=>String(s||'').toLocaleLowerCase('tr-TR').replace(/\s+/g,' ').
   uyariSayisi:warnings.length,uyarilar:warnings.slice(0,50),
   ...(focus?{arananOgrenci:a.showSensitive?focus:'Gizlendi',eslesenOgrenci:matches.length,eslesenKayitlar:candidates}:{})
  };
+ kontrolAsamasi='Salt okunur raporu gösterme';
  console.log(JSON.stringify(out,null,2));
  if(warnings.length>50)console.error(warnings.length-50+' uyarı daha var. Bu çıktı ilk 50 tanesini gösterir.');
-})().catch(e=>{console.error('KONTROL DURDU: '+e.message);process.exitCode=1;});
+})().catch(e=>{
+ console.error('KONTROL DURDU ['+kontrolAsamasi+']: '+(e?.message||String(e)));
+ console.error('Hata izi (yalnız kod konumunu gösterir):\n'+(e?.stack||String(e)));
+ process.exitCode=1;
+});
