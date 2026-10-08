@@ -3,7 +3,7 @@ import {odemePlani, kurus, bugun} from './core.js';
 // Summary of the same period payment plans used by parent and finance screens.
 // Cash uses payment dates; installment allocation uses fee month codes.
 const monthKey = date => {
-  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || Number(date.slice(0,4))<2000) return '';
   const time = Date.parse(date + 'T12:00:00Z');
   if (!Number.isFinite(time) || new Date(time).toISOString().slice(0,10) !== date) return '';
   return date.slice(0,7);
