@@ -11,7 +11,9 @@ export function planlaTahsilatTarihDuzeltmesi(veri,{aylar,eskiTarih,yeniTarih,ay
   if (amount<=0||total<=0||amount*aylar.length!==total) throw Error('Aylık tutar ve toplam uyuşmuyor.');
   const source=veri?.aylikOdemeler;
   if (!source || typeof source!=='object')throw Error('Öğrenci dönem kaydı ve aylık ödemeleri bulunamadı.');
-  const before={},changes={},after=structuredClone(source);
+  // Firestore Timestamp, GeoPoint gibi özel nesnelerin prototipini structuredClone bozabilir.
+  // Yalnız hedeflenen ay kayıtlarını shallow-copy ile değiştir; diğerlerine dokunma.
+  const before={},changes={},after={...source};
   let got=0;
   for(const key of aylar){
     const r=source[key];
@@ -23,7 +25,7 @@ export function planlaTahsilatTarihDuzeltmesi(veri,{aylar,eskiTarih,yeniTarih,ay
       if(r.hareketler.reduce((s,h)=>s+kurus(h.tutar),0)!==amount)throw Error(key+': hareket toplamı aylık tutara eşit değil.');
       moves=r.hareketler.map(h=>({...h,tarih:yeniTarih,kaynakTahsilatId:bankaReferans}));
     }
-    before[key]=structuredClone(r);
+    before[key]=r;
     after[key]={...r,odemeTarihi:yeniTarih,kaynakTahsilatId:bankaReferans,
       ...(moves?{hareketler:moves}:{}),
       tarihDuzeltme:{eskiTarih,yeniTarih,neden:'Geçmiş tarihli toplu havalenin gerçek tahsilat tarihinin düzeltilmesi'}};
