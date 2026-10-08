@@ -471,7 +471,7 @@ for (const [before,after] of [
   ['./js/portal-galeri-klasor-ui.js?v=188','./js/portal-galeri-klasor-ui.js?v=192'],
   ['./js/zeky-galeri-filigran-koprusu.js?v=188','./js/zeky-galeri-filigran-koprusu.js?v=192'],
   ['./js/zeky-galeri-onay-egitim.js?v=5','./js/zeky-galeri-onay-egitim.js?v=6'],
-  ['./moduller/veli-galeri.js?v=v189','./moduller/veli-galeri.js?v=v192']
+  ['./moduller/veli-galeri.js?v=v191','./moduller/veli-galeri.js?v=v192']
 ]) replaceExact('serviceworker.js',before,after);
 replaceExact('index.html','window.PORTAL_SURUM = "v191";','window.PORTAL_SURUM = "v192";');
 replaceExact('index.html','serviceworker.js?v=191','serviceworker.js?v=192');
