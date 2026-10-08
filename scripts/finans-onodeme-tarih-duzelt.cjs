@@ -35,8 +35,8 @@ const normalize=s=>String(s||'').toLocaleLowerCase('tr-TR').replace(/\s+/g,' ').
   return odemePlani(v);
  };
  const before=snap.data(),oldTotals=validate(before);
- const copy=structuredClone(before);
- copy.aylikOdemeler.__onOdeme.odemeTarihi=AFTER_DATE;
+ // Firestore Timestamp gibi ozel nesneleri klonlamadan sadece ilgili alani onizle.
+ const copy={...before,aylikOdemeler:{...before.aylikOdemeler,__onOdeme:{...before.aylikOdemeler.__onOdeme,odemeTarihi:AFTER_DATE}}};
  const nextTotals=odemePlani(copy);
  for(const field of ['toplam','odenen','kalan','geciken']){
   if(oldTotals[field]!==nextTotals[field])throw Error('Beklenmeyen bakiye degisimi: '+field);
