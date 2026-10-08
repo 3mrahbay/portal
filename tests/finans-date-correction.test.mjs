@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import {planlaTahsilatTarihDuzeltmesi} from '../js/finans/date-correction.js';
 import {okulFinansOzeti,sonAyKodlari} from '../js/finans/school-summary.js';
 const aylar=sonAyKodlari('2027-06',10);
-const parameters={aylar,eskiTarih:'2026-10-08',yeniTarih:'2026-07-23',aylikTutar:31500,toplamTutar:315000,bankaReferans:'havale-unique-20260723'};
+const parameters={aylar,eskiTarih:'2026-10-08',yeniTarih:'2026-07-23',sistemeGirisTarihi:'2026-10-08',aylikTutar:31500,toplamTutar:315000,bankaReferans:'havale-unique-20260723'};
 function source(){return {aidatAyarlari:{baslangicAyi:'2026-09',gercekAySayisi:10,aylikAidat:31500},aylikOdemeler:Object.fromEntries(aylar.map(k=>[k,{beklenenTutar:31500,odenenTutar:31500,odendi:true,odemeTarihi:'2026-10-08'}])),digerOdemeler:{okulKiyafeti:{odenenTutar:100,tutar:100,odemeTarihi:'2026-10-08'}}};}
 test('ten allocations share one bank reference and preserve tuition balances and extra fees',()=>{
  const v=source(),before=structuredClone(v);
  const out=planlaTahsilatTarihDuzeltmesi(v,parameters);
  assert.equal(out.tutar,315000);
+ assert.equal(out.sistemeGirisTarihi,'2026-10-08');
+ assert.equal(out.yeniAylikOdemeler['2026-09'].sistemeGirisTarihi,'2026-10-08');
+ assert.equal(out.yeniAylikOdemeler['2026-09'].odemeYontemi,'Havale/EFT');
  assert.equal(out.aySayisi,10);
  assert.deepEqual(v,before);
  assert.deepEqual(out.yeniAylikOdemeler['2026-09'].odemeTarihi,'2026-07-23');
