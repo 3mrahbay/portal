@@ -30,6 +30,7 @@ node scripts/finans-tarih-duzelt.cjs \
  --period 2026-2027 \
  --from "<SİSTEMDEKİ YANLIŞ GERÇEK TAHSİLAT TARİHİ YYYY-AA-GG>" \
  --to "<DOĞRU BANKA TAHSİLAT TARİHİ YYYY-AA-GG>" \
+ --entry-date "<SİSTEME GİRİŞ TARİHİ YYYY-AA-GG>" \
  --start-month "<İLK AİDAT AYI YYYY-AA>" \
  --count "<AY SAYISI>" \
  --monthly "<AYLIK TUTAR>" \
