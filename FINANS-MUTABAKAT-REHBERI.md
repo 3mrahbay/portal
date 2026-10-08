@@ -12,8 +12,8 @@ git clone --depth 1 --branch fix/finans-tahsilat-mutabakat-20261008 https://gith
 cd "$workdir/portal"
 node --version
 npm install --no-save firebase-admin
-PROJECT="$(gcloud config get-value project)"
-test -n "$PROJECT" && test "$PROJECT" != "(unset)" || { echo "Önce gcloud projesini seçin."; exit 1; }
+# Firebase portal yapılandırmasından doğrulanan proje; gcloud varsayılanı '(unset)' olabilir.
+PROJECT="bcka-site"
 node scripts/finans-canli-kontrol.cjs --project "$PROJECT" --period 2026-2027 --month 2026-10 --focus "<öğrenci adı>"
 ```
 
