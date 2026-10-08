@@ -13884,7 +13884,7 @@ import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogr
 import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=171';
 import {receiptInput} from './js/expenses/receipt-input.js';
 import {CATEGORIES,localDate} from './js/expenses/receipt-core.js';
-import {odemePlani as ortakOdemePlani, satir as ortakOdemeSatiri, vade as ortakVade} from "./js/finans/core.js";
+import {odemePlani as ortakOdemePlani, satir as ortakOdemeSatiri, vade as ortakVade, gecerliTarih as ortakGecerliTarih, bugun as ortakBugun} from "./js/finans/core.js";
 import {okulFinansOzeti,sonAyKodlari} from "./js/finans/school-summary.js";
 import {
   IZIN_TURLERI as PERSONEL_IZIN_TURLERI,
@@ -46227,7 +46227,7 @@ function renderAylikOdeme() {
           <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
                  min="0" step="100" data-alan="odenenTutar" data-ay="${ay.ayKod}"
                  onchange="aylikDegisti('${ay.ayKod}', 'odenenTutar', this.value)">
-          <input type="date" value="${odemeTarihi}" data-alan="odemeTarihi" data-ay="${ay.ayKod}"
+          <input type="date" value="${odemeTarihi}" data-alan="odemeTarihi" data-ay="${ay.ayKod}" title="Gerçek tahsilat tarihi: banka hesabına paranın ulaştığı gün"
                  onchange="aylikDegisti('${ay.ayKod}', 'odemeTarihi', this.value)">
         </div>
         <div class="aylik-input-row">
@@ -46661,27 +46661,20 @@ window.digerDegisti = function(kalemKod, alan, deger) {
 
 window.digerOdendiIsaretle = function(kalemKod) {
   if (!currentOgrenci) return;
-  const kalem = DIGER_ODEME_KALEMLERI.find(k => k.kod === kalemKod);
-  if (!kalem) return;
-
-  const beklenenTutar = parseFloat(document.getElementById(kalem.inputId)?.value) || 0;
-  if (beklenenTutar <= 0) {
-    showToast("Önce Diğer Ücretler alanında tutar girilmelidir", "error");
-    return;
+  const kalem = DIGER_ODEME_KALEMLERI.find(k=>k.kod===kalemKod);
+  if(!kalem)return;
+  const beklenenTutar=Number(document.getElementById(kalem.inputId)?.value)||0;
+  if (beklenenTutar<=0){showToast("Önce diğer ücret tutarını girin","error");return;}
+  const ayarlar=ayarListesi[currentOgrenci.id]||(ayarListesi[currentOgrenci.id]={});
+  const odemeler=ayarlar.digerOdemeler||(ayarlar.digerOdemeler={});
+  const mevcut=odemeler[kalemKod]||{};
+  if((Number(mevcut.odenenTutar)||0)>0||mevcut.odendi||mevcut.hareketler?.length){
+    showToast("Bu kalem için ödeme mevcut. Önce hareket geçmişini kontrol edin.","error");return;
   }
-
-  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
-  if (!ayarListesi[currentOgrenci.id].digerOdemeler) ayarListesi[currentOgrenci.id].digerOdemeler = {};
-
-  const mevcut = ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] || {};
-  ayarListesi[currentOgrenci.id].digerOdemeler[kalemKod] = {
-    ...mevcut,
-    odendi: true,
-    odenenTutar: beklenenTutar,
-    beklenenTutar: beklenenTutar,
-    odemeTarihi: mevcut.odemeTarihi || new Date().toISOString().substring(0, 10)
-  };
-
+  const tarih=prompt("Gerçek tahsilat tarihi (YYYY-AA-GG). Sistem giriş tarihi değildir:",mevcut.odemeTarihi||"");
+  if(!ortakGecerliTarih(tarih)){showToast("Geçerli gerçek ödeme tarihi gerekli; işlem yapılmadı.","error");return;}
+  odemeler[kalemKod]={...mevcut,odendi:true,odenenTutar:beklenenTutar,beklenenTutar,
+    odemeTarihi:tarih,sistemeGirisTarihi:ortakBugun()};
   renderDigerOdeme();
 };
 
@@ -46775,23 +46768,18 @@ window.aylikDegisti = function(ayKod, alan, deger) {
 window.aylikOdendiIsaretle = function(ayKod) {
   if (!currentOgrenci) return;
   const beklenen = ayBeklenenTutar(ayKod);
-  if (beklenen <= 0) {
-    showToast("Önce aylık aidat / peşinat girilmelidir", "error");
+  if (beklenen <= 0) {showToast("Önce aidat / peşinat tutarını tanımlayın","error");return;}
+  const ayarlar = ayarListesi[currentOgrenci.id] || (ayarListesi[currentOgrenci.id] = {});
+  const odemeler = ayarlar.aylikOdemeler || (ayarlar.aylikOdemeler = {});
+  const mevcut=odemeler[ayKod]||{};
+  if ((Number(mevcut.odenenTutar)||0)>0 || mevcut.odendi || mevcut.hareketler?.length) {
+    showToast("Bu ay için önceden ödeme var. Üzerine yazmayın; hareket detayından kontrol edin.","error");
     return;
   }
-
-  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
-  if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
-
-  const mevcut = ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] || {};
-  ayarListesi[currentOgrenci.id].aylikOdemeler[ayKod] = {
-    ...mevcut,
-    odendi: true,
-    odenenTutar: beklenen,
-    beklenenTutar: beklenen,
-    odemeTarihi: mevcut.odemeTarihi || new Date().toISOString().substring(0, 10)
-  };
-
+  const tarih = prompt("Gerçek tahsilat tarihi (YYYY-AA-GG). Ödemenin sisteme işlendiği gün değil, paranın geldiği gün:",mevcut.odemeTarihi||"");
+  if (!ortakGecerliTarih(tarih)) {showToast("Geçerli gerçek tahsilat tarihi gerekli; işlem yapılmadı.","error");return;}
+  odemeler[ayKod] = {...mevcut,odendi:true,odenenTutar:beklenen,beklenenTutar:beklenen,
+    odemeTarihi:tarih,sistemeGirisTarihi:ortakBugun()};
   renderAylikOdeme();
 };
 
@@ -46804,49 +46792,51 @@ window.aylikSifirla = function(ayKod) {
 };
 
 window.aylikToplu = function(tip) {
-  if (!currentOgrenci) return;
-  const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
-  const taksit = parseInt(document.getElementById("ayarTaksit").value) || 12;
-  const baslangic = document.getElementById("ayarBaslangic").value;
-
-  if (!baslangic || aidat <= 0) {
-    showToast("Önce aidat ve dönem başlangıcı girilmelidir", "error");
-    return;
+  if(!currentOgrenci)return;
+  const aidat=Number(document.getElementById("ayarAidat")?.value)||0;
+  const taksit=Number(document.getElementById("ayarTaksit")?.value)||0;
+  const baslangic=document.getElementById("ayarBaslangic")?.value||"";
+  if(!baslangic||aidat<=0||!Number.isInteger(taksit)||taksit<=0){
+    showToast("Önce geçerli aidat ve başlangıç ayı girin","error");return;
   }
-
-  if (tip === "sifirla") {
-    if (!confirm("Bu öğrencinin TÜM aylık ödeme kayıtlarını silmek istediğinize emin misiniz?")) return;
-    if (ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
-    renderAylikOdeme();
-    showToast("✓ Tüm ödemeler sıfırlandı");
-    return;
+  const ayarlar=ayarListesi[currentOgrenci.id]||(ayarListesi[currentOgrenci.id]={});
+  if(tip==="sifirla"){
+    if(!confirm("Bu öğrencinin TÜM aylık ödeme kayıtlarını silmek istediğinize emin misiniz?"))return;
+    ayarlar.aylikOdemeler={};renderAylikOdeme();showToast("✓ Tüm aylık kayıtlar sıfırlandı");return;
   }
-
-  const ayListesi = getAyListesi(baslangic, taksit);
-  const bugun = new Date();
-
-  if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
-  if (!ayarListesi[currentOgrenci.id].aylikOdemeler) ayarListesi[currentOgrenci.id].aylikOdemeler = {};
-
-  let islemSayisi = 0;
-  for (const ay of ayListesi) {
-    const ayIlk = new Date(ay.yil, ay.ay - 1, 1);
-    const isPast = ayIlk <= bugun;
-
-    if (tip === "tumu" || (tip === "gecmis" && isPast)) {
-      ayarListesi[currentOgrenci.id].aylikOdemeler[ay.ayKod] = {
-        odendi: true,
-        odenenTutar: aidat,
-        beklenenTutar: aidat,
-        odemeTarihi: new Date().toISOString().substring(0, 10),
-        odemeSekli: "Havale/EFT"
-      };
-      islemSayisi++;
-    }
+  if(tip!=="tumu"&&tip!=="gecmis")return;
+  const kaynakPlan=ortakOdemePlani({...ayarlar,aidatAyarlari:{
+    ...(ayarlar.aidatAyarlari||{}),baslangicAyi:baslangic,gercekAySayisi:taksit,aylikAidat:aidat
+  }});
+  const aylar=kaynakPlan.satirlar.filter(r=>/^\d{4}-(0[1-9]|1[0-2])$/.test(r.id) &&
+    r.beklenen>0 && (tip==="tumu"||r.id<=ortakBugun().slice(0,7)));
+  if(!aylar.length){showToast("Seçili dönem için işaretlenecek ödeme yok","warn");return;}
+  const odemeler=ayarlar.aylikOdemeler||(ayarlar.aylikOdemeler={});
+  if(aylar.some(r=>(Number(odemeler[r.id]?.odenenTutar)||0)>0 ||
+    odemeler[r.id]?.odendi===true || odemeler[r.id]?.hareketler?.length)){
+    showToast("Seçili aylarda mevcut tahsilat bulundu. Önce bu kayıtları kontrol edin; toplu işlem üzerine yazmaz.","error");return;
   }
-
+  const tarih=prompt("Tek seferlik toplu ödemenin GERÇEK tahsilat tarihi (YYYY-AA-GG):","");
+  if(!ortakGecerliTarih(tarih)){showToast("Geçerli ödeme tarihi girilmedi; değişiklik yapılmadı.","error");return;}
+  const yontem=prompt("Gerçek ödeme şekli (Havale/EFT, Kredi Kartı, Nakit, Çek/Senet):","Havale/EFT");
+  if(!["Havale/EFT","Kredi Kartı","Nakit","Çek/Senet"].includes(yontem)){
+    showToast("Ödeme yöntemi seçimi geçersiz; işlem durduruldu","error");return;
+  }
+  const bankaReferans=yontem==="Havale/EFT"
+    ? prompt("Havale dekont referansı (banka eşleştirmesi için; bilinmiyorsa boş bırakın):","")
+    : "";
+  if(bankaReferans===null)return;
+  const toplam=aylar.reduce((s,r)=>s+Math.round(r.beklenen*100),0)/100;
+  if(!confirm(aylar.length+" ay için "+toplam.toLocaleString("tr-TR")+" TL'nin "+tarih+
+    " tarihinde "+yontem+" ile TEK SEFERDE gerçekten tahsil edildiğini onaylıyor musunuz?"))return;
+  for(const r of aylar){
+    odemeler[r.id]={...(odemeler[r.id]||{}),odendi:true,odenenTutar:r.beklenen,beklenenTutar:r.beklenen,
+      odemeTarihi:tarih,odemeSekli:yontem,odemeYontemi:yontem,
+      ...(bankaReferans.trim()?{kaynakTahsilatId:bankaReferans.trim()}:{}),
+      sistemeGirisTarihi:ortakBugun()};
+  }
   renderAylikOdeme();
-  showToast(`✓ ${islemSayisi} ay ödendi olarak işaretlendi`);
+  showToast("✓ "+aylar.length+" aya tek gerçek tahsilat tarihiyle mahsup edildi. Değişiklikleri kaydedin.");
 };
 
 window.togglePesin = function() {
