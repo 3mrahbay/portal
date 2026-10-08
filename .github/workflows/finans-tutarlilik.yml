@@ -1,0 +1,29 @@
+name: Finans tutarlilik testleri
+on:
+  push:
+    branches:
+      - fix/finans-tahsilat-mutabakat-20261008
+  pull_request:
+    paths:
+      - index.html
+      - portal-finans-grafik.js
+      - js/finans/**
+      - tests/finans-*.test.mjs
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Finance unit tests
+        run: node --test tests/finans-*.test.mjs
+      - name: Main portal module syntax
+        run: |
+          node -e "const fs=require('fs');const s=fs.readFileSync('index.html','utf8');const a=s.indexOf('<script type=\"module\">');if(a<0)throw Error('module not found');const b=s.indexOf('</script>',a);if(b<0)throw Error('end not found');fs.writeFileSync('/tmp/portal-main.mjs',s.slice(a+22,b));"
+          node --check /tmp/portal-main.mjs
+      - name: Finance graph syntax
+        run: node --check portal-finans-grafik.js
