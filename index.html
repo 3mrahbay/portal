@@ -39653,45 +39653,22 @@ window.ogrenciModalRolAyari = function() {
 };
 
 function hesaplaFinansGecikenler() {
-  const bugun = new Date();
-  const gecikenler = [];
-  for (const o of ogrenciList) {
-    const ayar = ayarListesi[o.id];
-    if (!ayar) continue;
-    if (getOgrenciDurum(o, ayar) !== "aktif") continue;
-    const a = ayar.aidatAyarlari || {};
-    const baslangic = a.baslangicAyi;
-    if (!baslangic) continue;
-    const taksit = a.taksitSayisi || 10;
-    const iDonemAylik = a.iDonemAylik || a.aylikAidat || 0;
-    const iiDonemAylik = a.iiDonemAylik || a.aylikAidat || 0;
-    const aylikOdemeler = ayar.aylikOdemeler || {};
-    const ayListesi = getAyListesi(baslangic, taksit);
-
-    let toplamBorc = 0, gecikenAySayisi = 0;
-    const gecikenAylar = [];
-    for (const ay of ayListesi) {
-      const ayTarihi = new Date(parseInt(ay.ayKod.split("-")[0]), parseInt(ay.ayKod.split("-")[1]) - 1, 10);
-      if (ayTarihi >= bugun) continue;
-      const ayNum = parseInt(ay.ayKod.split("-")[1], 10);
-      const beklenen = (ayNum >= 9 || ayNum <= 1) ? iDonemAylik : iiDonemAylik;
-      const od = aylikOdemeler[ay.ayKod] || {};
-      if (!od.odendi) {
-        toplamBorc += beklenen;
-        gecikenAySayisi++;
-        gecikenAylar.push(ay.tam || ay.ayKod);
-      }
-    }
-    if (gecikenAySayisi > 0) {
-      gecikenler.push({
-        ogrenciId: o.id, ogrenciAd: o.ogrenciAdSoyad || "",
-        sinif: o.sinif || (ayar.kayit && ayar.kayit.sinif) || "",
-        gecikenAySayisi, toplamBorc, gecikenAylar
-      });
-    }
+  const gecikenler=[];
+  for(const o of ogrenciList) {
+    const ayar=ayarListesi[o.id];
+    if(!ayar||getOgrenciDurum(o,ayar)!=="aktif")continue;
+    const plan=ortakOdemePlani(ayar);
+    const acik=plan.satirlar.filter(r=>r.gecikmis && /^\d{4}-(0[1-9]|1[0-2])$/.test(r.id));
+    if(!acik.length)continue;
+    gecikenler.push({
+      ogrenciId:o.id,ogrenciAd:o.ogrenciAdSoyad||"",
+      sinif:o.sinif||(ayar.kayit&&ayar.kayit.sinif)||"",
+      gecikenAySayisi:acik.length,
+      toplamBorc:acik.reduce((n,r)=>n+Math.round(r.kalan*100),0)/100,
+      gecikenAylar:acik.map(r=>r.ad)
+    });
   }
-  gecikenler.sort((a, b) => b.toplamBorc - a.toplamBorc);
-  return gecikenler;
+  return gecikenler.sort((a,b)=>b.toplamBorc-a.toplamBorc);
 }
 
 function renderFinansalOzet() {
@@ -42141,93 +42118,69 @@ function renderRaporlarAltSekme() {
 window.raporIndirAylikTahsilat = async function() {
   if (!(await xlsxHazirla())) return;
   try {
-    const bugun = new Date();
-    const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
-    ? parseInt(AKTIF_DONEM.substring(0, 4), 10)
-    : (bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1);
-    const aylar = [];
-    for (let i = 0; i < 12; i++) {
-      const ay = 9 + i;
-      const hedefYil = ay > 12 ? donemBasYil + 1 : donemBasYil;
-      const hedefAy = ay > 12 ? ay - 12 : ay;
-      aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
-    }
-
-    const rows = [];
-    for (const ayKod of aylar) {
-      let beklenen = 0, odenen = 0, odeyenSayi = 0, odemeyenSayi = 0;
-      for (const o of ogrenciList) {
-        const ayar = ayarListesi[o.id];
-        if (!ayar || getOgrenciDurum(o, ayar) !== "aktif") continue;
-        const a = ayar.aidatAyarlari || {};
-        const ayNum = parseInt(ayKod.split("-")[1], 10);
-        const aylikBeklenen = (ayNum >= 9 || ayNum <= 1) ? (a.iDonemAylik || a.aylikAidat || 0) : (a.iiDonemAylik || a.aylikAidat || 0);
-        beklenen += aylikBeklenen;
-        const od = (ayar.aylikOdemeler || {})[ayKod] || {};
-        if (od.odendi) { odenen += parseFloat(od.odenenTutar) || aylikBeklenen; odeyenSayi++; }
-        else { odemeyenSayi++; }
+    const basYil = typeof AKTIF_DONEM==="string" && /^\d{4}/.test(AKTIF_DONEM)
+      ? Number(AKTIF_DONEM.slice(0,4)):(new Date().getMonth()>=8?new Date().getFullYear():new Date().getFullYear()-1);
+    const aylar=Array.from({length:12},(_,i)=>new Date(Date.UTC(basYil,8+i,1)).toISOString().slice(0,7));
+    const aktifPlanlar=ogrenciList.filter(o=>{
+      const a=ayarListesi[o.id];return !!a&&getOgrenciDurum(o,a)==="aktif";
+    }).map(o=>({id:o.id,plan:ortakOdemePlani(ayarListesi[o.id])}));
+    const rows=aylar.map(ayKod=>{
+      let beklenenKurus=0,odenenKurus=0,odeyenSayi=0,odemeyenSayi=0;
+      for(const o of aktifPlanlar){
+        const r=o.plan.satirlar.find(r=>r.id===ayKod);
+        if(!r)continue;
+        beklenenKurus+=Math.round(r.beklenen*100);
+        odenenKurus+=Math.round(r.odenen*100);
+        if(r.odenen>0)odeyenSayi++;
+        if(r.kalan>0)odemeyenSayi++;
       }
-      rows.push({
-        "Ay": (function(ak){const [y,a]=ak.split("-"); return `${AY_ISIMLERI[parseInt(a)-1]} ${y}`;})(ayKod),
-        "Beklenen (TL)": beklenen,
-        "Tahsil Edilen (TL)": odenen,
-        "Fark (TL)": odenen - beklenen,
-        "Oran (%)": beklenen > 0 ? Math.round((odenen / beklenen) * 100) : 0,
-        "Ödeyen": odeyenSayi,
-        "Ödemeyen": odemeyenSayi
-      });
-    }
-    const ws = window.XLSX.utils.json_to_sheet(rows);
-    const wb = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(wb, ws, "Aylık Tahsilat");
-    window.XLSX.writeFile(wb, `Aylik_Tahsilat_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
-    showToast("✓ Aylık tahsilat indirildi");
-  } catch (e) { showToast("Hata: " + e.message, "error"); }
+      const beklenen=beklenenKurus/100,odenen=odenenKurus/100;
+      const [y,m]=ayKod.split("-").map(Number);
+      return {
+        "Aidat Ayı":AY_ISIMLERI[m-1]+" "+y,
+        "Planlanan Aidat (TL)":beklenen,
+        "Aidat Ayına İşlenen (TL)":odenen,
+        "Kalan (TL)":Math.max(0,(beklenenKurus-odenenKurus)/100),
+        "Tamamlanma (%)":beklenen>0?Math.round(odenen/beklenen*100):0,
+        "Ödeme İşlenmiş Öğrenci":odeyenSayi,"Açık Aidatı Olan Öğrenci":odemeyenSayi
+      };
+    });
+    const ws=window.XLSX.utils.json_to_sheet(rows),wb=window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb,ws,"Aidat Ayları");
+    window.XLSX.writeFile(wb,`Aylik_Aidata_Islenen_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Aidat aylarına işlenen tutarlar indirildi. Nakit akışı değildir.");
+  } catch(e){showToast("Hata: "+e.message,"error");}
 };
 
 // Rapor: Ödeme Detayı (ay ay öğrenci matrisi)
 window.raporIndirOdemeDetayi = async function() {
   if (!(await xlsxHazirla())) return;
   try {
-    const bugun = new Date();
-    const donemBasYil = (typeof AKTIF_DONEM !== "undefined" && /^\d{4}/.test(AKTIF_DONEM))
-    ? parseInt(AKTIF_DONEM.substring(0, 4), 10)
-    : (bugun.getMonth() >= 8 ? bugun.getFullYear() : bugun.getFullYear() - 1);
-    const aylar = [];
-    for (let i = 0; i < 12; i++) {
-      const ay = 9 + i;
-      const hedefYil = ay > 12 ? donemBasYil + 1 : donemBasYil;
-      const hedefAy = ay > 12 ? ay - 12 : ay;
-      aylar.push(`${hedefYil}-${String(hedefAy).padStart(2, "0")}`);
-    }
-
-    const data = [];
-    for (const o of ogrenciList) {
-      const ayar = ayarListesi[o.id] || {};
-      const a = ayar.aidatAyarlari || {};
-      if (getOgrenciDurum(o, ayar) !== "aktif") continue;
-      const aylikOdemeler = ayar.aylikOdemeler || {};
-      const row = {
-        "Öğrenci": o.ogrenciAdSoyad || "",
-        "Sınıf": (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
-        "Aylık": a.aylikAidat || 0,
-        "Ön Ödeme": (aylikOdemeler["__onOdeme"] && aylikOdemeler["__onOdeme"].odendi) ? "✓" : "—"
-      };
-      for (const ayKod of aylar) {
-        const od = aylikOdemeler[ayKod] || {};
-        const ayNum = parseInt(ayKod.split("-")[1], 10);
-        const beklenen = (ayNum >= 9 || ayNum <= 1) ? (a.iDonemAylik || a.aylikAidat || 0) : (a.iiDonemAylik || a.aylikAidat || 0);
-        const ayAdi = AY_ISIMLERI[parseInt(ayKod.split("-")[1]) - 1].substring(0, 3);
-        row[ayAdi] = od.odendi ? `✓ ${parseFloat(od.odenenTutar || beklenen).toLocaleString("tr-TR")}` : "—";
+    const basYil = typeof AKTIF_DONEM==="string" && /^\d{4}/.test(AKTIF_DONEM)
+      ? Number(AKTIF_DONEM.slice(0,4)):(new Date().getMonth()>=8?new Date().getFullYear():new Date().getFullYear()-1);
+    const aylar=Array.from({length:12},(_,i)=>new Date(Date.UTC(basYil,8+i,1)).toISOString().slice(0,7));
+    const data=[];
+    for(const o of ogrenciList){
+      const ayar=ayarListesi[o.id];
+      if(!ayar||getOgrenciDurum(o,ayar)!=="aktif")continue;
+      const plan=ortakOdemePlani(ayar);
+      const row={"Öğrenci":o.ogrenciAdSoyad||"","Sınıf":ayar.kayit?.sinif||o.sinif||"",
+        "Dönem Beklenen":plan.toplam,"Dönem Ödenen":plan.odenen,"Dönem Kalan":plan.kalan};
+      for(const ayKod of aylar){
+        const r=plan.satirlar.find(x=>x.id===ayKod);
+        const [y,m]=ayKod.split("-").map(Number);
+        const key=AY_ISIMLERI[m-1]+" "+y;
+        row[key]=!r?"Plan dışı":r.beklenen===0?"0 TL":r.kalan===0?"Ödendi: "+r.odenen.toLocaleString("tr-TR")+" TL":
+          r.odenen>0?"Kısmi: "+r.odenen.toLocaleString("tr-TR")+" / "+r.beklenen.toLocaleString("tr-TR")+" TL":
+          "Bekliyor: "+r.beklenen.toLocaleString("tr-TR")+" TL";
       }
       data.push(row);
     }
-    const ws = window.XLSX.utils.json_to_sheet(data);
-    const wb = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(wb, ws, "Ödeme Detayı");
-    window.XLSX.writeFile(wb, `Odeme_Detayi_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
-    showToast("✓ Ödeme detayı indirildi");
-  } catch (e) { showToast("Hata: " + e.message, "error"); }
+    const ws=window.XLSX.utils.json_to_sheet(data),wb=window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb,ws,"Öğrenci Ödeme Detayı");
+    window.XLSX.writeFile(wb,`Odeme_Detayi_${AKTIF_DONEM}_${new Date().toISOString().substring(0,10)}.xlsx`);
+    showToast("✓ Ödeme planı detayları indirildi");
+  }catch(e){showToast("Hata: "+e.message,"error");}
 };
 
 // Rapor: Gelir-Gider (3 sayfalı rapor)
@@ -42906,12 +42859,12 @@ window.raporExcelAylikTahsilat = async function() {
   const d = hesaplaRaporVerileri();
   const kodlar = Object.keys(d.aylikTahsilat).sort();
 
-  const rows = [["Ay", "Beklenen (TL)", "Ödenen (TL)", "Kalan (TL)", "Yüzde"]];
+  const rows = [["Aidatın Ait Olduğu Ay", "Planlanan Aidat (TL)", "Aidata İşlenen (TL)", "Kalan (TL)", "Yüzde"]];
   for (const k of kodlar) {
     const a = d.aylikTahsilat[k];
     const kalan = a.beklenen - a.odenen;
     const yuzde = a.beklenen > 0 ? Math.round((a.odenen / a.beklenen) * 100) : 0;
-    rows.push([a.ay.tam, Math.round(a.beklenen), Math.round(a.odenen), Math.round(kalan), yuzde + "%"]);
+    rows.push([a.ay.isim+" "+a.ay.yil, a.beklenen, a.odenen, kalan, yuzde + "%"]);
   }
 
   const ws = window.XLSX.utils.aoa_to_sheet(rows);
@@ -42966,44 +42919,21 @@ window.raporExcelOgrenciListesi = async function() {
 };
 
 window.raporExcelOdemeDetay = async function() {
-  if (!window.XLSX) await loadSheetJS();
-
-  // Her öğrenci için 12 ay + toplam
-  const rows = [["Öğrenci", "Sınıf", "Aylık Aidat", "Ay Sayısı", "Toplam Beklenen", "Toplam Ödenen", "Kalan", "Yüzde"]];
-
-  for (const o of ogrenciList) {
-    const ayar = ayarListesi[o.id];
-    const durum = getOgrenciDurum(o, ayar);
-    if (durum !== "aktif") continue;
-    if (!ayar?.aidatAyarlari?.aylikAidat) continue;
-
-    const a = ayar.aidatAyarlari;
-    const gercekAy = a.gercekAySayisi || a.taksitSayisi || 10;
-    const beklenen = a.aylikAidat * gercekAy;
-
-    let odenen = 0;
-    const odemeler = ayar.aylikOdemeler || {};
-    for (const k in odemeler) {
-      odenen += parseFloat(odemeler[k].odenenTutar) || 0;
-    }
-    if (a.pesinOdeme) odenen = beklenen;
-
-    const kalan = Math.max(0, beklenen - odenen);
-    const yuzde = beklenen > 0 ? Math.round((odenen / beklenen) * 100) : 0;
-
-    rows.push([
-      o.ogrenciAdSoyad, o.sinif || "-",
-      Math.round(a.aylikAidat), gercekAy,
-      Math.round(beklenen), Math.round(odenen), Math.round(kalan),
-      yuzde + "%"
-    ]);
+  if(!(await xlsxHazirla()))return;
+  const rows=[["Öğrenci","Sınıf","Standart Aidat","Ay Sayısı","Dönem Planı","Dönem Ödenen","Dönem Kalan","Yüzde"]];
+  for(const o of ogrenciList){
+    const ayar=ayarListesi[o.id];
+    if(!ayar||getOgrenciDurum(o,ayar)!=="aktif")continue;
+    const p=ortakOdemePlani(ayar);
+    const aidatAySayisi=p.satirlar.filter(r=>/^\d{4}-(0[1-9]|1[0-2])$/.test(r.id)).length;
+    const yuzde=p.toplam>0?Math.min(100,Math.round(p.odenen/p.toplam*100)):0;
+    rows.push([o.ogrenciAdSoyad||"",ayar.kayit?.sinif||o.sinif||"-",Number(ayar.aidatAyarlari?.aylikAidat)||0,
+      aidatAySayisi,p.toplam,p.odenen,p.kalan,yuzde+"%"]);
   }
-
-  const ws = window.XLSX.utils.aoa_to_sheet(rows);
-  const wb = window.XLSX.utils.book_new();
-  window.XLSX.utils.book_append_sheet(wb, ws, "Ödeme Detayı");
-  window.XLSX.writeFile(wb, `Odeme_Detayi_${AKTIF_DONEM}.xlsx`);
-  showToast("✓ Excel indiriliyor...");
+  const ws=window.XLSX.utils.aoa_to_sheet(rows),wb=window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(wb,ws,"Dönem Ödeme Planı");
+  window.XLSX.writeFile(wb,`Odeme_Detayi_${AKTIF_DONEM}.xlsx`);
+  showToast("✓ Dönem ödeme planı indiriliyor");
 };
 
 // SheetJS dinamik yükleyici (yedek kaynaklı)
