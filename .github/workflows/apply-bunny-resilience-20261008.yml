@@ -25,6 +25,8 @@ jobs:
           node-version: '20'
       - name: Apply deterministic patch
         run: node .github/scripts/patch-bunny-resilience-20261008.mjs
+      - name: Align static Stream import with the new cache release
+        run: sed -i 's|from "./js/bunny-stream-upload.js?v=190"|from "./js/bunny-stream-upload.js?v=191"|' index.html
       - name: Run focused gallery upload tests
         run: node --test tests/bunny-stream-upload.test.mjs tests/galeri-mail-hedefleri.test.mjs tests/portal-gallery-file-contract.test.mjs
       - name: Commit verified changes
