@@ -27,3 +27,7 @@ jobs:
           node --check /tmp/portal-main.mjs
       - name: Finance graph syntax
         run: node --check portal-finans-grafik.js
+      - name: Safe ledger scripts syntax
+        run: |
+          node --check scripts/finans-tarih-duzelt.cjs
+          node --check scripts/finans-canli-kontrol.cjs
