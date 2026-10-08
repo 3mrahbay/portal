@@ -1,5 +1,6 @@
 name: Patch gallery media UI and large videos
 
+# Re-run after repairing the patch helper.
 on:
   push:
     branches:
