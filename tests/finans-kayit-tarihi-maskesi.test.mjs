@@ -52,7 +52,7 @@ test('incomplete edits cannot silently erase enrollment dates', ()=>{
  assert.ok(source.includes('el.addEventListener("input", mark)'));
  assert.ok(source.includes('el.addEventListener("change", mark)'));
  assert.ok(source.includes('touched || eski || el?.validity?.badInput'));
- assert.ok(source.includes('tarih eksik veya geçersiz'));
+ assert.ok(source.includes('tarihi eksik veya geçersiz'));
  assert.ok(source.includes('el?.focus()'));
 });
 test('all registration fields remain in the saved nested document', ()=>{
