@@ -44366,6 +44366,19 @@ function loadKayitSekmesi(o) {
   document.getElementById("kayitAyarProgram").value = mevcutProgram;
   document.getElementById("kayitAyarIlkKayitTarihi").value = formatDateForInput(kayit.ilkKayitTarihi || o.okulaKayitTarihi);
   document.getElementById("kayitAyarDonemBaslangic").value = formatDateForInput(kayit.donemBaslangic);
+  // Track incomplete manual edits: native date inputs can yield value="" while
+  // the user is still editing their year segment.
+  for (const id of ["kayitAyarIlkKayitTarihi","kayitAyarDonemBaslangic"]) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.dataset.kayitTarihDegisti = "0";
+    if (!el._kayitTarihIzlemeKuruldu) {
+      const mark = () => { el.dataset.kayitTarihDegisti = "1"; };
+      el.addEventListener("input", mark);
+      el.addEventListener("change", mark);
+      el._kayitTarihIzlemeKuruldu = true;
+    }
+  }
   document.getElementById("kayitAyarOncekiOkul").value = kayit.oncekiOkul || "";
 
   document.getElementById("kayitAyarServisKullanim").value = kayit.servisKullanim || "Kullanmıyor";
@@ -47701,19 +47714,20 @@ window.saveAyarlar = async function() {
     saglikTarama: document.getElementById("kayitAyarSaglikTaramaIzni").checked
   };
 
-  // Invalid native date input values must never erase existing registration dates.
-  const oncekiIlkTarih = ayarListesi[currentOgrenci.id]?.kayit?.ilkKayitTarihi || "";
-  if (oncekiIlkTarih && !kayitData.ilkKayitTarihi) {
-    showToast("Okula ilk kayıt tarihi boş görünüyor; önceki tarih korunuyor. Gerekirse tarihi yeniden girin.", "error");
-    return;
-  }
-  for (const [alan, tarih, id] of [
-    ["Okula ilk kayıt",kayitData.ilkKayitTarihi,"kayitAyarIlkKayitTarihi"],
-    ["Bu dönem başlangıç",kayitData.donemBaslangic,"kayitAyarDonemBaslangic"]
+  // Reject incomplete native date edits even when browser .value becomes "".
+  // Never silently replace a previously saved date with an empty value.
+  for (const [alan, tarih, id, eski] of [
+    ["Okula ilk kayıt", kayitData.ilkKayitTarihi, "kayitAyarIlkKayitTarihi",
+      ayarListesi[currentOgrenci.id]?.kayit?.ilkKayitTarihi || currentOgrenci.okulaKayitTarihi || ""],
+    ["Bu dönem başlangıç", kayitData.donemBaslangic, "kayitAyarDonemBaslangic",
+      ayarListesi[currentOgrenci.id]?.kayit?.donemBaslangic || ""]
   ]) {
-    if (tarih && !kayitFormTarihGecerli(tarih)) {
-      showToast(alan+" tarihi geçersiz; dört haneli yılı kontrol edin. Kayıt yapılmadı.", "error");
-      document.getElementById(id).focus();
+    const el = document.getElementById(id);
+    const touched = el?.dataset?.kayitTarihDegisti === "1";
+    if ((!tarih && (touched || eski || el?.validity?.badInput)) ||
+        (tarih && !kayitFormTarihGecerli(tarih))) {
+      showToast(alan + " tarihi eksik veya geçersiz. Gün, ay ve dört haneli yılı tamamlayın; kayıt yapılmadı.", "error");
+      el?.focus();
       return;
     }
   }
