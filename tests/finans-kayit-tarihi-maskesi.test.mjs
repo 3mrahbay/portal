@@ -46,3 +46,20 @@ test('registration date rejects malformed year and invalid days, allows valid fu
  assert.equal(fn('2026-08-10'),true);
  assert.equal(fn('2027-09-01'),true);
 });
+
+test('incomplete edits cannot silently erase enrollment dates', ()=>{
+ assert.ok(source.includes('el.dataset.kayitTarihDegisti = "0"'));
+ assert.ok(source.includes('el.addEventListener("input", mark)'));
+ assert.ok(source.includes('el.addEventListener("change", mark)'));
+ assert.ok(source.includes('touched || eski || el?.validity?.badInput'));
+ assert.ok(source.includes('tarih eksik veya geçersiz'));
+ assert.ok(source.includes('el?.focus()'));
+});
+test('all registration fields remain in the saved nested document', ()=>{
+ for(const field of ['sinif','program','ilkKayitTarihi','donemBaslangic','oncekiOkul','servisKullanim','servisGuzergah','servisDurakAdres','servisNot','kaynak','referansKod','kaynakNot']){
+   assert.match(source,new RegExp('(?:^|\\n)\\s*'+field+': document\\.getElementById\\(', 'm'));
+ }
+ assert.ok(source.includes('kayit: kayitData'));
+ assert.ok(source.includes('kayitSaved.ilkKayitTarihi !== kayitData.ilkKayitTarihi'));
+ assert.ok(source.includes('kayitSaved.donemBaslangic !== kayitData.donemBaslangic'));
+});
