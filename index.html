@@ -13988,7 +13988,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+  getFirestore, collection, doc, getDoc, getDocFromServer, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction,
   documentId, deleteField, getCountFromServer, FieldPath
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -44364,7 +44364,7 @@ function loadKayitSekmesi(o) {
 
   document.getElementById("kayitAyarSinif").value = mevcutSinif;
   document.getElementById("kayitAyarProgram").value = mevcutProgram;
-  document.getElementById("kayitAyarIlkKayitTarihi").value = formatDateForInput(kayit.ilkKayitTarihi);
+  document.getElementById("kayitAyarIlkKayitTarihi").value = formatDateForInput(kayit.ilkKayitTarihi || o.okulaKayitTarihi);
   document.getElementById("kayitAyarDonemBaslangic").value = formatDateForInput(kayit.donemBaslangic);
   document.getElementById("kayitAyarOncekiOkul").value = kayit.oncekiOkul || "";
 
@@ -46456,8 +46456,8 @@ function renderAylikOdeme() {
           <input type="number" placeholder="Ödenen" value="${onOdenenTutar || ""}"
                  min="0" step="100" data-alan="odenenTutar" data-ay="__onOdeme"
                  onchange="aylikDegisti('__onOdeme', 'odenenTutar', this.value)">
-          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="GG.AA.YYYY" aria-label="Ön ödeme tarihi (GG.AA.YYYY)" value="${finansTarihGoster(onTarih)}" data-alan="odemeTarihi" data-ay="__onOdeme"
-                 onchange="finansTarihGirisiKaydet(this, 'aylik', '__onOdeme')">
+          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="gg.aa.yyyy" aria-label="Ön ödeme tarihi (GG.AA.YYYY)" value="${finansTarihGoster(onTarih)}" data-alan="odemeTarihi" data-ay="__onOdeme"
+                 oninput="finansTarihMaskele(this)" onchange="finansTarihGirisiKaydet(this, 'aylik', '__onOdeme')">
         </div>
         <div class="aylik-input-row">
           <select data-alan="odemeSekli" data-ay="__onOdeme" onchange="aylikDegisti('__onOdeme', 'odemeSekli', this.value)">
@@ -46517,8 +46517,8 @@ function renderAylikOdeme() {
           <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
                  min="0" step="100" data-alan="odenenTutar" data-ay="${ay.ayKod}"
                  onchange="aylikDegisti('${ay.ayKod}', 'odenenTutar', this.value)">
-          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="GG.AA.YYYY" aria-label="Aylık ödeme tarihi (GG.AA.YYYY)" value="${finansTarihGoster(odemeTarihi)}" data-alan="odemeTarihi" data-ay="${ay.ayKod}" title="Gerçek tahsilat tarihi (GG.AA.YYYY): banka hesabına paranın ulaştığı gün"
-                 onchange="finansTarihGirisiKaydet(this, 'aylik', '${ay.ayKod}')">
+          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="gg.aa.yyyy" aria-label="Aylık ödeme tarihi (GG.AA.YYYY)" value="${finansTarihGoster(odemeTarihi)}" data-alan="odemeTarihi" data-ay="${ay.ayKod}" title="Gerçek tahsilat tarihi (GG.AA.YYYY): banka hesabına paranın ulaştığı gün"
+                 oninput="finansTarihMaskele(this)" onchange="finansTarihGirisiKaydet(this, 'aylik', '${ay.ayKod}')">
         </div>
         <div class="aylik-input-row">
           <select data-alan="odemeSekli" data-ay="${ay.ayKod}"
@@ -46881,8 +46881,8 @@ function renderDigerOdeme() {
           <input type="number" placeholder="Ödenen" value="${odenenTutar || ""}"
                  min="0" step="100"
                  onchange="digerDegisti('${kalem.kod}', 'odenenTutar', this.value)">
-          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="GG.AA.YYYY" aria-label="Diğer ücret tahsilat tarihi (GG.AA.YYYY)" value="${finansTarihGoster(odemeTarihi)}"
-                 onchange="finansTarihGirisiKaydet(this, 'diger', '${kalem.kod}')">
+          <input type="text" class="finans-tarih-input" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="gg.aa.yyyy" aria-label="Diğer ücret tahsilat tarihi (GG.AA.YYYY)" value="${finansTarihGoster(odemeTarihi)}"
+                 oninput="finansTarihMaskele(this)" onchange="finansTarihGirisiKaydet(this, 'diger', '${kalem.kod}')">
         </div>
         <div class="aylik-input-row">
           <select onchange="digerDegisti('${kalem.kod}', 'odemeSekli', this.value)">
@@ -46950,6 +46950,38 @@ function finansTarihMetniISO(metin) {
   if (!m) return "";
   const iso = m[3] + "-" + m[2] + "-" + m[1];
   return finansTarihISOgecerli(iso) ? iso : "";
+}
+// Payment dates: insert dots while typing, without writing an incomplete date.
+function finansTarihMaskeliMetin(metin) {
+  const raw = String(metin || "");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return finansTarihGoster(raw);
+  const n = raw.replace(/\D/g, "").slice(0, 8);
+  return n.slice(0, 2) + (n.length > 2 ? "." + n.slice(2, 4) : "") +
+         (n.length > 4 ? "." + n.slice(4, 8) : "");
+}
+function finansTarihMaskele(input) {
+  if (!input) return;
+  const val = String(input.value || "");
+  const caret = typeof input.selectionStart === "number" ? input.selectionStart : val.length;
+  const before = val.slice(0, caret).replace(/\D/g, "").length;
+  const masked = finansTarihMaskeliMetin(val);
+  if (input.value !== masked) input.value = masked;
+  if (typeof input.setSelectionRange === "function") {
+    let i = 0, seen = 0;
+    while (i < masked.length && seen < before) {
+      if (/\d/.test(masked[i])) seen++;
+      i++;
+    }
+    try { input.setSelectionRange(i, i); } catch (_) {}
+  }
+}
+// Registration dates can be future dates; only enforce real calendar years/days.
+function kayitFormTarihGecerli(tarih) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(tarih || ""))) return false;
+  const yil = Number(tarih.slice(0,4));
+  if (yil < 2000 || yil > 2100) return false;
+  const d = new Date(tarih + "T12:00:00Z");
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0,10) === tarih;
 }
 function finansTarihGirisiKaydet(input, tur, kod) {
   const iso = finansTarihMetniISO(input.value);
@@ -47669,6 +47701,22 @@ window.saveAyarlar = async function() {
     saglikTarama: document.getElementById("kayitAyarSaglikTaramaIzni").checked
   };
 
+  // Invalid native date input values must never erase existing registration dates.
+  const oncekiIlkTarih = ayarListesi[currentOgrenci.id]?.kayit?.ilkKayitTarihi || "";
+  if (oncekiIlkTarih && !kayitData.ilkKayitTarihi) {
+    showToast("Okula ilk kayıt tarihi boş görünüyor; önceki tarih korunuyor. Gerekirse tarihi yeniden girin.", "error");
+    return;
+  }
+  for (const [alan, tarih, id] of [
+    ["Okula ilk kayıt",kayitData.ilkKayitTarihi,"kayitAyarIlkKayitTarihi"],
+    ["Bu dönem başlangıç",kayitData.donemBaslangic,"kayitAyarDonemBaslangic"]
+  ]) {
+    if (tarih && !kayitFormTarihGecerli(tarih)) {
+      showToast(alan+" tarihi geçersiz; dört haneli yılı kontrol edin. Kayıt yapılmadı.", "error");
+      document.getElementById(id).focus();
+      return;
+    }
+  }
   const ilanUcretleriData = getIlanUcretleri();
 
   const sozlesmeData = {
@@ -47830,6 +47878,13 @@ window.saveAyarlar = async function() {
       await setDoc(ref, donemDoc);
     }
 
+    // Confirm the date actually persisted on the server before claiming success.
+    const kayitSnap = await getDocFromServer(ref);
+    const kayitSaved = kayitSnap.data()?.kayit || {};
+    if (kayitSaved.ilkKayitTarihi !== kayitData.ilkKayitTarihi ||
+        kayitSaved.donemBaslangic !== kayitData.donemBaslangic) {
+      throw new Error("Kayıt tarihleri sunucuda doğrulanamadı. Pencere açık bırakıldı.");
+    }
     // ÖĞRENCİNİN ANA DOKÜMANINI DA GÜNCELLE (sınıf, program, veli bilgileri)
     // Böylece ana tabloda değişiklik hemen yansır
     const anaRef = doc(db, "ogrenciler", currentOgrenci.id);
@@ -47841,6 +47896,7 @@ window.saveAyarlar = async function() {
       cinsiyet: ogrenciData.cinsiyet || currentOgrenci.cinsiyet || "",
       dogumTarihi: ogrenciData.dogumTarihi || currentOgrenci.dogumTarihi || "",
       sinif: kayitData.sinif || currentOgrenci.sinif,
+      ...(kayitData.ilkKayitTarihi ? {okulaKayitTarihi:kayitData.ilkKayitTarihi}:{}),
       programTuru: aidatAyarlari.programTuru || kayitData.program || currentOgrenci.programTuru,
       aylikAidat: aidatAyarlari.aylikAidat || 0,
       veli1AdSoyad: anneData.adSoyad || "",
