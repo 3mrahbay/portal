@@ -69,7 +69,7 @@ test('portal öğretmen gözlemi aşama, not ve fotoğrafı aynı kazanım zinci
   assert.match(kaynak, /albumTuru:'egitim'/);
   assert.match(kaynak, /asamalar\[S\.durum\]=yeni/);
   assert.match(kaynak, /fotoDurum/);
-  assert.match(kaynak, /globalAlpha=\.40/);
+  assert.match(kaynak, /globalAlpha=\.50/);
   assert.match(kaynak, /Bir Çiçek Koleji Anaokulu/);
   assert.match(kaynak, /BÇKA/);
 });

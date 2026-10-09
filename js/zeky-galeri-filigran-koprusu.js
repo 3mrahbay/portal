@@ -4,14 +4,18 @@
 // Ayrintili veli egitim + gelismis ogretmen gozlem koprusu de bu ortak
 // son-yuklenen modul uzerinden devreye girer; buyuk index.html'e dokunulmaz.
 import './zeky-veli-egitim-koprusu.js?v=9';
-import './zeky-galeri-onay-egitim.js?v=6';
+import './zeky-galeri-onay-egitim.js?v=193';
 import './portal-galeri-canli.js?v=192';
 
 const KOPRU_ANAHTARI = '__zekyGaleriFiligranKoprusuV6';
 
 export function galeriFiligraniCiz(canvas) {
-  const ctx = canvas?.getContext?.('2d');
-  if (!ctx || !canvas.width || !canvas.height) return false;
+  const fotoCtx = canvas?.getContext?.('2d');
+  if (!fotoCtx || !canvas.width || !canvas.height) return false;
+  const katman = canvas.ownerDocument.createElement('canvas');
+  katman.width = canvas.width; katman.height = canvas.height;
+  const ctx = katman.getContext('2d');
+  if (!ctx) return false;
 
   const kisaKenar = Math.min(canvas.width, canvas.height);
   const pay = Math.max(12, Math.round(kisaKenar * 0.035));
@@ -38,7 +42,7 @@ export function galeriFiligraniCiz(canvas) {
     const kutuUst = canvas.height - pay - kutuYukseklik;
 
     // Açık ve koyu fotoğraflarda yazının kaybolmaması için yarı saydam bir
-    // kontrast plakası kullanılır. Yazı hâlâ istenen %60 saydamlıktadır.
+    // kontrast plakası kullanılır. Katmanın tamamı aşağıda %50 opaklıkla çizilir.
     ctx.save();
     ctx.globalAlpha = 0.34;
     ctx.fillStyle = '#10251A';
@@ -53,8 +57,7 @@ export function galeriFiligraniCiz(canvas) {
     ctx.restore();
 
     ctx.save();
-    // İstenen %60 saydamlık, %40 görünürlüğe karşılık gelir.
-    ctx.globalAlpha = 0.40;
+    ctx.globalAlpha = 1;
     ctx.fillStyle = '#ffffff';
     ctx.shadowColor = 'rgba(0,0,0,0.82)';
     ctx.shadowBlur = Math.max(3, Math.round(ustBoyut * 0.14));
@@ -66,6 +69,10 @@ export function galeriFiligraniCiz(canvas) {
     ctx.font = `800 ${ustBoyut}px ${yaziTipi}`;
     ctx.fillText('BÇKA', sag - bosluk, alt - bosluk - altBoyut - Math.round(ustBoyut * 0.18));
     ctx.restore();
+    fotoCtx.save();
+    fotoCtx.globalAlpha = 0.50;
+    fotoCtx.drawImage(katman, 0, 0);
+    fotoCtx.restore();
     return true;
   } catch (hata) {
     console.warn('Galeri filigrani uygulanamadi; yukleme filigransiz suruyor.', hata);

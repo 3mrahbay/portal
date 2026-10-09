@@ -43,7 +43,7 @@ test('gözlem doğrudan çekirdek modalda S T U not ve fotoğraf sunar', async (
   assert.match(s, /albumTuru:"egitim"/);
   assert.match(s, /asamalar\[st\.seviye\]/);
   assert.match(s, /Bir Çiçek Koleji Anaokulu/);
-  assert.match(s, /globalAlpha=\.40/);
+  assert.match(s, /globalAlpha=\.50/);
 });
 
 test('gözlem açıcı dış portal-data ya da gözlem modülü importuna bağlı değildir', async () => {

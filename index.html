@@ -14018,7 +14018,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v192";
+window.PORTAL_SURUM = "v193";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -22160,14 +22160,17 @@ async function caGozlemFiligranliDosya(file) {
       img.onload = () => {
         const c = document.createElement("canvas");
         c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height;
-        const x = c.getContext("2d"); x.drawImage(img,0,0,c.width,c.height);
+        const fotoCtx = c.getContext("2d"); fotoCtx.drawImage(img,0,0,c.width,c.height);
+        const katman = document.createElement("canvas"); katman.width=c.width; katman.height=c.height;
+        const x = katman.getContext("2d");
         const k=Math.min(c.width,c.height), pay=Math.max(14,Math.round(k*.035)), ust=Math.max(18,Math.round(k*.055));
         let alt=Math.max(9,Math.round(ust*.36)); const met="Bir Çiçek Koleji Anaokulu";
-        x.save(); x.globalAlpha=.40; x.fillStyle="#fff"; x.shadowColor="rgba(0,0,0,.55)"; x.shadowBlur=Math.max(2,Math.round(ust*.10)); x.textAlign="right"; x.textBaseline="alphabetic";
+        x.save(); x.globalAlpha=1; x.fillStyle="#fff"; x.shadowColor="rgba(0,0,0,.55)"; x.shadowBlur=Math.max(2,Math.round(ust*.10)); x.textAlign="right"; x.textBaseline="alphabetic";
         x.font=`600 ${alt}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`;
         const max=Math.max(80,c.width-pay*2), ol=x.measureText(met).width; if(ol>max) alt=Math.max(8,Math.floor(alt*max/ol));
         x.font=`600 ${alt}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`; x.fillText(met,c.width-pay,c.height-pay);
         x.font=`800 ${ust}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`; x.fillText("BÇKA",c.width-pay,c.height-pay-alt-Math.round(ust*.18)); x.restore();
+        fotoCtx.save(); fotoCtx.globalAlpha=.50; fotoCtx.drawImage(katman,0,0); fotoCtx.restore();
         c.toBlob(blob => blob ? resolve(new File([blob], (file.name||"gozlem").replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg"})) : reject(new Error("Fotoğraf işlenemedi.")), "image/jpeg", .9);
       };
       img.onerror = () => reject(new Error("Fotoğraf okunamadı."));
@@ -22178,7 +22181,7 @@ async function caGozlemFiligranliDosya(file) {
   });
 }
 
-async function caGozlemFotoYukle(st, anahtar, ders, notMetin) {
+async function caGozlemFotoYukle(st, anahtar, ders, notMetin, alan = {}, grup = {}) {
   if (!st.foto) return null;
   const isaretli = await caGozlemFiligranliDosya(st.foto);
   const tarih = new Date().toISOString().slice(0,10);
@@ -22192,10 +22195,14 @@ async function caGozlemFotoYukle(st, anahtar, ders, notMetin) {
     etkinlikTarih:tarih, aciklama:notMetin || "", hedefTur:"ogrenci", hedefDeger:st.ogrId,
     hedefOgrenciId:st.ogrId, hedefOgrenciAd:st.ogrAd, ogrenciId:st.ogrId, sinif:st.sinif || "",
     kategori:st.disiplin, program:st.disiplin, albumTuru:"egitim", egitimKaydi:true,
-    kazanimAnahtari:anahtar, gozlemDurum:st.seviye, dosyaTipi:"foto", tip:"image",
+    kazanimAnahtari:anahtar, kazanimAdi:ders, alanId:alan.id || "", alanAd:alan.ad || "", grupAd:grup.ad || "",
+    sinifAdi:st.sinif || ayarListesi?.[st.ogrId]?.kayit?.sinif || ogrenciList.find(o=>o.id===st.ogrId)?.sinif || ogrenciList.find(o=>o.id===st.ogrId)?.sinifi || "", gozlemDurum:st.seviye, dosyaTipi:"foto", tip:"image", filigranOpaklik:0.50,
     bunnyUrl:sonuc.url, kucukResim:sonuc.url, bunnyPath:sonuc.yol || "",
     dosyaBoyutu:isaretli.size, orjinalAd:isaretli.name, donem:AKTIF_DONEM,
-    yukleyen:currentUser?.email || "", yuklemeZamani:simdi, tarih:simdi, durum,
+    yukleyen:currentUser?.email || "",
+    yukleyenAd:[aktifPersonel?.adSoyad, [aktifPersonel?.ad, aktifPersonel?.soyad].filter(Boolean).join(' '), currentUser?.displayName].map(x=>String(x||'').trim()).find(x=>x&&!/@/.test(x)) || "",
+    yukleyenRol:aktifKullaniciRol || aktifPersonel?.rol || "", yukleyenUid:currentUser?.uid || "",
+    yuklemeZamani:simdi, tarih:simdi, durum,
     onaylayanEmail:yonetimYuklemesi ? (currentUser?.email || "") : "",
     onayTarihi:yonetimYuklemesi ? simdi : ""
   };
@@ -22311,7 +22318,7 @@ window.caGozlemKaydet = async function() {
     const anahtar = `${alan.id}__${grup.ad}__${ders}`;
     let foto = null, fotoHata = null;
     if (st.foto) {
-      try { foto = await caGozlemFotoYukle(st, anahtar, ders, notMetin); }
+      try { foto = await caGozlemFotoYukle(st, anahtar, ders, notMetin, alan, grup); }
       catch (e) { fotoHata = e; console.error("Gözlem fotoğrafı yüklenemedi:", e); }
     }
     const kaydedilen = await caGozlemDetayKaydet(st, alan, grup, ders, notMetin, foto);
@@ -48827,13 +48834,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=192");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=193");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v192";
+          const anahtar = "portalSwReload_v193";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
@@ -48844,7 +48851,7 @@ window.showBulkUpload = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=188"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=193"></script>
 
 <!-- Read-only, user-triggered pickup diagnosis. No automatic data requests. -->
 <script>

@@ -31,8 +31,11 @@
       const canvas = document.createElement('canvas');
       canvas.width = img.naturalWidth || img.width;
       canvas.height = img.naturalHeight || img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const fotoCtx = canvas.getContext('2d');
+      fotoCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const katman = document.createElement('canvas');
+      katman.width = canvas.width; katman.height = canvas.height;
+      const ctx = katman.getContext('2d');
 
       const kisa = Math.min(canvas.width, canvas.height);
       const ustBoy = Math.max(16, Math.round(kisa * 0.055));
@@ -43,8 +46,8 @@
       const ustMetin = 'BÇKA';
       const altMetin = 'Bir Çiçek Koleji Anaokulu';
 
-      // %60 saydamlık = %40 görünürlük.
-      ctx.globalAlpha = 0.40;
+      // Önce filigranı ayrı katmanda oluştur; fotoğrafı saydamlaştırma.
+      ctx.globalAlpha = 1;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'alphabetic';
       ctx.fillStyle = '#ffffff';
@@ -60,7 +63,10 @@
       ctx.fillText(altMetin, sag, alt);
       ctx.font = `800 ${ustBoy}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif`;
       ctx.fillText(ustMetin, sag, alt - altBoy - Math.round(ustBoy * 0.18));
-      ctx.globalAlpha = 1;
+      fotoCtx.save();
+      fotoCtx.globalAlpha = 0.50;
+      fotoCtx.drawImage(katman, 0, 0);
+      fotoCtx.restore();
 
       return await new Promise((resolve) => canvas.toBlob(
         b => resolve(b || blob),
@@ -110,7 +116,7 @@
               uygulandi: true,
               ustMetin: 'BÇKA',
               altMetin: 'Bir Çiçek Koleji Anaokulu',
-              saydamlik: 0.60
+              saydamlik: 0.50
             } : (veri.filigran || null)
           };
         }

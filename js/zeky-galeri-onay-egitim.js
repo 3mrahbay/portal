@@ -1,5 +1,7 @@
 // Yönetim galeri onayında eğitim fotoğrafını kazanım bağlamıyla gösterir.
 
+import { galleryEducationMetadata, galleryPersonName, hydrateGalleryEducationMetadata } from './galeri-gozlem-metadata.js?v=193';
+import { gallerySession } from './galeri-onay-canli.js?v=186';
 import { bildirimKaydetVePush, hedefVeliEmailleri } from './zeky-bildirim-koprusu.js';
 
 const KURULUM='__zekyGaleriOnayEgitimV4';
@@ -20,9 +22,9 @@ function veri(id){return(window.galeriListesiVerisi||[]).find(x=>x.id===id)||nul
 function kartId(k){if(k?.dataset?.galleryMediaId)return k.dataset.galleryMediaId;const x=String(k?.getAttribute?.('onclick')||'').match(/acGaleriLightbox\('([^']+)'\)/);return x?.[1]||'';}
 function tarih(m){const d=new Date(m?.tarih||m?.yuklemeZamani||m?.olusturmaTarihi||'');return isNaN(d)?'':d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});}
 function hedefEtiketi(m){if(m?.hedefEtiket)return m.hedefEtiket;if(m?.hedefTur==='tumOkul')return'Tüm okul';if(m?.hedefTur==='sinif')return m.hedefSinifAd||m.sinifAdi||m.hedefDeger||'Sınıf';if(m?.hedefTur==='ogrenci')return m.hedefOgrenciAd||m.ogrenciAdSoyad||m.ogrenciAd||m.hedefDeger||'Öğrenci';return m?.hedefOgrenciAd||m?.hedefDeger||'—';}
-function sinifEtiketi(m){return m?.hedefSinifAd||m?.sinifAdi||m?.sinif||m?.grupAd||((m?.hedefTur==='sinif'&&m?.hedefDeger)||'—');}
-function yukleyenEtiketi(m){return m?.yukleyenAd||m?.yukleyenAdSoyad||m?.gonderenAd||m?.olusturanAd||m?.yukleyen||m?.yukleyenEmail||'—';}
-function rolEtiketi(m){const r=String(m?.yukleyenRol||m?.gonderenRol||'').replace(/_/g,' ').trim();return r?r.replace(/(^|\s)\S/g,x=>x.toLocaleUpperCase('tr')):'—';}
+function sinifEtiketi(m){return m?.hedefSinifAd||m?.sinifAdi||m?.sinif||((m?.hedefTur==='sinif'&&m?.hedefDeger)||'—');}
+function yukleyenEtiketi(m){return galleryPersonName(m?.yukleyenAd,m?.yukleyenAdSoyad,m?.gonderenAd,m?.olusturanAd)||'Ad bilgisi bulunamadı';}
+function rolEtiketi(m){const kod=String(m?.yukleyenRol||m?.gonderenRol||'').trim();const roller={ogretmen:'Öğretmen',brans_ogretmen:'Branş Öğretmeni',mudur:'Müdür',kurucu_mudur:'Kurucu Müdür',egitim_koordinator:'Eğitim Koordinatörü',pdr:'PDR',danisma:'Danışma',muhasebe:'Muhasebe'};return roller[kod]||(kod?kod.replace(/_/g,' ').replace(/(^|\s)\S/g,x=>x.toLocaleUpperCase('tr')):'Rol bilgisi bulunamadı');}
 
 function stil(){if(document.getElementById('zeky-galeri-onay-egitim-stil'))return;const s=document.createElement('style');s.id='zeky-galeri-onay-egitim-stil';s.textContent=`.zgo-kisa{position:absolute;left:0;right:0;bottom:45px;padding:24px 8px 7px;background:linear-gradient(transparent,rgba(7,20,13,.86));color:#fff;pointer-events:none}.zgo-kisa b{display:block;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zgo-kisa span{display:block;font-size:9px;opacity:.82;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zgo-detay{width:min(390px,36vw);min-width:290px;padding:22px;overflow:auto;background:#fff;color:#26382E}.zgo-detay h3{font-size:18px;line-height:1.35;margin:6px 0 0}.zgo-rozetler{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}.zgo-rozet{font-size:10.5px;font-weight:800;padding:5px 9px;border-radius:999px;background:#EAF3EC;color:#2D6A45}.zgo-aciklama{font-size:13px;line-height:1.65;color:#526158;background:#F5F8F6;border-radius:13px;padding:12px;margin-top:14px}.zgo-bilgi{display:grid;grid-template-columns:92px 1fr;gap:7px;font-size:11.5px;margin-top:14px}.zgo-bilgi span{color:#89958E}.zgo-bilgi b{color:#35463C;overflow-wrap:anywhere}.zgo-actions{display:flex;gap:8px;margin-top:18px}.zgo-actions button{flex:1;border:0;border-radius:11px;padding:11px;color:#fff;font-weight:800;cursor:pointer}@media(max-width:760px){#galeriLightboxIcerik.zgo-grid{display:flex!important;flex-direction:column;overflow:auto!important;max-height:88vh!important}.zgo-detay{width:100%;min-width:0;box-sizing:border-box}.zgo-medya{min-height:42vh}.zgo-medya img{max-height:52vh!important}}`;document.head.appendChild(s);}
 
@@ -31,14 +33,17 @@ function kartlariZenginlestir(){
   liste.querySelectorAll("[onclick*='acGaleriLightbox(']").forEach(k=>{const id=kartId(k),m=veri(id);if(!m||!egitimMi(m)||!bekliyor(m)||k.querySelector('.zgo-kisa'))return;const d=document.createElement('div');d.className='zgo-kisa';d.innerHTML=`<b>${esc(m.baslik||m.kazanimAdi||'Eğitim kazanımı')}</b><span>${esc(PROGRAM[programKodu(m)]||m.programAd||'Eğitim')} · ${esc(ASAMA[m.gozlemDurum]||'Aşama')} ${m.aciklama?'· açıklamalı':''}</span>`;k.appendChild(d);});
 }
 
-function detayHTML(m){
+export function detayHTML(kayit){
+  const m=galleryEducationMetadata(kayit);
   const p=PROGRAM[programKodu(m)]||m.programAd||'Eğitim',a=ASAMA[m.gozlemDurum]||m.gozlemDurum||'Gelişim aşaması';
   const hedef=hedefEtiketi(m),sinif=sinifEtiketi(m),ogrenci=m.hedefOgrenciAd||m.ogrenciAdSoyad||m.ogrenciAd||(m.hedefTur==='ogrenci'?m.hedefDeger:'—');
-  return`<aside class="zgo-detay"><div style="font-size:10px;font-weight:850;letter-spacing:.8px;color:#738279">EĞİTİM ONAYI</div><h3>${esc(m.baslik||m.kazanimAdi||m.etkinlikBaslik||'Eğitim kazanımı')}</h3><div class="zgo-rozetler"><span class="zgo-rozet">${esc(p)}</span><span class="zgo-rozet" style="background:#FFF5D8;color:#9A6800">${esc(a)}</span>${m.alanAd?`<span class="zgo-rozet" style="background:#EEF2F7;color:#536274">${esc(m.alanAd)}</span>`:''}</div>${m.aciklama?`<div class="zgo-aciklama"><b style="display:block;font-size:11px;color:#2D6A45;margin-bottom:5px">Gözlem açıklaması</b>${esc(m.aciklama)}</div>`:'<div class="zgo-aciklama" style="color:#8B9690">Bu gözlem için açıklama girilmemiş.</div>'}<div class="zgo-bilgi"><span>Gönderim hedefi</span><b>${esc(hedef)}</b><span>Öğrenci</span><b>${esc(ogrenci||'—')}</b><span>Sınıf</span><b>${esc(sinif)}</b><span>Gelişim alanı</span><b>${esc(m.alanAd||m.alanId||'—')}</b><span>Grup</span><b>${esc(m.grupAd||'—')}</b><span>Gönderen</span><b>${esc(yukleyenEtiketi(m))}</b><span>Gönderen rolü</span><b>${esc(rolEtiketi(m))}</b><span>Tarih</span><b>${esc(tarih(m)||'—')}</b></div>${bekliyor(m)&&yonetimMi()?`<div class="zgo-actions"><button type="button" data-zgo-red style="background:#DC2626">Reddet</button><button type="button" data-zgo-onay style="background:#168447">Onayla</button></div>`:''}</aside>`;
+  return`<aside class="zgo-detay"><div style="font-size:10px;font-weight:850;letter-spacing:.8px;color:#738279">EĞİTİM ONAYI</div><h3>${esc(m.baslik||m.kazanimAdi||m.etkinlikBaslik||'Eğitim kazanımı')}</h3><div class="zgo-rozetler"><span class="zgo-rozet">${esc(p)}</span><span class="zgo-rozet" style="background:#FFF5D8;color:#9A6800">${esc(a)}</span>${m.alanAd?`<span class="zgo-rozet" style="background:#EEF2F7;color:#536274">${esc(m.alanAd)}</span>`:''}</div>${m.aciklama?`<div class="zgo-aciklama"><b style="display:block;font-size:11px;color:#2D6A45;margin-bottom:5px">Gözlem açıklaması</b>${esc(m.aciklama)}</div>`:'<div class="zgo-aciklama" style="color:#8B9690">Bu gözlem için açıklama girilmemiş.</div>'}<div class="zgo-bilgi"><span>Gönderim hedefi</span><b>${esc(hedef)}</b><span>Öğrenci</span><b>${esc(ogrenci||'—')}</b><span>Sınıf</span><b>${esc(sinif)}</b><span>Gelişim alanı</span><b>${esc(m.alanAd||'Bilgi bulunamadı')}</b><span>Grup</span><b>${esc(m.grupAd||'—')}</b><span>Gönderen</span><b>${esc(yukleyenEtiketi(m))}</b><span>Gönderen rolü</span><b>${esc(rolEtiketi(m))}</b><span>Tarih</span><b>${esc(tarih(m)||'—')}</b></div>${bekliyor(m)&&yonetimMi()?`<div class="zgo-actions"><button type="button" data-zgo-red style="background:#DC2626">Reddet</button><button type="button" data-zgo-onay style="background:#168447">Onayla</button></div>`:''}</aside>`;
 }
 
 function lightboxZenginlestir(id){
   const m=veri(id),icerik=document.getElementById('galeriLightboxIcerik');if(!m||!icerik||!egitimMi(m))return;
+  const ticket=lightboxTicket,session=gallerySession(window.PortalAPI?.state||{});
+  const halaAcik=()=>ticket===lightboxTicket&&session===gallerySession(window.PortalAPI?.state||{})&&document.getElementById('galeriLightbox')?.classList.contains('active')&&document.getElementById('galeriLightboxIcerik')===icerik;
   if(icerik.classList.contains('zgo-grid')&&icerik.querySelector('.zgo-detay'))return;
   const mediaHost=icerik.querySelector('[data-pg-lightbox-media-host]')||icerik.querySelector('[data-pg-media]');
   const medya=mediaHost?[mediaHost]:Array.from(icerik.childNodes).filter(n=>!n.classList?.contains?.('zgo-detay'));
@@ -47,8 +52,18 @@ function lightboxZenginlestir(id){
   icerik.innerHTML=`<div class="zgo-medya" style="min-width:0;background:#111;display:grid;place-items:center;overflow:hidden"></div>${detayHTML(m)}`;
   const hedef=icerik.querySelector('.zgo-medya');hedef.append(...medya);
   const img=hedef.querySelector('img');if(img)img.style.cssText='width:100%;height:100%;max-width:min(64vw,980px);max-height:92vh;object-fit:contain';
+  const eylemleriBagla=()=>{
   icerik.querySelector('[data-zgo-onay]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriOnayla?.(id);});
   icerik.querySelector('[data-zgo-red]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriReddet?.(id);});
+  };
+  eylemleriBagla();
+  const {db,fb}=api();
+  hydrateGalleryEducationMetadata({...m,program:programKodu(m)||m.program},{db,fb,state:window.PortalAPI?.state||{},isCurrent:halaAcik}).then(detay=>{
+    if(!detay||!halaAcik())return;
+    const onceki=icerik.querySelector('.zgo-detay');if(!onceki)return;
+    const gecici=document.createElement('div');gecici.innerHTML=detayHTML(detay);
+    onceki.replaceWith(gecici.firstElementChild);eylemleriBagla();
+  }).catch(()=>{});
 }
 
 function fonksiyonlariSar(){
