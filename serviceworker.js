@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v193-gallery-metadata";
+const CACHE_VERSION = "v194-finans-kayit-tarihi";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
