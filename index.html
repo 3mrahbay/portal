@@ -38155,12 +38155,14 @@ window.bekleyenOdemeleriRender = function() {
     // Peşinat
     if ((a.onOdeme || 0) > 0) {
       const p = odemeler["__onOdeme"] || {};
-      if (!p.odendi) {
+      const beklenen = Number(p.beklenenTutar ?? a.onOdeme) || 0;
+      const kalan = Math.max(0, beklenen - Math.max(0, Number(p.odenenTutar) || 0));
+      if (!p.odendi && kalan > 0) {
         satirlar.push({
           ogrenciId: o.id, ad: o.ogrenciAdSoyad || o.adSoyad || "—",
           sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
           ayKod: "__onOdeme", ayAd: "Peşinat / Ön Ödeme",
-          tutar: Number(a.onOdeme) || 0, gecikmis: true, gunFarki: 999
+          tutar: kalan, beklenen, gecikmis: true, gunFarki: 999
         });
       }
     }
@@ -38172,14 +38174,15 @@ window.bekleyenOdemeleriRender = function() {
       const vade = new Date(yil, ayNo - 1, 10);
       // Gelecek ayları listeleme (bu ay ve öncesi)
       if (ay.ayKod > buAyKod) continue;
-      const beklenen = (ayNo >= 9 || ayNo <= 1) ? iD : iiD;
-      if (beklenen <= 0) continue;
+      const beklenen = Number(od.beklenenTutar ?? ((ayNo >= 9 || ayNo <= 1) ? iD : iiD)) || 0;
+      const kalan = Math.max(0, beklenen - Math.max(0, Number(od.odenenTutar) || 0));
+      if (kalan <= 0) continue;
       const gunFarki = Math.round((bugun - vade) / 86400000);
       satirlar.push({
         ogrenciId: o.id, ad: o.ogrenciAdSoyad || o.adSoyad || "—",
         sinif: (ayar.kayit && ayar.kayit.sinif) || o.sinif || "",
         ayKod: ay.ayKod, ayAd: ay.tam || ay.ayKod,
-        tutar: beklenen, gecikmis: gunFarki > 0, gunFarki
+        tutar: kalan, beklenen, gecikmis: gunFarki > 0, gunFarki
       });
     }
   }
@@ -38232,7 +38235,7 @@ window.bekleyenOdemeleriRender = function() {
         <thead><tr style="background:#F8FAFC; text-align:left;">
           <th style="padding:11px 14px; font-size:10.5px; text-transform:uppercase; color:#64748B;">Öğrenci</th>
           <th style="padding:11px 10px; font-size:10.5px; text-transform:uppercase; color:#64748B;">Dönem</th>
-          <th style="padding:11px 10px; font-size:10.5px; text-transform:uppercase; color:#64748B; text-align:right;">Tutar</th>
+          <th style="padding:11px 10px; font-size:10.5px; text-transform:uppercase; color:#64748B; text-align:right;">Kalan Tutar</th>
           <th style="padding:11px 10px; font-size:10.5px; text-transform:uppercase; color:#64748B; text-align:center;">Durum</th>
           <th style="padding:11px 14px; font-size:10.5px; text-transform:uppercase; color:#64748B; text-align:right;">İşlem</th>
         </tr></thead>
@@ -38252,7 +38255,7 @@ window.bekleyenOdemeleriRender = function() {
                 <span style="font-size:11px; font-weight:700; color:${gecikmeRenk};">${gecikmeMetin}</span>
               </td>
               <td style="padding:10px 14px; text-align:right; white-space:nowrap;">
-                <button class="btn-mini" onclick="bekleyenOdendiYap('${x.ogrenciId}','${x.ayKod}',${x.tutar})"
+                <button class="btn-mini" onclick="bekleyenOdendiYap('${x.ogrenciId}','${x.ayKod}',${x.beklenen})"
                   style="background:#DCFCE7; color:#166534; border-color:#86EFAC; font-weight:700;">
                   <i data-lucide="check" style="width:12px;height:12px;vertical-align:-1px;"></i> Ödendi</button>
                 <button class="btn-mini" onclick="bekleyenHatirlat('${x.ogrenciId}','${esc(x.ayAd)}',${x.tutar})"
