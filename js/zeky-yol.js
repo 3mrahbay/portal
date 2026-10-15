@@ -15,6 +15,10 @@
 // süre kendiliğinden hesaplanır; diğer saatlerde dokununca hesaplanır.
 // Açma/kapama: config/ozellikBayraklari.okulYolu (varsayılan kapalı).
 //
+// "Konumu gönder": çocuğu bazen onaylı başka bir yetişkin (dede, teyze…) alır.
+// Veli okulun konumunu hazır bir mesajla gönderir (WhatsApp ya da paylaşım
+// menüsü). Okul bilgisi ayarlar/okulYolu = { ad, adres, placeId }.
+//
 // ZEKY (www/js/zeky-yol.js) ve portal (js/zeky-yol.js) bu dosyanın BİREBİR
 // kopyasını kullanır. Firebase'i ve Capacitor'ı dışarıdan alır; DOM'u
 // yalnız createElement ve textContent ile kurar.
@@ -277,6 +281,93 @@ export function haritalarLinki({ hedef, mod }) {
   return `https://www.google.com/maps/dir/?${q}`;
 }
 
+// ── Okulun konumunu gönderme ──
+// Velinin kendi konumu gerekmez; mesaj velinin telefonundan, onun seçtiği kişiye gider.
+const temiz = (t, n) => (typeof t === 'string' ? t.replace(/\s+/g, ' ').trim().slice(0, n) : '');
+
+export function okulBilgisiDuzelt(veri, yedekHedef = null) {
+  const placeId = hedefKaydi(veri) || hedefKaydi(yedekHedef);
+  const kaynak = [veri, yedekHedef].find(k => k && Number.isFinite(k.enlem) && Number.isFinite(k.boylam));
+  if (!placeId && !kaynak) return null;
+  const okul = { ad: temiz(veri?.ad, 80) || temiz(yedekHedef?.ad, 80) || 'Okul', adres: temiz(veri?.adres, 160) };
+  if (placeId) okul.placeId = placeId;
+  if (kaynak) { okul.enlem = kaynak.enlem; okul.boylam = kaynak.boylam; }
+  return okul;
+}
+
+// Google Haritalar'da okulun kendi sayfasını açan bağlantı (kayıt yoksa koordinat).
+export function okulKonumBaglantisi(okul) {
+  if (!okul) return '';
+  const kayit = hedefKaydi(okul);
+  if (!kayit && !(Number.isFinite(okul.enlem) && Number.isFinite(okul.boylam))) return '';
+  const q = new URLSearchParams({ api: '1', query: kayit && okul.ad ? okul.ad : `${okul.enlem},${okul.boylam}` });
+  if (kayit) q.set('query_place_id', kayit);
+  return `https://www.google.com/maps/search/?${q}`;
+}
+
+// teslim=true: çocuğu alacak kişiye giden mesaj (çocuğun adı ve kimlik hatırlatması ile).
+// bugun=false: kalıcı listedeki biri için ("Okuldan alacağınız çocuk").
+export function konumMesaji({ okul, kisiAdi = '', cocukAdi = '', teslim = false, bugun = true } = {}) {
+  if (!okul) return '';
+  const satirlar = [];
+  const kisi = temiz(kisiAdi, 60), cocuk = temiz(cocukAdi, 60);
+  if (kisi) satirlar.push(`Merhaba ${kisi},`);
+  if (teslim && cocuk) satirlar.push(`${bugun ? 'Bugün okuldan' : 'Okuldan'} alacağınız çocuk: ${cocuk}`);
+  if (satirlar.length) satirlar.push('');
+  satirlar.push(`Okul: ${okul.ad}`);
+  if (okul.adres) satirlar.push(`Adres: ${okul.adres}`);
+  const baglanti = okulKonumBaglantisi(okul);
+  if (baglanti) satirlar.push(`Konum (Google Haritalar): ${baglanti}`);
+  if (teslim) satirlar.push('', 'Teslim sırasında kimlik kontrolü yapılır; lütfen kimliğinizi yanınızda bulundurun.');
+  return satirlar.join('\n');
+}
+
+// Türkiye numaraları: 05xx…, 5xx…, +90 5xx…, 0090 5xx… → 905xx…; geçersizse ''.
+export function whatsappBaglantisi(telefon, metin) {
+  let n = String(telefon || '').replace(/\D/g, '');
+  if (n.startsWith('00')) n = n.slice(2);
+  if (n.length === 11 && n.startsWith('0')) n = '90' + n.slice(1);
+  else if (n.length === 10 && n.startsWith('5')) n = '90' + n;
+  if (n.length < 11 || n.length > 15) return '';
+  return `https://wa.me/${n}?text=${encodeURIComponent(metin || '')}`;
+}
+
+// Telefonun paylaşım menüsü (ZEKY'de yerel eklenti, tarayıcıda Web Share); yoksa panoya kopyalar.
+// Dönüş: 'paylasildi' | 'iptal' | 'kopyalandi' | 'yok'
+export async function konumPaylas({ metin, baslik = 'Okulun konumu', capacitor = globalThis.Capacitor, gezgin = globalThis.navigator } = {}) {
+  const Share = capacitor?.isNativePlatform?.() ? capacitor?.Plugins?.Share : null;
+  try {
+    if (Share?.share) { await Share.share({ title: baslik, text: metin, dialogTitle: baslik }); return 'paylasildi'; }
+    if (typeof gezgin?.share === 'function') { await gezgin.share({ title: baslik, text: metin }); return 'paylasildi'; }
+  } catch (e) {
+    if (e?.name === 'AbortError' || /cancel|iptal/i.test(String(e?.message || e || ''))) return 'iptal';
+  }
+  try { if (gezgin?.clipboard?.writeText) { await gezgin.clipboard.writeText(metin); return 'kopyalandi'; } } catch (_) { /* izin yok */ }
+  return 'yok';
+}
+
+// Anne ve baba yolu bilir; düğme yalnız diğer yetişkinler (dede, teyze, bakıcı…) için çıkar.
+export function konumGonderilebilirMi(kisi) {
+  const n = t => String(t || '').toLocaleLowerCase('tr').trim();
+  if (!kisi || !n(kisi.ad)) return false;
+  return !['anne', 'baba'].includes(n(kisi.yakinlik) || n(kisi.ad));
+}
+
+// Çocuğu alacak kişiye: telefonu kayıtlıysa WhatsApp'ta doğrudan o kişiyle sohbet açılır,
+// değilse telefonun paylaşım menüsü. Dönüş: 'whatsapp' | konumPaylas sonucu.
+export async function teslimKonumuGonder({ okul, kisi, cocukAdi = '', bugun = true, disariAc, whatsapp = true, ...paylasim } = {}) {
+  const metin = konumMesaji({ okul, kisiAdi: kisi?.ad, cocukAdi, teslim: true, bugun });
+  if (!metin) return 'yok';
+  const wa = whatsapp ? whatsappBaglantisi(kisi?.telefon, metin) : '';
+  if (wa && typeof disariAc === 'function') { disariAc(wa); return 'whatsapp'; }
+  return konumPaylas({ metin, baslik: `${okul.ad} konumu`, ...paylasim });
+}
+
+export function paylasimSonucMetni(sonuc) {
+  return { kopyalandi: 'Mesaj kopyalandı; dilediğiniz uygulamaya yapıştırabilirsiniz.',
+    yok: 'Bu cihazda paylaşım açılamadı.' }[sonuc] || '';
+}
+
 // ── Çizim ──
 function yapici(kap) {
   const d = kap.ownerDocument || document;
@@ -312,7 +403,7 @@ export function yolSatiriCiz(kap, { bilgi, ac, ikonlariCiz } = {}) {
 }
 
 // Açılır pencerenin gövdesi (ZEKY ve portal): sekmeler, sonuç, harita, Google Haritalar.
-export function yolPaneliKur(kap, { servis, konum, depo = globalThis.localStorage, simdi = () => Date.now(), ikonlariCiz, disariAc, bildir } = {}) {
+export function yolPaneliKur(kap, { servis, konum, depo = globalThis.localStorage, simdi = () => Date.now(), ikonlariCiz, disariAc, bildir, okul = null } = {}) {
   const { el, ikon } = yapici(kap);
   let mod = sonMod(depo);
   let istekNo = 0;
@@ -338,16 +429,32 @@ export function yolPaneliKur(kap, { servis, konum, depo = globalThis.localStorag
   sonucKutusu.setAttribute('aria-live', 'polite');
   const harita = el('div', 'yol-harita');
   harita.hidden = true;
+  // Okulun Google kaydı (ayarlar) varsa, hesaplama yapmadan da haritada açılır ve gönderilir.
+  const okulHedefi = () => (okul && hedefKaydi(okul) ? okul : bilinenHedef(depo));
+  const dugmeler2 = el('div', 'yol-eylemler');
   const git = el('button', 'yol-git');
   git.type = 'button';
-  git.append(ikon('navigation'), el('span', null, "Google Haritalar'da aç"));
+  git.append(ikon('map'), el('span', null, "Haritalar'da aç"));
   git.hidden = true;
   git.addEventListener('click', () => {
-    const url = haritalarLinki({ hedef: bilinenHedef(depo), mod });
+    const url = haritalarLinki({ hedef: okulHedefi(), mod });
     if (url && typeof disariAc === 'function') disariAc(url);
   });
+  const gonder = el('button', 'yol-gonder');
+  gonder.type = 'button';
+  gonder.append(ikon('send'), el('span', null, 'Konumu gönder'));
+  gonder.hidden = !okul;
+  const paylasNot = el('div', 'yol-paylas-not');
+  paylasNot.setAttribute('role', 'status');
+  paylasNot.hidden = true;
+  gonder.addEventListener('click', async () => {
+    const m = paylasimSonucMetni(await konumPaylas({ metin: konumMesaji({ okul }), baslik: `${okul.ad} konumu` }));
+    paylasNot.textContent = m;
+    paylasNot.hidden = !m;
+  });
+  dugmeler2.append(git, gonder);
   const kaynak = el('div', 'yol-kaynak', 'Tahmin: Google Haritalar · Konumunuz kaydedilmez');
-  panel.append(sekmeler, sonucKutusu, harita, git, kaynak);
+  panel.append(sekmeler, sonucKutusu, harita, dugmeler2, paylasNot, kaynak);
   kap.appendChild(panel);
 
   function sekmeleriGuncelle() {
@@ -449,7 +556,7 @@ export function yolPaneliKur(kap, { servis, konum, depo = globalThis.localStorag
       sonucKutusu.appendChild(sonucCiz(durum.sonuc));
       haritayiGuncelle(durum.sonuc);
     }
-    git.hidden = !bilinenHedef(depo);
+    git.hidden = !okulHedefi();
     if (typeof ikonlariCiz === 'function') ikonlariCiz();
   }
 
