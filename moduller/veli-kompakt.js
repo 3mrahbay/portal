@@ -68,7 +68,7 @@ function izinOzet(el) {
 }
 function havaOzet(el) {
   const durum = el?.dataset?.hava;
-  if (durum === "hazir") return { durum: "tamam", yazi: el.dataset.ozet || "Ne giyileceğini görmek için dokunun" };
+  if (durum === "hazir") return { durum: "tamam", yazi: el.dataset.ozet || "Ne giyileceğini görmek için dokunun", deger: el.dataset.derece || "" };
   if (durum === "kapali" || durum === "yok") return { durum: "gizle", yazi: "" };
   return { durum: "yuk", yazi: "Yükleniyor" };
 }
@@ -161,7 +161,7 @@ function karoOlustur(k, liste) {
   karo.dataset.vkpKaro = k.id || k.anahtar;
   if (k.genis) karo.classList.add("vkp-genis");
   karo.innerHTML = `<span class="vkp-ikon">${ikon(k.ikon, 20)}</span><span class="vkp-ad">${esc(k.ad)}</span>
-    <span class="vkp-durum"><i></i><span>Yükleniyor</span></span><span class="vkp-ok">${ikon("chevron-right", 16)}</span>`;
+    <span class="vkp-durum"><i></i><span>Yükleniyor</span></span><span class="vkp-deger" hidden></span><span class="vkp-ok">${ikon("chevron-right", 16)}</span>`;
   liste.appendChild(karo);
   return karo;
 }
@@ -263,8 +263,11 @@ async function ozetYaz(k, karo, el) {
   const d = karo.querySelector(".vkp-durum");
   d.querySelector("i").style.background = DURUM_RENK[o.durum] || "#94A3B8";
   d.querySelector("span").textContent = o.yazi.length > 64 ? o.yazi.slice(0, 62) + "…" : o.yazi;
+  // Öne çıkan değer (ör. hava karosunda sıcaklık "11°–12°") ayrı ve büyük yazılır
+  const deger = karo.querySelector(".vkp-deger");
+  if (deger) { deger.textContent = o.deger || ""; deger.hidden = !o.deger; }
   karo.classList.toggle("vkp-etkin", o.durum === "aktif" || o.durum === "uyari");
-  karo.title = `${k.ad} · ${o.yazi}`;
+  karo.title = `${k.ad} · ${o.deger ? o.deger + " · " : ""}${o.yazi}`;
 }
 
 // ═════════════════════════ AÇILIR SAYFA ═════════════════════════
@@ -389,6 +392,8 @@ function stilEkle() {
 .vkp-genis .vkp-ad { flex:0 0 auto; }
 .vkp-genis .vkp-durum { flex:1; }
 .vkp-genis .vkp-ok { position:static; flex-shrink:0; }
+.vkp-deger { flex-shrink:0; font-size:22px; font-weight:800; line-height:1; color:var(--vkp-renk); font-variant-numeric:tabular-nums; white-space:nowrap; letter-spacing:-.01em; }
+.vkp-deger[hidden] { display:none !important; }
 @media (max-width:560px) { .vkp-karo.vkp-genis { flex-wrap:wrap; } .vkp-genis .vkp-durum { order:3; flex-basis:100%; padding-left:52px; margin-top:-6px; } .vkp-genis .vkp-ad { flex:1; } }
 .vkp-arka { position:fixed; inset:0; z-index:9400; background:rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center; padding:18px; animation:vkpAc .16s ease-out; }
 .vkp-arka.vkp-kapaniyor { animation:vkpKapa .16s ease-in forwards; }

@@ -57,7 +57,7 @@ async function doldur({ bayrak = true, bilgi, hata, ayar = null } = {}) {
   let cizilen = null;
   const modul = {
     havaHazirla: async ({ konum }) => { if (hata) throw hata; assert.deepEqual(konum, ayar); return bilgi; },
-    havaOzetSatiri: H.havaOzetSatiri,
+    havaOzetSatiri: H.havaOzetSatiri, havaDurumuMetni: H.havaDurumuMetni,
     havaDetayCiz: (kap, b) => { cizilen = b; kap.cocuk = ['detay']; }
   };
   const kaynak = fonksiyonKaynagi(index, 'caHomeHavaDoldur').replace('import("./js/zeky-hava.js?v=1")', '__modul()');
@@ -84,7 +84,8 @@ test('doldurma: veri gelince kart hazır ve karo özeti yazılır; konum ayarı 
   const ayar = { enlem: 41, boylam: 29, yerAdi: 'Kadıköy' };
   const { el, cizilen } = await doldur({ bilgi: ornekBilgi, ayar });
   assert.equal(el.dataset.hava, 'hazir');
-  assert.equal(el.dataset.ozet, 'Yarın · 11°–12° · Yağmurlu');
+  assert.equal(el.dataset.ozet, 'Yarın · Yağmurlu');
+  assert.equal(el.dataset.derece, '11°–12°');
   assert.equal(cizilen, ornekBilgi);
 });
 
@@ -104,11 +105,15 @@ test('karo: tam genişlik ilk karo; özet kart durumunu izler, veri yoksa karo g
   const karolar = kompakt.slice(kompakt.indexOf('const KAROLAR = ['));
   assert.match(karolar, /^const KAROLAR = \[\s*\{ id: "veliHavaKart", ad: "Hava ve kıyafet", ikon: "cloud-sun"[^}]*genis: true/);
   const havaOzet = vm.runInNewContext(`(${fonksiyonKaynagi(kompakt, 'havaOzet')})`);
-  assert.deepEqual({ ...havaOzet({ dataset: { hava: 'hazir', ozet: 'Yarın · 11°–12° · Yağmurlu' } }) }, { durum: 'tamam', yazi: 'Yarın · 11°–12° · Yağmurlu' });
+  assert.deepEqual({ ...havaOzet({ dataset: { hava: 'hazir', ozet: 'Yarın · Yağmurlu', derece: '11°–12°' } }) }, { durum: 'tamam', yazi: 'Yarın · Yağmurlu', deger: '11°–12°' });
   assert.equal(havaOzet({ dataset: { hava: 'kapali' } }).durum, 'gizle');
   assert.equal(havaOzet({ dataset: { hava: 'yok' } }).durum, 'gizle');
   assert.equal(havaOzet({ dataset: { hava: 'yukleniyor' } }).durum, 'yuk');
   assert.match(kompakt, /karo\.hidden = o\.durum === "gizle";\s*if \(karo\.hidden\) return;/);
   assert.match(kompakt, /\.vkp-karo\.vkp-genis \{ grid-column:1 \/ -1;/);
+  // Sıcaklık karoda ayrı ve büyük yazılır
+  assert.match(kompakt, /<span class="vkp-deger" hidden><\/span><span class="vkp-ok">/);
+  assert.match(kompakt, /deger\.textContent = o\.deger \|\| ""; deger\.hidden = !o\.deger;/);
+  assert.match(kompakt, /\.vkp-deger \{ flex-shrink:0; font-size:22px; font-weight:800;/);
   assert.match(kompakt, /const ilk = KAROLAR\.map\(k => document\.getElementById\(k\.id\)\)\.find\(Boolean\);/);
 });

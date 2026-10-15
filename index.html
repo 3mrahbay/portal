@@ -19031,7 +19031,7 @@ async function oryProgramYukle() {
 async function caHomeHavaDoldur() {
   const el = document.getElementById("veliHavaKart");
   if (!el) return;
-  const bitir = (durum) => { el.dataset.hava = durum; el.dataset.ozet = ""; el.replaceChildren(); };
+  const bitir = (durum) => { el.dataset.hava = durum; el.dataset.ozet = ""; el.dataset.derece = ""; el.replaceChildren(); };
   try {
     const bayraklar = await ozellikBayraklariYukle();
     if (bayraklar.havaKiyafet === false) return bitir("kapali");
@@ -19042,7 +19042,8 @@ async function caHomeHavaDoldur() {
     const bilgi = await m.havaHazirla({ konum: ayar });
     if (!bilgi || !el.isConnected) return bitir("yok");
     el.dataset.hava = "hazir";
-    el.dataset.ozet = m.havaOzetSatiri(bilgi);
+    el.dataset.ozet = `${bilgi.gun.kisa} · ${m.havaDurumuMetni(bilgi.ozet.kod)}`;   // karoda alt satır
+    el.dataset.derece = `${bilgi.ozet.enDusuk}°–${bilgi.ozet.enYuksek}°`;            // karoda büyük yazılır
     m.havaDetayCiz(el, bilgi);
     if (window.lucideYenile) setTimeout(window.lucideYenile, 30);
   } catch (e) {
