@@ -15,7 +15,7 @@ import {
   MEB_DENETIM_SURUM, OZEL_KATEGORI, PERIYOTLAR, SINIRLAR, bugunIstanbul, eskiKayitlariTasi, etkinDurum,
   filtreUyar, kategorileriTopla, kayitDuzenle, maddeIdGecerli, ozelMaddeDuzenle, ozelMaddeIdUret,
   ozetHesapla, sonrakiDurum, sureDurumu, tarihYazi
-} from '../js/meb-denetim-cekirdek.js?v=2';
+} from '../js/meb-denetim-cekirdek.js?v=3';
 
 const P = () => window.PortalAPI;
 
@@ -390,7 +390,9 @@ async function panelOlustur(kok, { api = P(), simdi = () => Date.now(), rapor = 
   const rol = api.state?.rol;
   const yetkili = !!api.state?.isAdmin || ['kurucu_mudur', 'mudur'].includes(rol);
   const d = { veri: { maddeler: {}, ozelMaddeler: {} }, filtre: Object.hasOwn(FILTRELER, filtre) ? filtre : 'tum', arama: '', acikMadde: '',
-    ozelFormAcik: false, mesgul: false, uyari: '', baglantiUyariZamani: 0 };
+    ozelFormAcik: false, mesgul: false, uyari: '', baglantiUyariZamani: 0,
+    sira: {},              // madde başına yazma sırası: yalnız en son yazmanın sonucu ekrana işlenir
+    bekleyenOzel: 0 };     // kuyruktaki (çevrimdışı) özel madde eklemeleri
 
   const model = () => ({
     kategoriler: kategorileriTopla(d.veri.ozelMaddeler), kayitlar: d.veri.maddeler || {},
@@ -400,21 +402,36 @@ async function panelOlustur(kok, { api = P(), simdi = () => Date.now(), rapor = 
   const acikPanel = () => (d.acikMadde ? kok.querySelector(`[data-detay="${CSS.escape(d.acikMadde)}"]`) : null);
   // Yeniden çizimde açık formda kullanıcının değiştirdiği alanlar korunur;
   // değiştirmediği alanlar (ör. durum düğmesiyle değişen durum) kayıttan gelir.
+  // Okula özel madde formundaki yazılar ve yazılan kutudaki imleç de korunur
+  // (arka planda gelen bir kayıt onayı yazmayı bölmesin).
+  const odakAnahtari = el => (!el || !kok.contains(el) ? '' : ['data-alan', 'data-ozel', 'data-arama']
+    .map(a => (el.hasAttribute(a) ? `[${a}="${CSS.escape(el.getAttribute(a))}"]` : '')).find(Boolean) || '');
   const ciz = ({ sadeceListe = false } = {}) => {
     const taslak = degisenAlanlar(acikPanel());
+    const ozelTaslak = {};
+    kok.querySelectorAll('[data-ozel]').forEach(el => { ozelTaslak[el.dataset.ozel] = el.value; });
+    const odak = document.activeElement, anahtar = odakAnahtari(odak);
+    let secim = null;
+    try { secim = anahtar ? [odak.selectionStart, odak.selectionEnd] : null; } catch (_) { secim = null; }
     if (sadeceListe) {
       const gecici = document.createElement('div');
       gecici.innerHTML = panelHtml(model());
       const eski = kok.querySelector('[data-liste]'), yeni = gecici.querySelector('[data-liste]');
       if (eski && yeni) eski.replaceWith(yeni); else kok.innerHTML = gecici.innerHTML;
     } else {
-      const odak = document.activeElement?.hasAttribute?.('data-arama');
       kok.innerHTML = panelHtml(model());
-      if (odak) { const a = kok.querySelector('[data-arama]'); if (a) { a.focus(); a.setSelectionRange(a.value.length, a.value.length); } }
     }
     acikPanel()?.querySelectorAll('[data-alan]').forEach(el => {
       if (Object.hasOwn(taslak, el.dataset.alan)) el.value = taslak[el.dataset.alan];
     });
+    kok.querySelectorAll('[data-ozel]').forEach(el => {
+      if (Object.hasOwn(ozelTaslak, el.dataset.ozel)) el.value = ozelTaslak[el.dataset.ozel];
+    });
+    const yeniOdak = anahtar ? kok.querySelector(anahtar) : null;
+    if (yeniOdak && yeniOdak !== document.activeElement) {
+      yeniOdak.focus();
+      try { if (secim && secim[0] != null) yeniOdak.setSelectionRange(secim[0], secim[1]); } catch (_) {}
+    }
     api.lucide?.();
   };
   const kaydedilmemisVar = () => Object.keys(degisenAlanlar(acikPanel())).length > 0;
@@ -457,9 +474,16 @@ async function panelOlustur(kok, { api = P(), simdi = () => Date.now(), rapor = 
     const m = maddeBul(id);
     const madde = { baslik: m?.s || '', periyotAy: m?.periyotAy || 0, kritik: m?.k === true };
     const alanlar = KAYIT_ALANLARI.filter(a => Object.hasOwn(degisen, a));
-    const onceki = d.veri.maddeler[id];
+    // Aynı maddeye arka arkaya yazılabilir (durum düğmesine hızlı dokunuş): yalnız
+    // EN SON yazmanın sonucu ekrana işlenir; eski bir onay yeni değeri ezmez.
+    // Hata olursa yalnız bu yazmanın alanları geri alınır (ör. aynı maddenin
+    // kaydedilmiş notu silinmez).
+    const sira = (d.sira[id] = (d.sira[id] || 0) + 1);
+    const enSon = () => d.sira[id] === sira;
+    const oncekiKayit = kayitDuzenle(d.veri.maddeler[id]);
+    const onceki = Object.fromEntries(alanlar.map(a => [a, oncekiKayit[a]]));
     const uygula = yazilan => { d.veri.maddeler[id] = kayitDuzenle({ ...d.veri.maddeler[id], ...yazilan }); };
-    const geriAl = () => { if (onceki === undefined) delete d.veri.maddeler[id]; else d.veri.maddeler[id] = onceki; };
+    const geriAl = () => { if (enSon()) uygula(onceki); };
     if (iyimser) { uygula({ ...degisen, ...madde }); ciz(); }
     const islem = kayitKaydet(api, id, { ...degisen, ...madde }, alanlar);
     try {
@@ -467,27 +491,28 @@ async function panelOlustur(kok, { api = P(), simdi = () => Date.now(), rapor = 
       if (r.bekliyor) {
         if (!iyimser) uygula({ ...degisen, ...madde });
         baglantiUyar();
-        islem.then(yazilan => { uygula(yazilan); ciz(); api.toast?.('✓ Bekleyen değişiklik kaydedildi'); },
-          e => { geriAl(); ciz(); api.toast?.(hataMesaji(e), 'error'); });
+        islem.then(yazilan => {
+          if (!enSon()) return;
+          uygula(yazilan); ciz(); api.toast?.('✓ Bekleyen değişiklik kaydedildi');
+        }, e => {
+          if (!enSon()) return;
+          geriAl(); ciz(); api.toast?.(hataMesaji(e), 'error');
+        });
         return 'bekliyor';
       }
-      uygula(r.sonuc);
+      if (enSon()) uygula(r.sonuc);
       if (basari) api.toast?.(basari);
       return 'tamam';
     } catch (e) {
-      if (iyimser) { geriAl(); ciz(); }
-      api.toast?.(hataMesaji(e), 'error');
+      if (iyimser && enSon()) { geriAl(); ciz(); }
+      if (enSon()) api.toast?.(hataMesaji(e), 'error');
       return 'hata';
     }
   }
 
+  // Arama yalnız listeyi yeniden çizer; arama kutusu yerinde kalır (Android
+  // klavyesi kelime yazarken harf kaybetmez, liste yazdıkça süzülür).
   kok.addEventListener('input', e => {
-    if (!e.target.hasAttribute?.('data-arama')) return;
-    d.arama = e.target.value.slice(0, 80);
-    // Klavye harf birleştirirken (Android / Türkçe klavye) arama kutusu yeniden çizilmez.
-    if (!e.isComposing) ciz({ sadeceListe: true });
-  });
-  kok.addEventListener('compositionend', e => {
     if (!e.target.hasAttribute?.('data-arama')) return;
     d.arama = e.target.value.slice(0, 80);
     ciz({ sadeceListe: true });
@@ -541,7 +566,7 @@ async function panelOlustur(kok, { api = P(), simdi = () => Date.now(), rapor = 
       const deger = alan => form?.querySelector(`[data-ozel="${alan}"]`)?.value ?? '';
       const ham = { s: deger('s'), kategori: deger('kategori'), periyotAy: Number(deger('periyotAy')), k: deger('k') === '1' };
       if (!String(ham.s).trim()) { api.toast?.('Madde metnini yazın.', 'error'); return; }
-      if (Object.keys(d.veri.ozelMaddeler).length >= SINIRLAR.ozelMadde) {
+      if (Object.keys(d.veri.ozelMaddeler).length + d.bekleyenOzel >= SINIRLAR.ozelMadde) {
         api.toast?.(`En fazla ${SINIRLAR.ozelMadde} okula özel madde eklenebilir.`, 'error');
         return;
       }
@@ -554,13 +579,20 @@ async function panelOlustur(kok, { api = P(), simdi = () => Date.now(), rapor = 
         if (r.bekliyor) {
           // Kuyrukta: form kapanır (ikinci kez eklenmesin), madde bağlantı gelince listeye girer.
           baglantiUyar();
-          d.ozelFormAcik = false; ciz();
-          islem.then(({ id: yeniId, madde }) => { d.veri.ozelMaddeler[yeniId] = madde; ciz(); api.toast?.('✓ Madde eklendi'); }, eklenemedi);
+          d.bekleyenOzel++;
+          d.ozelFormAcik = false;
+          kok.querySelectorAll('[data-ozel]').forEach(x => { x.value = ''; });
+          ciz();
+          islem.then(({ id: yeniId, madde }) => { d.veri.ozelMaddeler[yeniId] = madde; ciz(); api.toast?.('✓ Madde eklendi'); }, eklenemedi)
+            .finally(() => { d.bekleyenOzel = Math.max(0, d.bekleyenOzel - 1); });
           return;
         }
         const { id: yeniId, madde } = r.sonuc;
         d.veri.ozelMaddeler[yeniId] = madde;
-        d.ozelFormAcik = false; d.acikMadde = yeniId;
+        d.ozelFormAcik = false;
+        kok.querySelectorAll('[data-ozel]').forEach(x => { x.value = ''; });
+        // Başka bir maddede kaydedilmemiş yazı varsa o form açık kalır.
+        if (!kaydedilmemisVar()) d.acikMadde = yeniId;
         api.toast?.('✓ Madde eklendi');
         ciz();
       } catch (err) {

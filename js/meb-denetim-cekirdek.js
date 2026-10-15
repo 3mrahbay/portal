@@ -191,7 +191,7 @@ export function kayitDuzenle(ham = {}) {
     sorumlu: metin(ham?.sorumlu, SINIRLAR.sorumlu).replace(/\s+/g, ' '),
     sonKontrol: tarihGecerli(ham?.sonKontrol) ? ham.sonKontrol : '',
     gecerlilikBitis: tarihGecerli(ham?.gecerlilikBitis) ? ham.gecerlilikBitis : '',
-    kanit: metin(ham?.kanit, SINIRLAR.kanit),
+    kanit: metin(ham?.kanit, SINIRLAR.kanit).replace(/\s+/g, ' '),   // tek satırlık alan
     baslik: metin(ham?.baslik, SINIRLAR.maddeMetni),
     periyotAy: PERIYOTLAR.includes(Number(ham?.periyotAy)) ? Number(ham.periyotAy) : 0,
     kritik: ham?.kritik === true,
