@@ -15,6 +15,11 @@
 // eklenir: Duyurular, Takvim, Mesajlar, Randevular, Eğitim gelişimi,
 // Rehberlik. "Bugünün günlüğü" ana içerik olduğu için kart olarak kalır.
 //
+// 15 Ekim 2026: "Hava ve kıyafet" karosu eklendi (index.html → caHomeHavaDoldur,
+// js/zeky-hava.js). Karo ızgaranın üstünde tam genişlikte durur; dokununca
+// okulun havası ve "Ne giysin?" önerileri açılır pencerede görünür. Özellik
+// kapalıysa veya hava bilgisi gelmezse karo gizlenir.
+//
 // ÖNEMLİ: Kartların kendi kodu (moduller/sabah-girisi.js,
 // veli-izinleri.js, pickup-yetkilileri.js, okul zili) DEĞİŞMEDİ.
 // Kartlar kimlikleriyle (id) aynı kalır ve yalnız yerleri değişir;
@@ -61,6 +66,12 @@ function izinOzet(el) {
   const sayi = el.querySelectorAll("[data-izin-id], .veli-izin-oge, li").length;
   return { durum: "aktif", yazi: sayi > 1 ? `${sayi} aktif bildirim` : (satirBul(el, ["İzin & Bildirim", "İzin &amp; Bildirim", "gelmeyecekse", "+ Bildir"]) || "Aktif bildirim var") };
 }
+function havaOzet(el) {
+  const durum = el?.dataset?.hava;
+  if (durum === "hazir") return { durum: "tamam", yazi: el.dataset.ozet || "Ne giyileceğini görmek için dokunun" };
+  if (durum === "kapali" || durum === "yok") return { durum: "gizle", yazi: "" };
+  return { durum: "yuk", yazi: "Yükleniyor" };
+}
 async function pickupOzet(el) {
   const t = metin(el);
   if (!t || /Yükleniyor/.test(t)) return { durum: "yuk", yazi: "Yükleniyor" };
@@ -78,6 +89,8 @@ async function pickupOzet(el) {
 }
 
 const KAROLAR = [
+  { id: "veliHavaKart", ad: "Hava ve kıyafet", ikon: "cloud-sun", renk: "#2E5C8A", acik: "#E3EEF8", genis: true,
+    alt: () => "Okul saatleri için tahmin ve kıyafet önerisi", ozet: havaOzet },
   { id: "veliSabahGirisiKart", ad: "Sabah girişi", ikon: "sunrise", renk: "#0E7490", acik: "#E0F7FA", ozet: sabahOzet },
   { id: "veliOkulZiliKart", ad: "Okul zili", ikon: "bell-ring", renk: "#B45309", acik: "#FEF3C7", ozet: zilOzet },
   { id: "veliIzinKart", ad: "İzin ve bildirim", ikon: "calendar-x-2", renk: "#7C3AED", acik: "#EDE9FE", ozet: izinOzet },
@@ -146,6 +159,7 @@ function karoOlustur(k, liste) {
   karo.type = "button"; karo.className = "vkp-karo"; karo.setAttribute("role", "listitem");
   karo.style.setProperty("--vkp-renk", k.renk); karo.style.setProperty("--vkp-acik", k.acik);
   karo.dataset.vkpKaro = k.id || k.anahtar;
+  if (k.genis) karo.classList.add("vkp-genis");
   karo.innerHTML = `<span class="vkp-ikon">${ikon(k.ikon, 20)}</span><span class="vkp-ad">${esc(k.ad)}</span>
     <span class="vkp-durum"><i></i><span>Yükleniyor</span></span><span class="vkp-ok">${ikon("chevron-right", 16)}</span>`;
   liste.appendChild(karo);
@@ -153,7 +167,7 @@ function karoOlustur(k, liste) {
 }
 
 function grup1Kur() {
-  const ilk = document.getElementById(KAROLAR[0].id);
+  const ilk = KAROLAR.map(k => document.getElementById(k.id)).find(Boolean);
   if (!ilk || ilk.dataset.vkpKarolu) return;
   const izgara = document.createElement("section");
   izgara.className = "vkp-bolum";
@@ -242,6 +256,9 @@ function zamanla(f) { let t = null; return () => { clearTimeout(t); t = setTimeo
 async function ozetYaz(k, karo, el) {
   if (!karo.isConnected) return;
   const o = await k.ozet(el || document.createElement("div"));
+  // Gösterilecek bir şey yoksa (ör. hava bilgisi gelmedi) karo tamamen gizlenir
+  karo.hidden = o.durum === "gizle";
+  if (karo.hidden) return;
   o.yazi = String(o.yazi || "").replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, "").replace(/\s+/g, " ").trim() || "Ayrıntı için dokunun";
   const d = karo.querySelector(".vkp-durum");
   d.querySelector("i").style.background = DURUM_RENK[o.durum] || "#94A3B8";
@@ -365,6 +382,14 @@ function stilEkle() {
 .vkp-durum span { overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 .vkp-karo.vkp-etkin .vkp-durum { color:var(--c-ink, #1F2544); font-weight:600; }
 .vkp-ok { position:absolute; top:14px; right:12px; color:#CBD5E1; }
+.vkp-karo[hidden] { display:none !important; }
+/* Tam genişlik karo (Hava ve kıyafet): tek satır, ızgaranın en üstünde */
+.vkp-karo.vkp-genis { grid-column:1 / -1; flex-direction:row; align-items:center; gap:12px; padding:12px 14px; }
+.vkp-genis .vkp-ikon { margin:0; flex-shrink:0; }
+.vkp-genis .vkp-ad { flex:0 0 auto; }
+.vkp-genis .vkp-durum { flex:1; }
+.vkp-genis .vkp-ok { position:static; flex-shrink:0; }
+@media (max-width:560px) { .vkp-karo.vkp-genis { flex-wrap:wrap; } .vkp-genis .vkp-durum { order:3; flex-basis:100%; padding-left:52px; margin-top:-6px; } .vkp-genis .vkp-ad { flex:1; } }
 .vkp-arka { position:fixed; inset:0; z-index:9400; background:rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center; padding:18px; animation:vkpAc .16s ease-out; }
 .vkp-arka.vkp-kapaniyor { animation:vkpKapa .16s ease-in forwards; }
 @keyframes vkpAc { from { opacity:0; } to { opacity:1; } }
