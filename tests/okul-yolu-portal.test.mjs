@@ -61,8 +61,8 @@ test('sunucu çağrısı güvenli callable çerçevesinden (App Check + oturum)'
 test('PWA: modülün sürümlü adresi önbelleğe alınır ve önbellek sürümü artar', async () => {
   const pwa = await installedPwa();
   assertPrecachedImport(pwa, 'index.html', 'js/zeky-yol.js');
-  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v199-okul-yolu";/);
-  assert.match(index, /window\.PORTAL_SURUM = "v199";/);
+  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v200-okul-yolu-hedef";/);
+  assert.match(index, /window\.PORTAL_SURUM = "v200";/);
 });
 
 async function doldur({ bayrak = true, depo = null, izin = false, otomatik = false } = {}) {
@@ -75,7 +75,7 @@ async function doldur({ bayrak = true, depo = null, izin = false, otomatik = fal
     otomatikZamaniMi: () => otomatik,
     yolPaneliKur: (kap, secenek) => { kurulan.push(secenek); return { hesapla: async () => null, arkaPlan: async () => null }; }
   };
-  const kaynak = fonksiyonKaynagi(index, 'caHomeYolDoldur').replace('import("./js/zeky-yol.js?v=1")', '__modul()');
+  const kaynak = fonksiyonKaynagi(index, 'caHomeYolDoldur').replace('import("./js/zeky-yol.js?v=2")', '__modul()');
   const c = vm.createContext({
     document: { getElementById: id => id === 'veliYolKart' ? el : null },
     window: { localStorage: depo }, console: { warn() {} }, setTimeout, Promise, Date, Object,

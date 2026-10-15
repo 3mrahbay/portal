@@ -247,12 +247,18 @@ export async function sonucGetir({ servis, konum, depo = globalThis.localStorage
 }
 
 // ── Harita ve bağlantı ──
+// Varış noktası okulun Google Haritalar kaydı (hedef.placeId) ile verilir; böylece haritada
+// okulun adı görünür. Kayıt yoksa koordinat kullanılır (Google en yakın kayıtlı yeri gösterebilir).
+const PLACE_ID = /^[A-Za-z0-9_-]{16,300}$/;
+function hedefKaydi(hedef) { return hedef && typeof hedef.placeId === 'string' && PLACE_ID.test(hedef.placeId) ? hedef.placeId : ''; }
+
 export function haritaAdresi({ anahtar, baslangic, hedef, mod }) {
   if (!anahtar || !baslangic || !hedef) return '';
+  const kayit = hedefKaydi(hedef);
   const q = new URLSearchParams({
     key: anahtar,
     origin: `${baslangic.enlem},${baslangic.boylam}`,
-    destination: `${hedef.enlem},${hedef.boylam}`,
+    destination: kayit ? `place_id:${kayit}` : `${hedef.enlem},${hedef.boylam}`,
     mode: modBul(mod).harita,
     language: 'tr',
     region: 'TR'
@@ -263,7 +269,11 @@ export function haritaAdresi({ anahtar, baslangic, hedef, mod }) {
 // Başlangıç gönderilmez: Google Haritalar velinin canlı konumunu kendisi kullanır.
 export function haritalarLinki({ hedef, mod }) {
   if (!hedef) return '';
-  const q = new URLSearchParams({ api: '1', destination: `${hedef.enlem},${hedef.boylam}`, travelmode: modBul(mod).harita });
+  const kayit = hedefKaydi(hedef);
+  const ad = typeof hedef.ad === 'string' ? hedef.ad.trim() : '';
+  const q = new URLSearchParams({ api: '1', destination: kayit && ad ? ad : `${hedef.enlem},${hedef.boylam}` });
+  if (kayit) q.set('destination_place_id', kayit);
+  q.set('travelmode', modBul(mod).harita);
   return `https://www.google.com/maps/dir/?${q}`;
 }
 

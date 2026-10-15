@@ -14018,7 +14018,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v199";
+window.PORTAL_SURUM = "v200";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -19096,7 +19096,7 @@ let caYolServisSozu = null;
 function caYolServisi() {
   if (!caYolServisSozu) {
     caYolServisSozu = Promise.all([
-      import("./js/zeky-yol.js?v=1"),
+      import("./js/zeky-yol.js?v=2"),
       import("./js/zeky-randevu-cutover-runtime.js"),
       import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js")
     ]).then(async ([m, calisma, fn]) => m.yolServisiOlustur({ functions: await calisma.guvenliFunctionsGetir(), httpsCallable: fn.httpsCallable }))
@@ -19111,7 +19111,7 @@ async function caHomeYolDoldur() {
   try {
     const bayraklar = await ozellikBayraklariYukle();
     if (bayraklar.okulYolu !== true) return kapat();
-    const m = await import("./js/zeky-yol.js?v=1");
+    const m = await import("./js/zeky-yol.js?v=2");
     if (!el.isConnected) return;
     const depo = (() => { try { return window.localStorage; } catch (_) { return null; } })();
     const ozetYaz = (sonuc, secenek) => {
@@ -48784,13 +48784,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=199");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=200");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v199";
+          const anahtar = "portalSwReload_v200";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
