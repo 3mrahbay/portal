@@ -355,7 +355,14 @@ export async function editorAc(randevu, mevcut = null) {
   const d = durum();
   if (!notYazabilir(d)) { toast("Görüşme notu yazma yetkiniz yok", "error"); return; }
   if (!mevcut) {
-    try { const x = await P().fb.getDoc(P().fb.doc(P().db, "gorusmeNotlari", randevu.id)); if (x.exists()) mevcut = { id: x.id, ...x.data() }; } catch (_) {}
+    // Okunamayan not "yok" sayılmaz: yeni not sanılıp mevcut (ör. gizli) notun üzerine yazılırdı.
+    try { const x = await P().fb.getDoc(P().fb.doc(P().db, "gorusmeNotlari", randevu.id)); if (x.exists()) mevcut = { id: x.id, ...x.data() }; }
+    catch (e) {
+      toast(/permission|insufficient/i.test(String(e?.code || e?.message))
+        ? "Bu görüşmenin notunu görme yetkiniz yok (yalnız PDR ve yönetimin görebildiği gizli not olabilir)."
+        : "Not okunamadı, bağlantıyı kontrol edip tekrar deneyin.", "error");
+      return;
+    }
   }
   const ogr = ogrenciBul(randevu.ogrenciAd) || {};
   const n = mevcut || {};
@@ -484,7 +491,10 @@ async function kaydet(bildir) {
   const btn = document.querySelector(bildir ? "[data-gn-bildir]" : "[data-gn-kaydet]");
   if (btn) { btn.disabled = true; btn.innerHTML = `<span class="gn-donen gn-donen-beyaz"></span>Kaydediliyor`; }
   try {
-    await fb.setDoc(fb.doc(db, "gorusmeNotlari", r.id), veri, { merge: true });
+    // Düzenlemede kaldırılan puan açıkça silinir (birleştirerek yazma iç içe haritada eskisini bırakırdı).
+    const kalkan = Object.keys(mevcut?.olcutler || {}).filter(k => !Object.hasOwn(veri.olcutler, k));
+    const yazilacak = kalkan.length ? { ...veri, olcutler: { ...veri.olcutler, ...Object.fromEntries(kalkan.map(k => [k, fb.deleteField()])) } } : veri;
+    await fb.setDoc(fb.doc(db, "gorusmeNotlari", r.id), yazilacak, { merge: true });
     const kayitli = { id: r.id, ...(mevcut || {}), ...veri, bildirimAlicilari: mevcut?.bildirimAlicilari || [] };
     notOnbellek?.set(r.id, kayitli);
     toast("Görüşme notu kaydedildi", "success");
