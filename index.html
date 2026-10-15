@@ -14018,7 +14018,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v193";
+window.PORTAL_SURUM = "v196";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -47018,6 +47018,10 @@ function finansTarihGirisiKaydet(input, tur, kod) {
   else window.aylikDegisti(kod, "odemeTarihi", iso);
 }
 
+// Inline payment inputs call these handlers outside the module scope.
+window.finansTarihMaskele = finansTarihMaskele;
+window.finansTarihGirisiKaydet = finansTarihGirisiKaydet;
+
 window.digerDegisti = function(kalemKod, alan, deger) {
   if (!currentOgrenci) return;
   if (alan === "odemeTarihi") {
@@ -48907,13 +48911,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=193");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=196");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v193";
+          const anahtar = "portalSwReload_v196";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
