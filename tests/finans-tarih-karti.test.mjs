@@ -18,12 +18,29 @@ const ctx=vm.createContext({
   }
 });
 vm.runInContext(source,ctx);
+Object.assign(ctx, {finansTarihGirisiKaydet:ctx.window.finansTarihGirisiKaydet});
 const run=(fn,...args)=>vm.runInContext(fn+'('+args.map(x=>JSON.stringify(x)).join(',')+')',ctx);
 
 test('gosterim: ISO -> GG.AA.YYYY; eski bozuk yil gorunur ama onaylanamaz',()=>{
   assert.equal(run('finansTarihGoster','2026-08-10'),'10.08.2026');
   assert.equal(run('finansTarihGoster','0006-08-10'),'10.08.0006');
   assert.equal(run('finansTarihISOgecerli','0006-08-10'),false);
+});
+test('module kapsamindaki tarih handlerlari HTML olaylarindan erisilebilir',()=>{
+  const calls=[];
+  const browser=vm.createContext({window:{
+    aylikDegisti:(...args)=>calls.push(args),
+    digerDegisti:(...args)=>calls.push(args)
+  },finansBugunISO:()=> '2026-10-15',showToast:()=>{}});
+  vm.runInContext('(function(){'+source+'})()',browser);
+  assert.equal(typeof browser.window.finansTarihMaskele,'function');
+  assert.equal(typeof browser.window.finansTarihGirisiKaydet,'function');
+  const input={value:'09102026',selectionStart:8,setSelectionRange(){}};
+  browser.window.finansTarihMaskele(input);
+  assert.equal(input.value,'09.10.2026');
+  browser.window.finansTarihGirisiKaydet(input,'aylik','2026-10');
+  browser.window.finansTarihGirisiKaydet({value:'10.10.2026'},'diger','okulKiyafeti');
+  assert.deepEqual(calls,[['2026-10','odemeTarihi','2026-10-09'],['okulKiyafeti','odemeTarihi','2026-10-10']]);
 });
 test('farkli yazimlar dogru tarihe donusur',()=>{
   for(const s of ['10.08.2026','10/08/2026','10-08-2026','10082026','2026-08-10']){
