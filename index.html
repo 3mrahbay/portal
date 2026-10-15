@@ -15367,6 +15367,28 @@ async function medyaYanitOku(res) {
 }
 
 /**
+ * Medya proxy'si (BCKA-Medya) kimliği Firebase oturum jetonuyla doğrular.
+ * Jeton her isteğe eklenir; ortak anahtar yalnız geçiş dönemi için durur.
+ */
+async function medyaKimlikJetonu() {
+  try {
+    const kullanici = auth.currentUser;
+    return kullanici ? await kullanici.getIdToken() : "";
+  } catch (e) {
+    console.warn("Medya oturum jetonu alınamadı:", e?.message || e);
+    return "";
+  }
+}
+
+// Bunny Stream imza isteği gibi hazır JSON gövdelerine oturum jetonunu ekler.
+async function medyaJetonluFetch(url, istek = {}) {
+  let govde = {};
+  try { govde = JSON.parse(istek.body || "{}"); } catch (e) {}
+  govde.idToken = await medyaKimlikJetonu();
+  return fetch(url, { ...istek, body: JSON.stringify(govde) });
+}
+
+/**
  * Medya yükle — proxy üzerinden Bunny'ye.
  * @param {File} dosya - yüklenecek dosya
  * @param {string} klasor - hedef klasör (örn: "galeri/2026-05", "mesaj")
@@ -15384,6 +15406,7 @@ async function medyaYukle(dosya, klasor = "genel", tur = true) {
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({
       anahtar: MEDYA_AYAR.PAYLASIM_ANAHTARI,
+      idToken: await medyaKimlikJetonu(),
       islem: "yukle",
       dosyaAdi: dosya.name,
       klasor: klasor,
@@ -15409,6 +15432,7 @@ async function medyaSil(yol) {
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({
       anahtar: MEDYA_AYAR.PAYLASIM_ANAHTARI,
+      idToken: await medyaKimlikJetonu(),
       islem: "sil",
       yol: yol
     })
@@ -19568,7 +19592,7 @@ window.ogrenciFotoDegistir = function(ogrenciId) {
     if (fotoOturumu !== portalOturumSurumu) return;
     if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
     try {
-      const url = await profilFotoYukle(dosya, "ogrenciler", ogrenciId, "ogrenci-foto");
+      const url = await profilFotoYukle(dosya, "ogrenciler", ogrenciId, "ogrenci-foto/" + ogrenciId);
       if (fotoOturumu !== portalOturumSurumu) return;
       // Yerel listeyi de güncelle ki ekran hemen yansısın
       const o = (typeof ogrenciList !== "undefined") ? ogrenciList.find(x => x.id === ogrenciId) : null;
@@ -19609,7 +19633,7 @@ window.veliFotoDegistir = function() {
     if (fotoOturumu !== portalOturumSurumu) return;
     if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
     try {
-      const url = await profilFotoYukle(dosya, "veliler", eposta, "veli-foto");
+      const url = await profilFotoYukle(dosya, "veliler", eposta, "veli-foto/" + currentUser.uid);
       if (fotoOturumu !== portalOturumSurumu) return;
       window._veliFotoUrl = url;
       document.querySelectorAll('[data-foto-veli]').forEach(el => {
@@ -20799,7 +20823,7 @@ window.veliCocukFotoDegistir = function(ogrenciId) {
     if (fotoOturumu !== portalOturumSurumu) return;
     if (typeof showToast === "function") showToast("Fotoğraf yükleniyor…");
     try {
-      const url = await profilFotoYukle(dosya, "ogrenciler", ogrenciId, "ogrenci-foto");
+      const url = await profilFotoYukle(dosya, "ogrenciler", ogrenciId, "ogrenci-foto/" + ogrenciId);
       if (fotoOturumu !== portalOturumSurumu) return;
       if (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci && veliAktifOgrenci.id === ogrenciId) {
         veliAktifOgrenci.fotoUrl = url;
@@ -37078,6 +37102,7 @@ async function galeriVideoYukle(file, options = {}) {
   return stream.bunnyStreamVideoYukle(file, {
     proxyUrl: MEDYA_AYAR.PROXY_URL,
     sharedKey: MEDYA_AYAR.PAYLASIM_ANAHTARI,
+    fetchImpl: medyaJetonluFetch,
     ...options
   });
 }
