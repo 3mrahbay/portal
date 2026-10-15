@@ -22,7 +22,7 @@ function assertPushAfterWrites(x) {
  assert.equal(x.push.mock.callCount(),1);
  const [,options]=x.push.mock.calls[0].arguments;
  assert.equal(options.method,'POST');
- assert.deepEqual(JSON.parse(options.body),{olay:'sabah-yeni',kayitId:'child-A__2026-09-21'});
+ assert.deepEqual(JSON.parse(options.body),{olay:'sabah-yeni',kayitId:'child-A__2026-09-21',idToken:''});
  assert.deepEqual(x.calls.at(-1),['push','child-A__2026-09-21']);
  assert.ok(x.calls.slice(0,-1).some(c=>['set','update'].includes(c[0])&&c[1].startsWith('sabahGirisleri/')));
 }

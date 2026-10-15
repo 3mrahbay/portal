@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pushSonucunuDogrula, genelPushGonder, operasyonPushGonder, operasyonPushTetikle } from '../js/zeky-operasyon-push.js';
+import { pushSonucunuDogrula, genelPushGonder, operasyonPushGonder, operasyonPushTetikle, pushOturumJetonuSaglayicisi } from '../js/zeky-operasyon-push.js';
 
 // Tüm ağ çağrıları sahte: gerçek endpoint/FCM, hesap veya cihaz kullanılmaz.
 async function withFetch(response, run) {
@@ -123,7 +123,7 @@ test('genel istek alıcıları ve varsayılanları korur, yalnız tek ağ çağr
     assert.equal(calls[0][1].method, 'POST');
     assert.equal(calls[0][1].headers['Content-Type'], 'text/plain');
     assert.deepEqual(JSON.parse(calls[0][1].body), {
-      aliciEmailler: ['person@example.test'], baslik: 'ZEKY', metin: '', hedefSayfa: 'bildirimler.html', tip: 'genel'
+      aliciEmailler: ['person@example.test'], baslik: 'ZEKY', metin: '', hedefSayfa: 'bildirimler.html', tip: 'genel', idToken: ''
     });
     assert.equal(warnings.length, 0);
   });
@@ -189,7 +189,7 @@ test('operasyon boolean API korunur ve yalnız doğrulanmış tam başarıda tru
       assert.equal(typeof result, 'boolean');
       assert.equal(result, expected);
       assert.equal(calls.length, 1);
-      assert.deepEqual(JSON.parse(calls[0][1].body), { olay: 'sabah-yeni', kayitId: '123' });
+      assert.deepEqual(JSON.parse(calls[0][1].body), { olay: 'sabah-yeni', kayitId: '123', idToken: '' });
     });
   }
 });
@@ -245,4 +245,35 @@ test('eski operasyon tekrar, sıfır hedef ve yalnız sayaç yanıtları kabul e
     assert.equal(result.hata, 'push-fcm-sonucu-yok');
     if (response.tekrar) assert.equal(result.tekrar, true);
   }
+});
+
+test('her push isteği oturum jetonunu (idToken) taşır; veri alanları jetonu ezemez', async () => {
+  pushOturumJetonuSaglayicisi(async () => 'jeton-abc');
+  try {
+    await withFetch({ json: success }, async ({ calls }) => {
+      await genelPushGonder(['person@example.test'], { baslik: 'B' });
+      await operasyonPushTetikle('pickup-kapida', 'o1__2026-10-15');
+      assert.equal(JSON.parse(calls[0][1].body).idToken, 'jeton-abc');
+      assert.deepEqual(JSON.parse(calls[1][1].body), { olay: 'pickup-kapida', kayitId: 'o1__2026-10-15', idToken: 'jeton-abc' });
+    });
+  } finally { pushOturumJetonuSaglayicisi(null); }
+});
+
+test('jeton alınamazsa istek boş jetonla gider; sunucunun oturum hatası görünür olur', async () => {
+  pushOturumJetonuSaglayicisi(async () => { throw new Error('ag'); });
+  try {
+    await withFetch({ json: { ok: false, hata: 'oturum-gerekli' } }, async ({ calls }) => {
+      const result = await genelPushGonder(['person@example.test']);
+      assert.equal(JSON.parse(calls[0][1].body).idToken, '');
+      assert.equal(result.ok, false);
+      assert.equal(result.hata, 'oturum-gerekli');
+    });
+  } finally { pushOturumJetonuSaglayicisi(null); }
+});
+
+test('portal push adresine yalnız ortak modül üzerinden istek atar (jetonsuz doğrudan fetch yok)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const index = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(index, /script\.google\.com\/macros\/s\/AKfycby0oVMIP9LVl/);
+  assert.match(index, /m\.operasyonPushTetikle\("pickup-kapida", ogrenciId \+ "__" \+ tarih\)/);
 });

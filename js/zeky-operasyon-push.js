@@ -45,12 +45,36 @@ export function pushSonucunuDogrula(yanit, { httpOk = true, status = 200, yanitH
   };
 }
 
+// Push proxy herkese açık bir adrestir; sunucu her isteği gönderenin Firebase
+// oturum jetonuyla (idToken) doğrular ve kime gönderebileceğine o karar verir.
+// Portal Firebase 10.12.2'yi gstatic'ten yükler; aynı URL aynı modül örneğini
+// (ve aynı oturumu) verir. Jeton alınamazsa boş gönderilir; sunucu karar verir.
+const FIREBASE_AUTH_URL = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+let oturumJetonuSaglayici = null;
+
+// Testler ve özel girişler için: () => Promise<string> döndüren sağlayıcı.
+export function pushOturumJetonuSaglayicisi(fn) {
+  oturumJetonuSaglayici = typeof fn === 'function' ? fn : null;
+}
+
+async function pushOturumJetonu() {
+  try {
+    if (oturumJetonuSaglayici) return String((await oturumJetonuSaglayici()) || '');
+    const { getAuth } = await import(FIREBASE_AUTH_URL);
+    const kullanici = getAuth().currentUser;
+    return kullanici ? String((await kullanici.getIdToken()) || '') : '';
+  } catch (_) {
+    return '';
+  }
+}
+
 async function pushIstegiGonder(veri) {
   try {
+    const idToken = await pushOturumJetonu();
     const r = await fetch(PUSH_PROXY, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(veri)
+      body: JSON.stringify({ ...veri, idToken })
     });
     const metin = await r.text();
     let yanit = null;
