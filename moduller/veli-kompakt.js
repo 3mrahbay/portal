@@ -68,7 +68,8 @@ function izinOzet(el) {
 }
 function havaOzet(el) {
   const durum = el?.dataset?.hava;
-  if (durum === "hazir") return { durum: "tamam", yazi: el.dataset.ozet || "Ne giyileceğini görmek için dokunun", deger: el.dataset.derece || "" };
+  if (durum === "hazir") return { durum: "tamam", yazi: el.dataset.ozet || "Ne giyileceğini görmek için dokunun", deger: el.dataset.derece || "",
+    ikon: el.dataset.ikon || "", renk: el.dataset.renk || "", acik: el.dataset.acik || "" };
   if (durum === "kapali" || durum === "yok") return { durum: "gizle", yazi: "" };
   return { durum: "yuk", yazi: "Yükleniyor" };
 }
@@ -180,7 +181,7 @@ function grup1Kur() {
     el.dataset.vkpKarolu = "1";
     el.classList.add("vkp-sade");
     const karo = karoOlustur(k, liste);
-    karo.addEventListener("click", () => sayfaAc(k, el));
+    karo.addEventListener("click", () => sayfaAc(k, el, karo));
     hazne.appendChild(el);
     const guncelle = zamanla(() => { sadelestir(el, k); ozetYaz(k, karo, el); });
     new MutationObserver(guncelle).observe(el, { childList: true, subtree: true, characterData: true });
@@ -263,6 +264,14 @@ async function ozetYaz(k, karo, el) {
   const d = karo.querySelector(".vkp-durum");
   d.querySelector("i").style.background = DURUM_RENK[o.durum] || "#94A3B8";
   d.querySelector("span").textContent = o.yazi.length > 64 ? o.yazi.slice(0, 62) + "…" : o.yazi;
+  // Simge ve renk özetle değişebilir (ör. hava karosu: güneş, yağmur, kar)
+  if (o.renk) karo.style.setProperty("--vkp-renk", o.renk);
+  if (o.acik) karo.style.setProperty("--vkp-acik", o.acik);
+  if (o.ikon && karo.dataset.ikon !== o.ikon) {
+    karo.dataset.ikon = o.ikon;
+    karo.querySelector(".vkp-ikon").innerHTML = ikon(o.ikon, 20);
+    ikonCiz();
+  }
   // Öne çıkan değer (ör. hava karosunda sıcaklık "11°–12°") ayrı ve büyük yazılır
   const deger = karo.querySelector(".vkp-deger");
   if (deger) { deger.textContent = o.deger || ""; deger.hidden = !o.deger; }
@@ -273,16 +282,18 @@ async function ozetYaz(k, karo, el) {
 // ═════════════════════════ AÇILIR SAYFA ═════════════════════════
 let acik = null;   // { kok, el, hazne }
 
-function sayfaAc(k, el) {
+function sayfaAc(k, el, karo) {
   el = el || document.getElementById(k.id);
   if (!el) return;
   sayfaKapat();
+  // Karonun o anki simgesi ve rengi pencere başlığında da kullanılır
+  const g = karo ? { ikon: karo.dataset.ikon || k.ikon, renk: karo.style.getPropertyValue("--vkp-renk") || k.renk, acik: karo.style.getPropertyValue("--vkp-acik") || k.acik } : k;
   const alt = typeof k.alt === "function" ? k.alt() : "";
   const kok = document.createElement("div");
   kok.className = "vkp-arka cicek-app";
-  kok.innerHTML = `<div class="vkp-sayfa" role="dialog" aria-modal="true" aria-label="${esc(k.ad)}" style="--vkp-renk:${k.renk};--vkp-acik:${k.acik}">
+  kok.innerHTML = `<div class="vkp-sayfa" role="dialog" aria-modal="true" aria-label="${esc(k.ad)}" style="--vkp-renk:${esc(g.renk)};--vkp-acik:${esc(g.acik)}">
     <div class="vkp-tutamak" aria-hidden="true"></div>
-    <header class="vkp-sayfa-bas"><span class="vkp-ikon">${ikon(k.ikon, 20)}</span><div><h3>${esc(k.ad)}</h3>${alt ? `<p>${esc(alt)}</p>` : ""}</div>
+    <header class="vkp-sayfa-bas"><span class="vkp-ikon">${ikon(esc(g.ikon), 20)}</span><div><h3>${esc(k.ad)}</h3>${alt ? `<p>${esc(alt)}</p>` : ""}</div>
       <button type="button" class="vkp-x" aria-label="Kapat">${ikon("x", 18)}</button></header>
     <div class="vkp-govde"></div>
     <div class="vkp-alt${k.eylem ? " vkp-alt-iki" : ""}">${k.eylem ? `<button type="button" class="vkp-ikincil" data-vkp-eylem>${ikon(k.eylem.ikon, 17)}${esc(k.eylem.yazi)}</button>` : ""}<button type="button" class="vkp-tamam">${ikon("check", 17)}Tamam</button></div></div>`;

@@ -111,11 +111,23 @@ function baskinKod(kodlar) {
 }
 
 export function havaDurumuMetni(kod) {
-  return ['Açık', 'Az bulutlu', 'Parçalı bulutlu', 'Sisli', 'Çisentili', 'Yağmurlu', 'Karlı', 'Gök gürültülü'][kodSinifi(kod)];
+  return ['Güneşli', 'Az bulutlu', 'Parçalı bulutlu', 'Sisli', 'Çisentili', 'Yağmurlu', 'Karlı', 'Gök gürültülü'][kodSinifi(kod)];
 }
 export function havaIkonu(kod) {
   return ['sun', 'cloud-sun', 'cloud', 'cloud-fog', 'cloud-drizzle', 'cloud-rain', 'cloud-snow', 'cloud-lightning'][kodSinifi(kod)];
 }
+// Simge rengi ve zemini havaya göre: güneş sarı-turuncu, bulut gri, yağmur mavi, kar camgöbeği, fırtına mor.
+const RENKLER = [
+  { renk: '#C2410C', acik: '#FFEDD5' },   // güneşli
+  { renk: '#B45309', acik: '#FEF3C7' },   // az bulutlu
+  { renk: '#475569', acik: '#E2E8F0' },   // parçalı bulutlu
+  { renk: '#64748B', acik: '#EEF1F5' },   // sisli
+  { renk: '#2E5C8A', acik: '#E3EEF8' },   // çisentili
+  { renk: '#1D4ED8', acik: '#DBEAFE' },   // yağmurlu
+  { renk: '#0E7490', acik: '#CFFAFE' },   // karlı
+  { renk: '#6D28D9', acik: '#EDE9FE' }    // gök gürültülü
+];
+export function havaRengi(kod) { return { ...RENKLER[kodSinifi(kod)] }; }
 
 // Kıyafet notu: en çok 4 kısa öneri, önem sırasıyla.
 export function kiyafetOnerisi(o) {
@@ -241,6 +253,8 @@ export function havaKartiCiz(kap, { gun, ozet, oneriler, yerAdi, depo }) {
   ust.setAttribute('aria-expanded', 'false');
   ust.setAttribute('aria-controls', 'havaDetay');
   const ikon = el('div', 'hava-ikon');
+  const rk = havaRengi(ozet.kod);
+  ikon.style.background = rk.acik; ikon.style.color = rk.renk;
   ikon.appendChild(lucide(havaIkonu(ozet.kod)));
   const bilgi = el('div', 'hava-bilgi');
   bilgi.append(el('div', 'hava-baslik', gun.etiket + ' · ' + yerAdi), el('div', 'hava-durum', ozetMetni(ozet)));
@@ -275,6 +289,8 @@ export function havaDetayCiz(kap, { gun, ozet, oneriler, yerAdi }) {
   const kutu = el('div', 'hava-detay-kart');
   const ust = el('div', 'hava-ust');
   const ikon = el('div', 'hava-ikon');
+  const rk = havaRengi(ozet.kod);
+  ikon.style.background = rk.acik; ikon.style.color = rk.renk;
   const i = el('i'); i.setAttribute('data-lucide', havaIkonu(ozet.kod)); ikon.appendChild(i);
   const bilgi = el('div', 'hava-bilgi');
   bilgi.append(el('div', 'hava-baslik', gun.etiket + ' · ' + yerAdi), el('div', 'hava-durum', ozetMetni(ozet)));
