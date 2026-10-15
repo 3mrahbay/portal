@@ -577,10 +577,6 @@ div[style*="place-items: center"][style*="width:"] {
     max-width: 100%;
     overflow-wrap: anywhere;
   }
-  #tab-denetim [style*="grid-template-columns:1fr 1fr"],
-  #tab-denetim [style*="grid-template-columns: 1fr 1fr"] {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
 }
 @media (max-width: 600px) {
   /* Actions get their own row instead of squeezing names or leaving the card.
