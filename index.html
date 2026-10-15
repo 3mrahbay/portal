@@ -16198,7 +16198,7 @@ async function mesajGonder(threadId, metin, resimUrl = "", resimYol = "", belgeU
 
     if (!oturum.guncel()) return;
     try {
-      const pushMod = await import("./js/zeky-operasyon-push.js?v=163");
+      const pushMod = await import("./js/zeky-operasyon-push.js?v=164");
       if (!oturum.guncel()) return;
       const pushSonuc = await pushMod.genelPushGonder([karsiTaraf], {
         tip: "mesaj",
@@ -20990,10 +20990,10 @@ window.pickupKapidaBildirPortal = async function(ogrenciId, tarih) {
       guncellendi:serverTimestamp()
     }, { merge:true });
     await batch.commit();
-    fetch("https://script.google.com/macros/s/AKfycby0oVMIP9LVl-rYbmnOpmL2Sa_2kmnVDgOP_wdGCBIqrtmJSSxOcNfaw3U5c6N8vuVr/exec", {
-      method:"POST", headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({ olay:"pickup-kapida", kayitId:ogrenciId + "__" + tarih })
-    }).catch(() => {});
+    // Oturum jetonu ortak push modülünde eklenir (sunucu jetonsuz isteği reddeder).
+    import("./js/zeky-operasyon-push.js?v=164")
+      .then(m => m.operasyonPushTetikle("pickup-kapida", ogrenciId + "__" + tarih))
+      .catch(() => {});
     showToast("✓ Veli kapıda olarak işaretlendi");
     okulZiliDoldur();
   } catch (e) { showToast("Kapı bildirimi kaydedilemedi: " + e.message, "error"); }
