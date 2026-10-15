@@ -14,9 +14,9 @@
 // Açma/kapama: config/ozellikBayraklari.havaKiyafet (varsayılan açık).
 //
 // ZEKY (www/js/zeky-hava.js) ve portal (js/zeky-hava.js) bu dosyanın BİREBİR
-// kopyasını kullanır. ZEKY'de kart ana sayfada açılır-kapanır (havaKartiYukle);
-// portalda veli ana sayfasındaki "Hava ve kıyafet" karosuna dokununca açılan
-// pencerede ayrıntı gösterilir (havaHazirla + havaDetayCiz + havaOzetSatiri).
+// kopyasını kullanır. İkisinde de ana sayfada tek satır durur, dokununca ayrıntı
+// alttan açılan pencerede gösterilir: ZEKY'de havaKartiYukle + havaDetayCiz,
+// portalda "Hava ve kıyafet" karosu (havaHazirla + havaDetayCiz + havaOzetSatiri).
 //
 // Bu dosya Firebase veya başka modül içe aktarmaz; hesaplar test edilebilir.
 // ─────────────────────────────────────────────────────────────────────
@@ -206,12 +206,12 @@ export function havaOzetSatiri(bilgi) {
 }
 
 // Kartı doldurur (ZEKY). Veri yoksa kart gizli kalır (velinin önünde hata gösterilmez).
-export async function havaKartiYukle(kap, { konum, fetchImpl, depo = globalThis.localStorage, simdi = new Date(), ikonlariCiz } = {}) {
+export async function havaKartiYukle(kap, { konum, fetchImpl, depo = globalThis.localStorage, simdi = new Date(), ikonlariCiz, ac } = {}) {
   if (!kap) return false;
   try {
     const bilgi = await havaHazirla({ konum, fetchImpl, depo, simdi });
     if (!bilgi) { kap.hidden = true; return false; }
-    havaKartiCiz(kap, { ...bilgi, depo });
+    havaKartiCiz(kap, { ...bilgi, depo, ac });
     kap.hidden = false;
     if (typeof ikonlariCiz === 'function') ikonlariCiz();
     return true;
@@ -222,66 +222,45 @@ export async function havaKartiYukle(kap, { konum, fetchImpl, depo = globalThis.
   }
 }
 
-// Kart kapalı gelir: tek satır (ikon, gün, durum, sıcaklık, daire içinde ok). Ok, kartın
-// açılabildiğini göstermek için hafifçe aşağı doğru zıplar; veli kartı bir kez açınca
-// ("tanidik") hareket kalıcı olarak durur. Dokununca "Ne giysin?" önerileri aşağı kayarak
-// açılır; tekrar dokununca kapanır.
+// ZEKY ana sayfa satırı: renkli simge, gün ve durum, havaya göre renkli büyük sıcaklık ve
+// daire içinde ok. Ok, dokunulabildiğini göstermek için hafifçe sağa doğru kıpırdar; veli
+// pencereyi bir kez açınca ("tanidik") hareket kalıcı olarak durur. Dokununca ac(bilgi)
+// çağrılır; sayfa "Ne giysin?" ayrıntısını alttan açılan pencerede gösterir (havaDetayCiz).
 function acildiMi(depo) { try { return depo?.getItem(ACILDI_ANAHTARI) === '1'; } catch (_) { return false; } }
 function acildiKaydet(depo) { try { depo?.setItem(ACILDI_ANAHTARI, '1'); } catch (_) { /* depo kapalı olabilir */ } }
 
-export function havaKartiAcKapa(kap, acik, depo) {
-  const dugme = kap.querySelector ? kap.querySelector('.hava-ust') : kap._dugme;
-  const panel = kap.querySelector ? kap.querySelector('.hava-detay') : kap._panel;
-  const ac = acik == null ? !kap.classList.contains('acik') : !!acik;
-  kap.classList.toggle('acik', ac);
-  if (dugme) dugme.setAttribute('aria-expanded', String(ac));
-  if (panel) panel.setAttribute('aria-hidden', String(!ac));
-  if (ac && !kap.classList.contains('tanidik')) { kap.classList.add('tanidik'); acildiKaydet(depo); }
-  return ac;
-}
-
-export function havaKartiCiz(kap, { gun, ozet, oneriler, yerAdi, depo }) {
+export function havaKartiCiz(kap, { gun, ozet, oneriler, yerAdi, depo, ac }) {
   const d = kap.ownerDocument || document;
   const el = (etiket, sinif, metin) => { const x = d.createElement(etiket); if (sinif) x.className = sinif; if (metin != null) x.textContent = metin; return x; };
-  const lucide = (ad, sinif) => { const i = el('i', sinif); i.setAttribute('data-lucide', ad); return i; };
+  const lucide = ad => { const i = el('i'); i.setAttribute('data-lucide', ad); return i; };
   kap.replaceChildren();
-  kap.classList.remove('acik');
   kap.classList.toggle('tanidik', acildiMi(depo));
+  const rk = havaRengi(ozet.kod);
 
   const ust = el('button', 'hava-ust');
   ust.type = 'button';
-  ust.setAttribute('aria-expanded', 'false');
-  ust.setAttribute('aria-controls', 'havaDetay');
+  ust.setAttribute('aria-haspopup', 'dialog');
   const ikon = el('div', 'hava-ikon');
-  const rk = havaRengi(ozet.kod);
   ikon.style.background = rk.acik; ikon.style.color = rk.renk;
   ikon.appendChild(lucide(havaIkonu(ozet.kod)));
   const bilgi = el('div', 'hava-bilgi');
-  bilgi.append(el('div', 'hava-baslik', gun.etiket + ' · ' + yerAdi), el('div', 'hava-durum', ozetMetni(ozet)));
+  // Satırda kısa gün adı ("Yarın · Tuzla"): dar ekranda yer adı kesilmesin; uzun hali pencerede.
+  bilgi.append(el('div', 'hava-baslik', gun.kisa + ' · ' + yerAdi), el('div', 'hava-durum', ozetMetni(ozet)));
   const derece = el('div', 'hava-derece', `${ozet.enDusuk}°–${ozet.enYuksek}°`);
+  derece.style.color = rk.renk;
   derece.setAttribute('aria-label', `En düşük ${ozet.enDusuk}, en yüksek ${ozet.enYuksek} derece`);
   const ok = el('div', 'hava-ok');
-  ok.appendChild(lucide('chevron-down'));
+  ok.appendChild(lucide('chevron-right'));
   ust.append(ikon, bilgi, derece, ok);
+  kap.appendChild(ust);
 
-  const panel = el('div', 'hava-detay');
-  panel.id = 'havaDetay';
-  panel.setAttribute('aria-hidden', 'true');
-  const ic = el('div', 'hava-detay-ic');
-  const oneri = el('div', 'hava-oneri');
-  oneri.append(el('div', 'hava-oneri-baslik', 'Ne giysin?'));
-  const liste = el('ul', 'hava-liste');
-  oneriler.forEach(x => liste.appendChild(el('li', null, x)));
-  oneri.appendChild(liste);
-  ic.append(oneri, el('div', 'hava-kaynak', 'Okul saatleri (08.00–17.00) için tahmin · Open-Meteo'));
-  panel.appendChild(ic);
-
-  kap.append(ust, panel);
-  kap._dugme = ust; kap._panel = panel;
-  ust.addEventListener('click', () => havaKartiAcKapa(kap, null, depo));
+  ust.addEventListener('click', () => {
+    if (!kap.classList.contains('tanidik')) { kap.classList.add('tanidik'); acildiKaydet(depo); }
+    if (typeof ac === 'function') ac({ gun, ozet, oneriler, yerAdi });
+  });
 }
 
-// Açılır pencere içeriği (portal): başlık satırı, "Ne giysin?" önerileri ve kaynak.
+// Açılır pencere içeriği (ZEKY ve portal): başlık satırı, "Ne giysin?" önerileri ve kaynak.
 export function havaDetayCiz(kap, { gun, ozet, oneriler, yerAdi }) {
   const d = kap.ownerDocument || document;
   const el = (etiket, sinif, metin) => { const x = d.createElement(etiket); if (sinif) x.className = sinif; if (metin != null) x.textContent = metin; return x; };
