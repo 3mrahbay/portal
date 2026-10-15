@@ -7923,6 +7923,20 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
      parlak yeşil + pastel aksanlar).
      ============================================================ -->
 <style id="cicek-app-theme">
+/* HAVA VE KIYAFET — js/zeky-hava.js (ZEKY ile ortak). Karoya dokununca açılan pencerede görünür. */
+.cicek-app .hava-detay-kart { display:flex; flex-direction:column; gap:14px; padding:16px 18px; }
+.cicek-app .hava-ust { display:flex; align-items:center; gap:12px; }
+.cicek-app .hava-ikon { width:44px; height:44px; border-radius:14px; background:var(--c-blue-soft); color:#2E5C8A; display:grid; place-items:center; flex-shrink:0; }
+.cicek-app .hava-ikon svg, .cicek-app .hava-ikon [data-lucide] { width:22px; height:22px; }
+.cicek-app .hava-bilgi { flex:1; min-width:0; }
+.cicek-app .hava-baslik { font-size:15px; font-weight:700; color:var(--c-ink); }
+.cicek-app .hava-durum { font-size:12.5px; color:var(--c-muted); margin-top:2px; }
+.cicek-app .hava-derece { font-size:22px; font-weight:800; color:var(--c-ink); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.cicek-app .hava-oneri { padding-top:12px; border-top:1px solid var(--c-border); }
+.cicek-app .hava-oneri-baslik { font-size:12px; font-weight:700; letter-spacing:.02em; color:var(--c-green); margin-bottom:8px; }
+.cicek-app .hava-liste { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
+.cicek-app .hava-liste li { background:var(--c-tint); border:1px solid var(--c-border); color:var(--c-ink); border-radius:999px; padding:6px 12px; font-size:13px; font-weight:600; }
+.cicek-app .hava-kaynak { font-size:11px; color:var(--c-muted); }
 .cicek-app {
   /* Renkler — Premium Yorum tasarım dili */
   --c-green:        #2B3674;  /* marka orman yeşili */
@@ -13973,7 +13987,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v197";
+window.PORTAL_SURUM = "v198";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -15137,14 +15151,16 @@ window.personelSil = async function(email) {
 // Varsayılan değerler (Firestore'da kayıt yoksa bunlar geçerli)
 const OZELLIK_VARSAYILAN = {
   mesajResimEkleme: true,   // Mesajlaşmada resim gönderme
-  galeriVideo: false        // Galeri video (henüz hazır değil)
+  galeriVideo: false,       // Galeri video (henüz hazır değil)
+  havaKiyafet: true         // Veli ana sayfası: hava ve kıyafet önerisi (ZEKY ile ortak anahtar)
   // Gelecekte: okulZili, girisCikisOnay, anketModulu, vb.
 };
 
 // Özellik etiketleri (yönetim ekranında gösterilecek açıklamalar)
 const OZELLIK_ETIKETLERI = {
   mesajResimEkleme: { ad: "Mesajda Resim Ekleme", aciklama: "Veli ve personel mesajlaşmada fotoğraf gönderebilir." },
-  galeriVideo: { ad: "Galeride Video", aciklama: "Galeriye video yükleme (yakında)." }
+  galeriVideo: { ad: "Galeride Video", aciklama: "Galeriye video yükleme (yakında)." },
+  havaKiyafet: { ad: "Hava ve Kıyafet Önerisi", aciklama: "Veli ana sayfasında okulun havası ve ne giyileceği (portal ve ZEKY)." }
 };
 
 let ozellikBayraklari = { ...OZELLIK_VARSAYILAN };
@@ -17927,7 +17943,7 @@ function veliRenderYeniApp() {
   if (caEkran === "profil") {
     setTimeout(() => { modulYukle("geri-bildirim").then(m => m && m.veliBelgeOnayKart("veliBelgeOnayKart")); }, 100);
   }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => m && m.memnuniyetPopupKontrol()); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeHavaDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => m && m.memnuniyetPopupKontrol()); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -19009,6 +19025,35 @@ async function oryProgramYukle() {
 }
 
 // Ana sayfa bandı — oryantasyondaki veliye belirgin şekilde gösterilir
+// ── HAVA VE KIYAFET ÖNERİSİ (js/zeky-hava.js — ZEKY ile birebir aynı dosya) ──
+// Karo özeti için kart data-hava ("hazir" | "kapali" | "yok") ve data-ozet taşır.
+// Özellik kapalıysa ya da veri gelmezse karo gizlenir; veliye hata gösterilmez.
+async function caHomeHavaDoldur() {
+  const el = document.getElementById("veliHavaKart");
+  if (!el) return;
+  const bitir = (durum) => { el.dataset.hava = durum; el.dataset.ozet = ""; el.dataset.derece = ""; el.dataset.ikon = ""; el.replaceChildren(); };
+  try {
+    const bayraklar = await ozellikBayraklariYukle();
+    if (bayraklar.havaKiyafet === false) return bitir("kapali");
+    const [m, ayar] = await Promise.all([
+      import("./js/zeky-hava.js?v=1"),
+      getDoc(doc(db, "ayarlar", "havaDurumu")).then(s => s.exists() ? s.data() : null).catch(() => null)
+    ]);
+    const bilgi = await m.havaHazirla({ konum: ayar });
+    if (!bilgi || !el.isConnected) return bitir("yok");
+    el.dataset.hava = "hazir";
+    el.dataset.ozet = `${bilgi.gun.kisa} · ${m.havaDurumuMetni(bilgi.ozet.kod)}`;   // karoda alt satır
+    el.dataset.derece = `${bilgi.ozet.enDusuk}°–${bilgi.ozet.enYuksek}°`;            // karoda büyük yazılır
+    const rk = m.havaRengi(bilgi.ozet.kod);                                           // karo simgesi ve rengi havaya göre
+    el.dataset.ikon = m.havaIkonu(bilgi.ozet.kod); el.dataset.renk = rk.renk; el.dataset.acik = rk.acik;
+    m.havaDetayCiz(el, bilgi);
+    if (window.lucideYenile) setTimeout(window.lucideYenile, 30);
+  } catch (e) {
+    console.warn("hava kartı:", e?.message || e);
+    bitir("yok");
+  }
+}
+
 async function caHomeOryantasyonDoldur() {
   const bant = document.getElementById("caHomeOryBant");
   if (!bant) return;
@@ -19734,6 +19779,11 @@ function caHomeHTML() {
         <div class="ca-quick">
           ${caHizliIslemlerHTML()}
         </div>
+      </div>
+
+      <!-- Hava ve kıyafet — js/zeky-hava.js (ZEKY ile ortak); karo + açılır pencere: moduller/veli-kompakt.js -->
+      <div id="veliHavaKart" class="ca-card" style="padding:0; overflow:hidden;" data-hava="yukleniyor">
+        <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
 
       <!-- Sabah Girişi: "Yola çıktık" — moduller/sabah-girisi.js -->
@@ -48645,13 +48695,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=197");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=198");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v197";
+          const anahtar = "portalSwReload_v198";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
