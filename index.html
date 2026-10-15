@@ -31894,7 +31894,7 @@ async function duyuruMailGonder(data) {
 
     const aciliyetLabels = { normal: "📢 Duyuru", onemli: "⚠️ Önemli Duyuru", acil: "🚨 Acil Duyuru" };
     const aciliyetRenk = { normal: "#eab308", onemli: "#f59e0b", acil: "#dc2626" };
-    const konu = `${aciliyetLabels[data.aciliyet] || '<i data-lucide="megaphone" style="width:13px;height:13px;vertical-align:-2px;"></i> Duyuru'}: ${data.baslik}`;
+    const konu = `${aciliyetLabels[data.aciliyet] || '📢 Duyuru'}: ${data.baslik}`;
 
     // Tek tek gönder (çünkü her velinin adı özelleşmiş olmalı)
     for (const v of hedefMailler) {
