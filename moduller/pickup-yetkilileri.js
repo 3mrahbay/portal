@@ -12,6 +12,12 @@ import { operasyonPushTetikle } from "../js/zeky-operasyon-push.js";
 //   m.veliKart("hedefId")           → veli ana sayfası
 //   m.listeGetir(ogrenciId)         → Okul Zili için (Promise<[{ad,yakinlik}]>)
 //   m.yetkiliMi(ogrenciId, ad)      → öğretmen kuyruğu için (Promise<bool>)
+//   m.zilKonumKur()                 → Okul Zili "Kim alacak" altında konum gönderme
+//
+// Okulun konumunu gönder: çocuğu anne-baba dışında biri (dede, teyze, bakıcı…)
+// alacaksa veli okulun adresini ve Google Haritalar konumunu hazır bir mesajla
+// gönderir (telefon kayıtlıysa WhatsApp, değilse paylaşım menüsü).
+// Ortak modül: js/zeky-yol.js (ZEKY ile birebir); okul: ayarlar/okulYolu.
 // ═══════════════════════════════════════════════════════════════════
 
 const P = () => window.PortalAPI;
@@ -19,6 +25,28 @@ const P = () => window.PortalAPI;
 const YAKINLIKLAR = ["Anne", "Baba", "Anneanne", "Babaanne", "Dede", "Teyze", "Hala", "Dayı", "Amca", "Abla", "Ağabey", "Servis", "Bakıcı", "Diğer"];
 
 const _cache = {};
+
+let _okulSozu = null;
+function okulKonumuHazirla() {
+  if (!_okulSozu) {
+    const { fb, db } = P();
+    _okulSozu = Promise.all([
+      import("../js/zeky-yol.js?v=3"),
+      fb.getDoc(fb.doc(db, "ayarlar", "okulYolu")).then(s => (s.exists() ? s.data() : null))
+    ]).then(([yol, ayar]) => ({ yol, okul: yol.okulBilgisiDuzelt(ayar) }))
+      .catch(e => { _okulSozu = null; console.warn("okul konumu:", e?.code || e?.message || e); return { yol: null, okul: null }; });
+  }
+  return _okulSozu;
+}
+const disariAc = (url) => window.open(url, "_blank", "noopener");
+function aktifOgrenci() {
+  const { state } = P();
+  return state.veliAktifOgrenci || state.veliOgrenciler?.[0] || null;
+}
+function paylasimBildir(yol, sonuc) {
+  const m = yol.paylasimSonucMetni(sonuc);
+  if (m) P().toast(m, sonuc === "kopyalandi" ? undefined : "error");
+}
 
 export async function listeGetir(ogrenciId, tazele = false) {
   if (!tazele && _cache[ogrenciId]) return _cache[ogrenciId];
@@ -71,8 +99,9 @@ export async function veliKart(hedefId) {
   const ogr = state.veliAktifOgrenci || state.veliOgrenciler[0];
   if (!ogr) { el.innerHTML = ""; return; }
 
-  const kisiler = await listeGetir(ogr.id, true);
+  const [kisiler, { yol, okul }] = await Promise.all([listeGetir(ogr.id, true), okulKonumuHazirla()]);
   const ad = (ogr.ogrenciAdSoyad || "Çocuğunuz").split(" ")[0];
+  const konumVar = (k) => !!(okul && yol?.konumGonderilebilirMi(k));
 
   const ikon = (y) => ({
     Anne: "👩", Baba: "👨", Anneanne: "👵", Babaanne: "👵", Dede: "👴",
@@ -90,6 +119,7 @@ export async function veliKart(hedefId) {
       <button class="ca-btn" style="padding:8px 14px; font-size:12.5px;" onclick="window._pickupYetki.formAc()">+ Ekle</button>
     </div>
     <div id="pyForm" style="display:none; padding:14px 18px; background:#F8FAFC; border-bottom:1px solid #F1F2F7;"></div>
+    <div id="pyGonder" hidden aria-live="polite" style="padding:14px 18px; background:#F0FDF4; border-bottom:1px solid #DCFCE7;"></div>
     <div style="padding:6px 18px 12px;">
       ${kisiler.map((k, i) => `
         <div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #F1F2F7;">
@@ -98,6 +128,9 @@ export async function veliKart(hedefId) {
             <div style="font-size:13.5px; font-weight:700; color:var(--c-ink);">${esc(k.ad)}</div>
             <div style="font-size:11px; color:var(--c-muted);">${esc(k.yakinlik)}${k.telefon ? " · " + esc(k.telefon) : ""}</div>
           </div>
+          ${konumVar(k)
+            ? `<button onclick="window._pickupYetki.konumGonder(${i})" style="flex-shrink:0; border:0; border-radius:10px; background:var(--c-tint,#EEF2FF); color:var(--c-green,#2B3674); font-family:inherit; font-size:12px; font-weight:700; padding:7px 10px; cursor:pointer;" title="Okulun konumunu gönder">📍 Konum</button>`
+            : ""}
           ${kisiler.length > 1
             ? `<button onclick="window._pickupYetki.sil(${i})" style="background:none; border:none; color:#94A3B8; cursor:pointer; font-size:18px; padding:0 4px;" title="Listeden çıkar">×</button>`
             : ""}
@@ -165,10 +198,88 @@ async function ekle() {
   if (mevcut.some(k => k.ad.toLocaleLowerCase("tr") === ad.toLocaleLowerCase("tr"))) {
     toast("Bu kişi zaten listede", "error"); return;
   }
-  const yeni = [...mevcut, { ad, yakinlik, telefon }];
-  await kaydet(ogr.id, yeni);
+  const kisi = { ad, yakinlik, telefon };
+  const yeni = [...mevcut, kisi];
+  if (!(await kaydet(ogr.id, yeni))) return;
   toast("✓ " + ad + " listeye eklendi");
-  veliKart("veliPickupYetkiKart");
+  await veliKart("veliPickupYetkiKart");
+  await gonderKartiGoster(kisi);
+}
+
+// Yeni eklenen kişi için: mesaj önizlemesi + WhatsApp / Paylaş / Şimdi değil.
+let _bekleyen = null;
+async function gonderKartiGoster(kisi) {
+  const kutu = document.getElementById("pyGonder");
+  const ogr = aktifOgrenci();
+  const { yol, okul } = await okulKonumuHazirla();
+  if (!kutu || !ogr || !okul || !yol.konumGonderilebilirMi(kisi)) return;
+  const { esc } = P();
+  const metin = yol.konumMesaji({ okul, kisiAdi: kisi.ad, cocukAdi: ogr.ogrenciAdSoyad || "", teslim: true });
+  const wa = yol.whatsappBaglantisi(kisi.telefon, metin);
+  _bekleyen = { metin, wa, baslik: okul.ad + " konumu" };
+  kutu.innerHTML = `
+    <div style="font-size:14px; font-weight:800; color:var(--c-ink);">📍 Okulun konumunu gönderin</div>
+    <div style="font-size:12px; color:var(--c-muted); margin-top:3px; line-height:1.45;">${esc(kisi.ad)} okula ilk kez gelecekse yol tarif etmek yerine bu mesajı gönderin.</div>
+    <div style="margin-top:10px; padding:10px 12px; background:#fff; border:1px solid #DCFCE7; border-radius:10px; font-size:12px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; max-height:160px; overflow-y:auto;">${esc(metin)}</div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      ${wa ? `<button class="ca-btn" style="flex:1; background:#15803D;" onclick="window._pickupYetki.gonderWa()">💬 WhatsApp</button>` : ""}
+      <button class="ca-btn ${wa ? "ghost" : ""}" style="flex:1;" onclick="window._pickupYetki.gonderPaylas()">↗ Paylaş</button>
+    </div>
+    <button onclick="window._pickupYetki.gonderKapat()" style="display:block; margin:8px auto 0; background:none; border:0; color:var(--c-muted); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer;">Şimdi değil</button>`;
+  kutu.hidden = false;
+}
+function gonderKapat() {
+  _bekleyen = null;
+  const kutu = document.getElementById("pyGonder");
+  if (kutu) { kutu.hidden = true; kutu.innerHTML = ""; }
+}
+function gonderWa() {
+  if (_bekleyen?.wa) disariAc(_bekleyen.wa);
+  gonderKapat();
+}
+async function gonderPaylas() {
+  if (!_bekleyen) return;
+  const { yol } = await okulKonumuHazirla();
+  const sonuc = await yol.konumPaylas({ metin: _bekleyen.metin, baslik: _bekleyen.baslik });
+  paylasimBildir(yol, sonuc);
+  if (sonuc === "paylasildi") gonderKapat();
+}
+
+// Listedeki kişiye: telefonu varsa WhatsApp'ta o kişiyle sohbet, yoksa paylaşım menüsü.
+async function konumGonder(i) {
+  const ogr = aktifOgrenci();
+  if (!ogr) return;
+  const [liste, { yol, okul }] = await Promise.all([listeGetir(ogr.id), okulKonumuHazirla()]);
+  const kisi = liste[i];
+  if (!okul || !kisi) return;
+  paylasimBildir(yol, await yol.teslimKonumuGonder({ okul, kisi, cocukAdi: ogr.ogrenciAdSoyad || "", bugun: false, disariAc }));
+}
+
+// Okul Zili: "Kim alacak" seçimi anne/baba değilse konum gönderme düğmesi görünür.
+export async function zilKonumKur() {
+  const kutu = document.getElementById("vzKonum"), sec = document.getElementById("vzKisi");
+  if (!kutu || !sec) return;
+  const { yol, okul } = await okulKonumuHazirla();
+  if (!okul || !yol || !kutu.isConnected) { kutu.hidden = true; return; }
+  const { esc } = P();
+  const ciz = () => {
+    const kisi = (window._vzYetkililer || []).find(k => k.ad === sec.value) || null;
+    kutu.hidden = !yol.konumGonderilebilirMi(kisi);
+    if (kutu.hidden) { kutu.innerHTML = ""; return; }
+    const wa = !!yol.whatsappBaglantisi(kisi.telefon, "x");
+    kutu.innerHTML = `
+      <button type="button" onclick="window._pickupYetki.zilKonumGonder()" style="width:100%; border:0; border-radius:10px; background:#FEF3C7; color:#92400E; font-family:inherit; font-size:13.5px; font-weight:700; padding:11px; cursor:pointer;">📍 ${wa ? "Konumu WhatsApp ile gönder" : "Okulun konumunu gönder"}</button>
+      <div style="font-size:10.5px; color:var(--c-muted); margin-top:5px; text-align:center; line-height:1.45;">${esc(kisi.ad)} okula ilk kez gelecekse: okulun adresi ve haritadaki yeri hazır bir mesajla gider.</div>`;
+  };
+  sec.addEventListener("change", ciz);
+  ciz();
+}
+async function zilKonumGonder() {
+  const ogr = aktifOgrenci(), sec = document.getElementById("vzKisi");
+  const kisi = (window._vzYetkililer || []).find(k => k.ad === sec?.value);
+  const { yol, okul } = await okulKonumuHazirla();
+  if (!ogr || !kisi || !okul) return;
+  paylasimBildir(yol, await yol.teslimKonumuGonder({ okul, kisi, cocukAdi: ogr.ogrenciAdSoyad || "", disariAc }));
 }
 
 async function sil(i) {
@@ -206,9 +317,11 @@ async function kaydet(ogrenciId, kisiler) {
     }
 
     _cache[ogrenciId] = kisiler;
+    return true;
   } catch (e) {
     console.error("pickup yetkili kaydet:", e);
     P().toast("Kaydedilemedi: " + e.message, "error");
+    return false;
   }
 }
 
@@ -376,4 +489,4 @@ if (!okulZiliGuvenliBildirimiKur()) {
   }, 250);
 }
 
-window._pickupYetki = { formAc, ekle, sil, ogretmenPopup };
+window._pickupYetki = { formAc, ekle, sil, ogretmenPopup, konumGonder, gonderWa, gonderPaylas, gonderKapat, zilKonumGonder };

@@ -61,9 +61,12 @@ test('sunucu çağrısı güvenli callable çerçevesinden (App Check + oturum)'
 test('PWA: modülün sürümlü adresi önbelleğe alınır ve önbellek sürümü artar', async () => {
   const pwa = await installedPwa();
   assertPrecachedImport(pwa, 'index.html', 'js/zeky-yol.js');
-  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v200-okul-yolu-hedef";/);
-  assert.match(index, /window\.PORTAL_SURUM = "v200";/);
+  assertPrecachedImport(pwa, 'moduller/pickup-yetkilileri.js', 'js/zeky-yol.js');
+  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v201-okul-konumu-gonder";/);
+  assert.match(index, /window\.PORTAL_SURUM = "v201";/);
 });
+
+const OKUL_AYARI = { ad: 'Bir Çiçek Koleji Anaokulu', adres: 'Aydınlı Mah., Bahçeler Sok. No:45, 34953 Tuzla/İstanbul', placeId: 'ChIJEe3U8uHbyhQR_75zGX5PEDk' };
 
 async function doldur({ bayrak = true, depo = null, izin = false, otomatik = false } = {}) {
   const veri = {};
@@ -75,12 +78,14 @@ async function doldur({ bayrak = true, depo = null, izin = false, otomatik = fal
     otomatikZamaniMi: () => otomatik,
     yolPaneliKur: (kap, secenek) => { kurulan.push(secenek); return { hesapla: async () => null, arkaPlan: async () => null }; }
   };
-  const kaynak = fonksiyonKaynagi(index, 'caHomeYolDoldur').replace('import("./js/zeky-yol.js?v=2")', '__modul()');
+  const kaynak = fonksiyonKaynagi(index, 'caHomeYolDoldur').replace('import("./js/zeky-yol.js?v=3")', '__modul()');
   const c = vm.createContext({
     document: { getElementById: id => id === 'veliYolKart' ? el : null },
     window: { localStorage: depo }, console: { warn() {} }, setTimeout, Promise, Date, Object,
     ozellikBayraklariYukle: async () => ({ okulYolu: bayrak }),
     caYolPaneli: null, caYolServisi: async () => ({}),
+    db: {}, doc: (_db, k, id) => `${k}/${id}`,
+    getDoc: async yol => ({ exists: () => yol === 'ayarlar/okulYolu', data: () => ({ ...OKUL_AYARI, _guncelleyen: 'yonetim@okul' }) }),
     __modul: async () => modul
   });
   vm.runInContext(kaynak + '\nglobalThis.calistir = caHomeYolDoldur;', c);
@@ -100,6 +105,7 @@ test('doldurma: özellik kapalıyken karo gizlenir; açıkken pencere kurulur ve
   assert.equal(acik.veri.deger, '');
   assert.equal(acik.kurulan.length, 1);
   assert.equal(typeof acik.kurulan[0].bildir, 'function');
+  assert.deepEqual({ ...acik.kurulan[0].okul }, OKUL_AYARI, 'Okul kaydı "Konumu gönder" için panele verilir');
 });
 
 test('doldurma: 5 dakikadan yeni sonuç varsa karo süreyi büyük gösterir', async () => {
@@ -130,4 +136,32 @@ test('pencere görünümü: sekmeler, büyük süre, harita yüksekliği, hareke
   assert.match(index, /\.cicek-app \.yol-buyuk \{ font-size:34px; font-weight:800;/);
   assert.match(index, /\.cicek-app \.yol-harita \{ height:220px;/);
   assert.match(index, /prefers-reduced-motion: reduce\) \{ \.cicek-app \.yol-donen/);
+});
+
+test('pencere: "Haritalar\'da aç" ve "Konumu gönder" yan yana', () => {
+  assert.match(index, /\.cicek-app \.yol-eylemler \{ display:flex; gap:8px; \}/);
+  assert.match(index, /\.cicek-app \.yol-git, \.cicek-app \.yol-gonder \{ flex:1 1 0; min-width:0;/);
+  assert.match(index, /\.cicek-app \.yol-gonder\[hidden\], \.cicek-app \.yol-paylas-not\[hidden\] \{ display:none; \}/);
+  for (const ad of ['okulBilgisiDuzelt', 'konumMesaji', 'whatsappBaglantisi', 'konumPaylas', 'konumGonderilebilirMi', 'teslimKonumuGonder']) {
+    assert.equal(typeof Y[ad], 'function', ad);
+  }
+});
+
+test('teslim alabilecek kişiler ve Okul Zili: anne/baba dışındakilere okulun konumu gönderilir', () => {
+  const py = readPortal('moduller/pickup-yetkilileri.js');
+  assert.match(py, /import\("\.\.\/js\/zeky-yol\.js\?v=3"\),\s*fb\.getDoc\(fb\.doc\(db, "ayarlar", "okulYolu"\)\)/);
+  assert.match(py, /const konumVar = \(k\) => !!\(okul && yol\?\.konumGonderilebilirMi\(k\)\);/);
+  assert.match(py, /onclick="window\._pickupYetki\.konumGonder\(\$\{i\}\)"/);
+  assert.match(py, /if \(!\(await kaydet\(ogr\.id, yeni\)\)\) return;[\s\S]*?await gonderKartiGoster\(kisi\);/, 'Kayıt başarılıysa gönderme kartı');
+  assert.match(py, /yol\.konumMesaji\(\{ okul, kisiAdi: kisi\.ad, cocukAdi: ogr\.ogrenciAdSoyad \|\| "", teslim: true \}\)/);
+  assert.match(py, /\$\{esc\(metin\)\}/, 'Mesaj önizlemesi kaçışlı');
+  assert.match(py, /yol\.teslimKonumuGonder\(\{ okul, kisi, cocukAdi: ogr\.ogrenciAdSoyad \|\| "", bugun: false, disariAc \}\)/);
+  assert.match(py, /export async function zilKonumKur\(\)/);
+  assert.match(py, /kutu\.hidden = !yol\.konumGonderilebilirMi\(kisi\);/);
+  assert.match(py, /window\._pickupYetki = \{ formAc, ekle, sil, ogretmenPopup, konumGonder, gonderWa, gonderPaylas, gonderKapat, zilKonumGonder \};/);
+  const zilBas = index.indexOf('window.veliOkulZiliDoldur = async function()');
+  const zil = index.slice(zilBas, index.indexOf('// ── Teslim + veli teyidi tamam', zilBas));
+  assert.ok(zilBas > 0 && zil.length > 0);
+  assert.match(zil, /<div id="vzKonum" hidden style="padding:0 18px 12px;"><\/div>/);
+  assert.match(zil, /modulYukle\("pickup-yetkilileri"\)\.then\(m => m\?\.zilKonumKur\?\.\(\)\)/);
 });
