@@ -73,6 +73,13 @@ function havaOzet(el) {
   if (durum === "kapali" || durum === "yok") return { durum: "gizle", yazi: "" };
   return { durum: "yuk", yazi: "Yükleniyor" };
 }
+// Okul Yolu karosu: süre büyük yazılır ("20 dk"); bayrak kapalıyken veya henüz bilinmiyorken gizli.
+function yolOzet(el) {
+  const d = el?.dataset || {};
+  if (d.yol !== "hazir") return { durum: "gizle", yazi: "" };
+  return { durum: d.deger ? "tamam" : "bos", yazi: d.ozet || "Süreyi görmek için dokunun", deger: d.deger || "",
+    ikon: d.ikon || "car", renk: d.renk || "", acik: d.acik || "" };
+}
 async function pickupOzet(el) {
   const t = metin(el);
   if (!t || /Yükleniyor/.test(t)) return { durum: "yuk", yazi: "Yükleniyor" };
@@ -92,6 +99,8 @@ async function pickupOzet(el) {
 const KAROLAR = [
   { id: "veliHavaKart", ad: "Hava ve kıyafet", ikon: "cloud-sun", renk: "#2E5C8A", acik: "#E3EEF8", genis: true,
     alt: () => "Okul saatleri için tahmin ve kıyafet önerisi", ozet: havaOzet },
+  { id: "veliYolKart", ad: "Okul Yolu", ikon: "car", renk: "#2D5E3E", acik: "#E8F3EC", genis: true,
+    alt: () => "Bulunduğunuz yerden okula tahmini süre", ozet: yolOzet, acildi: () => window.caYolAcildi?.() },
   { id: "veliSabahGirisiKart", ad: "Sabah girişi", ikon: "sunrise", renk: "#0E7490", acik: "#E0F7FA", ozet: sabahOzet },
   { id: "veliOkulZiliKart", ad: "Okul zili", ikon: "bell-ring", renk: "#B45309", acik: "#FEF3C7", ozet: zilOzet },
   { id: "veliIzinKart", ad: "İzin ve bildirim", ikon: "calendar-x-2", renk: "#7C3AED", acik: "#EDE9FE", ozet: izinOzet },
@@ -184,7 +193,8 @@ function grup1Kur() {
     karo.addEventListener("click", () => sayfaAc(k, el, karo));
     hazne.appendChild(el);
     const guncelle = zamanla(() => { sadelestir(el, k); ozetYaz(k, karo, el); });
-    new MutationObserver(guncelle).observe(el, { childList: true, subtree: true, characterData: true });
+    // Okul Yolu karosu özetini data-yol özniteliğiyle bildirir (içerik değişmeden de)
+    new MutationObserver(guncelle).observe(el, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["data-yol"] });
     guncelle();
   }
   ikonCiz();
@@ -311,6 +321,8 @@ function sayfaAc(k, el, karo) {
   document.addEventListener("keydown", tus, true);
   ikonCiz();
   kok.querySelector(".vkp-tamam").focus({ preventScroll: true });
+  // Karo açılınca yapılacak iş (ör. Okul Yolu: konumla süreyi hesapla)
+  if (typeof k.acildi === "function") { try { k.acildi(el); } catch (e) { console.warn(e); } }
 }
 function tus(e) {
   // Kart içindeki bir alt pencere açıksa (ör. izin formu) Escape onu kapatsın
