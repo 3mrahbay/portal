@@ -22,7 +22,8 @@ export const MEB_DENETIM_SURUM = 2;
 export const DENETIM_BELGE = Object.freeze({ koleksiyon: 'mebDenetim', belge: 'durum' });
 export const ESKI_DENETIM_BELGE = Object.freeze({ koleksiyon: 'ayarlar', belge: 'mebDenetim' });
 export const YAKLASAN_GUN = 30;
-export const SINIRLAR = Object.freeze({ not: 2000, sorumlu: 80, kanit: 500, maddeMetni: 300 });
+// ozelMadde: tek belgenin 1 MiB sınırına yaklaşmamak için okula özel madde üst sınırı.
+export const SINIRLAR = Object.freeze({ not: 2000, sorumlu: 80, kanit: 500, maddeMetni: 300, ozelMadde: 100 });
 export const PERIYOTLAR = Object.freeze([0, 1, 3, 6, 12, 24, 36]);
 
 export const DENETIM_DURUMLAR = Object.freeze({
@@ -177,6 +178,9 @@ export function tarihYazi(tarih) {
 }
 
 // ── Kayıt ve özel madde doğrulama ────────────────────────────────────
+// Formdan düzenlenen alanlar; her kayıtta ayrıca madde kopyası ve son güncelleyen yazılır.
+export const KAYIT_ALANLARI = Object.freeze(['durum', 'not', 'sorumlu', 'sonKontrol', 'gecerlilikBitis', 'kanit']);
+export const KAYIT_META = Object.freeze(['baslik', 'periyotAy', 'kritik', 'guncelleyen', 'guncelleyenAd', 'guncellendi']);
 const metin = (deger, sinir) => String(deger ?? '').replace(/\r\n?/g, '\n').trim().slice(0, sinir);
 
 export function kayitDuzenle(ham = {}) {
@@ -261,6 +265,14 @@ export function etkinDurum(madde, kayit, bugun) {
   return k.durum;
 }
 
+// "Uyumlu" işaretli periyodik madde son kontrol tarihi olmadan doğrulanamaz:
+// süresi hesaplanamaz, hatırlatma gitmez. Skorda uyumlu kalır ama ayrıca sayılır
+// ve "Tarih girilmeli" filtresinde listelenir.
+export function tarihBekliyor(madde, kayit, bugun) {
+  const k = kayitDuzenle(kayit);
+  return k.durum === 'uygun' && sureDurumu(madde, k, bugun).tur === 'tarihYok';
+}
+
 export function sonrakiDurum(durum) {
   const i = DURUM_SIRASI.indexOf(durum);
   return DURUM_SIRASI[(i < 0 ? 0 : i + 1) % DURUM_SIRASI.length];
@@ -268,7 +280,7 @@ export function sonrakiDurum(durum) {
 
 export function ozetHesapla(kategoriler, kayitlar = {}, bugun) {
   const o = { toplam: 0, uygun: 0, eksik: 0, bos: 0, uygulanamaz: 0, kritikEksik: 0,
-    gecti: 0, yaklasiyor: 0, tarihYok: 0, notlu: 0, yuzde: 0, kategoriler: {} };
+    gecti: 0, yaklasiyor: 0, tarihYok: 0, tarihsiz: 0, notlu: 0, yuzde: 0, kategoriler: {} };
   for (const kat of kategoriler) {
     const ko = { toplam: 0, uygun: 0 };
     for (const m of kat.maddeler) {
@@ -279,6 +291,7 @@ export function ozetHesapla(kategoriler, kayitlar = {}, bugun) {
       if (sure.tur === 'gecti') o.gecti++;
       if (sure.tur === 'yaklasiyor') o.yaklasiyor++;
       if (sure.tur === 'tarihYok') o.tarihYok++;
+      if (tarihBekliyor(m, kayit, bugun)) o.tarihsiz++;
       o[durum]++;
       if (durum === 'uygulanamaz') continue;
       o.toplam++; ko.toplam++;
@@ -293,7 +306,7 @@ export function ozetHesapla(kategoriler, kayitlar = {}, bugun) {
 
 export const FILTRELER = Object.freeze({
   tum: 'Tümü', eksik: 'Eksik', kritik: 'Kritik eksik', sure: 'Süresi yaklaşan / geçen',
-  bos: 'Cevapsız', notlu: 'Notlu'
+  tarihsiz: 'Tarih girilmeli', bos: 'Cevapsız', notlu: 'Notlu'
 });
 
 const kucuk = s => String(s || '').toLocaleLowerCase('tr-TR');
@@ -306,6 +319,7 @@ export function filtreUyar(madde, kayit, { filtre = 'tum', arama = '' } = {}, bu
   if (filtre === 'kritik' && !(madde.k && durum !== 'uygun' && durum !== 'uygulanamaz')) return false;
   // Hatırlatma bildirimi bu filtreyle açılır: yalnız süresi geçen ve 30 gün içinde dolanlar.
   if (filtre === 'sure' && !['gecti', 'yaklasiyor'].includes(sure.tur)) return false;
+  if (filtre === 'tarihsiz' && !tarihBekliyor(madde, k, bugun)) return false;
   if (filtre === 'bos' && durum !== 'bos') return false;
   if (filtre === 'notlu' && !k.not) return false;
   const aranan = kucuk(arama).trim();

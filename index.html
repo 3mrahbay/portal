@@ -15559,6 +15559,14 @@ async function portalBildirimGit(b) {
     await galeriOnayBildirimiAc(b);
     return;
   }
+  if (personelMi && /^meb-denetim/.test(tip)) {
+    // ZEKY Apps Script süre hatırlatması: MEB Denetim, "Süresi yaklaşan / geçen" filtresiyle.
+    window.modulSec("denetim");
+    if (aktifModul !== "denetim") return;   // yetki yoksa modulSec uyarıyı zaten gösterdi
+    const m = await modulYukle("meb-denetim");
+    m?.panelKur("denetimKok", { filtre: "sure" });
+    return;
+  }
   if (personelMi) {
     const hedef = /^(pickup|sabah)/.test(tip) ? "ozet"
       : /gorusme/.test(tip) ? "gorusmeNotlari"

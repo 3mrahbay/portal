@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as C from '../js/meb-denetim-cekirdek.js';
-import { panelHtml, raporHtml, veriYukle, kayitKaydet, ozelMaddeKaydet, ozelMaddeSil, KURAL_PARCASI, esc } from '../moduller/meb-denetim.js';
+import { panelHtml, raporHtml, veriYukle, kayitKaydet, ozelMaddeKaydet, ozelMaddeSil, zamanAsimli, KURAL_PARCASI, esc } from '../moduller/meb-denetim.js';
 
 const kok = new URL('../', import.meta.url);
 const BUGUN = '2026-10-14';
@@ -75,6 +75,32 @@ test('skor: süresi geçmiş "uyumlu" eksik sayılır, uygulanamaz paydadan çı
   assert.equal(o.notlu, 1);
   assert.equal(o.kritikEksik, C.DENETIM_KATEGORILERI.flatMap(k => k.maddeler).filter(m => m.k).length);
   assert.equal(o.yuzde, 1);
+});
+
+test('tarihsiz periyodik "uyumlu" madde ayrıca sayılır ve "Tarih girilmeli" filtresinde çıkar', () => {
+  const kategoriler = C.kategorileriTopla({});
+  const kayitlar = {
+    guvenlik_0: { durum: 'uygun' },                           // 6 ayda bir, tarih yok
+    guvenlik_8: { durum: 'eksik' },                           // periyodik ama eksik: tarih beklenmez
+    evrak_8: { durum: 'uygun', sonKontrol: '2026-09-01' },    // tarihli
+    yemek_0: { durum: 'uygun' }                               // periyot yok
+  };
+  assert.equal(C.tarihBekliyor(madde('guvenlik_0'), kayitlar.guvenlik_0, BUGUN), true);
+  assert.equal(C.tarihBekliyor(madde('guvenlik_8'), kayitlar.guvenlik_8, BUGUN), false);
+  assert.equal(C.tarihBekliyor(madde('evrak_8'), kayitlar.evrak_8, BUGUN), false);
+  assert.equal(C.tarihBekliyor(madde('yemek_0'), kayitlar.yemek_0, BUGUN), false);
+  const o = C.ozetHesapla(kategoriler, kayitlar, BUGUN);
+  assert.equal(o.tarihsiz, 1);
+  assert.equal(o.uygun, 3, 'skorda uyumlu kalır');
+  assert.equal(C.filtreUyar(madde('guvenlik_0'), kayitlar.guvenlik_0, { filtre: 'tarihsiz' }, BUGUN), true);
+  assert.equal(C.filtreUyar(madde('evrak_8'), kayitlar.evrak_8, { filtre: 'tarihsiz' }, BUGUN), false);
+  const html = panelHtml({ kategoriler, kayitlar, bugun: BUGUN });
+  assert.match(html, /<b>1<\/b><span>Tarih girilmeli<\/span>/);
+  assert.match(html, /data-deger="tarihsiz">Tarih girilmeli · 1/);
+  assert.match(html, /Uyumlu işaretli, son kontrol tarihi girilmeli/);
+  const temiz = panelHtml({ kategoriler, kayitlar: {}, bugun: BUGUN });
+  assert.doesNotMatch(temiz, /data-deger="tarihsiz"/, 'tarihsiz madde yoksa filtre gizli');
+  assert.doesNotMatch(temiz, /Tarih girilmeli<\/span>/);
 });
 
 test('filtreler ve Türkçe arama', () => {
@@ -150,7 +176,7 @@ test('panel ve rapor kullanıcı metnini kaçışlar; süre ve not rozetleri gö
   assert.equal(esc(`<a href='x'>&"`), '&lt;a href=&#39;x&#39;&gt;&amp;&quot;');
 });
 
-function sahteFb(depo) {
+function sahteFb(depo, { okumaHatasi = {} } = {}) {
   const yazilan = [];
   const SIL = Symbol('sil');
   const fb = {
@@ -158,25 +184,48 @@ function sahteFb(depo) {
     getDoc: async yol => ({ exists: () => depo.has(yol), data: () => depo.get(yol) }),
     setDoc: async (yol, veri, sec) => { yazilan.push([yol, veri, sec]); },
     deleteField: () => SIL,
-    runTransaction: async (db, fn) => fn({
-      get: async yol => ({ exists: () => depo.has(yol), data: () => depo.get(yol) }),
-      set: (yol, veri) => { yazilan.push([yol, veri, 'tx']); depo.set(yol, veri); }
-    })
+    runTransaction: async (db, fn) => {
+      // Gerçek işlem gibi: hata olursa yazmalar uygulanmaz.
+      const bekleyen = [];
+      const sonuc = await fn({
+        get: async yol => {
+          if (okumaHatasi[yol]) throw okumaHatasi[yol];
+          return { exists: () => depo.has(yol), data: () => depo.get(yol) };
+        },
+        set: (yol, veri) => bekleyen.push(() => { yazilan.push([yol, veri, 'tx']); depo.set(yol, veri); }),
+        delete: yol => bekleyen.push(() => { yazilan.push([yol, null, 'tx-sil']); depo.delete(yol); })
+      });
+      bekleyen.forEach(f => f());
+      return sonuc;
+    }
   };
   return { api: { fb, db: {}, state: { currentUser: { email: 'Mudur@Okul.com' }, personel: { adSoyad: 'Emrah Bay' } } }, yazilan, SIL };
 }
 
-test('ilk açılış: eski durumlar işlem içinde bir kez taşınır; yeni belge varsa dokunulmaz', async () => {
-  const depo = new Map([['ayarlar/mebDenetim', { kayitlar: { yemek_0: { durum: 'eksik', tarih: 't' }, evrak_1: { durum: 'uygun' } } }]]);
+test('ilk açılış: eski durumlar işlem içinde bir kez taşınır, herkese açık eski belge silinir; yeni belge varsa dokunulmaz', async () => {
+  const depo = new Map([['ayarlar/mebDenetim', { kayitlar: { yemek_0: { durum: 'eksik', tarih: 't' }, evrak_1: { durum: 'uygun' } }, guncelleyen: 'ogretmen@okul.com' }]]);
   const { api, yazilan } = sahteFb(depo);
   const veri = await veriYukle(api);
   assert.deepEqual(Object.keys(veri.maddeler).sort(), ['evrak_1', 'yemek_0']);
   assert.equal(veri.tasindi, true);
-  assert.equal(yazilan.length, 1);
-  assert.equal(yazilan[0][0], 'mebDenetim/durum');
+  assert.deepEqual(yazilan.map(([yol, , tur]) => [yol, tur]), [['mebDenetim/durum', 'tx'], ['ayarlar/mebDenetim', 'tx-sil']]);
+  assert.equal(depo.has('ayarlar/mebDenetim'), false, 'veliler dahil herkesin okuyabildiği belge kalmaz');
   const ikinci = await veriYukle(api);
   assert.equal(ikinci, veri);
-  assert.equal(yazilan.length, 1, 'ikinci açılışta yazma yok');
+  assert.equal(yazilan.length, 2, 'ikinci açılışta yazma yok');
+});
+
+test('ilk açılış: eski belge yoksa boş başlar ve silme denenmez; okunamazsa taşıma yapılmaz', async () => {
+  const bos = sahteFb(new Map());
+  const veri = await veriYukle(bos.api);
+  assert.deepEqual(veri.maddeler, {});
+  assert.deepEqual(bos.yazilan.map(([yol, , tur]) => [yol, tur]), [['mebDenetim/durum', 'tx']]);
+  // Ağ / yetki hatası "boş" sayılmaz: yeni belge oluşmaz, sonraki açılışta yeniden denenir.
+  const depo = new Map([['ayarlar/mebDenetim', { kayitlar: { yemek_0: { durum: 'uygun' } } }]]);
+  const hatali = sahteFb(depo, { okumaHatasi: { 'ayarlar/mebDenetim': Object.assign(new Error('ağ'), { code: 'unavailable' }) } });
+  await assert.rejects(veriYukle(hatali.api), /ağ/);
+  assert.equal(hatali.yazilan.length, 0);
+  assert.equal(depo.has('mebDenetim/durum'), false);
 });
 
 test('kayıt yalnız ilgili maddeyi birleştirerek yazar; özel madde silme alanları kaldırır', async () => {
@@ -189,6 +238,12 @@ test('kayıt yalnız ilgili maddeyi birleştirerek yazar; özel madde silme alan
   assert.deepEqual(Object.keys(veri.maddeler), ['guvenlik_0']);
   assert.equal(veri.maddeler.guvenlik_0.not, 'tamam');
   assert.equal(veri.guncelleyen, 'mudur@okul.com');
+  // Durum düğmesi: yalnız durum + madde kopyası + son güncelleyen (not, tarih ezilmez).
+  await kayitKaydet(api, 'guvenlik_0', { durum: 'eksik', baslik: 'Yangın tatbikatı', periyotAy: 6, kritik: true }, ['durum']);
+  const kismi = yazilan.at(-1)[1].maddeler.guvenlik_0;
+  assert.deepEqual(Object.keys(kismi).sort(), ['baslik', 'durum', 'guncellendi', 'guncelleyen', 'guncelleyenAd', 'kritik', 'periyotAy']);
+  assert.equal(kismi.durum, 'eksik');
+  yazilan.pop();
   await assert.rejects(kayitKaydet(api, 'maddeler.x', {}), /Geçersiz madde/);
   const { id } = await ozelMaddeKaydet(api, { s: 'Servis muayenesi', kategori: 'guvenlik', periyotAy: 12 }, () => 0.1);
   assert.equal(yazilan[1][1].ozelMaddeler[id].s, 'Servis muayenesi');
@@ -205,9 +260,24 @@ test('index.html: satır içi denetim kodu kaldırıldı, sekme modülü yükler
   assert.match(html, /modulYukle\("meb-denetim"\)\.then\(m => m && m\.panelKur\("denetimKok"\)\)/);
   assert.match(KURAL_PARCASI, /match \/mebDenetim\/\{docId\} \{\n  allow read, write: if isAdmin\(\) \|\| isYonetim\(\);\n\}/);
   const modul = await readFile(new URL('moduller/meb-denetim.js', kok), 'utf8');
-  assert.match(modul, /from '\.\.\/js\/meb-denetim-cekirdek\.js'/);
   assert.doesNotMatch(modul, /ayarlar\/mebDenetim'?\s*,\s*\{[^}]*kayitlar/, 'eski herkese açık belgeye yazılmaz');
   assert.doesNotMatch(modul, /setDoc\(fb\.doc\(db, ESKI_DENETIM_BELGE/);
   // Hatırlatma sunucusu katalog bilmez: madde metni, periyot ve önem kayda kopyalanır.
-  assert.match(modul, /const yeniKayit = \{ \.\.\.ham, baslik: m\?\.s \|\| '', periyotAy: m\?\.periyotAy \|\| 0, kritik: m\?\.k === true \}/);
+  assert.match(modul, /const madde = \{ baslik: m\?\.s \|\| '', periyotAy: m\?\.periyotAy \|\| 0, kritik: m\?\.k === true \}/);
+  assert.match(modul, /kayitKaydet\(api, id, \{ \.\.\.degisen, \.\.\.madde \}, alanlar\)/);
+  // Kurulum işareti await'ten önce, senkron konur (çift dokunuşta olaylar iki kez bağlanmaz).
+  assert.match(modul, /const kurulum = panelOlustur\(kok, secenek\)[^\n]*\n\s*kok\._mebDenetimKurulum = kurulum;/);
+  // Çekirdek sürümlü içe aktarılır: tarayıcı önbelleği eski çekirdeği vermesin.
+  assert.match(modul, /from '\.\.\/js\/meb-denetim-cekirdek\.js\?v=\d+'/);
+});
+
+test('çevrimdışı yazma ekranı kilitlemez: süre dolunca "bekliyor" döner, sonuç sonra gelir', async () => {
+  assert.deepEqual(await zamanAsimli(Promise.resolve(5), 50), { sonuc: 5 });
+  assert.deepEqual(await zamanAsimli(new Promise(() => {}), 10), { bekliyor: true });
+  await assert.rejects(zamanAsimli(Promise.reject(new Error('red')), 50), /red/);
+});
+
+test('portal bildirimi: meb-denetim hatırlatması MEB Denetim sekmesini süre filtresiyle açar', async () => {
+  const html = await readFile(new URL('index.html', kok), 'utf8');
+  assert.match(html, /if \(personelMi && \/\^meb-denetim\/\.test\(tip\)\) \{[\s\S]{0,260}window\.modulSec\("denetim"\);[\s\S]{0,200}panelKur\("denetimKok", \{ filtre: "sure" \}\)/);
 });
