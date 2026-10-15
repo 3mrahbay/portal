@@ -85,7 +85,8 @@ test('filtreler ve Türkçe arama', () => {
   assert.equal(C.filtreUyar(madde('guvenlik_1'), { durum: 'eksik' }, { filtre: 'kritik' }, BUGUN), false);
   assert.equal(C.filtreUyar(m, k, { filtre: 'notlu', arama: 'itfaiye rapor' }, BUGUN), true);
   assert.equal(C.filtreUyar(m, k, { arama: 'ışık' }, BUGUN), true);
-  assert.equal(C.filtreUyar(m, k, { filtre: 'sure' }, BUGUN), true, 'periyodik madde tarih girilmemişse süre filtresinde');
+  assert.equal(C.filtreUyar(m, k, { filtre: 'sure' }, BUGUN), false, 'tarih girilmemiş madde süre filtresine girmez');
+  assert.equal(C.filtreUyar(m, { durum: 'uygun', sonKontrol: '2026-04-20' }, { filtre: 'sure' }, BUGUN), true);
   assert.equal(C.filtreUyar(madde('yemek_0'), {}, { filtre: 'sure' }, BUGUN), false);
 });
 
@@ -97,6 +98,10 @@ test('kayıt ve özel madde doğrulama; eski kayıtların taşınması', () => {
   assert.equal(k.sonKontrol, '');
   assert.equal(k.kanit, 'klasör 3');
   assert.equal(k.guncelleyen, 'a@b.com');
+  assert.deepEqual([k.baslik, k.periyotAy, k.kritik], ['', 0, false]);
+  const kopya = C.kayitDuzenle({ baslik: 'Yangın tatbikatı', periyotAy: 6, kritik: true });
+  assert.deepEqual([kopya.baslik, kopya.periyotAy, kopya.kritik], ['Yangın tatbikatı', 6, true]);
+  assert.equal(C.kayitDuzenle({ periyotAy: 7 }).periyotAy, 0);
   assert.throws(() => C.ozelMaddeDuzenle({ s: '   ' }));
   assert.deepEqual(C.ozelMaddeDuzenle({ s: 'Servis muayenesi', kategori: 'yok', periyotAy: 5, k: 'evet' }),
     { kategori: 'ozel', s: 'Servis muayenesi', k: false, periyotAy: 0, olusturan: '', olusturuldu: '' });
@@ -134,6 +139,8 @@ test('panel ve rapor kullanıcı metnini kaçışlar; süre ve not rozetleri gö
   const kapali = panelHtml({ kategoriler, kayitlar, bugun: BUGUN, filtre: 'eksik' });
   assert.doesNotMatch(kapali, /data-madde="yemek_0"/);
   assert.match(kapali, /data-madde="ozel_aaaaaa1"/);
+  assert.match(html, /data-eylem="rapor"/);
+  assert.doesNotMatch(panelHtml({ kategoriler, kayitlar, bugun: BUGUN, rapor: false }), /data-eylem="rapor"/);
   const okuma = panelHtml({ kategoriler, kayitlar, bugun: BUGUN, acikMadde: 'guvenlik_0', yetkili: false });
   assert.doesNotMatch(okuma, /data-eylem="kaydet"/);
   const rapor = raporHtml({ kategoriler, kayitlar, bugun: BUGUN });
@@ -201,4 +208,6 @@ test('index.html: satır içi denetim kodu kaldırıldı, sekme modülü yükler
   assert.match(modul, /from '\.\.\/js\/meb-denetim-cekirdek\.js'/);
   assert.doesNotMatch(modul, /ayarlar\/mebDenetim'?\s*,\s*\{[^}]*kayitlar/, 'eski herkese açık belgeye yazılmaz');
   assert.doesNotMatch(modul, /setDoc\(fb\.doc\(db, ESKI_DENETIM_BELGE/);
+  // Hatırlatma sunucusu katalog bilmez: madde metni, periyot ve önem kayda kopyalanır.
+  assert.match(modul, /const yeniKayit = \{ \.\.\.ham, baslik: m\?\.s \|\| '', periyotAy: m\?\.periyotAy \|\| 0, kritik: m\?\.k === true \}/);
 });

@@ -158,7 +158,7 @@ function satirHtml(m, kayitHam, bugun, { acikMadde, yetkili }) {
 }
 
 export function panelHtml({ kategoriler, kayitlar, bugun, filtre = 'tum', arama = '', acikMadde = '',
-  yetkili = true, ozelFormAcik = false, uyari = '' }) {
+  yetkili = true, ozelFormAcik = false, uyari = '', rapor = true }) {
   const o = ozetHesapla(kategoriler, kayitlar, bugun);
   const kartlar = kategoriler.map(kat => {
     const gorunen = kat.maddeler.filter(m => filtreUyar(m, kayitlar[m.id], { filtre, arama }, bugun) || m.id === acikMadde);
@@ -179,7 +179,7 @@ export function panelHtml({ kategoriler, kayitlar, bugun, filtre = 'tum', arama 
       <div>
         <div class="md-etiket">MEB DENETİM HAZIRLIĞI</div>
         <h2>Denetim Öz-Değerlendirme</h2>
-        <p>MEB / Aile Bakanlığı / İSG mevzuatına göre kurum hazırlık listesi. Bir maddeye dokunun: not, sorumlu, son kontrol ve geçerlilik tarihi ekleyin. Değişiklikler hemen kaydedilir; ZEKY'den de görülür.</p>
+        <p>MEB / Aile Bakanlığı / İSG mevzuatına göre kurum hazırlık listesi. Bir maddeye dokunun: not, sorumlu, son kontrol ve geçerlilik tarihi ekleyin. Değişiklikler hemen kaydedilir; portal ve ZEKY aynı listeyi kullanır.</p>
       </div>
       <div class="md-sayilar">
         <div class="md-sayi"><b>%${o.yuzde}</b><span>Uyum skoru</span></div>
@@ -195,7 +195,7 @@ export function panelHtml({ kategoriler, kayitlar, bugun, filtre = 'tum', arama 
     <div class="md-arac">
       <input type="search" data-arama placeholder="Madde, not veya sorumlu ara" value="${esc(arama)}" aria-label="Ara">
       ${yetkili ? '<button type="button" class="md-btn" data-eylem="ozel-ac">+ Okula özel madde</button>' : ''}
-      <button type="button" class="md-btn ana" data-eylem="rapor">Rapor / PDF</button>
+      ${rapor ? '<button type="button" class="md-btn ana" data-eylem="rapor">Rapor / PDF</button>' : ''}
     </div>
     ${ozelFormAcik && yetkili ? ozelFormHtml() : ''}
     ${kartlar || '<div class="md-bos">Bu filtrede madde yok.</div>'}`;
@@ -332,7 +332,9 @@ export async function ozelMaddeSil(api, id) {
 // ─────────────────────────────────────────────────────────────────
 // PANEL
 // ─────────────────────────────────────────────────────────────────
-export async function panelKur(kokId = 'denetimKok', { api = P(), simdi = () => Date.now() } = {}) {
+// rapor:false → yazdırma düğmesi gizlenir (ZEKY: uygulama içinde yeni pencere açılamaz).
+// filtre → açılışta seçili filtre (ör. hatırlatma bildiriminden 'sure').
+export async function panelKur(kokId = 'denetimKok', { api = P(), simdi = () => Date.now(), rapor = true, filtre = 'tum' } = {}) {
   const kok = document.getElementById(kokId);
   if (!kok) return null;
   // Sekme her açıldığında çağrılır: panel bir kez kurulur, sonra yalnız veri tazelenir.
@@ -340,13 +342,13 @@ export async function panelKur(kokId = 'denetimKok', { api = P(), simdi = () => 
   stilEkle();
   const rol = api.state?.rol;
   const yetkili = !!api.state?.isAdmin || ['kurucu_mudur', 'mudur'].includes(rol);
-  const d = { veri: { maddeler: {}, ozelMaddeler: {} }, filtre: 'tum', arama: '', acikMadde: '',
+  const d = { veri: { maddeler: {}, ozelMaddeler: {} }, filtre: Object.hasOwn(FILTRELER, filtre) ? filtre : 'tum', arama: '', acikMadde: '',
     ozelFormAcik: false, mesgul: false, uyari: '' };
 
   const model = () => ({
     kategoriler: kategorileriTopla(d.veri.ozelMaddeler), kayitlar: d.veri.maddeler || {},
     bugun: bugunIstanbul(simdi()), filtre: d.filtre, arama: d.arama, acikMadde: d.acikMadde,
-    yetkili, ozelFormAcik: d.ozelFormAcik, uyari: d.uyari
+    yetkili, ozelFormAcik: d.ozelFormAcik, uyari: d.uyari, rapor
   });
   // Yeniden çizimde açık madde formundaki kaydedilmemiş yazılar korunur.
   const ciz = () => {
@@ -382,7 +384,11 @@ export async function panelKur(kokId = 'denetimKok', { api = P(), simdi = () => 
 
   const maddeBul = id => model().kategoriler.flatMap(k => k.maddeler).find(m => m.id === id);
 
-  async function yaz(id, yeniKayit, basari) {
+  // Madde metni, periyot ve önem kayda da yazılır: günlük süre hatırlatması
+  // (ZEKY Apps Script) katalog bilmeden hangi maddenin dolduğunu söyleyebilsin.
+  async function yaz(id, ham, basari) {
+    const m = maddeBul(id);
+    const yeniKayit = { ...ham, baslik: m?.s || '', periyotAy: m?.periyotAy || 0, kritik: m?.k === true };
     const onceki = d.veri.maddeler[id];
     d.veri.maddeler[id] = kayitDuzenle(yeniKayit);
     ciz();
@@ -409,7 +415,7 @@ export async function panelKur(kokId = 'denetimKok', { api = P(), simdi = () => 
     if (eylem === 'filtre') { d.filtre = Object.hasOwn(FILTRELER, el.dataset.deger) ? el.dataset.deger : 'tum'; ciz(); return; }
     if (eylem === 'ac') { d.acikMadde = d.acikMadde === id ? '' : id; ciz(); return; }
     if (eylem === 'kapat') { d.acikMadde = ''; ciz(); return; }
-    if (eylem === 'rapor') { raporAc(model()); return; }
+    if (eylem === 'rapor' && rapor) { raporAc(model()); return; }
     if (!yetkili) return;
     if (eylem === 'durum' && maddeBul(id)) {
       const k = kayitDuzenle(d.veri.maddeler[id]);

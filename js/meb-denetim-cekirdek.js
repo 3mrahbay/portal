@@ -8,7 +8,8 @@
 //   { surum:2, maddeler:{ <maddeId>: KAYIT }, ozelMaddeler:{ <ozelId>: OZEL },
 //     tasindi:bool, guncellendi, guncelleyen }
 //   KAYIT = { durum, not, sorumlu, sonKontrol, gecerlilikBitis, kanit,
-//             guncelleyen, guncelleyenAd, guncellendi }
+//             baslik, periyotAy, kritik,              ← maddeden kopya (hatırlatma
+//             guncelleyen, guncelleyenAd, guncellendi }  sunucusu katalog bilmez)
 //   OZEL  = { kategori, s, k, periyotAy, olusturan, olusturuldu }
 // Eski sürüm: ayarlar/mebDenetim.kayitlar (yalnız durum; her oturum açmış
 // kullanıcı okuyabiliyordu). İlk açılışta durumlar buraya taşınır.
@@ -187,6 +188,9 @@ export function kayitDuzenle(ham = {}) {
     sonKontrol: tarihGecerli(ham?.sonKontrol) ? ham.sonKontrol : '',
     gecerlilikBitis: tarihGecerli(ham?.gecerlilikBitis) ? ham.gecerlilikBitis : '',
     kanit: metin(ham?.kanit, SINIRLAR.kanit),
+    baslik: metin(ham?.baslik, SINIRLAR.maddeMetni),
+    periyotAy: PERIYOTLAR.includes(Number(ham?.periyotAy)) ? Number(ham.periyotAy) : 0,
+    kritik: ham?.kritik === true,
     guncelleyen: metin(ham?.guncelleyen, 200).toLowerCase(),
     guncelleyenAd: metin(ham?.guncelleyenAd, 120),
     guncellendi: metin(ham?.guncellendi, 40)
@@ -300,7 +304,8 @@ export function filtreUyar(madde, kayit, { filtre = 'tum', arama = '' } = {}, bu
   const sure = sureDurumu(madde, k, bugun);
   if (filtre === 'eksik' && durum !== 'eksik') return false;
   if (filtre === 'kritik' && !(madde.k && durum !== 'uygun' && durum !== 'uygulanamaz')) return false;
-  if (filtre === 'sure' && !['gecti', 'yaklasiyor', 'tarihYok'].includes(sure.tur)) return false;
+  // Hatırlatma bildirimi bu filtreyle açılır: yalnız süresi geçen ve 30 gün içinde dolanlar.
+  if (filtre === 'sure' && !['gecti', 'yaklasiyor'].includes(sure.tur)) return false;
   if (filtre === 'bos' && durum !== 'bos') return false;
   if (filtre === 'notlu' && !k.not) return false;
   const aranan = kucuk(arama).trim();
