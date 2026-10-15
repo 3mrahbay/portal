@@ -72,11 +72,15 @@ export function hatirlatmaTaslagi(hesap,kalem='',now=new Date()){
  const imza=JSON.stringify([hesap.id,hesap.donem,alicilar,rows.map(r=>[r.id,r.beklenen,r.odenen,r.kalan,r.vade])]);
  return {ogrenciId:hesap.id,ogrenciAd:ad,donem:hesap.donem,kalem,alicilar,rows,toplam,subject,htmlContent,imza};
 }
+// The mail proxy verifies the sender's Firebase session for non-school recipients.
+// The host app (portal/ZEKY) exposes globalThis.zekyOturumJetonu.
+async function mailOturumJetonu(){try{return String((await globalThis.zekyOturumJetonu?.())||'');}catch(_){return '';}}
 // Uses the school's existing mail proxy; no provider API key is shipped.
 export async function okulMailGonder(opts){
+ const idToken=await mailOturumJetonu();
  const response=await fetch('https://script.google.com/macros/s/AKfycbwUNvVhTCvxUKOMtbFJ4_UASBo8-sgT13qT_9tWeYKZR3IYaYKUhGdSaGgGaaqMaZLf/exec',{
   method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},
-  body:JSON.stringify({origin:globalThis.location?.hostname||'',...opts,replyTo:'eposta@bircicekkoleji.com',senderName:'Bir Çiçek Koleji Anaokulu',senderEmail:'eposta@bircicekkoleji.com'})
+  body:JSON.stringify({origin:globalThis.location?.hostname||'',...opts,idToken,replyTo:'eposta@bircicekkoleji.com',senderName:'Bir Çiçek Koleji Anaokulu',senderEmail:'eposta@bircicekkoleji.com'})
  });
  if(!response.ok)throw Error('Gönderim sonucu doğrulanamadı. Yeniden göndermeden önce gönderim kayıtlarını kontrol edin.');
  return response.json();

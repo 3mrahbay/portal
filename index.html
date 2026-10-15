@@ -14123,6 +14123,14 @@ const SCHOOL_EMAIL = "eposta@bircicekkoleji.com";
 // Geriye dönük uyumluluk için alias (eski OKUL_MAIL referanslarını bozmamak için)
 const OKUL_MAIL = SCHOOL_EMAIL;
 
+// Firebase oturum jetonu: mail proxy'si okul dışı alıcılarda gönderenin
+// oturumunu doğrular. Ortak finans modülü de window.zekyOturumJetonu kullanır.
+async function oturumJetonu() {
+  try { return auth.currentUser ? String((await auth.currentUser.getIdToken()) || "") : ""; }
+  catch (e) { return ""; }
+}
+window.zekyOturumJetonu = oturumJetonu;
+
 // Brevo üzerinden mail gönder (Apps Script proxy ile)
 async function brevoMail(opts) {
   if(!opts.to || !opts.subject || !opts.htmlContent) {
@@ -14132,6 +14140,7 @@ async function brevoMail(opts) {
   try {
     var payload = {
       origin: window.location.hostname,
+      idToken: await oturumJetonu(),
       to: opts.to,
       toName: opts.toName || "",
       subject: opts.subject,
