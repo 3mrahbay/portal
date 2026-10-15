@@ -7937,6 +7937,37 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 .cicek-app .hava-liste { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
 .cicek-app .hava-liste li { background:var(--c-tint); border:1px solid var(--c-border); color:var(--c-ink); border-radius:999px; padding:6px 12px; font-size:13px; font-weight:600; }
 .cicek-app .hava-kaynak { font-size:11px; color:var(--c-muted); }
+/* OKUL YOLU — js/zeky-yol.js (ZEKY ile ortak). Karoda süre büyük ("20 dk"); dokununca pencerede sekmeler, trafik ve harita. */
+.cicek-app .yol-panel { display:flex; flex-direction:column; gap:12px; padding:14px; }
+.cicek-app .yol-sekmeler { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:4px; border-radius:14px; background:var(--c-bg); border:1px solid var(--c-border); }
+.cicek-app .yol-sekme { min-height:42px; border:0; border-radius:11px; background:transparent; color:var(--c-muted); font:inherit; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; }
+.cicek-app .yol-sekme svg { width:17px; height:17px; flex-shrink:0; }
+.cicek-app .yol-sekme.secili { background:var(--c-surface); color:var(--c-green); box-shadow:0 1px 3px rgba(31,37,68,.10); }
+.cicek-app .yol-sekme:focus-visible { outline:3px solid rgba(90,106,207,.3); outline-offset:1px; }
+.cicek-app .yol-sonuc-kart, .cicek-app .yol-yukleniyor, .cicek-app .yol-hata { background:var(--c-surface); border:1px solid var(--c-border); border-radius:16px; padding:16px; }
+.cicek-app .yol-sonuc-kart { display:flex; flex-direction:column; gap:8px; }
+.cicek-app .yol-buyuk-satir { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.cicek-app .yol-buyuk { font-size:34px; font-weight:800; line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.cicek-app .yol-trafik { border-radius:999px; padding:5px 10px; font-size:12.5px; font-weight:700; }
+.cicek-app .yol-ayrinti { font-size:13px; color:var(--c-ink); }
+.cicek-app .yol-zaman { font-size:11.5px; color:var(--c-muted); }
+.cicek-app .yol-hatlar { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.cicek-app .yol-hat { display:inline-flex; align-items:center; gap:5px; border-radius:8px; padding:4px 8px; background:#DBEAFE; color:#1D4ED8; font-size:13px; font-weight:700; }
+.cicek-app .yol-hat svg { width:15px; height:15px; }
+.cicek-app .yol-ara { color:var(--c-muted); font-size:13px; }
+.cicek-app .yol-yukleniyor { display:flex; align-items:center; gap:10px; font-size:14px; color:var(--c-ink); min-height:70px; }
+.cicek-app .yol-donen { width:18px; height:18px; border-radius:50%; border:2.5px solid var(--c-border); border-top-color:var(--c-green); animation:caYolDon .8s linear infinite; flex-shrink:0; }
+@keyframes caYolDon { to { transform:rotate(360deg); } }
+.cicek-app .yol-hata { display:flex; flex-direction:column; align-items:flex-start; gap:10px; font-size:14px; color:var(--c-ink); }
+.cicek-app .yol-hata p { margin:0; }
+.cicek-app .yol-tekrar { border:0; border-radius:12px; background:var(--c-tint); color:var(--c-green); font:inherit; font-size:13.5px; font-weight:700; padding:9px 14px; cursor:pointer; }
+.cicek-app .yol-harita { height:220px; border-radius:16px; overflow:hidden; background:var(--c-bg); }
+.cicek-app .yol-harita[hidden], .cicek-app .yol-git[hidden] { display:none; }
+.cicek-app .yol-harita iframe { display:block; width:100%; height:100%; border:0; }
+.cicek-app .yol-git { width:100%; min-height:46px; border:1.5px solid var(--c-border); border-radius:14px; background:var(--c-surface); color:var(--c-green); font:inherit; font-size:14.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; }
+.cicek-app .yol-git svg { width:18px; height:18px; }
+.cicek-app .yol-kaynak { font-size:11px; color:var(--c-muted); text-align:center; }
+@media (prefers-reduced-motion: reduce) { .cicek-app .yol-donen { animation-duration:2.4s; } }
 .cicek-app {
   /* Renkler — Premium Yorum tasarım dili */
   --c-green:        #2B3674;  /* marka orman yeşili */
@@ -13987,7 +14018,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v198";
+window.PORTAL_SURUM = "v199";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -15152,7 +15183,8 @@ window.personelSil = async function(email) {
 const OZELLIK_VARSAYILAN = {
   mesajResimEkleme: true,   // Mesajlaşmada resim gönderme
   galeriVideo: false,       // Galeri video (henüz hazır değil)
-  havaKiyafet: true         // Veli ana sayfası: hava ve kıyafet önerisi (ZEKY ile ortak anahtar)
+  havaKiyafet: true,        // Veli ana sayfası: hava ve kıyafet önerisi (ZEKY ile ortak anahtar)
+  okulYolu: false           // Veli ana sayfası: okula tahmini yol süresi (ZEKY ile ortak; sunucu kurulunca açılır)
   // Gelecekte: okulZili, girisCikisOnay, anketModulu, vb.
 };
 
@@ -15160,7 +15192,8 @@ const OZELLIK_VARSAYILAN = {
 const OZELLIK_ETIKETLERI = {
   mesajResimEkleme: { ad: "Mesajda Resim Ekleme", aciklama: "Veli ve personel mesajlaşmada fotoğraf gönderebilir." },
   galeriVideo: { ad: "Galeride Video", aciklama: "Galeriye video yükleme (yakında)." },
-  havaKiyafet: { ad: "Hava ve Kıyafet Önerisi", aciklama: "Veli ana sayfasında okulun havası ve ne giyileceği (portal ve ZEKY)." }
+  havaKiyafet: { ad: "Hava ve Kıyafet Önerisi", aciklama: "Veli ana sayfasında okulun havası ve ne giyileceği (portal ve ZEKY)." },
+  okulYolu: { ad: "Okul Yolu", aciklama: "Velinin konumundan okula tahmini yol süresi: araba (trafikle), yürüyerek, otobüs (portal ve ZEKY)." }
 };
 
 let ozellikBayraklari = { ...OZELLIK_VARSAYILAN };
@@ -17943,7 +17976,7 @@ function veliRenderYeniApp() {
   if (caEkran === "profil") {
     setTimeout(() => { modulYukle("geri-bildirim").then(m => m && m.veliBelgeOnayKart("veliBelgeOnayKart")); }, 100);
   }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeHavaDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => m && m.memnuniyetPopupKontrol()); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeHavaDoldur(); caHomeYolDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => m && m.memnuniyetPopupKontrol()); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -19054,6 +19087,59 @@ async function caHomeHavaDoldur() {
   }
 }
 
+// ── OKUL YOLU (js/zeky-yol.js — ZEKY ile birebir aynı dosya) ──
+// Karo süreyi büyük gösterir ("20 dk"); dokununca pencerede sekmeler, trafik ve harita.
+// Konum izni ilk kez yalnız pencere açılınca istenir; izin verilmişse okul saatlerine
+// yakın (hafta içi sabah/öğleden sonra) süre kendiliğinden hesaplanır.
+let caYolPaneli = null;
+let caYolServisSozu = null;
+function caYolServisi() {
+  if (!caYolServisSozu) {
+    caYolServisSozu = Promise.all([
+      import("./js/zeky-yol.js?v=1"),
+      import("./js/zeky-randevu-cutover-runtime.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js")
+    ]).then(async ([m, calisma, fn]) => m.yolServisiOlustur({ functions: await calisma.guvenliFunctionsGetir(), httpsCallable: fn.httpsCallable }))
+      .catch(e => { caYolServisSozu = null; throw e; });
+  }
+  return caYolServisSozu;
+}
+async function caHomeYolDoldur() {
+  const el = document.getElementById("veliYolKart");
+  if (!el) return;
+  const kapat = () => { caYolPaneli = null; el.dataset.ozet = ""; el.dataset.deger = ""; el.replaceChildren(); el.dataset.yol = "kapali"; };
+  try {
+    const bayraklar = await ozellikBayraklariYukle();
+    if (bayraklar.okulYolu !== true) return kapat();
+    const m = await import("./js/zeky-yol.js?v=1");
+    if (!el.isConnected) return;
+    const depo = (() => { try { return window.localStorage; } catch (_) { return null; } })();
+    const ozetYaz = (sonuc, secenek) => {
+      const b = m.satirBilgisi(sonuc, secenek);
+      Object.assign(el.dataset, { ozet: b.yazi, deger: b.deger, ikon: b.ikon, renk: b.renk, acik: b.acik });
+      el.dataset.yol = "hazir";   // karo özeti bu öznitelik değişince yenilenir
+    };
+    const konum = m.konumAlici();
+    ozetYaz(m.sonSonuc(depo, Date.now()));
+    caYolPaneli = m.yolPaneliKur(el, {
+      servis: { hesapla: async (g) => (await caYolServisi()).hesapla(g) },
+      konum, depo,
+      ikonlariCiz: () => { if (window.lucideYenile) setTimeout(window.lucideYenile, 0); },
+      disariAc: (url) => window.open(url, "_blank", "noopener"),
+      bildir: (sonuc) => ozetYaz(sonuc)
+    });
+    if (!m.sonSonuc(depo, Date.now()) && m.otomatikZamaniMi(Date.now()) && await konum.izinVarMi()) {
+      ozetYaz(null, { yukleniyor: true });
+      if (!(await caYolPaneli.arkaPlan())) ozetYaz(null);
+    }
+  } catch (e) {
+    console.warn("okul yolu:", e?.message || e);
+    kapat();
+  }
+}
+// Karo açılınca (moduller/veli-kompakt.js → acildi) süre hesaplanır.
+window.caYolAcildi = () => caYolPaneli?.hesapla();
+
 async function caHomeOryantasyonDoldur() {
   const bant = document.getElementById("caHomeOryBant");
   if (!bant) return;
@@ -19785,6 +19871,9 @@ function caHomeHTML() {
       <div id="veliHavaKart" class="ca-card" style="padding:0; overflow:hidden;" data-hava="yukleniyor">
         <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
       </div>
+
+      <!-- Okul Yolu — js/zeky-yol.js (ZEKY ile ortak); karo + açılır pencere: moduller/veli-kompakt.js -->
+      <div id="veliYolKart" class="ca-card" style="padding:0; overflow:hidden;" data-yol="bekliyor"></div>
 
       <!-- Sabah Girişi: "Yola çıktık" — moduller/sabah-girisi.js -->
       <div id="veliSabahGirisiKart" class="ca-card" style="padding:0; overflow:hidden;">
@@ -48695,13 +48784,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=198");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=199");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v198";
+          const anahtar = "portalSwReload_v199";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

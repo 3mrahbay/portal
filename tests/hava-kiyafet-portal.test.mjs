@@ -39,11 +39,11 @@ test('ana sayfa: hava kartı sabah girişinden önce, doldurma ana sayfa açıl�
   const hava = ev.indexOf('id="veliHavaKart"'), sabah = ev.indexOf('id="veliSabahGirisiKart"');
   assert.ok(hava > 0 && hava < sabah, 'Hava kartı karo ızgarasının başında olmalı');
   assert.match(ev, /id="veliHavaKart" class="ca-card"[^>]*data-hava="yukleniyor"/);
-  assert.match(index, /caHomeOryantasyonDoldur\(\); caHomeHavaDoldur\(\); veliOkulZiliDoldur\(\);/);
+  assert.match(index, /caHomeOryantasyonDoldur\(\); caHomeHavaDoldur\(\); (caHomeYolDoldur\(\); )?veliOkulZiliDoldur\(\);/);
 });
 
 test('özellik anahtarı ZEKY ile ortak ve varsayılan açık; yönetim ekranında etiketli', () => {
-  assert.match(index, /havaKiyafet: true\s+\/\/ Veli ana sayfası: hava ve kıyafet önerisi/);
+  assert.match(index, /havaKiyafet: true,?\s+\/\/ Veli ana sayfası: hava ve kıyafet önerisi/);
   assert.match(index, /havaKiyafet: \{ ad: "Hava ve Kıyafet Önerisi"/);
 });
 
