@@ -8,7 +8,7 @@ import {isGalleryParent,targetChild,childTargetMatches,createInteractionService,
 import {saveBlob,downloadMedia} from '../js/portal-galeri-canli.js';
 import {galleryMediaType,galleryDisplayUrl,downloadSource,isPlayerUrl} from '../js/portal-galeri-medya.js';
 const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
-const source=fs.readFileSync(new URL('../moduller/veli-galeri.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace('export async function render','async function render');
+const source=fs.readFileSync(new URL('../moduller/veli-galeri.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
 const child={id:'child-a',sinif:'Mimoza'},user={uid:'parent-a',email:'synthetic@example.invalid',providerData:[]};
 const getter=index.match(/get state\(\) \{([\s\S]*?)\n  \},/)[1];
 function authState(overrides={}){

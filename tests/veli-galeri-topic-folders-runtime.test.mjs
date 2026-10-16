@@ -8,7 +8,7 @@ import * as folders from '../js/galeri-klasorleri.js';
 import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js';
 
 const source = (await readFile(new URL('../moduller/veli-galeri.js', import.meta.url), 'utf8'))
-  .replace(/^import .*;\n/gm, '').replace('export async function render(', 'async function render(');
+  .replace(/^import .*;\n/gm, '').replace(/^export /gm, '');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const decode = value => value.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
 const media = (id, overrides = {}) => ({ id, durum:'onaylandi', hedefTur:'sinif', hedefDeger:'Mimoza', program:'jimnastik', konuBaslik:'Denge', etkinlikBaslik:'Denge', bunnyUrl:`https://example.invalid/${id}.jpg`, dosyaTipi:'foto', etkinlikTarih:'2026-10-01', ...overrides });

@@ -120,6 +120,18 @@ function albumleriHazirla(){
   _albumler.sort((a,b)=>String(b.tarih).localeCompare(String(a.tarih)));
 }
 
+// Çocuk profili (16 Ekim 2026): son fotoğraflar ve bu dönemdeki fotoğraf sayısı.
+// Önce çocuğa özel paylaşılanlar, sonra sınıf/okul fotoğrafları; aynı hedefli okuma.
+export async function profilOzeti(adet=6){
+  const ogr=aktifOgrenci();
+  if(!ogr||!isGalleryParent(P().state))return{toplam:0,ozel:0,fotolar:[]};
+  const sonuc=await yukle(ogr,aktifSinif(ogr),P().state.aktifDonem);
+  const fotolar=sonuc.medya.filter(m=>galleryMediaType(m)==='foto');
+  const ozel=fotolar.filter(m=>m.hedefTur==='ogrenci');
+  const sirali=[...ozel,...fotolar.filter(m=>m.hedefTur!=='ogrenci')].slice(0,adet);
+  return{toplam:fotolar.length,ozel:ozel.length,eksik:!!sonuc.eksik,fotolar:sirali.map(m=>({id:m.id,url:kucuk(m.bunnyUrl,360),tarih:tarih(m),baslik:String(m.etkinlikBaslik||'').trim()}))};
+}
+
 export async function render(hedefId){
   const el=document.getElementById(hedefId);if(!el)return;_hedefEl=el;
   const {esc,lucide}=P(),renderNo=++_renderNo,kapsam=kapsamAnahtari(),ogr=aktifOgrenci();
