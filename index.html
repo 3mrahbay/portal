@@ -14080,7 +14080,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v206";
+window.PORTAL_SURUM = "v207";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -18630,53 +18630,34 @@ window.veliOkulZiliIptal = async function() {
 
 async function caHomeGunlukDoldur() {
   // Çocuk kartının altındaki şerit (16 Ekim 2026): yemek · uyku · ruh hali.
-  // Bugünün raporu yoksa son rapor tarihiyle gösterilir.
+  // Bugünün raporu yoksa son rapor tarihiyle gösterilir. Özet ZEKY ile ortak: js/gunluk-ozet.js
   const el = document.getElementById("caHomeGunluk");
   if (!el) return;
-  const bas = (baslik, ek) => `<div class="ca-hg-bas"><i data-lucide="notebook-pen"></i><span class="ca-hg-baslik">${baslik}</span>${ek ? `<span class="ca-hg-tarih">· ${ek}</span>` : ""}<span class="ca-hg-ok">›</span></div>`;
+  const bas = (baslik, ek) => `<div class="ca-hg-bas"><i data-lucide="notebook-pen"></i><span class="ca-hg-baslik">${baslik}</span>${ek ? `<span class="ca-hg-tarih">· ${escapeHtml(ek)}</span>` : ""}<span class="ca-hg-ok">›</span></div>`;
   const yaz = (html) => { el.innerHTML = html; if (window.lucideYenile) setTimeout(window.lucideYenile, 40); };
   const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
   if (!o) { yaz(bas("Bugünün günlüğü") + `<div class="ca-hg-bos">Öğrenci seçilmedi.</div>`); return; }
-  const bugun = new Date().toISOString().slice(0, 10);
+  const ogrId = o.id;
+  // Yerel gün (İstanbul): toISOString gece 00.00–03.00 arası dünü verirdi
+  const s = new Date();
+  const bugun = s.getFullYear() + "-" + String(s.getMonth() + 1).padStart(2, "0") + "-" + String(s.getDate()).padStart(2, "0");
   try {
-    const q = query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id));
-    const snap = await getDocs(q);
-    let liste = [];
+    const [{ gunlukOzeti }, snap] = await Promise.all([
+      import("./js/gunluk-ozet.js?v=1"),
+      getDocs(query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", ogrId)))
+    ]);
+    if (veliAktifOgrenci?.id !== ogrId) return;
+    const liste = [];
     snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
     liste.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
-    const r = liste[0];
-    if (!r) { yaz(bas("Bugünün günlüğü") + `<div class="ca-hg-bos">Öğretmen günlüğü paylaşınca burada görünür.</div>`); return; }
-    const gunAd = (() => {
-      try {
-        const d = new Date(r.tarih + "T00:00:00");
-        return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
-      } catch (e) { return r.tarih || ""; }
-    })();
-    // Değer nesne olabilir ({miktar:"%85"} gibi) — düz metne çevir,
-    // aksi halde ekranda "[object Object]" görünüyordu.
-    const duzMetin = (v) => {
-      if (v == null) return "";
-      if (typeof v === "string" || typeof v === "number") return String(v);
-      if (typeof v === "object") {
-        const aday = v.deger ?? v.miktar ?? v.durum ?? v.metin ?? v.ad ?? v.yuzde ?? v.sure;
-        if (aday != null) return String(aday);
-        const ilk = Object.values(v).find(x => typeof x === "string" || typeof x === "number");
-        return ilk != null ? String(ilk) : "";
-      }
-      return "";
-    };
-    const buyukHarf = (t) => t ? t.charAt(0).toLocaleUpperCase("tr") + t.slice(1) : t;
-    const pil = (ham, etiket) => {
-      const deger = buyukHarf(duzMetin(ham).trim());
-      return deger ? `<div class="ca-hg-pil"><b>${escapeHtml(deger)}</b><span>${etiket}</span></div>` : "";
-    };
-    const pilller = pil(r.yemek, "Yemek") + pil(r.uyku, "Uyku") + pil(r.mood || r.ruhHali, "Ruh hali");
-    const not = r.not || r.aciklama;
-    const bugunMu = r.tarih === bugun;
-    yaz(bas(bugunMu ? "Bugünün günlüğü" : "Son günlük", bugunMu ? (r.ogretmenAd ? escapeHtml(r.ogretmenAd) : "") : escapeHtml(gunAd))
-      + (pilller ? `<div class="ca-hg-pils">${pilller}</div>` : "")
-      + (not ? `<div class="ca-hg-not">${escapeHtml(not)}</div>` : "")
-      + (!pilller && !not ? `<div class="ca-hg-bos">Günlüğü görmek için dokunun.</div>` : ""));
+    const oz = gunlukOzeti(liste[0], bugun);
+    if (!oz) { yaz(bas("Bugünün günlüğü") + `<div class="ca-hg-bos">Öğretmen günlüğü paylaşınca burada görünür.</div>`); return; }
+    const pil = (deger, etiket) => deger ? `<div class="ca-hg-pil"><b>${escapeHtml(deger)}</b><span>${etiket}</span></div>` : "";
+    const piller = pil(oz.yemek, "Yemek") + pil(oz.uyku, "Uyku") + pil(oz.ruhHali, "Ruh hali");
+    yaz(bas(oz.bugunMu ? "Bugünün günlüğü" : "Son günlük", oz.bugunMu ? oz.ogretmen : oz.gun)
+      + (piller ? `<div class="ca-hg-pils">${piller}</div>` : "")
+      + (oz.not ? `<div class="ca-hg-not">${escapeHtml(oz.not)}</div>` : "")
+      + (!piller && !oz.not ? `<div class="ca-hg-bos">Günlüğü görmek için dokunun.</div>` : ""));
   } catch (e) {
     yaz(bas("Bugünün günlüğü") + `<div class="ca-hg-bos">Günlük şu anda yüklenemedi.</div>`);
   }
@@ -48895,13 +48876,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=206");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=207");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v206";
+          const anahtar = "portalSwReload_v207";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

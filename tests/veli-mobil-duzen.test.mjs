@@ -24,8 +24,9 @@ test('günün özeti çocuk kartının altında; ayrı "Bugünün günlüğü" k
   assert.doesNotMatch(ev, /Profili ve eğitim gelişimini görmek için dokun/);
   assert.doesNotMatch(ev, /<h3 class="ca-head" style="font-size:15px;">Bugünün günlüğü<\/h3>/);
   const doldur = index.slice(index.indexOf('async function caHomeGunlukDoldur()'), index.indexOf('window.caHomeGunlukDoldur = caHomeGunlukDoldur;'));
-  assert.match(doldur, /pil\(r\.yemek, "Yemek"\) \+ pil\(r\.uyku, "Uyku"\) \+ pil\(r\.mood \|\| r\.ruhHali, "Ruh hali"\)/);
-  assert.match(doldur, /bugunMu \? "Bugünün günlüğü" : "Son günlük"/);
+  assert.match(doldur, /import\("\.\/js\/gunluk-ozet\.js\?v=1"\)/);
+  assert.match(doldur, /pil\(oz\.yemek, "Yemek"\) \+ pil\(oz\.uyku, "Uyku"\) \+ pil\(oz\.ruhHali, "Ruh hali"\)/);
+  assert.match(doldur, /oz\.bugunMu \? "Bugünün günlüğü" : "Son günlük"/);
 });
 
 test('onay bekleyen belgeler veli profilinde; çocuk profilinde yok; ana sayfada kısa uyarı', () => {
