@@ -114,11 +114,11 @@ test('oynatıcı ve kartlar erişilebilir; metinler kaçışlı; yeni rozet yaln
   assert.match(kaynak, /\$\{esc\(video\.baslik\)\}/);
 });
 
-test('sürüm v206: önbellek, kayıt ve galeri modülü birlikte', () => {
-  assert.match(index, /window\.PORTAL_SURUM = "v206";/);
-  assert.match(index, /serviceworker\.js\?v=206/);
-  assert.match(index, /"portalSwReload_v206"/);
+test('sürüm: önbellek, kayıt ve galeri modülü birlikte', () => {
+  assert.match(index, /window\.PORTAL_SURUM = "v207";/);
+  assert.match(index, /serviceworker\.js\?v=207/);
+  assert.match(index, /"portalSwReload_v207"/);
   const sw = readPortal('serviceworker.js');
-  assert.match(sw, /const CACHE_VERSION = "v206-cocuk-profili-ani-video";/);
-  assert.match(sw, /"\.\/moduller\/veli-galeri\.js\?v=v206",/);
+  assert.match(sw, /const CACHE_VERSION = "v207-gunluk-ozet-ortak";/);
+  assert.match(sw, /"\.\/moduller\/veli-galeri\.js\?v=v207",/);
 });
