@@ -443,10 +443,14 @@ export function aileErisimKayitlari(ogrenciler, veliler) {
   });
 }
 
+export function aileErisimOgrencileri(s, ogrenciDurum) {
+  return (s.ogrenciList || []).filter(o => s.ayarListesi?.[o.id] && ogrenciDurum(o, s.ayarListesi[o.id]) === "aktif");
+}
+
 function aileErisimHtml(veliler) {
   const a = P(), s = a.state || {}, f = pnl.filtre;
   if (s.ogrenciVerileriHazirMi === false) return `<section class="vk-kutu"><h3>Aile erişim takibi</h3><p>Öğrenci ve veli eşleştirmeleri yükleniyor. Sonuçlar hazır olduğunda gösterilecek.</p></section>`;
-  const ogrenciler = (s.ogrenciList || []).filter(o => a.ogrenciDurum?.(o, s.ayarListesi?.[o.id]) === "aktif")
+  const ogrenciler = aileErisimOgrencileri(s, a.ogrenciDurum)
     .map(o => ({ id: o.id, ad: o.ogrenciAdSoyad || "Öğrenci", sinif: s.ayarListesi?.[o.id]?.kayit?.sinif || o.sinif || "" }));
   const tum = aileErisimKayitlari(ogrenciler, veliler);
   const kapsam = tum.filter(o => (!f.sinif || o.sinif === f.sinif) && (!f.ara || [o.ad, ...o.veliler.map(v => v.ad)].join(" ").toLocaleLowerCase("tr").includes(f.ara.toLocaleLowerCase("tr"))));
