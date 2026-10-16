@@ -9576,6 +9576,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon"><i data-lucide="wallet"></i></span><span class="side-ad">Muhasebe</span></button>
         <button class="side-item" data-modul="profilim" onclick="modulSec('profilim')"><span class="side-ikon"><i data-lucide="user-circle"></i></span><span class="side-ad">Profilim</span></button>
         <button class="side-item" data-modul="denetim" onclick="modulSec('denetim')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">MEB Denetim</span></button>
+        <button class="side-item" data-modul="webSitesi" onclick="modulSec('webSitesi')"><span class="side-ikon"><i data-lucide="globe"></i></span><span class="side-ad">Web Sitesi</span></button>
       </div>
       <div class="side-kategori">İLETİŞİM &amp; İŞLEYİŞ</div>
       <div class="side-grup">
@@ -9622,6 +9623,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       <button class="tab" data-tab="veliKatilim" id="tab-veliKatilim-btn" style="display:none;"><i data-lucide="activity"></i> Veli Katılımı</button>
       <button class="tab" data-tab="gorusmeNotlari" id="tab-gorusmeNotlari-btn" style="display:none;"><i data-lucide="notebook-text"></i> Görüşme Notları</button>
       <button class="tab" data-tab="danismaRandevu" id="tab-danismaRandevu-btn" style="display:none;"><i data-lucide="calendar-clock"></i> Aday Randevuları</button>
+      <button class="tab" data-tab="webSitesi" id="tab-webSitesi-btn" style="display:none;"><i data-lucide="globe"></i> Web Sitesi</button>
       <button class="tab" data-tab="pdr" id="tab-pdr-btn" style="display:none;"><i data-lucide="brain"></i> PDR</button>
       <button class="tab" data-tab="galeri" id="tab-galeri-btn" style="display:none;"><i data-lucide="image"></i> Galeri</button>
       <button class="tab" data-tab="profilim" id="tab-profilim-btn" style="display:none;"><i data-lucide="user-circle"></i> Profilim</button>
@@ -10424,6 +10426,19 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <p style="opacity:.92; font-size:14px; margin:0;">Okul gezisi ve tanışma randevuları. Kim geldi, kim kayıt oldu, bizi nereden duydular.</p>
       </div>
       <div id="danismaRandevuIcerik">
+        <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+
+    <!-- ============ WEB SİTESİ YÖNETİMİ — moduller/web-sitesi.js (yalnız iki yetkili hesap) ============ -->
+    <div class="tab-panel" id="tab-webSitesi">
+      <div style="background:linear-gradient(135deg,#1E4A31 0%,#2F7D45 100%); border-radius:20px; padding:22px 26px; margin-bottom:18px; color:#fff;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.8px; opacity:.85; display:flex; align-items:center; gap:7px;">
+          <i data-lucide="globe" style="width:15px;height:15px;"></i> WEB SİTESİ</div>
+        <h2 style="font-family:var(--font-display,'Quicksand',sans-serif); font-weight:700; font-size:25px; margin:8px 0 6px;">Web Sitesi Yönetimi</h2>
+        <p style="opacity:.92; font-size:14px; margin:0;">İletişim bilgileri, duyuru şeridi, ana sayfa slaytları, program kutuları, sık sorulan sorular ve görseller.</p>
+      </div>
+      <div id="webSitesiIcerik">
         <div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>
       </div>
     </div>
@@ -14653,9 +14668,18 @@ function ogrencileriRoleGoreSuz(liste) {
 window.iletisimGorebilir = iletisimGorebilir;
 window.sinifGorunur = sinifGorunur;
 
+// Web Sitesi yönetimi: yalnızca bu iki hesap (Firestore kuralı match /webSitesi/{belge} ile birebir).
+// Admin dahil başka hiçbir hesap bu modülü görmez.
+const WEB_SITESI_YETKILI = ["emrahby@gmail.com", "eposta@bircicekkoleji.com"];
+function webSitesiYetkili() {
+  const e = String((typeof auth !== "undefined" && auth.currentUser && auth.currentUser.email) || "").toLowerCase();
+  return WEB_SITESI_YETKILI.includes(e);
+}
+
 // Sol menüdeki modüller hangi role görünsün?
 // Modülün varsayılan sekmesine erişimi olmayan rol modülü hiç görmez.
 function modulErisim(modulKey) {
+  if (modulKey === "webSitesi") return webSitesiYetkili();
   if (typeof isAdmin !== "undefined" && isAdmin) return true;
   // Genel veli randevu ekranı kayıtlı velilerin kişisel verilerini içerir.
   // Danışma yalnızca ayrı Aday Randevuları modülünü kullanır.
@@ -14693,6 +14717,7 @@ window.solMenuyuRoleGoreAyarla = solMenuyuRoleGoreAyarla;
 
 // Bir sekmeye erişim var mı?
 function sekmeyeErisim(tabAdi) {
+  if (tabAdi === "webSitesi") return webSitesiYetkili();
   if (isAdmin) return true; // Admin her şeyi görür (güvenlik ağı)
   const izinliRoller = SEKME_YETKILERI[tabAdi];
   if (!izinliRoller) return true; // Tanımsız sekme → engelleme
@@ -43452,6 +43477,7 @@ const MODUL_HARITASI = {
   ozlukM:      { tablar: ["ozluk"],      varsayilan: "ozluk", ad: "Özlük & Puantaj" },
   pdr:         { tablar: ["pdr"],        varsayilan: "pdr",        ad: "PDR" },
   danismaRandevu: { tablar: ["danismaRandevu"], varsayilan: "danismaRandevu", ad: "Aday Randevuları" },
+  webSitesi:   { tablar: ["webSitesi"],  varsayilan: "webSitesi",  ad: "Web Sitesi" },
   basvuru:     { tablar: ["onay"],       varsayilan: "onay", ad: "Başvuru Havuzu" },
   ogrenci:     { tablar: ["ogrenciler"], varsayilan: "ogrenciler", ad: "Öğrenciler" },
   personel:    { tablar: ["personel"],   varsayilan: "personel", ad: "Personel" },
@@ -43697,6 +43723,11 @@ document.querySelectorAll(".tab").forEach(tab => {
     // Aday Randevuları sekmesi açıldı
     if (tab.dataset.tab === "danismaRandevu") {
       setTimeout(() => { modulYukle("danisma-randevulari").then(m => m && m.panelRender("danismaRandevuIcerik")); }, 50);
+    }
+
+    // Web Sitesi sekmesi açıldı (yalnız iki yetkili hesap)
+    if (tab.dataset.tab === "webSitesi") {
+      setTimeout(() => { modulYukle("web-sitesi").then(m => m && m.panelRender("webSitesiIcerik")); }, 50);
     }
 
     // Günlük Rapor sekmesi açıldı
