@@ -342,7 +342,7 @@ export function panelRender(kapId) {
   pnl = {
     kap, user: P().state.currentUser, uid: P().state.currentUser.uid, eposta: kucuk(P().state.currentUser.email), oturum: P().state.galeriOturumSurumu,
     ozetler: new Map(), akis: [], abonelikler: [], hata: "", hatalar: {}, hazir: {}, ilkYukleme: true,
-    filtre: { sinif: "", durum: "", ara: "", sirala: "son" }, zamanlayici: null, cizBekliyor: false,
+    filtre: { aile: "eksik", sinif: "", durum: "", ara: "", sirala: "son" }, zamanlayici: null, cizBekliyor: false,
     gorulenAkis: new Set(), gorunmezSayac: 0
   };
   kap.innerHTML = `<div class="vk-bos"><span class="vk-donen"></span>Veli hareketleri yükleniyor</div>`;
@@ -427,6 +427,46 @@ async function eskiAkisiTemizle() {
   } catch (e) { console.warn("Eski katılım kayıtları temizlenemedi:", hataKodu(e)); }
 }
 
+
+// Öğrenci kimliği ile birleştirilir; aynı soyadlı aileler birleştirilmez.
+export function aileErisimKayitlari(ogrenciler, veliler) {
+  return ogrenciler.map(o => {
+    const bagli = veliler.filter(v => v.cocuklar.some(c => c.id === o.id));
+    const kanit = v => Boolean(v.sonGorulme || v.sonGiris || v.portal > 0 || v.zeky > 0 || Number(v.oz?.girisSayisi) > 0);
+    const hareket = bagli.some(kanit);
+    const epostaVar = bagli.some(v => v.eposta);
+    return { ...o, veliler: bagli, hareket,
+      durum: hareket ? "hareket" : epostaVar ? "kayityok" : "epostaeksik",
+      portal: bagli.some(v => v.portal > 0 || v.oz?.sonUygulama === "portal"),
+      zeky: bagli.some(v => v.zeky > 0 || v.oz?.sonUygulama === "zeky"),
+      eslesmeKontrol: bagli.some(v => !v.aktifOgrenci && kanit(v)) };
+  });
+}
+
+function aileErisimHtml(veliler) {
+  const a = P(), s = a.state || {}, f = pnl.filtre;
+  if (s.ogrenciVerileriHazirMi === false) return `<section class="vk-kutu"><h3>Aile erişim takibi</h3><p>Öğrenci ve veli eşleştirmeleri yükleniyor. Sonuçlar hazır olduğunda gösterilecek.</p></section>`;
+  const ogrenciler = (s.ogrenciList || []).filter(o => a.ogrenciDurum?.(o, s.ayarListesi?.[o.id]) === "aktif")
+    .map(o => ({ id: o.id, ad: o.ogrenciAdSoyad || "Öğrenci", sinif: s.ayarListesi?.[o.id]?.kayit?.sinif || o.sinif || "" }));
+  const tum = aileErisimKayitlari(ogrenciler, veliler);
+  const kapsam = tum.filter(o => (!f.sinif || o.sinif === f.sinif) && (!f.ara || [o.ad, ...o.veliler.map(v => v.ad)].join(" ").toLocaleLowerCase("tr").includes(f.ara.toLocaleLowerCase("tr"))));
+  const liste = kapsam.filter(o => !f.aile || (f.aile === "eksik" ? !o.hareket : o.durum === f.aile)).sort((a,b) => a.ad.localeCompare(b.ad, "tr"));
+  const etiket = { hareket: "Katılım kaydı var", kayityok: "Katılım kaydı bulunamadı", epostaeksik: "Veli e-postası eksik" };
+  return `<section class="vk-kutu" style="margin:18px 0" aria-label="Aile erişim takibi">
+    <div class="vk-liste-bas"><h3>Aile erişim takibi · ${kapsam.length} öğrenci</h3>
+      <select data-vk-filtre="aile" aria-label="Aile erişim durumu">${[["eksik", "Hareket görünmeyen tüm aileler"], ["", "Tüm öğrenciler"], ["kayityok", "Katılım kaydı bulunamayanlar"], ["epostaeksik", "Veli e-postası eksik olanlar"], ["hareket", "Katılım kaydı olanlar"]].map(([k,v]) => `<option value="${k}"${f.aile === k ? " selected" : ""}>${v}</option>`).join("")}</select></div>
+    <p class="vk-kutu-alt">Anne ve baba birlikte değerlendirilir. Sayılar öğrenci bazındadır; kardeşler ayrı satırlardır. Aşağıdaki veli arama ve sınıf filtreleri burada da geçerlidir.</p>
+    <div class="vk-kartlar">${kart("Katılım kaydı var", kapsam.filter(o=>o.hareket).length, "En az bir bağlı veli hesabında hareket")}${kart("Katılım kaydı bulunamadı", kapsam.filter(o=>o.durum === "kayityok").length, "E-posta mevcut; giriş durumu doğrulanmalı")}${kart("Veli e-postası eksik", kapsam.filter(o=>o.durum === "epostaeksik").length, "Hesap eşleştirmesi kontrol edilmeli")}</div>
+    <p class="vk-uyari">Kayıt bulunmaması, hiç giriş yapılmadığını kanıtlamaz. Eski sürümler, farklı e-postalar veya eksik takip kayıtları sonucu etkileyebilir. Portal / ZEKY etiketleri yalnız kaydedilmiş kaynağı gösterir; uygulamanın yüklü olup olmadığını göstermez.</p>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr>${["Öğrenci / sınıf", "Veliler", "Durum", "Portal", "ZEKY"].map(x=>`<th style="padding:12px">${x}</th>`).join("")}</tr></thead><tbody>${liste.map(o=>`<tr>${[
+      `<strong>${esc(o.ad)}</strong><br>${esc(o.sinif)}`,
+      o.veliler.map(v=>`${esc(v.ad)} (${esc(v.roller.join(" / "))}): ${v.sonGorulme || v.sonGiris || v.portal > 0 || v.zeky > 0 || Number(v.oz?.girisSayisi) > 0 ? "Katılım kaydı var" : v.eposta ? "Kayıt bulunamadı" : "E-posta eksik"}`).join("<br>") || "Veli bilgisi bulunamadı",
+      etiket[o.durum] + (o.eslesmeKontrol ? "<br>Farklı e-posta eşleşmesi: kontrol edilmeli" : ""),
+      o.portal ? "Kayıt var" : "Doğrulanmadı", o.zeky ? "Kayıt var" : "Doğrulanmadı"
+    ].map(x=>`<td style="padding:12px;border-top:1px solid #e2e8f0;vertical-align:top">${x}</td>`).join("")}</tr>`).join("") || '<tr><td colspan="5" style="padding:16px">Bu filtrede öğrenci yok.</td></tr>'}</tbody></table></div>
+  </section>`;
+}
+
 // ── veri birleştirme ──
 function veliKadrosu() {
   const a = P();
@@ -507,7 +547,7 @@ const DURUM = {
   aktif: { ad: "Son 7 günde girdi", renk: "#2B3674" },
   az: { ad: "8–30 gündür girmedi", renk: "#D69E2E" },
   pasif: { ad: "30+ gündür girmedi", renk: "#DC2626" },
-  hesapsiz: { ad: "Portal hesabı yok", renk: "#94A3B8" }
+  hesapsiz: { ad: "Veli e-postası eksik", renk: "#94A3B8" }
 };
 
 // ── çizim ──
@@ -557,11 +597,12 @@ function ciz() {
   });
 
   kap.innerHTML = `${hataHtml}
+    ${aileErisimHtml(tumu)}
     <div class="vk-kartlar">
       ${kart("Şu an çevrimiçi", cevrimici.length, cevrimici.length ? cevrimici.slice(0, 3).map(v => v.ad).join(", ") + (cevrimici.length > 3 ? ` ve ${cevrimici.length - 3} veli` : "") : "Şu an kimse yok", "vk-kart-canli")}
       ${kart("Bugün giren", bugun.length, `${hesapli.length} velinin %${yuzde(bugun.length)}'i`)}
       ${kart("Son 7 günde giren", hafta.length, `${hesapli.length} velinin %${yuzde(hafta.length)}'i`)}
-      ${kart("30 günden uzun süredir girmeyen", pasif.length, hicGirmeyen.length ? `${hicGirmeyen.length} veli hiç girmedi` : "Hepsi en az bir kez girdi", pasif.length ? "vk-kart-uyari" : "")}
+      ${kart("30 günden uzun süredir girmeyen", pasif.length, hicGirmeyen.length ? `${hicGirmeyen.length} velide katılım kaydı yok` : "Hepsinde katılım kaydı var", pasif.length ? "vk-kart-uyari" : "")}
     </div>
     <div class="vk-orta">
       <section class="vk-kutu">
@@ -585,7 +626,7 @@ function ciz() {
           <input type="search" placeholder="Veli ya da çocuk adı" value="${esc(f.ara)}" data-vk-filtre="ara" aria-label="Veli ara">
           <select data-vk-filtre="sinif" aria-label="Sınıf"><option value="">Tüm sınıflar</option>${siniflar.map(s => `<option${s === f.sinif ? " selected" : ""}>${esc(s)}</option>`).join("")}</select>
           <select data-vk-filtre="durum" aria-label="Durum">
-            ${[["", "Tüm veliler"], ["cevrimici", "Çevrimiçi"], ["bugun", "Bugün girenler"], ["aktif", "Son 7 günde girenler"], ["az", "8–30 gündür girmeyenler"], ["pasif", "30+ gündür girmeyenler"], ["hic", "Hiç girmeyenler"], ["hesapsiz", "Portal hesabı olmayanlar"]]
+            ${[["", "Tüm veliler"], ["cevrimici", "Çevrimiçi"], ["bugun", "Bugün girenler"], ["aktif", "Son 7 günde girenler"], ["az", "8–30 gündür girmeyenler"], ["pasif", "30+ gündür girmeyenler"], ["hic", "Katılım kaydı olmayanlar"], ["hesapsiz", "Veli e-postası eksik olanlar"]]
               .map(([d, ad]) => `<option value="${d}"${d === f.durum ? " selected" : ""}>${ad}</option>`).join("")}
           </select>
           <select data-vk-filtre="sirala" aria-label="Sıralama">
@@ -680,7 +721,7 @@ function satirHtml(v) {
     <span class="vk-durum-nokta" style="background:${d.renk}" title="${d.ad}"></span>
     <span class="vk-kim"><span class="vk-ad">${esc(v.ad)} <span class="vk-rol">${esc(v.roller.join(" ve "))}</span></span>
       <span class="vk-cocuk">${cocuk}${v.sinif ? `, ${esc(v.sinif)}` : ""}${v.aktifOgrenci ? "" : " (aktif kayıt yok)"}</span></span>
-    <span class="vk-son"><span class="vk-son-ana">${v.durum === "cevrimici" ? "Şu an çevrimiçi" : v.durum === "hesapsiz" ? "Portal hesabı yok" : v.sonGorulme ? `Son görülme: ${goreceZaman(v.sonGorulme)}` : "Etkinlik kaydı yok"}</span>
+    <span class="vk-son"><span class="vk-son-ana">${v.durum === "cevrimici" ? "Şu an çevrimiçi" : v.durum === "hesapsiz" ? "Veli e-postası eksik" : v.sonGorulme ? `Son görülme: ${goreceZaman(v.sonGorulme)}` : "Etkinlik kaydı yok"}</span>
       <span class="vk-son-alt">${v.eposta ? `30 günde ${v.giris30} giriş, ${v.gun30} farklı gün` : "E-posta kayıtlı değil"}</span></span>
     <span class="vk-serit-kap">${v.eposta ? seritHtml(v.gunler) : ""}</span>
     <span class="vk-ilgi">${enCok}${uyg}</span>
