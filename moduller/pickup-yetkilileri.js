@@ -31,7 +31,7 @@ function okulKonumuHazirla() {
   if (!_okulSozu) {
     const { fb, db } = P();
     _okulSozu = Promise.all([
-      import("../js/zeky-yol.js?v=3"),
+      import("../js/zeky-yol.js?v=4"),
       fb.getDoc(fb.doc(db, "ayarlar", "okulYolu")).then(s => (s.exists() ? s.data() : null))
     ]).then(([yol, ayar]) => ({ yol, okul: yol.okulBilgisiDuzelt(ayar) }))
       .catch(e => { _okulSozu = null; console.warn("okul konumu:", e?.code || e?.message || e); return { yol: null, okul: null }; });

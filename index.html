@@ -7970,6 +7970,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 .cicek-app .yol-git svg, .cicek-app .yol-gonder svg { width:18px; height:18px; flex-shrink:0; }
 .cicek-app .yol-paylas-not { font-size:12.5px; color:var(--c-green); text-align:center; }
 .cicek-app .yol-kaynak { font-size:11px; color:var(--c-muted); text-align:center; }
+@media (max-width:560px) { .cicek-app .yol-harita { height:180px; } }
 @media (prefers-reduced-motion: reduce) { .cicek-app .yol-donen { animation-duration:2.4s; } }
 .cicek-app {
   /* Renkler — Premium Yorum tasarım dili */
@@ -14021,7 +14022,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v202";
+window.PORTAL_SURUM = "v203";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -19102,7 +19103,7 @@ let caYolServisSozu = null;
 function caYolServisi() {
   if (!caYolServisSozu) {
     caYolServisSozu = Promise.all([
-      import("./js/zeky-yol.js?v=3"),
+      import("./js/zeky-yol.js?v=4"),
       import("./js/zeky-randevu-cutover-runtime.js"),
       import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js")
     ]).then(async ([m, calisma, fn]) => m.yolServisiOlustur({ functions: await calisma.guvenliFunctionsGetir(), httpsCallable: fn.httpsCallable }))
@@ -19119,7 +19120,7 @@ async function caHomeYolDoldur() {
     if (bayraklar.okulYolu !== true) return kapat();
     // ayarlar/okulYolu = { ad, adres, placeId }: "Konumu gönder" bu kayıtla çalışır.
     const [m, okulAyari] = await Promise.all([
-      import("./js/zeky-yol.js?v=3"),
+      import("./js/zeky-yol.js?v=4"),
       getDoc(doc(db, "ayarlar", "okulYolu")).then(s => (s.exists() ? s.data() : null)).catch(() => null)
     ]);
     if (!el.isConnected) return;
@@ -48794,13 +48795,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=202");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=203");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v202";
+          const anahtar = "portalSwReload_v203";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

@@ -422,12 +422,13 @@ function stilEkle() {
 .vkp-arka.vkp-kapaniyor { animation:vkpKapa .16s ease-in forwards; }
 @keyframes vkpAc { from { opacity:0; } to { opacity:1; } }
 @keyframes vkpKapa { to { opacity:0; } }
-.vkp-sayfa { width:100%; max-width:520px; max-height:88vh; display:flex; flex-direction:column; background:var(--c-bg, #F7F8FB); border-radius:24px; overflow:hidden; box-shadow:0 24px 60px rgba(15,23,42,.25); animation:vkpYuksel .22s cubic-bezier(.2,.8,.2,1); }
+/* Yükseklik vh yerine örtünün yüzdesiyle: iPhone tarayıcılarında vh görünen alanla uyuşmayabiliyor. */
+.vkp-sayfa { width:100%; max-width:520px; max-height:100%; display:flex; flex-direction:column; background:var(--c-bg, #F7F8FB); border-radius:24px; overflow:hidden; box-shadow:0 24px 60px rgba(15,23,42,.25); animation:vkpYuksel .22s cubic-bezier(.2,.8,.2,1); }
 @keyframes vkpYuksel { from { transform:translateY(24px); opacity:.6; } to { transform:none; opacity:1; } }
 .vkp-tutamak { display:none; }
 /* Cards leave #veliPanel when opened; the sheet owns its sizing contract. */
 .vkp-sayfa, .vkp-govde, .vkp-govde > * { min-width:0; }
-.vkp-govde { min-height:0; max-width:100%; overflow-y:auto; padding:14px; overscroll-behavior:contain; overflow-wrap:anywhere; }
+.vkp-govde { min-height:0; max-width:100%; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px; overscroll-behavior:contain; overflow-wrap:anywhere; }
 .vkp-govde > * { max-width:100%; }
 .vkp-govde :is(input, select, textarea) { min-width:0; max-width:100%; }
 .vkp-govde :is(img, video, iframe, canvas) { max-width:100%; }
@@ -468,7 +469,7 @@ body.vkp-kilit { overflow:hidden; }
 @media (max-width:760px) { .vkp-izgara { grid-template-columns:repeat(2, minmax(0,1fr)); } }
 @media (max-width:560px) {
   .vkp-arka { padding:0; align-items:flex-end; }
-  .vkp-sayfa { max-width:none; max-height:92vh; border-radius:24px 24px 0 0; animation:vkpAlttan .24s cubic-bezier(.2,.8,.2,1); }
+  .vkp-sayfa { max-width:none; max-height:94%; border-radius:24px 24px 0 0; animation:vkpAlttan .24s cubic-bezier(.2,.8,.2,1); }
   @keyframes vkpAlttan { from { transform:translateY(100%); } to { transform:none; } }
   .vkp-tutamak { display:block; width:40px; height:5px; border-radius:999px; background:rgba(31,37,68,.18); margin:8px auto 0; flex-shrink:0; }
   .vkp-alt { padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px)); }

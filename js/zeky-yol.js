@@ -454,7 +454,8 @@ export function yolPaneliKur(kap, { servis, konum, depo = globalThis.localStorag
   });
   dugmeler2.append(git, gonder);
   const kaynak = el('div', 'yol-kaynak', 'Tahmin: Google Haritalar · Konumunuz kaydedilmez');
-  panel.append(sekmeler, sonucKutusu, harita, dugmeler2, paylasNot, kaynak);
+  // Düğmeler haritanın üstünde: kısa ekranlarda (iPhone tarayıcısı) kaydırmadan görünsün.
+  panel.append(sekmeler, sonucKutusu, dugmeler2, paylasNot, harita, kaynak);
   kap.appendChild(panel);
 
   function sekmeleriGuncelle() {

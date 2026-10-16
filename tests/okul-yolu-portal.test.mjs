@@ -62,8 +62,8 @@ test('PWA: modülün sürümlü adresi önbelleğe alınır ve önbellek sürüm
   const pwa = await installedPwa();
   assertPrecachedImport(pwa, 'index.html', 'js/zeky-yol.js');
   assertPrecachedImport(pwa, 'moduller/pickup-yetkilileri.js', 'js/zeky-yol.js');
-  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v202-aile-erisim";/);
-  assert.match(index, /window\.PORTAL_SURUM = "v202";/);
+  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v203-okul-yolu-iphone";/);
+  assert.match(index, /window\.PORTAL_SURUM = "v203";/);
 });
 
 const OKUL_AYARI = { ad: 'Bir Çiçek Koleji Anaokulu', adres: 'Aydınlı Mah., Bahçeler Sok. No:45, 34953 Tuzla/İstanbul', placeId: 'ChIJEe3U8uHbyhQR_75zGX5PEDk' };
@@ -78,7 +78,7 @@ async function doldur({ bayrak = true, depo = null, izin = false, otomatik = fal
     otomatikZamaniMi: () => otomatik,
     yolPaneliKur: (kap, secenek) => { kurulan.push(secenek); return { hesapla: async () => null, arkaPlan: async () => null }; }
   };
-  const kaynak = fonksiyonKaynagi(index, 'caHomeYolDoldur').replace('import("./js/zeky-yol.js?v=3")', '__modul()');
+  const kaynak = fonksiyonKaynagi(index, 'caHomeYolDoldur').replace('import("./js/zeky-yol.js?v=4")', '__modul()');
   const c = vm.createContext({
     document: { getElementById: id => id === 'veliYolKart' ? el : null },
     window: { localStorage: depo }, console: { warn() {} }, setTimeout, Promise, Date, Object,
@@ -149,7 +149,7 @@ test('pencere: "Haritalar\'da aç" ve "Konumu gönder" yan yana', () => {
 
 test('teslim alabilecek kişiler ve Okul Zili: anne/baba dışındakilere okulun konumu gönderilir', () => {
   const py = readPortal('moduller/pickup-yetkilileri.js');
-  assert.match(py, /import\("\.\.\/js\/zeky-yol\.js\?v=3"\),\s*fb\.getDoc\(fb\.doc\(db, "ayarlar", "okulYolu"\)\)/);
+  assert.match(py, /import\("\.\.\/js\/zeky-yol\.js\?v=4"\),\s*fb\.getDoc\(fb\.doc\(db, "ayarlar", "okulYolu"\)\)/);
   assert.match(py, /const konumVar = \(k\) => !!\(okul && yol\?\.konumGonderilebilirMi\(k\)\);/);
   assert.match(py, /onclick="window\._pickupYetki\.konumGonder\(\$\{i\}\)"/);
   assert.match(py, /if \(!\(await kaydet\(ogr\.id, yeni\)\)\) return;[\s\S]*?await gonderKartiGoster\(kisi\);/, 'Kayıt başarılıysa gönderme kartı');
@@ -164,4 +164,13 @@ test('teslim alabilecek kişiler ve Okul Zili: anne/baba dışındakilere okulun
   assert.ok(zilBas > 0 && zil.length > 0);
   assert.match(zil, /<div id="vzKonum" hidden style="padding:0 18px 12px;"><\/div>/);
   assert.match(zil, /modulYukle\("pickup-yetkilileri"\)\.then\(m => m\?\.zilKonumKur\?\.\(\)\)/);
+});
+
+test('iPhone: pencere yüksekliği vh yerine örtünün yüzdesi; düğmeler haritanın üstünde, harita telefonda kısa', () => {
+  const kompaktCss = readPortal('moduller/veli-kompakt.js');
+  assert.match(kompaktCss, /\.vkp-sayfa \{ width:100%; max-width:520px; max-height:100%;/);
+  assert.match(kompaktCss, /\.vkp-sayfa \{ max-width:none; max-height:94%;/);
+  assert.doesNotMatch(kompaktCss, /\.vkp-sayfa \{[^}]*max-height:\d+vh/);
+  assert.match(index, /@media \(max-width:560px\) \{ \.cicek-app \.yol-harita \{ height:180px; \} \}/);
+  assert.match(modulKaynak, /panel\.append\(sekmeler, sonucKutusu, dugmeler2, paylasNot, harita, kaynak\);/);
 });
