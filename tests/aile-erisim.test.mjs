@@ -27,3 +27,9 @@ test('last login alone is evidence without inventing a platform',()=>{
  const result=run(['a'],[parent(['a'],{sonGiris:new Date()})])[0];
  assert.equal(result.durum,'hareket');assert.equal(result.portal,false);assert.equal(result.zeky,false);
 });
+
+test('family scope requires a current period record even if missing records default to active',()=>{
+ const state={ogrenciList:[child('current'),child('old'),child('inactive')],ayarListesi:{current:{},inactive:{durum:'pasif'}}};
+ const result=context.aileErisimOgrencileri(state,(_,settings)=>settings?.durum || 'aktif');
+ assert.equal(result.length,1);assert.equal(result[0].id,'current');
+});

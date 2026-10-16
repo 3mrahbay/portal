@@ -10,14 +10,14 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v203-okul-yolu-iphone";
+const CACHE_VERSION = "v204-aile-erisim-donem";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
   "./js/galeri-onay-canli.js?v=186",
   "./js/galeri-onay-bildirimi.js?v=186",
   "./js/portal-google-login.js?v=178",
-  "./moduller/veli-katilim.js?v=179",
+  "./moduller/veli-katilim.js?v=180",
   "./stil/arayuz-duzeltmeleri.css?v=5",
   "./stil/randevu-sayfalari.css?v=2",
   "./js/galeri-klasorleri.js?v=182",
@@ -97,7 +97,7 @@ const PRECACHE = [
   "./moduller/pdr.js",
   "./moduller/program-belgeleme.js",
   "./moduller/geri-bildirim.js",
-  "./moduller/veli-galeri.js?v=v203",
+  "./moduller/veli-galeri.js?v=v204",
   "./js/portal-galeri-lightbox-ui.js",
   "./js/bunny-stream-upload.js?v=192",
   "./okul_logo.png",

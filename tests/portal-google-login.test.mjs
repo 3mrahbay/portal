@@ -155,6 +155,6 @@ test('logout delayed reload cannot interrupt an immediately restarted Google pop
 });
 test('new popup code and participation module use current exact precache URLs', async () => {
   const pwa = await installedPwa(); await assertPwaBootstrap(pwa); assertPrecachedImport(pwa, 'index.html', 'js/portal-google-login.js');
-  assert.ok(pwa.precache.includes('./moduller/veli-katilim.js?v=179'));
-  assert.match(html, /ad === "veli-katilim" \? "179"/);
+  assert.ok(pwa.precache.includes('./moduller/veli-katilim.js?v=180'));
+  assert.match(html, /ad === "veli-katilim" \? "180"/);
 });
