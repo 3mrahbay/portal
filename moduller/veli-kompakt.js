@@ -13,7 +13,8 @@
 // 2. aşama (24 Eylül): kartların İÇİ sadeleşir (renkli şeritler, emoji ve
 // farklı renkli düğmeler tek dile iner) ve "Okul ve iletişim" karoları
 // eklenir: Duyurular, Takvim, Mesajlar, Randevular, Eğitim gelişimi,
-// Rehberlik. "Bugünün günlüğü" ana içerik olduğu için kart olarak kalır.
+// Rehberlik. "Bugünün günlüğü" 16 Ekim 2026'dan beri çocuk kartının altında
+// (index.html → caHomeGunlukDoldur, #caHomeGunluk) kısa bir şerit olarak durur.
 //
 // 15 Ekim 2026: "Hava ve kıyafet" karosu eklendi (index.html → caHomeHavaDoldur,
 // js/zeky-hava.js). Karo ızgaranın üstünde tam genişlikte durur; dokununca

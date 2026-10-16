@@ -159,6 +159,30 @@ export async function veliBelgeOnayKart(hedefId) {
         </div>`).join("")}
     </div>`;
 }
+// Ana sayfa: onay bekleyen belge varsa kısa uyarı; dokununca veli profili (Ayarlar) açılır.
+export async function veliBelgeUyari(hedefId) {
+  const el = document.getElementById(hedefId);
+  if (!el) return;
+  const { fb, db, state, esc } = P();
+  const ogr = state.veliAktifOgrenci || state.veliOgrenciler[0];
+  const email = (state.currentUser?.email || "").toLowerCase();
+  if (!ogr || !email) { el.hidden = true; return; }
+  let onaylar = null;
+  try {
+    const s = await fb.getDocs(fb.query(fb.collection(db, "belgeOnaylari"), fb.where("veliEmail", "==", email)));
+    onaylar = new Set();
+    s.forEach(d => { const v = d.data(); if (v.ogrenciId === ogr.id) onaylar.add(v.belge); });
+  } catch (e) { el.hidden = true; return; }
+  const bekleyen = BELGELER.filter(b => !onaylar.has(b.k)).length;
+  if (!bekleyen || !el.isConnected) { el.hidden = true; el.innerHTML = ""; return; }
+  const ad = esc(String(ogr.ogrenciAdSoyad || "").split(/\s+/)[0] || "Çocuğunuz");
+  el.innerHTML = `<button type="button" class="ca-belge-uyari" onclick="veliSwitchTab('ayarlar')">
+    <span style="font-size:22px; margin:0;">📋</span>
+    <span style="margin:0;"><b>${bekleyen} belge onayınızı bekliyor</b><span>${ad} için · Profilimde onaylayın</span></span>
+    <span class="ca-bu-ok">›</span></button>`;
+  el.hidden = false;
+}
+
 async function belgeOnayla(belge, hedefId) {
   const { fb, db, state, toast } = P();
   const b = BELGELER.find(x => x.k === belge);
@@ -177,6 +201,7 @@ async function belgeOnayla(belge, hedefId) {
     });
     toast("✓ Onayınız kaydedildi");
     veliBelgeOnayKart(hedefId);
+    if (document.getElementById("caHomeBelgeUyari")) veliBelgeUyari("caHomeBelgeUyari");
   } catch (e) { toast("Kaydedilemedi: " + e.message, "error"); }
 }
 
