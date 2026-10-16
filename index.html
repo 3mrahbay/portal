@@ -8532,7 +8532,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 .cicek-app .wa-sohbet {
   position:fixed; inset:0; z-index:9500;
   display:flex; flex-direction:column;
-  background:#e5ddd5;
+  /* Okul logosu renkleri: koyu #2D5E3E, ana #4A7C59, açık #7CB97C (16 Ekim 2026) */
+  background:#EEF3EC;
   /* WhatsApp benzeri ince desen */
   background-image:
     radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 1px, transparent 1px),
@@ -8542,7 +8543,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 /* WhatsApp üst başlık (yeşil bar) */
 .cicek-app .wa-head {
   display:flex; align-items:center; gap:10px;
-  padding:10px 12px; background:var(--c-green-deep, #2B3674);
+  padding:10px 12px; padding-top:max(10px, env(safe-area-inset-top, 0px)); background:#2D5E3E;
   color:#fff; flex-shrink:0;
   box-shadow:0 1px 4px rgba(0,0,0,0.15); z-index:2;
 }
@@ -8566,7 +8567,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 }
 /* Tarih ayıracı (Bugün / Dün) */
 .cicek-app .wa-tarih-ayrac {
-  align-self:center; background:#d7e3d0; color:#445a48;
+  align-self:center; background:#DCEBDD; color:#2D5E3E;
   font-size:11px; font-weight:600; padding:4px 12px;
   border-radius:8px; margin:8px 0; box-shadow:0 1px 1px rgba(0,0,0,0.08);
 }
@@ -8581,7 +8582,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
   border-top-left-radius:0;
 }
 .cicek-app .wa-bub.giden {
-  align-self:flex-end; background:#d9fdd3;
+  align-self:flex-end; background:#DCEFD6;
   border-top-right-radius:0;
 }
 /* Ardışık aynı kişi balonları daha sıkı */
@@ -8593,7 +8594,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
   display:inline-flex; align-items:center; gap:3px; line-height:1;
   position:relative; top:4px;
 }
-.cicek-app .wa-bub.giden .wa-bub-meta { color:#5A6ACF; }
+.cicek-app .wa-bub.giden .wa-bub-meta { color:#4A7C59; }
 .cicek-app .wa-tik { font-size:13px; letter-spacing:-2px; }
 .cicek-app .wa-tik.okundu { color:#53bdeb; }
 /* Mesajlaşma baloncuk okundu tikleri (yönetim/öğretmen tarafı) */
@@ -8618,12 +8619,13 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 /* Alt giriş çubuğu */
 .cicek-app .wa-bar {
   display:flex; align-items:flex-end; gap:7px; padding:8px 10px;
-  background:#f0f2f5; flex-shrink:0;
+  padding-bottom:max(8px, env(safe-area-inset-bottom, 0px));
+  background:#F4F7F2; border-top:1px solid #E1EADF; flex-shrink:0;
 }
 .cicek-app .wa-bar-input {
   flex:1; display:flex; align-items:flex-end; gap:6px;
   background:#fff; border-radius:22px; padding:7px 12px;
-  min-height:44px;
+  min-height:44px; border:1px solid #DCE7D9;
 }
 .cicek-app .wa-bar-input textarea {
   flex:1; border:none; outline:none; resize:none;
@@ -8631,15 +8633,16 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
   background:transparent; max-height:110px; line-height:1.4; padding:3px 0;
 }
 .cicek-app .wa-bar-atac {
-  background:none; border:none; cursor:pointer; color:#54656f;
-  font-size:21px; padding:2px; flex-shrink:0; line-height:1;
-  transform:rotate(45deg);
+  background:none; border:none; cursor:pointer; color:#4A7C59;
+  padding:2px; flex-shrink:0; line-height:0; align-self:center;
 }
 .cicek-app .wa-bar-send {
   flex-shrink:0; width:46px; height:46px; border-radius:50%;
-  background:var(--c-green-deep, #2B3674); color:#fff; border:none;
+  background:#4A7C59; color:#fff; border:none;
   cursor:pointer; display:grid; place-items:center; font-size:19px;
 }
+.cicek-app .wa-bar-send svg { display:block; margin-left:-2px; }
+.cicek-app .wa-bar-send:active { background:#2D5E3E; }
 .cicek-app .wa-bar-send:disabled { opacity:.55; cursor:default; }
 /* Ataç menüsü (popup) */
 .cicek-app .wa-atac-menu {
@@ -8682,6 +8685,34 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 .cicek-app .ca-dash { column-count: 2; column-gap: 14px; }
 .cicek-app .ca-dash > * { break-inside: avoid; -webkit-column-break-inside: avoid; margin-bottom: 14px; width: 100%; }
 @media (max-width: 1024px) { .cicek-app .ca-dash { column-count: 2; } }
+/* ── VELİ · MOBİL DÜZEN (16 Ekim 2026) ──
+   Sayfa kenar boşluğu: içerik ekran kenarına yapışmasın, zil rozeti kesilmesin.
+   Üst bardaki sağ simge grubu (menü, zil, çıkış) sağa yaslı: sol grup esner, sağ grup esnemez. */
+#veliPanel #cicekAppRoot > .ca-page { box-sizing:border-box; padding:16px 20px 28px; }
+/* Okul Zili: iPhone'da saat alanı kendi asgari genişliğiyle yanındaki kişi seçimine taşıyordu. */
+#veliOkulZiliKart .vz-alanlar input[type="time"] { -webkit-appearance:none; appearance:none; display:block; min-width:0; max-width:100%; text-align:left; }
+#veliOkulZiliKart .vz-alanlar input[type="time"]::-webkit-date-and-time-value { text-align:left; }
+@media (max-width:560px) { #veliPanel #cicekAppRoot > .ca-page { padding:12px max(14px, env(safe-area-inset-right, 0px)) 24px max(14px, env(safe-area-inset-left, 0px)); } }
+.cicek-app .ca-topbar > .ca-row + .ca-row { flex:0 0 auto; margin-left:auto; justify-content:flex-end; }
+/* Çocuk kartının altında günün özeti (Bugünün günlüğü): dokununca günlük açılır */
+.cicek-app .ca-hero-gunluk { margin-top:14px; padding:11px 12px 12px; border-radius:14px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.16); color:#fff; cursor:pointer; display:flex; flex-direction:column; gap:9px; }
+.cicek-app .ca-hero-gunluk:focus-visible { outline:3px solid rgba(255,255,255,.7); outline-offset:2px; }
+.cicek-app .ca-hg-bas { display:flex; align-items:center; gap:7px; min-width:0; font-size:12.5px; font-weight:700; }
+.cicek-app .ca-hg-bas svg, .cicek-app .ca-hg-bas [data-lucide] { width:15px; height:15px; flex-shrink:0; opacity:.9; }
+.cicek-app .ca-hg-baslik { flex-shrink:0; }
+.cicek-app .ca-hg-tarih { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; opacity:.8; }
+.cicek-app .ca-hg-ok { margin-left:auto; opacity:.8; font-size:16px; line-height:1; }
+.cicek-app .ca-hg-pils { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; }
+.cicek-app .ca-hg-pil { min-width:0; border-radius:10px; padding:7px 6px; text-align:center; background:rgba(255,255,255,.14); }
+.cicek-app .ca-hg-pil b { display:block; font-size:13px; font-weight:700; line-height:1.25; overflow-wrap:anywhere; }
+.cicek-app .ca-hg-pil span { display:block; font-size:10.5px; opacity:.8; margin-top:2px; }
+.cicek-app .ca-hg-not { font-size:12.5px; line-height:1.45; opacity:.92; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.cicek-app .ca-hg-bos { font-size:12.5px; opacity:.85; }
+/* Onay bekleyen belge uyarısı (ana sayfa) */
+.cicek-app .ca-belge-uyari { width:100%; display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid #FDE68A; border-radius:16px; background:#FFFBEB; color:#78350F; font:inherit; text-align:left; cursor:pointer; }
+.cicek-app .ca-belge-uyari b { display:block; font-size:14px; color:#78350F; }
+.cicek-app .ca-belge-uyari span { display:block; font-size:12px; color:#92400E; margin-top:1px; }
+.cicek-app .ca-belge-uyari .ca-bu-ok { margin-left:auto; font-size:18px; color:#B45309; }
 @media (max-width: 820px) {
   .cicek-app .ca-hero-row { grid-template-columns: 1fr; }
   .cicek-app .ca-dash { column-count: 1; }
@@ -8729,6 +8760,29 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 }
 .zeky-geri-bar button:hover { background: rgba(255,255,255,0.25); }
 .zeky-geri-bar .zeky-geri-baslik { flex: 1; opacity: 0.9; font-size: 13px; font-weight: 500; }
+
+/* ── VELİ · DUYURULAR (16 Ekim 2026): zaman çizgisi kalktı, kartlar tam genişlik ── */
+#veliPanel-bildirimler .vbd-sayfa { max-width:760px; margin:0 auto; padding-top:6px; }
+#veliPanel-ayarlar .vbo-sarici { margin-bottom:16px; }
+#veliPanel-ayarlar .vbo-sarici:has(#veliBelgeOnayKart:empty) { display:none; }
+#veliPanel-bildirimler .vbd-aciklama { margin:2px 2px 14px; font-size:13px; line-height:1.5; color:#5B6475; }
+#veliPanel-bildirimler .vbd-bos { padding:30px; text-align:center; color:#6B7280; font-size:13px; }
+.vbd-liste { display:flex; flex-direction:column; gap:10px; }
+.vbd-gun { margin:12px 2px 0; font-size:12px; font-weight:800; letter-spacing:.04em; color:#5B6475; text-transform:uppercase; }
+.vbd-gun:first-child { margin-top:0; }
+.vbd-kart { position:relative; background:#fff; border:1px solid #E6EAE4; border-radius:16px; padding:14px 16px 14px 18px; box-shadow:0 1px 3px rgba(31,45,35,.05); overflow:hidden; min-width:0; overflow-wrap:anywhere; }
+.vbd-kart::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--vbd-renk, #4A7C59); }
+.vbd-ust { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px; }
+.vbd-etiket { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; background:var(--vbd-acik, #EAF3EC); color:var(--vbd-renk, #2D5E3E); }
+.vbd-hedef { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:600; background:#F3F5F2; color:#4B5563; }
+.vbd-yeni { padding:3px 8px; border-radius:999px; font-size:11px; font-weight:800; background:#2D5E3E; color:#fff; }
+.vbd-saat { margin-left:auto; font-size:12px; color:#6B7280; font-variant-numeric:tabular-nums; }
+.vbd-baslik { margin:0; font-size:16.5px; line-height:1.35; font-weight:800; color:#1F2A24; }
+.vbd-metin { margin-top:8px; font-size:14px; line-height:1.65; color:#374151; white-space:pre-wrap; }
+.vbd-metin a { color:#2D5E3E; font-weight:700; }
+.vbd-kart [data-lucide], .vbd-kart svg { flex-shrink:0; }
+.vbd-talep-alt { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:10px; padding-top:10px; border-top:1px dashed #E5E7EB; font-size:12px; color:#6B7280; }
+.vbd-not { margin-top:10px; padding:10px 12px; border-radius:10px; background:#F7F8F6; font-size:12.5px; color:#374151; line-height:1.5; }
 
 /* Eski sekme içeriği için pad ver (yeniapp dışı) */
 #veliPanel .veli-tab-panel:not(#veliPanel-yeniapp) {
@@ -12034,19 +12088,18 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
       <!-- BİLDİRİMLER SEKMESİ -->
       <div class="veli-tab-panel" id="veliPanel-bildirimler">
-        <div class="veli-card">
-          <div class="veli-card-title"><i data-lucide="bell" style="width:13px;height:13px;vertical-align:-2px;"></i> Bildirimler ve Talepler</div>
-          <div style="font-size:13px; color:var(--gray-600); margin-bottom:16px; line-height:1.6;">
-            Kredi kartı ödeme talepleriniz ve okul yönetiminden gelen bildirimler burada görünür.
-          </div>
+        <div class="vbd-sayfa">
+          <p class="vbd-aciklama">Okul duyuruları ve ödeme talepleriniz burada, en yenisi üstte.</p>
           <div id="veliBildirimlerContent">
-            <div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>
+            <div class="vbd-bos">Yükleniyor…</div>
           </div>
         </div>
       </div>
 
       <!-- AYARLAR SEKMESİ -->
       <div class="veli-tab-panel" id="veliPanel-ayarlar">
+        <!-- Belge onayları (16 Ekim 2026'dan beri veli profilinde) — moduller/geri-bildirim.js -->
+        <div class="cicek-app vbo-sarici"><div id="veliBelgeOnayKart" class="ca-card" style="padding:0; overflow:hidden;"></div></div>
         <div class="veli-card">
           <div class="veli-card-title"><i data-lucide="user-round" style="width:14px;height:14px;vertical-align:-2px;"></i> Profil Fotoğrafım</div>
           <div style="display:flex; align-items:center; gap:16px; padding:4px 0;">
@@ -14022,7 +14075,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v203";
+window.PORTAL_SURUM = "v204";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -17862,6 +17915,9 @@ window.veliSwitchTab = function(tabName) {
     if (arguments[0] === "ayarlar" && typeof veliFotoYukleBaslangic === "function") {
       setTimeout(function () { veliFotoYukleBaslangic(); }, 120);
     }
+    if (arguments[0] === "ayarlar") {
+      setTimeout(function () { modulYukle("geri-bildirim").then(m => m && m.veliBelgeOnayKart("veliBelgeOnayKart")); }, 100);
+    }
   } catch (e) {}
 
   // Menu item aktif
@@ -17903,7 +17959,7 @@ window.veliSwitchTab = function(tabName) {
       const baslikMap = {
         odemeler: "Ödemeler", sozlesme: "Sözleşme", ogrenci: "Öğrenci Bilgileri",
         okul: "Okul Hayatı", iletisim: "İletişim", galeri: "Galeri",
-        raporlar: "Raporlar", bildirimler: "Duyurular", ayarlar: "Ayarlar"
+        raporlar: "Raporlar", bildirimler: "Duyurular", ayarlar: "Profilim"
       };
       const baslik = baslikMap[tabName] || tabName;
       const bar = document.createElement("div");
@@ -17977,10 +18033,7 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "profil") {
-    setTimeout(() => { modulYukle("geri-bildirim").then(m => m && m.veliBelgeOnayKart("veliBelgeOnayKart")); }, 100);
-  }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeHavaDoldur(); caHomeYolDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => m && m.memnuniyetPopupKontrol()); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeHavaDoldur(); caHomeYolDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => { if (!m) return; m.memnuniyetPopupKontrol(); m.veliBelgeUyari?.("caHomeBelgeUyari"); }); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -18363,15 +18416,15 @@ window.veliOkulZiliDoldur = async function() {
           </div>
         </div>
       </div>
-      <div style="padding:14px 18px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div>
+      <div class="vz-alanlar" style="padding:14px 18px; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;">
+        <div style="min-width:0;">
           <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Varış saati</label>
           <input type="time" id="vzSaat" value="${varsayilan}"
-            style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; margin-top:4px;">
+            style="width:100%; min-width:0; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700; margin-top:4px;">
         </div>
-        <div>
+        <div style="min-width:0;">
           <label style="font-size:11px; font-weight:800; color:var(--c-muted); text-transform:uppercase;">Kim alacak</label>
-          <select id="vzKisi" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; margin-top:4px;">
+          <select id="vzKisi" style="width:100%; min-width:0; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:14px; margin-top:4px;">
             ${(window._vzYetkililer || [{ad:"Anne"},{ad:"Baba"}]).map(k => `<option>${esc(k.ad)}</option>`).join("")}
           </select>
           <div style="font-size:10.5px; color:var(--c-muted); margin-top:4px;">Liste "Teslim Alabilecek Kişiler" kartından gelir.</div>
@@ -18570,10 +18623,14 @@ window.veliOkulZiliIptal = async function() {
 };
 
 async function caHomeGunlukDoldur() {
+  // Çocuk kartının altındaki şerit (16 Ekim 2026): yemek · uyku · ruh hali.
+  // Bugünün raporu yoksa son rapor tarihiyle gösterilir.
   const el = document.getElementById("caHomeGunluk");
   if (!el) return;
+  const bas = (baslik, ek) => `<div class="ca-hg-bas"><i data-lucide="notebook-pen"></i><span class="ca-hg-baslik">${baslik}</span>${ek ? `<span class="ca-hg-tarih">· ${ek}</span>` : ""}<span class="ca-hg-ok">›</span></div>`;
+  const yaz = (html) => { el.innerHTML = html; if (window.lucideYenile) setTimeout(window.lucideYenile, 40); };
   const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
-  if (!o) { el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Öğrenci seçilmedi.</div>`; return; }
+  if (!o) { yaz(bas("Bugünün günlüğü") + `<div class="ca-hg-bos">Öğrenci seçilmedi.</div>`); return; }
   const bugun = new Date().toISOString().slice(0, 10);
   try {
     const q = query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", o.id));
@@ -18582,10 +18639,7 @@ async function caHomeGunlukDoldur() {
     snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
     liste.sort((a, b) => String(b.tarih || "").localeCompare(String(a.tarih || "")));
     const r = liste[0];
-    if (!r) {
-      el.innerHTML = `<div style="padding:18px; text-align:center; color:var(--c-muted); font-size:13px;">Henüz günlük rapor girilmemiş.</div>`;
-      return;
-    }
+    if (!r) { yaz(bas("Bugünün günlüğü") + `<div class="ca-hg-bos">Öğretmen günlüğü paylaşınca burada görünür.</div>`); return; }
     const gunAd = (() => {
       try {
         const d = new Date(r.tarih + "T00:00:00");
@@ -18605,28 +18659,20 @@ async function caHomeGunlukDoldur() {
       }
       return "";
     };
-    const pil = (ham, etiket, bg) => {
-      const deger = duzMetin(ham);
-      return deger
-        ? `<div class="ca-statpill" style="background:${bg};"><div class="v">${escapeHtml(deger)}</div><div class="l">${etiket}</div></div>` : "";
+    const buyukHarf = (t) => t ? t.charAt(0).toLocaleUpperCase("tr") + t.slice(1) : t;
+    const pil = (ham, etiket) => {
+      const deger = buyukHarf(duzMetin(ham).trim());
+      return deger ? `<div class="ca-hg-pil"><b>${escapeHtml(deger)}</b><span>${etiket}</span></div>` : "";
     };
-    el.innerHTML = `
-      <div class="ca-row">
-        <span class="ca-qicon" style="background:var(--c-yellow-soft); width:42px; height:42px;"><i data-lucide="sun"></i></span>
-        <div>
-          <div style="font-weight:700; color:var(--c-ink);">${escapeHtml(gunAd)}${r.tarih === bugun ? "" : " <span style='font-weight:400;color:var(--c-muted);font-size:12px;'>(son rapor)</span>"}</div>
-          ${r.ogretmenAd ? `<div class="ca-tile-sub">Öğretmen: ${escapeHtml(r.ogretmenAd)}</div>` : ""}
-        </div>
-      </div>
-      ${(r.yemek || r.uyku || r.mood) ? `<div class="ca-statpills">
-        ${pil(r.yemek, "Yemek", "var(--c-pink-soft)")}
-        ${pil(r.uyku, "Uyku", "var(--c-purple-soft)")}
-        ${pil(r.mood || r.ruhHali, "Mood", "#Dff4e3")}
-      </div>` : ""}
-      ${r.not || r.aciklama ? `<div style="margin-top:12px; font-size:13.5px; color:var(--c-body); line-height:1.6;">${escapeHtml(r.not || r.aciklama)}</div>` : ""}`;
-    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
+    const pilller = pil(r.yemek, "Yemek") + pil(r.uyku, "Uyku") + pil(r.mood || r.ruhHali, "Ruh hali");
+    const not = r.not || r.aciklama;
+    const bugunMu = r.tarih === bugun;
+    yaz(bas(bugunMu ? "Bugünün günlüğü" : "Son günlük", bugunMu ? (r.ogretmenAd ? escapeHtml(r.ogretmenAd) : "") : escapeHtml(gunAd))
+      + (pilller ? `<div class="ca-hg-pils">${pilller}</div>` : "")
+      + (not ? `<div class="ca-hg-not">${escapeHtml(not)}</div>` : "")
+      + (!pilller && !not ? `<div class="ca-hg-bos">Günlüğü görmek için dokunun.</div>` : ""));
   } catch (e) {
-    el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Günlük rapor yüklenemedi.</div>`;
+    yaz(bas("Bugünün günlüğü") + `<div class="ca-hg-bos">Günlük şu anda yüklenemedi.</div>`);
   }
 }
 window.caHomeGunlukDoldur = caHomeGunlukDoldur;
@@ -19852,7 +19898,13 @@ function caHomeHTML() {
             </div>
             <span style="opacity:.85; font-size:18px;">›</span>
           </div>
-          <div class="ca-status"><i data-lucide="sprout" style="width:13px;height:13px;vertical-align:-2px;"></i> Profili ve eğitim gelişimini görmek için dokun</div>
+          <!-- Günün özeti (yemek, uyku, ruh hali) — caHomeGunlukDoldur; dokununca günlük açılır -->
+          <div class="ca-hero-gunluk" id="caHomeGunluk" role="button" tabindex="0" aria-label="Günlük raporu aç"
+               onclick="event.stopPropagation(); caGo('gunluk')"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); event.stopPropagation(); caGo('gunluk');}">
+            <div class="ca-hg-bas"><span class="ca-hg-baslik">Bugünün günlüğü</span><span class="ca-hg-ok">›</span></div>
+            <div class="ca-hg-bos">Yükleniyor…</div>
+          </div>
         </div>
 
         <div class="ca-card ca-pay">
@@ -19869,6 +19921,9 @@ function caHomeHTML() {
           </div>
         </div>
       </div>
+
+      <!-- Onay bekleyen belge uyarısı (varsa) — moduller/geri-bildirim.js → veliBelgeUyari -->
+      <div id="caHomeBelgeUyari" hidden></div>
 
       <!-- Hızlı işlemler -->
       <div>
@@ -19913,17 +19968,6 @@ function caHomeHTML() {
 
       <!-- Dashboard: değişen yükseklikli kartlar (masonry) -->
       <div class="ca-dash">
-
-        <!-- Bugünün günlüğü -->
-        <div>
-          <div class="ca-sectionhead">
-            <h3 class="ca-head" style="font-size:15px;">Bugünün günlüğü</h3>
-            <button class="ca-link" onclick="caGo('gunluk')">Tümü →</button>
-          </div>
-          <div class="ca-card" id="caHomeGunluk">
-            <div style="padding:16px; text-align:center; color:var(--c-muted); font-size:13px;">Yükleniyor...</div>
-          </div>
-        </div>
 
         <!-- Duyuru (görselli) -->
         <div>
@@ -20335,10 +20379,10 @@ function caMesajlarHTML() {
             <input type="file" id="caMsgBelgeInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" style="display:none;" onchange="caMsgBelgeSecildi(event)">
             <input type="file" id="caMsgKameraInput" accept="image/*" capture="environment" style="display:none;" onchange="caMsgResimSecildi(event)">
             <div class="wa-bar-input">
-              <button class="wa-bar-atac" onclick="caMsgAtacToggle()" title="Ekle"><i data-lucide="paperclip" style="width:16px;height:16px;"></i></button>
+              <button class="wa-bar-atac" onclick="caMsgAtacToggle()" title="Dosya ekle" aria-label="Dosya ekle"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
               <textarea id="caMsgGirisInput" placeholder="Mesaj yazın…" rows="1" onkeydown="caMsgGirisKeydown(event)"></textarea>
             </div>
-            <button class="wa-bar-send" id="caMsgGonderBtn" onclick="caMsgGonder()" title="Gönder"><i data-lucide="send" style="width:16px;height:16px;"></i></button>
+            <button class="wa-bar-send" id="caMsgGonderBtn" onclick="caMsgGonder()" title="Gönder" aria-label="Gönder"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg></button>
           </div>
         </div>
       </div>
@@ -21041,9 +21085,6 @@ function caProfilHTML() {
       </div>
 
       <div>
-        <!-- Belge onayları — moduller/geri-bildirim.js -->
-        <div id="veliBelgeOnayKart" class="ca-card" style="padding:0; overflow:hidden; margin-bottom:14px;"></div>
-
         <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Eğitim Gelişimi</h3><button class="ca-link" onclick="caGo('egitim')">Detay →</button></div>
         <div class="ca-card">
           <div class="ca-rings">${rings}</div>
@@ -41216,7 +41257,7 @@ async function veliRenderBildirimler() {
   const el = document.getElementById("veliBildirimlerContent");
   if (!el) return;
 
-  el.innerHTML = `<div style="padding:30px; text-align:center; color:var(--gray-500); font-size:13px;">Yükleniyor...</div>`;
+  el.innerHTML = `<div class="vbd-bos">Yükleniyor…</div>`;
 
   const bildirimler = []; // Birleşik liste
 
@@ -41270,10 +41311,10 @@ async function veliRenderBildirimler() {
 
     if (bildirimler.length === 0) {
       el.innerHTML = `
-        <div style="background:#f9fafb; border:1px solid var(--gray-200); border-radius:14px; padding:40px; text-align:center;">
-          <div style="font-size:48px; margin-bottom:12px;">📭</div>
-          <div style="font-family:var(--font-display); font-size:16px; color:var(--gray-700); margin-bottom:6px;">Henüz bildiriminiz yok</div>
-          <div style="font-size:13px; color:var(--gray-500);">Okul duyuruları ve talepleriniz burada görünecek.</div>
+        <div class="vbd-kart" style="text-align:center; padding:36px 18px;">
+          <div style="font-size:40px; margin-bottom:10px;">📭</div>
+          <div class="vbd-baslik" style="font-size:15px;">Henüz bildiriminiz yok</div>
+          <div style="font-size:13px; color:#6B7280; margin-top:4px;">Okul duyuruları ve talepleriniz burada görünecek.</div>
         </div>
       `;
       return;
@@ -41292,80 +41333,73 @@ async function veliRenderBildirimler() {
       acil: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b", ikon: "🚨", label: "Acil Duyuru" }
     };
 
-    // ZAMAN ÇİZELGESİ görünümü: solda tarih, sağda içerik, dikey çizgi
-    let html = `<div style="position:relative; padding-left:4px;">`;
-    let sonTarihEtiketi = "";
+    // KART LİSTESİ (16 Ekim 2026): soldaki zaman çizgisi kaldırıldı; aynı günün
+    // kayıtları bir gün başlığı altında, tam genişlik kartlarda. Önem derecesi
+    // kartın sol kenarındaki renkli şeritte ve etikette görünür.
+    const gunBasligi = (iso) => {
+      const t = iso ? new Date(iso) : null;
+      if (!t || isNaN(t)) return "";
+      const gun = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+      const fark = Math.round((gun(new Date()) - gun(t)) / 86400000);
+      if (fark === 0) return "Bugün";
+      if (fark === 1) return "Dün";
+      return t.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" });
+    };
+    const saatYazi = (iso) => {
+      const t = iso ? new Date(iso) : null;
+      return t && !isNaN(t) ? t.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "";
+    };
+    const IKON = (ad) => `<i data-lucide="${ad}" style="width:13px;height:13px;"></i>`;
+    const DUYURU_TUR = {
+      normal: { renk: "#2D5E3E", acik: "#EAF3EC", ikon: "megaphone",      label: "Duyuru" },
+      onemli: { renk: "#B45309", acik: "#FEF3C7", ikon: "triangle-alert", label: "Önemli duyuru" },
+      acil:   { renk: "#B91C1C", acik: "#FEE2E2", ikon: "siren",          label: "Acil duyuru" }
+    };
+    const TALEP_RENK = { bekliyor: ["#B45309", "#FEF3C7"], arandi: ["#1D4ED8", "#DBEAFE"], tamamlandi: ["#15803D", "#DCFCE7"], iptal: ["#6B7280", "#F3F4F6"] };
+    let html = `<div class="vbd-liste">`;
+    let sonGun = null;
     for (const b of bildirimler) {
-      const olusturuldu = b.olusturuldu ? new Date(b.olusturuldu).toLocaleString("tr-TR") : "";
+      const zaman = b._tip === "duyuru" ? (b.olusturulmaTarihi || b.olusturuldu) : b.olusturuldu;
+      const gun = gunBasligi(zaman);
+      if (gun !== sonGun) { if (gun) html += `<div class="vbd-gun">${escapeHtml(gun)}</div>`; sonGun = gun; }
+      const saat = saatYazi(zaman);
 
       if (b._tip === "talep") {
         const stil = talepStilleri[b.durum] || talepStilleri.bekliyor;
+        const [renk, acik] = TALEP_RENK[b.durum] || TALEP_RENK.bekliyor;
         html += `
-          <div style="background:${stil.bg}; border:1px solid ${stil.border}; border-radius:14px; padding:16px 20px;">
-            <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
-              <div>
-                <div style="font-family:var(--font-display); font-size:15px; font-weight:700; color:${stil.text};"><i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i> Kredi Kartı Ödeme Talebi</div>
-                <div style="font-size:12px; color:${stil.text}; opacity:0.8; margin-top:2px;">${escapeHtml(b.ogrenciAd)}</div>
-              </div>
-              <span style="background:white; color:${stil.text}; padding:4px 12px; border-radius:10px; font-size:11px; font-weight:700;">${stil.label}</span>
+          <article class="vbd-kart" style="--vbd-renk:${renk}; --vbd-acik:${acik};">
+            <div class="vbd-ust">
+              <span class="vbd-etiket">${IKON("credit-card")} Kredi kartı ödeme talebi</span>
+              <span class="vbd-hedef">${stil.label}</span>
+              ${saat ? `<span class="vbd-saat">${saat}</span>` : ""}
             </div>
-            <div style="font-size:13px; color:${stil.text}; line-height:1.6; margin:8px 0;">${stil.aciklama}</div>
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:10px; padding-top:10px; border-top:1px dashed ${stil.border};">
-              <div style="font-size:11px; color:${stil.text}; opacity:0.8;">${olusturuldu}</div>
-              <div style="font-size:13px; font-weight:600; color:${stil.text};">₺${(b.borc || 0).toLocaleString("tr-TR")}</div>
-            </div>
-            ${b.adminNotu ? `
-              <div style="background:white; border-radius:8px; padding:10px 14px; margin-top:10px; font-size:12px; color:var(--gray-700);">
-                <strong><i data-lucide="file-text" style="width:13px;height:13px;vertical-align:-2px;"></i> Okuldan Not:</strong><br>${escapeHtml(b.adminNotu)}
-              </div>
-            ` : ''}
-          </div>
+            <h3 class="vbd-baslik">${escapeHtml(b.ogrenciAd || "Ödeme talebi")}</h3>
+            <div class="vbd-metin">${stil.aciklama}</div>
+            <div class="vbd-talep-alt"><span>Tutar</span><strong style="color:#1F2A24;">₺${(b.borc || 0).toLocaleString("tr-TR")}</strong></div>
+            ${b.adminNotu ? `<div class="vbd-not"><strong>Okuldan not:</strong> ${escapeHtml(b.adminNotu)}</div>` : ""}
+          </article>
         `;
       } else if (b._tip === "duyuru") {
-        const stil = duyuruStilleri[b.aciliyet] || duyuruStilleri.normal;
-        const hedefIkon = (ad) => `<i data-lucide="${ad}" style="width:12px;height:12px;vertical-align:-2px;"></i>`;
-        const hedefLabel = b.hedefTur === "tumOkul" ? hedefIkon("school") + " Tüm Okul"
-          : b.hedefTur === "sinif" ? hedefIkon("users") + " " + escapeHtml(b.hedefDeger)
-          : hedefIkon("user") + " " + escapeHtml(b.hedefOgrenciAd || "");
-
-        // Okunmamış mı? (nokta işareti için)
+        const tur = DUYURU_TUR[b.aciliyet] || DUYURU_TUR.normal;
+        const hedefLabel = b.hedefTur === "tumOkul" ? IKON("school") + " Tüm okul"
+          : b.hedefTur === "sinif" ? IKON("users") + " " + escapeHtml(b.hedefDeger)
+          : IKON("user") + " " + escapeHtml(b.hedefOgrenciAd || "");
+        // Okunmamış mı? ("Yeni" etiketi)
         const okunmamis = veliOkuma ? !okunmaModul.veliOkudu(b, veliOkuma)
           : (!b.okuyanVeliler || !b.okuyanVeliler.includes(currentUser.email));
-        // Tarih başlığı — aynı gün tekrarlanmaz
-        const tarihNesnesi = b.olusturulmaTarihi ? new Date(b.olusturulmaTarihi) : null;
-        const gunEtiketi = tarihNesnesi && !isNaN(tarihNesnesi)
-          ? tarihNesnesi.toLocaleDateString("tr-TR", { day: "numeric", month: "long" }) : "";
-        const gunNo = tarihNesnesi && !isNaN(tarihNesnesi) ? tarihNesnesi.getDate() : "";
-        const gunAd = tarihNesnesi && !isNaN(tarihNesnesi)
-          ? tarihNesnesi.toLocaleDateString("tr-TR", { weekday: "short" }) : "";
-        const yeniGun = gunEtiketi !== sonTarihEtiketi;
-        sonTarihEtiketi = gunEtiketi;
-
         html += `
-          <div style="display:flex; gap:14px; align-items:flex-start;">
-            <div style="width:46px; flex-shrink:0; text-align:center; padding-top:4px;">
-              ${yeniGun ? `<div style="font-size:19px; font-weight:700; color:#1E293B; line-height:1;">${gunNo}</div>
-                <div style="font-size:10.5px; color:#94A3B8; text-transform:uppercase; margin-top:2px;">${gunAd}</div>` : ""}
+          <article class="vbd-kart" style="--vbd-renk:${tur.renk}; --vbd-acik:${tur.acik};">
+            <div class="vbd-ust">
+              <span class="vbd-etiket">${IKON(tur.ikon)} ${tur.label}</span>
+              <span class="vbd-hedef">${hedefLabel}</span>
+              ${okunmamis ? `<span class="vbd-yeni">Yeni</span>` : ""}
+              ${saat ? `<span class="vbd-saat">${saat}</span>` : ""}
             </div>
-            <div style="flex:1; min-width:0; border-left:2px solid #E2E8F0; padding-left:16px; padding-bottom:14px; position:relative;">
-              <span style="position:absolute; left:-7px; top:14px; width:12px; height:12px; border-radius:50%; background:${stil.text}; border:2.5px solid #fff; box-shadow:0 0 0 1.5px ${stil.text};"></span>
-              ${okunmamis ? `<span style="position:absolute; left:-26px; top:16px; width:7px; height:7px; border-radius:50%; background:#DC2626;"></span>` : ""}
-          <div style="background:${stil.bg}; border:1px solid ${stil.border}; border-radius:14px; padding:14px 18px;">
-            <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
-              <div>
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
-                  <span style="background:white; color:${stil.text}; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:700;">${stil.ikon} ${stil.label}</span>
-                  <span style="background:rgba(255,255,255,0.7); color:${stil.text}; padding:3px 10px; border-radius:8px; font-size:11px; font-weight:600;">${hedefLabel}</span>
-                </div>
-                <div style="font-family:var(--font-display); font-size:16px; font-weight:700; color:${stil.text}; margin-top:4px;">${escapeHtml(b.baslik)}</div>
-              </div>
-              <span style="font-size:11px; color:${stil.text}; opacity:0.8;">${olusturuldu}</span>
-            </div>
-            <div style="font-size:13px; color:${stil.text}; line-height:1.7; margin-top:8px; white-space:pre-wrap;">${escapeHtml(b.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, (m, href, text) => /^(https?:|mailto:)/i.test(href) ? `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color:inherit; font-weight:600;">${text}</a>` : text)}</div>
+            <h3 class="vbd-baslik">${escapeHtml(b.baslik)}</h3>
+            <div class="vbd-metin">${escapeHtml(b.icerik).replace(/\n/g, '<br>').replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, (m, href, text) => /^(https?:|mailto:)/i.test(href) ? `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>` : text)}</div>
             ${duyuruEkModul ? duyuruEkModul.html(b.ekler) : ""}
-          </div>
-            </div>
-          </div>
+          </article>
         `;
 
         // Duyuruyu okundu olarak işaretle (arka planda)
@@ -41375,6 +41409,7 @@ async function veliRenderBildirimler() {
     }
     html += `</div>`;
     el.innerHTML = html;
+    if (window.lucideYenile) setTimeout(() => window.lucideYenile(el), 30);
     if (okunmaModul && veliOkuma) okunmaModul.veliGorulenleriKaydet(bildirimler.filter(x => x._tip === "duyuru"), veliOkuma);
   } catch (e) {
     el.innerHTML = `<div class="ozel-madde-empty">Bildirimler yüklenemedi: ${escapeHtml(e.message)}</div>`;
@@ -48795,13 +48830,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=203");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=204");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v203";
+          const anahtar = "portalSwReload_v204";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
