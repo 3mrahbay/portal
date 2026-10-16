@@ -10,7 +10,7 @@ const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const getter=index.match(/get state\(\) \{([\s\S]*?)\n  \},/)[1];
 const helpers=index.slice(index.indexOf('// Gallery-only proof from'),index.indexOf('async function loadVeliPanel'));
 const loader=index.slice(index.indexOf('async function setAktifVeliOgrenci'),index.indexOf('\nfunction hesaplaYas'));
-const moduleSource=fs.readFileSync(new URL('../moduller/veli-galeri.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace('export async function render','async function render');
+const moduleSource=fs.readFileSync(new URL('../moduller/veli-galeri.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
 const childA={id:'a',sinif:'Mimoza',_donemVeri:{kayit:{sinif:'UNBOUND'}}},childB={id:'b',sinif:'Mimoza'};
 const user={uid:'parent',email:'synthetic@example.invalid'};
 const deferred=()=>{let resolve,reject;const promise=new Promise((r,j)=>{resolve=r;reject=j});return{promise,resolve,reject}};

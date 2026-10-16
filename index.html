@@ -8713,6 +8713,11 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 .cicek-app .ca-belge-uyari b { display:block; font-size:14px; color:#78350F; }
 .cicek-app .ca-belge-uyari span { display:block; font-size:12px; color:#92400E; margin-top:1px; }
 .cicek-app .ca-belge-uyari .ca-bu-ok { margin-left:auto; font-size:18px; color:#B45309; }
+/* Çocuk profili: son fotoğrafları şeridi */
+.cicek-app .ca-prof-fotolar { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+.cicek-app .ca-prof-foto { padding:0; border:0; border-radius:14px; overflow:hidden; aspect-ratio:1; background:var(--c-tint); cursor:pointer; }
+.cicek-app .ca-prof-foto img { width:100%; height:100%; object-fit:cover; display:block; }
+.cicek-app .ca-prof-foto-bos { grid-column:1 / -1; padding:18px 14px; border-radius:16px; background:var(--c-surface); border:1px solid var(--c-border); text-align:center; color:var(--c-muted); font-size:13px; }
 @media (max-width: 820px) {
   .cicek-app .ca-hero-row { grid-template-columns: 1fr; }
   .cicek-app .ca-dash { column-count: 1; }
@@ -14075,7 +14080,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v205";
+window.PORTAL_SURUM = "v206";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -18033,7 +18038,8 @@ function veliRenderYeniApp() {
   if (caEkran === "etkinlikler") { try { caEtkinlikleriRender(); } catch(e) { console.warn(e); } }
   if (caEkran === "takvim") { try { veliTakvimRender(); randevuSlotlariYukle().then(() => veliRandevuSayaclariniGuncelle()); } catch(e) { console.warn(e); } }
   if (caEkran === "yemek") { try { caYemekYukle(); } catch(e) { console.warn(e); } }
-  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeHavaDoldur(); caHomeYolDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => { if (!m) return; m.memnuniyetPopupKontrol(); m.veliBelgeUyari?.("caHomeBelgeUyari"); }); }, 100); } catch(e) { console.warn(e); } }
+  if (caEkran === "profil") { setTimeout(() => { try { caProfilDoldur(); } catch(e) { console.warn(e); } }, 60); }
+  if (caEkran === "home" || !caEkran) { try { setTimeout(() => { caHomeTakvimOnizlemeRender(); caHomeEgitimOzetRender(); caHomeMesajlariDoldur(); caHomeGunlukDoldur(); caHomeRandevulariDoldur(); caHomeOryantasyonDoldur(); caHomeHavaDoldur(); caHomeYolDoldur(); veliOkulZiliDoldur(); modulYukle("sabah-girisi").then(m => m && m.veliKart("veliSabahGirisiKart")); modulYukle("veli-izinleri").then(m => m && m.veliKart("veliIzinKart")); modulYukle("pickup-yetkilileri").then(m => m && m.veliKart("veliPickupYetkiKart")); modulYukle("geri-bildirim").then(m => { if (!m) return; m.memnuniyetPopupKontrol(); m.veliBelgeUyari?.("caHomeBelgeUyari"); }); modulYukle("veli-ani-video").then(m => m && m.anaSayfaUyari("caHomeAniVideo")); }, 100); } catch(e) { console.warn(e); } }
   // Lucide ikonları her render sonrası yeniden çizilmeli; aksi halde
   // <i data-lucide> etiketleri boş kutu olarak kalıyordu.
   if (window.lucideYenile) { setTimeout(window.lucideYenile, 30); setTimeout(window.lucideYenile, 200); }
@@ -19922,6 +19928,9 @@ function caHomeHTML() {
         </div>
       </div>
 
+      <!-- Yeni anı videosu (izlenmemişse) — moduller/veli-ani-video.js → anaSayfaUyari -->
+      <div id="caHomeAniVideo" hidden></div>
+
       <!-- Onay bekleyen belge uyarısı (varsa) — moduller/geri-bildirim.js → veliBelgeUyari -->
       <div id="caHomeBelgeUyari" hidden></div>
 
@@ -21011,11 +21020,56 @@ window.veliCocukFotoDegistir = function(ogrenciId) {
   });
 };
 
+// Doğum gününe kalan gün ("Doğum gününe 23 gün", "Bugün doğum günü!")
+function caDogumGunuMetni(dogumTarihi, simdi = new Date()) {
+  if (!dogumTarihi) return "";
+  // "08.11.2021" Türkçe gün.ay.yıl; new Date() bunu ABD biçimi (8 Kasım değil 11 Ağustos) sanar
+  const nokta = String(dogumTarihi).trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  const d = nokta ? new Date(+nokta[3], +nokta[2] - 1, +nokta[1]) : new Date(dogumTarihi);
+  if (isNaN(d)) return "";
+  const bugun = new Date(simdi.getFullYear(), simdi.getMonth(), simdi.getDate());
+  let sonraki = new Date(bugun.getFullYear(), d.getMonth(), d.getDate());
+  if (sonraki < bugun) sonraki = new Date(bugun.getFullYear() + 1, d.getMonth(), d.getDate());
+  const gun = Math.round((sonraki - bugun) / 86400000);
+  return gun === 0 ? "Bugün doğum günü!" : gun === 1 ? "Doğum günü yarın" : "Doğum gününe " + gun + " gün";
+}
+
+// Profil sayaçları ve son fotoğraflar (gerçek veri; yoksa dürüstçe boş)
+async function caProfilDoldur() {
+  const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : null;
+  const yaz = (id, deger) => { const el = document.getElementById(id); if (el) el.textContent = deger; };
+  if (!o?.id) { yaz("caProfGunluk", "—"); yaz("caProfFoto", "—"); return; }
+  const ogrId = o.id;
+  try {
+    const snap = await getDocs(query(collection(db, "gunlukRaporlar"), where("ogrenciId", "==", ogrId)));
+    const ay = new Date().toISOString().slice(0, 7);
+    let n = 0; snap.forEach(d => { if (String(d.data().tarih || "").startsWith(ay)) n++; });
+    if (veliAktifOgrenci?.id === ogrId) yaz("caProfGunluk", String(n));
+  } catch (e) { yaz("caProfGunluk", "—"); }
+  const kutu = document.getElementById("caProfilFotolar");
+  try {
+    const m = await modulYukle("veli-galeri");
+    const oz = m?.profilOzeti ? await m.profilOzeti(6) : null;
+    if (veliAktifOgrenci?.id !== ogrId || !kutu?.isConnected) return;
+    yaz("caProfFoto", oz ? String(oz.toplam) : "—");
+    kutu.innerHTML = oz && oz.fotolar.length
+      ? oz.fotolar.map(f => `<button type="button" class="ca-prof-foto" onclick="caGo('galeri')" title="${escapeHtml(f.baslik || "Galeri")}"><img src="${escapeHtml(f.url)}" alt="" loading="lazy"></button>`).join("")
+      : `<div class="ca-prof-foto-bos">Öğretmenler fotoğraf paylaştığında burada görünecek.</div>`;
+  } catch (e) {
+    yaz("caProfFoto", "—");
+    if (kutu) kutu.innerHTML = `<div class="ca-prof-foto-bos">Fotoğraflar şu anda yüklenemedi.</div>`;
+  }
+  // Haftalık anı videoları (sunucu hazırlar; yoksa bölüm gizli kalır)
+  modulYukle("veli-ani-video").then(m => m && m.profilBolumu("caProfilVideoBolum")).catch(() => {});
+}
+window.caProfilDoldur = caProfilDoldur;
+
 function caProfilHTML() {
   const o = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci) ? veliAktifOgrenci : {};
   const ogrAd = o.ogrenciAdSoyad || o.adSoyad || [o.ad, o.soyad].filter(Boolean).join(" ") || "Öğrenci";
   const ogrSinif = o.sinif || o.sinifi || "";
   const ogrYas = caProfilYas(o.dogumTarihi);
+  const dogumGunu = caDogumGunuMetni(o.dogumTarihi);
   const basHarf = (ogrAd[0] || "?").toLocaleUpperCase("tr");
 
   // Gelişim alanları — ogrenciGelisim'den; veri yoksa boş liste
@@ -21066,8 +21120,9 @@ function caProfilHTML() {
         </div>
         <h2 style="font-size:22px;">${escapeHtml(ogrAd)}</h2>
         <div class="ca-tile-sub" style="margin-top:2px;">${escapeHtml([ogrSinif, ogrYas].filter(Boolean).join(" · ") || "—")}</div>
-        ${ortalama !== null ? `<div class="ca-row" style="justify-content:center; gap:8px; margin-top:10px;">
-          <span class="ca-pill yellow">%${ortalama} ortalama</span>
+        ${(dogumGunu || ortalama !== null) ? `<div class="ca-row" style="justify-content:center; flex-wrap:wrap; gap:8px; margin-top:10px;">
+          ${dogumGunu ? `<span class="ca-pill pink">🎂 ${escapeHtml(dogumGunu)}</span>` : ""}
+          ${ortalama !== null ? `<span class="ca-pill yellow">%${ortalama} gelişim ortalaması</span>` : ""}
         </div>` : ""}
       </div>
 
@@ -21078,11 +21133,21 @@ function caProfilHTML() {
         <button class="ca-qbtn" onclick="caGo('egitim')"><span class="ca-qicon" style="background:var(--c-purple-soft);"><i data-lucide="bar-chart-3" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Rapor</span></button>
       </div>
 
+      <!-- Sayaçlar: gerçek veri (caProfilDoldur) -->
       <div class="ca-statpills" id="caProfilSayaclar">
-        <div class="ca-statpill" style="background:#Dff4e3;"><div class="v" id="caProfOkulGun">—</div><div class="l">Okul günü</div></div>
-        <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v" id="caProfDevamsiz">—</div><div class="l">Devamsızlık</div></div>
+        <div class="ca-statpill" style="background:#DFF4E3;"><div class="v" id="caProfGunluk">…</div><div class="l">Bu ay günlük</div></div>
+        <div class="ca-statpill" style="background:var(--c-pink-soft);"><div class="v" id="caProfFoto">…</div><div class="l">Fotoğraf</div></div>
         <div class="ca-statpill" style="background:var(--c-yellow-soft);"><div class="v" id="caProfOrtalama">${ortalama !== null ? "%" + ortalama : "—"}</div><div class="l">Gelişim ort.</div></div>
       </div>
+
+      <!-- Son fotoğrafları (önce çocuğa özel olanlar) — moduller/veli-galeri.js → profilOzeti -->
+      <div id="caProfilFotoBolum">
+        <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Son fotoğrafları</h3><button class="ca-link" onclick="caGo('galeri')">Galeri →</button></div>
+        <div class="ca-prof-fotolar" id="caProfilFotolar"><div class="ca-prof-foto-bos">Yükleniyor…</div></div>
+      </div>
+
+      <!-- Anı videoları (haftalık; varsa görünür) — moduller/veli-ani-video.js → profilBolumu -->
+      <div id="caProfilVideoBolum" hidden></div>
 
       <div>
         <div class="ca-sectionhead"><h3 class="ca-head" style="font-size:15px;">Eğitim Gelişimi</h3><button class="ca-link" onclick="caGo('egitim')">Detay →</button></div>
@@ -48830,13 +48895,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=205");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=206");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v205";
+          const anahtar = "portalSwReload_v206";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
