@@ -1772,7 +1772,7 @@ async function galeriBildirimMailGonder(grup) {
 
       await brevoMail({
         to: v.mail, toName: v.ad,
-        subject: `<i data-lucide="camera" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Fotoğraflar: ${etkinlikBaslik} - Bir Çiçek Koleji`,
+        subject: `📷 Yeni Fotoğraflar: ${etkinlikBaslik} - Bir Çiçek Koleji`,
         htmlContent: portalMailSablon(etkinlikBaslik, icerik, "Portal'daki galeriye yeni içerik eklendi.")
       });
       await new Promise(r => setTimeout(r, 300));

@@ -238,7 +238,7 @@ async function devamsizlikVeliMail(ogrenciId) {
       const icerik = `
         <p style="margin:0 0 14px; font-size:15px;">Sayın <strong>${escapeHtml(v.ad)}</strong>,</p>
         <div style="background:#fef2f2; border-left:4px solid #dc2626; border-radius:8px; padding:18px 22px; margin:16px 0;">
-          <div style="font-size:12px; font-weight:700; color:#991b1b; letter-spacing:0.5px; margin-bottom:8px;"><i data-lucide="clipboard-list" style="width:13px;height:13px;vertical-align:-2px;"></i> DEVAMSIZLIK BİLDİRİMİ</div>
+          <div style="font-size:12px; font-weight:700; color:#991b1b; letter-spacing:0.5px; margin-bottom:8px;">📋 DEVAMSIZLIK BİLDİRİMİ</div>
           <div style="font-size:14px; color:#374151; line-height:1.7;">
             <strong>${escapeHtml(ogr.ogrenciAdSoyad || "")}</strong> bugün (<strong>${bugunStr}</strong>) okula gelmedi.
           </div>
@@ -250,7 +250,7 @@ async function devamsizlikVeliMail(ogrenciId) {
       `;
       await brevoMail({
         to: v.mail, toName: v.ad,
-        subject: `<i data-lucide="clipboard-list" style="width:13px;height:13px;vertical-align:-2px;"></i> Devamsızlık Bildirimi - ${ogr.ogrenciAdSoyad}`,
+        subject: `📋 Devamsızlık Bildirimi - ${ogr.ogrenciAdSoyad}`,
         htmlContent: portalMailSablon("Devamsızlık Bildirimi", icerik, "Okul yönetimi tarafından otomatik olarak gönderilmiştir.")
       });
       await new Promise(r => setTimeout(r, 300));
