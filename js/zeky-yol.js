@@ -256,7 +256,14 @@ export async function sonucGetir({ servis, konum, depo = globalThis.localStorage
 const PLACE_ID = /^[A-Za-z0-9_-]{16,300}$/;
 function hedefKaydi(hedef) { return hedef && typeof hedef.placeId === 'string' && PLACE_ID.test(hedef.placeId) ? hedef.placeId : ''; }
 
-export function haritaAdresi({ anahtar, baslangic, hedef, mod }) {
+// iOS uygulaması capacitor://localhost adresinden açılır; WebKit bu adresten giden isteklere
+// "Referer" eklemez ve alan adıyla kısıtlı Embed anahtarı haritayı reddeder. Bu yüzden iOS'ta
+// harita, anahtarın izin verdiği portal alan adındaki küçük bir ara sayfanın içinde açılır.
+// Parametreler adresin # kısmında taşınır (sunucuya gitmez); sayfa yalnız Google Embed çizer.
+export const IOS_HARITA_CERCEVESI = 'https://portal.bircicekkoleji.com/okul-yolu-harita.html';
+const CERCEVE_ADRESI = /^https:\/\/portal\.bircicekkoleji\.com\/[a-z0-9-]+\.html$/;
+
+export function haritaAdresi({ anahtar, baslangic, hedef, mod, cerceve = '' }) {
   if (!anahtar || !baslangic || !hedef) return '';
   const kayit = hedefKaydi(hedef);
   const q = new URLSearchParams({
@@ -267,6 +274,7 @@ export function haritaAdresi({ anahtar, baslangic, hedef, mod }) {
     language: 'tr',
     region: 'TR'
   });
+  if (cerceve && CERCEVE_ADRESI.test(cerceve)) return `${cerceve}#${q}`;
   return `https://www.google.com/maps/embed/v1/directions?${q}`;
 }
 
@@ -403,7 +411,7 @@ export function yolSatiriCiz(kap, { bilgi, ac, ikonlariCiz } = {}) {
 }
 
 // Açılır pencerenin gövdesi (ZEKY ve portal): sekmeler, sonuç, harita, Google Haritalar.
-export function yolPaneliKur(kap, { servis, konum, depo = globalThis.localStorage, simdi = () => Date.now(), ikonlariCiz, disariAc, bildir, okul = null } = {}) {
+export function yolPaneliKur(kap, { servis, konum, depo = globalThis.localStorage, simdi = () => Date.now(), ikonlariCiz, disariAc, bildir, okul = null, haritaCercevesi = '' } = {}) {
   const { el, ikon } = yapici(kap);
   let mod = sonMod(depo);
   let istekNo = 0;
@@ -468,7 +476,7 @@ export function yolPaneliKur(kap, { servis, konum, depo = globalThis.localStorag
 
   function haritayiGuncelle(sonuc) {
     const adres = sonuc && sonuc.durum === 'rota'
-      ? haritaAdresi({ anahtar: sonuc.haritaAnahtari, baslangic: sonuc.baslangic, hedef: sonuc.hedef, mod: sonuc.mod })
+      ? haritaAdresi({ anahtar: sonuc.haritaAnahtari, baslangic: sonuc.baslangic, hedef: sonuc.hedef, mod: sonuc.mod, cerceve: haritaCercevesi })
       : '';
     if (!adres) { harita.hidden = true; harita.replaceChildren(); return; }
     let cerceve = harita.firstChild;
