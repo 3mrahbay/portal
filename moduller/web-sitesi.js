@@ -18,8 +18,8 @@
 const P = () => window.PortalAPI;
 
 export const YETKILI = ["emrahby@gmail.com", "eposta@bircicekkoleji.com"];
-// Test adresi; alan adı taşındığında da çalışmaya devam eder (aynı Cloudflare projesi).
-const SITE = "https://bircicekkoleji-site.pages.dev";
+// Cloudflare Pages üzerinde yayındaki ana alan adı.
+const SITE = "https://www.bircicekkoleji.com";
 const BOLUMLER = [
   { id: "genel",    ad: "Genel bilgiler",      ikon: "contact",          aciklama: "Telefon, adres, saatler, bağlantılar" },
   { id: "duyuru",   ad: "Duyuru şeridi",       ikon: "megaphone",        aciklama: "Sitenin en üstündeki kısa duyuru" },
