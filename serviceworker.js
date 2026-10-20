@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v207-gunluk-ozet-ortak";
+const CACHE_VERSION = "v208-danisma-okul-zili-isim";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -40,7 +40,7 @@ const PRECACHE = [
   "./js/zeky-bildirim-koprusu.js?v=164",
   "./js/zeky-bildirim-koprusu.js",
   "./js/zeky-operasyon-push.js",
-  "./js/sabah-giris-kaydi.js?v=1",
+  "./js/sabah-giris-kaydi.js?v=2",
   "./js/personel-qr-devam.js?v=2",
   "./js/personel-devam-callable.js",
   "./js/personel-izin-core.js?v=1",
@@ -97,7 +97,7 @@ const PRECACHE = [
   "./moduller/pdr.js",
   "./moduller/program-belgeleme.js",
   "./moduller/geri-bildirim.js",
-  "./moduller/veli-galeri.js?v=v207",
+  "./moduller/veli-galeri.js?v=v208",
   "./js/portal-galeri-lightbox-ui.js",
   "./js/bunny-stream-upload.js?v=192",
   "./okul_logo.png",
