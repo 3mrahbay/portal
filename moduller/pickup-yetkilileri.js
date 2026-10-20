@@ -48,19 +48,6 @@ function paylasimBildir(yol, sonuc) {
   if (m) P().toast(m, sonuc === "kopyalandi" ? undefined : "error");
 }
 
-// Danışma projeksiyonu: yalnız ad + yakınlık (kural birebir bu biçimi ister).
-export function danismaOzeti(kisiler) {
-  return (kisiler || []).map(k => ({ ad: k?.ad || "", yakinlik: k?.yakinlik || "" }));
-}
-const zamanMs = (t) => (t && typeof t.toMillis === "function" ? t.toMillis() : null);
-// Projeksiyon yoksa, içerik ana listeden farklıysa ya da ana listeden eskiyse yenilenir.
-export function projeksiyonYenilenmeli(projeksiyon, kaynak, ozet) {
-  if (!projeksiyon) return true;
-  if (JSON.stringify(danismaOzeti(projeksiyon.kisiler)) !== JSON.stringify(ozet)) return true;
-  const p = zamanMs(projeksiyon.guncellendi), k = zamanMs(kaynak?.guncellendi);
-  return p === null || (k !== null && p < k);
-}
-
 export async function listeGetir(ogrenciId, tazele = false) {
   if (!tazele && _cache[ogrenciId]) return _cache[ogrenciId];
   const { fb, db, state } = P();
@@ -71,20 +58,8 @@ export async function listeGetir(ogrenciId, tazele = false) {
     const s = await fb.getDoc(fb.doc(db, kaynak, ogrenciId));
     if (s.exists() && Array.isArray(s.data().kisiler)) kisiler = s.data().kisiler;
 
-    // Veli listesini açtığında telefon içermeyen danışma projeksiyonunu ana listeyle
-    // eşitler: yoksa, içerik farklıysa ya da ana listeden eskiyse yeniden yazar. ZEKY
-    // yalnız ana listeyi yazar; kural ana listeden eski projeksiyonu danışmaya
-    // göstermez ve veliden yalnız birebir ad/yakınlık kopyasını kabul eder.
-    if (!danismaMi && !state.rol && kisiler?.length) {
-      try {
-        const guvenliRef = fb.doc(db, "danismaPickupYetkilileri", ogrenciId);
-        const ozet = danismaOzeti(kisiler);
-        const guvenli = await fb.getDoc(guvenliRef);
-        if (projeksiyonYenilenmeli(guvenli.exists() ? guvenli.data() : null, s.data(), ozet)) {
-          await fb.setDoc(guvenliRef, { kisiler: ozet, guncellendi: fb.serverTimestamp() });
-        }
-      } catch (e) { console.warn("pickup güvenli yetkili özeti:", e.code || e.message); }
-    }
+    // Danışma projeksiyonunu (danismaPickupYetkilileri) yalnız yönetim senkronu yazar
+    // ve ana listenin sürümünü taşır; veli ona dokunmaz (zeky-backend kuralı, 20 Eki).
   } catch (e) { console.warn("pickup yetkilileri:", e.code || e.message); }
   // ZEKY varsayılanı: kayıt yoksa anne + baba
   if ((!kisiler || !kisiler.length) && !danismaMi) kisiler = [{ ad: "Anne", yakinlik: "Anne" }, { ad: "Baba", yakinlik: "Baba" }];
@@ -312,22 +287,14 @@ async function sil(i) {
 async function kaydet(ogrenciId, kisiler) {
   const { fb, db, state } = P();
   try {
-    // Ana veli kaydı asıl kaynaktır. Danışma için kişisel telefon içermeyen
-    // projeksiyon yardımcı kayıttır ve izin sorunu ana işlemi engellememelidir.
+    // Ana liste tek kaynaktır; her yazım sunucu saatini taşır (kural ister). Danışma
+    // projeksiyonunu yönetim senkronu bu sürümden üretir; ana liste değişince danışma
+    // eski listeyi görmez, yönetim Portal'ı açınca yenisini görür.
     await fb.setDoc(fb.doc(db, "pickupYetkilileri", ogrenciId), {
       kisiler,
       guncelleyen: (state.currentUser?.email || "").toLowerCase(),
       guncellendi: fb.serverTimestamp()
     }, { merge: true });
-
-    try {
-      await fb.setDoc(fb.doc(db, "danismaPickupYetkilileri", ogrenciId), {
-        kisiler: danismaOzeti(kisiler),
-        guncellendi: fb.serverTimestamp()
-      }, { merge: true });
-    } catch (e) {
-      console.warn("pickup güvenli yetkili özeti kaydedilemedi:", e.code || e.message);
-    }
 
     _cache[ogrenciId] = kisiler;
     return true;

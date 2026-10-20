@@ -14435,9 +14435,11 @@ async function danismaOperasyonProjeksiyonlariniSenkronla() {
       const kisiler = Array.isArray(d.data()?.kisiler)
         ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
         : [];
+      // Ana listenin sürümü (guncellendi) kopyalanır: kural, ana liste bu sürümden sonra
+      // değiştiyse projeksiyonu danışmaya göstermez (eski liste görünmez).
       yazilacak.push({
         ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
-        data: { kisiler, guncellendi: simdi }
+        data: { kisiler, kaynakGuncellendi: d.data()?.guncellendi ?? null, guncellendi: simdi }
       });
     });
   } catch (e) { console.warn("Danışma teslim yetkilisi projeksiyonu:", e.code || e.message); }
