@@ -344,17 +344,11 @@ function kartHtml(r, gecmis = false) {
     </div></article>`;
 }
 
+// Eski randevuSlotlari kayıtları V3 geçişinden (Eylül 2026) beri arşiv ve istemciye kapalı
+// (kural: read false). Okumak her liste çiziminde Firestore reddi üretiyordu; geçmiş
+// randevular yalnız yönetimin Admin SDK raporlarında görünür.
 async function eskiKayitlar() {
-  try {
-    const P = window.PortalAPI; const e = String(P?.state?.currentUser?.email || '').toLowerCase();
-    if (!e) return [];
-    const snap = await P.fb.getDocs(P.fb.query(P.fb.collection(P.db, 'randevuSlotlari'), P.fb.where('veliEmail', '==', e)));
-    return snap.docs.map(d => d.data() || {}).filter(v => v.tarih).map(v => ({
-      eski: true, durum: v.durum === 'talep' ? 'talep' : v.durum === 'reddedildi' ? 'reddedildi' : 'dolu',
-      tip: v.tip, hedefAd: v.hedefAd || '', veliNotu: v.veliNotu || '', retNedeni: v.retGerekcesi || '',
-      ms: Date.parse(`${v.tarih}T${v.baslangicSaat || '00:00'}:00+03:00`)
-    })).filter(v => Number.isSafeInteger(v.ms));
-  } catch (_) { return []; }
+  return [];
 }
 
 export async function listeCiz(kapId) {
