@@ -1,5 +1,6 @@
 import { onayliGaleriGetir, portfolyoOlustur, bugununSunumlari } from './zeky-egitim-portfolyo.js?v=2';
 import { veliHedefliOku } from './veli-hedefli-okuma.js?v=1';
+import { ogrenciHedefte } from './icerik-hedefi.js?v=1';
 
 // Veli ana sayfası: son eğitim sunumu, günlük akış ve çocuk bildirimleri.
 // Yalnız seçili çocuğun doğrudan belgelerini / alt koleksiyonunu okur.
@@ -77,7 +78,8 @@ async function gunlukHareketleriGetir(o){
   return sonuc;
 }
 
-function etkinlikUygun(e,o){const h=e?.hedefTur||'tumOkul';return h==='tumOkul'||(h==='ogrenci'&&(e.hedefDeger===o.id||e.hedefOgrenciId===o.id))||(h==='sinif'&&String(e.hedefDeger||'')===String(sinif(o)));}
+// Duyuru/takvim hedefi: tek öğrenci, çoklu öğrenci ("ogrenciler"), sınıf ya da tüm okul (icerik-hedefi.js)
+function etkinlikUygun(e,o){return !!o?.id&&ogrenciHedefte(e,o.id,sinif(o));}
 async function bugununEtkinlikleri(o){const p=P();if(!p?.fb||!p?.db)return[];const oku=async ad=>{try{const s=ad==='takvim'?await veliHedefliOku(p.fb,p.db,'takvim',[o.id],{ekKosullar:[['tarih','==',bugun()]],etiket:'günlük akış takvimi'}):await p.fb.getDocs(p.fb.query(p.fb.collection(p.db,ad),p.fb.where('tarih','==',bugun()))),l=[];s.forEach(d=>{const v=d.data()||{};if(!v.arsiv&&etkinlikUygun(v,o))l.push({id:d.id,...v});});return l;}catch(e){console.warn('günlük akış etkinlik',ad,e?.code||e?.message);return[];}};const [a,b]=await Promise.all([oku('etkinlikler'),oku('takvim')]);return [...a,...b];}
 
 async function anaSayfayiZenginlestir(){

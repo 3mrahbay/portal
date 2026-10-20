@@ -47,7 +47,7 @@ test('ana sayfa: Okul Yolu kartı hava kartından hemen sonra; doldurma açılı
 });
 
 test('özellik anahtarı ZEKY ile ortak (okulYolu), varsayılan kapalı ve etiketli', () => {
-  assert.match(index, /okulYolu: false\s+\/\/ Veli ana sayfası: okula tahmini yol süresi/);
+  assert.match(index, /okulYolu: false,?\s+\/\/ Veli ana sayfası: okula tahmini yol süresi/);
   assert.match(index, /okulYolu: \{ ad: "Okul Yolu"/);
 });
 

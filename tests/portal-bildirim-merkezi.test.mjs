@@ -99,7 +99,7 @@ async function environment(run, options = {}) {
   };
   Object.assign(globalThis, { document, window, setTimeout(fn) { timers.set(++timer, fn); return timer; }, clearTimeout(id) { timers.delete(id); } });
   const helperURL = new URL(`../js/portal-mesaj-bildirim.js?center=${++sequence}`, import.meta.url).href;
-  const source = (await readFile(new URL('../js/portal-bildirim-merkezi.js', import.meta.url), 'utf8')).replace("'./portal-mesaj-bildirim.js?v=164'", JSON.stringify(helperURL)).replace("'./portal-bildirim-yerlesim.js?v=165'", JSON.stringify(new URL('../js/portal-bildirim-yerlesim.js', import.meta.url).href)).replace("'./portal-bildirim-basliklari.js?v=165'", JSON.stringify(new URL('../js/portal-bildirim-basliklari.js', import.meta.url).href));
+  const source = (await readFile(new URL('../js/portal-bildirim-merkezi.js', import.meta.url), 'utf8')).replace("'./portal-mesaj-bildirim.js?v=164'", JSON.stringify(helperURL)).replace("'./portal-bildirim-yerlesim.js?v=165'", JSON.stringify(new URL('../js/portal-bildirim-yerlesim.js', import.meta.url).href)).replace("'./portal-bildirim-basliklari.js?v=166'", JSON.stringify(new URL('../js/portal-bildirim-basliklari.js', import.meta.url).href));
   const module = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   const helper = await import(helperURL);
   const subscriptions = [], writes = [], navigations = [], reads = [];

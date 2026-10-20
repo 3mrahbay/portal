@@ -156,3 +156,13 @@ test('source urgency is exposed only with the same allowed audience as its resol
   const ordinary=fixture({docs:{'duyurular/source':{baslik:'Acil kelimesi var',simsek:true,aciliyet:'normal',hedefTur:'tumOkul'}}});
   assert.equal((await ordinary.resolver.resolve(request)).urgent,undefined);
 });
+
+test('multi-student source: every listed child parent hydrates, others and inconsistent lists stay generic',async()=>{
+  const multi={baslik:'Selected families',hedefTur:'ogrenci',hedefTip:'cocuk',hedefDeger:'first-child',ogrenciler:['first-child','own-child']};
+  const f=fixture({docs:{'duyurular/source':multi}});
+  assert.equal((await f.resolver.resolve(note('duyuru',{baslik:'Yeni okul duyurusu'}))).title,'Selected families');
+  for(const source of [{...multi,ogrenciler:['first-child','other-child']},{...multi,hedefDeger:'own-child',ogrenciler:['first-child']}]) {
+    const g=fixture({docs:{'duyurular/source':{...source,baslik:'PRIVATE TITLE'}}});
+    assert.equal((await g.resolver.resolve(note('duyuru',{baslik:'Yeni okul duyurusu'}))).title,'Yeni okul duyurusu');
+  }
+});

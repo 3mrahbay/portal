@@ -8,6 +8,8 @@ import {classifyGalleryFile} from '../js/bunny-stream-upload.js';
 import {gallerySession,galleryApprovalTarget} from '../js/galeri-onay-canli.js';
 import { galleryText, galleryProgram } from '../js/galeri-klasorleri.js';
 import { hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js';
+import { hedefAlanlari, hedefMetni } from '../js/icerik-hedefi.js';
+import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from '../js/ogretmen-sinif-core.js';
 
 const source=await readFile(new URL('../index.html',import.meta.url),'utf8');
 function section(start,end){
@@ -22,6 +24,7 @@ const production=[
   section('async function portalHedefBildir(', 'function mesajBildirimSohbetAc(')
     .replace(/const m = await import\([^;]+\);/, 'const m = bridge;'),
   section('async function caGozlemDetayKaydet(', 'function caGozlemEgitimGorunumunuGuncelle('),
+  section('// ── Çoklu öğrenci seçimi (duyuru · takvim) ──', 'let duyuruOgrenciSecici = null;'),
   section('window.kaydetDuyuru = async function()', '// Hedef velilere mail gönder'),
   section('window.kaydetEtkinlik = async function()', 'async function etkinlikMailGonder('),
   section('function galeriBekliyorMu(', 'async function galeriGozlemOnayiEsitle('),
@@ -87,6 +90,8 @@ function environment(t,{role='mudur'}={}){
       trace.push('transaction-commit');
     },
     showToast:(...args)=>toasts.push(args),danismaSaltOkunurEngelle:()=>false,ogretmenRolMu:()=>ctx.aktifKullaniciRol==='ogretmen',
+    hedefAlanlari,hedefMetni,ogretmenSinifEslesir,ogrenciSinifiCoz,ozellikAktif:key=>!!controls.flags?.[key],
+    duyuruOgrenciSecici:{seciliOgrenciler:()=>(controls.selectedStudents||['b']).map(id=>({id,ad:`Synthetic ${id}`}))},duyuruAcilanSiniflar:[],
     modulYukle:async()=>attachment,closeDuyuruModal(){},renderDuyurular(){},closeEtkinlikModal(){},renderEtkinlikler(){},
     duyuruMailGonder:data=>mails.push(data),etkinlikMailGonder:data=>mails.push(data),galeriBildirimMailGonder:async data=>mails.push(data),
     galeriGozlemOnayiEsitle:async()=>{},renderGaleri:async()=>{},confirm:()=>controls.confirmed,
@@ -129,6 +134,35 @@ test('actual announcement exact-student target and urgent flag reach bridge unch
   const e=environment(t);e.element('duyuruHedefTur').value='ogrenci';e.element('duyuruSimsek').checked=true;
   await e.window.kaydetDuyuru();assert.deepEqual(e.notices[0].emails,['b@example.invalid']);
   assert.equal(e.notices[0].notice.sessizUyari,true);
+});
+
+test('multi-student announcement stores the full list, a neutral name and reaches every selected parent once',async t=>{
+  const e=environment(t);e.element('duyuruHedefTur').value='ogrenci';e.controls.selectedStudents=['a1','b'];
+  await e.window.kaydetDuyuru();
+  const data=e.sources('duyurular')[0].data;
+  assert.equal(data.hedefTur,'ogrenci');assert.equal(data.hedefTip,'cocuk');assert.equal(data.hedefDeger,'a1');
+  assert.deepEqual(data.ogrenciler,['a1','b']);assert.equal(data.hedefOgrenciAd,'2 öğrenci');assert.equal(data.hedef,'2 öğrenci');
+  assert.ok(!JSON.stringify(data).includes('Synthetic b'),'other child names are not stored on a multi-student record');
+  assert.deepEqual(e.notices[0].emails.sort(),['a1@example.invalid','b@example.invalid']);
+});
+
+test('announcement with no selected student is refused before any write',async t=>{
+  const e=environment(t);e.element('duyuruHedefTur').value='ogrenci';e.controls.selectedStudents=[];
+  await e.window.kaydetDuyuru();
+  assert.equal(e.sources('duyurular').length,0);assert.equal(e.notices.length,0);
+  assert.ok(e.toasts.some(([m])=>/öğrenci seçin/i.test(m)));
+});
+
+test('teacher student announcement: off by default, own class only when the flag is on',async t=>{
+  const e=environment(t,{role:'ogretmen'});e.element('duyuruHedefTur').value='ogrenci';e.controls.selectedStudents=['a1','a2'];
+  await e.window.kaydetDuyuru();assert.equal(e.sources('duyurular').length,0,'flag off: refused');
+  e.controls.flags={ogretmenOgrenciDuyurusu:true};
+  e.controls.selectedStudents=['a1','b'];await e.window.kaydetDuyuru();
+  assert.equal(e.sources('duyurular').length,0,'student outside the teacher class: refused');
+  e.controls.selectedStudents=['a1','a2'];await e.window.kaydetDuyuru();
+  assert.equal(e.sources('duyurular').length,1);
+  assert.deepEqual(e.sources('duyurular')[0].data.ogrenciler,['a1','a2']);
+  assert.deepEqual(e.notices[0].emails,['a1@example.invalid','a2@example.invalid']);
 });
 
 test('actual new event handler uses saved source identity and current active class scope',async t=>{

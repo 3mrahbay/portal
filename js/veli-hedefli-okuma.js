@@ -9,18 +9,18 @@
 // Kurallar: tarih aralığı (>=, <=) gibi ikinci bir alan aralığı sorguya eklenmez (bileşik
 // indeks ister); aralık süzmesi istemcide yapılır. orderBy kullanılmaz. Ek koşullar yalnız
 // eşitlik olabilir (ör. ['tarih', '==', bugün]).
-import { childTargetMatches } from './portal-galeri-etkilesim.js?v=166';
+import { icerikHedefi } from './icerik-hedefi.js?v=1';
 
 export const GENEL_HEDEFLER = Object.freeze(['tumOkul', 'okul', 'tum', 'sinif']);
 export const COCUK_HEDEFLERI = Object.freeze(['ogrenci', 'cocuk']);
 export const EN_FAZLA_COCUK = 10;
 
 // Koleksiyona göre çocuğa özel sorgu alanları.
-// duyurular: ZEKY çok çocuklu duyuruda tam liste "ogrenciler" dizisinde; hedefDeger yalnız ilk çocuk.
+// duyurular · takvim: çoklu öğrenci seçiminde tam liste "ogrenciler" dizisinde; hedefDeger yalnız ilk çocuk.
 // galeri: hedefOgrenciId eski şema; her galeri sorgusu ayrıca durum == 'onaylandi' taşır.
 const COCUK_ALANLARI = Object.freeze({
   duyurular: Object.freeze([['hedefDeger', '=='], ['ogrenciler', 'array-contains']]),
-  takvim: Object.freeze([['hedefDeger', '==']]),
+  takvim: Object.freeze([['hedefDeger', '=='], ['ogrenciler', 'array-contains']]),
   galeri: Object.freeze([['hedefDeger', '=='], ['hedefOgrenciId', '==']])
 });
 
@@ -40,7 +40,7 @@ export function cocukIdleriniHazirla(cocuklar) {
 // Sözleşmedeki sorgu biçimlerini üretir:
 //  (a) genel: hedefTur in GENEL_HEDEFLER
 //  (b) her çocuk için: hedefTur in COCUK_HEDEFLERI + hedefDeger == id
-//  (c) duyurular: + ogrenciler array-contains id · galeri: + hedefOgrenciId == id
+//  (c) duyurular · takvim: + ogrenciler array-contains id · galeri: + hedefOgrenciId == id
 export function veliSorgulariniOlustur(fb, db, koleksiyon, cocuklar, { genel = true, ekKosullar = [] } = {}) {
   const alanlar = COCUK_ALANLARI[koleksiyon];
   if (!alanlar) throw new Error(`Veli hedefli okuma bu koleksiyonu desteklemiyor: ${koleksiyon}`);
@@ -96,8 +96,11 @@ export function cocukHedefliMi(kayit) {
 }
 
 // Çocuğa özel kayıt yalnız velinin kendi çocuğunu hedefliyorsa görünür. Eşleşme kuralı
-// galeriyle aynıdır (childTargetMatches): hedefDeger ve varsa hedefOgrenciId / ogrenciId
-// aynı çocuğu göstermeli; birbiriyle çelişen hedefli kayıt hiçbir veliye gösterilmez.
+// ortak hedef sözleşmesidir (icerik-hedefi.js, ZEKY ortakIcerikHedefi ile aynı): tek öğrenci
+// (hedefDeger / hedefOgrenciId / ogrenciId aynı çocuk) ya da çoklu seçim ("ogrenciler");
+// birbiriyle çelişen hedefli kayıt hiçbir veliye gösterilmez.
 export function cocukHedefiUygunMu(kayit, cocuklar) {
-  return cocukIdleriniHazirla(cocuklar).some(id => childTargetMatches(kayit, id));
+  const h = icerikHedefi(kayit);
+  if (h.tip !== 'cocuk') return false;
+  return cocukIdleriniHazirla(cocuklar).some(id => h.ogrenciler.includes(id));
 }

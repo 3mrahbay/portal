@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { File } from 'node:buffer';
+import { hedefAlanlari, hedefMetni } from '../js/icerik-hedefi.js';
 
 // Real form, upload/cleanup and save handlers; synthetic media and Firestore only.
 const source = await readFile(process.env.PORTAL_SOURCE || new URL('../index.html', import.meta.url), 'utf8');
@@ -46,7 +47,7 @@ async function environment(kind) {
       yukle: async () => ({ url: 'https://media.example.invalid/attachment.txt', yol: `${kind}/2026-10/attachment.txt` }),
       sil: async path => { deleted.push(path); }
     } },
-    showToast() {}, danismaSaltOkunurEngelle: () => false, ogretmenRolMu: () => false,
+    showToast() {}, danismaSaltOkunurEngelle: () => false, ogretmenRolMu: () => false, hedefAlanlari, hedefMetni, duyuruAcilanSiniflar: [],
     currentUser: { email: 'staff@example.invalid' }, db: {},
     collection: (_db, name) => ({ name }), doc: () => ({ id: 'synthetic' }),
     setDoc: save, updateDoc: save,
