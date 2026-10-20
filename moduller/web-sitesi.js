@@ -18,8 +18,8 @@
 const P = () => window.PortalAPI;
 
 export const YETKILI = ["emrahby@gmail.com", "eposta@bircicekkoleji.com"];
-// Test adresi; alan adı taşındığında da çalışmaya devam eder (aynı Cloudflare projesi).
-const SITE = "https://bircicekkoleji-site.pages.dev";
+// Cloudflare Pages üzerinde yayındaki ana alan adı.
+const SITE = "https://www.bircicekkoleji.com";
 const BOLUMLER = [
   { id: "genel",    ad: "Genel bilgiler",      ikon: "contact",          aciklama: "Telefon, adres, saatler, bağlantılar" },
   { id: "duyuru",   ad: "Duyuru şeridi",       ikon: "megaphone",        aciklama: "Sitenin en üstündeki kısa duyuru" },
@@ -46,6 +46,7 @@ let aktif = "genel";
 let acikSlayt = null;  // düzenleme formu açık olan slayt/kutu sırası
 let acikKutu = null;
 let kokEl = null;
+let veriHazir = false; // Başarısız/çevrimdışı okumadan sonra kayıt yapılamaz.
 
 // ───────────────────────── yardımcılar ─────────────────────────
 const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -82,10 +83,13 @@ function bolumVarsayilani(id) {
 }
 
 async function yukle() {
+  veriHazir = false;
   const { fb, db } = P();
   V = await varsayilanlariAl();
   const belgeler = ["genel", "duyuru", "slaytlar", "kutular", "sss", "medya"];
-  const sonuc = await Promise.all(belgeler.map((id) => fb.getDoc(fb.doc(db, "webSitesi", id)).catch(() => null)));
+  // Hata, 'belge yok' anlamına gelmez. Eski önbellekle içerik ezilmesini de önle.
+  const sonuc = await Promise.all(belgeler.map((id) => fb.getDoc(fb.doc(db, "webSitesi", id))));
+  if (sonuc.some((snap) => snap.metadata?.fromCache)) throw new Error("Sunucuya ulaşılamadı. Bağlantıyı kontrol edip tekrar yükleyin.");
   belgeler.forEach((id, i) => {
     const snap = sonuc[i];
     const veri = snap && snap.exists() ? snap.data() : null;
@@ -101,6 +105,7 @@ async function yukle() {
     D[id] = d;
     K[id] = JSON.stringify(temizle(id, d));
   });
+  veriHazir = true;
 }
 
 // SSS: düzenleme için düz metin cevap; site, değişmeyen cevaplarda bağlantılı orijinali kullanır
@@ -130,6 +135,7 @@ function degisti(id) { return D[id] && JSON.stringify(temizle(id, D[id])) !== K[
 
 async function kaydet(id) {
   if (!yetkiliMi()) { toast("Bu bölümü yalnızca yetkili hesaplar değiştirebilir.", "error"); return false; }
+  if (!veriHazir) { toast("İçerik sunucudan yüklenmeden kaydedilemez. Tekrar yükleyin.", "error"); return false; }
   const hata = dogrula(id);
   if (hata) { toast(hata, "error"); return false; }
   const { fb, db } = P();
@@ -138,7 +144,7 @@ async function kaydet(id) {
     await fb.setDoc(fb.doc(db, "webSitesi", id), { ...veri, guncellendi: fb.serverTimestamp(), guncelleyen: email() });
     K[id] = JSON.stringify(veri);
     Z[id] = { zaman: new Date(), kim: email() };
-    toast("✓ Kaydedildi. Değişiklik en geç 1 dakika içinde sitede görünür.");
+    toast("✓ Firestore'a kaydedildi. Yayını Siteyi aç bağlantısından kontrol edin.");
     return true;
   } catch (e) {
     console.error("web sitesi kaydet:", e);
@@ -214,7 +220,7 @@ function ciz() {
       <i data-lucide="${b.ikon}"></i><span><b>${esc(b.ad)}</b><small>${esc(b.aciklama)}</small></span>${b.id !== "yardim" && degisti(b.id) ? '<em class="ws-nokta" title="Kaydedilmemiş değişiklik"></em>' : ""}</button>`).join("");
   kokEl.innerHTML = `<div class="ws">
     <div class="ws-ust">
-      <p>Burada yaptığınız değişiklikler kaydettikten sonra <b>en geç 1 dakika</b> içinde web sitesinde görünür. Değiştirmediğiniz bölümler sitede olduğu gibi kalır.</p>
+      <p>Kayıt hedefi: Firestore. Yayın kontrolü: <b>${SITE}</b>. Kaydetme sonucu yayının doğrulandığı anlamına gelmez. Değiştirmediğiniz bölümler korunur.</p>
       <a class="ws-btn ws-btn-ikincil" href="${SITE}/" target="_blank" rel="noopener"><i data-lucide="external-link"></i> Siteyi aç</a>
     </div>
     <div class="ws-duzen">
@@ -518,7 +524,7 @@ function yardimHtml() {
     <ol>
       <li><b>Bölümü seçin.</b> Soldaki listeden değiştirmek istediğiniz bölümü açın.</li>
       <li><b>Değiştirin.</b> Yazıları düzenleyin, görsel seçin ya da yükleyin. Kaydedilmemiş değişiklik olan bölümün yanında turuncu bir nokta görünür.</li>
-      <li><b>Kaydet ve yayınla.</b> Alttaki düğmeye basın. Site en geç 1 dakika içinde güncellenir; “Siteyi aç” ile kontrol edebilirsiniz.</li>
+      <li><b>Kaydet ve yayınla.</b> Alttaki düğme içeriği Firestore'a kaydeder. Cloudflare sitesinde görünmesi hedeflenen süre yaklaşık 1 dakikadır; “Siteyi aç” ile kontrol edin. Ana alan adının da bu siteye bağlı olması gerekir.</li>
       <li><b>Geri almak isterseniz</b> “Vazgeç” kaydetmediğiniz değişiklikleri siler; “Varsayılana dön” bölümü sitenin ilk hâline getirir (kaydetmeniz gerekir).</li>
     </ol>
     <h4>Görseller</h4>
@@ -704,12 +710,14 @@ function medyaKaldir(n) {
 }
 
 async function medyaKaydet() {
+  if (!yetkiliMi() || !veriHazir) throw new Error("Görsel listesi için yetkili hesap ve güncel sunucu verisi gerekli.");
   const { fb, db } = P();
   try {
     await fb.setDoc(fb.doc(db, "webSitesi", "medya"), { liste: D.medya.liste, guncellendi: fb.serverTimestamp(), guncelleyen: email() });
     K.medya = JSON.stringify(temizle("medya", D.medya));
   } catch (e) {
     toast("Görsel listesi kaydedilemedi: " + e.message, "error");
+    throw e; // Yükleme akışı başarısız kaydı başarı olarak gösteremez.
   }
 }
 
