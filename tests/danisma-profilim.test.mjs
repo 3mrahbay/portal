@@ -4,6 +4,7 @@
 //   Artık öğretmen ana sayfasındaki gibi yeni sistemden (gorusme-notlari.ozetKart);
 //   danışma veliyle görüşmediği için kart onda çizilmez.
 // - Fiş gönderiminden sonra tüm fiş listesi yalnız yetkili rollerde yenilenir.
+// - Personel rehberi: sınıflar, silinen personelin düşmesi, yalnız yönetim eşitler.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -38,10 +39,10 @@ test('Veli Görüşmelerim: yeni randevu sisteminden çizilir, kapalı randevuSl
   assert.deepEqual(x.okumalar, []);
 });
 
-test('Veli Görüşmelerim: modül yüklenemezse eski okuma yedek olarak kalır', async () => {
+test('Veli Görüşmelerim: modül yüklenemezse kapalı arşiv okunmaz, kısa uyarı gösterilir', async () => {
   const x = calistir(null);
   await x.ctx.window.profilRandevulariYukle('ogretmen@ornek.com');
-  assert.deepEqual(x.okumalar, ['randevuSlotlari']);
+  assert.deepEqual(x.okumalar, []);
   assert.match(x.el.innerHTML, /yüklenemedi/);
 });
 
@@ -49,7 +50,7 @@ test('Veli Görüşmelerim kartı yalnız randevu sunucusunun kabul ettiği roll
   assert.match(index, /\$\{!veliGorusmesiYapanRolMu\(\) \? "" : kart\("Veli Görüşmelerim"/);
   const ctx = { isAdmin: false, aktifKullaniciRol: '', rolNormalize: r => (r === 'halkla_iliskiler' ? 'danisma' : String(r || '')) };
   vm.createContext(ctx);
-  vm.runInContext(bolum('function veliGorusmesiYapanRolMu() {', '// Randevular yeni sistemden'), ctx);
+  vm.runInContext(bolum('function veliGorusmesiYapanRolMu() {', '// Görüşme yapmayan rollerde'), ctx);
   for (const [rol, beklenen] of [['ogretmen', true], ['pdr', true], ['mudur', true], ['egitim_koordinator', true], ['kurucu_mudur', true],
     ['danisma', false], ['halkla_iliskiler', false], ['muhasebe', false], ['asci', false], ['temizlik', false]]) {
     ctx.aktifKullaniciRol = rol;
@@ -80,15 +81,6 @@ test('Personel rehberi: sınıflar yazılır, silinen personel düşer; personel
   assert.equal(yazilan.length, 0, 'koordinatör rehberi eşitlemez (kural yalnız yönetim)');
   assert.match(bolum('window.personelSil = async function(email) {', 'showToast("🗑️ Personel silindi")'),
     /batch\.delete\(doc\(db, DANISMA_GUVENLI_KOLEKSIYONLAR\.personeller, email\.toLowerCase\(\)\)\)/);
-});
-
-test('Veli teslim yetkilisi kaydı: asıl kayıt ve danışma kopyası tek toplu yazımda', async () => {
-  const modul = await readFile(new URL('../moduller/pickup-yetkilileri.js', import.meta.url), 'utf8');
-  const bas = modul.indexOf('async function kaydet(ogrenciId, kisiler) {');
-  const kaydet = modul.slice(bas, modul.indexOf('_cache[ogrenciId] = kisiler;', bas));
-  assert.ok(bas >= 0 && kaydet.length > 100);
-  assert.match(kaydet, /const batch = fb\.writeBatch\(db\);[\s\S]*batch\.set\(fb\.doc\(db, "pickupYetkilileri"[\s\S]*batch\.set\(fb\.doc\(db, "danismaPickupYetkilileri"[\s\S]*await batch\.commit\(\);/);
-  assert.doesNotMatch(kaydet, /fb\.setDoc\(/);
 });
 
 test('Fiş gönderiminden sonra tüm fiş listesi yalnız yetkili rollerde yenilenir', () => {

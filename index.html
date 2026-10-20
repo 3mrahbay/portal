@@ -14480,9 +14480,11 @@ async function danismaOperasyonProjeksiyonlariniSenkronla() {
       const kisiler = Array.isArray(d.data()?.kisiler)
         ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
         : [];
+      // Ana listenin sürümü (guncellendi) kopyalanır: kural, ana liste bu sürümden sonra
+      // değiştiyse projeksiyonu danışmaya göstermez (eski liste görünmez).
       gruplar.teslimYetkilisi.push({
         ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
-        data: { kisiler, guncellendi: simdi }
+        data: { kisiler, kaynakGuncellendi: d.data()?.guncellendi ?? null, guncellendi: simdi }
       });
     });
   } catch (e) { console.warn("Danışma teslim yetkilisi projeksiyonu:", e.code || e.message); }
@@ -18938,6 +18940,13 @@ window.caRandevuTalepGonder = async function() {
   }
 };
 
+// V3 randevu köprüsü (js/zeky-randevu-modal-koprusu.js) modül olarak geç yüklenebilir.
+// Eski randevuSlotlari arşivine düşmek yerine en fazla ~3 sn beklenir.
+async function randevuKoprusuBekle(ad, deneme = 10) {
+  for (let i = 0; i < deneme && typeof window[ad] !== "function"; i++) await new Promise(r => setTimeout(r, 300));
+  return typeof window[ad] === "function";
+}
+
 // Ana sayfada yaklaşan randevularım
 async function caHomeRandevulariDoldur() {
   const bolum = document.getElementById("caHomeRandevuBolum");
@@ -18945,41 +18954,10 @@ async function caHomeRandevulariDoldur() {
   if (!bolum || !el) return;
   // Yeni randevu sistemi (randevuSorguV3) — js/zeky-randevu-veli-arayuz.js
   if (window.zekyRandevuYaklasan) return window.zekyRandevuYaklasan(bolum, el);
-  try {
-    const veliEmail = (currentUser?.email || "").toLowerCase();
-    const bugun = new Date().toISOString().slice(0, 10);
-    const q = query(collection(db, "randevuSlotlari"), where("veliEmail", "==", veliEmail));
-    const snap = await getDocs(q);
-    const liste = [];
-    snap.forEach(d => {
-      const v = d.data() || {};
-      if (v.arsiv === true) return;
-      if ((v.tarih || "") < bugun) return;
-      liste.push({ id: d.id, ...v });
-    });
-    if (!liste.length) { bolum.style.display = "none"; return; }
-    liste.sort((a, b) => (a.tarih + a.baslangicSaat).localeCompare(b.tarih + b.baslangicSaat));
-    bolum.style.display = "";
-    el.innerHTML = liste.slice(0, 3).map(r => {
-      const bekliyor = r.durum === "talep";
-      const h = RANDEVU_HEDEFLERI.find(x => x.k === r.tip);
-      const d = new Date(r.tarih + "T00:00:00");
-      const tarihMetni = isNaN(d) ? r.tarih : d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" });
-      return `<div class="ca-msgitem" onclick="caGo('takvim')" style="cursor:pointer;">
-        <div class="ca-msgmini" style="background:${bekliyor ? "var(--c-yellow-soft)" : "var(--c-green-light)"}; ${bekliyor ? "" : "color:#fff;"}">
-          <i data-lucide="${bekliyor ? "clock" : "calendar-check"}" style="width:16px;height:16px;"></i></div>
-        <div style="min-width:0;">
-          <div style="font-weight:600; color:var(--c-ink); font-size:13px;">${escapeHtml((h && h.ad) || "Görüşme")}</div>
-          <div class="ca-tile-sub">${escapeHtml(tarihMetni)} · ${escapeHtml(r.baslangicSaat || "")}</div>
-        </div>
-        <span style="font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:10px; background:${bekliyor ? "#FEF3C7" : "#D1FAE5"}; color:${bekliyor ? "#92400E" : "#065F46"};">${bekliyor ? "Onay bekliyor" : "Onaylandı"}</span>
-      </div>`;
-    }).join("");
-    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
-  } catch (e) {
-    console.warn("randevularım", e?.message);
-    bolum.style.display = "none";
-  }
+  // Eski randevuSlotlari arşivi istemciye kapalı (V3 geçişi, Eylül 2026); okumak her
+  // seferinde Firestore reddi üretir. Köprü geç yüklendiyse kısa süre beklenir.
+  if (await randevuKoprusuBekle("zekyRandevuYaklasan")) return window.zekyRandevuYaklasan(bolum, el);
+  bolum.style.display = "none";
 }
 window.caHomeRandevulariDoldur = caHomeRandevulariDoldur;
 
@@ -19022,73 +19000,10 @@ async function caRandevulariYukle() {
   if (!el) return;
   // Yeni randevu sistemi (randevuSorguV3) — js/zeky-randevu-veli-arayuz.js
   if (window.zekyRandevuListe) return window.zekyRandevuListe("caRandevuListe");
-  try {
-    const veliEmail = (currentUser?.email || "").toLowerCase();
-    const snap = await getDocs(query(collection(db, "randevuSlotlari"), where("veliEmail", "==", veliEmail)));
-    const liste = [];
-    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
-
-    if (!liste.length) {
-      el.innerHTML = `<div class="ca-card" style="padding:34px 20px; text-align:center;">
-        <i data-lucide="calendar-clock" style="width:36px;height:36px;opacity:.3;display:block;margin:0 auto 12px;"></i>
-        <div style="font-weight:700; color:var(--c-ink); font-size:14.5px; margin-bottom:6px;">Henüz randevunuz yok</div>
-        <div style="color:var(--c-muted); font-size:13px; line-height:1.6; max-width:300px; margin:0 auto 16px;">
-          PDR, sınıf öğretmeni veya müdür ile görüşme talep edebilirsiniz.</div>
-        <button onclick="caRandevuTalepAc()" style="background:var(--c-green); color:#fff; border:none; border-radius:11px; padding:11px 22px; font-family:inherit; font-weight:700; font-size:13.5px; cursor:pointer;">Randevu Talep Et</button>
-      </div>`;
-      if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
-      return;
-    }
-
-    const bugun = new Date().toISOString().slice(0, 10);
-    const yaklasan = liste.filter(r => (r.tarih || "") >= bugun && r.durum !== "reddedildi")
-                          .sort((a, b) => (a.tarih + a.baslangicSaat).localeCompare(b.tarih + b.baslangicSaat));
-    const gecmis   = liste.filter(r => (r.tarih || "") < bugun || r.durum === "reddedildi")
-                          .sort((a, b) => (b.tarih + b.baslangicSaat).localeCompare(a.tarih + a.baslangicSaat));
-
-    const kart = (r, soluk) => {
-      const h = RANDEVU_HEDEFLERI.find(x => x.k === r.tip);
-      const d = new Date((r.tarih || "") + "T00:00:00");
-      const gunNo = isNaN(d) ? "?" : d.getDate();
-      const ayKisa = isNaN(d) ? "" : ["OCA","ŞUB","MAR","NİS","MAY","HAZ","TEM","AĞU","EYL","EKİ","KAS","ARA"][d.getMonth()];
-      const gunAd = isNaN(d) ? "" : d.toLocaleDateString("tr-TR", { weekday: "long" });
-      const durum = r.durum === "talep" ? { ad: "Onay bekliyor", bg: "#FEF3C7", yazi: "#92400E" }
-                  : r.durum === "reddedildi" ? { ad: "Karşılanamadı", bg: "#FEE2E2", yazi: "#991B1B" }
-                  : { ad: "Onaylandı", bg: "#D1FAE5", yazi: "#065F46" };
-      return `
-        <div class="ca-card" style="display:flex; gap:14px; padding:14px 16px; margin-bottom:10px; ${soluk ? "opacity:.62;" : ""}">
-          <div style="width:52px; flex-shrink:0; border-radius:13px; background:var(--c-blue-soft); color:#2E5C8A; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:9px 0;">
-            <div style="font-size:21px; font-weight:700; line-height:1;">${gunNo}</div>
-            <div style="font-size:10px; font-weight:700; margin-top:3px;">${ayKisa}</div>
-          </div>
-          <div style="flex:1; min-width:0;">
-            <div style="font-weight:700; font-size:14.5px; color:var(--c-ink);">${escapeHtml((h && h.ad) || "Görüşme")}</div>
-            <div style="font-size:12.5px; color:var(--c-muted); margin-top:4px;">
-              <i data-lucide="clock" style="width:12px;height:12px;vertical-align:-2px;"></i>
-              ${escapeHtml(gunAd)} · ${escapeHtml(r.baslangicSaat || "")}${r.bitisSaat ? "–" + escapeHtml(r.bitisSaat) : ""}
-            </div>
-            ${r.konum ? `<div style="font-size:12.5px; color:var(--c-muted); margin-top:3px;"><i data-lucide="map-pin" style="width:12px;height:12px;vertical-align:-2px;"></i> ${escapeHtml(r.konum)}</div>` : ""}
-            ${r.veliNotu ? `<div style="font-size:12.5px; color:#475569; margin-top:8px; background:#F8FAFC; border-radius:9px; padding:9px 11px; line-height:1.5;">${escapeHtml(r.veliNotu)}</div>` : ""}
-            ${r.retGerekcesi ? `<div style="font-size:12.5px; color:#7C2D12; margin-top:8px; background:#FEF3C7; border-radius:9px; padding:9px 11px; line-height:1.5;"><b>Okuldan not:</b> ${escapeHtml(r.retGerekcesi)}</div>` : ""}
-            <span style="display:inline-block; margin-top:9px; font-size:10.5px; font-weight:700; padding:3px 10px; border-radius:10px; background:${durum.bg}; color:${durum.yazi};">${durum.ad}</span>
-            ${(r.durum === "talep" && (r.tarih || "") >= bugun)
-              ? `<button onclick="caRandevuIptal('${r.id}')" style="margin-left:7px; margin-top:9px; font-size:11px; font-weight:600; padding:3px 11px; border:1px solid #FECACA; background:#fff; color:#DC2626; border-radius:10px; cursor:pointer; font-family:inherit;">İptal et</button>` : ""}
-          </div>
-        </div>`;
-    };
-
-    el.innerHTML =
-      (yaklasan.length
-        ? `<div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:2px 2px 9px;">Yaklaşan</div>
-           ${yaklasan.map(r => kart(r, false)).join("")}` : "") +
-      (gecmis.length
-        ? `<div style="font-size:12px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.5px; margin:18px 2px 9px;">Geçmiş</div>
-           ${gecmis.slice(0, 10).map(r => kart(r, true)).join("")}` : "");
-    if (window.lucideYenile) setTimeout(window.lucideYenile, 40);
-  } catch (e) {
-    console.warn("randevularım", e?.message);
-    el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Randevular yüklenemedi.</div>`;
-  }
+  // Eski randevuSlotlari arşivi istemciye kapalı (V3 geçişi, Eylül 2026); okumak her
+  // seferinde Firestore reddi üretir. Köprü geç yüklendiyse kısa süre beklenir.
+  if (await randevuKoprusuBekle("zekyRandevuListe")) return window.zekyRandevuListe("caRandevuListe");
+  el.innerHTML = `<div class="ca-card" style="padding:24px; text-align:center; color:var(--c-muted); font-size:13px;">Randevular şu an yüklenemedi. Sayfayı yenileyin.</div>`;
 }
 
 // Veli kendi bekleyen talebini iptal edebilir
@@ -23538,41 +23453,12 @@ window.ogretmenHomeEkKartlar = async function() {
   const trh = (t) => t ? String(t).substring(0, 10).split("-").reverse().join(".") : "";
 
   // ── 1) Bekleyen randevular ──
-  // Randevular yeni sistemden (randevuSorguV3) — moduller/gorusme-notlari.js; eski okuma yalnız modül yüklenemezse
+  // Randevular yeni sistemden (randevuSorguV3) — moduller/gorusme-notlari.js
   const gnModul = await modulYukle("gorusme-notlari");
   if (gnModul) gnModul.ozetKart("ogrHomeRandevu");
   const rEl = gnModul ? null : document.getElementById("ogrHomeRandevu");
-  if (rEl) {
-    try {
-      const snap = await getDocs(collection(db, "randevuSlotlari"));
-      const bugun = new Date().toISOString().substring(0, 10);
-      const liste = [];
-      snap.forEach(d => {
-        const v = d.data() || {};
-        const hedef = (v.personelEmail || v.gorusulecekEmail || v.ogretmenEmail || "").toLowerCase();
-        if (hedef !== email) return;
-        const t = (v.tarih || "").substring(0, 10);
-        if (t && t < bugun) return;
-        if (!v.veliEmail && (v.durum || "").toLowerCase() !== "dolu") return; // sadece randevulu olanlar
-        liste.push(v);
-      });
-      liste.sort((a, b) => String(a.tarih || "").localeCompare(String(b.tarih || "")));
-      rEl.innerHTML = liste.length === 0
-        ? `<div class="ca-tile-sub">Bekleyen veli görüşmeniz yok.</div>`
-        : liste.slice(0, 3).map(r => `
-            <div style="display:flex; align-items:center; gap:11px; padding:8px 0; border-bottom:1px solid #F1F2F7;">
-              <div style="min-width:50px; text-align:center;">
-                <div style="font-weight:800; font-size:13px; color:#0891B2;">${esc(r.saat || "—")}</div>
-                <div style="font-size:10.5px; color:#94A3B8;">${trh(r.tarih)}</div>
-              </div>
-              <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600; color:#334155;">${esc(r.veliAd || r.ogrenciAd || "Veli")}</div>
-                ${r.veliNotu ? `<div style="font-size:11px; color:#94A3B8; font-style:italic;">"${esc(r.veliNotu)}"</div>` : ""}
-              </div>
-              <span style="font-size:10px; font-weight:800; color:#0891B2; background:#ECFEFF; padding:3px 9px; border-radius:100px;">Randevulu</span>
-            </div>`).join("");
-    } catch (e) { rEl.innerHTML = `<div class="ca-tile-sub">Randevular yüklenemedi.</div>`; }
-  }
+  // Modül yüklenemediyse eski randevuSlotlari arşivine düşülmez (istemciye kapalı).
+  if (rEl) rEl.innerHTML = `<div class="ca-tile-sub">Randevular yüklenemedi.</div>`;
 
   // ── 2) Bugünün menüsü ──
   const yEl = document.getElementById("ogrHomeYemek");
@@ -26726,18 +26612,12 @@ const RANDEVU_TIP_LABEL = {
 
 let randevuSlotlari = [];
 
+// Eski randevuSlotlari koleksiyonu V3 geçişinden (Eylül 2026) beri arşiv ve istemciye
+// kapalı (kural: read, write false). Okumak her çağrıda Firestore reddi üretir ve liste
+// boş kaldığı için her çağrıda yeniden denenirdi; randevular randevuSorguV3'ten gelir.
 async function randevuSlotlariYukle(force = false) {
-  if (randevuSlotlari.length > 0 && !force) return randevuSlotlari;
-  try {
-    const snap = await getDocs(collection(db, "randevuSlotlari"));
-    const liste = [];
-    snap.forEach(d => liste.push({ id: d.id, ...d.data() }));
-    randevuSlotlari = liste;
-    return liste;
-  } catch (e) {
-    console.error("Randevu slotları yüklenemedi:", e);
-    return [];
-  }
+  randevuSlotlari = [];
+  return randevuSlotlari;
 }
 
 // Öğretmen dropdown'larını doldur (modal açılınca)
@@ -39100,58 +38980,15 @@ function veliGorusmesiYapanRolMu() {
     .includes(rolNormalize(aktifKullaniciRol));
 }
 
-// Randevular yeni sistemden (randevuSorguV3, moduller/gorusme-notlari.js) —
-// öğretmen ana sayfasındaki kartla aynı. Eski randevuSlotlari koleksiyonu
-// kural gereği kapalı ("Randevular yüklenemedi"); yalnız modül yüklenemezse denenir.
 // Görüşme yapmayan rollerde kart hiç çizilmez (veliGorusmesiYapanRolMu).
 window.profilRandevulariYukle = async function(email) {
   const el = document.getElementById("profilRandevular");
   if (!el) return;
+  // Randevular yeni sistemden (randevuSorguV3) — moduller/gorusme-notlari.js; öğretmen ana
+  // sayfasıyla aynı kart. Eski randevuSlotlari arşivi istemciye kapalı, okunmaz.
   const gnModul = await modulYukle("gorusme-notlari");
-  if (gnModul && await gnModul.ozetKart("profilRandevular")) return;
-  try {
-    const snap = await getDocs(collection(db, "randevuSlotlari"));
-    const bugun = new Date().toISOString().substring(0, 10);
-    const liste = [];
-    snap.forEach(d => {
-      const v = d.data() || {};
-      // Bu personele ait / bu personelle yapılacak randevular
-      const hedef = (v.personelEmail || v.gorusulecekEmail || v.ogretmenEmail || "").toLowerCase();
-      const tarih = (v.tarih || "").substring(0, 10);
-      if (hedef && hedef !== email) return;
-      if (!hedef) return;                 // hedefi belli olmayanları gösterme
-      if (tarih && tarih < bugun) return; // geçmişi gösterme
-      liste.push({ id: d.id, ...v });
-    });
-    liste.sort((a, b) => String(a.tarih || "").localeCompare(String(b.tarih || "")));
-
-    const esc = (t) => String(t == null ? "" : t).replace(/</g, "&lt;");
-    const trh = (t) => t ? String(t).substring(0, 10).split("-").reverse().join(".") : "—";
-
-    if (!liste.length) {
-      el.innerHTML = `<div style="font-size:12.5px; color:#94A3B8;">Yaklaşan veli görüşmeniz yok.</div>`;
-      return;
-    }
-
-    el.innerHTML = liste.slice(0, 6).map(r => {
-      const dolu = (r.durum || "").toLowerCase() === "dolu" || !!r.veliEmail;
-      const s = dolu ? { a: "Randevulu", r: "#0891B2", b: "#ECFEFF" } : { a: "Müsait", r: "#64748B", b: "#F8FAFC" };
-      return `<div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #F1F2F7;">
-        <div style="min-width:52px; text-align:center;">
-          <div style="font-weight:800; font-size:13px; color:#0891B2;">${esc(r.saat || "—")}</div>
-          <div style="font-size:10.5px; color:#94A3B8;">${trh(r.tarih)}</div>
-        </div>
-        <div style="flex:1; min-width:0;">
-          <div style="font-size:13px; font-weight:600; color:#334155;">${esc(r.veliAd || r.ogrenciAd || "Müsait slot")}</div>
-          ${r.veliNotu ? `<div style="font-size:11px; color:#94A3B8; font-style:italic;">"${esc(r.veliNotu)}"</div>` : ""}
-        </div>
-        <span style="font-size:10px; font-weight:800; color:${s.r}; background:${s.b}; padding:3px 9px; border-radius:100px;">${s.a}</span>
-      </div>`;
-    }).join("");
-    if (window.lucideYenile) window.lucideYenile();
-  } catch (e) {
-    el.innerHTML = `<div style="font-size:12.5px; color:#94A3B8;">Randevular yüklenemedi.</div>`;
-  }
+  if (gnModul) return gnModul.ozetKart("profilRandevular");
+  el.innerHTML = `<div style="font-size:12.5px; color:#94A3B8;">Randevular yüklenemedi.</div>`;
 };
 
 // ── Devam kaydı kartı: giriş / mola / çıkış ──
