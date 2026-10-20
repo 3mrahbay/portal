@@ -48,6 +48,19 @@ function paylasimBildir(yol, sonuc) {
   if (m) P().toast(m, sonuc === "kopyalandi" ? undefined : "error");
 }
 
+// Danışma projeksiyonu: yalnız ad + yakınlık (kural birebir bu biçimi ister).
+export function danismaOzeti(kisiler) {
+  return (kisiler || []).map(k => ({ ad: k?.ad || "", yakinlik: k?.yakinlik || "" }));
+}
+const zamanMs = (t) => (t && typeof t.toMillis === "function" ? t.toMillis() : null);
+// Projeksiyon yoksa, içerik ana listeden farklıysa ya da ana listeden eskiyse yenilenir.
+export function projeksiyonYenilenmeli(projeksiyon, kaynak, ozet) {
+  if (!projeksiyon) return true;
+  if (JSON.stringify(danismaOzeti(projeksiyon.kisiler)) !== JSON.stringify(ozet)) return true;
+  const p = zamanMs(projeksiyon.guncellendi), k = zamanMs(kaynak?.guncellendi);
+  return p === null || (k !== null && p < k);
+}
+
 export async function listeGetir(ogrenciId, tazele = false) {
   if (!tazele && _cache[ogrenciId]) return _cache[ogrenciId];
   const { fb, db, state } = P();
@@ -58,17 +71,17 @@ export async function listeGetir(ogrenciId, tazele = false) {
     const s = await fb.getDoc(fb.doc(db, kaynak, ogrenciId));
     if (s.exists() && Array.isArray(s.data().kisiler)) kisiler = s.data().kisiler;
 
-    // Veli eski tam listeyi ilk açtığında telefon içermeyen operasyon
-    // projeksiyonunu hazırlar. Personel kaynak belgeyi kopyalayamaz.
+    // Veli listesini açtığında telefon içermeyen danışma projeksiyonunu ana listeyle
+    // eşitler: yoksa, içerik farklıysa ya da ana listeden eskiyse yeniden yazar. ZEKY
+    // yalnız ana listeyi yazar; kural ana listeden eski projeksiyonu danışmaya
+    // göstermez ve veliden yalnız birebir ad/yakınlık kopyasını kabul eder.
     if (!danismaMi && !state.rol && kisiler?.length) {
       try {
         const guvenliRef = fb.doc(db, "danismaPickupYetkilileri", ogrenciId);
+        const ozet = danismaOzeti(kisiler);
         const guvenli = await fb.getDoc(guvenliRef);
-        if (!guvenli.exists()) {
-          await fb.setDoc(guvenliRef, {
-            kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
-            guncellendi: fb.serverTimestamp()
-          });
+        if (projeksiyonYenilenmeli(guvenli.exists() ? guvenli.data() : null, s.data(), ozet)) {
+          await fb.setDoc(guvenliRef, { kisiler: ozet, guncellendi: fb.serverTimestamp() });
         }
       } catch (e) { console.warn("pickup güvenli yetkili özeti:", e.code || e.message); }
     }
@@ -309,7 +322,7 @@ async function kaydet(ogrenciId, kisiler) {
 
     try {
       await fb.setDoc(fb.doc(db, "danismaPickupYetkilileri", ogrenciId), {
-        kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
+        kisiler: danismaOzeti(kisiler),
         guncellendi: fb.serverTimestamp()
       }, { merge: true });
     } catch (e) {
