@@ -58,20 +58,8 @@ export async function listeGetir(ogrenciId, tazele = false) {
     const s = await fb.getDoc(fb.doc(db, kaynak, ogrenciId));
     if (s.exists() && Array.isArray(s.data().kisiler)) kisiler = s.data().kisiler;
 
-    // Veli eski tam listeyi ilk açtığında telefon içermeyen operasyon
-    // projeksiyonunu hazırlar. Personel kaynak belgeyi kopyalayamaz.
-    if (!danismaMi && !state.rol && kisiler?.length) {
-      try {
-        const guvenliRef = fb.doc(db, "danismaPickupYetkilileri", ogrenciId);
-        const guvenli = await fb.getDoc(guvenliRef);
-        if (!guvenli.exists()) {
-          await fb.setDoc(guvenliRef, {
-            kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
-            guncellendi: fb.serverTimestamp()
-          });
-        }
-      } catch (e) { console.warn("pickup güvenli yetkili özeti:", e.code || e.message); }
-    }
+    // Danışma projeksiyonunu (danismaPickupYetkilileri) yalnız yönetim senkronu yazar
+    // ve ana listenin sürümünü taşır; veli ona dokunmaz (zeky-backend kuralı, 20 Eki).
   } catch (e) { console.warn("pickup yetkilileri:", e.code || e.message); }
   // ZEKY varsayılanı: kayıt yoksa anne + baba
   if ((!kisiler || !kisiler.length) && !danismaMi) kisiler = [{ ad: "Anne", yakinlik: "Anne" }, { ad: "Baba", yakinlik: "Baba" }];
@@ -299,22 +287,14 @@ async function sil(i) {
 async function kaydet(ogrenciId, kisiler) {
   const { fb, db, state } = P();
   try {
-    // Ana veli kaydı asıl kaynaktır. Danışma için kişisel telefon içermeyen
-    // projeksiyon yardımcı kayıttır ve izin sorunu ana işlemi engellememelidir.
+    // Ana liste tek kaynaktır; her yazım sunucu saatini taşır (kural ister). Danışma
+    // projeksiyonunu yönetim senkronu bu sürümden üretir; ana liste değişince danışma
+    // eski listeyi görmez, yönetim Portal'ı açınca yenisini görür.
     await fb.setDoc(fb.doc(db, "pickupYetkilileri", ogrenciId), {
       kisiler,
       guncelleyen: (state.currentUser?.email || "").toLowerCase(),
       guncellendi: fb.serverTimestamp()
     }, { merge: true });
-
-    try {
-      await fb.setDoc(fb.doc(db, "danismaPickupYetkilileri", ogrenciId), {
-        kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
-        guncellendi: fb.serverTimestamp()
-      }, { merge: true });
-    } catch (e) {
-      console.warn("pickup güvenli yetkili özeti kaydedilemedi:", e.code || e.message);
-    }
 
     _cache[ogrenciId] = kisiler;
     return true;
