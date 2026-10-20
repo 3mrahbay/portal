@@ -26,14 +26,14 @@ const { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
 //   tumGun, konum, tip, hedefTur, hedefDeger, hedefOgrenciAd, arsiv,
 //   olusturan, olusturuldu, guncellendi }
 
-// TR Resmi Tatiller (2026-2027)
+// TR Resmi Tatiller (2026-2027) · dini bayramlar Diyanet takvimine göre
 const RESMI_TATILLER = [
   // 2026
   { tarih: "2026-01-01", baslik: "Yılbaşı", aciklama: "Resmi tatil" },
-  { tarih: "2026-03-20", baslik: "Ramazan Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
-  { tarih: "2026-03-21", baslik: "Ramazan Bayramı 1. Gün", aciklama: "Resmi tatil" },
-  { tarih: "2026-03-22", baslik: "Ramazan Bayramı 2. Gün", aciklama: "Resmi tatil" },
-  { tarih: "2026-03-23", baslik: "Ramazan Bayramı 3. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-03-19", baslik: "Ramazan Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
+  { tarih: "2026-03-20", baslik: "Ramazan Bayramı 1. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-03-21", baslik: "Ramazan Bayramı 2. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2026-03-22", baslik: "Ramazan Bayramı 3. Gün", aciklama: "Resmi tatil" },
   { tarih: "2026-04-23", baslik: "Ulusal Egemenlik ve Çocuk Bayramı", aciklama: "Resmi tatil" },
   { tarih: "2026-05-01", baslik: "Emek ve Dayanışma Günü", aciklama: "Resmi tatil" },
   { tarih: "2026-05-19", baslik: "Atatürk'ü Anma, Gençlik ve Spor Bayramı", aciklama: "Resmi tatil" },
@@ -48,19 +48,20 @@ const RESMI_TATILLER = [
   { tarih: "2026-10-29", baslik: "Cumhuriyet Bayramı", aciklama: "Resmi tatil" },
   // 2027
   { tarih: "2027-01-01", baslik: "Yılbaşı", aciklama: "Resmi tatil" },
-  { tarih: "2027-03-10", baslik: "Ramazan Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
-  { tarih: "2027-03-11", baslik: "Ramazan Bayramı 1. Gün", aciklama: "Resmi tatil" },
-  { tarih: "2027-03-12", baslik: "Ramazan Bayramı 2. Gün", aciklama: "Resmi tatil" },
-  { tarih: "2027-03-13", baslik: "Ramazan Bayramı 3. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-03-08", baslik: "Ramazan Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
+  { tarih: "2027-03-09", baslik: "Ramazan Bayramı 1. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-03-10", baslik: "Ramazan Bayramı 2. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-03-11", baslik: "Ramazan Bayramı 3. Gün", aciklama: "Resmi tatil" },
   { tarih: "2027-04-23", baslik: "Ulusal Egemenlik ve Çocuk Bayramı", aciklama: "Resmi tatil" },
   { tarih: "2027-05-01", baslik: "Emek ve Dayanışma Günü", aciklama: "Resmi tatil" },
-  { tarih: "2027-05-16", baslik: "Kurban Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
-  { tarih: "2027-05-17", baslik: "Kurban Bayramı 1. Gün", aciklama: "Resmi tatil" },
-  { tarih: "2027-05-18", baslik: "Kurban Bayramı 2. Gün", aciklama: "Resmi tatil" },
-  { tarih: "2027-05-19", baslik: "Atatürk'ü Anma, Gençlik ve Spor Bayramı + Kurban Bayramı 3. Gün", aciklama: "Resmi tatil" },
-  { tarih: "2027-05-20", baslik: "Kurban Bayramı 4. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-15", baslik: "Kurban Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-16", baslik: "Kurban Bayramı 1. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-17", baslik: "Kurban Bayramı 2. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-18", baslik: "Kurban Bayramı 3. Gün", aciklama: "Resmi tatil" },
+  { tarih: "2027-05-19", baslik: "Atatürk'ü Anma, Gençlik ve Spor Bayramı + Kurban Bayramı 4. Gün", aciklama: "Resmi tatil" },
   { tarih: "2027-07-15", baslik: "Demokrasi ve Milli Birlik Günü", aciklama: "Resmi tatil" },
   { tarih: "2027-08-30", baslik: "Zafer Bayramı", aciklama: "Resmi tatil" },
+  { tarih: "2027-10-28", baslik: "Cumhuriyet Bayramı Arifesi (yarım gün)", aciklama: "Resmi tatil" },
   { tarih: "2027-10-29", baslik: "Cumhuriyet Bayramı", aciklama: "Resmi tatil" }
 ];
 
