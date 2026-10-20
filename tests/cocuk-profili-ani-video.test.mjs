@@ -115,10 +115,10 @@ test('oynatıcı ve kartlar erişilebilir; metinler kaçışlı; yeni rozet yaln
 });
 
 test('sürüm: önbellek, kayıt ve galeri modülü birlikte', () => {
-  assert.match(index, /window\.PORTAL_SURUM = "v207";/);
-  assert.match(index, /serviceworker\.js\?v=207/);
-  assert.match(index, /"portalSwReload_v207"/);
+  assert.match(index, /window\.PORTAL_SURUM = "v208";/);
+  assert.match(index, /serviceworker\.js\?v=208/);
+  assert.match(index, /"portalSwReload_v208"/);
   const sw = readPortal('serviceworker.js');
-  assert.match(sw, /const CACHE_VERSION = "v207-gunluk-ozet-ortak";/);
-  assert.match(sw, /"\.\/moduller\/veli-galeri\.js\?v=v207",/);
+  assert.match(sw, /const CACHE_VERSION = "v208-danisma-okul-zili-isim";/);
+  assert.match(sw, /"\.\/moduller\/veli-galeri\.js\?v=v208",/);
 });

@@ -374,6 +374,18 @@ export async function ogretmenPopup(ogrenciId, ogrenciAd) {
 // için projeksiyon izni reddedildiğinde ana bildirim de geri alınıyordu.
 // Burada ana kayıt + isimsiz kuyruk atomik tutulur; danışma özeti best-effort'tur.
 // ───────────────────────────────────────────────────────────────────
+// Kuralın veliye izin verdiği danışma kopyası alanları (danismaPickupBildirimleri
+// veliPickupCreateGuvenli / veliPickupUpdateGuvenli). Durum her zaman "yolda".
+const VELI_DANISMA_KOPYA_ALANLARI = Object.freeze(["ogrenciId", "ogrenciAd", "sinif", "tarih", "hedefSaat", "alanKisi", "olusturuldu"]);
+export function veliDanismaKopyasi(kayit, zamanDamgasi) {
+  const x = kayit || {};
+  const sonuc = { durum: "yolda", guncellendi: zamanDamgasi };
+  VELI_DANISMA_KOPYA_ALANLARI.forEach(a => {
+    if (typeof x[a] === "string" && x[a].trim()) sonuc[a] = x[a];
+  });
+  return sonuc;
+}
+
 function pickupBugun() {
   const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -436,30 +448,13 @@ async function veliOkulZiliGuvenliBildir() {
     console.warn("Okul Zili sıra kaydı güncellenemedi:", e.code || e.message);
   }
 
+  // Danışma kopyası: veli bu koleksiyonu OKUYAMAZ (kural yalnız personele açık).
+  // Önceden önce okunuyordu; okuma reddedilince kopya hiç yazılmıyor, danışma
+  // ekranında isim ve saat görünmüyordu. Okumadan, birleştirerek (merge) ve
+  // yalnız kuralın veliye izin verdiği alanlarla yazılır; boş metin yazılmaz.
   try {
-    const guvenliRef = fb.doc(db, "danismaPickupBildirimleri", id);
-    const guvenli = {
-      ogrenciId: ogr.id,
-      ogrenciAd: tamVeri.ogrenciAd,
-      sinif: tamVeri.sinif,
-      tarih,
-      hedefSaat: saat,
-      alanKisi: kisi,
-      durum: "yolda",
-      olusturuldu: tamVeri.olusturuldu,
-      guncellendi: fb.serverTimestamp()
-    };
-    const mevcut = await fb.getDoc(guvenliRef);
-    if (mevcut.exists()) {
-      await fb.setDoc(guvenliRef, {
-        hedefSaat: saat,
-        alanKisi: kisi,
-        durum: "yolda",
-        guncellendi: fb.serverTimestamp()
-      }, { merge: true });
-    } else {
-      await fb.setDoc(guvenliRef, guvenli);
-    }
+    await fb.setDoc(fb.doc(db, "danismaPickupBildirimleri", id),
+      veliDanismaKopyasi(tamVeri, fb.serverTimestamp()), { merge: true });
   } catch (e) {
     console.warn("Okul Zili danışma özeti güncellenemedi:", e.code || e.message);
   }

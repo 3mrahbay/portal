@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sabahGirisKaydet } from '../js/sabah-giris-kaydi.js';
 const fail=code=>Object.assign(new Error(code),{code});
-function fixture(t, {existing=null, primaryReadError=null, primaryWriteError=null, projectionReadError=null, projectionExists=false}={}) {
+function fixture(t, {existing=null, primaryReadError=null, primaryWriteError=null, projectionReadError=null, projectionExists=false, projectionWriteError=null}={}) {
  const calls=[],writes=[],user={uid:'test-uid',email:'parent@example.test'};
  // Scope the stub to this test so the real push bridge never reaches the network.
  const push=t.mock.method(globalThis,'fetch',async (_url,options)=>{
@@ -13,7 +13,7 @@ function fixture(t, {existing=null, primaryReadError=null, primaryWriteError=nul
  const projection=p=>p.startsWith('danismaSabahGirisleri/');
  api.fb={doc:(_,c,id)=>c+'/'+id,serverTimestamp:()=> 'SERVER_TIMESTAMP',
   async getDoc(p){calls.push(['get',p]);const error=projection(p)?projectionReadError:primaryReadError;if(error)throw fail(error);const data=projection(p)?(projectionExists?{ogrenciId:'child-A'}:null):existing;return {exists:()=>data!==null,data:()=>data};},
-  async setDoc(p,d,o){calls.push(['set',p]);if(!projection(p)&&primaryWriteError)throw fail(primaryWriteError);writes.push({method:'set',path:p,data:d,options:o});},
+  async setDoc(p,d,o){calls.push(['set',p]);if(!projection(p)&&primaryWriteError)throw fail(primaryWriteError);if(projection(p)&&projectionWriteError)throw fail(projectionWriteError);writes.push({method:'set',path:p,data:d,options:o});},
   async updateDoc(p,d){calls.push(['update',p]);if(!projection(p)&&primaryWriteError)throw fail(primaryWriteError);writes.push({method:'update',path:p,data:d});}
  };
  return {api,calls,writes,push};
@@ -26,13 +26,24 @@ function assertPushAfterWrites(x) {
  assert.deepEqual(x.calls.at(-1),['push','child-A__2026-09-21']);
  assert.ok(x.calls.slice(0,-1).some(c=>['set','update'].includes(c[0])&&c[1].startsWith('sabahGirisleri/')));
 }
-test('Morning first write is acknowledged even when reception GET is denied',async t=>{
+test('Parent never reads the staff-only reception copy; the copy is written blind with merge',async t=>{
+ // Live rules deny every parent GET on danismaSabahGirisleri. The old flow read
+ // first, was always denied and never wrote the copy (reception saw no name).
  const x=fixture(t, {primaryReadError:'permission-denied',projectionReadError:'permission-denied'});
  const r=await sabahGirisKaydet(x.api);
- assert.equal(r.anaKayitKaydedildi,true);assert.equal(r.danismaAktarildi,false);assert.equal(r.danismaHataKodu,'permission-denied');
- assert.equal(x.writes.length,1);assert.equal(x.writes[0].path,'sabahGirisleri/child-A__2026-09-21');
+ assert.equal(r.anaKayitKaydedildi,true);assert.equal(r.danismaAktarildi,true);assert.equal(r.danismaHataKodu,'');
+ assert.equal(x.calls.some(c=>c[0]==='get'&&c[1].startsWith('danisma')),false);
+ assert.equal(x.writes.length,2);assert.equal(x.writes[0].path,'sabahGirisleri/child-A__2026-09-21');
+ assert.equal(x.writes[1].path,'danismaSabahGirisleri/child-A__2026-09-21');assert.deepEqual(x.writes[1].options,{merge:true});
+ assert.equal(x.writes[1].data.ogrenciAd,'Child A');assert.equal(x.writes[1].data.sinif,'New Class');
  assert.ok(x.calls.findIndex(c=>c[0]==='set')<x.calls.findIndex(c=>c[1].startsWith('danisma')));
  assertPushAfterWrites(x);
+});
+test('A denied reception write is reported separately and never undoes the primary notice',async t=>{
+ const x=fixture(t, {projectionWriteError:'permission-denied'});
+ const r=await sabahGirisKaydet(x.api);
+ assert.equal(r.anaKayitKaydedildi,true);assert.equal(r.danismaAktarildi,false);assert.equal(r.danismaHataKodu,'permission-denied');
+ assert.equal(x.writes.length,1);assertPushAfterWrites(x);
 });
 test('Existing day updates only four parent fields and retains class metadata',async t=>{
  const x=fixture(t, {existing:{ogrenciId:'child-A',ogrenciAd:'Original',sinif:'Original Class',tarih:'2026-09-21'}});
@@ -52,10 +63,22 @@ test('Successful projection excludes parent e-mail and staff confirmation fields
  const d=x.writes[1].data;assert.equal('veliBildirenEmail' in d,false);assert.equal('sinifaGirisOnayi' in d,false);assert.equal('onaylayan' in d,false);
  assertPushAfterWrites(x);
 });
-test('Existing projection changes only notice fields, not admission confirmation',async t=>{
- const x=fixture(t, {projectionExists:true});await sabahGirisKaydet(x.api);assert.equal(x.writes[1].method,'update');
- assert.deepEqual(Object.keys(x.writes[1].data).sort(),['veliBildirdi','veliBildirimSaati','guncellendi'].sort());
+test('Reception copy carries only parent-permitted fields; staff fields are left to merge',async t=>{
+ const x=fixture(t, {projectionExists:true});await sabahGirisKaydet(x.api);assert.equal(x.writes[1].method,'set');
+ assert.deepEqual(x.writes[1].options,{merge:true});
+ assert.deepEqual(Object.keys(x.writes[1].data).sort(),['guncellendi','ogrenciAd','ogrenciId','sinif','tarih','veliBildirdi','veliBildirimSaati'].sort());
  assertPushAfterWrites(x);
+});
+test('Empty name or class is never sent, so an existing reception value is not erased',async t=>{
+ const x=fixture(t, {existing:{ogrenciId:'child-A',ogrenciAd:'',sinif:'',tarih:'2026-09-21'}});
+ x.api.state.veliAktifOgrenci={id:'child-A'};
+ await sabahGirisKaydet(x.api);
+ assert.equal('ogrenciAd' in x.writes[1].data,false);assert.equal('sinif' in x.writes[1].data,false);
+});
+test('Existing primary name is preferred for the reception copy',async t=>{
+ const x=fixture(t, {existing:{ogrenciId:'child-A',ogrenciAd:'Original',sinif:'Original Class',tarih:'2026-09-21'}});
+ await sabahGirisKaydet(x.api);
+ assert.equal(x.writes[1].data.ogrenciAd,'Original');assert.equal(x.writes[1].data.sinif,'Original Class');
 });
 test('Missing or mismatched Firebase session performs no writes',async t=>{
  for(const mode of ['missing','mismatch']){const x=fixture(t);if(mode==='missing')x.api.auth.currentUser=null;else x.api.auth.currentUser={uid:'other',email:'other@example.test'};await assert.rejects(()=>sabahGirisKaydet(x.api));assert.equal(x.calls.length,0);assert.equal(x.push.mock.callCount(),0);}
