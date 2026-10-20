@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import * as metadata from '../js/galeri-gozlem-metadata.js';
 import {gallerySession} from '../js/galeri-onay-canli.js';
 import {FakeElement, defer} from '../qa/galeri-onay-fixture.mjs';
+import * as alici from '../js/galeri-alici.js';
 const legacy={id:'old',hedefTur:'ogrenci',hedefDeger:'child',program:'montessori',egitimKaydi:true,kazanimAnahtari:'practical__Care__Shoe__polishing',yukleyen:'TEACHER@example.test',yukleyenAd:'teacher@example.test',donem:'2026-2027'};
 const sources={student:{ogrenciAdSoyad:'Synthetic Child',sinif:'Class B'},settings:{kayit:{sinif:'Class A'}},personnel:{adSoyad:'Synthetic Teacher',rol:'ogretmen'},areas:[{id:'practical',ad:'Practical Life'}],currentPeriod:'2026-2027'};
 test('sparse legacy metadata resolves real labels and preserves individual target fields',()=>{
@@ -57,7 +58,7 @@ function uiFixture(){
  Object.defineProperty(container,'innerHTML',{get:()=>rendered,set:html=>{rendered=html;container.aside=aside(html);}});
  container.querySelector=selector=>selector==='.zgo-detay'?container.aside:selector==='[data-pg-lightbox-media-host]'||selector==='.zgo-medya'?host:selector==='[data-zgo-onay]'?buttons[0]:selector==='[data-zgo-red]'?buttons[1]:null;
  const state={currentUser:{uid:'viewer',email:'viewer@example.test'},rol:'mudur',isAdmin:true,galeriOturumSurumu:1};
- const context={...metadata,gallerySession,console,setTimeout:fn=>timers.push(fn),clearTimeout(){},
+ const context={...metadata,...alici,gallerySession,console,setTimeout:fn=>timers.push(fn),clearTimeout(){},
  hydrateGalleryEducationMetadata:()=>{const d=defer();reads.push(d);return d.promise;},
  document:{getElementById:id=>id==='galeriLightbox'?box:id==='galeriLightboxIcerik'?container:null,createElement:()=>({set innerHTML(html){this.firstElementChild=aside(html);}})},
  PortalAPI:{state},galeriListesiVerisi:[legacy,{...legacy,id:'second'}],

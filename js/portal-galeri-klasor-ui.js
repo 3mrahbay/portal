@@ -1,4 +1,4 @@
-import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryFolderKey, galleryIsObservation } from './galeri-klasorleri.js';
+import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryFolderKey, galleryIsObservation, galleryAudience } from './galeri-klasorleri.js';
 import { mountMedia, disposeMedia, refreshGalleryCards, downloadAlbum } from './portal-galeri-canli.js?v=192';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -24,8 +24,23 @@ export function managementTopicFolders(items) {
     return latest(b).localeCompare(latest(a));
   });
 }
-function scopeLabel(media) {
-  return [media.hedefTur === 'sinif' ? media.hedefDeger || media.sinif : media.hedefTur === 'ogrenci' ? media.hedefOgrenciAd || 'Öğrenciye özel' : 'Tüm okul', media.donem || ''].filter(Boolean).join(' · ');
+function scopeLabel(media, options = {}) {
+  const recipient = options.recipient?.(media)?.text;
+  return [recipient || (media.hedefTur === 'sinif' ? media.hedefDeger || media.sinif : media.hedefTur === 'ogrenci' ? media.hedefOgrenciAd || 'Öğrenciye özel' : 'Tüm okul'), media.donem || ''].filter(Boolean).join(' · ');
+}
+// Gözlem klasörleri gelişim alanına göre gruplanır ve farklı çocukları karıştırabilir:
+// başlık tek bir çocuğun adını göstermez, alıcı her kartta ayrıca görünür.
+export function folderScopeLabel(media, options = {}) {
+  const audiences = new Set(media.map(m => JSON.stringify(galleryAudience(m))));
+  if (audiences.size > 1) return ['Farklı alıcılar · her kartta gösterilir', media[0]?.donem || ''].filter(Boolean).join(' · ');
+  return scopeLabel(media[0] || {}, options);
+}
+// Kart altı alıcı + (onay bekleyende) yükleyen satırı. Çağıran düz metin verir; burada kaçışlanır.
+function recipientLine(media, pending, options) {
+  const info = options.recipient?.(media);
+  if (!info) return '';
+  const uploader = pending && options.uploader ? options.uploader(media) : null;
+  return `<div data-folder-recipient style="font-size:11.5px;line-height:1.35;margin-top:5px;overflow-wrap:anywhere;color:${info.blocked ? '#b45309' : '#4c1d95'};font-weight:700">${escape(info.text)}</div>${info.warning ? `<div style="display:inline-block;margin-top:3px;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:6px;padding:1px 6px;font-size:10.5px;font-weight:700">${escape(info.warning)}</div>` : ''}${uploader !== null ? `<div style="font-size:10.5px;color:#64748b;margin-top:2px;overflow-wrap:anywhere">Yükleyen: ${escape(uploader || 'bilinmiyor')}</div>` : ''}`;
 }
 function folderCard(title, summary, count, attr) {
   return `<button type="button" ${attr} style="${button};text-align:left;min-width:0;padding:18px"><span style="font-size:30px" aria-hidden="true">📁</span><strong style="display:block;margin:9px 0 5px;overflow-wrap:anywhere">${escape(title)}</strong><span style="display:block;font-size:12px;line-height:1.5;overflow-wrap:anywhere">${escape(summary)}</span><span style="display:block;font-size:12px;margin-top:7px">${count} fotoğraf / video</span></button>`;
@@ -46,23 +61,30 @@ export function createGalleryFolderView() {
       const back = program ? `<button type="button" data-folder-back style="${button}" aria-label="${folder ? 'Program klasörlerine dön' : 'Programlara dön'}">← ${folder ? escape(selected.label) : 'Programlar'}</button>` : '';
       const title = current ? current.title : selected?.label || 'Eğitim programları';
       const appendAllowed = !current || current.observation || Boolean(current.media[0].donem && current.media[0].donem === options.activePeriod);
-      host.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:15px">${back}<div style="min-width:0;flex:1"><h3 style="margin:0;overflow-wrap:anywhere">${escape(title)}</h3><div style="font-size:12px;color:#64748b;margin-top:5px">${current ? escape(scopeLabel(current.media[0]) + ' · ' + folderDateRange(current.media)) : 'Program → konu klasörleri'}</div></div>${program && appendAllowed ? `<button type="button" data-folder-add style="${button}">+ İçerik Ekle</button>` : ''}${current ? `<button type="button" data-folder-download style="${button}">ZIP İndir</button>` : ''}</div>`;
+      host.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:15px">${back}<div style="min-width:0;flex:1"><h3 style="margin:0;overflow-wrap:anywhere">${escape(title)}</h3><div style="font-size:12px;color:#64748b;margin-top:5px">${current ? escape(folderScopeLabel(current.media, options) + ' · ' + folderDateRange(current.media)) : 'Program → konu klasörleri'}</div></div>${program && appendAllowed ? `<button type="button" data-folder-add style="${button}">+ İçerik Ekle</button>` : ''}${current ? `<button type="button" data-folder-download style="${button}">ZIP İndir</button>` : ''}</div>`;
       if (current && !appendAllowed) host.insertAdjacentHTML('beforeend','<p style="font-size:12px;color:#64748b">Bu klasörün dönemi seçili dönemle eşleşmiyor. Yeni yükleme için program ekranını kullanın.</p>');
       if (!program) {
         host.insertAdjacentHTML('beforeend',`<div style="${grid}">${programs.map((p,i) => folderCard(p.label,`${managementTopicFolders(p.media).length} konu / gelişim alanı`,p.media.length,`data-program-index="${i}"`)).join('')}</div>`);
       } else if (!current) {
-        host.insertAdjacentHTML('beforeend',groups.length ? `<div style="${grid}">${groups.map((g,i) => folderCard(g.title,[g.observation ? 'Gelişim alanı' : scopeLabel(g.media[0]),folderDateRange(g.media)].filter(Boolean).join(' · '),g.media.length,`data-folder-index="${i}"`)).join('')}</div>` : '<p style="padding:22px;color:#64748b">Bu programda henüz içerik yok. Konu adıyla yeni içerik ekleyebilirsiniz.</p>');
+        host.insertAdjacentHTML('beforeend',groups.length ? `<div style="${grid}">${groups.map((g,i) => folderCard(g.title,[g.observation ? 'Gelişim alanı' : folderScopeLabel(g.media, options),folderDateRange(g.media)].filter(Boolean).join(' · '),g.media.length,`data-folder-index="${i}"`)).join('')}</div>` : '<p style="padding:22px;color:#64748b">Bu programda henüz içerik yok. Konu adıyla yeni içerik ekleyebilirsiniz.</p>');
       } else {
         const sorted = [...current.media].sort((a,b) => String(b.yuklemeZamani || b.etkinlikTarih || '').localeCompare(String(a.yuklemeZamani || a.etkinlikTarih || '')));
         host.insertAdjacentHTML('beforeend',`<div style="${grid}">${sorted.map((m,i) => {
           const pending = ['beklemede','onayBekliyor'].includes(m.durum);
           const state = pending ? 'Onay bekliyor' : m.durum === 'reddedildi' ? 'Reddedildi' : m.durum && m.durum !== 'onaylandi' ? m.durum : '';
-          return `<div style="min-width:0"><div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#f1f5f9;cursor:pointer" data-gallery-media-id="${escape(m.id)}" onclick="${handler('acGaleriLightbox',m.id)}"><div data-folder-media="${i}" style="width:100%;height:100%"></div>${state ? `<span style="position:absolute;top:6px;right:6px;background:#fff;padding:4px 7px;border-radius:7px;font-size:11px">${escape(state)}</span>` : ''}</div>${pending && options.management ? `<div style="display:flex;gap:5px;margin-top:5px"><button type="button" data-approve="${i}" style="${button};flex:1">Onayla</button><button type="button" data-reject="${i}" style="${button};flex:1">Reddet</button></div>` : ''}<button type="button" data-folder-delete="${i}" style="${button};font-size:12px;margin-top:5px;color:#b91c1c">Sil</button></div>`;
+          // Alıcısı belirsiz içerik onaylanamaz (onaylansa da veliye görünmez).
+          const blocked = Boolean(options.recipient?.(m)?.blocked);
+          const approve = blocked
+            ? `<button type="button" disabled data-approve-blocked="${i}" title="Önce alıcıyı düzenleyin" style="${button};flex:1;opacity:.6;cursor:not-allowed">Önce alıcıyı düzenleyin</button>`
+            : `<button type="button" data-approve="${i}" style="${button};flex:1">Onayla</button>`;
+          const canDelete = options.canDelete ? options.canDelete(m) : true;
+          return `<div style="min-width:0"><div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#f1f5f9;cursor:pointer" data-gallery-media-id="${escape(m.id)}" onclick="${handler('acGaleriLightbox',m.id)}"><div data-folder-media="${i}" style="width:100%;height:100%"></div>${state ? `<span style="position:absolute;top:6px;right:6px;background:#fff;padding:4px 7px;border-radius:7px;font-size:11px">${escape(state)}</span>` : ''}</div>${recipientLine(m, pending, options)}${pending && options.management ? `<div style="display:flex;gap:5px;margin-top:5px">${approve}<button type="button" data-reject="${i}" style="${button};flex:1">Reddet</button></div>` : ''}${options.management && options.editRecipient ? `<button type="button" data-recipient-edit="${i}" style="${button};font-size:12px;margin-top:5px">Alıcıyı düzenle</button>` : ''}${canDelete ? `<button type="button" data-folder-delete="${i}" style="${button};font-size:12px;margin-top:5px;color:#b91c1c">Sil</button>` : ''}</div>`;
         }).join('')}</div>`);
         host.querySelectorAll('[data-folder-media]').forEach(el => mountMedia(el,sorted[Number(el.dataset.folderMedia)],{thumbnail:true}));
         host.querySelectorAll('[data-approve]').forEach(el => el.onclick = () => window.galeriOnayla?.(sorted[Number(el.dataset.approve)].id));
         host.querySelectorAll('[data-reject]').forEach(el => el.onclick = () => window.galeriReddet?.(sorted[Number(el.dataset.reject)].id));
         host.querySelectorAll('[data-folder-delete]').forEach(el => el.onclick = () => window.silGaleriOge?.(sorted[Number(el.dataset.folderDelete)].id));
+        host.querySelectorAll('[data-recipient-edit]').forEach(el => el.onclick = () => options.editRecipient?.(sorted[Number(el.dataset.recipientEdit)]));
         refreshGalleryCards(host);
       }
       host.querySelectorAll('[data-program-index]').forEach(el => el.onclick = () => {program = programs[Number(el.dataset.programIndex)].code;folder = '';repaint();});

@@ -11069,7 +11069,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
               </div>
               <div class="form-group" id="galeriHedefSinifWrap" style="display:none;">
                 <label>Sınıf</label>
-                <select id="galeriHedefSinif">
+                <select id="galeriHedefSinif" onchange="galeriAliciOnizlemeGuncelle()">
                   <option value="">-- Seçin --</option>
                   <option value="Papatyalar Sınıfı">Papatyalar Sınıfı</option>
                   <option value="Kardelenler Sınıfı">Kardelenler Sınıfı</option>
@@ -11078,11 +11078,13 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
               </div>
               <div class="form-group" id="galeriHedefOgrenciWrap" style="display:none;">
                 <label>Öğrenci</label>
-                <select id="galeriHedefOgrenci">
+                <select id="galeriHedefOgrenci" onchange="galeriAliciOnizlemeGuncelle()">
                   <option value="">-- Seçin --</option>
                 </select>
               </div>
             </div>
+            <!-- Kaydetmeden önce alıcı her zaman açıkça görünür (yanlış çocuğa ekleme fark edilsin). -->
+            <div id="galeriAliciOnizleme" aria-live="polite" style="margin-top:8px; padding:9px 12px; border-radius:10px; background:#faf5ff; border:1px solid #e9d5ff; font-size:12.5px; color:#4c1d95;"></div>
 
             <div class="form-grid full">
               <div class="form-group">
@@ -13946,6 +13948,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
     <button onclick="closeGaleriLightbox()" style="position:absolute; top:-40px; right:0; background:white; border:none; width:36px; height:36px; border-radius:50%; font-size:20px; cursor:pointer; z-index:10;">×</button>
     <div id="galeriLightboxIcerik" style="background:white; border-radius:14px; overflow:hidden; max-height:95vh; display:flex; align-items:center; justify-content:center;"></div>
     <div style="position:absolute; bottom:10px; left:0; right:0; text-align:center;">
+      <div id="galeriLightboxAlici" aria-live="polite" style="display:none; width:max-content; max-width:min(560px,90vw); margin:0 auto 8px; text-align:left; background:rgba(255,255,255,0.96); border-radius:10px; padding:6px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+      <button onclick="aktifLightboxOge && galeriAliciDuzenle(aktifLightboxOge.id)" id="galeriLightboxAliciBtn" style="display:none;padding:10px 20px; margin-right:8px; background:white; border:1px solid #d1d5db; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);">👥 Alıcıyı düzenle</button>
       <button onclick="aktifLightboxOge && galeriGonderiDuzenle(aktifLightboxOge.id)" id="galeriLightboxDuzenleBtn" style="display:none;padding:10px 20px; margin-right:8px; background:white; border:1px solid #d1d5db; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);"><i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px;"></i> Gönderiyi Düzenle</button>
       <button onclick="galeriLightboxIndir()" id="galeriLightboxIndirBtn" style="padding:10px 20px; background:white; border:1px solid #d1d5db; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);"><i data-lucide="download" style="width:13px;height:13px;vertical-align:-2px;"></i> İndir</button>
     </div>
@@ -13955,9 +13959,12 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js';
-import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=192';
+import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=208';
 import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
 import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
+import { galeriAlici, galeriAliciRehberi, galeriAliciMetni, galeriAliciHtml, galeriAliciAdi, galeriAliciBelirsizMi,
+  galeriAliciDegisimOnayMetni, galeriYuklemeOnayMetni, galeriYukleyenEtiketi, galeriSilmeYetkisi, galeriOnaylayiciMi,
+  galeriOgrenciAdi, galeriOgrenciSinifi, galeriOgesiniSil, galeriAliciniDegistir } from './js/galeri-alici.js?v=208';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
 import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=171';
 import {receiptInput} from './js/expenses/receipt-input.js';
@@ -22577,25 +22584,39 @@ window.caGozlemKaydet = async function() {
   const ders = grup?.dersler?.[st.dersIdx];
   if (!alan || !grup || !ders) return showToast("Bir eğitim/kazanım seçin.", "error");
   const notMetin = (document.getElementById("caGozlemNot")?.value || st.not || "").trim();
+  // Öğretmen fotoğrafı onaya gider: hangi çocuğa ekleneceği kaydetmeden önce onaylatılır (sözleşme E).
+  const yonetimKaydi = isAdmin || ["kurucu_mudur","mudur","egitim_koordinator"].includes(aktifKullaniciRol);
+  const gozlemAlicisi = galeriAliciIcin({ hedefTur:"ogrenci", hedefDeger:st.ogrId, hedefOgrenciId:st.ogrId, ogrenciId:st.ogrId, hedefOgrenciAd:st.ogrAd, sinif:st.sinif });
+  if (st.foto && !yonetimKaydi && !confirm(galeriYuklemeOnayMetni(gozlemAlicisi))) return;
   st.not = notMetin; st.kaydediliyor = true;
   const btn=document.getElementById("caGozlemKaydetBtn"), pr=document.getElementById("caGozlemProgress");
   if(btn) btn.disabled=true; if(pr){pr.style.display="block";pr.textContent=st.foto?"Gözlem ve fotoğraf kaydediliyor…":"Gözlem kaydediliyor…";}
+  let foto = null, fotoHata = null, onayBildirimi = null;
+  // Bekleyen gözlem fotoğrafı galeriYukle ile aynı onaylayıcı bildirimini üretir (tekilleştirme
+  // notifyGalleryApproval içinde). Gelişim kaydı başarısız olsa da kaydedilen fotoğraf bildirilir.
+  const onaylayiciyaBildir = async () => {
+    if (!foto?.id || onayBildirimi || !galeriBekliyorMu(foto.durum)) return;
+    onayBildirimi = await notifyGalleryApproval({ id:foto.id, durum:foto.durum }, window.PortalAPI).catch(() => ({ ok:false }));
+  };
   try {
     const anahtar = `${alan.id}__${grup.ad}__${ders}`;
-    let foto = null, fotoHata = null;
     if (st.foto) {
       try { foto = await caGozlemFotoYukle(st, anahtar, ders, notMetin, alan, grup); }
       catch (e) { fotoHata = e; console.error("Gözlem fotoğrafı yüklenemedi:", e); }
     }
     const kaydedilen = await caGozlemDetayKaydet(st, alan, grup, ders, notMetin, foto);
+    await onaylayiciyaBildir();
     caGozlemEgitimGorunumunuGuncelle(st, kaydedilen);
     try { zekiDenetim("gozlem_kayit", { ogr:st.ogrId, disiplin:st.disiplin, ders, seviye:st.seviye }); } catch (_) {}
     window.caGozlemKapat();
+    const onayEksik = onayBildirimi && (onayBildirimi.ok === false || onayBildirimi.push?.ok === false);
+    const kime = galeriAliciAdi(gozlemAlicisi);
     if (fotoHata) showToast("✓ Gözlem kaydedildi; fotoğraf yüklenemedi: " + (fotoHata.message || fotoHata), "warn");
-    else if (foto && foto.durum === "beklemede") showToast("✓ Gözlem kaydedildi · fotoğraf yönetim onayında");
-    else showToast("✓ Gözlem kaydedildi");
+    else if (foto && galeriBekliyorMu(foto.durum)) showToast(`✓ Gözlem kaydedildi · fotoğraf ${kime} için yönetim onayında${onayEksik ? " · yönetici onay bildirimi tam iletilemedi" : ""}`, onayEksik ? "warning" : "success");
+    else showToast(`✓ Gözlem kaydedildi · ${kime}`);
   } catch (e) {
     console.error("Gözlem kayıt hatası:", e);
+    await onaylayiciyaBildir();
     st.kaydediliyor=false; if(btn)btn.disabled=false; if(pr){pr.textContent="Kayıt tamamlanamadı.";}
     showToast("Gözlem kaydedilemedi: " + (e?.message || e), "error");
   }
@@ -36516,6 +36537,67 @@ function galeriBekliyorMu(durum) {
 
 function galeriProgramKodu(g) { return galleryProgram(g); }
 
+// ── Galeri alıcısı / yetki yardımcıları (ortak sözleşme: js/galeri-alici.js) ──
+// Canlı öğrenci adı ve sınıfı PortalAPI durumundan okunur; listelerde rehber bir
+// kez kurulup her karta geçirilir.
+function galeriAliciKaynagi() {
+  const s = window.PortalAPI?.state || {};
+  return galeriAliciRehberi(Array.isArray(s.ogrenciList) ? s.ogrenciList : [], s.ayarListesi || {});
+}
+function galeriAliciIcin(oge, rehber = galeriAliciKaynagi()) { return galeriAlici(oge || {}, rehber); }
+function galeriOturumBilgisi() {
+  return {
+    email: (typeof currentUser !== "undefined" && currentUser?.email) || "",
+    rol: (typeof aktifKullaniciRol !== "undefined" && aktifKullaniciRol) || "",
+    isAdmin: typeof isAdmin !== "undefined" && !!isAdmin
+  };
+}
+// Kurallarla aynı: yönetim/koordinatör/admin her öğeyi, öğretmen yalnız kendi yüklediğini siler.
+function galeriSilebilirMi(oge) { return galeriSilmeYetkisi(oge || {}, galeriOturumBilgisi()); }
+// Alıcıyı düzenleme = Portal'ın mevcut onay yetkisi (admin, kurucu müdür, müdür).
+function galeriAliciDuzenleyebilirMi() { return galeriOnaylayiciMi(galeriOturumBilgisi()); }
+function galeriIdArg(id) { return escapeHtml(JSON.stringify(String(id ?? ""))); }
+// Onay kartı altındaki alıcı + yükleyen satırı (B).
+function galeriOnayKartBilgisiHtml(d, rehber, duzenle = false) {
+  const alici = galeriAliciIcin(d, rehber);
+  const dugme = duzenle
+    ? `<button type="button" data-galeri-alici-duzenle="${escapeHtml(d.id)}" onclick="event.stopPropagation(); galeriAliciDuzenle(${galeriIdArg(d.id)})" style="margin-top:4px;width:100%;padding:5px 6px;border:1px solid #e9d5ff;background:#fff;color:#6b21a8;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;">✎ Alıcıyı düzenle</button>`
+    : "";
+  return `<div class="galeri-onay-bilgi" data-galeri-alici-kart="${escapeHtml(d.id)}" style="padding:5px 2px 0;min-width:0;">${galeriAliciHtml(alici, { yukleyen: galeriYukleyenEtiketi(d) })}${dugme}</div>`;
+}
+// Alıcısı belirsiz öğe onaylanamaz: onaylansa da veliye görünmez (B).
+function galeriOnaylaDugmesiHtml(d, rehber, etiket, stil) {
+  if (galeriAliciBelirsizMi(galeriAliciIcin(d, rehber))) {
+    return `<button type="button" disabled data-onay-engelli="${escapeHtml(d.id)}" title="Önce alıcıyı düzenleyin" aria-label="Önce alıcıyı düzenleyin" onclick="event.stopPropagation();" style="${stil} background:#9ca3af; cursor:not-allowed; font-size:9.5px; line-height:1.15;">Önce alıcıyı düzenleyin</button>`;
+  }
+  return `<button onclick="event.stopPropagation(); galeriOnayla('${d.id}')" style="${stil} background:#16a34a; cursor:pointer;">${etiket}</button>`;
+}
+// Yükleme formundaki seçimden alıcı (E).
+function galeriFormAlicisi() {
+  const tur = document.getElementById("galeriHedefTur")?.value || "";
+  const ogrSel = document.getElementById("galeriHedefOgrenci");
+  const ogrId = ogrSel?.value || "";
+  const ad = ogrSel?.options?.[ogrSel.selectedIndex]?.dataset?.ad || "";
+  if (tur === "ogrenci") return galeriAliciIcin({ hedefTur:"ogrenci", hedefDeger:ogrId, hedefOgrenciId:ogrId, hedefOgrenciAd:ad });
+  if (tur === "sinif") return galeriAliciIcin({ hedefTur:"sinif", hedefDeger:document.getElementById("galeriHedefSinif")?.value || "" });
+  return galeriAliciIcin({ hedefTur:tur });
+}
+// Silinen/alıcısı değişen öğe bellekteki listelerde de güncellenir (D6).
+function galeriBellektenCikar(id) {
+  galeriListesiVerisi = galeriListesiVerisi.filter(x => x.id !== id);
+  window.galeriListesiVerisi = galeriListesiVerisi;
+  if (Array.isArray(galeriOnayDurumu?.items)) galeriOnayDurumu = { ...galeriOnayDurumu, items: galeriOnayDurumu.items.filter(x => x.id !== id) };
+  galeriOnayRozetGuncelle();
+  if (typeof aktifLightboxOge !== "undefined" && aktifLightboxOge?.id === id) window.closeGaleriLightbox?.();
+}
+function galeriBellekteGuncelle(id, alanlar) {
+  for (const liste of [galeriListesiVerisi, galeriOnayDurumu?.items || []]) {
+    const oge = liste.find(x => x.id === id);
+    if (oge) Object.assign(oge, alanlar);
+  }
+  window.galeriListesiVerisi = galeriListesiVerisi;
+}
+
 async function galeriGozlemOnayiEsitle(oge, durum, duzenlenmisMetin = "") {
   const ogrenciId = oge?.ogrenciId || oge?.hedefOgrenciId ||
     (oge?.hedefTur === "ogrenci" ? oge.hedefDeger : "");
@@ -36728,6 +36810,11 @@ window.galeriOnayla = async function(id) {
     if (!onceki.exists()) return false;
     const oge = { id, ...onceki.data() };
     if (!galeriBekliyorMu(oge.durum)) return false;
+    // Alıcısı belirsiz (çelişkili/eksik çocuk, bilinmeyen hedef) içerik onaylanmaz.
+    if (galeriAliciBelirsizMi(galeriAliciIcin(oge))) {
+      showToast("Önce alıcıyı düzenleyin: alıcısı belirsiz içerik onaylansa da veliye görünmez.", "error");
+      return false;
+    }
     await updateDoc(ref, {
       durum: "onaylandi", onaylayanEmail: currentUser.email, onayTarihi: new Date().toISOString()
     });
@@ -36805,6 +36892,8 @@ async function renderGaleri() {
   }
   if (renderSurumu !== galeriRenderSurumu || oturum !== gallerySession(window.PortalAPI.state)) return;
   galeriListesiVerisi = kayitlar; window.galeriListesiVerisi = kayitlar;
+  // Canlı öğrenci rehberi bu çizim için bir kez kurulur (kart başına değil).
+  const aliciRehberi = galeriAliciKaynagi();
 
   // Yönetim ise onay filtre butonunu + rozeti göster
   const yonetimMi = isAdmin || ["kurucu_mudur","mudur"].includes(aktifKullaniciRol);
@@ -36823,7 +36912,15 @@ async function renderGaleri() {
       management: yonetimMi,
       activePeriod: AKTIF_DONEM,
       addProgram: program => window.egitimAlbumuneEkle(program),
-      addTopic: media => window.galeriKonuEEkle(media.id)
+      addTopic: media => window.galeriKonuEEkle(media.id),
+      // Gözlem klasörleri alana göre gruplanır ve çocukları karıştırır: her kartta alıcı görünür.
+      recipient: media => {
+        const alici = galeriAliciIcin(media, aliciRehberi);
+        return { text: galeriAliciMetni(alici), warning: alici.uyari, blocked: galeriAliciBelirsizMi(alici) };
+      },
+      uploader: media => galeriYukleyenEtiketi(media),
+      canDelete: media => galeriSilebilirMi(media),
+      editRecipient: yonetimMi ? media => window.galeriAliciDuzenle?.(media.id) : null
     });
     return;
   }
@@ -36869,24 +36966,33 @@ async function renderGaleri() {
       if (galeriBekliyorMu(durum)) rozet = `<div style="position:absolute; top:6px; right:6px; background:#f59e0b; color:white; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700;"><i data-lucide="clock" style="width:10px;height:10px;"></i></div>`;
       else if (reddedildiMi) rozet = `<div style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700;">✕</div>`;
 
+      const bekliyor = galeriBekliyorMu(durum);
       let onayBtn = "";
-      if (galeriBekliyorMu(durum) && yonetimMiG) {
+      if (bekliyor && yonetimMiG) {
         onayBtn = `<div style="position:absolute; bottom:0; left:0; right:0; display:flex; gap:3px; padding:5px; background:rgba(0,0,0,0.55);">
-          <button onclick="event.stopPropagation(); galeriOnayla('${d.id}')" style="flex:1; padding:6px; background:#16a34a; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✓</button>
+          ${galeriOnaylaDugmesiHtml(d, aliciRehberi, "✓", "flex:1; padding:6px; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700;")}
           <button onclick="event.stopPropagation(); galeriReddet('${d.id}')" style="flex:1; padding:6px; background:#dc2626; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✕</button>
         </div>`;
       }
+      // Sil düğmesi yalnız silme yetkisi olana (yönetim her öğe, öğretmen kendi yüklediği).
+      const silBtn = galeriSilebilirMi(d)
+        ? `<button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" class="galeri-sil-btn" title="Kalıcı olarak sil" aria-label="Kalıcı olarak sil" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:26px; height:26px; border-radius:50%; cursor:pointer; opacity:0; transition:opacity 0.2s; display:grid; place-items:center;" onmouseover="this.style.opacity='1'"><i data-lucide="trash-2" style="width:13px;height:13px;"></i></button>`
+        : "";
 
-      gHtml += `
-        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:12px; overflow:hidden; cursor:pointer; ${galeriBekliyorMu(durum)?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626; opacity:.7;':''}" onclick="acGaleriLightbox('${d.id}')">
+      const kartHtml = `
+        <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:12px; overflow:hidden; cursor:pointer; ${bekliyor?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626; opacity:.7;':''}" onclick="acGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video"
             ? `<img src="${escapeHtml(previewUrl||'')}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div style="display:none; width:100%; height:100%; background:#1f2937; color:white; align-items:center; justify-content:center;"><i data-lucide='video'></i></div><div style="position:absolute; inset:0; background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;"><div style="background:rgba(255,255,255,0.9); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7c3aed;"><i data-lucide='play'></i></div></div>`
             : `<img src="${escapeHtml(thumbUrl||'')}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">`
           }
           ${rozet}
           ${onayBtn}
-          <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" class="galeri-sil-btn" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:26px; height:26px; border-radius:50%; cursor:pointer; opacity:0; transition:opacity 0.2s; display:grid; place-items:center;" onmouseover="this.style.opacity='1'"><i data-lucide="trash-2" style="width:13px;height:13px;"></i></button>
+          ${silBtn}
         </div>`;
+      // Onay bekleyen kartın altında alıcı + yükleyen her zaman görünür (yanlış çocuk onayda fark edilsin).
+      gHtml += bekliyor
+        ? `<div class="galeri-onay-hucre" style="display:flex; flex-direction:column; min-width:0;">${kartHtml}${galeriOnayKartBilgisiHtml(d, aliciRehberi, yonetimMiG)}</div>`
+        : kartHtml;
     }
     gHtml += `</div><style>.galeri-sil-btn:hover{opacity:1 !important;}div:hover > .galeri-sil-btn{opacity:0.85;}</style>`;
 
@@ -36944,10 +37050,9 @@ async function renderGaleri() {
 
   let html = `<div style="display:flex; flex-direction:column; gap:16px;">`;
   for (const grup of gruplarDizi) {
+    // Albüm tek hedefe göre gruplanır; etiket canlı öğrenci kaydından gelir (kayıttaki eski ad değil).
     const hedefLabel = grup.programKodu ? "📚 Eğitim programı"
-      : grup.hedefTur === "tumOkul" ? "🏫 Tüm Okul"
-      : grup.hedefTur === "sinif" ? `👥 ${escapeHtml(grup.hedefDeger)}`
-      : `👤 ${escapeHtml(grup.hedefOgrenciAd || grup.hedefDeger || "")}`;
+      : escapeHtml(galeriAliciMetni(galeriAliciIcin(grup.dosyalar[0], aliciRehberi)));
 
     const tarihStr = grup.etkinlikTarih
       ? new Date(grup.etkinlikTarih).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })
@@ -37008,14 +37113,18 @@ async function renderGaleri() {
       if (galeriBekliyorMu(durum) && yonetimMi) {
         onayButonlari = `
           <div style="position:absolute; bottom:0; left:0; right:0; display:flex; gap:4px; padding:6px; background:rgba(0,0,0,0.55);">
-            <button onclick="event.stopPropagation(); galeriOnayla('${d.id}')" style="flex:1; padding:8px; background:#16a34a; color:white; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">✓ Onayla</button>
+            ${galeriOnaylaDugmesiHtml(d, aliciRehberi, "✓ Onayla", "flex:1; padding:8px; color:white; border:none; border-radius:7px; font-size:12px; font-weight:700;")}
             <button onclick="event.stopPropagation(); galeriReddet('${d.id}')" style="flex:1; padding:8px; background:#dc2626; color:white; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">✕ Reddet</button>
           </div>`;
       }
+      const silDugmesi = galeriSilebilirMi(d)
+        ? `<button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" title="Kalıcı olarak sil" aria-label="Kalıcı olarak sil" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:11px; opacity:0; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" class="galeri-sil-btn">🗑</button>`
+        : "";
 
       // Onaylanmamışsa hafif soluk göster (personel görünümünde)
       const opacity = onayliMi ? "1" : "0.92";
 
+      if (galeriBekliyorMu(durum)) html += `<div class="galeri-onay-hucre" style="display:flex; flex-direction:column; min-width:0;">`;
       html += `
         <div style="position:relative; aspect-ratio:1; background:#f3f4f6; border-radius:10px; overflow:hidden; cursor:pointer; opacity:${opacity}; ${galeriBekliyorMu(durum)?'outline:2px solid #f59e0b;':reddedildiMi?'outline:2px solid #dc2626;':''}" onclick="acGaleriLightbox('${d.id}')">
           ${d.dosyaTipi === "video" ?
@@ -37027,9 +37136,10 @@ async function renderGaleri() {
           }
           ${durumRozet}
           ${onayButonlari}
-          <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:11px; opacity:0; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" class="galeri-sil-btn">🗑</button>
+          ${silDugmesi}
         </div>
       `;
+      if (galeriBekliyorMu(durum)) html += `${galeriOnayKartBilgisiHtml(d, aliciRehberi, yonetimMi)}</div>`;
     }
     html += `</div></div>`;
   }
@@ -37119,6 +37229,7 @@ window.openGaleriYuklemeModal = function(mod) {
 
   galeriHedefDegisti();
   doldurGaleriOgrenciSecici();
+  galeriAliciOnizlemeGuncelle();
 };
 
 window.closeGaleriYuklemeModal = function() {
@@ -37130,6 +37241,23 @@ window.galeriHedefDegisti = function() {
   const h = document.getElementById("galeriHedefTur").value;
   document.getElementById("galeriHedefSinifWrap").style.display = h === "sinif" ? "block" : "none";
   document.getElementById("galeriHedefOgrenciWrap").style.display = h === "ogrenci" ? "block" : "none";
+  galeriAliciOnizlemeGuncelle();
+};
+
+// Yükleme formunda seçilen alıcının canlı etiketi (sözleşme E).
+window.galeriAliciOnizlemeGuncelle = function() {
+  const kutu = document.getElementById("galeriAliciOnizleme");
+  if (!kutu) return;
+  const tur = document.getElementById("galeriHedefTur")?.value || "";
+  const alici = galeriFormAlicisi();
+  const onayaGider = !(isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(aktifKullaniciRol));
+  if (galeriAliciBelirsizMi(alici)) {
+    const uyari = tur === "ogrenci" ? "⚠️ Öğrenci seçilmedi — tek çocuk yüklemesi öğrenci seçilmeden kaydedilmez."
+      : tur === "sinif" ? "⚠️ Sınıf seçin." : galeriAliciMetni(alici);
+    kutu.innerHTML = `<b>Alıcı:</b> <span style="color:#b45309;font-weight:700;">${escapeHtml(uyari)}</span>`;
+    return;
+  }
+  kutu.innerHTML = `<b>Alıcı:</b> ${galeriAliciHtml(alici)}<span style="display:block;margin-top:3px;font-size:11.5px;color:#6b7280;">${onayaGider ? "Yönetim onayından sonra yalnız bu alıcı görür." : "Yalnız bu alıcı görür."}</span>`;
 };
 
 function doldurGaleriOgrenciSecici() {
@@ -37291,10 +37419,25 @@ window.galeriYukle = async function() {
     if (!hedefDeger) return showToast("Sınıf seçin", "error");
   } else if (hedefTur === "ogrenci") {
     hedefDeger = document.getElementById("galeriHedefOgrenci").value;
-    if (!hedefDeger) return showToast("Öğrenci seçin", "error");
+    if (!hedefDeger) return showToast("Tek çocuk yüklemesi için öğrenci seçin", "error");
     const sel = document.getElementById("galeriHedefOgrenci");
     hedefOgrenciAd = sel.options[sel.selectedIndex]?.dataset?.ad || "";
   }
+  // Alıcı kaydetmeden önce kesinleşir; belirsiz alıcıyla yükleme yapılmaz (sözleşme E).
+  const yuklemeAlicisi = galeriAliciIcin({ hedefTur, hedefDeger, hedefOgrenciId: hedefTur === "ogrenci" ? hedefDeger : "", hedefOgrenciAd });
+  if (galeriAliciBelirsizMi(yuklemeAlicisi)) return showToast("Alıcı belirsiz: hedef kitleyi seçin", "error");
+  if (yuklemeAlicisi.tur === "ogrenci" && yuklemeAlicisi.ad) hedefOgrenciAd = yuklemeAlicisi.ad;
+  // Öğretmen yüklemeleri onaya gider: kime gideceği kaydetmeden önce açıkça onaylatılır.
+  const dogrudanYayin = isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(aktifKullaniciRol);
+  if (!dogrudanYayin) {
+    const tekVideo = galeriSecilenDosyalar.length === 1 && classifyGalleryFile(galeriSecilenDosyalar[0])?.kind === "video";
+    if (!confirm(galeriYuklemeOnayMetni(yuklemeAlicisi, { adet: galeriSecilenDosyalar.length, video: tekVideo }))) return;
+  }
+  const yukleyenAdi = [
+    typeof aktifPersonel !== "undefined" ? aktifPersonel?.adSoyad : "",
+    typeof aktifPersonel !== "undefined" ? [aktifPersonel?.ad, aktifPersonel?.soyad].filter(Boolean).join(" ") : "",
+    currentUser?.displayName
+  ].map(x => String(x || "").trim()).find(x => x && !/@/.test(x)) || "";
 
   const btn = document.getElementById("btnGaleriYukle");
   btn.disabled = true;
@@ -37331,6 +37474,10 @@ window.galeriYukle = async function() {
         albumTuru: program ? "egitim" : "genel",
         egitimKaydi: false,
         yukleyen: currentUser.email,
+        // Onay ekranında yükleyen adı görünsün (gözlem yüklemesiyle aynı alanlar).
+        yukleyenAd: yukleyenAdi,
+        yukleyenRol: aktifKullaniciRol || "",
+        yukleyenUid: currentUser?.uid || "",
         yuklemeZamani: new Date().toISOString(),
         dosyaBoyutu: f.size,
         orjinalAd: f.name,
@@ -37378,7 +37525,7 @@ window.galeriYukle = async function() {
       }
 
       // Öğretmen yüklemeleri yönetici onayından geçer; yönetim yüklemeleri doğrudan yayınlanır.
-      const yonetimYuklemesi = isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(aktifKullaniciRol);
+      const yonetimYuklemesi = dogrudanYayin;
       oge.durum = yonetimYuklemesi ? "onaylandi" : "beklemede";
       oge.onaylayanEmail = yonetimYuklemesi ? currentUser.email : "";
       oge.onayTarihi = yonetimYuklemesi ? new Date().toISOString() : "";
@@ -37507,14 +37654,38 @@ window.acGaleriLightbox = function(id) {
   const duzenleBtn = document.getElementById("galeriLightboxDuzenleBtn");
   const yonetimMi = isAdmin || ["kurucu_mudur", "mudur"].includes(aktifKullaniciRol);
   if (duzenleBtn) duzenleBtn.style.display = yonetimMi ? "inline-flex" : "none";
+  galeriLightboxAliciGoster(oge);
   if (window.lucideYenile) setTimeout(window.lucideYenile, 30);
 };
+
+// Önizlemede alıcı + yükleyen ve yetkiliye "Alıcıyı düzenle" (sözleşme B).
+function galeriLightboxAliciGoster(oge) {
+  const btn = document.getElementById("galeriLightboxAliciBtn");
+  if (btn) btn.style.display = oge && galeriAliciDuzenleyebilirMi() ? "inline-flex" : "none";
+  const kutu = document.getElementById("galeriLightboxAlici");
+  if (!kutu) return;
+  if (!oge) { kutu.style.display = "none"; kutu.innerHTML = ""; return; }
+  const yukleyen = galeriYukleyenEtiketi(oge);
+  const alici = galeriAliciIcin(oge);
+  kutu.innerHTML = galeriAliciHtml(alici, { yukleyen });
+  kutu.style.display = "block";
+  // Öğrenci yüklü listede yoksa (ör. kısıtlı öğretmen listesi) tek belge okumasıyla canlı ad denenir.
+  if (alici.tur === "ogrenci" && alici.uyari === "öğrenci kaydı bulunamadı") {
+    const acik = oge.id;
+    getDoc(doc(db, "ogrenciler", alici.ogrenciId)).then(snap => {
+      if (!snap.exists() || aktifLightboxOge?.id !== acik) return;
+      const canli = galeriAlici(oge, [{ ...snap.data(), id: snap.id }], { ayarListesi: window.PortalAPI?.state?.ayarListesi || {} });
+      kutu.innerHTML = galeriAliciHtml(canli, { yukleyen });
+    }).catch(() => {});
+  }
+}
 
 window.closeGaleriLightbox = function() {
   ++galeriOnayGezinmeSurumu;
   document.getElementById("galeriLightbox").classList.remove("active");
   document.getElementById("galeriLightboxIcerik").innerHTML = "";
   aktifLightboxOge = null;
+  galeriLightboxAliciGoster(null);
 };
 
 window.galeriGonderiDuzenle = async function(id) {
@@ -37559,6 +37730,164 @@ window.galeriGonderiDuzenle = async function(id) {
     console.error("Gönderi düzenleme hatası:", e);
     showToast("Güncellenemedi: " + e.message, "error");
   }
+};
+
+// ===== ALICIYI DÜZENLE (ortak sözleşme C) =====
+// Öğretmen fotoğrafı yanlış çocuğa eklediyse yönetim doğru aileyi seçer. Alanlar
+// tek updateDoc ile yazılır (denetim: aliciDuzenlemeleri); eski çocuğun gelişim
+// bağları + egitim_{id} bildirimi temizlenir, onaylıysa yeni aileye bildirim gider.
+function galeriAktifOgrenciSecenekleri() {
+  const s = window.PortalAPI?.state || {};
+  const ayar = s.ayarListesi || {};
+  return (Array.isArray(s.ogrenciList) ? s.ogrenciList : [])
+    .filter(o => { const a = ayar[o.id]; return a && getOgrenciDurum(o, a) === "aktif"; })
+    .map(o => ({ id: o.id, ad: galeriOgrenciAdi(o), sinif: galeriOgrenciSinifi(o, ayar) }))
+    .filter(o => o.id && o.ad)
+    .sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
+}
+function galeriSinifSecenekleri(ogrenciler) {
+  const siniflar = new Set();
+  (Array.isArray(sinifYonetimListesi) ? sinifYonetimListesi : [])
+    .filter(x => x?.ad && x.durum !== "pasif").forEach(x => siniflar.add(x.ad));
+  ogrenciler.forEach(o => { if (o.sinif) siniflar.add(o.sinif); });
+  return [...siniflar].sort((a, b) => a.localeCompare(b, "tr"));
+}
+// ZEKY'nin sınıf yüklemelerinde tuttuğu izinsizOgrenciler alanı belgede varsa yeniden hesaplanır.
+async function galeriIzinsizOgrencileriHesapla(hedef) {
+  if (typeof window.zekiFotoIzniVar !== "function") throw new Error("fotoğraf izni denetimi yüklenmedi");
+  const adaylar = galeriAktifOgrenciSecenekleri().filter(o => hedef.tur === "okul" || o.sinif === hedef.sinif);
+  const izinsizler = [];
+  for (let i = 0; i < adaylar.length; i += 10) {
+    const parca = adaylar.slice(i, i + 10);
+    const izinler = await Promise.all(parca.map(o => window.zekiFotoIzniVar(o.id)));
+    parca.forEach((o, j) => { if (!izinler[j]) izinsizler.push({ id: o.id, ad: o.ad }); });
+  }
+  return izinsizler;
+}
+
+async function galeriAliciKaydet(id, hedef) {
+  if (!galeriAliciDuzenleyebilirMi()) { showToast("Alıcıyı yalnız onay yetkisi olan yönetim düzenleyebilir", "error"); return false; }
+  const s = window.PortalAPI?.state || {};
+  try {
+    const sonuc = await galeriAliciniDegistir(id, hedef, {
+      fb: { doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction, arrayUnion, serverTimestamp }, db,
+      yapan: currentUser?.email || "",
+      ogrenciler: Array.isArray(s.ogrenciList) ? s.ogrenciList : [], ayarListesi: s.ayarListesi || {},
+      izinsizHesapla: galeriIzinsizOgrencileriHesapla,
+      // Yeni çocuğa onay senkronu mevcut onay işlevleriyle (onaylıysa onaylı, bekliyorsa bekliyor).
+      gelisimEsitle: (oge, durum) => galeriGozlemOnayiEsitle(oge, durum),
+      egitimOnayEsitle: typeof window.galeriEgitimOnayiniEsitle === "function" ? window.galeriEgitimOnayiniEsitle : null,
+      genelBildirim: oge => galeriGuncellemeBildirimi({
+        etkinlikBaslik: oge.etkinlikBaslik || oge.baslik || "Galeri", etkinlikTarih: oge.etkinlikTarih || "",
+        hedefTur: oge.hedefTur, hedefDeger: oge.hedefDeger || "", hedefOgrenciAd: oge.hedefOgrenciAd || "",
+        fotoSayisi: oge.dosyaTipi === "video" ? 0 : 1, videoSayisi: oge.dosyaTipi === "video" ? 1 : 0,
+        kaynakId: id, olayAnahtari: `galeri-alici:${id}:${oge.hedefTur}:${oge.hedefDeger || ""}`
+      })
+    });
+    if (sonuc.durum === "yok") {
+      showToast("Bu içerik artık bulunamıyor", "warning");
+      galeriBellektenCikar(id); await renderGaleri(); return false;
+    }
+    if (sonuc.durum === "ayni") { showToast("Alıcı zaten bu şekilde kayıtlı", "info"); return true; }
+    galeriBellekteGuncelle(id, sonuc.alanlar);
+    try { window.zekiDenetim?.("galeri_alici_duzenle", { galeriId: id, onceki: sonuc.denetim.onceki, yeni: sonuc.denetim.yeni }); } catch (_) {}
+    let mesaj = `✓ Alıcı güncellendi: ${galeriAliciMetni(sonuc.yeni)}`;
+    if (sonuc.plan.oncekiAileGormusOlabilir) mesaj += " · Önceki aile fotoğrafı daha önce görmüş olabilir.";
+    if (sonuc.uyarilar.length) { console.warn("Alıcı düzenleme uyarıları:", sonuc.uyarilar); mesaj += " · Uyarı: " + sonuc.uyarilar.join(" · "); }
+    showToast(mesaj, sonuc.uyarilar.length || sonuc.plan.oncekiAileGormusOlabilir ? "warning" : "success");
+    if (aktifLightboxOge?.id === id) window.acGaleriLightbox(id);
+    await renderGaleri();
+    return true;
+  } catch (e) {
+    console.error("Alıcı düzenleme hatası:", e);
+    showToast("Alıcı güncellenemedi: " + (e?.message || e), "error");
+    return false;
+  }
+}
+
+window.galeriAliciDuzenle = async function(id) {
+  if (!galeriAliciDuzenleyebilirMi()) { showToast("Alıcıyı yalnız onay yetkisi olan yönetim düzenleyebilir", "error"); return false; }
+  let oge;
+  try {
+    const snap = await getDoc(doc(db, "galeri", id));
+    if (!snap.exists()) { showToast("Bu içerik artık bulunamıyor", "warning"); galeriBellektenCikar(id); await renderGaleri(); return false; }
+    oge = { id, ...snap.data() };
+  } catch (e) { showToast("İçerik okunamadı: " + (e?.message || e), "error"); return false; }
+
+  const ogrenciler = galeriAktifOgrenciSecenekleri();
+  const siniflar = galeriSinifSecenekleri(ogrenciler);
+  const mevcut = galeriAliciIcin(oge);
+  const video = oge.dosyaTipi === "video";
+  const ilkTur = ["ogrenci", "sinif", "okul"].includes(mevcut.tur) ? mevcut.tur : "ogrenci";
+  document.getElementById("galeriAliciModal")?.remove();
+  const arka = document.createElement("div");
+  arka.id = "galeriAliciModal";
+  arka.setAttribute("role", "dialog"); arka.setAttribute("aria-modal", "true"); arka.setAttribute("aria-label", "Alıcıyı düzenle");
+  arka.style.cssText = "position:fixed;inset:0;z-index:10060;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px;";
+  const giris = "width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;font-family:inherit;";
+  arka.innerHTML = `
+    <div style="width:min(520px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.3);box-sizing:border-box;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><b style="font-size:17px;color:#4c1d95;">Alıcıyı düzenle</b><button type="button" data-alici-kapat aria-label="Kapat" style="border:0;background:#f1f5f9;border-radius:50%;width:34px;height:34px;font-size:20px;cursor:pointer;">×</button></div>
+      <div style="margin-top:10px;font-size:12px;color:#64748b;">Şu anki alıcı</div>
+      <div style="margin-top:3px;">${galeriAliciHtml(mevcut, { yukleyen: galeriYukleyenEtiketi(oge) })}</div>
+      ${oge.durum === "onaylandi" ? `<div style="margin-top:10px;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:10px;padding:8px 10px;font-size:12px;">Bu içerik onaylı. Önceki aile fotoğrafı daha önce görmüş olabilir.</div>` : ""}
+      <div role="radiogroup" aria-label="Alıcı türü" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px;">
+        ${[["ogrenci", "👤 Öğrenci"], ["sinif", "👥 Sınıf"], ["okul", "🏫 Tüm okul"]].map(([tur, ad]) => `<label style="display:flex;align-items:center;gap:6px;border:1px solid #e9d5ff;border-radius:999px;padding:7px 12px;cursor:pointer;font-size:13px;"><input type="radio" name="galeriAliciTur" value="${tur}" ${tur === ilkTur ? "checked" : ""}> ${ad}</label>`).join("")}
+      </div>
+      <div data-alici-bolum="ogrenci" style="margin-top:12px;">
+        <input type="search" data-alici-ara placeholder="Öğrenci ara (ad veya sınıf)…" aria-label="Öğrenci ara" style="${giris}">
+        <select data-alici-ogrenci size="8" aria-label="Öğrenci" style="${giris}margin-top:6px;padding:4px;"></select>
+      </div>
+      <div data-alici-bolum="sinif" style="margin-top:12px;display:none;">
+        <select data-alici-sinif aria-label="Sınıf" style="${giris}"><option value="">— Sınıf seçin —</option>${siniflar.map(sinif => `<option value="${escapeHtml(sinif)}">${escapeHtml(sinif)}</option>`).join("")}</select>
+      </div>
+      <div data-alici-bolum="okul" style="margin-top:12px;display:none;font-size:13px;color:#475569;">Okuldaki tüm velilere görünür.</div>
+      <div data-alici-onizleme aria-live="polite" style="margin-top:12px;font-size:12.5px;color:#4c1d95;background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;padding:8px 10px;"></div>
+      <div style="display:flex;gap:8px;margin-top:14px;"><button type="button" data-alici-kapat style="flex:1;padding:11px;border:0;border-radius:11px;background:#eef1ef;color:#475569;font-weight:700;cursor:pointer;">Vazgeç</button><button type="button" data-alici-kaydet style="flex:1;padding:11px;border:0;border-radius:11px;background:#7c3aed;color:#fff;font-weight:800;cursor:pointer;">Kaydet</button></div>
+    </div>`;
+  document.body.appendChild(arka);
+  const bul = secici => arka.querySelector(secici);
+  const ogrSel = bul("[data-alici-ogrenci]"), ara = bul("[data-alici-ara]"), sinifSel = bul("[data-alici-sinif]");
+  const onizleme = bul("[data-alici-onizleme]"), kaydetBtn = bul("[data-alici-kaydet]");
+  const secilenTur = () => arka.querySelector('input[name="galeriAliciTur"]:checked')?.value || "ogrenci";
+  const listele = () => {
+    const aranan = (ara.value || "").toLocaleLowerCase("tr").trim();
+    const secili = ogrSel.value || (mevcut.tur === "ogrenci" ? mevcut.ogrenciId : "");
+    ogrSel.innerHTML = ogrenciler
+      .filter(o => !aranan || `${o.ad} ${o.sinif}`.toLocaleLowerCase("tr").includes(aranan))
+      .map(o => `<option value="${escapeHtml(o.id)}" ${o.id === secili ? "selected" : ""}>${escapeHtml(o.ad)}${o.sinif ? " — " + escapeHtml(o.sinif) : ""}</option>`).join("");
+  };
+  const hedef = () => secilenTur() === "ogrenci" ? { tur: "ogrenci", ogrenciId: ogrSel.value }
+    : secilenTur() === "sinif" ? { tur: "sinif", sinif: sinifSel.value } : { tur: "okul" };
+  const yeniAlici = () => {
+    const h = hedef();
+    if (h.tur === "ogrenci") { const o = ogrenciler.find(x => x.id === h.ogrenciId); return o ? { tur: "ogrenci", ogrenciId: o.id, ad: o.ad, sinif: o.sinif } : null; }
+    if (h.tur === "sinif") return h.sinif ? { tur: "sinif", ad: h.sinif, sinif: h.sinif } : null;
+    return { tur: "okul", ad: "Tüm okul" };
+  };
+  const guncelle = () => {
+    arka.querySelectorAll("[data-alici-bolum]").forEach(b => { b.style.display = b.dataset.aliciBolum === secilenTur() ? "" : "none"; });
+    const a = yeniAlici();
+    onizleme.textContent = a ? galeriAliciDegisimOnayMetni(a, { video }) : (secilenTur() === "ogrenci" ? "Listeden bir öğrenci seçin." : "Bir sınıf seçin.");
+  };
+  if (mevcut.tur === "sinif") sinifSel.value = mevcut.sinif;
+  listele(); guncelle();
+  ara.oninput = () => { listele(); guncelle(); };
+  ogrSel.onchange = guncelle; sinifSel.onchange = guncelle;
+  arka.querySelectorAll('input[name="galeriAliciTur"]').forEach(r => { r.onchange = guncelle; });
+  const kapat = () => arka.remove();
+  arka.querySelectorAll("[data-alici-kapat]").forEach(b => { b.onclick = kapat; });
+  arka.onclick = e => { if (e.target === arka) kapat(); };
+  kaydetBtn.onclick = async () => {
+    const a = yeniAlici();
+    if (!a) return showToast(secilenTur() === "ogrenci" ? "Öğrenci seçin" : "Sınıf seçin", "error");
+    if (!confirm(galeriAliciDegisimOnayMetni(a, { video }))) return;
+    kaydetBtn.disabled = true; kaydetBtn.textContent = "Kaydediliyor…";
+    if (await galeriAliciKaydet(id, hedef())) kapat();
+    else { kaydetBtn.disabled = false; kaydetBtn.textContent = "Kaydet"; }
+  };
+  ara.focus?.();
+  return true;
 };
 
 window.galeriLightboxIndir = async function() {
@@ -37649,25 +37978,43 @@ window.galeriLightboxIndir = async function() {
   }
 };
 
-// Sil
+// Sil — ızgara, albüm ve Eğitim klasörü sil düğmelerinin TEK işlevi (ortak sözleşme D).
+// Sıra js/galeri-alici.js galeriOgesiniSil içindedir: belge okunur → gelişim bağları ve
+// egitim_{id} bildirimi → veli etkileşimleri (yalnız yönetim) → galeri belgesi (başarısızsa
+// dur) → Bunny dosyası medyaSil(yol) ile en iyi çabayla. Bunny Stream videosu için vekilde
+// silme işlemi yok; Stream kopyası bilerek atlanır (galeriDepolamaPlani notu).
+const galeriSilmeIslemleri = new Set();
 window.silGaleriOge = async function(id) {
-  const oge = galeriListesiVerisi.find(g => g.id === id);
-  if (!oge) return;
-  if (!confirm(`"${oge.orjinalAd || oge.etkinlikBaslik}" silinsin mi?`)) return;
-
+  if (!id || galeriSilmeIslemleri.has(id)) return false;
+  galeriSilmeIslemleri.add(id);
   try {
-    // Bunny'den sil
-    if (oge.dosyaTipi === "video" && oge.bunnyVideoId) {
-      await bunnyDeleteVideo(oge.bunnyVideoId);
-    } else if (oge.dosyaTipi === "foto" && oge.bunnyPath) {
-      await bunnyDeleteFile(oge.bunnyPath);
+    const sonuc = await galeriOgesiniSil(id, {
+      fb: { doc, getDoc, getDocs, setDoc, deleteDoc, collection, runTransaction, serverTimestamp }, db,
+      oturum: galeriOturumBilgisi(),
+      onayla: metin => confirm(metin),
+      medyaSil
+    });
+    if (sonuc.durum === "iptal") return false;
+    if (sonuc.durum === "yok") {
+      showToast("Bu içerik zaten silinmiş; liste yenilendi", "info");
+      galeriBellektenCikar(id); await renderGaleri(); return false;
     }
-    // Firestore'dan sil
-    await deleteDoc(doc(db, "galeri", id));
-    showToast("✗ Silindi");
-    renderGaleri();
+    if (!sonuc.ok) { showToast(sonuc.hata || "Silinemedi", "error"); return false; }
+    galeriBellektenCikar(id);
+    try { window.zekiDenetim?.("galeri_sil", { galeriId: id, dosyaTipi: sonuc.item?.dosyaTipi || "", hedefTur: sonuc.item?.hedefTur || "" }); } catch (_) {}
+    if (sonuc.notlar.length) console.info("Galeri silme notları:", sonuc.notlar);
+    if (sonuc.uyarilar.length) console.warn("Galeri silme uyarıları:", sonuc.uyarilar);
+    const tur = sonuc.plan.video ? "Video" : "Fotoğraf";
+    showToast(sonuc.uyarilar.length ? `✓ ${tur} silindi · Uyarı: ${sonuc.uyarilar.join(" · ")}` : `✓ ${tur} kalıcı olarak silindi`,
+      sonuc.uyarilar.length ? "warning" : "success");
+    await renderGaleri();
+    return true;
   } catch (e) {
-    showToast("Silinemedi: " + e.message, "error");
+    console.error("Galeri silme hatası:", e);
+    showToast("Silinemedi: " + (e?.message || e), "error");
+    return false;
+  } finally {
+    galeriSilmeIslemleri.delete(id);
   }
 };
 
@@ -37704,6 +38051,7 @@ window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger
 
     if (hedefTur === "sinif" && sinifSel) { sinifSel.value = hedefDeger; sinifSel.disabled = true; sinifSel.style.background = "#f3f4f6"; sinifSel.style.cursor = "not-allowed"; }
     if (hedefTur === "ogrenci" && ogrSel) { ogrSel.value = hedefDeger; ogrSel.disabled = true; ogrSel.style.background = "#f3f4f6"; ogrSel.style.cursor = "not-allowed"; }
+    galeriAliciOnizlemeGuncelle();
 
     // Mail checkbox'ı kapat ve gizle (güncellemede mail gitmez, sistem bildirim yeterli)
     if (mailChk) {
@@ -48940,7 +49288,7 @@ window.showBulkUpload = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=193"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=208"></script>
 
 <!-- Read-only, user-triggered pickup diagnosis. No automatic data requests. -->
 <script>
