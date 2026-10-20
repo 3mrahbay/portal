@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {classifyGalleryFile,validateStreamVideo,requestStreamAuthorization,uploadStreamVideo} from '../js/bunny-stream-upload.js';
 import {installedPwa,assertPrecachedImport} from './helpers/portal-pwa.mjs';
+import {galeriAliciBaglaminaEkle} from './helpers/galeri-alici-vm.mjs';
 
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const slice=(start,end)=>html.slice(html.indexOf(start),html.indexOf(end,html.indexOf(start)));
@@ -82,8 +83,8 @@ function uploadFixture(files) {
     db:{},doc:()=>({id:'synthetic-record'}),collection:()=>{},setDoc:async(ref,value)=>saved.push({ref,value}),
     galeriVideoYukle:async f=>{routes.push('video');assert.equal(validateStreamVideo(f).ok,true);return {embedUrl:'https://iframe.mediadelivery.net/embed/123/synthetic',videoId:'synthetic',libraryId:'123'};},
     resimSikistir:async f=>{routes.push('foto');return f;},medyaYukle:async()=>({url:'https://example.invalid/photo.jpg',yol:'photo.jpg'}),
-    galeriBekliyorMu:()=>true,notifyGalleryApproval:async()=>({ok:true}),showToast(){},console:{error(){}},albumEkleMod:null,closeGaleriYuklemeModal(){},renderGaleri(){}};
-  vm.runInNewContext(slice('window.galeriYukle = async function()', '// Lightbox\nlet aktifLightboxOge'),c);
+    galeriBekliyorMu:()=>true,notifyGalleryApproval:async()=>({ok:true}),showToast(){},console:{error(){}},albumEkleMod:null,closeGaleriYuklemeModal(){},renderGaleri(){},confirm:()=>true};
+  vm.createContext(c);galeriAliciBaglaminaEkle(c);vm.runInContext(slice('window.galeriYukle = async function()', '// Lightbox\nlet aktifLightboxOge'),c);
   return {saved,routes,run:c.window.galeriYukle};
 }
 test('actual Portal upload routes missing/generic MIME videos to Stream and persists normalized MIME',async()=>{

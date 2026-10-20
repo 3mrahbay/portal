@@ -15,10 +15,14 @@ const edges=[
  ['js/portal-galeri-canli.js','js/portal-galeri-medya.js'],
  ['moduller/veli-galeri.js','js/portal-galeri-canli.js'],
  ['moduller/veli-galeri.js','js/portal-galeri-medya.js'],
+ ['index.html','js/galeri-alici.js'],
+ ['js/zeky-galeri-filigran-koprusu.js','js/zeky-galeri-onay-egitim.js'],
+ ['js/zeky-galeri-onay-egitim.js','js/galeri-alici.js'],
 ];
 for(const [importer,target] of edges) test(`media release installs exact current edge ${importer} -> ${target}`,async()=>{
  const pwa=await installedPwa(),url=assertPrecachedImport(pwa,importer,target);
- assert.equal(url.search,new Set(['js/zeky-randevu-modal-koprusu.js','js/zeky-galeri-filigran-koprusu.js']).has(target)?'?v=193':new Set(['js/bunny-stream-upload.js','js/portal-galeri-klasor-ui.js','js/zeky-galeri-filigran-koprusu.js','js/portal-galeri-canli.js','js/portal-galeri-medya.js']).has(target)?'?v=192':'?v=188');
+ // Galeri alıcı/silme sürümü (v=208) değişen modülleri ve onları içe aktaran zinciri kapsar.
+ assert.equal(url.search,new Set(['js/zeky-randevu-modal-koprusu.js','js/zeky-galeri-filigran-koprusu.js','js/zeky-galeri-onay-egitim.js','js/portal-galeri-klasor-ui.js','js/galeri-alici.js']).has(target)?'?v=208':new Set(['js/bunny-stream-upload.js','js/portal-galeri-canli.js','js/portal-galeri-medya.js']).has(target)?'?v=192':'?v=188');
 });
 test('media release runtime, service worker registration, reload guard and cache generation agree',async()=>{
  const pwa=await installedPwa();await assertPwaBootstrap(pwa);

@@ -8,6 +8,7 @@ import {classifyGalleryFile} from '../js/bunny-stream-upload.js';
 import {gallerySession,galleryApprovalTarget} from '../js/galeri-onay-canli.js';
 import { galleryText, galleryProgram } from '../js/galeri-klasorleri.js';
 import { hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js';
+import { galeriAliciBaglaminaEkle } from './helpers/galeri-alici-vm.mjs';
 
 const source=await readFile(new URL('../index.html',import.meta.url),'utf8');
 function section(start,end){
@@ -96,6 +97,7 @@ function environment(t,{role='mudur'}={}){
     medyaYukle:async file=>{if(controls.uploadFail===true||controls.uploadFail===file.name)throw Error('synthetic-upload-failed');return {url:'https://synthetic.invalid/image',yol:'synthetic/path'};},
     galeriVideoYukle:async(file,{onProgress}={})=>{if(controls.uploadFail===true||controls.uploadFail===file.name)throw Error('synthetic-upload-failed');onProgress?.({percent:100});return{embedUrl:'https://iframe.mediadelivery.net/embed/lib/video',videoId:'video',libraryId:'lib',thumbnailUrl:''};},
     closeGaleriYuklemeModal(){},setTimeout,clearTimeout});
+  galeriAliciBaglaminaEkle(ctx,{yardimcilar:false});
   vm.runInContext(production,ctx);
   Object.assign(element('duyuruBaslik'),{value:'Private announcement title'});
   element('duyuruIcerik').value='Private announcement body';element('duyuruAciliyet').value='normal';
