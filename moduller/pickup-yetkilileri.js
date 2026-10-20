@@ -299,22 +299,20 @@ async function sil(i) {
 async function kaydet(ogrenciId, kisiler) {
   const { fb, db, state } = P();
   try {
-    // Ana veli kaydı asıl kaynaktır. Danışma için kişisel telefon içermeyen
-    // projeksiyon yardımcı kayıttır ve izin sorunu ana işlemi engellememelidir.
-    await fb.setDoc(fb.doc(db, "pickupYetkilileri", ogrenciId), {
+    // Asıl veli kaydı ve danışma kopyası (telefon yok, yalnız ad + yakınlık)
+    // TEK toplu yazımda (ZEKY ile aynı): biri yazılıp diğeri kalırsa kapıdaki
+    // danışma, velinin listeden çıkardığı kişiyi hâlâ yetkili görebilirdi.
+    const batch = fb.writeBatch(db);
+    batch.set(fb.doc(db, "pickupYetkilileri", ogrenciId), {
       kisiler,
       guncelleyen: (state.currentUser?.email || "").toLowerCase(),
       guncellendi: fb.serverTimestamp()
     }, { merge: true });
-
-    try {
-      await fb.setDoc(fb.doc(db, "danismaPickupYetkilileri", ogrenciId), {
-        kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
-        guncellendi: fb.serverTimestamp()
-      }, { merge: true });
-    } catch (e) {
-      console.warn("pickup güvenli yetkili özeti kaydedilemedi:", e.code || e.message);
-    }
+    batch.set(fb.doc(db, "danismaPickupYetkilileri", ogrenciId), {
+      kisiler: kisiler.map(k => ({ ad: k.ad || "", yakinlik: k.yakinlik || "" })),
+      guncellendi: fb.serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
 
     _cache[ogrenciId] = kisiler;
     return true;

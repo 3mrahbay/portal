@@ -14510,21 +14510,37 @@ async function danismaOperasyonProjeksiyonlariniSenkronla() {
   }
 }
 
-async function danismaPersonelRehberiniSenkronla(liste) {
-  if (!danismaProjeksiyonYonetebilirMi()) return;
+// Danışma personel rehberi (ad, rol, unvan, durum, sınıflar — iletişim yok).
+// Yalnız personeller kaydını yönetenler (yönetici, kurucu müdür, müdür) eşitler.
+// siniflar: kapıdan mesajda çocuğun sınıf öğretmeni önceden seçilsin diye.
+// Listede olmayan (silinmiş) personel rehberden düşer; danışma ona mesaj iletmesin.
+async function danismaPersonelRehberiniSenkronla(liste, atamalar = {}) {
+  if (!(isAdmin || ["kurucu_mudur", "mudur"].includes(rolNormalize(aktifKullaniciRol)))) return;
   const yazilacak = (liste || []).flatMap(p => {
     const email = String(p.email || p.id || "").toLowerCase().trim();
     if (!email) return [];
+    const siniflar = [...new Set([...(Array.isArray(p.sinifAtamalari) ? p.sinifAtamalari : []), ...(atamalar[email] || [])]
+      .filter(s => typeof s === "string" && s.trim()))];
     return [{
       ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
       data: {
         adSoyad: p.adSoyad || p.ad || "",
         rol: rolNormalize(p.rol), unvan: p.unvan || "",
-        durum: p.durum || "aktif", guncellendi: serverTimestamp()
+        durum: p.durum || "aktif", siniflar, guncellendi: serverTimestamp()
       }
     }];
   });
-  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+  if (!yazilacak.length) return;
+  await danismaGuvenliBelgeleriYaz(yazilacak);
+  const gecerli = new Set(yazilacak.map(k => k.ref.id));
+  const mevcut = await getDocs(collection(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller));
+  const silinecek = [];
+  mevcut.forEach(d => { if (!gecerli.has(d.id)) silinecek.push(d.ref); });
+  for (let i = 0; i < silinecek.length; i += 400) {
+    const batch = writeBatch(db);
+    silinecek.slice(i, i + 400).forEach(r => batch.delete(r));
+    await batch.commit();
+  }
 }
 const ROL_ETIKETLERI = {
   kurucu_mudur: "Kurucu Müdür",
@@ -14874,8 +14890,6 @@ async function loadPersoneller() {
     const snap = await getDocs(collection(db, "personeller"));
     personelListesi = [];
     snap.forEach(d => personelListesi.push({ id: d.id, ...d.data() }));
-    try { await danismaPersonelRehberiniSenkronla(personelListesi); }
-    catch (e) { console.warn("Danışma personel rehberi:", e.code || e.message); }
 
     // Sınıf atamaları (tüm öğretmenler için tek seferde)
     personelAtamaHaritasi = {};
@@ -14889,6 +14903,8 @@ async function loadPersoneller() {
         personelAtamaHaritasi[em].push(v.sinif);
       }
     });
+    try { await danismaPersonelRehberiniSenkronla(personelListesi, personelAtamaHaritasi); }
+    catch (e) { console.warn("Danışma personel rehberi:", e.code || e.message); }
 
     personelListele();
     ozellikYonetimRender(); // Özellik Yönetimi kartını da doldur
@@ -15277,6 +15293,8 @@ window.personelSil = async function(email) {
     const batch = writeBatch(db);
     atamaSnap.forEach(d => batch.delete(d.ref));
     batch.delete(doc(db, "personeller", email));
+    // Danışma rehberinden de düşsün: danışma silinen kişiye kapıdan mesaj iletmesin.
+    batch.delete(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email.toLowerCase()));
     await batch.commit();
     showToast("🗑️ Personel silindi");
     await loadPersoneller();
@@ -39047,7 +39065,7 @@ window.profilimRender = async function() {
 
       ${kart("İhtiyaç Taleplerim", "package-plus", "#2D5E3E", `<div id="profilIhtiyacKart"><div style="font-size:12.5px; color:#94A3B8;">Yükleniyor…</div></div>`)}
 
-      ${danismaRolMu() ? "" : kart("Veli Görüşmelerim", "calendar-clock", "#0891B2", `
+      ${!veliGorusmesiYapanRolMu() ? "" : kart("Veli Görüşmelerim", "calendar-clock", "#0891B2", `
         <div id="profilRandevular"><div style="font-size:12.5px; color:#94A3B8;">Yükleniyor…</div></div>
       `)}
 
@@ -39073,10 +39091,19 @@ window.profilimRender = async function() {
 };
 
 // Personelin kendisiyle yapılacak veli görüşmeleri
+// Veli görüşmesi yapan roller: randevu sunucusunun kabul ettikleri (öğretmenler,
+// PDR, yönetim). Danışma, muhasebe, aşçı, temizlik bu kartı görmez; sunucu bu
+// rollerin isteğini reddettiği için kart "Randevu bilgisi alınamadı" diyordu.
+function veliGorusmesiYapanRolMu() {
+  return !!isAdmin || ["kurucu_mudur", "mudur", "mudur_yardimcisi", "egitim_koordinator", "egitim_koordinatoru", "pdr",
+    "ogretmen", "yardimci_ogretmen", "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni", "brans_ogretmeni"]
+    .includes(rolNormalize(aktifKullaniciRol));
+}
+
 // Randevular yeni sistemden (randevuSorguV3, moduller/gorusme-notlari.js) —
 // öğretmen ana sayfasındaki kartla aynı. Eski randevuSlotlari koleksiyonu
 // kural gereği kapalı ("Randevular yüklenemedi"); yalnız modül yüklenemezse denenir.
-// Danışma veliyle görüşme yapmaz: kart onda hiç çizilmez.
+// Görüşme yapmayan rollerde kart hiç çizilmez (veliGorusmesiYapanRolMu).
 window.profilRandevulariYukle = async function(email) {
   const el = document.getElementById("profilRandevular");
   if (!el) return;
