@@ -158,7 +158,7 @@ async function veliBildir() {
   busy(true);
   let saved = false;
   try {
-    const { sabahGirisKaydet } = await import("../js/sabah-giris-kaydi.js?v=1");
+    const { sabahGirisKaydet } = await import("../js/sabah-giris-kaydi.js?v=2");
     if (!active()) return;
     const tarihliApi = Object.create(api); // Canlı state getter / oturum kontrolleri korunur.
     tarihliApi.bugun = sabahBugun;

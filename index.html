@@ -14095,7 +14095,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v207";
+window.PORTAL_SURUM = "v208";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14397,25 +14397,70 @@ function danismaProjeksiyonYonetebilirMi() {
   return !!isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(rolNormalize(aktifKullaniciRol));
 }
 
+// merge: danışmanın kendi yazdığı alanlar (kapıda, kimlik, not, varış saati)
+// eşitlemede silinmez. Önceden düz "set" belgeyi baştan yazıyordu.
 async function danismaGuvenliBelgeleriYaz(kayitlar) {
   for (let i = 0; i < kayitlar.length; i += 400) {
     const batch = writeBatch(db);
-    kayitlar.slice(i, i + 400).forEach(k => batch.set(k.ref, k.data));
+    kayitlar.slice(i, i + 400).forEach(k => batch.set(k.ref, k.data, { merge: true }));
     await batch.commit();
   }
 }
 
+// Boş metin / yanlış tür yazılmaz; var olan değer korunur.
+function danismaDoluAlanlar(kaynak, alanlar) {
+  const sonuc = {};
+  alanlar.forEach(a => {
+    const d = kaynak[a];
+    if ((typeof d === "string" && d.trim()) || (typeof d === "number" && Number.isFinite(d)) || d === true) sonuc[a] = d;
+  });
+  return sonuc;
+}
+
+// Günlük kopya eşitlemesi (okul zili / sabah girişi). Kopya YOKSA ana kayıttan
+// oluşturulur. Kopya VARSA yalnız boş kimlik alanları (ad, sınıf, saat…)
+// tamamlanır; durum ve zaman alanlarına dokunulmaz — canlı akışla yarışıp
+// "hazır"ı "yolda"ya geri çekmesin. Kopyalar okunamazsa hiç yazılmaz.
+async function danismaGunlukKopyaPlani(kaynakKoleksiyon, kopyaKoleksiyon, bugun, tamAlanlar, kimlikAlanlari) {
+  const [anaSnap, kopyaSnap] = await Promise.all([
+    getDocs(query(collection(db, kaynakKoleksiyon), where("tarih", "==", bugun))),
+    getDocs(query(collection(db, kopyaKoleksiyon), where("tarih", "==", bugun)))
+  ]);
+  const kopyalar = new Map();
+  kopyaSnap.forEach(d => kopyalar.set(d.id, d.data() || {}));
+  const plan = [];
+  anaSnap.forEach(d => {
+    const v = { ...(d.data() || {}) };
+    v.ogrenciId = v.ogrenciId || v.cocukId || "";
+    v.tarih = v.tarih || bugun;
+    const mevcut = kopyalar.get(d.id);
+    let data;
+    if (!mevcut) {
+      data = danismaDoluAlanlar(v, tamAlanlar);
+    } else {
+      const eksik = kimlikAlanlari.filter(a => !(typeof mevcut[a] === "string" && mevcut[a].trim()));
+      data = danismaDoluAlanlar(v, eksik);
+    }
+    if (!Object.keys(data).length) return;
+    data.guncellendi = serverTimestamp();
+    plan.push({ ref: doc(db, kopyaKoleksiyon, d.id), data });
+  });
+  return plan;
+}
+
 // Yönetim oturumunda tam kaynaklardan yalnız operasyon alanlarını ayırır.
 // Danışma bu fonksiyonu çalıştıramaz ve kaynak koleksiyonları okuyamaz.
+// Her koleksiyon ayrı yazılır: birinin kuralı yoksa (ör. öğrenci özeti)
+// diğerlerinin eşitlemesi de reddedilmez.
 async function danismaOperasyonProjeksiyonlariniSenkronla() {
   if (!danismaProjeksiyonYonetebilirMi()) return;
-  const yazilacak = [];
+  const gruplar = { ogrenciOzeti: [], teslimYetkilisi: [], okulZili: [], sabahGirisi: [] };
   const simdi = serverTimestamp();
 
   (ogrenciList || []).forEach(o => {
     const ayar = ayarListesi[o.id] || {};
     const durum = getOgrenciDurum(o, ayar) || "aktif";
-    yazilacak.push({
+    gruplar.ogrenciOzeti.push({
       ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.ogrenciler, o.id),
       data: {
         ogrenciAdSoyad: o.ogrenciAdSoyad || o.adSoyad || "",
@@ -14435,7 +14480,7 @@ async function danismaOperasyonProjeksiyonlariniSenkronla() {
       const kisiler = Array.isArray(d.data()?.kisiler)
         ? d.data().kisiler.map(k => ({ ad: String(k?.ad || ""), yakinlik: String(k?.yakinlik || "") }))
         : [];
-      yazilacak.push({
+      gruplar.teslimYetkilisi.push({
         ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickupYetkilileri, d.id),
         data: { kisiler, guncellendi: simdi }
       });
@@ -14444,43 +14489,25 @@ async function danismaOperasyonProjeksiyonlariniSenkronla() {
 
   const bugun = new Date().toISOString().slice(0, 10);
   try {
-    const pickupSnap = await getDocs(query(collection(db, "pickupBildirimleri"), where("tarih", "==", bugun)));
-    pickupSnap.forEach(d => {
-      const v = d.data() || {};
-      yazilacak.push({
-        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, d.id),
-        data: {
-          ogrenciId: v.ogrenciId || v.cocukId || "", ogrenciAd: v.ogrenciAd || "",
-          sinif: v.sinif || "", tarih: v.tarih || bugun,
-          hedefSaat: v.hedefSaat || "", alanKisi: v.alanKisi || "Veli",
-          durum: v.durum || "yolda", olusturuldu: v.olusturuldu || "",
-          hazirZamani: v.hazirZamani || "", teslimZamani: v.teslimZamani || "",
-          teslimEden: v.teslimEden || "", veliOnay: v.veliOnay === true,
-          veliOnayZamani: v.veliOnayZamani || "", iptalZamani: v.iptalZamani || "",
-          guncellendi: simdi
-        }
-      });
-    });
+    gruplar.okulZili = await danismaGunlukKopyaPlani("pickupBildirimleri", DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, bugun,
+      ["ogrenciId", "ogrenciAd", "sinif", "tarih", "hedefSaat", "alanKisi", "durum", "olusturuldu",
+       "hazirZamani", "teslimZamani", "teslimEden", "veliOnay", "veliOnayZamani", "iptalZamani",
+       "kapida", "kapidaZamani", "kimlikKontrol", "kimlikKontrolZamani", "danismaNotu"],
+      ["ogrenciId", "ogrenciAd", "sinif", "hedefSaat", "alanKisi", "olusturuldu"]);
   } catch (e) { console.warn("Danışma okul zili projeksiyonu:", e.code || e.message); }
 
   try {
-    const sabahSnap = await getDocs(query(collection(db, "sabahGirisleri"), where("tarih", "==", bugun)));
-    sabahSnap.forEach(d => {
-      const v = d.data() || {};
-      yazilacak.push({
-        ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.sabah, d.id),
-        data: {
-          ogrenciId: v.ogrenciId || "", ogrenciAd: v.ogrenciAd || "",
-          sinif: v.sinif || "", tarih: v.tarih || bugun,
-          veliBildirdi: v.veliBildirdi === true, veliBildirimSaati: v.veliBildirimSaati || "",
-          sinifaGirisOnayi: v.sinifaGirisOnayi || "", onaylayanAd: v.onaylayanAd || "",
-          onaylayanRol: v.onaylayanRol || "", guncellendi: simdi
-        }
-      });
-    });
+    gruplar.sabahGirisi = await danismaGunlukKopyaPlani("sabahGirisleri", DANISMA_GUVENLI_KOLEKSIYONLAR.sabah, bugun,
+      ["ogrenciId", "ogrenciAd", "sinif", "tarih", "veliBildirdi", "veliBildirimSaati",
+       "sinifaGirisOnayi", "onaylayanAd", "onaylayanRol", "tahminiVaris", "tahminiSureDk"],
+      ["ogrenciId", "ogrenciAd", "sinif"]);
   } catch (e) { console.warn("Danışma sabah girişi projeksiyonu:", e.code || e.message); }
 
-  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+  for (const [ad, liste] of Object.entries(gruplar)) {
+    if (!liste.length) continue;
+    try { await danismaGuvenliBelgeleriYaz(liste); }
+    catch (e) { console.warn(`Danışma eşitlemesi (${ad}):`, e.code || e.message); }
+  }
 }
 
 async function danismaPersonelRehberiniSenkronla(liste) {
@@ -18352,18 +18379,46 @@ function okulZiliKoleksiyonu() {
   return danismaRolMu() ? DANISMA_GUVENLI_KOLEKSIYONLAR.pickup : "pickupBildirimleri";
 }
 
-function okulZiliGuvenliVeri(v, ogrenciId = "", tarih = "") {
-  const x = v || {};
-  return {
-    ogrenciId: x.ogrenciId || x.cocukId || ogrenciId || "",
-    ogrenciAd: x.ogrenciAd || "", sinif: x.sinif || "", tarih: x.tarih || tarih || "",
-    hedefSaat: x.hedefSaat || "", alanKisi: x.alanKisi || "Veli",
-    durum: x.durum || "yolda", olusturuldu: x.olusturuldu || "",
-    hazirZamani: x.hazirZamani || "", teslimZamani: x.teslimZamani || "",
-    teslimEden: x.teslimEden || "", veliOnay: x.veliOnay === true,
-    veliOnayZamani: x.veliOnayZamani || "", iptalZamani: x.iptalZamani || "",
-    guncellendi: serverTimestamp()
-  };
+// Danışma kopyası (danismaPickupBildirimleri) — VELİ yazımı.
+// Kural veliye bu kopyayı OKUMA izni vermez (yalnız personel okur). Bu yüzden
+// önce okuyup sonra yazmak her seferinde reddediliyor ve kopya hiç oluşmuyordu;
+// danışma ekranında isim/saat görünmüyordu. Kopya okunmadan, birleştirerek
+// (merge) ve yalnız kuralın veliye izin verdiği alanlarla yazılır:
+// ogrenciId, ogrenciAd, sinif, tarih, hedefSaat, alanKisi, durum ("yolda"),
+// olusturuldu, guncellendi. Boş metin yazılmaz; var olan ad/sınıf silinmez.
+// Yalnız "yolda" durumundaki bildirim için çağrılır (hazır/teslim geri çekilmez).
+const OKUL_ZILI_VELI_KOPYA_ALANLARI = ["ogrenciId", "ogrenciAd", "sinif", "tarih", "hedefSaat", "alanKisi", "olusturuldu"];
+function okulZiliVeliKopyasi(v, ogrenciId = "", tarih = "") {
+  const x = { ...(v || {}) };
+  x.ogrenciId = x.ogrenciId || x.cocukId || ogrenciId || "";
+  x.tarih = x.tarih || tarih || "";
+  const sonuc = { durum: "yolda", guncellendi: serverTimestamp() };
+  OKUL_ZILI_VELI_KOPYA_ALANLARI.forEach(a => {
+    if (typeof x[a] === "string" && x[a].trim()) sonuc[a] = x[a];
+  });
+  return sonuc;
+}
+
+// Eski istemciden ya da reddedilen yazımdan eksik kalan kopyayı, veli kendi
+// bekleyen bildirimini görüntülediğinde oturum başına bir kez tamamlar.
+const _okulZiliVeliKopyaDenendi = new Set();
+async function okulZiliVeliKopyasiniTamamla(b, ogr, tarih) {
+  if (!b || b.durum !== "yolda" || !ogr?.id) return false;
+  const veri = okulZiliVeliKopyasi({
+    ...b,
+    ogrenciAd: b.ogrenciAd || ogr.ogrenciAdSoyad || "",
+    sinif: b.sinif || (ayarListesi?.[ogr.id]?.kayit?.sinif) || ogr.sinif || ""
+  }, ogr.id, tarih);
+  const anahtar = JSON.stringify([ogr.id, tarih, ...OKUL_ZILI_VELI_KOPYA_ALANLARI.map(a => veri[a] || "")]);
+  if (_okulZiliVeliKopyaDenendi.has(anahtar)) return false;
+  _okulZiliVeliKopyaDenendi.add(anahtar);   // ret alınsa da aynı oturumda tekrar denenmez
+  try {
+    await setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih), veri, { merge: true });
+    return true;
+  } catch (e) {
+    console.warn("okul zili danışma kopyası:", e.code || e.message);
+    return false;
+  }
 }
 
 window.veliOkulZiliDoldur = async function() {
@@ -18384,13 +18439,8 @@ window.veliOkulZiliDoldur = async function() {
     const s = await getDoc(doc(db, "pickupBildirimleri", ogr.id + "__" + tarih));
     if (s.exists()) {
       b = s.data();
-      // Eski kaydı ilk veli görüntülemesinde güvenli danışma projeksiyonuna
-      // yalnız belge henüz yoksa taşı.
-      try {
-        const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
-        const guvenli = await getDoc(guvenliRef);
-        if (!guvenli.exists()) await setDoc(guvenliRef, okulZiliGuvenliVeri(b, ogr.id, tarih));
-      } catch (e) { console.warn("okul zili güvenli özet:", e.code || e.message); }
+      // Bekleyen bildirimin danışma kopyası eksikse tamamla (okuma yapmadan).
+      okulZiliVeliKopyasiniTamamla(b, ogr, tarih);
     }
   } catch (e) { console.warn("okul zili:", e.code || e.message); }
 
@@ -18572,18 +18622,11 @@ window.veliOkulZiliBildir = async function() {
     await batch.commit();
 
     // Danışma için kişisel e-posta içermeyen operasyon özeti yardımcıdır.
-    // Erişim yoksa ana işlem yine başarılı kabul edilir.
+    // Erişim yoksa ana işlem yine başarılı kabul edilir. Kopya okunmaz
+    // (veliye okuma izni yok); izinli alanlar birleştirilerek yazılır.
     try {
-      const guvenliRef = doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih);
-      const guvenliMevcut = await getDoc(guvenliRef);
-      if (guvenliMevcut.exists()) {
-        await setDoc(guvenliRef, {
-          hedefSaat: saat, alanKisi: kisi, durum: "yolda",
-          guncellendi: serverTimestamp()
-        }, { merge: true });
-      } else {
-        await setDoc(guvenliRef, okulZiliGuvenliVeri(tamVeri, ogr.id, tarih));
-      }
+      await setDoc(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogr.id + "__" + tarih),
+        okulZiliVeliKopyasi(tamVeri, ogr.id, tarih), { merge: true });
     } catch (projeksiyonHatasi) {
       console.warn("Okul Zili danışma özeti güncellenemedi:", projeksiyonHatasi.code || projeksiyonHatasi.message);
     }
@@ -21198,6 +21241,7 @@ window.pickupHazirla = async function(ogrenciId, tarih) {
     const batch = writeBatch(db);
     batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), guncelleme, { merge: true });
     batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ...okulZiliKopyaKimligi(ogrenciId, tarih),
       ogrenciId, tarih, durum: "hazir",
       hazirZamani: guncelleme.hazirZamani, guncellendi: serverTimestamp()
     }, { merge: true });
@@ -21228,6 +21272,7 @@ window.pickupTeslimEt = async function(ogrenciId, tarih, ogrAd, alanKisi) {
     const batch = writeBatch(db);
     batch.set(doc(db, "pickupBildirimleri", ogrenciId + "__" + tarih), guncelleme, { merge: true });
     batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ...okulZiliKopyaKimligi(ogrenciId, tarih),
       ogrenciId, tarih, durum: "teslim", teslimZamani: guncelleme.teslimZamani,
       teslimEden: ad, guncellendi: serverTimestamp()
     }, { merge: true });
@@ -21257,6 +21302,7 @@ window.pickupKapidaBildirPortal = async function(ogrenciId, tarih) {
       guncellendi:serverTimestamp()
     }, { merge:true });
     batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ...okulZiliKopyaKimligi(ogrenciId, tarih),
       ogrenciId, tarih, kapida:true, kapidaZamani:zaman,
       guncellendi:serverTimestamp()
     }, { merge:true });
@@ -21281,6 +21327,7 @@ window.pickupKimlikOnaylaPortal = async function(ogrenciId, tarih, alanKisi) {
       guncellendi:serverTimestamp()
     }, { merge:true });
     batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ...okulZiliKopyaKimligi(ogrenciId, tarih),
       ogrenciId, tarih, kimlikKontrol:true, kimlikKontrolZamani:zaman,
       guncellendi:serverTimestamp()
     }, { merge:true });
@@ -21300,6 +21347,7 @@ window.pickupDanismaNotuPortal = async function(ogrenciId, tarih, mevcut) {
       danismaNotu:temiz, guncellendi:serverTimestamp()
     }, { merge:true });
     batch.set(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.pickup, ogrenciId + "__" + tarih), {
+      ...okulZiliKopyaKimligi(ogrenciId, tarih),
       ogrenciId, tarih, danismaNotu:temiz, guncellendi:serverTimestamp()
     }, { merge:true });
     await batch.commit();
@@ -21310,6 +21358,22 @@ window.pickupDanismaNotuPortal = async function(ogrenciId, tarih, mevcut) {
 
 // Boş kuyrukta da tek canlı abonelik açık kalır. Snapshot doğrudan çizilir.
 const _okulZiliCanli = canliListeOlustur();
+
+// Son çizilen listedeki kimlik alanları (id → ad, sınıf, hedef saat, alacak kişi,
+// bildirim zamanı). Hazırla / Teslim / Kapıda / Kimlik / Not danışma kopyasına
+// yazarken bunları da ekler: velinin kopya yazımı eksik kaldıysa (eski uygulama,
+// reddedilen yazım) danışma ekranı ismi ilk personel işleminde alır. Boş değer
+// yazılmaz; yalnız ekranda zaten görünen bilgi taşınır, veli iletişimi taşınmaz.
+let okulZiliKimlikleri = new Map();
+const OKUL_ZILI_KIMLIK_ALANLARI = ["ogrenciAd", "sinif", "hedefSaat", "alanKisi", "olusturuldu"];
+function okulZiliKopyaKimligi(ogrenciId, tarih) {
+  const k = okulZiliKimlikleri.get(String(ogrenciId || "") + "__" + String(tarih || "")) || {};
+  const sonuc = {};
+  OKUL_ZILI_KIMLIK_ALANLARI.forEach(a => {
+    if (typeof k[a] === "string" && k[a].trim()) sonuc[a] = k[a];
+  });
+  return sonuc;
+}
 function okulZiliListeKimligi() {
   return JSON.stringify([currentUser?.uid || "", aktifKullaniciRol,
     okulZiliKoleksiyonu(), vzBugun(), aktifKullaniciSiniflari || []]);
@@ -21345,10 +21409,17 @@ window.okulZiliDoldur = function(snap = null) {
   // durum akışı: yolda → hazir → teslim   (veliOnay ayrı beyandır)
   const bugun = new Date().toISOString().substring(0, 10);
   let kayitlar = [];
+  const kimlikler = new Map();
   snap.forEach(d => {
     const v = d.data() || {};
     if (v.durum === "iptal") return;
     const ogrenciOzeti = (ogrenciList || []).find(o => o.id === (v.ogrenciId || v.cocukId || ""));
+    kimlikler.set(d.id, {
+      ogrenciAd: v.ogrenciAd || ogrenciOzeti?.ogrenciAdSoyad || ogrenciOzeti?.adSoyad || "",
+      sinif: v.sinif || ogrenciOzeti?.sinif || ogrenciOzeti?.sinifi || "",
+      hedefSaat: v.hedefSaat || "", alanKisi: v.alanKisi || "",
+      olusturuldu: typeof v.olusturuldu === "string" ? v.olusturuldu : ""
+    });
     // Teslim ekranında yalnız operasyon alanları tutulur. Belgedeki veli
     // e-postası / onay e-postası gibi kimlik alanları arayüz durumuna alınmaz.
     kayitlar.push({
@@ -21373,6 +21444,8 @@ window.okulZiliDoldur = function(snap = null) {
       danismaNotu: v.danismaNotu || ""
     });
   });
+
+  okulZiliKimlikleri = kimlikler;
 
   // ÖĞRETMEN: yalnızca kendi sınıfının çocukları
   if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
@@ -48908,13 +48981,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=207");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=208");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v207";
+          const anahtar = "portalSwReload_v208";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

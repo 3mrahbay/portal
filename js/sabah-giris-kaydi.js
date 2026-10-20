@@ -2,7 +2,7 @@ import { operasyonPushTetikle } from "./zeky-operasyon-push.js";
 // SG-2: no permission changes, no alternate credentials, no automatic retries.
 // Only the primary write acknowledges the notice. A failed reception copy is
 // reported separately; it must not erase the primary write or imply delivery.
-export const SURUM = 'SABAH-GIRIS-KAYDI-2';
+export const SURUM = 'SABAH-GIRIS-KAYDI-3';
 const validId = x => typeof x === 'string' && x.length > 0 && x.length <= 512 && !x.includes('/');
 const err = code => Object.assign(new Error(code), { code });
 export const hataKodu = e => /^[a-z0-9/-]{1,80}$/.test(e?.code || '') ? e.code : 'unknown';
@@ -56,19 +56,23 @@ export async function sabahGirisKaydet(api) {
   const result = { anaKayitKaydedildi: true, zatenTeslimAlindi: false, danismaAktarildi: false, danismaHataKodu: '' };
   if (!active()) return { ...result, danismaHataKodu: 'sabah/session-changed' };
   try {
-    const projectionRef = fb.doc(db, 'danismaSabahGirisleri', id);
-    const snap = await fb.getDoc(projectionRef);
+    // The reception copy is readable by staff only, so a parent GET is always
+    // denied and the copy used to be skipped entirely (reception saw no name).
+    // Write it blind with merge, using only the fields the parent rule allows.
+    // Empty name/class are never sent, so an existing value is not erased;
+    // admission confirmation and arrival estimate fields are left untouched.
+    const source = existing || initial;
+    const copy = {
+      ogrenciId: childId, tarih: date,
+      veliBildirdi: true, veliBildirimSaati: notice.veliBildirimSaati,
+      guncellendi: fb.serverTimestamp()
+    };
+    const name = source.ogrenciAd || initial.ogrenciAd;
+    const className = source.sinif || initial.sinif;
+    if (name) copy.ogrenciAd = name;
+    if (className) copy.sinif = className;
     check();
-    const noticeOnly = { veliBildirdi: true, veliBildirimSaati: notice.veliBildirimSaati, guncellendi: fb.serverTimestamp() };
-    if (snap.exists()) {
-      await fb.updateDoc(projectionRef, noticeOnly);
-    } else {
-      const source = existing || initial;
-      await fb.setDoc(projectionRef, {
-        ogrenciId: childId, ogrenciAd: source.ogrenciAd || '',
-        sinif: source.sinif || '', tarih: date, ...noticeOnly
-      });
-    }
+    await fb.setDoc(fb.doc(db, 'danismaSabahGirisleri', id), copy, { merge: true });
     result.danismaAktarildi = true;
   } catch (e) { result.danismaHataKodu = hataKodu(e); }
   await operasyonPushTetikle("sabah-yeni", id);
