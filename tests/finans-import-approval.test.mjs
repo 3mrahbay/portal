@@ -4,28 +4,7 @@ import {OWNER_EMAIL,stageCandidate,prepareReview,approveCandidate,categoryOption
 
 // Synthetic-only transactional store. Writes are committed only if callback
 // completes; serial execution models Firestore retrying a concurrent loser.
-function store() {
-  const data=new Map(); let serial=Promise.resolve(), failCommit=false;
-  const fb={
-    doc:(_db,...parts)=>parts.join('/'),serverTimestamp:()=> 'synthetic-timestamp',
-    runTransaction(_db,fn) {
-      const result=serial.then(async()=>{
-        const pending=new Map(); let wrote=false;
-        const tx={
-          async get(ref){assert.equal(wrote,false,'Firestore reads must precede writes');const v=data.get(ref);return {exists:()=>v!==undefined,data:()=>structuredClone(v)};},
-          set(ref,value){wrote=true;pending.set(ref,structuredClone(value));},
-          update(ref,value){wrote=true;assert.ok(data.has(ref));pending.set(ref,{...structuredClone(data.get(ref)),...structuredClone(value)});}
-        };
-        const output=await fn(tx);
-        if(failCommit) throw Error('synthetic commit failure');
-        for(const [key,value] of pending) data.set(key,value);
-        return output;
-      });
-      serial=result.catch(()=>{}); return result;
-    }
-  };
-  return {data,ctx:{fb,db:{},email:OWNER_EMAIL},failCommit:value=>{failCommit=value;}};
-}
+import {store} from './finance-import-store.mjs';
 const payment=(overrides={})=>({
   kind:'payment',revision:1,source:{mailbox:'owner@example.invalid',messageId:'synthetic-message'},
   amountMinor:40000,currency:'TRY',studentId:'synthetic-student',period:'2026-2027',
@@ -53,7 +32,7 @@ test('staging is source-idempotent, changes no balances and never auto approves'
 test('partial payment, queue, ledger and owner-only notification commit once, including concurrent retry',async()=>{
   const s=await setup();
   const outcomes=await Promise.all([approve(s),approve(s)]);
-  assert.deepEqual(outcomes.map(x=>x.alreadyProcessed),[false,true]);
+  assert.deepEqual(outcomes.map(x=>x.alreadyProcessed).sort(),[false,true]);
   const row=s.data.get('ogrenciler/synthetic-student/donemler/2026-2027').aylikOdemeler['2026-10'];
   assert.equal(row.odenenTutar,400);assert.equal(row.odendi,false);assert.equal(row.hareketler.length,1);
   assert.equal(s.data.get('finansIceriAktarimlari/'+s.id).status,'islendi');

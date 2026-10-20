@@ -1,5 +1,5 @@
-// Dormant first-stage adapter: no mailbox reader, automatic posting or UI registration.
-// Authentication/authorization must ALSO be enforced by the eventual trusted host/rules.
+// Accounting engine. Production calls go through server/finance/approval-service.mjs.
+// Its email check is defense in depth, never an authentication boundary.
 import {odemePlani, tahsilatUygula, gecerliTarih} from './core.js';
 import {gecerliDonem, planSatiriImzasi} from './payment-actions.js';
 
@@ -94,7 +94,8 @@ export function prepareReview(candidate, {category=null, duplicateReview=false}=
   return {
     candidate:structuredClone(candidate), category, duplicateReview,
     signature:reviewSignature(candidate),
-    planSignature:row ? planSatiriImzasi(row) : null
+    planSignature:row ? planSatiriImzasi(row) : null,
+    balance:row ? {expected:row.beklenen,paid:row.odenen,remaining:row.kalan} : null
   };
 }
 export async function approveCandidate(ctx, {queueId, review, confirmed=false}) {
