@@ -15,6 +15,7 @@ const yazilanlar = [];
 const mesajlar = [];
 let veri = {};
 let onbellekten = false;
+let okumaHatasi = false;
 let girisEposta = 'emrahby@gmail.com';
 const snap = (v) => ({ exists: () => v != null, data: () => structuredClone(v), metadata: { fromCache: onbellekten } });
 globalThis.window = {
@@ -30,8 +31,8 @@ globalThis.window = {
       collection: (_db, kol) => ({ kol }),
       orderBy: () => ({}), limit: () => ({}),
       query: (k) => k,
-      getDoc: async (ref) => snap(veri[ref.yol]),
-      getDocs: async (q) => ({ docs: Object.entries(veri).filter(([k]) => k.startsWith(q.kol + '/')).map(([, v]) => ({ data: () => structuredClone(v) })) }),
+      getDoc: async (ref) => { if (okumaHatasi) throw new Error('unavailable'); return snap(veri[ref.yol]); },
+      getDocs: async (q) => { if (okumaHatasi) throw new Error('unavailable'); return { docs: Object.entries(veri).filter(([k]) => k.startsWith(q.kol + '/')).map(([, v]) => ({ data: () => structuredClone(v) })) }; },
       setDoc: async (ref, v) => { yazilanlar.push({ ref, v }); },
       serverTimestamp: () => 'SUNUCU_ZAMANI',
     },
@@ -228,6 +229,45 @@ test('önbellekten okunan ayar üzerine kayıt yapılmaz; yetkisiz hesap ekranı
   await window._gorunurluk.yenile();
   assert.match(d.innerHTML, /Bu bölüm kapalı/);
   girisEposta = 'emrahby@gmail.com';
+});
+
+test('başarılı okumadan sonra başarısız yenileme eski taslağın kaydına izin vermez', async () => {
+  veri = {
+    'gorunurlukDurum/searchConsole': { backfillTamam: true, sonGun: '2026-10-18', sonHata: null },
+    'gorunurlukAylik/2026-09': ayBelgesi('2026-09'),
+    'gorunurlukAyarlar/kelimeGruplari': { marka: ['bcka'], bolgeler: [{ id: 'tuzla', ad: 'Tuzla', kaliplar: ['tuzla'] }], konular: m.VARSAYILAN_GRUPLAR.konular, niyetler: m.VARSAYILAN_GRUPLAR.niyetler },
+  };
+  kok();
+  await window._gorunurluk.yenile();
+  window._gorunurluk.sekme('gruplar');
+  window._gorunurluk.grupEkle('bolgeler');
+  window._gorunurluk.grupAd('bolgeler', 1, 'Pendik');
+  window._gorunurluk.grupKalip('bolgeler', 1, 'pendik');
+  okumaHatasi = true;
+  await window._gorunurluk.yenile();
+  assert.match(dugumler.get('wsGorunurluk').innerHTML, /Rapor yüklenemedi/);
+  yazilanlar.length = 0;
+  assert.equal(await window._gorunurluk.gruplariKaydet(), false);
+  assert.equal(yazilanlar.length, 0);
+  okumaHatasi = false;
+  await window._gorunurluk.yenile();
+  window._gorunurluk.sekme('gruplar');
+  const html = dugumler.get('wsGorunurluk').innerHTML;
+  assert.match(html, /value="Tuzla"/);
+  assert.doesNotMatch(html, /value="Pendik"/);
+});
+
+test('bir önceki yıl verisi kısmiyse grafik bunu açıklar', async () => {
+  veri = {
+    'gorunurlukDurum/searchConsole': { backfillTamam: true, sonGun: '2026-10-18', sonHata: null },
+    'gorunurlukAylik/2026-09': ayBelgesi('2026-09'),
+    'gorunurlukGunluk/2026-10-11': gunlukBelge('2026-10-11', 4, 40),
+    'gorunurlukGunluk/2026-06-14': gunlukBelge('2026-06-14', 3, 30),
+    'gorunurlukGunluk/2025-10-12': gunlukBelge('2025-10-12', 2, 20),
+  };
+  await window._gorunurluk.yenile();
+  window._gorunurluk.sekme('ozet');
+  assert.match(dugumler.get('wsGorunurluk').innerHTML, /Google arama verisini 16 ay saklar/);
 });
 
 test('Web Sitesi bölümü Görünürlük sekmesini ayrı modülden yükler', () => {

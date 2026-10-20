@@ -244,6 +244,9 @@ function toast(m, t) { try { P().toast(m, t); } catch (_) {} }
 function lucide() { try { P().lucide(); } catch (_) {} }
 
 async function yukle() {
+  // Başarısız bir yenilemeden sonra eski okuma ve eski taslak üzerine kayıt yapılamasın.
+  ayarHazir = false;
+  taslak = null;
   const { fb, db } = P();
   const [durumSnap, gunSnap, aySnap, ayarSnap] = await Promise.all([
     fb.getDoc(fb.doc(db, KOL.durum, "searchConsole")),
@@ -416,12 +419,14 @@ function grafikHtml(sonGun) {
   const seri = haftalikSeri(V.gunler, sonGun, 52);
   seriOnbellek = seri;
   const gecenVar = seri.some((s) => s.gecenYil);
+  const gecenKismi = gecenVar && seri.some((s) => s.veriVar && !s.gecenYil);
   const olcuAd = olcu === "tiklama" ? "Tıklama" : "Gösterim";
   const secim = ["tiklama", "gosterim"].map((k) => `<button type="button" class="${k === olcu ? "secili" : ""}" aria-pressed="${k === olcu}" onclick="window._gorunurluk.olcu('${k}')">${k === "tiklama" ? "Tıklama" : "Gösterim"}</button>`).join("");
   const lejant = `<span class="gr-lejant"><span><i style="background:${RENK.buYil}"></i>Son 12 ay</span>${gecenVar ? `<span><i class="kesik" style="--renk:${RENK.gecenYil}"></i>Bir önceki yılın aynı haftası</span>` : ""}</span>`;
   const tablo = seri.filter((s) => s.veriVar).map((s) => `<tr><th scope="row">${esc(gunYaz(s.hafta))}</th><td class="gr-sayi">${sayi(s[olcu])}</td><td class="gr-sayi">${s.gecenYil ? sayi(s.gecenYil[olcu]) : "—"}</td></tr>`).join("");
   return `<section class="ws-kart"><div class="ws-kart-ust"><h4>Haftalık ${olcuAd.toLocaleLowerCase("tr-TR")}</h4><div class="ws-secenekler dugme" role="group" aria-label="Ölçü">${secim}</div></div>
     ${lejant}
+    ${gecenKismi ? `<p class="ws-ipucu gr-kismi">Google arama verisini 16 ay saklar. Bu yüzden bir önceki yılın çizgisi şimdilik yalnız son haftalarda görünür; gece görevi veriyi her gece biriktirdikçe karşılaştırma tamamlanacak.</p>` : ""}
     <div class="gr-grafik" id="grGrafik"><div id="grSvg" class="gr-svg"></div><div class="gr-ipucu" id="grIpucu" role="status" aria-live="polite" hidden></div></div>
     <details class="gr-tablo-ac"><summary>Tablo olarak göster</summary><div class="gr-tablo-kap"><table class="gr-tablo"><thead><tr><th scope="col">Hafta başı</th><th scope="col" class="gr-sayi">${olcuAd}</th><th scope="col" class="gr-sayi">Bir yıl önce</th></tr></thead><tbody>${tablo}</tbody></table></div></details>
   </section>`;
@@ -645,7 +650,7 @@ function gruplarHtml() {
 
 async function gruplariKaydet() {
   if (!yetkiliMi()) { toast("Kelime gruplarını yalnızca yetkili hesaplar değiştirebilir.", "error"); return false; }
-  if (!ayarHazir) { toast("Ayar sunucudan okunmadan kaydedilemez. Yenile'ye basıp tekrar deneyin.", "error"); return false; }
+  if (!V || !ayarHazir) { toast("Ayar sunucudan okunmadan kaydedilemez. Yenile'ye basıp tekrar deneyin.", "error"); return false; }
   const { hatalar, temiz } = grupAyariniDogrula(taslakHazirla());
   if (hatalar.length) { toast(hatalar[0], "error"); return false; }
   const { fb, db } = P();
@@ -671,7 +676,7 @@ function gruplariYenidenCiz() {
   window.scrollTo(0, y);
 }
 const OLAYLAR = {
-  yenile: async () => { V = null; await panelRender(kokEl?.id || "wsGorunurluk"); },
+  yenile: async () => { V = null; ayarHazir = false; taslak = null; await panelRender(kokEl?.id || "wsGorunurluk"); },
   sekme: (id) => { sekme = SEKMELER.some((s) => s.id === id) ? id : "ozet"; ciz(); },
   ay: (ay) => { seciliAy = ay; ciz(); },
   olcu: (k) => { olcu = k === "gosterim" ? "gosterim" : "tiklama"; ciz(); },
@@ -751,6 +756,7 @@ function stilEkle() {
   .gr-ipucu small{color:var(--ws-soluk,#5B6B5F);font-weight:600}
   .gr-ipucu b{color:var(--ws-yazi,#17241B);font-variant-numeric:tabular-nums}
   .gr-ipucu span{color:var(--ws-soluk,#5B6B5F)}
+  .gr-kismi{margin:2px 0 4px}
   .gr-tablo-ac{margin-top:8px}
   .gr-tablo-ac summary{cursor:pointer;font-weight:700;color:var(--ws-yaprak,#2F7D45);font-size:13px}
   .gr-filtre-satiri{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
