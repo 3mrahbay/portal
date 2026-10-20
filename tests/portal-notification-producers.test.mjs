@@ -91,7 +91,7 @@ function environment(t,{role='mudur'}={}){
     },
     showToast:(...args)=>toasts.push(args),danismaSaltOkunurEngelle:()=>false,ogretmenRolMu:()=>ctx.aktifKullaniciRol==='ogretmen',
     hedefAlanlari,hedefMetni,ogretmenSinifEslesir,ogrenciSinifiCoz,ozellikAktif:key=>!!controls.flags?.[key],
-    duyuruOgrenciSecici:{seciliOgrenciler:()=>(controls.selectedStudents||['b']).map(id=>({id,ad:`Synthetic ${id}`}))},
+    duyuruOgrenciSecici:{seciliOgrenciler:()=>(controls.selectedStudents||['b']).map(id=>({id,ad:`Synthetic ${id}`}))},duyuruAcilanSiniflar:[],
     modulYukle:async()=>attachment,closeDuyuruModal(){},renderDuyurular(){},closeEtkinlikModal(){},renderEtkinlikler(){},
     duyuruMailGonder:data=>mails.push(data),etkinlikMailGonder:data=>mails.push(data),galeriBildirimMailGonder:async data=>mails.push(data),
     galeriGozlemOnayiEsitle:async()=>{},renderGaleri:async()=>{},confirm:()=>controls.confirmed,

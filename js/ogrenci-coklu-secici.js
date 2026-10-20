@@ -82,8 +82,12 @@ export function ogrenciCokluSecici(kap, { ogrenciler = [], secili = [], bosMetin
     (!sinifSuzgeci || o.sinif === sinifSuzgeci) && (!ara || sade(o.ad).includes(ara) || sade(o.sinif).includes(ara)));
 
   function sayaciYaz() {
-    // Listede olmayan (ör. pasife alınmış) seçimler de sayılır; kayıttan düşmezler.
-    sayacEl.textContent = secim.size ? `${secim.size} öğrenci seçili` : 'Öğrenci seçilmedi';
+    // Listede olmayan (ör. pasife alınmış ya da sınıfı değişmiş) seçimler de sayılır ve
+    // kayıttan düşmez; kullanıcı fark etsin diye ayrıca belirtilir.
+    const gizli = [...secim].filter(id => !liste.some(o => o.id === id)).length;
+    sayacEl.textContent = secim.size
+      ? `${secim.size} öğrenci seçili${gizli ? ` (${gizli} öğrenci listede yok)` : ''}`
+      : 'Öğrenci seçilmedi';
   }
   function siniflariCiz() {
     const siniflar = [...new Set(liste.map(o => o.sinif).filter(Boolean))];

@@ -84,7 +84,8 @@ function sourceAllowed(source, state) {
   const ownChildren = array(state.veliOgrenciler), isStaff = staff(state);
   if (!isStaff && !ownChildren.length) return false;
   const type = lower(source.hedefTur || source.hedefTip || ((source.ogrenciId || source.hedefOgrenciId) ? 'ogrenci' : 'tumOkul'));
-  if (['tumokul', 'okul', 'tum'].includes(type)) return true;
+  // Tüm okul kaydında sınıf/öğrenci listesi olmamalı (ortak hedef sözleşmesinde çelişkili kayıt kimseye açılmaz)
+  if (['tumokul', 'okul', 'tum'].includes(type)) return !array(source.ogrenciler).length && !array(source.siniflar).length;
   if (!['sinif', 'ogrenci'].includes(type)) return false;
   const target = text(source.hedefDeger || (type === 'ogrenci' && (source.hedefOgrenciId || source.ogrenciId)));
   if (!target) return false;

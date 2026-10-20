@@ -15776,7 +15776,8 @@ async function portalBildirimGit(b) {
 async function portalHedefBildir(hedef, bildirim) {
   try {
     const m = await import("./js/zeky-bildirim-koprusu.js?v=165");
-    const alicilar = m.hedefVeliEmailleri(hedef);
+    // Sınıf eşleşmesi e-posta ve veli görünürlüğüyle aynı (eski/yeni sınıf adları)
+    const alicilar = m.hedefVeliEmailleri({ sinifEsle: ogretmenSinifEslesir, ...hedef });
     if (!alicilar.length) { console.warn("Bildirim için uygun veli alıcısı bulunamadı"); return {ok:false,hata:"alici-yok"}; }
     const sonuc = await m.bildirimKaydetVePush(alicilar, bildirim);
     if (!sonuc.ok) showToast("Kayıt kaydedildi; bazı bildirim kayıtları oluşturulamadı.", "warn");
@@ -25955,6 +25956,7 @@ window.takvimEtkinlikModalAc = function(id, varsayilanTarih) {
     // Hedef: tek öğrenci, çoklu öğrenci ("ogrenciler"), sınıf ya da tüm okul
     const fh = formHedefi(e);
     takvimSeciliOgrenciler = fh.tur === "ogrenci" ? fh.ogrenciIds : [];
+    takvimAcilanSiniflar = fh.siniflar || [];
     if (fh.tur === "bilinmiyor") {
       document.getElementById("takvimHedefTur").value = "sinif";
       document.getElementById("takvimHedefSinif").value = "";
@@ -25976,6 +25978,7 @@ window.takvimEtkinlikModalAc = function(id, varsayilanTarih) {
     document.getElementById("takvimAciklama").value = "";
     document.getElementById("takvimHedefTur").value = "tumOkul";
     takvimSeciliOgrenciler = [];
+    takvimAcilanSiniflar = [];
     document.getElementById("takvimSilBtn").style.display = "none";
   }
 
@@ -26011,6 +26014,7 @@ function takvimHedefEtiketiHTML(e, onEk = {}) {
 
 let takvimOgrenciSecici = null;
 let takvimSeciliOgrenciler = [];
+let takvimAcilanSiniflar = [];
 function takvimOgrenciSeciciDoldur() {
   const kap = document.getElementById("takvimHedefOgrenciSecici");
   if (!kap) return;
@@ -26041,7 +26045,8 @@ window.takvimEtkinlikKaydet = async function() {
   if (hedefTur === "sinif") {
     const sinif = document.getElementById("takvimHedefSinif").value;
     if (!sinif) return showToast("Sınıf seçin", "error");
-    hedef = hedefAlanlari({ tur: "sinif", sinif });
+    const korunan = id && takvimAcilanSiniflar.length > 1 && takvimAcilanSiniflar[0] === sinif ? takvimAcilanSiniflar : null;
+    hedef = hedefAlanlari({ tur: "sinif", sinif, siniflar: korunan });
   } else if (hedefTur === "ogrenci") {
     const secilen = takvimOgrenciSecici ? takvimOgrenciSecici.seciliOgrenciler() : [];
     if (!secilen.length) return showToast("En az bir öğrenci seçin", "error");
@@ -26432,18 +26437,13 @@ async function caEtkinlikleriRender() {
   // Hedef kitle filtresi — veli sadece kendi sınıfının etkinliklerini görür
   const sinifim = (typeof veliAktifOgrenci !== "undefined" && veliAktifOgrenci)
     ? (veliAktifOgrenci.sinif || "") : "";
-  liste = liste.filter(e => {
-    const tur = e.hedefTur || e.hedefTip || "tumOkul";
-    if (tur === "tumOkul" || tur === "okul" || tur === "tum") return true;
-    if (tur === "sinif") {
-      const hedef = e.hedefDeger || "";
-      if (!sinifim || !hedef) return true;
-      return String(hedef).toLocaleLowerCase("tr").trim() === String(sinifim).toLocaleLowerCase("tr").trim();
-    }
-    // Gizlilik: çocuğa özel (ogrenci/cocuk) etkinlik yalnız velinin kendi çocuğunu hedefliyorsa görünür.
-    if (cocukHedefliMi(e)) return cocukHedefiUygunMu(e, veliOgrenciler);
-    return true;
-  });
+  // Ortak hedef sözleşmesi (icerik-hedefi.js): tüm okul · çocuğun sınıfı · çocuğa özel (tek ya da
+  // çoklu öğrenci). Çelişkili kayıt kimseye gösterilmez. Personel oturumunda süzme yapılmaz.
+  if (typeof veliOturumuMu !== "function" || veliOturumuMu()) {
+    const baglam = veliHedefBaglami();
+    if (sinifim && !baglam.siniflar.includes(sinifim)) baglam.siniflar.push(sinifim);
+    liste = liste.filter(e => (!e.hedefTur && !e.hedefTip) || hedefKapsar(e, baglam));
+  }
 
   const bugun = new Date(); bugun.setHours(0,0,0,0);
   const tarihi = (e) => {
@@ -31989,6 +31989,7 @@ window.openDuyuruModal = function(mevcutEkler) {
   document.getElementById("duyuruAciliyet").value = "normal";
   document.getElementById("duyuruHedefTur").value = "tumOkul";
   document.getElementById("duyuruHedefSinif").value = "";
+  duyuruAcilanSiniflar = [];
   document.getElementById("duyuruMailGonder").checked = true;
   document.getElementById("duyuruSimsek").checked = false;
   document.getElementById("duyuruSilBtn").style.display = "none";
@@ -32018,19 +32019,26 @@ function hedefSecilebilirOgrenciler() {
   const kendi = ogretmen ? ((typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari) || []) : null;
   return ogrenciList
     .filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; })
-    .map(o => ({ id: o.id, ad: o.ogrenciAdSoyad || "", sinif: ogrenciSinifiCoz(o, ayarListesi[o.id]) }))
-    .filter(o => !kendi || kendi.some(s => ogretmenSinifEslesir(s, o.sinif)));
+    .map(o => ({ id: o.id, ad: o.ogrenciAdSoyad || "", sinif: ogrenciSinifiCoz(o, ayarListesi[o.id]), _ana: o.sinif || "" }))
+    // Öğretmen: güvenlik kuralı sınıfı birebir karşılaştırır (ana kayıt ya da dönem kaydı);
+    // takma adla eşleşen ama kuralın tanımayacağı öğrenci listelenmez.
+    .filter(o => !kendi || kendi.includes(o.sinif) || kendi.includes(o._ana));
 }
 // Personel ekranlarında hedef etiketi için öğrenci adı
 function hedefOgrenciAdi(id) {
   return (ogrenciList.find(o => o.id === id)?.ogrenciAdSoyad) || "";
 }
 // Öğretmen öğrenci seçerek duyuru yapabilir mi? (bayrak + güvenlik kuralı birlikte açılır)
+// Kural yalnız sınıf öğretmenine (ogretmen, yardimci_ogretmen) izin verir.
+const OGRETMEN_OGRENCI_EN_FAZLA = 30;
 function ogretmenOgrenciDuyurusuAcik() {
-  return typeof ozellikAktif === "function" && ozellikAktif("ogretmenOgrenciDuyurusu");
+  return typeof ozellikAktif === "function" && ozellikAktif("ogretmenOgrenciDuyurusu")
+    && ["ogretmen", "yardimci_ogretmen"].includes(typeof aktifKullaniciRol !== "undefined" ? aktifKullaniciRol : "");
 }
 
 let duyuruOgrenciSecici = null;
+// Düzenlenen kaydın sınıf listesi (ZEKY'de birden fazla sınıfa yazılmış olabilir)
+let duyuruAcilanSiniflar = [];
 function doldurOgrenciSecici(seciliIdler = []) {
   const kap = document.getElementById("duyuruHedefOgrenciSecici");
   if (!kap) return;
@@ -32057,12 +32065,16 @@ window.duzenleDuyuru = function(id) {
   document.getElementById("duyuruAciliyet").value = d.aciliyet || "normal";
   // Hedef Portal ya da ZEKY biçiminde olabilir (tek öğrenci, çoklu öğrenci, sınıf).
   const fh = formHedefi(d);
+  duyuruAcilanSiniflar = fh.siniflar || [];
   if (fh.tur === "bilinmiyor") {
     // Çelişkili hedef sessizce "Tüm Okul"a dönüşmesin: kullanıcı yeniden seçmeli.
     document.getElementById("duyuruHedefTur").value = "sinif";
     document.getElementById("duyuruHedefSinif").value = "";
     showToast("Bu duyurunun hedefi okunamadı; kaydetmeden önce hedefi yeniden seçin.", "error");
   } else {
+    if (fh.tur === "sinif" && duyuruAcilanSiniflar.length > 1) {
+      showToast(`Bu duyuru ${duyuruAcilanSiniflar.length} sınıfa gönderilmiş (${duyuruAcilanSiniflar.join(", ")}). Sınıfı değiştirmezseniz hepsi korunur.`, "info");
+    }
     document.getElementById("duyuruHedefTur").value = fh.tur;
     if (fh.tur === "sinif") document.getElementById("duyuruHedefSinif").value = fh.sinif;
     if (fh.tur === "ogrenci") doldurOgrenciSecici(fh.ogrenciIds);
@@ -32085,6 +32097,12 @@ window.duyuruRolKisitiUygula = function() {
       [...sel.options].forEach(o => {
         if (o.value === "tumOkul" || (o.value === "ogrenci" && !ogrenciAcik)) o.remove();
       });
+      // Bayraklar modal ilk açıldıktan sonra yüklendiyse seçenek geri gelir
+      if (ogrenciAcik && ![...sel.options].some(o => o.value === "ogrenci")) {
+        const opt = document.createElement("option");
+        opt.value = "ogrenci"; opt.textContent = "👤 Seçili Öğrenciler";
+        sel.appendChild(opt);
+      }
       if (!["sinif", "ogrenci"].includes(sel.value) || (sel.value === "ogrenci" && !ogrenciAcik)) {
         sel.value = "sinif";
         if (typeof duyuruHedefDegisti === "function") duyuruHedefDegisti();
@@ -32126,7 +32144,9 @@ window.kaydetDuyuru = async function() {
   if (hedefTur === "sinif") {
     const sinif = document.getElementById("duyuruHedefSinif").value;
     if (!sinif) return showToast("Sınıf seçin", "error");
-    hedef = hedefAlanlari({ tur: "sinif", sinif });
+    // ZEKY'de birden fazla sınıfa yazılmış duyuru: sınıf değişmediyse tüm sınıflar korunur
+    const korunan = id && duyuruAcilanSiniflar.length > 1 && duyuruAcilanSiniflar[0] === sinif ? duyuruAcilanSiniflar : null;
+    hedef = hedefAlanlari({ tur: "sinif", sinif, siniflar: korunan });
   } else if (hedefTur === "ogrenci") {
     const secilen = duyuruOgrenciSecici ? duyuruOgrenciSecici.seciliOgrenciler() : [];
     if (!secilen.length) return showToast("En az bir öğrenci seçin", "error");
@@ -32144,9 +32164,20 @@ window.kaydetDuyuru = async function() {
         return showToast("Yalnızca kendi sınıfınıza duyuru yapabilirsiniz.", "error");
       }
     } else if (hedef.hedefTur === "ogrenci" && ogretmenOgrenciDuyurusuAcik()) {
-      const izinli = new Set(hedefSecilebilirOgrenciler().map(o => o.id));
-      if (!hedef.ogrenciler.every(oid => izinli.has(oid))) {
-        return showToast("Yalnızca kendi sınıfınızdaki öğrencileri seçebilirsiniz.", "error");
+      const secilebilir = hedefSecilebilirOgrenciler();
+      const izinli = new Set(secilebilir.map(o => o.id));
+      const disarida = hedef.ogrenciler.filter(oid => !izinli.has(oid));
+      if (disarida.length) {
+        return showToast(`Yalnızca kendi sınıfınızdaki aktif öğrencileri seçebilirsiniz (${disarida.length} seçim uygun değil; "Seçimi temizle" ile kaldırabilirsiniz).`, "error");
+      }
+      if (hedef.ogrenciler.length > OGRETMEN_OGRENCI_EN_FAZLA) {
+        return showToast(`Bir duyuruda en çok ${OGRETMEN_OGRENCI_EN_FAZLA} öğrenci seçebilirsiniz.`, "error");
+      }
+      // Kural ilk öğrencinin sınıfını ana kayıttan da doğrular: ana kaydı birebir eşleşen öğrenci başa alınır
+      const kendi = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari) || [];
+      const ilk = hedef.ogrenciler.find(oid => kendi.includes(secilebilir.find(o => o.id === oid)?._ana));
+      if (ilk && ilk !== hedef.ogrenciler[0]) {
+        hedef = hedefAlanlari({ tur: "ogrenci", ogrenciler: [ilk, ...hedef.ogrenciler.filter(x => x !== ilk)] });
       }
     } else {
       return showToast("Yalnızca kendi sınıfınıza duyuru yapabilirsiniz.", "error");
@@ -41654,11 +41685,10 @@ async function veliZamanCizelgesiYukle() {
     const liste = await takvimEtkinlikleriYukle();
     (liste || []).forEach(v => {
       if (!(v.tarih || "").startsWith(ayKod)) return;
-      const tur = v.hedefTur || v.hedefTip || "tumOkul";
-      // Gizlilik: çocuğa özel etkinlik yalnız bu çocuğun akışında görünür.
-      if (cocukHedefliMi(v) && !cocukHedefiUygunMu(v, [o.id])) return;
-      if (tur === "sinif" && v.hedefDeger && typeof sinifAdiResmiEsle === "function" &&
-          sinifAdiResmiEsle(v.hedefDeger) !== sinifAdiResmiEsle(o.sinif || "")) return;
+      // Gizlilik: çocuğa özel (tek ya da çoklu) etkinlik yalnız bu çocuğun akışında; sınıf etkinliği
+      // yalnız bu çocuğun sınıfında görünür. Çelişkili kayıt gösterilmez (icerik-hedefi.js).
+      if ((v.hedefTur || v.hedefTip) &&
+          !ogrenciHedefte(v, o.id, (o?._donemVeri?.kayit?.sinif) || o.sinif || "")) return;
       etkinlikSayi++;
       olaylar.push({ tarih: v.tarih, tip: "etkinlik", baslik: v.baslik || "Etkinlik",
                      metin: [v.tumGun ? "Tüm gün" : v.baslangicSaat, v.konum].filter(Boolean).join(" · ") });
@@ -41940,7 +41970,8 @@ async function veliRenderEtkinlikListesi() {
       const st = kategoriStilleri[e.kategori] || kategoriStilleri.diger;
       const etkinlikTarih = new Date(e.tarih);
       const buGunMu = isoTarih(etkinlikTarih) === isoTarih(bugun);
-      const hedefLabel = e.hedefTur === "tumOkul" ? "🏫 Tüm Okul" : `👥 ${escapeHtml(e.hedefDeger)}`;
+      // Veliye yalnız kendi çocuğunun adı gösterilir (öğrenci kimliği ya da başka çocuk adı değil)
+      const hedefLabel = takvimHedefEtiketiHTML(e, { okul: "🏫 ", sinif: "👥 ", cocuk: "👤 " }) || "🏫 Tüm Okul";
 
       // Kalan gün hesabı
       const kalanGun = Math.round((etkinlikTarih - bugun) / (1000 * 60 * 60 * 24));

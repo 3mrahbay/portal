@@ -15,6 +15,9 @@ import { sinifEslesir } from './ogretmen-sinif-core.js?v=173';
 const TUR = { tumOkul: 'okul', okul: 'okul', tum: 'okul', sinif: 'sinif', ogrenci: 'cocuk', cocuk: 'cocuk' };
 const BILINMIYOR = Object.freeze({ tip: 'bilinmiyor', siniflar: Object.freeze([]), ogrenciler: Object.freeze([]) });
 
+function liste_(deger) {
+  return Array.isArray(deger) ? deger.filter(v => typeof v === 'string' && v.trim()).map(v => v.trim()) : [];
+}
 function liste(deger) {
   return (Array.isArray(deger) ? deger : [deger])
     .filter(v => typeof v === 'string' && v.trim())
@@ -81,14 +84,16 @@ export function cocukHedefli(d) {
 // Formdaki seçimden Firestore alanları. Her yazımda TÜM hedef alanları yazılır;
 // böylece Portal'da ya da ZEKY'de düzenlenen kayıt iki tarafta da tutarlı kalır.
 //   ogrenciler: [{ id, ad }]   — ad yalnız tek öğrencide kayda girer
-export function hedefAlanlari({ tur, sinif = '', ogrenciler = [] } = {}) {
+//   siniflar: ZEKY'de birden fazla sınıfa yazılmış kaydı düzenlerken tüm sınıfları korumak için
+export function hedefAlanlari({ tur, sinif = '', siniflar = null, ogrenciler = [] } = {}) {
   if (tur === 'tumOkul' || tur === 'okul') {
     return { hedefTur: 'tumOkul', hedefTip: 'okul', hedefDeger: '', siniflar: [], ogrenciler: [], hedefOgrenciAd: '' };
   }
   if (tur === 'sinif') {
     const s = typeof sinif === 'string' ? sinif.trim() : '';
-    if (!s) throw new Error('Sınıf seçilmedi');
-    return { hedefTur: 'sinif', hedefTip: 'sinif', hedefDeger: s, siniflar: [s], ogrenciler: [], hedefOgrenciAd: '' };
+    const liste = [...new Set([s, ...liste_(siniflar)].filter(Boolean))];
+    if (!liste.length) throw new Error('Sınıf seçilmedi');
+    return { hedefTur: 'sinif', hedefTip: 'sinif', hedefDeger: liste[0], siniflar: liste, ogrenciler: [], hedefOgrenciAd: '' };
   }
   if (tur === 'ogrenci' || tur === 'cocuk') {
     const secim = [];
@@ -112,16 +117,16 @@ export function hedefAlanlari({ tur, sinif = '', ogrenciler = [] } = {}) {
 // Çelişkili kayıt 'bilinmiyor' döner; form onu "Tüm Okul" diye AÇMAMALI (hedef genişlerdi).
 export function formHedefi(d) {
   const h = icerikHedefi(d);
-  if (h.tip === 'okul') return { tur: 'tumOkul', sinif: '', ogrenciIds: [] };
-  if (h.tip === 'sinif') return { tur: 'sinif', sinif: h.siniflar[0] || '', ogrenciIds: [] };
-  if (h.tip === 'cocuk') return { tur: 'ogrenci', sinif: '', ogrenciIds: [...h.ogrenciler] };
-  return { tur: 'bilinmiyor', sinif: '', ogrenciIds: [] };
+  if (h.tip === 'okul') return { tur: 'tumOkul', sinif: '', siniflar: [], ogrenciIds: [] };
+  if (h.tip === 'sinif') return { tur: 'sinif', sinif: h.siniflar[0] || '', siniflar: [...h.siniflar], ogrenciIds: [] };
+  if (h.tip === 'cocuk') return { tur: 'ogrenci', sinif: '', siniflar: [], ogrenciIds: [...h.ogrenciler] };
+  return { tur: 'bilinmiyor', sinif: '', siniflar: [], ogrenciIds: [] };
 }
 
 // ZEKY duyuru listesinin gösterdiği kısa hedef metni (duyurular.hedef alanı)
 export function hedefMetni(alanlar) {
   if (alanlar?.hedefTur === 'tumOkul') return 'Tüm okul';
-  if (alanlar?.hedefTur === 'sinif') return alanlar.hedefDeger || '';
+  if (alanlar?.hedefTur === 'sinif') return (alanlar.siniflar || []).length ? alanlar.siniflar.join(', ') : (alanlar.hedefDeger || '');
   if (alanlar?.hedefTur === 'ogrenci') return `${(alanlar.ogrenciler || []).length} öğrenci`;
   return '';
 }

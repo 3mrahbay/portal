@@ -47,7 +47,7 @@ async function environment(kind) {
       yukle: async () => ({ url: 'https://media.example.invalid/attachment.txt', yol: `${kind}/2026-10/attachment.txt` }),
       sil: async path => { deleted.push(path); }
     } },
-    showToast() {}, danismaSaltOkunurEngelle: () => false, ogretmenRolMu: () => false, hedefAlanlari, hedefMetni,
+    showToast() {}, danismaSaltOkunurEngelle: () => false, ogretmenRolMu: () => false, hedefAlanlari, hedefMetni, duyuruAcilanSiniflar: [],
     currentUser: { email: 'staff@example.invalid' }, db: {},
     collection: (_db, name) => ({ name }), doc: () => ({ id: 'synthetic' }),
     setDoc: save, updateDoc: save,

@@ -78,10 +78,17 @@ test('hedefAlanlari tüm hedef alanlarını tutarlı yazar; çoklu kayıtta baş
 });
 
 test('formHedefi düzenlemede tüm seçimi geri getirir; çelişkili kayıt "Tüm Okul" olarak açılmaz', () => {
-  assert.deepEqual(formHedefi({ hedefTur: 'ogrenci', hedefDeger: 'a', ogrenciler: ['a', 'b'] }), { tur: 'ogrenci', sinif: '', ogrenciIds: ['a', 'b'] });
-  assert.deepEqual(formHedefi({ hedefTip: 'cocuk', ogrenciler: ['b'] }), { tur: 'ogrenci', sinif: '', ogrenciIds: ['b'] });
-  assert.deepEqual(formHedefi({ hedefTur: 'sinif', hedefDeger: 'A' }), { tur: 'sinif', sinif: 'A', ogrenciIds: [] });
-  assert.deepEqual(formHedefi({ hedefTur: 'tumOkul' }), { tur: 'tumOkul', sinif: '', ogrenciIds: [] });
+  assert.deepEqual(formHedefi({ hedefTur: 'ogrenci', hedefDeger: 'a', ogrenciler: ['a', 'b'] }), { tur: 'ogrenci', sinif: '', siniflar: [], ogrenciIds: ['a', 'b'] });
+  assert.deepEqual(formHedefi({ hedefTip: 'cocuk', ogrenciler: ['b'] }), { tur: 'ogrenci', sinif: '', siniflar: [], ogrenciIds: ['b'] });
+  assert.deepEqual(formHedefi({ hedefTur: 'sinif', hedefDeger: 'A' }), { tur: 'sinif', sinif: 'A', siniflar: ['A'], ogrenciIds: [] });
+  assert.deepEqual(formHedefi({ hedefTur: 'tumOkul' }), { tur: 'tumOkul', sinif: '', siniflar: [], ogrenciIds: [] });
+  // ZEKY çok sınıflı kayıt: tüm sınıflar forma taşınır ve aynı sınıfla yeniden yazılınca korunur
+  const coklu = formHedefi({ hedefTip: 'sinif', siniflar: ['A', 'B'] });
+  assert.deepEqual(coklu, { tur: 'sinif', sinif: 'A', siniflar: ['A', 'B'], ogrenciIds: [] });
+  const yeniden = hedefAlanlari({ tur: 'sinif', sinif: coklu.sinif, siniflar: coklu.siniflar });
+  assert.deepEqual(yeniden.siniflar, ['A', 'B']); assert.equal(yeniden.hedefDeger, 'A');
+  assert.equal(hedefKapsar(yeniden, { siniflar: ['B'] }), true, 'ikinci sınıfın velisi görmeye devam eder');
+  assert.equal(hedefMetni(yeniden), 'A, B');
   assert.equal(formHedefi({ hedefTur: 'ogrenci', hedefDeger: 'z', ogrenciler: ['a'] }).tur, 'bilinmiyor');
 });
 

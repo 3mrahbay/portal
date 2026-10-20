@@ -8,7 +8,7 @@ import vm from 'node:vm';
 import { readPortal, installedPwa, assertPrecachedImport } from './helpers/portal-pwa.mjs';
 import * as hedefli from '../js/veli-hedefli-okuma.js';
 import { onayliGaleriGetir } from '../js/zeky-egitim-portfolyo.js';
-import { ogrenciHedefte } from '../js/icerik-hedefi.js';
+import { ogrenciHedefte, hedefKapsar } from '../js/icerik-hedefi.js';
 
 const {
   GENEL_HEDEFLER, COCUK_HEDEFLERI, EN_FAZLA_COCUK, cocukIdleriniHazirla, veliSorgulariniOlustur,
@@ -431,9 +431,9 @@ test('etkinlik listesi: başka çocuğa özel etkinlik veliye görünmez; genel,
     veliAktifOgrenci: VELI_COCUKLARI[0], veliOgrenciler: VELI_COCUKLARI, caEtkinlikSekme: 'tumu',
     AY_ISIMLERI: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
     caEtkinlikKategori: () => ({ ad: 'Etkinlik', bg: '#fff', yazi: '#000' }), escapeHtml: s => String(s), modulYukle: async () => null,
-    window: {}, cocukHedefliMi, cocukHedefiUygunMu
+    window: {}, cocukHedefliMi, cocukHedefiUygunMu, hedefKapsar, veliOturumuMu: () => true
   });
-  vm.runInContext(`${fonk(index, 'caEtkinlikleriRender')}; globalThis.ciz = caEtkinlikleriRender;`, c);
+  vm.runInContext(`${fonk(index, 'veliHedefBaglami')}\n${fonk(index, 'caEtkinlikleriRender')}; globalThis.ciz = caEtkinlikleriRender;`, c);
   await c.ciz();
   const gorunen = liste.map(x => x.baslik).filter(b => el.innerHTML.includes(`>${b}<`));
   assert.deepEqual(gorunen, ['GENEL-OKUL', 'GENEL-TIPSIZ', 'GENEL-OKUL2', 'SINIF-KENDI', 'COCUK-KENDI', 'COCUK-KARDES']);
@@ -448,7 +448,7 @@ function zamanCizelgesi({ galeri, takvim, filtresiz = false }) {
     document: { getElementById: id => elemanlar[id] || null },
     veliZamanAy: new Date(2026, 9, 1), veliAktifOgrenci: VELI_COCUKLARI[0], veliOgrenciler: VELI_COCUKLARI,
     getDocs: fb.getDocs, query: fb.query, collection: fb.collection, where: fb.where, documentId: () => ID_ALANI,
-    getDoc: fb.getDoc, doc: fb.doc, db: {}, veliHedefliOku, veliOkumaFb: fb, cocukHedefliMi, cocukHedefiUygunMu,
+    getDoc: fb.getDoc, doc: fb.doc, db: {}, veliHedefliOku, veliOkumaFb: fb, cocukHedefliMi, cocukHedefiUygunMu, ogrenciHedefte,
     takvimEtkinlikleriYukle: async () => takvim.map(x => ({ ...x })),
     sinifAdiResmiEsle: s => String(s || '').toLocaleLowerCase('tr'),
     ZAMAN_TIP: { gunluk: tip, galeri: tip, etkinlik: tip, gelisim: tip, devamsiz: tip },
