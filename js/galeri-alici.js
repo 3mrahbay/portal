@@ -204,6 +204,10 @@ export function galeriAliciGuncellemesi(item = {}, hedef = {}, {
   } else if (hedef.tur === 'okul') {
     yeni = { tur: 'okul', ogrenciId: '', ad: 'Tüm okul', sinif: '', uyari: '' };
     alanlar = { hedefTur: 'tumOkul', hedefDeger: '', hedefOgrenciId: '', ogrenciId: '', hedefOgrenciAd: '' };
+    // Okul hedefinde dolu sınıf alanı kalırsa ZEKY (normalizeGalleryMedia) kaydı çelişkili sayar
+    // ve veli göremez; ZEKY ile aynı biçimde boşaltılır.
+    doluysa(alanlar, 'sinif', '');
+    doluysa(alanlar, 'sinifAdi', '');
     doluysa(alanlar, 'hedefSinifAd', '');
   } else {
     throw new Error('Geçersiz alıcı seçimi');
@@ -415,8 +419,12 @@ export async function galeriOgesiniSil(id, deps = {}) {
   if (!(await onayla(plan.onayMetni, item))) return { ok: false, durum: 'iptal', item, plan, uyarilar, notlar };
 
   for (const cocukId of plan.cocukIdleri) {
+    // Gelişim bağı kalırsa veli eğitim ekranı fotoğrafı göstermeye devam eder: temizlenemezse
+    // silme durur (ZEKY ile aynı, muhafazakâr davranış); galeri belgesi yerinde kalır.
     try { await gelisimFotoReferanslariniTemizle({ fb, db }, cocukId, id, { urls: plan.fotoUrlleri, fotoDurum: 'silindi' }); }
-    catch (hata) { uyarilar.push(`Gelişim kaydındaki fotoğraf bağı temizlenemedi: ${hataKodu(hata)}`); }
+    catch (hata) {
+      return { ok: false, durum: 'hata', hata: `Gelişim kaydındaki fotoğraf bağı temizlenemedi; fotoğraf silinmedi (${hataKodu(hata)}).`, item, plan, uyarilar, notlar };
+    }
     try { await galeriEgitimBildiriminiSil({ fb, db }, cocukId, id); }
     catch (hata) { uyarilar.push(`Ailenin eğitim bildirimi silinemedi: ${hataKodu(hata)}`); }
   }

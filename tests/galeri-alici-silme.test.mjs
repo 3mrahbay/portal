@@ -139,7 +139,8 @@ test('alıcıyı düzenle: öğrenci/sınıf/okul alanları ve denetim kaydı s�
   const s = alici.galeriAliciGuncellemesi(egitimOgesi(), { tur: 'sinif', sinif: 'Nar Sınıfı' }, { zaman });
   assert.deepEqual(s.alanlar, { hedefTur: 'sinif', hedefDeger: 'Nar Sınıfı', sinif: 'Nar Sınıfı', hedefOgrenciId: '', ogrenciId: '', hedefOgrenciAd: '', sinifAdi: 'Nar Sınıfı', guncellendi: zaman });
   const o = alici.galeriAliciGuncellemesi(egitimOgesi({ hedefEtiket: 'Ali Yılmaz' }), { tur: 'okul' }, { zaman });
-  assert.deepEqual(o.alanlar, { hedefTur: 'tumOkul', hedefDeger: '', hedefOgrenciId: '', ogrenciId: '', hedefOgrenciAd: '', hedefEtiket: 'Tüm okul', guncellendi: zaman });
+  // Okul hedefinde dolu sınıf alanları boşaltılır (ZEKY normalizeGalleryMedia aksi halde çelişkili sayar).
+  assert.deepEqual(o.alanlar, { hedefTur: 'tumOkul', hedefDeger: '', hedefOgrenciId: '', ogrenciId: '', hedefOgrenciAd: '', sinif: '', sinifAdi: '', hedefEtiket: 'Tüm okul', guncellendi: zaman });
   assert.throws(() => alici.galeriAliciGuncellemesi({}, { tur: 'ogrenci', ogrenciId: 'yok' }, { ogrenciler }), /bulunamadı/);
   assert.throws(() => alici.galeriAliciGuncellemesi({}, { tur: 'sinif', sinif: ' ' }), /Sınıf seçin/);
   assert.equal(alici.galeriAliciGuncellemesi({ hedefTur: 'tumOkul', hedefDeger: '' }, { tur: 'okul' }).degisti, false);
@@ -254,6 +255,14 @@ test('galeri belgesi silinemezse (permission-denied) işlem durur: depolama sili
   assert.ok(f.belgeler.has('galeri/g1'));
   const diger = sahteFirestore(silmeTohumu(), { hata: (tur, yol) => tur === 'delete' && yol === 'galeri/g1' ? new Error('unavailable') : null });
   assert.equal((await alici.galeriOgesiniSil('g1', { ...diger, oturum: { rol: 'mudur' } })).hata, 'Silinemedi: unavailable');
+});
+
+test('gelişim bağı temizlenemezse silme durur: galeri belgesi ve dosya yerinde kalır (ZEKY ile aynı)', async () => {
+  const f = sahteFirestore(silmeTohumu(), { hata: (tur, yol) => yol === 'ogrenciGelisim/ali' ? yetkiHatasi() : null });
+  let depo = 0;
+  const sonuc = await alici.galeriOgesiniSil('g1', { ...f, oturum: { rol: 'mudur' }, medyaSil: async () => { depo++; } });
+  assert.equal(sonuc.ok, false); assert.match(sonuc.hata, /Gelişim kaydındaki fotoğraf bağı temizlenemedi; fotoğraf silinmedi/);
+  assert.ok(f.belgeler.has('galeri/g1')); assert.equal(depo, 0);
 });
 
 test('depolama en iyi çabadır: medyaSil hatası uyarı olur; Stream videosu ve yolsuz kayıt atlanır', async () => {
