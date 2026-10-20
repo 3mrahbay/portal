@@ -62,7 +62,9 @@ export async function bildirimKaydetVePush(aliciEmailler, {
   return {ok:adet===emailler.length,adet,istenen:emailler.length,kayitHatalari,push,tekrar:emailler.length-yeniler.length};
 }
 
-export function hedefVeliEmailleri({ hedefTur='tumOkul', hedefDeger='', sinifEsle=null } = {}) {
+// hedef: { hedefTur, hedefDeger, ogrenciler? } — çoklu öğrenci seçiminde tam liste
+// "ogrenciler" dizisindedir, hedefDeger yalnız ilk öğrencidir (icerik-hedefi.js).
+export function hedefVeliEmailleri({ hedefTur='tumOkul', hedefDeger='', ogrenciler: hedefOgrenciler=null, sinifEsle=null } = {}) {
   const {state,p,b}=altyapi();
   const ogrenciler=state.ogrenciList ?? b.ogrenciler?.() ?? [];
   const ayarlar=state.ayarListesi ?? b.ayarlar?.() ?? {};
@@ -70,6 +72,11 @@ export function hedefVeliEmailleri({ hedefTur='tumOkul', hedefDeger='', sinifEsl
   // Bilinmeyen/boşaltılmış hedef hiçbir zaman tüm okula genişletilmez.
   if (!['tumOkul','sinif','ogrenci'].includes(hedefTur)) return [];
   if (hedefTur!=='tumOkul' && !String(hedefDeger || '').trim()) return [];
+  const tekil=String(hedefDeger || '').trim();
+  const liste=Array.isArray(hedefOgrenciler) ? [...new Set(hedefOgrenciler.map(x=>String(x || '').trim()).filter(Boolean))] : [];
+  // Liste ile tekil değer çelişirse (ilk öğrenci listede yoksa) kimseye gönderilmez.
+  if (hedefTur==='ogrenci' && liste.length && !liste.includes(tekil)) return [];
+  const hedefOgrenciIdleri=hedefTur==='ogrenci' ? (liste.length ? liste : [tekil]) : [];
   const emailler=[];
   for (const o of ogrenciler) {
     if (!o?.id) continue;
@@ -87,7 +94,7 @@ export function hedefVeliEmailleri({ hedefTur='tumOkul', hedefDeger='', sinifEsl
     const sinif=a?.kayit?.sinif || o.sinif || o.sinifi || '';
     let dahil=hedefTur==='tumOkul';
     if (hedefTur==='sinif') dahil=!!sinif && (sinifEsle ? !!sinifEsle(sinif,hedefDeger) : sinif===hedefDeger);
-    if (hedefTur==='ogrenci') dahil=o.id===hedefDeger;
+    if (hedefTur==='ogrenci') dahil=hedefOgrenciIdleri.includes(o.id);
     if (!dahil) continue;
     // Yalnız uygun öğrencinin kendi kayıtlarındaki veli alanları okunur.
     // Bağımsız veli/personel rehberi sorgulanmaz veya kapsama eklenmez.

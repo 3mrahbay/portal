@@ -8,6 +8,7 @@ import vm from 'node:vm';
 import { readPortal, installedPwa, assertPrecachedImport } from './helpers/portal-pwa.mjs';
 import * as hedefli from '../js/veli-hedefli-okuma.js';
 import { onayliGaleriGetir } from '../js/zeky-egitim-portfolyo.js';
+import { ogrenciHedefte } from '../js/icerik-hedefi.js';
 
 const {
   GENEL_HEDEFLER, COCUK_HEDEFLERI, EN_FAZLA_COCUK, cocukIdleriniHazirla, veliSorgulariniOlustur,
@@ -58,7 +59,7 @@ function sahteFirestore(belgeler = {}, { hata = () => null, filtresiz = false } 
 // okunabilir olduğunu kanıtlamalıdır. Kapsam dışı koleksiyonlar burada denetlenmez.
 const COCUK_ALANLARI = {
   duyurular: [['hedefDeger', '=='], ['ogrenciler', 'array-contains']],
-  takvim: [['hedefDeger', '==']],
+  takvim: [['hedefDeger', '=='], ['ogrenciler', 'array-contains']],
   galeri: [['hedefDeger', '=='], ['hedefOgrenciId', '==']]
 };
 function kuralIzinVerir({ ad, kosullar }, cocukIdleri) {
@@ -98,16 +99,18 @@ test('duyurular sorguları: genel + çocuk başına hedefDeger ve ogrenciler arr
   assert.ok(sorgular.every(q => kuralIzinVerir(q, ['a', 'b'])));
 });
 
-test('takvim sorguları: genel + çocuk başına yalnız hedefDeger; ek eşitlik koşulu her sorguya eklenir', () => {
+test('takvim sorguları: genel + çocuk başına hedefDeger ve ogrenciler array-contains; ek eşitlik koşulu her sorguya eklenir', () => {
   const { fb } = sahteFirestore();
   assert.deepEqual(veliSorgulariniOlustur(fb, {}, 'takvim', ['a']).map(bicim), [
     'hedefTur in ["tumOkul","okul","tum","sinif"]',
-    'hedefTur in ["ogrenci","cocuk"] & hedefDeger == "a"'
+    'hedefTur in ["ogrenci","cocuk"] & hedefDeger == "a"',
+    'hedefTur in ["ogrenci","cocuk"] & ogrenciler array-contains "a"'
   ]);
   const gunluk = veliSorgulariniOlustur(fb, {}, 'takvim', ['a'], { ekKosullar: [['tarih', '==', '2026-10-20']] });
   assert.deepEqual(gunluk.map(bicim), [
     'tarih == "2026-10-20" & hedefTur in ["tumOkul","okul","tum","sinif"]',
-    'tarih == "2026-10-20" & hedefTur in ["ogrenci","cocuk"] & hedefDeger == "a"'
+    'tarih == "2026-10-20" & hedefTur in ["ogrenci","cocuk"] & hedefDeger == "a"',
+    'tarih == "2026-10-20" & hedefTur in ["ogrenci","cocuk"] & ogrenciler array-contains "a"'
   ]);
   assert.ok(gunluk.every(q => kuralIzinVerir(q, ['a'])));
 });
@@ -143,7 +146,7 @@ test('çocuk kimlikleri tekrarsız, boşsuz ve en çok 10; fazla çocuk sorgu sa
   assert.deepEqual(cocukIdleriniHazirla(on2), on2.slice(0, 10).map(c => c.id));
   const { fb } = sahteFirestore();
   assert.equal(veliSorgulariniOlustur(fb, {}, 'duyurular', on2).length, 1 + 10 * 2);
-  assert.equal(veliSorgulariniOlustur(fb, {}, 'takvim', on2).length, 1 + 10);
+  assert.equal(veliSorgulariniOlustur(fb, {}, 'takvim', on2).length, 1 + 10 * 2);
   assert.equal(veliSorgulariniOlustur(fb, {}, 'galeri', [], { genel: false }).length, 0);
 });
 
@@ -173,7 +176,7 @@ test('bir kısım sorgu başarısızsa uyarı yazılır ve başarılı sonuçlar
   assert.deepEqual(snap.docs.map(d => d.id), ['g']);
   assert.equal(snap.eksik, true);
   assert.equal(uyarilar.length, 1);
-  assert.match(uyarilar[0][0], /^sınama: 1\/2 sorgu başarısız/);
+  assert.match(uyarilar[0][0], /^sınama: 1\/3 sorgu başarısız/);
   assert.equal(uyarilar[0][1], 'permission-denied');
 
   // Varsayılan uyarı console.warn'a gider.
@@ -197,7 +200,7 @@ test('tüm sorgular başarısızsa ilk hata aynen fırlatılır; sorgu yoksa bo�
   await assert.rejects(() => veliHedefliOku(fb, {}, 'bilinmeyen', ['a']), /desteklemiyor/);
 });
 
-test('çocuk hedefi eşleşmesi galeriyle aynı kuralı kullanır: çelişen kimlik kapalı kalır', () => {
+test('çocuk hedefi eşleşmesi ortak hedef sözleşmesini kullanır: çelişen kimlik kapalı kalır', () => {
   assert.equal(cocukHedefliMi({ hedefTur: 'ogrenci' }), true);
   assert.equal(cocukHedefliMi({ hedefTur: 'cocuk' }), true);
   assert.equal(cocukHedefliMi({ hedefTip: 'ogrenci' }), true);
@@ -211,6 +214,12 @@ test('çocuk hedefi eşleşmesi galeriyle aynı kuralı kullanır: çelişen kim
   assert.equal(cocukHedefiUygunMu({ hedefTur: 'ogrenci', hedefDeger: 'a', ogrenciId: 'b' }, cocuklar), false);
   assert.equal(cocukHedefiUygunMu({ hedefTur: 'ogrenci' }, cocuklar), false);
   assert.equal(cocukHedefiUygunMu({ hedefTur: 'ogrenci', hedefDeger: 'a' }, []), false);
+  // Çoklu öğrenci: tam liste "ogrenciler"de, hedefDeger ilk öğrenci
+  const coklu = { hedefTur: 'ogrenci', hedefTip: 'cocuk', hedefDeger: 'x', ogrenciler: ['x', 'b'] };
+  assert.equal(cocukHedefiUygunMu(coklu, cocuklar), true, 'ikinci öğrencinin velisi görür');
+  assert.equal(cocukHedefiUygunMu(coklu, [{ id: 'z' }]), false);
+  assert.equal(cocukHedefiUygunMu({ ...coklu, hedefDeger: 'z' }, cocuklar), false, 'ilk öğrenci listede yoksa kapalı');
+  assert.equal(cocukHedefiUygunMu({ ...coklu, hedefTip: 'sinif' }, cocuklar), false, 'tür çelişkisi kapalı');
 });
 
 // ═══════════════════════ Veli yollarının dönüşümü (kaynak) ═══════════════════════
@@ -270,7 +279,8 @@ test('yeni yardımcı her içe aktarandan aynı sürümle PWA önbelleğinde', a
   for (const iceAktaran of ['index.html', 'js/zeky-veli-ogrenme-deneyimi.js', 'js/zeky-egitim-portfolyo.js', 'moduller/veli-galeri.js']) {
     assertPrecachedImport(pwa, iceAktaran, 'js/veli-hedefli-okuma.js');
   }
-  assertPrecachedImport(pwa, 'js/veli-hedefli-okuma.js', 'js/portal-galeri-etkilesim.js');
+  assertPrecachedImport(pwa, 'js/veli-hedefli-okuma.js', 'js/icerik-hedefi.js');
+  assertPrecachedImport(pwa, 'js/icerik-hedefi.js', 'js/ogretmen-sinif-core.js');
 });
 
 // ═══════════════════════ Çalışma zamanı: dönüştürülen yollar ═══════════════════════
@@ -308,14 +318,15 @@ test('takvim yükleyici: veli hedefli sorgular, personel tüm koleksiyon; oturum
     takvim: [
       { id: 't1', baslik: 'Genel', tarih: '2026-10-22', hedefTur: 'tumOkul' },
       { id: 't2', baslik: 'Kendi', tarih: '2026-10-23', hedefTur: 'ogrenci', hedefDeger: 'kendi' },
-      { id: 't3', baslik: 'Başka', tarih: '2026-10-24', hedefTur: 'ogrenci', hedefDeger: 'baska' }
+      { id: 't3', baslik: 'Başka', tarih: '2026-10-24', hedefTur: 'ogrenci', hedefDeger: 'baska' },
+      { id: 't4', baslik: 'Çoklu', tarih: '2026-10-25', hedefTur: 'ogrenci', hedefTip: 'cocuk', hedefDeger: 'baska', ogrenciler: ['baska', 'kardes'] }
     ]
   };
   const { c, sorgular } = takvimYukleyici(belgeler);
   const veliListesi = await c.yukle();
-  assert.deepEqual(basliklar(veliListesi), ['Genel', 'Kendi', 'Şenlik']);
+  assert.deepEqual(basliklar(veliListesi), ['Genel', 'Kendi', 'Çoklu', 'Şenlik'].sort());
   const takvimSorgulari = sorgular.filter(q => q.ad === 'takvim');
-  assert.equal(takvimSorgulari.length, 1 + VELI_COCUKLARI.length);
+  assert.equal(takvimSorgulari.length, 1 + VELI_COCUKLARI.length * 2);
   assert.ok(takvimSorgulari.every(q => kuralIzinVerir(q, ['kendi', 'kardes'])), takvimSorgulari.map(bicim).join(' | '));
 
   // Aynı oturumda önbellek kullanılır.
@@ -339,7 +350,8 @@ test('ZEKY veli modülü: duyuru popup, etkinlik bildirimi ve günlük akış he
     duyurular: [
       { id: 'd1', baslik: 'Genel duyuru', hedefTur: 'tumOkul' },
       { id: 'd2', baslik: 'Kendi duyuru', hedefTur: 'ogrenci', hedefDeger: 'kendi' },
-      { id: 'd3', baslik: 'Başka duyuru', hedefTur: 'ogrenci', hedefDeger: 'baska', hedefOgrenciAd: 'GİZLİ AD' }
+      { id: 'd3', baslik: 'Başka duyuru', hedefTur: 'ogrenci', hedefDeger: 'baska', hedefOgrenciAd: 'GİZLİ AD' },
+      { id: 'd4', baslik: 'Çoklu duyuru', hedefTur: 'ogrenci', hedefTip: 'cocuk', hedefDeger: 'baska', ogrenciler: ['baska', 'kendi'], hedefOgrenciAd: '2 öğrenci' }
     ],
     takvim: [
       { id: 't1', baslik: 'Genel gezi', tarih: bugun, hedefTur: 'tumOkul' },
@@ -350,12 +362,12 @@ test('ZEKY veli modülü: duyuru popup, etkinlik bildirimi ve günlük akış he
   });
   const c = vm.createContext({
     window: { PortalAPI: { fb, db: {}, state: { veliAktifOgrenci: { id: 'kendi' }, ayarListesi: {} } } },
-    document: {}, console: { warn() {} }, veliHedefliOku
+    document: {}, console: { warn() {} }, veliHedefliOku, ogrenciHedefte
   });
   vm.runInContext(ogrenme, c);
   const o = { id: 'kendi' };
   const duyurular = await c.duyuruPopupGetir(o);
-  assert.deepEqual(basliklar(duyurular), ['Genel duyuru', 'Kendi duyuru']);
+  assert.deepEqual(basliklar(duyurular), ['Genel duyuru', 'Kendi duyuru', 'Çoklu duyuru'].sort());
   const bildirimler = await c.etkinlikBildirimleriGetir(o);
   assert.ok(bildirimler.some(x => x.baslik.includes('Kendi randevu')));
   assert.ok(!bildirimler.some(x => x.baslik.includes('Başka')));
@@ -364,7 +376,7 @@ test('ZEKY veli modülü: duyuru popup, etkinlik bildirimi ve günlük akış he
 
   for (const q of sorgular) assert.ok(kuralIzinVerir(q, ['kendi']), `${q.ad}: ${bicim(q)}`);
   const gunlukTakvim = sorgular.filter(q => q.ad === 'takvim' && q.kosullar.some(k => k.alan === 'tarih'));
-  assert.equal(gunlukTakvim.length, 2);
+  assert.equal(gunlukTakvim.length, 3, 'genel + hedefDeger + ogrenciler (çoklu öğrenci)');
   assert.ok(gunlukTakvim.every(q => q.kosullar.some(k => k.alan === 'tarih' && k.op === '==' && k.deger === bugun)));
   assert.ok(sorgular.some(q => q.ad === 'etkinlikler' && q.kosullar.length === 0), 'herkese açık etkinlikler değişmedi');
 });

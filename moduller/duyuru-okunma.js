@@ -28,6 +28,8 @@
 // Okuma listesi yalnızca personele açıktır.
 // ══════════════════════════════════════════════════════════════
 
+import { icerikHedefi, ogrenciHedefte, hedefEtiketi } from '../js/icerik-hedefi.js?v=1';
+
 const IKON = {
   goz: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
@@ -57,9 +59,11 @@ function zamanYazi(iso, saatli = true) {
   return `${t.getDate()} ${AYLAR[t.getMonth()]}${yil} ${GUNLER[t.getDay()]}${saat}`;
 }
 function hedefYazi(d) {
-  if (d.hedefTur === "sinif") return d.hedefDeger || "Sınıf";
-  if (d.hedefTur === "ogrenci") return d.hedefOgrenciAd || "Tek öğrenci";
-  return "Tüm okul";
+  // Tek öğrenci, çoklu öğrenci ("ogrenciler"), sınıf ya da tüm okul (icerik-hedefi.js)
+  const ogrenciler = P()?.state?.ogrenciList || [];
+  const h = icerikHedefi(d);
+  if (h.tip === "okul") return "Tüm okul";
+  return hedefEtiketi(d, { adBul: id => ogrenciler.find(o => o.id === id)?.ogrenciAdSoyad || "" }) || "Sınıf";
 }
 function iletisimGorur() {
   const s = P()?.state || {};
@@ -194,11 +198,8 @@ function hedefVeliler(d) {
     const ayar = ayarlar[o.id];
     if (a?.ogrenciDurum?.(o, ayar) !== "aktif") continue;
     const sinif = ayar?.kayit?.sinif || o.sinif || "";
-    const tur = d.hedefTur || "tumOkul";
-    const dahil = tur === "tumOkul" ? true
-      : tur === "sinif" ? sinif === d.hedefDeger
-      : tur === "ogrenci" ? o.id === d.hedefDeger : false;
-    if (!dahil) continue;
+    // duyuruMailGonder ile aynı kural: tek/çoklu öğrenci ve sınıf hedefi
+    if (!ogrenciHedefte(d, o.id, sinif)) continue;
     if (ogretmen && siniflarim.size && !siniflarim.has(sinif)) continue;   // öğretmen yalnız kendi sınıfı
 
     const cocuk = { id: o.id, ad: o.ogrenciAdSoyad || "Öğrenci", sinif };

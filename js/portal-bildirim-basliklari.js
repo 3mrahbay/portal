@@ -88,16 +88,22 @@ function sourceAllowed(source, state) {
   if (!['sinif', 'ogrenci'].includes(type)) return false;
   const target = text(source.hedefDeger || (type === 'ogrenci' && (source.hedefOgrenciId || source.ogrenciId)));
   if (!target) return false;
+  // Çoklu öğrenci seçiminde tam liste "ogrenciler"dedir; hedefDeger ilk öğrencidir ve listede olmalı.
+  const listed = array(source.ogrenciler).map(text).filter(Boolean);
+  if (type === 'ogrenci' && listed.length && !listed.includes(target)) return false;
+  const targets = type === 'ogrenci' ? (listed.length ? listed : [target]) : [];
   const teacher = lower(state.rol) === 'ogretmen' && state.isAdmin !== true;
   if (isStaff && !teacher) return true; // Exact getDoc is still subject to existing Firestore permissions.
   if (teacher) {
     const classes = array(state.siniflar).map(classKey);
     if (type === 'sinif') return classes.includes(classKey(target));
     if (state.ogrenciVerileriHazirMi !== true) return false;
-    const child = array(state.ogrenciList).find(item => item.id === target);
-    return !!child && classes.includes(childClass(child, state));
+    return targets.some(id => {
+      const child = array(state.ogrenciList).find(item => item.id === id);
+      return !!child && classes.includes(childClass(child, state));
+    });
   }
-  return type === 'ogrenci' ? ownChildren.some(child => child.id === target)
+  return type === 'ogrenci' ? ownChildren.some(child => targets.includes(child.id))
     : ownChildren.some(child => !!childClass(child, state) && childClass(child, state) === classKey(target));
 }
 function sourcePlan(record, state) {
