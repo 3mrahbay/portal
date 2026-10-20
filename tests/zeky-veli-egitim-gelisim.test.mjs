@@ -34,7 +34,8 @@ test('veli eğitim modülü ZEKY S/T/U yolculuğunu ve açıklama/fotoğraf mode
 test('veli eğitim fotoğraf fallback sorgusu onaylı kapsamı ister ve seçili öğrenciyi istemcide ayırır', async () => {
   const kaynak = await readFile(new URL('moduller/veli-egitim-gelisim.js', kok), 'utf8');
   const portfolyo = await readFile(new URL('js/zeky-egitim-portfolyo.js', kok), 'utf8');
-  assert.match(portfolyo, /where\('durum','==','onaylandi'\)/);
+  // Faz 3b: onay koşulu (durum == 'onaylandi') ortak veli sorgu yardımcısından gelir; yalnız seçili çocuğa özel sorgular.
+  assert.match(portfolyo, /veliHedefliOku\(fb, db, 'galeri', \[ogrenciId\], \{ genel:false/);
   assert.match(portfolyo, /hedef !== ogrenciId/);
   assert.doesNotMatch(portfolyo, /where\('ogrenciId'/);
   assert.doesNotMatch(kaynak, /URLSearchParams/);

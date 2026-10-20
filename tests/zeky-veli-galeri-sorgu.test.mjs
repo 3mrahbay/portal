@@ -16,6 +16,7 @@ test('klasik veli galeri ekranı da yalnızca onaylanmış medyayı ister', asyn
   const bitis = kaynak.indexOf('window.veliGaleriFilter', baslangic);
   assert.ok(baslangic >= 0 && bitis > baslangic, 'veli galeri bölümü bulunamadı');
   const bolum = kaynak.slice(baslangic, bitis);
-  assert.match(bolum, /where\(["']durum["'],\s*["']==["'],\s*["']onaylandi["']\)/);
+  // Faz 3b: onay koşulunu her galeri sorgusuna ortak veli sorgu yardımcısı ekler (js/veli-hedefli-okuma.js).
+  assert.match(bolum, /veliHedefliOku\(veliOkumaFb, db, "galeri", veliOgrenciler/);
   assert.doesNotMatch(bolum, /getDocs\(collection\(db,\s*["']galeri["']\)\)/);
 });
