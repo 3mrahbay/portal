@@ -21,35 +21,51 @@ const REHBER_VARS = {
   ],
 };
 
-function harness({saved = {}, rehberVars = REHBER_VARS, failWrite = false} = {}) {
+// Sahte Firestore: alan yolu (FieldPath ya da "a.b") ve deleteField destekli; işlem (transaction) yazımları kaydedilir.
+class FieldPath { constructor(...p) { this.p = p; } }
+const SIL = Symbol('deleteField');
+function yolParca(alan) { return alan instanceof FieldPath ? alan.p : String(alan).split('.'); }
+function alanYaz(d, alan, v) {
+  const p = yolParca(alan); let o = d;
+  for (const k of p.slice(0, -1)) o = (o[k] && typeof o[k] === 'object') ? o[k] : (o[k] = {});
+  if (v === SIL) delete o[p.at(-1)]; else o[p.at(-1)] = v;
+}
+function harness({saved = {}, rehberVars = REHBER_VARS, failWrite = false, kullanici = {email:'emrahby@gmail.com'}, araYazim = null} = {}) {
   const writes = [], tx = [], messages = [];
   const store = structuredClone(saved);
   const fb = {
+    FieldPath, deleteField:()=>SIL,
     doc:(_db,col,id)=>({col,id}), serverTimestamp:()=> 'SERVER_TIME',
     getDoc:async(ref)=>({metadata:{fromCache:false},exists:()=>ref.id in store,data:()=>structuredClone(store[ref.id])}),
     setDoc:async(ref,value,opt)=>{if(failWrite)throw Error('permission-denied');writes.push({ref,value,opt});store[ref.id]=opt&&opt.merge?{...(store[ref.id]||{}),...value}:value;},
     runTransaction:async(_db,fn)=>{
       const pending=[];
+      // araYazim: işlem okumasından hemen önce başka bir yöneticinin yazımı (eşzamanlılık testi)
+      if(araYazim){araYazim(store);araYazim=null;}
       await fn({
         get:async(ref)=>({exists:()=>ref.id in store,data:()=>structuredClone(store[ref.id])}),
-        update:(ref,value)=>pending.push(['update',ref,value]),
+        update:(ref,...args)=>{
+          const ciftler=args.length===1?Object.entries(args[0]):Array.from({length:args.length/2},(_,i)=>[args[2*i],args[2*i+1]]);
+          pending.push(['update',ref,ciftler]);
+        },
         set:(ref,value,opt)=>pending.push(['set',ref,value,opt]),
       });
       if(failWrite)throw Error('permission-denied');
       for(const [tur,ref,value,opt] of pending){
         tx.push({tur,ref,value,opt});
-        if(tur==='update'){const d=store[ref.id];for(const [k,v] of Object.entries(value)){if(k.includes('.')){const [a,b]=k.split('.');d[a]={...(d[a]||{}),[b]:v};}else d[k]=v;}}
+        if(tur==='update'){const d=store[ref.id];for(const [k,v] of value)alanYaz(d,k,v);}
         else store[ref.id]=opt&&opt.merge?{...(store[ref.id]||{}),...value}:value;
       }
     },
   };
   const context = vm.createContext({console,structuredClone,
     fetch:async(url)=>({ok:true,json:async()=>structuredClone(String(url).endsWith('/rehber-varsayilan.json')?rehberVars:SITE_VARS)}),
-    window:{addEventListener(){},PortalAPI:{auth:{currentUser:{email:'emrahby@gmail.com'}},db:{},toast:(m)=>messages.push(m),fb}}});
+    window:{addEventListener(){},PortalAPI:{auth:{currentUser:kullanici},db:{},toast:(m)=>messages.push(m),fb}}});
   vm.runInContext(source.replace(/export /g,'') + `
-window.testing={yukle,kaydet,dogrula,degisti,temizle,rehberTemizle,guvenliHref,rehberFark,rehberBoyutHatasi,utf8Boyut,haricEkle,haricCikar,
-  haftalikOzetMetni,alanBasinaCoz,haftalikAcikMi,haftalikOgeGuncelle,haftalikAyarYaz,HAFTALIK_ALANLAR,RB_SINIR,
-  D:()=>D,RV:()=>RV,H:()=>H,HA:()=>HA,setRS:(x)=>{RS=x;}};`, context);
+window.testing={yukle,kaydet,dogrula,degisti,temizle,rehberTemizle,guvenliHref,rehberFark,rehberBoyutHatasi,utf8Boyut,haricEkle,
+  haftalikOzetMetni,alanBasinaCoz,haftalikAcikMi,haftalikOgeGuncelle,haftalikAyarYaz,duzeltilmisKare,guncelleyenEtiketi,
+  rehberDegisiklikleri,rehberBirlestir,HAFTALIK_ALANLAR,RB_SINIR,
+  D:()=>D,RV:()=>RV,H:()=>H,HA:()=>HA};`, context);
   return {api:context.window.testing,writes,tx,messages,store};
 }
 
@@ -101,8 +117,12 @@ test('güvenli bağlantı adresi yalnız http(s), mailto, tel, / ve # kabul eder
 });
 
 // ───────── değişiklik farkı ve kayıt ─────────
-test('yalnız değişen alanlar kaydedilir; değişmeyen yazı belgeye girmez', async () => {
-  const h = harness();
+// İşlemdeki tek update çağrısının alan/değer çiftleri → { "yazilar.slug": değer } biçiminde
+const guncellemeler = (h) => Object.fromEntries(h.tx.filter((x) => x.tur === 'update' && x.ref.id === 'rehber')
+  .flatMap((x) => x.value).map(([k, v]) => [yolParca(k).join('.'), v]));
+
+test('yalnız değişen yazı, kendi alan yolunda kaydedilir; değişmeyen yazı belgeye girmez', async () => {
+  const h = harness({saved:{rehber:{yazilar:{}}}});
   await h.api.yukle();
   const D = h.api.D();
   assert.deepEqual(j(Object.keys(h.api.RV().harita).sort()), ['maria-montessori-kimdir', 'orman-okulu-nedir']); // geçersiz slug atlandı
@@ -115,29 +135,60 @@ test('yalnız değişen alanlar kaydedilir; değişmeyen yazı belgeye girmez', 
     gorsel:{url:'https://bcka.b-cdn.net/web-sitesi/2026-10/a.jpg',en:1280,boy:1600,alt:'Silindir bloklar'}};
   assert.equal(h.api.degisti('rehber'), true);
   assert.equal(await h.api.kaydet('rehber'), true);
-  assert.equal(h.writes.length, 1);
-  const w = h.writes[0];
-  assert.deepEqual([w.ref.col, w.ref.id], ['webSitesi', 'rehber']);
-  assert.deepEqual(j(Object.keys(w.value.yazilar)), ['maria-montessori-kimdir']);
-  const y = w.value.yazilar['maria-montessori-kimdir'];
+  assert.equal(h.writes.length, 0);                 // belgenin tamamı yazılmaz
+  const g = guncellemeler(h);
+  assert.deepEqual(Object.keys(g).sort(), ['guncellendi', 'guncelleyen', 'yazilar.maria-montessori-kimdir']);
+  assert.ok(h.tx.find((x) => x.ref.id === 'rehber').value.some(([k]) => k instanceof FieldPath)); // FieldPath kullanılır
+  const y = g['yazilar.maria-montessori-kimdir'];
   assert.deepEqual(j(Object.keys(y).sort()), ['baslik', 'gorsel', 'guncellendi']);
   assert.equal(y.baslik, 'Maria Montessori kimdir? Hayatı');
   assert.deepEqual(j(y.gorsel), {url:'https://bcka.b-cdn.net/web-sitesi/2026-10/a.jpg',alt:'Silindir bloklar',en:1280,boy:1600});
   assert.match(y.guncellendi, /^\d{4}-\d{2}-\d{2}T/);
-  assert.equal(w.value.guncelleyen, 'emrahby@gmail.com');
-  assert.equal(w.value.guncellendi, 'SERVER_TIME');
+  assert.equal(g.guncelleyen, 'Yönetim');
+  assert.equal(g.guncellendi, 'SERVER_TIME');
+  assert.equal(h.api.degisti('rehber'), false);
+  assert.doesNotMatch(JSON.stringify(h.store), /@/);
+});
+
+test('belge yoksa ilk kayıt yalnız değişen yazıyla oluşturulur', async () => {
+  const h = harness();
+  await h.api.yukle();
+  h.api.D().rehber.yazilar['orman-okulu-nedir'] = {ozet:'Yeni özet'};
+  assert.equal(await h.api.kaydet('rehber'), true);
+  assert.deepEqual(h.tx.map((x) => [x.tur, x.ref.id]), [['set', 'rehber']]);
+  assert.deepEqual(j(Object.keys(h.store.rehber.yazilar)), ['orman-okulu-nedir']);
+  assert.equal(h.store.rehber.yazilar['orman-okulu-nedir'].ozet, 'Yeni özet');
+});
+
+test('iki yönetici farklı yazıları düzenlerse ikisinin kaydı da kalır; varsayılana dönen yazı silinir', async () => {
+  const saved = {rehber:{yazilar:{'orman-okulu-nedir':{ozet:'Eski özet',guncellendi:'2026-10-01T00:00:00.000Z'}}}};
+  const h = harness({saved, araYazim:(s)=>{ s.rehber.yazilar['baska-yazi'] = {baslik:'Diğer yöneticinin kaydı',guncellendi:'2026-10-21T09:00:00.000Z'}; }});
+  await h.api.yukle();
+  delete h.api.D().rehber.yazilar['orman-okulu-nedir'];                     // varsayılana dön
+  h.api.D().rehber.yazilar['maria-montessori-kimdir'] = {govde:'<p onclick="x">Yeni <script>kötü()</script>metin</p>'};
+  assert.equal(await h.api.kaydet('rehber'), true);
+  const y = h.store.rehber.yazilar;
+  assert.deepEqual(Object.keys(y).sort(), ['baska-yazi', 'maria-montessori-kimdir']);
+  assert.equal(y['baska-yazi'].baslik, 'Diğer yöneticinin kaydı');      // ezilmedi
+  assert.equal(y['maria-montessori-kimdir'].govde, '<p>Yeni metin</p>');
+  const g = guncellemeler(h);
+  assert.equal(Object.keys(g).some((k) => k === 'yazilar.baska-yazi'), false); // dokunulmayan yazı yazılmadı
+  assert.equal(typeof h.tx[0].value.find(([k]) => yolParca(k).join('.') === 'yazilar.orman-okulu-nedir')[1], 'symbol'); // deleteField
+  // ekrana diğer yöneticinin kaydı da gelir; bekleyen değişiklik kalmaz
+  assert.equal(h.api.D().rehber.yazilar['baska-yazi'].baslik, 'Diğer yöneticinin kaydı');
   assert.equal(h.api.degisti('rehber'), false);
 });
 
-test('kayıtlı değişiklikler yüklenir; değişmeyen yazının zamanı korunur, metin yeniden temizlenir', async () => {
-  const h = harness({saved:{rehber:{yazilar:{'orman-okulu-nedir':{ozet:'Yeni özet',guncellendi:'2026-10-01T00:00:00.000Z'}}}}});
+test('900 KB tahmini sunucudaki güncel belgeyle birleşik hâle göre yapılır', async () => {
+  const buyuk = '<p>' + 'ö'.repeat(260 * 1024) + '</p>';            // ~520 KB
+  const h = harness({saved:{rehber:{yazilar:{}}}, araYazim:(s)=>{ s.rehber.yazilar['baska-yazi'] = {govde:buyuk}; }});
   await h.api.yukle();
-  assert.equal(h.api.degisti('rehber'), false);
-  h.api.D().rehber.yazilar['maria-montessori-kimdir'] = {govde:'<p onclick="x">Yeni <script>kötü()</script>metin</p>'};
-  assert.equal(await h.api.kaydet('rehber'), true);
-  const y = h.writes[0].value.yazilar;
-  assert.equal(y['orman-okulu-nedir'].guncellendi, '2026-10-01T00:00:00.000Z');
-  assert.equal(y['maria-montessori-kimdir'].govde, '<p>Yeni metin</p>');
+  h.api.D().rehber.yazilar['orman-okulu-nedir'] = {govde:buyuk};
+  assert.equal(h.api.dogrula('rehber'), '');                             // yerelde tek başına sığıyor
+  assert.equal(await h.api.kaydet('rehber'), false);                       // birleşik hâl sığmıyor
+  assert.equal(h.tx.length, 0);
+  assert.ok(h.messages.some((m) => /çok büyüdü/.test(m)));
+  assert.equal(h.store.rehber.yazilar['orman-okulu-nedir'], undefined);
 });
 
 test('boş başlık / özet / metin kaydedilmez', async () => {
@@ -192,7 +243,6 @@ test('hariç listesi en yeni 500 kaydı tutar, tekrar etmez', () => {
   assert.equal(yeni.at(-1), 'yeni');
   assert.deepEqual(j(api.haricEkle(['a', 'b'], 'a')), ['b', 'a']);
   assert.deepEqual(j(api.haricEkle(undefined, 'a')), ['a']);
-  assert.deepEqual(j(api.haricCikar(['a', 'b', 'a'], 'a')), ['b']);
 });
 
 test('ayar varsayılanları: belge yoksa açık, alan başına 3', () => {
@@ -211,36 +261,51 @@ const HAFTALIK = {surum:1, hafta:'2026-10-19', aralik:'19–25 Ekim 2026', kayna
               {id:'g2',u640:'https://x/2-640.webp',u1280:'',alt:'Montessori',tarih:'2026-10-21',hafta:'2026-10-19',gizli:false}],
   orman:[{id:'g3',u640:'https://x/3-640.webp',alt:'Orman',tarih:'2026-10-20',hafta:'2026-10-12'}]}};
 
-test('Kaldır: kare gizlenir, hariç listesine eklenir; diğer kareler ve alanlar korunur', async () => {
-  const h = harness({saved:{haftalik:HAFTALIK, haftalikAyar:{acik:true, haric:['eski']}}});
+test('Kaldır: kare herkese açık belgeden çıkarılır ve hariç listesine eklenir; diğer kareler korunur', async () => {
+  const h = harness({saved:{haftalik:HAFTALIK, haftalikAyar:{acik:true, haric:['eski']}}, kullanici:{email:'eposta@bircicekkoleji.com'}});
   await h.api.yukle();
-  await h.api.haftalikOgeGuncelle('montessori', 'g2', (o) => ({...o, gizli:true}), (ayar) => ({haric:h.api.haricEkle(ayar.haric, 'g2')}));
+  await h.api.haftalikOgeGuncelle('montessori', 'g2', () => null, (ayar) => ({haric:h.api.haricEkle(ayar.haric, 'g2')}));
   const s = h.store;
-  assert.equal(s.haftalik.alanlar.montessori[1].gizli, true);
-  assert.equal(s.haftalik.alanlar.montessori[0].gizli, false);
-  assert.equal(s.haftalik.alanlar.montessori[1].u640, 'https://x/2-640.webp');
+  assert.deepEqual(j(s.haftalik.alanlar.montessori.map((o) => o.id)), ['g1']);
+  assert.doesNotMatch(JSON.stringify(s.haftalik), /2-640\.webp/);      // kaldırılan karenin bağlantısı kalmaz
   assert.deepEqual(j(s.haftalik.alanlar.orman), HAFTALIK.alanlar.orman);
   assert.equal(s.haftalik.kaynak, 'panel');
   assert.deepEqual(j(s.haftalikAyar.haric), ['eski', 'g2']);
   assert.equal(s.haftalikAyar.acik, true);
-  assert.equal(s.haftalikAyar.guncelleyen, 'emrahby@gmail.com');
-  assert.deepEqual(h.tx.map((x) => [x.tur, x.ref.id, Object.keys(x.value).sort().join(',')]),
-    [['update', 'haftalik', 'alanlar.montessori,guncellendi,guncelleyen,kaynak'], ['set', 'haftalikAyar', 'guncellendi,guncelleyen,haric']]);
-  assert.equal(h.api.H().alanlar.montessori[1].gizli, true);
+  assert.equal(s.haftalikAyar.guncelleyen, 'Okul hesabı');
+  assert.equal(s.haftalik.guncelleyen, 'Okul hesabı');
+  assert.doesNotMatch(JSON.stringify(s), /@/);
+  assert.deepEqual(h.tx.map((x) => [x.tur, x.ref.id]), [['update', 'haftalik'], ['set', 'haftalikAyar']]);
+  assert.deepEqual(j(h.api.H().alanlar.montessori.map((o) => o.id)), ['g1']);
   assert.deepEqual(j(h.api.HA().haric), ['eski', 'g2']);
+  assert.doesNotMatch(source, /haftalikGoster|Geri göster/);               // kaldırma kesindir
+  assert.match(source, /Bu kare sitedeki bölümden kaldırılır ve bir daha seçilmez/);
 });
 
-test('Yüzleri düzelt: yalnız url (ve boyut) değişir; olmayan kare ve bilinmeyen alan reddedilir', async () => {
+test('Yüzleri düzelt: yeni adres yazılır, eski otomatik kopyaların bağlantısı boşaltılır', async () => {
   const h = harness({saved:{haftalik:HAFTALIK}});
   await h.api.yukle();
-  await h.api.haftalikOgeGuncelle('montessori', 'g1', (x) => ({...x, url:'https://bcka.b-cdn.net/web-sitesi/2026-10/duz.jpg', en:1600, boy:1200}));
+  const yeni = {url:'https://bcka.b-cdn.net/web-sitesi/2026-10/duz.jpg', en:1600, boy:1200};
+  await h.api.haftalikOgeGuncelle('montessori', 'g1', (x) => h.api.duzeltilmisKare(x, yeni));
   const o = h.store.haftalik.alanlar.montessori[0];
-  assert.equal(o.url, 'https://bcka.b-cdn.net/web-sitesi/2026-10/duz.jpg');
-  assert.equal(o.u640, 'https://x/1-640.webp');
+  assert.equal(o.url, yeni.url);
+  assert.equal(o.en, 1600);
+  assert.equal(o.u640, '');
+  assert.equal(o.u1280, '');
   assert.equal(o.id, 'g1');
+  assert.equal(h.store.haftalik.alanlar.montessori[1].u640, 'https://x/2-640.webp'); // diğer kare aynen
   assert.equal(h.tx.length, 1); // ayar belgesine dokunmaz
   await assert.rejects(h.api.haftalikOgeGuncelle('montessori', 'yok', (x) => x), /artık listede yok/);
   await assert.rejects(h.api.haftalikOgeGuncelle('alanlar', 'g1', (x) => x), /Bilinmeyen alan/);
+});
+
+test('görünen ad: Google adı, okul hesabı ya da Yönetim; e-posta asla', () => {
+  const {api} = harness();
+  assert.equal(api.guncelleyenEtiketi({displayName:'  Emrah   Bay ', email:'emrahby@gmail.com'}), 'Emrah Bay');
+  assert.equal(api.guncelleyenEtiketi({displayName:'emrahby@gmail.com', email:'emrahby@gmail.com'}), 'Yönetim');
+  assert.equal(api.guncelleyenEtiketi({email:'EPOSTA@bircicekkoleji.com'}), 'Okul hesabı');
+  assert.equal(api.guncelleyenEtiketi({email:'emrahby@gmail.com'}), 'Yönetim');
+  assert.equal(api.guncelleyenEtiketi(null), 'Yönetim');
 });
 
 test('aç/kapa ve alan başına görsel haftalikAyar belgesine birleştirerek yazılır', async () => {
@@ -256,6 +321,8 @@ test('aç/kapa ve alan başına görsel haftalikAyar belgesine birleştirerek ya
 test('haftalık yazımlar da yalnız webSitesi koleksiyonuna ve işlem içinde yapılır', () => {
   assert.match(source, /fb\.runTransaction\(db, async \(tx\) => \{/);
   assert.match(source, /tx\.update\(ref, \{ \[`alanlar\.\$\{alanAd\}`\]: liste, kaynak: "panel"/);
+  assert.match(source, /new fb\.FieldPath\("yazilar", slug\)/);
+  assert.match(source, /fb\.deleteField\(\)/);
   assert.match(source, /fb\.doc\(db, "webSitesi", "haftalikAyar"\)/);
   assert.match(source, /fb\.doc\(db, "webSitesi", "haftalik"\)/);
   assert.match(source, /SITE \+ "\/rehber-varsayilan\.json"/);

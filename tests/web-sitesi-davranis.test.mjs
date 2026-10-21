@@ -28,7 +28,9 @@ for(const email of ['emrahby@gmail.com','eposta@bircicekkoleji.com'])test(`yetki
   const h=harness({email,saved:{duyuru:{aktif:false,metin:'Kaydedilmiş metin',baglanti:'/montessori'}}});
   await h.api.yukle();assert.equal(JSON.parse(h.api.data()).duyuru.metin,'Kaydedilmiş metin');h.api.change();
   assert.equal(await h.api.kaydet('duyuru'),true);assert.equal(h.writes.length,1);
-  assert.equal(h.writes[0].value.baglanti,'/montessori');assert.equal(h.writes[0].value.guncelleyen,email);
+  assert.equal(h.writes[0].value.baglanti,'/montessori');
+  // herkese açık belgeye e-posta yazılmaz
+  assert.equal(h.writes[0].value.guncelleyen,email==='eposta@bircicekkoleji.com'?'Okul hesabı':'Yönetim');assert.doesNotMatch(JSON.stringify(h.writes),/@/);
   assert.ok(h.messages.every(m=>!m.includes('en geç 1 dakika')));
 });
 for(const email of ['other-admin@example.com',null])test(`yetkisiz istemci kaydı engellenir: ${email}`,async()=>{

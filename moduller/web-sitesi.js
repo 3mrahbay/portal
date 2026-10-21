@@ -8,16 +8,22 @@
 //   Görseller (yükle, düzenle, kaldır)
 //
 // Veri:   Firestore webSitesi/{genel|duyuru|slaytlar|kutular|sss|medya|rehber}
-//         webSitesi/haftalik     → sunucunun haftalık seçimi (panel yalnız kareyi gizler / düzeltir)
-//         webSitesi/haftalikAyar → aç/kapa, alan başına görsel, kaldırılan kareler, yeniden seçim isteği
+//         webSitesi/haftalik     → sunucunun haftalık seçimi (panel kareyi listeden ÇIKARIR ya da düzeltilmiş
+//                                  kopyasını koyar; belge herkese açık okunur, gizlenen kare bağlantısı kalmaz)
+//         webSitesi/haftalikAyar → aç/kapa, alan başına görsel, kaldırılan kareler (haric), yeniden seçim isteği
+//         Herkese açık bu belgelere e-posta yazılmaz: guncelleyen/yukleyen alanında yalnız görünen ad
+//         ("Okul hesabı" / "Yönetim" / Google adı) bulunur.
 // Yetki:  yalnızca emrahby@gmail.com ve eposta@bircicekkoleji.com
 //         (Firestore kuralı match /webSitesi/{belge} ile birebir)
 // Yayın:  Sitenin sunucusu (Cloudflare) kaydedilen içeriği en geç 1 dakika içinde sayfalara uygular.
 //         Panelde hiç kaydedilmemiş bölüm sitede olduğu gibi kalır.
 // Varsayılanlar: <site>/site-varsayilan.json (sitenin bugünkü içeriği ve görsel listesi)
 //                <site>/rehber-varsayilan.json (Veli Rehberi yazılarının sitedeki hâli)
-// Veli Rehberi: webSitesi/rehber yalnız varsayılandan FARKLI alanları taşır; metin her kayıtta
-//         izinli etiketlere (p h2 h3 ul ol li strong em b i a br blockquote) indirgenir.
+// Veli Rehberi: webSitesi/rehber yalnız varsayılandan FARKLI alanları taşır; yazı başına alan yolu
+//         (yazilar.<slug>) güncellenir, varsayılana dönen yazı silinir — iki yönetici farklı yazıları
+//         aynı anda düzenlese de birbirinin kaydını ezmez. Metin her kayıtta izinli etiketlere indirgenir:
+//         p h2 h3 ul ol li strong em b i a[href] br blockquote table thead tbody tr th td ve
+//         ol[start], p[class=muted|small], div[class=table-wrap] (sitenin mevcut yazılarında kullanılanlar).
 //
 // Kullanım: m.panelRender("webSitesiIcerik")
 // ═══════════════════════════════════════════════════════════════════
@@ -74,6 +80,13 @@ const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&":
 const kopya = (o) => JSON.parse(JSON.stringify(o == null ? null : o));
 const email = () => (P().auth?.currentUser?.email || "").toLowerCase();
 export function yetkiliMi() { return YETKILI.includes(email()); }
+// Herkese açık webSitesi/* belgelerine e-posta yerine yazılan görünen ad
+export function guncelleyenEtiketi(kullanici = P().auth?.currentUser) {
+  const ad = String(kullanici?.displayName || "").replace(/\s+/g, " ").trim();
+  if (ad && !ad.includes("@")) return ad.slice(0, 60);
+  if (String(kullanici?.email || "").toLowerCase() === "eposta@bircicekkoleji.com") return "Okul hesabı";
+  return "Yönetim";
+}
 function toast(m, t) { try { P().toast(m, t); } catch (_) {} }
 function lucide() { try { P().lucide(); } catch (_) {} }
 function yeniId(on) { return on + "-" + Math.random().toString(36).slice(2, 8); }
@@ -316,7 +329,6 @@ export function haricEkle(liste, id, sinir = HARIC_SINIR) {
   if (id) l.push(String(id));
   return l.slice(-sinir);
 }
-export function haricCikar(liste, id) { return (Array.isArray(liste) ? liste : []).filter((x) => x !== id); }
 export function alanBasinaCoz(v) { const n = Math.round(Number(v)); return n >= 1 && n <= 4 ? n : 3; }
 export function haftalikAcikMi(ayar) { return !ayar || ayar.acik !== false; }
 // Sunucunun özet sayıları → düz Türkçe
@@ -444,15 +456,52 @@ function rehberNormal(d) {
   return { yazilar };
 }
 
-// Kaydedilecek belge: değişen yazıya şimdiki zaman, değişmeyene önceki zaman yazılır
-function rehberYazilacak(veri, simdi = new Date().toISOString()) {
-  const yazilar = {};
-  for (const [slug, o] of Object.entries(veri.yazilar || {})) {
-    const onceki = RS[slug];
-    const ayni = onceki && JSON.stringify(rehberFark(onceki, RV ? (RV.harita[slug] || null) : null)) === JSON.stringify(o);
-    yazilar[slug] = { ...o, guncellendi: ayni && typeof onceki.guncellendi === "string" ? onceki.guncellendi : simdi };
-  }
-  return { yazilar };
+// Son kayda göre değişen yazılar: { yaz: {slug: alanlar}, sil: [slug] } (dokunulmayan yazı listede yer almaz)
+export function rehberDegisiklikleri(veri, onceki) {
+  const yaz = {}, sil = [];
+  const eski = (onceki && onceki.yazilar) || {};
+  for (const [slug, o] of Object.entries(veri.yazilar || {})) if (JSON.stringify(o) !== JSON.stringify(eski[slug])) yaz[slug] = o;
+  for (const slug of Object.keys(eski)) if (!(slug in (veri.yazilar || {}))) sil.push(slug);
+  return { yaz, sil };
+}
+// Sunucudaki güncel yazılara bu kaydın değişikliklerini uygular (900 KB tahmini ve yerel durum için)
+export function rehberBirlestir(sunucu, { yaz, sil }, simdi) {
+  const s = { ...(sunucu && typeof sunucu === "object" ? sunucu : {}) };
+  for (const slug of sil) delete s[slug];
+  for (const [slug, o] of Object.entries(yaz)) s[slug] = { ...o, guncellendi: simdi };
+  return s;
+}
+
+// Veli Rehberi kaydı: yalnız değişen yazıların alan yolu yazılır, varsayılana dönen yazı silinir.
+// Başka bir yöneticinin aynı anda kaydettiği diğer yazılar korunur; birleşik belge 900 KB'yi aşamaz.
+async function rehberKaydet(veri) {
+  const { fb, db } = P();
+  const ref = fb.doc(db, "webSitesi", "rehber");
+  const degisen = rehberDegisiklikleri(veri, K.rehber ? JSON.parse(K.rehber) : { yazilar: {} });
+  const simdi = new Date().toISOString();
+  const etiket = guncelleyenEtiketi();
+  const yol = (slug) => (fb.FieldPath ? new fb.FieldPath("yazilar", slug) : `yazilar.${slug}`);
+  let birlesik = null;
+  await fb.runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    const sunucu = snap.exists() ? ((snap.data() || {}).yazilar || {}) : {};
+    birlesik = rehberBirlestir(sunucu, degisen, simdi);
+    const hata = rehberBoyutHatasi({ yazilar: birlesik, guncellendi: simdi, guncelleyen: etiket });
+    if (hata) throw new Error(hata);
+    if (!snap.exists()) {
+      tx.set(ref, { yazilar: rehberBirlestir({}, degisen, simdi), guncellendi: fb.serverTimestamp(), guncelleyen: etiket });
+      return;
+    }
+    const ciftler = [];
+    for (const [slug, o] of Object.entries(degisen.yaz)) ciftler.push(yol(slug), { ...o, guncellendi: simdi });
+    for (const slug of degisen.sil) ciftler.push(yol(slug), fb.deleteField());
+    ciftler.push("guncellendi", fb.serverTimestamp(), "guncelleyen", etiket);
+    tx.update(ref, ...ciftler);
+  });
+  // Ekrana sunucudaki güncel hâl (başka yöneticinin kaydettiği yazılar dahil) gelir
+  RS = kopya(birlesik);
+  D.rehber = { yazilar: kopya(birlesik) };
+  K.rehber = JSON.stringify(temizle("rehber", D.rehber));
 }
 
 function degisti(id) { return D[id] && JSON.stringify(temizle(id, D[id])) !== K[id]; }
@@ -464,12 +513,13 @@ async function kaydet(id) {
   if (hata) { toast(hata, "error"); return false; }
   const { fb, db } = P();
   const veri = temizle(id, D[id]);
-  const yazilacak = id === "rehber" ? rehberYazilacak(veri) : veri;
   try {
-    await fb.setDoc(fb.doc(db, "webSitesi", id), { ...yazilacak, guncellendi: fb.serverTimestamp(), guncelleyen: email() });
-    if (id === "rehber") { RS = kopya(yazilacak.yazilar); D.rehber = { yazilar: kopya(veri.yazilar) }; }
-    K[id] = JSON.stringify(veri);
-    Z[id] = { zaman: new Date(), kim: email() };
+    if (id === "rehber") await rehberKaydet(veri);
+    else {
+      await fb.setDoc(fb.doc(db, "webSitesi", id), { ...veri, guncellendi: fb.serverTimestamp(), guncelleyen: guncelleyenEtiketi() });
+      K[id] = JSON.stringify(veri);
+    }
+    Z[id] = { zaman: new Date(), kim: guncelleyenEtiketi() };
     toast("✓ Firestore'a kaydedildi. Yayını Siteyi aç bağlantısından kontrol edin.");
     return true;
   } catch (e) {
@@ -524,7 +574,8 @@ function rehberDogrula(veri) {
     if ("ozet" in o && o.ozet.length > 220) return `“${ad}” yazısının özeti en çok 220 karakter olabilir.`;
     if ("govde" in o && !o.govde.replace(/<[^>]*>/g, "").trim()) return `“${ad}” yazısının metni boş olamaz.`;
   }
-  return rehberBoyutHatasi(rehberYazilacak(veri));
+  // Yerel tahmin; kayıt sırasında sunucudaki güncel belgeyle birleşik hâli ayrıca denetlenir
+  return rehberBoyutHatasi(rehberBirlestir(RS, rehberDegisiklikleri(veri, K.rehber ? JSON.parse(K.rehber) : { yazilar: {} }), new Date().toISOString()));
 }
 export function rehberBoyutHatasi(belge, sinir = RB_SINIR) {
   const boyut = utf8Boyut(JSON.stringify(belge));
@@ -1066,7 +1117,7 @@ function haftalikHtml() {
   const ozet = H ? haftalikOzetMetni(H.ozet) : "";
   const alanlar = (H && H.alanlar && typeof H.alanlar === "object") ? H.alanlar : {};
   return `<section class="ws-kart ws-hf">
-    <p class="ws-ipucu ws-hf-giris">Her pazartesi sistem, onaylanmış galeri fotoğraflarından her alan için birkaç kare seçer; çocukların yüzlerini bulanıklaştırır, okul filigranını kırpar ve sitedeki <b>“Bu hafta okulumuzda”</b> bölümlerinde yayınlar. Beğenmediğiniz kareyi kaldırabilir ya da kaçan bir yüzü elle bulanıklaştırabilirsiniz.</p>
+    <p class="ws-ipucu ws-hf-giris">Her pazartesi sistem, onaylanmış galeri fotoğraflarından her alan için birkaç kare seçer; çocukların yüzlerini bulanıklaştırır, okul filigranını kırpar ve sitedeki <b>“Bu hafta okulumuzda”</b> bölümlerinde yayınlar. Beğenmediğiniz kareyi kaldırabilir (bir daha seçilmez) ya da kaçan bir yüzü elle bulanıklaştırabilirsiniz.</p>
     <div class="ws-hf-ayar">
       <label class="ws-anahtar"><input type="checkbox" ${acik ? "checked" : ""} onchange="window._webSitesi.haftalikAcik(this.checked)" ${hfMesgul ? "disabled" : ""}><span></span><b>Haftalık otomatik güncelleme</b></label>
       <div class="ws-alan ws-hf-sayi"><label for="wsHfSayi">Alan başına görsel</label>
@@ -1084,20 +1135,19 @@ function haftalikHtml() {
 }
 
 function haftalikAlanHtml(a, liste) {
-  const gecerli = liste.filter((o) => o && o.id && haftalikGorselUrl(o));
-  const gorunen = gecerli.filter((o) => o.gizli !== true).length;
+  // Kaldırılan kare belgeden çıkarılır; eski sürümden kalmış gizli kare de gösterilmez
+  const gecerli = liste.filter((o) => o && o.id && o.gizli !== true && haftalikGorselUrl(o));
+  const gorunen = gecerli.length;
   return `<section class="ws-kart ws-hf-alan">
     <div class="ws-kart-ust"><h4>${esc(a.ad)} <small>${gorunen} görsel sitede</small></h4>
       <a class="ws-link" href="${esc(SITE + a.sayfa)}" target="_blank" rel="noopener">Sayfada gör</a></div>
-    ${gecerli.length ? `<div class="ws-hf-izgara">${gecerli.map((o) => `<figure class="${o.gizli === true ? "gizli" : ""}">
-        <img src="${esc(haftalikGorselUrl(o, 640))}" alt="${esc(o.alt || "")}" loading="lazy">
+    ${gecerli.length ? `<div class="ws-hf-izgara">${gecerli.map((o) => `<figure>
+        <img src="${esc(haftalikGorselUrl(o, 640))}" alt="" loading="lazy">
         <figcaption>
-          <small>${esc(o.tarih || "")}${H && o.hafta && o.hafta !== H.hafta ? " · önceki haftadan" : ""}${o.url ? " · elle düzeltildi" : ""}${o.gizli === true ? " · <b>sitede gizli</b>" : ""}</small>
+          <small>${esc(o.tarih || "")}${H && o.hafta && o.hafta !== H.hafta ? " · önceki haftadan" : ""}${o.url ? " · elle düzeltildi" : ""}</small>
           <span class="ws-hf-dugmeler">
-            ${o.gizli === true
-              ? `<button type="button" class="ws-btn ws-btn-ikincil" data-alan="${esc(a.anahtar)}" data-id="${esc(o.id)}" onclick="window._webSitesi.haftalikGoster(this.dataset.alan,this.dataset.id)" ${hfMesgul ? "disabled" : ""}><i data-lucide="eye"></i> Geri göster</button>`
-              : `<button type="button" class="ws-btn ws-btn-ikincil" data-alan="${esc(a.anahtar)}" data-id="${esc(o.id)}" onclick="window._webSitesi.haftalikDuzelt(this.dataset.alan,this.dataset.id)" ${hfMesgul ? "disabled" : ""}><i data-lucide="scan-face"></i> Yüzleri düzelt</button>
-                 <button type="button" class="ws-btn ws-btn-tehlike" data-alan="${esc(a.anahtar)}" data-id="${esc(o.id)}" onclick="window._webSitesi.haftalikKaldir(this.dataset.alan,this.dataset.id)" ${hfMesgul ? "disabled" : ""}><i data-lucide="eye-off"></i> Kaldır</button>`}
+            <button type="button" class="ws-btn ws-btn-ikincil" data-alan="${esc(a.anahtar)}" data-id="${esc(o.id)}" onclick="window._webSitesi.haftalikDuzelt(this.dataset.alan,this.dataset.id)" ${hfMesgul ? "disabled" : ""}><i data-lucide="scan-face"></i> Yüzleri düzelt</button>
+            <button type="button" class="ws-btn ws-btn-tehlike" data-alan="${esc(a.anahtar)}" data-id="${esc(o.id)}" onclick="window._webSitesi.haftalikKaldir(this.dataset.alan,this.dataset.id)" ${hfMesgul ? "disabled" : ""}><i data-lucide="trash-2"></i> Kaldır</button>
           </span>
         </figcaption></figure>`).join("")}</div>`
       : `<div class="ws-bos">Bu alan için henüz görsel seçilmedi. Galeride bu alana yüklenmiş onaylı fotoğraf olduğunda pazartesi seçilir.</div>`}
@@ -1126,7 +1176,7 @@ async function hfIslem(is, basari) {
 }
 async function haftalikAyarYaz(alanlar) {
   const { fb, db } = P();
-  await fb.setDoc(fb.doc(db, "webSitesi", "haftalikAyar"), { ...alanlar, guncellendi: fb.serverTimestamp(), guncelleyen: email() }, { merge: true });
+  await fb.setDoc(fb.doc(db, "webSitesi", "haftalikAyar"), { ...alanlar, guncellendi: fb.serverTimestamp(), guncelleyen: guncelleyenEtiketi() }, { merge: true });
   Object.assign(HA, alanlar);
 }
 function haftalikAcik(acik) {
@@ -1146,6 +1196,7 @@ function haftalikYenile() {
 }
 
 // Bir kareyi sunucunun belgesinde değiştirir (sunucunun eşzamanlı yazımını ezmemek için işlem içinde).
+// degistir null dönerse kare listeden ÇIKARILIR (belge herkese açık okunur; gizlenen bağlantı kalmamalı).
 // ayarDegistir verilirse aynı işlemde haftalikAyar da güncellenir.
 async function haftalikOgeGuncelle(alanAd, id, degistir, ayarDegistir) {
   if (!HAFTALIK_ALANLAR.some((a) => a.anahtar === alanAd)) throw new Error("Bilinmeyen alan");
@@ -1161,28 +1212,29 @@ async function haftalikOgeGuncelle(alanAd, id, degistir, ayarDegistir) {
     const liste = Array.isArray(veri.alanlar?.[alanAd]) ? veri.alanlar[alanAd].map((x) => ({ ...x })) : [];
     const i = liste.findIndex((x) => x && x.id === id);
     if (i < 0) throw new Error("Bu kare artık listede yok (yeni seçim yapılmış olabilir); sayfayı yenileyin.");
-    liste[i] = degistir(liste[i]);
-    tx.update(ref, { [`alanlar.${alanAd}`]: liste, kaynak: "panel", guncellendi: fb.serverTimestamp(), guncelleyen: email() });
+    const yeni = degistir(liste[i]);
+    if (yeni) liste[i] = yeni; else liste.splice(i, 1);
+    tx.update(ref, { [`alanlar.${alanAd}`]: liste, kaynak: "panel", guncellendi: fb.serverTimestamp(), guncelleyen: guncelleyenEtiketi() });
     yeniBelge = { ...veri, alanlar: { ...(veri.alanlar || {}), [alanAd]: liste }, kaynak: "panel" };
     if (ayarDegistir) {
       const ayar = ayarSnap && ayarSnap.exists() ? (ayarSnap.data() || {}) : {};
       const ek = ayarDegistir(ayar);
-      tx.set(ayarRef, { ...ek, guncellendi: fb.serverTimestamp(), guncelleyen: email() }, { merge: true });
+      tx.set(ayarRef, { ...ek, guncellendi: fb.serverTimestamp(), guncelleyen: guncelleyenEtiketi() }, { merge: true });
       yeniAyar = { ...ayar, ...ek };
     }
   });
   if (yeniBelge) H = yeniBelge;
   if (yeniAyar) HA = yeniAyar;
 }
+// Düzeltilmiş kopya: yalnız yeni Bunny adresi kalır, eski otomatik kopyaların bağlantısı boşaltılır
+export function duzeltilmisKare(x, yeni) {
+  return { ...x, url: yeni.url, en: yeni.en || x.en, boy: yeni.boy || x.boy, u640: "", u1280: "" };
+}
 function haftalikKaldir(alanAd, id) {
   if (!hfHazirMi()) return;
-  onayla("Bu kare sitede gizlensin mi?", "Kare “Bu hafta okulumuzda” bölümünden en geç 1 dakika içinde kalkar ve sonraki haftalarda bir daha seçilmez. İsterseniz “Geri göster” ile geri alabilirsiniz.", "Kaldır", () => {
-    hfIslem(() => haftalikOgeGuncelle(alanAd, id, (o) => ({ ...o, gizli: true }), (ayar) => ({ haric: haricEkle(ayar.haric, id) })), "✓ Kare sitede gizlendi.");
+  onayla("Bu kare kaldırılsın mı?", "Bu kare sitedeki bölümden kaldırılır ve bir daha seçilmez. Bu işlem geri alınamaz; sitede en geç 1 dakika içinde kalkar.", "Kaldır", () => {
+    hfIslem(() => haftalikOgeGuncelle(alanAd, id, () => null, (ayar) => ({ haric: haricEkle(ayar.haric, id) })), "✓ Kare sitedeki bölümden kaldırıldı.");
   });
-}
-function haftalikGoster(alanAd, id) {
-  if (!hfHazirMi()) return;
-  hfIslem(() => haftalikOgeGuncelle(alanAd, id, (o) => ({ ...o, gizli: false }), (ayar) => ({ haric: haricCikar(ayar.haric, id) })), "✓ Kare yeniden sitede.");
 }
 function haftalikDuzelt(alanAd, id) {
   if (!hfHazirMi()) return;
@@ -1192,8 +1244,8 @@ function haftalikDuzelt(alanAd, id) {
   secimHedef = null;
   // Görsel tuvalde işlenebilsin diye sitenin medya aktarıcısından açılır (Bunny / Firebase Storage).
   duzenleyici(`${SITE}/api/ig-media?u=${encodeURIComponent(kaynakUrl)}`, "serbest", (yeni) => {
-    hfIslem(() => haftalikOgeGuncelle(alanAd, id, (x) => ({ ...x, url: yeni.url, en: yeni.en || x.en, boy: yeni.boy || x.boy })),
-      "✓ Düzeltilmiş kare sitede.");
+    // Eski (yüzü kaçmış) kopyanın bağlantısı herkese açık belgede kalmaz; sunucu eski dosyaları 1 saat içinde siler.
+    hfIslem(() => haftalikOgeGuncelle(alanAd, id, (x) => duzeltilmisKare(x, yeni)), "✓ Düzeltilmiş kare sitede.");
   }, `haftalik-${alanAd}`, { mod: "bulanik" });
 }
 
@@ -1239,15 +1291,17 @@ function yardimHtml() {
     <ul>
       <li>Yazıyı listeden bulun (arama kutusu başlık ve özette arar), <b>Düzenle</b> ile açın.</li>
       <li>Başlığı, özeti, metni ve görseli düzeltin. Metin araç çubuğuyla başlık, alt başlık, kalın, italik, liste ve bağlantı yapabilirsiniz; başka yerden yapıştırılan yazı düz metin olarak eklenir.</li>
-      <li><b>Kaydet ve yayınla</b> yalnız değiştirdiğiniz yazıları kaydeder. “Bu yazıyı varsayılana döndür” tek yazıyı sitenin ilk hâline getirir.</li>
+      <li><b>Kaydet ve yayınla</b> yalnız değiştirdiğiniz yazıları kaydeder; başka bir yetkili aynı anda başka bir yazıyı düzenlediyse onun kaydı korunur. “Bu yazıyı varsayılana döndür” tek yazıyı sitenin ilk hâline getirir.</li>
+      <li>Metinde korunan biçimler: başlık, alt başlık, paragraf, kalın, italik, madde ve numaralı liste, alıntı, bağlantı ve yazılardaki karşılaştırma tablosu. Diğer biçimler (renk, yazı tipi vb.) kayıtta atılır.</li>
     </ul>
     <h4>Haftalık görseller</h4>
     <ul>
       <li>Her pazartesi sistem onaylı galeri fotoğraflarından her alan için kare seçer, yüzleri bulanıklaştırır, filigranı kırpar ve alan sayfalarındaki “Bu hafta okulumuzda” bölümüne koyar.</li>
-      <li>Kaçan bir yüz görürseniz <b>Yüzleri düzelt</b> ile yüzün üzerine kutu çizin; düzeltilmiş kare siteye geçer. Kareyi hiç istemiyorsanız <b>Kaldır</b>: bir daha seçilmez.</li>
+      <li>Kaçan bir yüz görürseniz <b>Yüzleri düzelt</b> ile yüzün üzerine kutu çizin; düzeltilmiş kare siteye geçer, eski kopyası kaldırılır. Kareyi hiç istemiyorsanız <b>Kaldır</b>: kare bölümden çıkar ve bir daha seçilmez (geri alınamaz).</li>
       <li>Otomatik güncellemeyi kapatırsanız yeni seçim yapılmaz; sitedeki son kareler kalır.</li>
     </ul>
     <h4>Kimler değiştirebilir?</h4>
+    <p>Kayıtlarda e-posta adresi değil, yalnız görünen ad (Google adınız, “Okul hesabı” ya da “Yönetim”) saklanır; sitenin okuduğu bu belgeler herkese açıktır.</p>
     <p>Yalnızca ${YETKILI.map((e) => `<b>${esc(e)}</b>`).join(" ve ")} hesapları. Bu sınır Firestore güvenlik kuralıyla da korunur.</p>
     <h4>Instagram bölümü</h4>
     <p>Ana sayfadaki Instagram paylaşımları kendiliğinden güncellenir (Behold servisi, günde bir kez); burada ayar gerekmez.</p>
@@ -1436,7 +1490,7 @@ async function medyaKaydet() {
   if (!yetkiliMi() || !veriHazir) throw new Error("Görsel listesi için yetkili hesap ve güncel sunucu verisi gerekli.");
   const { fb, db } = P();
   try {
-    await fb.setDoc(fb.doc(db, "webSitesi", "medya"), { liste: D.medya.liste, guncellendi: fb.serverTimestamp(), guncelleyen: email() });
+    await fb.setDoc(fb.doc(db, "webSitesi", "medya"), { liste: D.medya.liste, guncellendi: fb.serverTimestamp(), guncelleyen: guncelleyenEtiketi() });
     K.medya = JSON.stringify(temizle("medya", D.medya));
   } catch (e) {
     toast("Görsel listesi kaydedilemedi: " + e.message, "error");
@@ -1674,7 +1728,7 @@ async function duzenleyici(kaynak, oran, sonra, dosyaAdi, { mod = "kirp" } = {})
     durum.textContent = "Yükleniyor…";
     const ay = new Date().toISOString().slice(0, 7);
     const yuk = await P().medya.yukle(dosya, `web-sitesi/${ay}`, true);
-    const kayit = { url: yuk.url, yol: yuk.yol, ad: temizAd, en: out.width, boy: out.height, tarih: new Date().toISOString(), yukleyen: email() };
+    const kayit = { url: yuk.url, yol: yuk.yol, ad: temizAd, en: out.width, boy: out.height, tarih: new Date().toISOString(), yukleyen: guncelleyenEtiketi() };
     D.medya.liste = D.medya.liste || [];
     D.medya.liste.unshift(kayit);
     await medyaKaydet();
@@ -1864,7 +1918,6 @@ function stilEkle() {
   .ws-hf .ws-btn{justify-self:start;white-space:normal}
   .ws-hf-izgara{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:10px}
   .ws-hf-izgara figure{margin:0;display:grid;gap:6px;align-content:start}
-  .ws-hf-izgara figure.gizli img{opacity:.4;filter:grayscale(1)}
   .ws-hf-izgara img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:var(--ws-zemin)}
   .ws-hf-izgara figcaption{display:grid;gap:6px;font-size:12px;color:var(--ws-soluk)}
   .ws-hf-dugmeler{display:grid;gap:6px}
@@ -1893,7 +1946,7 @@ window._webSitesi = {
   tasi, gorunur, ac, ekle, sil, kolajAc, kolajKapat, kolajCikar, soruTasi, soruSil, soruEkle,
   gorselSec, gorseliDuzenle, yeniGorsel, medyaDuzenle, medyaKaldir,
   rehberAc, rehberAra, rehberAlt, rehberVarsayilan,
-  haftalikAcik, haftalikSayi, haftalikYenile, haftalikKaldir, haftalikGoster, haftalikDuzelt,
+  haftalikAcik, haftalikSayi, haftalikYenile, haftalikKaldir, haftalikDuzelt,
   yenile() { if (kokEl) panelRender(kokEl.id); },
 };
 
