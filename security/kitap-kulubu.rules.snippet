@@ -1,6 +1,8 @@
     // Kitap Kulübü: onaylı anneler okur, katılımcılar ve aktif okul ekibi yazar.
     function kkAnne() {
-      return onayliVeli() && get(/databases/$(database)/documents/veliler/$(veliEmail())).data.get('rol','') == 'anne';
+      let veli = get(/databases/$(database)/documents/veliler/$(veliEmail())).data;
+      return onayliVeli()
+        && (veli.get('yakinlik','') in ['Anne','anne'] || veli.get('rol','') == 'anne');
     }
     function kkEkip() {
       return isAdmin() || (isPersonel() && get(/databases/$(database)/documents/personeller/$(personelEmail())).data.get('durum','') == 'aktif');
