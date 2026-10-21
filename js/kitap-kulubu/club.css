@@ -409,3 +409,18 @@ body[data-surface="portal"] .kc-book-choice small {
   .kc-heading h1 { font-size:27px; }
   .kc-state { min-height:320px;padding:22px; }
 }
+
+/* Dedicated management area, sharing the Portal club design tokens. */
+.kc-admin-link { display:flex; align-items:center; padding:10px 15px; min-height:44px; border-radius:12px; font-weight:650; }
+.kc-admin-toolbar,.kc-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:16px 0; }
+.kc-admin-toolbar { justify-content:space-between; }
+.kc-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.kc-summary-card { display:flex; flex-direction:column; padding:16px; background:white; border:1px solid var(--portal-border); border-radius:18px; }
+.kc-summary-card strong { color:var(--bk-brand); font-size:30px; }
+.kc-summary-card span { font-size:13px; }
+.kc-badge { background:var(--bk-tint); color:var(--bk-brand); border-radius:20px; padding:5px 12px; }
+[data-content] { overflow-wrap:anywhere; }
+.kc-admin-tabs button { flex:1 1 140px; }
+[data-content] h3 { margin-top:0; }
+[data-content] > h3 { margin-top:24px; }
+@media(max-width:600px) { .kc-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } .kc-summary-card { padding:12px; } }

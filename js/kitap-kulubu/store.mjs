@@ -6,6 +6,8 @@ export function createStore(fb, db, auth) {
     getDoc,
     getDocFromServer,
     getDocs,
+    getDocsFromServer,
+    documentId,
     setDoc,
     updateDoc,
     onSnapshot,
@@ -47,8 +49,45 @@ export function createStore(fb, db, auth) {
       name: String(user.displayName || "Kulüp üyesi").slice(0, 100),
     };
   }
+  async function managementData({ signal, progress = () => {} } = {}) {
+    const uid = current().uid;
+    const check = () => {
+      if (signal?.aborted || auth.currentUser?.uid !== uid) throw Error("Yükleme iptal edildi.");
+    };
+    if (!(await identity()).manage) throw Error("Bu alan yalnız okul yönetimi ve PDR için açıktır.");
+    check();
+    // Stable document-ID cursors avoid losing rows when moderation changes updatedAt.
+    // Every request respects the existing rules; no collection-group query or new index.
+    async function all(path, size) {
+      const rows = [];
+      let cursor;
+      while (true) {
+        check();
+        const constraints = [orderBy(documentId()), limit(size)];
+        if (cursor) constraints.push(startAfter(cursor));
+        const page = await getDocsFromServer(query(collection(db, ...path), ...constraints));
+        check();
+        rows.push(...page.docs.map(d => ({ ...d.data(), id: d.id })));
+        progress();
+        if (page.docs.length < size) return rows;
+        cursor = page.docs.at(-1);
+      }
+    }
+    const books = await all(["kitapKulubu"], 100);
+    const members = await all(["kitapKulubuUyeler"], 100);
+    const posts = [];
+    for (const book of books) {
+      const rows = await all(["kitapKulubu", book.id, "paylasimlar"], 20);
+      posts.push(...rows.map(p => ({ ...p, bookId: book.id })));
+    }
+    books.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    members.sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
+    posts.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+    return { books, members, posts };
+  }
   return {
     identity,
+    managementData,
     books: (next, error) =>
       onSnapshot(
         query(

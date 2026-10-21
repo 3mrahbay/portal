@@ -15,7 +15,6 @@ export async function mountClub(root, store) {
     posts = new Map(),
     unsubs = [],
     postStop = null,
-    memberStop = null,
     image = "",
     draftId = null,
     busy = false,
@@ -34,7 +33,6 @@ export async function mountClub(root, store) {
     alive = false;
     generation++;
     postStop?.();
-    memberStop?.();
     unsubs.forEach((f) => f());
     root.replaceChildren();
     image = "";
@@ -66,7 +64,7 @@ export async function mountClub(root, store) {
     });
     return stop;
   }
-  root.innerHTML = `<header class="kc-heading"><p class="bk-eyebrow">ANNELER İLE · KİTAP & ÇAY</p><h1>Kitap Kulübü</h1><p>Birlikte okuyalım, deneyimlerimizi paylaşalım.</p></header><p role="alert" data-error class="kc-error"></p><nav class="kc-tabs" aria-label="Kitaplık"><button data-tab="active" aria-pressed="true">Buluşmalar</button><button data-tab="archive" aria-pressed="false">Geçmiş okumalar</button>${access.manage ? "<button data-admin>Okul yönetimi</button>" : ""}</nav><div data-library class="kc-library" aria-live="polite">Kitaplar yükleniyor…</div><section data-book hidden></section><section data-management hidden></section>`;
+  root.innerHTML = `<header class="kc-heading"><p class="bk-eyebrow">ANNELER İLE · KİTAP & ÇAY</p><h1>Kitap Kulübü</h1><p>Birlikte okuyalım, deneyimlerimizi paylaşalım.</p></header><p role="alert" data-error class="kc-error"></p><nav class="kc-tabs" aria-label="Kitaplık"><button data-tab="active" aria-pressed="true">Buluşmalar</button><button data-tab="archive" aria-pressed="false">Geçmiş okumalar</button>${access.manage ? "<a class=\"kc-admin-link\" href=\"kitap-kulubu-yonetim.html\">Kitap Kulübü Yönetimi</a>" : ""}</nav><div data-library class="kc-library" aria-live="polite">Kitaplar yükleniyor…</div><section data-book hidden></section>`;
   let tab = "active";
   function library() {
     if (!alive) return;
@@ -173,7 +171,6 @@ export async function mountClub(root, store) {
         root
           .querySelectorAll("[data-tab]")
           .forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
-        root.querySelector("[data-management]").hidden = true;
         const list = groupBooks(books)[tab];
         if (list.length) selectBook(list[0].id);
         else {
@@ -214,15 +211,6 @@ export async function mountClub(root, store) {
         renderPosts();
         button.disabled = false;
       }
-      if (button.hasAttribute("data-admin")) showManagement();
-      if (button.dataset.memberUid) {
-        button.disabled = true;
-        await store.setMember(button.dataset.memberUid, button.dataset.status);
-      }
-      if (button.dataset.archive) {
-        button.disabled = true;
-        await store.archive(button.dataset.archive, button.dataset.status);
-      }
     } catch (e) {
       button.disabled = false;
       error(e);
@@ -258,10 +246,6 @@ export async function mountClub(root, store) {
     event.preventDefault();
     if (busy || photoBusy) return;
     const form = event.target;
-    if (form.matches("[data-book-form]")) {
-      await saveBook(form);
-      return;
-    }
     if (!form.matches("[data-compose]") || !canPost(access, member, selected))
       return;
     const gen = generation,
@@ -292,62 +276,6 @@ export async function mountClub(root, store) {
       }
     }
   });
-  let memberRows = [];
-  function managementRows() {
-    if (!alive || !root.querySelector("[data-members]")) return;
-    root.querySelector("[data-members]").innerHTML = memberRows.length
-      ? memberRows
-          .map(
-            (m) =>
-              `<div class="kc-member-row"><span>${esc(m.name)} · ${m.status === "pending" ? "Onay bekliyor" : m.status === "approved" ? "Katılımcı" : "Paylaşım kapalı"}</span>${m.status !== "approved" ? `<button data-member-uid="${esc(m.id)}" data-status="approved">Katılımı onayla</button>` : ""}${m.status !== "blocked" ? `<button data-member-uid="${esc(m.id)}" data-status="blocked">Paylaşımı kapat</button>` : ""}</div>`,
-          )
-          .join("")
-      : "Henüz katılım talebi yok.";
-  }
-  function showManagement() {
-    if (!access.manage) return;
-    const el = root.querySelector("[data-management]");
-    el.hidden = false;
-    el.innerHTML = `<h2>Katılım talepleri</h2><div data-members>Yükleniyor…</div><h2>Kitaplığı düzenle</h2><div data-manage-books>${books.map((b) => `<div class="kc-member-row"><span>${esc(b.title)}</span><button data-archive="${esc(b.id)}" data-status="${b.status === "active" ? "archived" : "active"}">${b.status === "active" ? "Arşive taşı" : "Yeniden aç"}</button></div>`).join("")}</div><h3>Yeni okuma ekle</h3><form data-book-form>${[
-      ["title", "Kitabın adı", 160],
-      ["authors", "Yazarlar", 160],
-      ["leader", "Buluşma lideri", 120],
-      ["place", "Buluşma yeri / katılım bilgisi", 300],
-      ["purpose", "Buluşmanın amacı", 1000],
-    ]
-      .map(
-        ([name, label, max]) =>
-          `<label>${label}<input name="${name}" required maxlength="${max}"></label>`,
-      )
-      .join(
-        "",
-      )}<label>Buluşma tarihi ve saati (Türkiye)<input name="date" type="datetime-local" required></label><label>Kitaplık bölümü<select name="status"><option value="active">Buluşmalar</option><option value="archived">Geçmiş okumalar</option></select></label><button type="submit">Okumayı ekle</button><p role="status" data-book-saved></p></form>`;
-    if (!memberStop)
-      memberStop = store.members((rows) => {
-        memberRows = rows;
-        managementRows();
-      }, error);
-    else managementRows();
-  }
-  async function saveBook(form) {
-    busy = true;
-    form.querySelector("button").disabled = true;
-    try {
-      const data = Object.fromEntries(new FormData(form));
-      data.date += ":00+03:00";
-      if (Number.isNaN(+new Date(data.date)))
-        throw Error("Geçerli bir tarih girin.");
-      await store.saveBook(crypto.randomUUID(), data);
-      form.reset();
-      form.querySelector("[data-book-saved]").textContent =
-        "Okuma kitaplığa eklendi.";
-    } catch (e) {
-      error(e);
-    } finally {
-      busy = false;
-      form.querySelector("button").disabled = false;
-    }
-  }
   unsubs.push(
     store.member((m) => {
       member = m;
@@ -358,14 +286,6 @@ export async function mountClub(root, store) {
     store.books((rows) => {
       books = rows;
       library();
-      const manageList = root.querySelector("[data-manage-books]");
-      if (manageList)
-        manageList.innerHTML = books
-          .map(
-            (b) =>
-              `<div class="kc-member-row"><span>${esc(b.title)}</span><button data-archive="${esc(b.id)}" data-status="${b.status === "active" ? "archived" : "active"}">${b.status === "active" ? "Arşive taşı" : "Yeniden aç"}</button></div>`,
-          )
-          .join("");
       if (!selected && rows.length) {
         const first = groupBooks(rows)[tab][0];
         if (first) selectBook(first.id);

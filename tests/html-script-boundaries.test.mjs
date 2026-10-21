@@ -36,7 +36,7 @@ print(json.dumps(dict(scripts=p.scripts, text=''.join(p.text), ids=p.ids)))
 
 function check(source) {
   const parsed = parse(source);
-  const gates = parsed.scripts.filter(s => s.attrs.src === 'js/kitap-kulubu/gate.mjs?v=1');
+  const gates = parsed.scripts.filter(s => s.attrs.src === 'js/kitap-kulubu/gate.mjs?v=2');
   assert.equal(gates.length, 1, 'gate must be a real HTML script element');
   assert.equal(gates[0].attrs.type, 'module');
   assert.equal(parsed.scripts.at(-1), gates[0], 'gate belongs after the final inline script');
@@ -52,7 +52,7 @@ function check(source) {
 test('HTML parser preserves inline JavaScript and recognizes the footer gate module', () => check(html));
 
 test('regression guard rejects a loader embedded inside the email template', () => {
-  const loader = '<script type="module" src="js/kitap-kulubu/gate.mjs?v=1"></script>\n';
+  const loader = '<script type="module" src="js/kitap-kulubu/gate.mjs?v=2"></script>\n';
   const withoutLoader = html.replace(loader, '');
   const mailStart = withoutLoader.indexOf('function portalMailSablon');
   assert.ok(mailStart >= 0);
