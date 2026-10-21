@@ -1923,8 +1923,9 @@ function stilEkle() {
   .ws-hf-dugmeler{display:grid;gap:6px}
   .ws-hf-dugmeler .ws-btn{width:100%;white-space:normal}
   @media (max-width:640px){.ws-hf-izgara{grid-template-columns:repeat(2,minmax(0,1fr))}.ws-rb-alt .ws-btn{width:100%}}
-  /* Telefonda bölüm menüsü yatay kayar ve içeriğin üstünde sabit durmaz (temel .ws-nav kuralından sonra gelmeli) */
-  @media (max-width:900px){.ws-nav{display:flex;position:static;overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch}.ws-nav-btn{flex:none;width:auto;min-height:44px}.ws-nav-btn small{display:none}}
+  /* Telefon ve tablette bölüm menüsü yana kaymaz: dokuz bölümün hepsi ızgarada görünür (eskiden Veli Rehberi ve
+     sonrası ekranın dışında kalıyordu), içeriğin üstünde sabit durmaz (temel .ws-nav kuralından sonra gelmeli) */
+  @media (max-width:900px){.ws-nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));position:static;overflow:visible;gap:8px;padding-bottom:0}.ws-nav-btn{width:100%;min-height:44px;padding:8px 10px;gap:8px}.ws-nav-btn b{font-size:13.5px;line-height:1.25}.ws-nav-btn small{display:none}}
   `;
   document.head.appendChild(st);
 }
