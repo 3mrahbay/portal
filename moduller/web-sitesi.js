@@ -27,6 +27,7 @@ const BOLUMLER = [
   { id: "kutular",  ad: "Program kutuları",    ikon: "layout-grid",      aciklama: "Slaytların altındaki küçük kutular" },
   { id: "sss",      ad: "Sık sorulan sorular", ikon: "circle-help",      aciklama: "Soru ekle, düzenle, ana sayfada göster" },
   { id: "medya",    ad: "Görseller",           ikon: "image",            aciklama: "Yükle, düzenle, kaldır" },
+  { id: "gorunurluk", ad: "Görünürlük",       ikon: "trending-up",      aciklama: "Google aramaları, kelimeler, semtler" },
   { id: "yardim",   ad: "Nasıl çalışır?",      ikon: "book-open",        aciklama: "Kısa kullanım rehberi" },
 ];
 const SAYFALAR = [
@@ -233,7 +234,7 @@ function ciz() {
 }
 
 function kaydetCubugu(id) {
-  if (id === "yardim" || id === "medya") return "";
+  if (id === "yardim" || id === "medya" || id === "gorunurluk") return "";
   const z = Z[id];
   const bilgi = z ? `Son kayıt: ${esc(tarihYaz(z.zaman))}${z.kim ? " · " + esc(z.kim) : ""}` : "Bu bölüm henüz panelden değiştirilmedi; sitedeki içerik gösteriliyor.";
   return `<div class="ws-kaydet" id="wsKaydetCubugu">
@@ -260,7 +261,7 @@ function cubuguYenile() {
 
 function bolumHtml(id) {
   const b = BOLUMLER.find((x) => x.id === id);
-  const govde = { genel: genelHtml, duyuru: duyuruHtml, slaytlar: slaytlarHtml, kutular: kutularHtml, sss: sssHtml, medya: medyaHtml, yardim: yardimHtml }[id]();
+  const govde = { genel: genelHtml, duyuru: duyuruHtml, slaytlar: slaytlarHtml, kutular: kutularHtml, sss: sssHtml, medya: medyaHtml, gorunurluk: gorunurlukHtml, yardim: yardimHtml }[id]();
   return `<header class="ws-baslik"><h3>${esc(b.ad)}</h3><p>${esc(b.aciklama)}</p></header>${govde}${kaydetCubugu(id)}`;
 }
 
@@ -276,6 +277,12 @@ function icerikYenile() {
 
 function bolumSonrasi(id) {
   if (id === "duyuru") duyuruOnizle();
+  // Görünürlük raporları ayrı modülde: moduller/gorunurluk.js
+  if (id === "gorunurluk") window.modulYukle?.("gorunurluk").then((m) => m && m.panelRender("wsGorunurluk"));
+}
+
+function gorunurlukHtml() {
+  return `<div id="wsGorunurluk"><div class="loading"><div class="spinner"></div><p>Görünürlük raporu yükleniyor...</p></div></div>`;
 }
 
 // Form alanı değişince veriyi günceller (data-yol="a.b.0.c")
