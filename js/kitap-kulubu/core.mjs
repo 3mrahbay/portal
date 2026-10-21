@@ -30,11 +30,14 @@ export function profileEmail(identity, profile, email) {
   return flat && old && flat !== old ? "" : flat || old;
 }
 export function accessFor({ email, parent, staff }) {
-  const admin = email?.toLowerCase() === "emrahby@gmail.com";
+  const admin = String(email || "").toLowerCase().trim() === "emrahby@gmail.com";
   const team = staff?.durum === "aktif";
+  const yakinlik = String(parent?.yakinlik || parent?.rol || "")
+    .toLocaleLowerCase("tr-TR")
+    .trim();
+  const mother = parent?.onaylandi === true && yakinlik === "anne";
   return {
-    read:
-      admin || team || (parent?.onaylandi === true && parent?.rol === "anne"),
+    read: admin || team || mother,
     staff: admin || team,
     manage:
       admin || (team && ["kurucu_mudur", "mudur", "pdr"].includes(staff.rol)),
