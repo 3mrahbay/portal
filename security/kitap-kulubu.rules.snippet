@@ -1,0 +1,67 @@
+    // Kitap Kulübü: onaylı anneler okur, katılımcılar ve aktif okul ekibi yazar.
+    function kkAnne() {
+      return onayliVeli() && get(/databases/$(database)/documents/veliler/$(veliEmail())).data.get('rol','') == 'anne';
+    }
+    function kkEkip() {
+      return isAdmin() || (isPersonel() && get(/databases/$(database)/documents/personeller/$(personelEmail())).data.get('durum','') == 'aktif');
+    }
+    function kkYonetici() {
+      return isAdmin() || (kkEkip() && personelRol() in ['kurucu_mudur','mudur','pdr']);
+    }
+    function kkOkur() { return kkAnne() || kkEkip(); }
+    function kkYazar() {
+      return kkEkip() || (kkAnne()
+        && exists(/databases/$(database)/documents/kitapKulubuUyeler/$(request.auth.uid))
+        && get(/databases/$(database)/documents/kitapKulubuUyeler/$(request.auth.uid)).data.status == 'approved');
+    }
+    function kkKitap(d) {
+      return d.keys().hasAll(['title','authors','leader','date','status','purpose','place','updatedAt'])
+        && d.keys().hasOnly(['title','authors','leader','date','status','purpose','place','updatedAt'])
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 160
+        && d.authors is string && d.authors.size() > 0 && d.authors.size() <= 160
+        && d.leader is string && d.leader.size() > 0 && d.leader.size() <= 120
+        && d.date is string && d.date.size() == 25
+        && d.status in ['active','archived']
+        && d.purpose is string && d.purpose.size() > 0 && d.purpose.size() <= 1000
+        && d.place is string && d.place.size() > 0 && d.place.size() <= 300
+        && d.updatedAt == request.time;
+    }
+    match /kitapKulubuUyeler/{uid} {
+      allow get: if kkYonetici() || (kkOkur() && request.auth.uid == uid);
+      allow list: if kkYonetici() && request.query.limit <= 100;
+      allow create: if kkAnne() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid','name','status','updatedAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.status == 'pending' && request.resource.data.updatedAt == request.time;
+      allow update: if kkYonetici()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+        && request.resource.data.status in ['approved','blocked']
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    match /kitapKulubu/{bookId} {
+      allow get: if kkOkur();
+      allow list: if kkOkur() && request.query.limit <= 100;
+      allow create, update: if kkYonetici() && kkKitap(request.resource.data);
+      allow delete: if false;
+      match /paylasimlar/{postId} {
+        allow get: if kkOkur();
+        allow list: if kkOkur() && request.query.limit <= 20;
+        allow create: if kkYazar()
+          && exists(/databases/$(database)/documents/kitapKulubu/$(bookId))
+          && get(/databases/$(database)/documents/kitapKulubu/$(bookId)).data.status == 'active'
+          && request.resource.data.keys().hasOnly(['text','image','authorUid','authorName','createdAt','deleted'])
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.authorName is string && request.resource.data.authorName.size() > 0 && request.resource.data.authorName.size() <= 100
+          && request.resource.data.text is string && request.resource.data.text.size() <= 2000
+          && request.resource.data.image is string && request.resource.data.image.size() <= 280000
+          && (request.resource.data.image == '' || request.resource.data.image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))
+          && (request.resource.data.text.size() > 0 || request.resource.data.image.size() > 0)
+          && request.resource.data.createdAt == request.time && request.resource.data.deleted == false;
+        allow update: if kkOkur() && (kkYonetici() || request.auth.uid == resource.data.authorUid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','image','deleted'])
+          && request.resource.data.text == '' && request.resource.data.image == '' && request.resource.data.deleted == true;
+        allow delete: if false;
+      }
+    }

@@ -9254,6 +9254,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 </style>
 <!-- Arayüz düzeltmeleri: pencere başlıkları, logo, üst menü — stil/arayuz-duzeltmeleri.css -->
 <link rel="stylesheet" href="stil/arayuz-duzeltmeleri.css?v=5">
+<link rel="stylesheet" href="js/kitap-kulubu.css?v=1">
+<script src="js/kitap-kulubu.js?v=1"></script>
 </head>
 <body>
 
@@ -9613,6 +9615,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       <button class="tab" data-tab="denetim" id="tab-denetim-btn" style="display:none;"><i data-lucide="shield-check"></i> MEB Denetim</button>
       <button class="tab" data-tab="etkinlik" id="tab-etkinlik-btn" style="display:none;"><i data-lucide="calendar-heart"></i> Etkinlik &amp; Takvim</button>
       <button class="tab" data-tab="mesajlasma" id="tab-mesajlasma-btn" style="display:none;"><i data-lucide="message-circle"></i> Mesajlaşma</button>
+      <a class="tab" href="kitap-kulubu.html">📚 Kitap Kulübü</a>
       <button class="tab" data-tab="duyurular" id="tab-duyurular-btn" style="display:none;"><i data-lucide="megaphone"></i> Duyurular</button>
       <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;"><i data-lucide="utensils"></i> Yemek Menüsü</button>
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
@@ -14095,7 +14098,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v208";
+window.PORTAL_SURUM = "v209";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14343,6 +14346,7 @@ function portalMailSablon(baslik, icerik, altMesaj) {
       </td>
     </tr>
   </table>
+<script type="module" src="js/kitap-kulubu/gate.mjs?v=1"></script>
 </body>
 </html>`;
 }
@@ -19939,6 +19943,7 @@ function caHomeHTML() {
 
 
 
+      ${window.KitapKulubu?.card("portal") || ""}
       <!-- Dashboard: değişen yükseklikli kartlar (masonry) -->
       <div class="ca-dash">
 
@@ -20192,6 +20197,7 @@ async function caHomeTakvimOnizlemeRender() {
 // ===== Menü (Tüm Modüller) ekranı =====
 // ZEKY veli modül listesi (caMenu + hızlı işlemler ortak kullanır)
 const CA_MODULLER = [
+  { k:"kitapKulubu", ad:"Kitap Kulübü", ikon:"book-open", renk:"var(--c-yellow-soft)", git:"location.href='kitap-kulubu.html'" },
   { k:"home",      ad:"Ana Sayfa",         ikon:"home", renk:"var(--c-green-light)", git:"caGo('home')" },
   { k:"cocugum",   ad:"Çocuğum",           ikon:"baby", renk:"var(--c-pink-soft)",   git:"caGo('profil')" },
   { k:"gunluk",    ad:"Günlük Rapor",      ikon:"notebook-pen", renk:"var(--c-pink-soft)",   git:"caGo('gunluk')" },
@@ -48823,13 +48829,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=208");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=209");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v208";
+          const anahtar = "portalSwReload_v209";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
