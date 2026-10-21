@@ -16,6 +16,7 @@ const {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  orderBy, documentId, startAfter,
 } = f;
 (async () => {
   if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.BOOK_RULES)
@@ -60,6 +61,8 @@ const {
         });
       for (const [id, rol, durum] of [
         ["pdr", "pdr", "aktif"],
+        ["founder", "kurucu_mudur", "aktif"],
+        ["principal", "mudur", "aktif"],
         ["teacher", "ogretmen", "aktif"],
         ["inactive", "pdr", "pasif"],
       ])
@@ -283,6 +286,22 @@ const {
         query(collection(db("teacher"), "kitapKulubuUyeler"), limit(100)),
       ),
     );
+    // Dedicated management uses bounded document-ID pages; retain kkYonetici roles.
+    for (const id of ["founder", "principal", "pdr", "admin"]) {
+      const membersQuery = query(collection(db(id), "kitapKulubuUyeler"), orderBy(documentId()), limit(100));
+      await ok(getDocs(membersQuery));
+      const page = await getDocs(membersQuery);
+      await ok(getDocs(query(collection(db(id), "kitapKulubuUyeler"), orderBy(documentId()), startAfter(page.docs[0]), limit(100))));
+      await ok(getDocs(query(collection(db(id), "kitapKulubu", "book", "paylasimlar"), orderBy(documentId()), limit(20))));
+      await ok(updateDoc(doc(db(id), "kitapKulubuUyeler", "anne"), {status:"approved",updatedAt:serverTimestamp()}));
+      await ok(updateDoc(doc(db(id), "kitapKulubu", "book"), {place:"Yeni yer",updatedAt:serverTimestamp()}));
+      await ok(updateDoc(doc(db(id), "kitapKulubu", "book", "paylasimlar", "photo"), {text:"",image:"",deleted:true}));
+    }
+    for (const id of ["teacher", "anne", "inactive", "outsider"]) {
+      await no(getDocs(query(collection(db(id), "kitapKulubuUyeler"), orderBy(documentId()), limit(100))));
+      await no(updateDoc(doc(db(id), "kitapKulubuUyeler", "anne"), {status:"approved",updatedAt:serverTimestamp()}));
+      await no(updateDoc(doc(db(id), "kitapKulubu", "book"), {place:"Yetkisiz yer",updatedAt:serverTimestamp()}));
+    }
     // Account profile remapping: never fall back from an inactive/conflicting UID record.
     await env.withSecurityRulesDisabled(async (c) => {
       await setDoc(doc(c.firestore(), "kullaniciKimlikleri", "alias"), {

@@ -1,0 +1,31 @@
+// Run: NODE_PATH=<test dependencies>/node_modules node qa/kitap-kulubu-admin-dom.cjs
+const {JSDOM}=require('jsdom');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+(async()=>{
+ const {mountManagement}=await import('../js/kitap-kulubu/admin-ui.mjs');
+ const dom=new JSDOM('<div id="club"></div>',{url:'http://fixture.test'});
+ const root=dom.window.document.getElementById('club');
+ global.FormData=dom.window.FormData;global.confirm=()=>true;
+ const stamp={toDate:()=>new Date('2026-10-22T16:00:00Z'),toMillis:()=>1};
+ let manage=true,fail=false,delay=false,release;const calls=[];
+ const data={books:[{id:'b',title:'Kitap',authors:'Yazar',leader:'PDR',place:'Okul',purpose:'Amaç',date:'2026-10-22T19:00:00+03:00',status:'active'}],members:[{id:'m',name:'Anne <img onerror=alert(1)>',status:'pending',updatedAt:stamp}],posts:Array.from({length:21},(_,i)=>({id:'p'+i,bookId:'b',authorName:'Anne',text:'Mesaj',createdAt:stamp,deleted:false}))};
+ const store={identity:async()=>({manage}),managementData:async()=>{if(fail)throw Error('offline');if(delay)await new Promise(r=>release=r);return data;},setMember:async(id,status)=>{calls.push(['member',id,status]);data.members[0].status=status;},remove:async(book,id)=>{calls.push(['remove',book,id]);data.posts.find(p=>p.id===id).deleted=true;},archive:async(id,status)=>{calls.push(['archive',id,status]);data.books[0].status=status;},saveBook:async(id,values)=>{calls.push(['save',id,values]);Object.assign(data.books[0],values);}};
+ const tick=()=>new Promise(r=>setTimeout(r,0));
+ const click=async selector=>{assert(root.querySelector(selector),selector);root.querySelector(selector).click();await tick();};
+ let stop=await mountManagement(root,store);await tick();
+ assert.equal(root.querySelectorAll('[data-summary] article').length,4);assert.equal(root.querySelectorAll('img').length,0);
+ await click('[data-member][data-status=approved]');assert.deepEqual(calls.at(-1),['member','m','approved']);assert.match(root.textContent,/Talep zamanı: Kayıtlı değil/);
+ await click('[data-member][data-status=blocked]');assert.deepEqual(calls.at(-1),['member','m','blocked']);
+ await click('[data-section=posts]');assert.equal(root.querySelectorAll('[data-content] article').length,20);await click('[data-more]');assert.equal(root.querySelectorAll('[data-content] article').length,21);
+ await click('[data-remove=p20]');assert.deepEqual(calls.at(-1),['remove','b','p20']);assert.match(root.textContent,/kaldırıldı/);
+ await click('[data-section=books]');await click('[data-edit=b]');assert.equal(root.querySelector('[name=date]').value,'2026-10-22T19:00');root.querySelector('[name=place]').value='Yeni yer';root.querySelector('form').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.equal(calls.at(-1)[1],'b');assert.equal(calls.at(-1)[2].place,'Yeni yer');
+ await click('[data-archive=b]');assert.equal(data.books[0].status,'archived');await click('[data-archive=b]');assert.equal(data.books[0].status,'active');
+ const n=calls.length;manage=false;await click('[data-archive=b]');assert.equal(calls.length,n);assert.match(root.querySelector('[data-error]').textContent,/yetkiniz/);
+ manage=true;fail=true;await click('[data-refresh]');assert.equal(root.querySelector('[data-summary]').children.length,0);assert.equal(root.querySelector('[data-content]').children.length,0);assert.match(root.textContent,/offline/);
+ fail=false;await click('[data-refresh]');assert.equal(root.querySelector('[data-summary]').children.length,4);
+ delay=true;await click('[data-refresh]');stop();release();await tick();assert.equal(root.innerHTML,'');
+ manage=false;stop=await mountManagement(root,store);assert.match(root.textContent,/yalnız kurucu müdür/);assert.equal(root.querySelectorAll('[data-section]').length,0);stop();
+ console.log('PASS DOM integration: escaping, approval, blocking, pagination, removal, editing, archive/reopen, revoked role, failed refresh, retry, cleanup and denied access');
+ dom.window.close();
+})().catch(e=>{console.error(e);process.exitCode=1;});
