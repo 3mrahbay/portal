@@ -6,6 +6,8 @@
 - `tests/kitap-kulubu-rules.cjs`: **98/98 geçti**, yalnız `demo-book-club` yerel emülatörü. Önceki tam kural kopyasındaki kulüp bölümü depodaki güncel `security/kitap-kulubu.rules.snippet` ile yerelde değiştirilerek test edildi; canlı ruleset doğrulaması değildir. `kkYonetici` ve kural dosyalarında değişiklik yok.
 - Gerçek tarayıcıda sentetik önizleme: yönetim özeti, onay sonrası sayaç değişimi, kitaplar/buluşmalar ve 320 px iframe görünümü incelendi. Gerçek hesap/veri kullanılmadı.
 - Playwright otomasyon dosyası eklendi; bu macOS sandbox'ı başsız Chrome başlatmayı engellediğinden bu dosyanın otomatik tarayıcı koşusu **tamamlanmadı**. DOM entegrasyonu ve uygulama içi tarayıcı ile manuel doğrulama ayrı yapıldı; 390/1280 otomatik kontroller geçmiş sayılmamalıdır.
-- `git diff --check`: geçti. Portal sürümü, service worker kaydı/yenileme anahtarı ve dinamik galeri önbellek URL'si v212 ile eşlendi.
+- `git diff --check`: geçti. Portal sürümü, service worker kaydı/yenileme anahtarı ve dinamik galeri önbellek URL'si v213 ile eşlendi.
 
 Bu çalışma merge/deploy içermez; canlı üyelik, paylaşım veya kitap verisi değiştirilmedi. Mobil mağaza paketi hazırlanmadı. Yönetim sayfası son yenileme verilerini gösterir; her yenileme tüm ilgili belgeleri okur. Eski üyelerin ilk başvuru tarihi mevcut şemada korunmadığı için onaylı/engelli kayıtlarda uydurulmaz.
+
+PR, ana daldaki `5797526` (Web Sitesi menüsü) üzerine yeniden tabanlandı; mevcut menü düzeltmesi korundu, önbellek sürümü çakışması v213 ile çözüldü. Genel test paketi aynı sonuçla yeniden çalıştırıldı.
