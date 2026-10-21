@@ -11,7 +11,7 @@ import {
 test("approved mothers read but membership is required to post", () => {
   const a = accessFor({
     email: "anne@x",
-    parent: { rol: "anne", onaylandi: true },
+    parent: { yakinlik: "Anne", onaylandi: true },
   });
   assert.equal(a.read, true);
   assert.equal(canPost(a, null, { status: "active" }), false);
@@ -23,8 +23,8 @@ test("approved mothers read but membership is required to post", () => {
 });
 test("fathers, unapproved mothers and inactive staff are excluded", () => {
   for (const s of [
-    { parent: { rol: "baba", onaylandi: true } },
-    { parent: { rol: "anne", onaylandi: false } },
+    { parent: { yakinlik: "Baba", onaylandi: true } },
+    { parent: { yakinlik: "Anne", onaylandi: false } },
     { staff: { rol: "pdr", durum: "pasif" } },
   ])
     assert.equal(accessFor(s).read, false);
@@ -75,4 +75,8 @@ test("archive stays browsable and user content is escaped", () => {
     escapeHTML('<img onerror="x">'),
     "&lt;img onerror=&quot;x&quot;&gt;",
   );
+});
+
+test("legacy parent role remains compatible", () => {
+  assert.equal(accessFor({ parent: { rol: "anne", onaylandi: true } }).read, true);
 });
