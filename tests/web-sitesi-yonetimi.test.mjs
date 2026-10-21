@@ -35,6 +35,7 @@ test('web sitesi modülü yalnız webSitesi koleksiyonuna yazar ve görselleri p
   assert.deepEqual([...new Set(koleksiyonlar)], ['webSitesi']);
   assert.match(modul, /P\(\)\.medya\.yukle\(dosya, `web-sitesi\/\$\{ay\}`, true\)/);
   assert.doesNotMatch(modul, /deleteDoc/);
-  // Kaydedilen her belge kimin kaydettiğini taşır
-  assert.match(modul, /guncellendi: fb\.serverTimestamp\(\), guncelleyen: email\(\)/);
+  // Kaydedilen her belge kimin kaydettiğini taşır; herkese açık belgeye e-posta değil görünen ad yazılır
+  assert.match(modul, /guncellendi: fb\.serverTimestamp\(\), guncelleyen: guncelleyenEtiketi\(\)/);
+  assert.doesNotMatch(modul, /(guncelleyen|yukleyen): email\(\)/);
 });

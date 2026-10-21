@@ -28,7 +28,9 @@ for(const email of ['emrahby@gmail.com','eposta@bircicekkoleji.com'])test(`yetki
   const h=harness({email,saved:{duyuru:{aktif:false,metin:'Kaydedilmiş metin',baglanti:'/montessori'}}});
   await h.api.yukle();assert.equal(JSON.parse(h.api.data()).duyuru.metin,'Kaydedilmiş metin');h.api.change();
   assert.equal(await h.api.kaydet('duyuru'),true);assert.equal(h.writes.length,1);
-  assert.equal(h.writes[0].value.baglanti,'/montessori');assert.equal(h.writes[0].value.guncelleyen,email);
+  assert.equal(h.writes[0].value.baglanti,'/montessori');
+  // herkese açık belgeye e-posta yazılmaz
+  assert.equal(h.writes[0].value.guncelleyen,email==='eposta@bircicekkoleji.com'?'Okul hesabı':'Yönetim');assert.doesNotMatch(JSON.stringify(h.writes),/@/);
   assert.ok(h.messages.every(m=>!m.includes('en geç 1 dakika')));
 });
 for(const email of ['other-admin@example.com',null])test(`yetkisiz istemci kaydı engellenir: ${email}`,async()=>{
@@ -36,7 +38,9 @@ for(const email of ['other-admin@example.com',null])test(`yetkisiz istemci kayd�
   await assert.rejects(h.api.medyaKaydet());assert.equal(h.writes.length,0);
 });
 test('yalnız gerçekten olmayan belgeler varsayılanı kullanır',async()=>{
-  const h=harness();await h.api.yukle();assert.equal(JSON.parse(h.api.data()).duyuru.metin,'Özgün duyuru');assert.equal(h.reads.length,6);
+  const h=harness();await h.api.yukle();assert.equal(JSON.parse(h.api.data()).duyuru.metin,'Özgün duyuru');
+  // 7 düzenlenen bölüm (genel, duyuru, slaytlar, kutular, sss, medya, rehber) + haftalik + haftalikAyar
+  assert.equal(h.reads.length,9);
 });
 test('medya kayıt hatası çağırana ulaşır ve başarı mesajı verilmez',async()=>{
   const h=harness({failWrite:true});await h.api.yukle();await assert.rejects(h.api.medyaKaydet(),/permission-denied/);
