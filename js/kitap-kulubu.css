@@ -1,0 +1,236 @@
+.bk-portal {
+  --bk-brand: var(--c-green, #2b3674);
+  --bk-tint: #e9ebf4;
+}
+.bk-zeky {
+  --bk-brand: var(--logo-koyu, #2d5e3e);
+  --bk-tint: #eef3ef;
+}
+.bk-card,
+.bk-dialog {
+  color: #29332f;
+  font-family: inherit;
+  line-height: 1.55;
+}
+.bk-card *,
+.bk-dialog * {
+  box-sizing: border-box;
+}
+.bk-card {
+  padding: 24px;
+  border: 1px solid #e7dfd0;
+  border-radius: 24px;
+  background: linear-gradient(125deg, #fff8eb, #fffdf8 65%, #f5edf5);
+  margin-bottom: 20px;
+}
+.bk-card h2 {
+  font-family: inherit;
+  font-size: 26px;
+  font-weight: 750;
+  line-height: 1.15;
+  color: var(--bk-brand);
+  margin: 6px 0 10px;
+  letter-spacing: -0.6px;
+}
+.bk-card p,
+.bk-dialog p {
+  margin: 0;
+}
+.bk-top {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.bk-icon {
+  display: block;
+  width: 86px;
+  height: 86px;
+  flex: 0 0 86px;
+}
+.bk-eyebrow {
+  color: #775943;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1.4px;
+}
+.bk-spot {
+  font-size: 15px;
+  max-width: 460px;
+}
+.bk-book {
+  padding: 15px 0;
+  margin: 17px 0;
+  border-top: 1px solid #e7dfd0;
+  border-bottom: 1px solid #e7dfd0;
+}
+.bk-book span {
+  display: block;
+  color: #6e6359;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  margin-bottom: 4px;
+}
+.bk-book strong {
+  display: block;
+  color: var(--bk-brand);
+  font-size: 17px;
+}
+.bk-book p,
+.bk-leader {
+  font-size: 13px;
+}
+.bk-card .bk-date {
+  font-size: 19px;
+  font-weight: 750;
+  color: var(--bk-brand);
+  margin-bottom: 3px;
+}
+.bk-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 19px;
+  padding: 12px 17px;
+  background: var(--bk-brand);
+  color: #fff;
+  border: 0;
+  border-radius: 13px;
+  cursor: pointer;
+  line-height: 1.4;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  text-align: left;
+}
+.bk-button:hover {
+  filter: brightness(1.12);
+}
+.bk-button:focus-visible,
+.bk-close:focus-visible {
+  outline: 3px solid #a76526;
+  outline-offset: 3px;
+}
+.bk-dialog {
+  padding: 0;
+  width: min(640px, calc(100% - 24px));
+  max-height: calc(100dvh - 32px);
+  border: 1px solid #e7dfd0;
+  border-radius: 24px;
+  background: #fffdf8;
+  overscroll-behavior: contain;
+  margin: auto;
+}
+.bk-dialog::backdrop {
+  background: rgba(25, 34, 30, 0.55);
+}
+.bk-detail {
+  padding: 32px;
+  position: relative;
+}
+.bk-close {
+  position: sticky;
+  top: 0;
+  float: right;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #d7dcd5;
+  border-radius: 50%;
+  background: #fffdf8;
+  color: #29332f;
+  font-size: 28px;
+  cursor: pointer;
+}
+.bk-detail > .bk-icon {
+  margin-bottom: 18px;
+}
+.bk-detail h2 {
+  margin: 9px 0 14px;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+  color: var(--bk-brand);
+}
+.bk-intro {
+  font-size: 16px;
+}
+.bk-meta {
+  margin-top: 22px;
+  padding: 16px;
+  background: var(--bk-tint);
+  border-radius: 14px;
+  font-size: 13px;
+}
+.bk-meta time {
+  display: block;
+  font-size: 17px;
+  font-weight: 750;
+  margin-bottom: 4px;
+  color: var(--bk-brand);
+}
+.bk-detail section {
+  margin-top: 22px;
+}
+.bk-detail h3 {
+  margin: 0 0 7px;
+  font-size: 17px;
+  color: var(--bk-brand);
+}
+.bk-detail section p,
+.bk-detail li {
+  font-size: 14px;
+}
+.bk-detail ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.bk-detail li + li {
+  margin-top: 7px;
+}
+.bk-join {
+  padding: 20px;
+  background: var(--bk-tint);
+  border-radius: 18px;
+}
+.bk-join .bk-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #505d55;
+}
+@media (max-width: 420px) {
+  .bk-card {
+    padding: 18px;
+    border-radius: 20px;
+  }
+  .bk-top {
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .bk-top .bk-icon {
+    width: 64px;
+    height: 64px;
+    flex-basis: 64px;
+  }
+  .bk-card h2 {
+    font-size: 24px;
+  }
+  .bk-eyebrow {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .bk-spot {
+    font-size: 14px;
+  }
+  .bk-detail {
+    padding: 22px;
+  }
+  .bk-detail h2 {
+    font-size: 25px;
+  }
+  .bk-join {
+    padding: 16px;
+  }
+}
