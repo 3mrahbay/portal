@@ -43,12 +43,20 @@ function stil(){
 }
 
 async function mufredatYukle(){
-  S.alanlar=await D().mufredatAlanlariGetir(S.program).catch(()=>[]);
+  const oturum=S, program=S.program, istek=(S.yuklemeNo||0)+1;
+  S.yuklemeNo=istek;
+  const [alanlar, aciklamalar]=await Promise.all([
+    D().mufredatAlanlariGetir(program).catch(()=>[]),
+    D().mufredatAciklamalariGetir(program)
+  ]);
+  if(S!==oturum||S.program!==program||S.yuklemeNo!==istek)return false;
+  S.alanlar=alanlar;S.aciklamalar=aciklamalar;
   if(S.alanIdx>=S.alanlar.length)S.alanIdx=0;
   const alan=S.alanlar[S.alanIdx]||null;
   if(S.grupIdx>=(alan?.gruplar||[]).length)S.grupIdx=0;
   const grup=(alan?.gruplar||[])[S.grupIdx]||null;
   if(S.dersIdx>=(grup?.dersler||[]).length)S.dersIdx=0;
+  return true;
 }
 
 function secenekler(){
@@ -58,12 +66,14 @@ function secenekler(){
 
 function ciz(){
   const arka=document.getElementById('zegoArka');if(!arka)return;
-  const {alan,gruplar,dersler}=secenekler();
+  const {alan,gruplar,grup,dersler,ders}=secenekler();
+  const ac=D().aciklamaCoz(S.aciklamalar,`${alan?.id}__${grup?.ad||''}__${ders}`,alan?.id);
   const fotoUrl=S.fotoOniz||'';
   arka.querySelector('.zego-kart').innerHTML=`
     <div class="zego-ust"><div class="zego-bas"><b>${esc(ogrAd())} · Eğitim Gözlemi</b><span>${esc(S.sinif||'')} · Aşamayı, notu ve varsa fotoğrafı birlikte kaydedin.</span></div><button class="zego-kapat" data-act="kapat">×</button></div>
     <div class="zego-grid"><div class="zego-field"><label>Program</label><select id="zegoProgram">${PROGRAMLAR.map(p=>`<option value="${p.id}" ${p.id===S.program?'selected':''}>${esc(p.ad)}</option>`).join('')}</select></div><div class="zego-field"><label>Gelişim alanı</label><select id="zegoAlan">${S.alanlar.map((a,i)=>`<option value="${i}" ${i===S.alanIdx?'selected':''}>${esc(a.ad)}</option>`).join('')}</select></div></div>
     <div class="zego-grid"><div class="zego-field"><label>Grup</label><select id="zegoGrup">${gruplar.map((g,i)=>`<option value="${i}" ${i===S.grupIdx?'selected':''}>${esc(g.ad)}</option>`).join('')}</select></div><div class="zego-field"><label>Eğitim / kazanım</label><select id="zegoDers">${dersler.map((d,i)=>`<option value="${i}" ${i===S.dersIdx?'selected':''}>${esc(d)}</option>`).join('')}</select></div></div>
+    <div class="zego-notice" id="zegoKazanimAciklama"><b>Kazanım açıklaması</b><div style="white-space:pre-wrap;margin-top:5px">${esc(ac.metin||'Bu kazanım için henüz açıklama eklenmemiş.')}</div></div>
     <div class="zego-field"><label>Aşama</label><div class="zego-durumlar">${DURUMLAR.map(d=>`<button type="button" class="zego-durum ${S.durum===d.kod?'on':''}" data-durum="${d.kod}" style="color:${d.renk};background:${d.bg}"><i data-lucide="${d.ikon}"></i><b>${d.ad}</b><span>${d.acik}</span></button>`).join('')}</div></div>
     <div class="zego-field"><label>Gözlem notu</label><textarea id="zegoNot" placeholder="Bu aşamada gözlemlediğiniz gelişimi yazın…">${esc(S.not||'')}</textarea></div>
     <div class="zego-field"><label>Fotoğraf (opsiyonel)</label><input type="file" id="zegoFotoInput" accept="image/*" hidden><div class="zego-foto" id="zegoFotoSec">${fotoUrl?`<img src="${esc(fotoUrl)}" alt="Seçilen fotoğraf">`:''}<b>${S.foto?'Fotoğraf seçildi':'Fotoğraf ekle'}</b><span>Fotoğraf ilgili S/T/U aşamasında ve Eğitim Galerisi'nde görünür.</span></div></div>
@@ -77,10 +87,10 @@ function bagla(){
   root.querySelectorAll('[data-act="kapat"]').forEach(b=>b.onclick=kapat);
   root.querySelector('[data-act="kaydet"]').onclick=kaydet;
   root.querySelectorAll('[data-durum]').forEach(b=>b.onclick=()=>{S.durum=b.dataset.durum;ciz();});
-  root.querySelector('#zegoProgram').onchange=async e=>{S.program=e.target.value;S.alanIdx=S.grupIdx=S.dersIdx=0;await mufredatYukle();ciz();};
+  root.querySelector('#zegoProgram').onchange=async e=>{S.program=e.target.value;S.alanIdx=S.grupIdx=S.dersIdx=0;if(await mufredatYukle())ciz();};
   root.querySelector('#zegoAlan').onchange=e=>{S.alanIdx=+e.target.value;S.grupIdx=S.dersIdx=0;ciz();};
   root.querySelector('#zegoGrup').onchange=e=>{S.grupIdx=+e.target.value;S.dersIdx=0;ciz();};
-  root.querySelector('#zegoDers').onchange=e=>{S.dersIdx=+e.target.value;};
+  root.querySelector('#zegoDers').onchange=e=>{S.dersIdx=+e.target.value;ciz();};
   root.querySelector('#zegoNot').oninput=e=>{S.not=e.target.value;};
   root.querySelector('#zegoFotoSec').onclick=()=>root.querySelector('#zegoFotoInput').click();
   root.querySelector('#zegoFotoInput').onchange=e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>10*1024*1024){toast('Fotoğraf en fazla 10 MB olabilir.','error');return;}S.foto=f;if(S.fotoOniz)URL.revokeObjectURL(S.fotoOniz);S.fotoOniz=URL.createObjectURL(f);ciz();};
@@ -165,7 +175,7 @@ async function kaydet(){
 export async function gozlemAc(ogrId,ogrAdValue,sinif){
   if(!ogrId||S?.kaydediliyor)return;stil();S={ogrId,ogrAd:ogrAdValue||'Öğrenci',sinif:sinif||'',program:'montessori',alanlar:[],alanIdx:0,grupIdx:0,dersIdx:0,durum:'',not:'',foto:null,fotoOniz:''};
   const d=document.createElement('div');d.id='zegoArka';d.className='zego-arka';d.innerHTML='<div class="zego-kart"><div style="padding:30px;text-align:center;color:#7C8882">Müfredat yükleniyor…</div></div>';d.onclick=e=>{if(e.target===d)kapat()};document.body.appendChild(d);
-  try{await mufredatYukle();ciz();}catch(e){console.error(e);toast('Eğitim programı yüklenemedi.','error');kapat();}
+  try{if(await mufredatYukle())ciz();}catch(e){console.error(e);toast('Eğitim programı yüklenemedi.','error');kapat();}
 }
 
 export function kur(win=window){
