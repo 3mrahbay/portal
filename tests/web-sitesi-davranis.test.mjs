@@ -36,7 +36,9 @@ for(const email of ['other-admin@example.com',null])test(`yetkisiz istemci kayd�
   await assert.rejects(h.api.medyaKaydet());assert.equal(h.writes.length,0);
 });
 test('yalnız gerçekten olmayan belgeler varsayılanı kullanır',async()=>{
-  const h=harness();await h.api.yukle();assert.equal(JSON.parse(h.api.data()).duyuru.metin,'Özgün duyuru');assert.equal(h.reads.length,6);
+  const h=harness();await h.api.yukle();assert.equal(JSON.parse(h.api.data()).duyuru.metin,'Özgün duyuru');
+  // 7 düzenlenen bölüm (genel, duyuru, slaytlar, kutular, sss, medya, rehber) + haftalik + haftalikAyar
+  assert.equal(h.reads.length,9);
 });
 test('medya kayıt hatası çağırana ulaşır ve başarı mesajı verilmez',async()=>{
   const h=harness({failWrite:true});await h.api.yukle();await assert.rejects(h.api.medyaKaydet(),/permission-denied/);
