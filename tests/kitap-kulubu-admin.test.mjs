@@ -63,3 +63,16 @@ test('Portal management entry is outside module-filtered tabs and hidden until i
   const ui=await readFile(new URL('../js/kitap-kulubu/ui.mjs',import.meta.url),'utf8');
   assert.match(ui,/access.manage \?/);assert.match(ui,/kitap-kulubu-yonetim.html/);
 });
+
+test('management loads the versioned store and precaches its exact URL',async()=>{
+  const {installedPwa,assertPrecachedImport}=await import('./helpers/portal-pwa.mjs');
+  const worker=await installedPwa();
+  const {readFile: readHtml}=await import('node:fs/promises');
+  const html=await readHtml(new URL('../kitap-kulubu-yonetim.html',import.meta.url),'utf8');
+  const entry=html.match(/src="(js\/kitap-kulubu\/admin-page\.mjs\?v=\d+)"/)[1];
+  assert(worker.precache.includes('./'+entry));
+  assertPrecachedImport(worker,'js/kitap-kulubu/admin-page.mjs','js/kitap-kulubu/store.mjs');
+  const {readFile}=await import('node:fs/promises');
+  const page=await readFile(new URL('../js/kitap-kulubu/admin-page.mjs',import.meta.url),'utf8');
+  assert.match(page,/from "\.\/store\.mjs\?v=\d+"/);
+});
