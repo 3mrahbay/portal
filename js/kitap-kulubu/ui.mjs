@@ -59,7 +59,11 @@ export async function mountClub(root, store) {
   if (!alive) return stop;
   if (!access.read) {
     root.innerHTML =
-      '<div class="kc-empty"><h1>Kitap Kulübü</h1><p>Bu alan onaylı anne hesapları ve okul ekibine açıktır. Hesap türünüzün düzeltilmesi gerekiyorsa okulunuzla iletişime geçin.</p></div>';
+      '<section class="kc-state"><div class="kc-state-icon">☕</div><h1>Kitap Kulübü</h1><p>Bu alan onaylı anne hesapları ve okul ekibine açıktır. Hesabınız anne olarak kayıtlı olduğu halde bu ekranı görüyorsanız okul ekibine bilgi verin.</p><button type="button" class="kc-state-action" data-kc-page-back>Ana sayfaya dön</button></section>';
+    root.querySelector("[data-kc-page-back]")?.addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else location.href = "index.html";
+    });
     return stop;
   }
   root.innerHTML = `<header class="kc-heading"><p class="bk-eyebrow">ANNELER İLE · KİTAP & ÇAY</p><h1>Kitap Kulübü</h1><p>Birlikte okuyalım, deneyimlerimizi paylaşalım.</p></header><p role="alert" data-error class="kc-error"></p><nav class="kc-tabs" aria-label="Kitaplık"><button data-tab="active" aria-pressed="true">Buluşmalar</button><button data-tab="archive" aria-pressed="false">Geçmiş okumalar</button>${access.manage ? "<button data-admin>Okul yönetimi</button>" : ""}</nav><div data-library class="kc-library" aria-live="polite">Kitaplar yükleniyor…</div><section data-book hidden></section><section data-management hidden></section>`;
