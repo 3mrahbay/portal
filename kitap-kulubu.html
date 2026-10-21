@@ -1,20 +1,35 @@
 <!doctype html>
 <html lang="tr">
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width,initial-scale=1,viewport-fit=cover"
-    />
-    <meta name="theme-color" content="#2B3674" />
-    <title>Kitap Kulübü · Bir Çiçek Koleji</title>
-    <link rel="stylesheet" href="js/kitap-kulubu/club.css?v=1" />
-  </head>
-  <body data-surface="portal">
-    <main class="kc-shell">
-      <a href="index.html">← Ana sayfa</a>
-      <div id="club" aria-live="polite">Kitaplığınız hazırlanıyor…</div>
-    </main>
-    <script type="module" src="js/kitap-kulubu/page.mjs?v=1"></script>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#F7F8FA" />
+  <title>Kitap Kulübü · Bir Çiçek Koleji</title>
+  <link rel="stylesheet" href="js/kitap-kulubu/club.css?v=2" />
+</head>
+<body data-surface="portal">
+  <header class="kc-topbar">
+    <button class="kc-back" type="button" data-kc-back aria-label="Geri dön">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="kc-top-title">
+      <span>Bir Çiçek Koleji</span>
+      <strong>Kitap Kulübü</strong>
+    </div>
+    <div class="kc-top-mark" aria-hidden="true">
+      <svg viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="27" fill="#F9E5A0"/>
+        <path d="M24 8c-3 3 3 5 0 8m8-8c-3 3 3 5 0 8" fill="none" stroke="#9A694A" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M20 18h16c0 7-5 9-4 13 1 4 5 6 4 10-1 6-15 6-16 0-1-4 3-6 4-10 1-4-4-6-4-13Z" fill="#B74327" stroke="#FFF8EA" stroke-width="2"/>
+        <rect x="15" y="43" width="26" height="6" rx="2" fill="#2D5E3E"/>
+      </svg>
+    </div>
+  </header>
+  <main class="kc-shell">
+    <div id="club" aria-live="polite">
+      <div class="kc-loading"><span></span><p>Kitaplığınız hazırlanıyor…</p></div>
+    </div>
+  </main>
+  <script type="module" src="js/kitap-kulubu/page.mjs?v=2"></script>
+</body>
 </html>

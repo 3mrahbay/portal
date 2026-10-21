@@ -2,6 +2,11 @@ import { auth, db, fb, onAuthStateChanged } from "./adapter.mjs";
 import { createStore } from "./store.mjs";
 import { mountClub } from "./ui.mjs";
 const host = document.getElementById("club");
+const geri = document.querySelector("[data-kc-back]");
+geri?.addEventListener("click", () => {
+  if (history.length > 1) history.back();
+  else location.href = "index.html";
+});
 let cleanup = null,
   epoch = 0;
 onAuthStateChanged(auth, async (user) => {
@@ -12,7 +17,7 @@ onAuthStateChanged(auth, async (user) => {
   host.replaceChildren(root);
   if (!user) {
     root.innerHTML =
-      '<h1>Kitap Kulübü</h1><p>Kitaplığı görmek için okul hesabınızla giriş yapın.</p><a href="index.html">Giriş ekranına dön</a>';
+      '<section class="kc-state"><div class="kc-state-icon">📚</div><h1>Kitap Kulübü</h1><p>Kitaplığı görmek için okul hesabınızla giriş yapın.</p><a class="kc-state-action" href="index.html">Giriş ekranına dön</a></section>';
     return;
   }
   root.textContent = "Kitaplığınız hazırlanıyor…";

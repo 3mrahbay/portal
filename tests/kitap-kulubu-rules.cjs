@@ -47,14 +47,14 @@ const {
     await env.clearFirestore();
     await env.withSecurityRulesDisabled(async (c) => {
       const d = c.firestore();
-      for (const [id, rol, onaylandi] of [
-        ["anne", "anne", true],
-        ["anne2", "anne", true],
-        ["baba", "baba", true],
-        ["unapproved", "anne", false],
+      for (const [id, yakinlik, onaylandi] of [
+        ["anne", "Anne", true],
+        ["anne2", "Anne", true],
+        ["baba", "Baba", true],
+        ["unapproved", "Anne", false],
       ])
         await setDoc(doc(d, "veliler", id + "@example.test"), {
-          rol,
+          yakinlik,
           onaylandi,
           ogrenciIds: ["child"],
         });
