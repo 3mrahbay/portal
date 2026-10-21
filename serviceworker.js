@@ -10,10 +10,14 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v209-danisma-profilim";
+const CACHE_VERSION = "v211-danisma-profilim";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./kitap-kulubu.html",
+  "./js/kitap-kulubu.js?v=1",
+  "./js/kitap-kulubu.css?v=1",
+  "./js/kitap-kulubu/club.css?v=1",
   "./js/galeri-onay-canli.js?v=186",
   "./js/galeri-onay-bildirimi.js?v=186",
   "./js/portal-google-login.js?v=178",
@@ -89,7 +93,7 @@ const PRECACHE = [
   "./js/zeky-gozlem-modal-modern.js?v=1",
   "./moduller/veli-egitim-gelisim.js?v8",
   "./portal-data.js?v8",
-  "./moduller/ogretmen-egitim-gozlem.js?v=7",
+  "./moduller/ogretmen-egitim-gozlem.js?v=8",
   "./moduller/sabah-girisi.js",
   "./moduller/veli-izinleri.js",
   "./moduller/pickup-yetkilileri.js",
@@ -97,7 +101,7 @@ const PRECACHE = [
   "./moduller/pdr.js",
   "./moduller/program-belgeleme.js",
   "./moduller/geri-bildirim.js",
-  "./moduller/veli-galeri.js?v=v209",
+  "./moduller/veli-galeri.js?v=v211",
   "./js/portal-galeri-lightbox-ui.js",
   "./js/bunny-stream-upload.js?v=192",
   "./okul_logo.png",
@@ -144,7 +148,7 @@ self.addEventListener("fetch", (event) => {
   const isNavigation =
     req.mode === "navigate" || req.destination === "document" ||
     url.pathname.endsWith(".html") || url.pathname.endsWith(".js") ||
-    url.pathname.endsWith(".css");
+    url.pathname.endsWith(".css") || url.pathname.endsWith(".mjs");
 
   if (isNavigation) {
     event.respondWith(

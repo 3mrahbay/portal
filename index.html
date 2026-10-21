@@ -9254,6 +9254,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 </style>
 <!-- Arayüz düzeltmeleri: pencere başlıkları, logo, üst menü — stil/arayuz-duzeltmeleri.css -->
 <link rel="stylesheet" href="stil/arayuz-duzeltmeleri.css?v=5">
+<link rel="stylesheet" href="js/kitap-kulubu.css?v=1">
+<script src="js/kitap-kulubu.js?v=1"></script>
 </head>
 <body>
 
@@ -9613,6 +9615,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       <button class="tab" data-tab="denetim" id="tab-denetim-btn" style="display:none;"><i data-lucide="shield-check"></i> MEB Denetim</button>
       <button class="tab" data-tab="etkinlik" id="tab-etkinlik-btn" style="display:none;"><i data-lucide="calendar-heart"></i> Etkinlik &amp; Takvim</button>
       <button class="tab" data-tab="mesajlasma" id="tab-mesajlasma-btn" style="display:none;"><i data-lucide="message-circle"></i> Mesajlaşma</button>
+      <a class="tab" href="kitap-kulubu.html">📚 Kitap Kulübü</a>
       <button class="tab" data-tab="duyurular" id="tab-duyurular-btn" style="display:none;"><i data-lucide="megaphone"></i> Duyurular</button>
       <button class="tab" data-tab="yemek" id="tab-yemek-btn" style="display:none;"><i data-lucide="utensils"></i> Yemek Menüsü</button>
       <button class="tab" data-tab="devamsizlik" id="tab-devamsizlik-btn" style="display:none;"><i data-lucide="clipboard-check"></i> Devamsızlık</button>
@@ -14095,13 +14098,13 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v209";
+window.PORTAL_SURUM = "v211";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
   fb: { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
         query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot,
-        addDoc, arrayUnion, increment, runTransaction, documentId, deleteField, getCountFromServer },
+        addDoc, arrayUnion, increment, runTransaction, documentId, deleteField, getCountFromServer, FieldPath },
   // Portal durumu — her çağrıda güncel değeri verir
   get state() {
     return {
@@ -19957,6 +19960,7 @@ function caHomeHTML() {
 
 
 
+      ${window.KitapKulubu?.card("portal") || ""}
       <!-- Dashboard: değişen yükseklikli kartlar (masonry) -->
       <div class="ca-dash">
 
@@ -20210,6 +20214,7 @@ async function caHomeTakvimOnizlemeRender() {
 // ===== Menü (Tüm Modüller) ekranı =====
 // ZEKY veli modül listesi (caMenu + hızlı işlemler ortak kullanır)
 const CA_MODULLER = [
+  { k:"kitapKulubu", ad:"Kitap Kulübü", ikon:"book-open", renk:"var(--c-yellow-soft)", git:"location.href='kitap-kulubu.html'" },
   { k:"home",      ad:"Ana Sayfa",         ikon:"home", renk:"var(--c-green-light)", git:"caGo('home')" },
   { k:"cocugum",   ad:"Çocuğum",           ikon:"baby", renk:"var(--c-pink-soft)",   git:"caGo('profil')" },
   { k:"gunluk",    ad:"Günlük Rapor",      ikon:"notebook-pen", renk:"var(--c-pink-soft)",   git:"caGo('gunluk')" },
@@ -22327,7 +22332,7 @@ window.caGozlemSet = async function(field, val) {
     st.alanIdx = +val; st.grupIdx = 0; st.dersIdx = 0; await caGozlemRender();
   } else if (field === "grupIdx") {
     st.grupIdx = +val; st.dersIdx = 0; await caGozlemRender();
-  } else if (field === "dersIdx") st.dersIdx = +val;
+  } else if (field === "dersIdx") { st.dersIdx = +val; await caGozlemRender(); }
   else if (field === "not") st.not = val;
 };
 
@@ -22364,7 +22369,12 @@ async function caGozlemRender() {
   const st = caGozlemState;
   if (!root || !st) return;
   try {
-    const muf = await mufredatYukle(st.disiplin);
+    const istek = (st.renderNo || 0) + 1; st.renderNo = istek;
+    const [muf, aciklamalar] = await Promise.all([
+      mufredatYukle(st.disiplin),
+      window.PortalData.mufredatAciklamalariGetir(st.disiplin)
+    ]);
+    if (caGozlemState !== st || st.renderNo !== istek) return;
     const alan = muf[st.alanIdx] || muf[0] || null;
     if (!alan) {
       root.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px;"><div><b style="font-size:18px;color:#2D5E3E;">${escapeHtml(st.ogrAd)} · Eğitim Gözlemi</b><div style="font-size:12px;color:#64748B;">${escapeHtml(caGozlemProgramAdi(st.disiplin))} müfredatı tanımlı değil.</div></div><button onclick="caGozlemKapat()" style="border:0;background:#EEF2F0;border-radius:50%;width:40px;height:40px;font-size:22px;cursor:pointer;">×</button></div>`;
@@ -22378,6 +22388,7 @@ async function caGozlemRender() {
     const dersler = grup?.dersler || [];
     if (st.dersIdx >= dersler.length) st.dersIdx = 0;
 
+    const aciklama = window.PortalData.aciklamaCoz(aciklamalar, `${secAlan.id}__${grup?.ad||""}__${dersler[st.dersIdx]||""}`, secAlan.id);
     const programlar = [["montessori","Montessori"],["orman","Orman Okulu"],["degerler","Değerler"],["ingilizce","İngilizce"]];
     const fotoHtml = st.fotoOniz
       ? `<div style="position:relative;"><img src="${escapeHtml(st.fotoOniz)}" style="width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:#F1F5F9;"><button type="button" onclick="caGozlemFotoTemizle()" style="position:absolute;right:8px;top:8px;border:0;background:rgba(15,23,42,.72);color:#fff;border-radius:999px;padding:6px 10px;cursor:pointer;">Kaldır</button></div>`
@@ -22394,6 +22405,7 @@ async function caGozlemRender() {
         <label style="font-size:11px;font-weight:800;color:#64748B;">GRUP<select class="ca-select" onchange="caGozlemSet('grupIdx',this.value)" style="display:block;margin-top:5px;">${gruplar.map((g,i)=>`<option value="${i}" ${i===st.grupIdx?'selected':''}>${escapeHtml(g.ad)}</option>`).join("")}</select></label>
       </div>
       <label style="display:block;font-size:11px;font-weight:800;color:#64748B;margin-top:12px;">EĞİTİM / KAZANIM<select class="ca-select" onchange="caGozlemSet('dersIdx',this.value)" style="display:block;margin-top:5px;">${dersler.map((d,i)=>`<option value="${i}" ${i===st.dersIdx?'selected':''}>${escapeHtml(d)}</option>`).join("")}</select></label>
+      <div id="caKazanimAciklama" style="margin-top:12px;background:#F0EAF6;color:#5B4189;border-radius:11px;padding:12px;font-size:13px;line-height:1.6;"><b>Kazanım açıklaması</b><div style="white-space:pre-wrap;margin-top:5px;">${escapeHtml(aciklama.metin || "Bu kazanım için henüz açıklama eklenmemiş.")}</div></div>
       <div style="font-size:11px;font-weight:800;color:#64748B;margin:14px 0 7px;">AŞAMA</div>
       <div class="ca-sevgrid">
         <div class="ca-sev ${st.seviye==="S"?"on":""}" data-s="S" onclick="caGozlemSeviye('S')">🌱 Sunuldu</div>
@@ -48853,13 +48865,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=209");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=211");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v209";
+          const anahtar = "portalSwReload_v211";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
@@ -48885,5 +48897,6 @@ window.showBulkUpload = async function() {
     } finally { window.__okulZiliTaniYukleniyor = false; }
   };
 </script>
+<script type="module" src="js/kitap-kulubu/gate.mjs?v=1"></script>
 </body>
 </html>
