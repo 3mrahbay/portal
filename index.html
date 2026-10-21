@@ -14098,7 +14098,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v209";
+window.PORTAL_SURUM = "v211";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14515,21 +14515,37 @@ async function danismaOperasyonProjeksiyonlariniSenkronla() {
   }
 }
 
-async function danismaPersonelRehberiniSenkronla(liste) {
-  if (!danismaProjeksiyonYonetebilirMi()) return;
+// Danışma personel rehberi (ad, rol, unvan, durum, sınıflar — iletişim yok).
+// Yalnız personeller kaydını yönetenler (yönetici, kurucu müdür, müdür) eşitler.
+// siniflar: kapıdan mesajda çocuğun sınıf öğretmeni önceden seçilsin diye.
+// Listede olmayan (silinmiş) personel rehberden düşer; danışma ona mesaj iletmesin.
+async function danismaPersonelRehberiniSenkronla(liste, atamalar = {}) {
+  if (!(isAdmin || ["kurucu_mudur", "mudur"].includes(rolNormalize(aktifKullaniciRol)))) return;
   const yazilacak = (liste || []).flatMap(p => {
     const email = String(p.email || p.id || "").toLowerCase().trim();
     if (!email) return [];
+    const siniflar = [...new Set([...(Array.isArray(p.sinifAtamalari) ? p.sinifAtamalari : []), ...(atamalar[email] || [])]
+      .filter(s => typeof s === "string" && s.trim()))];
     return [{
       ref: doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email),
       data: {
         adSoyad: p.adSoyad || p.ad || "",
         rol: rolNormalize(p.rol), unvan: p.unvan || "",
-        durum: p.durum || "aktif", guncellendi: serverTimestamp()
+        durum: p.durum || "aktif", siniflar, guncellendi: serverTimestamp()
       }
     }];
   });
-  if (yazilacak.length) await danismaGuvenliBelgeleriYaz(yazilacak);
+  if (!yazilacak.length) return;
+  await danismaGuvenliBelgeleriYaz(yazilacak);
+  const gecerli = new Set(yazilacak.map(k => k.ref.id));
+  const mevcut = await getDocs(collection(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller));
+  const silinecek = [];
+  mevcut.forEach(d => { if (!gecerli.has(d.id)) silinecek.push(d.ref); });
+  for (let i = 0; i < silinecek.length; i += 400) {
+    const batch = writeBatch(db);
+    silinecek.slice(i, i + 400).forEach(r => batch.delete(r));
+    await batch.commit();
+  }
 }
 const ROL_ETIKETLERI = {
   kurucu_mudur: "Kurucu Müdür",
@@ -14879,8 +14895,6 @@ async function loadPersoneller() {
     const snap = await getDocs(collection(db, "personeller"));
     personelListesi = [];
     snap.forEach(d => personelListesi.push({ id: d.id, ...d.data() }));
-    try { await danismaPersonelRehberiniSenkronla(personelListesi); }
-    catch (e) { console.warn("Danışma personel rehberi:", e.code || e.message); }
 
     // Sınıf atamaları (tüm öğretmenler için tek seferde)
     personelAtamaHaritasi = {};
@@ -14894,6 +14908,8 @@ async function loadPersoneller() {
         personelAtamaHaritasi[em].push(v.sinif);
       }
     });
+    try { await danismaPersonelRehberiniSenkronla(personelListesi, personelAtamaHaritasi); }
+    catch (e) { console.warn("Danışma personel rehberi:", e.code || e.message); }
 
     personelListele();
     ozellikYonetimRender(); // Özellik Yönetimi kartını da doldur
@@ -15282,6 +15298,8 @@ window.personelSil = async function(email) {
     const batch = writeBatch(db);
     atamaSnap.forEach(d => batch.delete(d.ref));
     batch.delete(doc(db, "personeller", email));
+    // Danışma rehberinden de düşsün: danışma silinen kişiye kapıdan mesaj iletmesin.
+    batch.delete(doc(db, DANISMA_GUVENLI_KOLEKSIYONLAR.personeller, email.toLowerCase()));
     await batch.commit();
     showToast("🗑️ Personel silindi");
     await loadPersoneller();
@@ -38553,7 +38571,9 @@ window.giderTalepGonder = async function() {
     giderSending=false;
     giderTalepKapat();
     showToast("✓ Fiş talebiniz muhasebe onayına gönderildi");
-    if (typeof giderTalepleriYukle === "function") giderTalepleriYukle();
+    // Tüm fiş listesi yalnız yönetim/muhasebe/koordinatöre açık; diğer personelde
+    // okuma reddediliyordu (sessiz). Kendi fişleri Profilim'de ayrıca listelenir.
+    if (typeof giderTalepleriYukle === "function" && (isAdmin || ["kurucu_mudur", "mudur", "muhasebe", "egitim_koordinator"].includes(rolNormalize(aktifKullaniciRol)))) giderTalepleriYukle();
   } catch (e) {
     console.error("Fiş talebi:", e);
     showToast("Gönderilemedi: " + e.message, "error");
@@ -38937,7 +38957,7 @@ window.profilimRender = async function() {
 
       ${kart("İhtiyaç Taleplerim", "package-plus", "#2D5E3E", `<div id="profilIhtiyacKart"><div style="font-size:12.5px; color:#94A3B8;">Yükleniyor…</div></div>`)}
 
-      ${kart("Veli Görüşmelerim", "calendar-clock", "#0891B2", `
+      ${!veliGorusmesiYapanRolMu() ? "" : kart("Veli Görüşmelerim", "calendar-clock", "#0891B2", `
         <div id="profilRandevular"><div style="font-size:12.5px; color:#94A3B8;">Yükleniyor…</div></div>
       `)}
 
@@ -38963,6 +38983,16 @@ window.profilimRender = async function() {
 };
 
 // Personelin kendisiyle yapılacak veli görüşmeleri
+// Veli görüşmesi yapan roller: randevu sunucusunun kabul ettikleri (öğretmenler,
+// PDR, yönetim). Danışma, muhasebe, aşçı, temizlik bu kartı görmez; sunucu bu
+// rollerin isteğini reddettiği için kart "Randevu bilgisi alınamadı" diyordu.
+function veliGorusmesiYapanRolMu() {
+  return !!isAdmin || ["kurucu_mudur", "mudur", "mudur_yardimcisi", "egitim_koordinator", "egitim_koordinatoru", "pdr",
+    "ogretmen", "yardimci_ogretmen", "ingilizce_ogretmeni", "degerler_ogretmeni", "orman_ogretmeni", "brans_ogretmeni"]
+    .includes(rolNormalize(aktifKullaniciRol));
+}
+
+// Görüşme yapmayan rollerde kart hiç çizilmez (veliGorusmesiYapanRolMu).
 window.profilRandevulariYukle = async function(email) {
   const el = document.getElementById("profilRandevular");
   if (!el) return;
@@ -48835,13 +48865,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=209");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=211");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v209";
+          const anahtar = "portalSwReload_v211";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
