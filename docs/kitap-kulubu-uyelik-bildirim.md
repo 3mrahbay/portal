@@ -1,43 +1,61 @@
-# Kitap Kulübü üyelik bildirimleri — taslak, yayınlanmadı
+# Kitap Kulübü: kalıcı sunucu kuyruğu ve salt okunur durum kontrolü
 
-## Doğru kaynak ve kapsam
+## Doğrulanan canlı hata (22 Ekim 2026)
 
-Portal PR100–102 sonrasındaki `main` ve ZEKY mobil `main` incelendi. Aynı işi yapan açık PR/dal bulunmadı. `zeky-backend` de incelendi; mevcut mail/push sunucusu orada değil, bu deponun `server/apps-script` klasöründe. Güncel checkoutlarda `.agents/skills` veya `AGENTS.md`/`SKILL.md` bulunmadı. Yerel memory_summary yalnız geçmiş bağlam için okundu.
+Portal #103, 17:17:31 UTC'de `54d6c6b`; ZEKY #85, 17:17:54 UTC'de `2026e2c` ile başka bir işlem tarafından merge edilmiş. Bu çalışma merge/deploy yapmadı. Canlı Portal'dan salt okunur alınan `admin-ui.mjs`, `store.mjs?v=214`, `membership-effects.mjs` dosyaları remote main ile SHA-256 düzeyinde aynıydı.
 
-Yeni talep Firestore'a kaydedildikten sonra mevcut BCK_MailProxy doğrulanmış hesap adresini özel, kalıcı gönderim kaydına alır; ZEKY Push mevcut `bildirimler` koleksiyonuna yönetici bildirimi oluşturur ve mevcut FCM hattını kullanır. Alıcılar izin taşıyan personel belge kimliklerinden çözülür: aktif kurucu müdür, müdür, PDR ve mevcut admin istisnası. Veliye personel adres listesi dönmez. İstemci alıcı/metin/HTML seçemez.
+Hatalı düğme `data-member + data-status=approved` kullanarak `setMember` → `prepare` → onay → mail yoluna giriyordu. Onaylı üyede de bu yüzden “Onay öncesi…” hatası görünüyordu. Bu hata sağlayıcı kabulü veya teslim kanıtı değildir; Apps Script canlı sürümü/ayarları okunmadığı için hangi sunucu reddinin oluştuğu bilinmiyor. Kullanıcının ekran metni parent tarafından doğrulandı; gerçek veli verisine, oturumuna veya Library görsellerine bu çalışmada erişilmedi.
 
-Portal bildirimi mevcut zil/popup akışını kullanır; bildirim tercihlerine ve ilk snapshot için geçmiş bildirimi çalmama davranışına uyar. Mobil push ve bildirim tıklaması mevcut kulüp sayfasına gider; yönetim görünümü kendi yetkisini tekrar denetler. Site içi bildirim ve FCM kabulü, cihazda gösterim kanıtı değildir.
+Yeni düğme ayrı `data-mail-status` → `store.mailStatus` → `action: kitapKulubuDurum` kullanır. Eski sunucu bu yeni işlemi tanımıyorsa güvenli “durum servisi kullanılamıyor” açıklaması verir. İşlem yalnız yetki, üyelik ve kuyruk kaydı okur; belge güncellemez, kuyruk yaratmaz ve mail/push göndermez. Hata olduğunda önceki kabul bilgisi ekranda bırakılmaz.
 
-Onay öncesi yeni talebin mail hazırlığı doğrulanır. Onaydan sonra otomatik hoş geldiniz gönderimi denenir. Aynı üyeye yeniden onay belge zamanını değiştirmez. Mevcut genel okul mail işlevi, mevcut Brevo anahtarı ve `eposta@bircicekkoleji.com` göndericisi kullanılır. Yeni credential/IAM/Firestore izin değişikliği yoktur.
+Eski kayıtlarda ayrı talep zamanı yoktur. Son güncelleme talep tarihi gibi gösterilmez. Durum servisi Firestore'un `createTime` metadatasını “Sunucu kayıt oluşturma zamanı” olarak ayrıca gösterebilir; bu veri kullanıcı tıklama zamanıymış gibi yeniden yazılmaz. Gerçek üyelerin kayıtları değiştirilmedi.
 
-## Tekillik ve hata davranışı
+## Uygulama kapanınca gönderim nasıl kurtarılır?
 
-- Üyelik oluşturma/onay transaction kullanır. Var olan pending talep tekrar yazılmaz; approved/blocked üye tekrar kayıtla pending yapılamaz.
-- Kalıcı bildirim: UID + alıcı için create-only. Tekrar/kısmi hata okunmuş bilgisini sıfırlamaz.
-- Push: Firestore create-only işareti sağlayıcı çağrısından önce; belirsiz sonuçta yeniden gönderim yok.
-- Mail: Apps Script genel kilidi + kalıcı Script Properties kaydı; sağlayıcı çağrısından önce `uncertain`. UID ve doğrulanmış e-posta adresi temelinde tek gönderim; aynı adresle yeni UID de ikinci mail alamaz.
-- `sent` yalnız sağlayıcı kabulü; teslim/gelen kutusu kanıtı değil. `uncertain` kaydı otomatik silinmez veya yeniden denenmez. Özel sunucu kayıtları ve Brevo sonucu mutabık olmadan kayıt silinmemeli.
-- Başlangıç tarihinden önceki pending üyeler kayda alınmaz; kayıtlı mail hazırlığı olmayan eski approved üyeler atlanır. Toplu geriye dönük mail betiği yoktur.
-- Script Properties dolarsa işlem hata verir; dedup kayıtlarını otomatik silerek kapasite açmaz. Kapasite izlenmeli, daha büyük hacim için ayrı kalıcı outbox tasarımı gerekir.
+İstemciler artık bildirim/mail çağrısı yapmaz. Kayıt ve onay transaction'ı yalnız mevcut üyelik belgesini yazar. Bu belge, **kurtarılabilir gönderim niyetidir**: mevcut kurallarda kullanıcılar üyelik silemez, yalnız yönetim/PDR durum değiştirebilir. Sunucu kaydı periyodik olarak yeniden okuyabilir. Tarayıcı tam yazımdan sonra kapansa da sunucu taraması kaydı bulur; öğrenci/veli istemcisinin yeniden açılması gerekmez.
 
-## Yayın sınırı ve bilinen eksikler
+İki mevcut Apps Script projesi kullanılır:
 
-Bu sürüm **kalıcı sunucu tetikleyicisi/outbox değildir**. İşlemden sonra istemci sunucuya çağrı yapar. Uygulama üyelik yazımı ile çağrı arasında kapanırsa, pending üyenin “Bildirimleri yeniden dene” veya yönetimin “Hoş geldiniz durumunu kontrol et” düğmesi gerekir. Eski mobil sürümler bu çağrıyı yapmaz. Kesintiden sonra kullanıcı müdahalesi olmadan kesin gönderim beklentisi için sunucu tetikleyicisi ayrıca tasarlanmalı; bu draft bu garantiyi vermez.
+- **ZEKY Push:** mevcut dakika tabanlı `sabahKapiTara` planlayıcısı okul saati/hafta sonu kontrollerinden önce kulüp tarayıcısını çağırır. Kulüp taraması kendi 5 dakika sınırını ve kilidini uygular. Kulüp hatası mevcut sabah işini durdurmaz. 25 kayıtlık sayfalar dolaşılır; kaynak durum gönderim öncesi yeniden okunur. Kalıcı `bildirimler` kayıtları create-only, alıcılar aktif kurucu müdür/müdür/PDR ve mevcut admin istisnasıdır. İletişim e-postası yerine yetki taşıyan personel belge kimliği kullanılır.
+- **BCK_MailProxy:** onaylanmış üyelikleri sayfalayarak tarayan `kkMailTara`, mevcut proje Script Properties alanında kalıcı kuyruk tutar. Kuyruğa yazımlar tamamlanmadan sayfa imleci ilerlemez. Her tam tarama yeniden başlar; başarısız veya kesilmiş keşif sonraki taramada kurtarılır. En fazla 10 kuyruk işi/çalıştırma ve 4 dakika işlem bütçesi vardır. Tarayıcı hatası, daha önce kuyruğa alınmış işlerin çalışmasını engellemez.
 
-Yeni talepte e-posta hazırlığı başarısızsa güncel istemci onayı durdurur, üyelik değişmediğini açıklar; önce hazırlık yeniden denenmelidir. Eski istemciden onay bu korumayı atlayabilir ve mail atlanabilir. Mevcut erişim/paylaşım kuralları değişmez; kayıt/onay hatalarının etkileri ayrı raporlanır.
+Yeni üye sınırı **Firestore sunucu createTime** bilgisidir; değiştirilebilir `updatedAt` kullanılmaz. Başlangıçtan önce oluşturulmuş pending kayıt daha sonra onaylansa bile otomatik mail almaz. Eski üyelere toplu geri gönderim yoktur. Başlangıç ilk çalışmada sabitlenir; sonradan geriye alınırsa işlem hata verir.
 
-Canlı Apps Script sürümü/özellikleri, Firestore `bildirimler` ve `pushOlayKayitlari` kurallarının yetkisiz yazma/silme engeli, gerçek FCM/APNs, gerçek mail istemcileri ve cihazda popup gösterimi **doğrulanmadı**. Dedup işaretlerinin yetkisiz kişilerce silinemediği yayın öncesi doğrulanmalıdır. Bu görevde gerçek veliye mail/push veya canlı veri yazımı yapılmadı. Finans tarayıcı oturumları kullanılmadı.
+## Gönderim, tekrar ve belirsizlik
 
-## Ayrı onay sonrası yayın planı
+Mail alıcısı OAuth yetkili Firebase Auth UID sorgusundan gelen doğrulanmış, devre dışı olmayan hesaptır. Güncel veli profili/onay/anne erişimi ayrıca kontrol edilir. İstemci alıcı, metin, sender veya HTML seçemez. Mevcut Brevo anahtarı, onaylı `eposta@bircicekkoleji.com` göndericisi ve aynı şablon kullanılır.
 
-1. Mevcut iki Apps Script projesinin sürümünü/ayarlarını yedekle ve kaynakla karşılaştır. Mail projesine `KitapKulubu_Mail.gs`, push projesine `KitapKulubu_Push.gs` eklenir; her projenin mevcut ana dosyası da güncellenir. Helper dosyaları birbirinin projesine konmaz.
-2. İki projede `KK_UYELIK_AKTIF` varsayılan kapalıdır. `KK_UYELIK_BASLANGIC` aynı, onaylanmış yayın anının ISO zaman damgası olmalıdır; geçmişe alınmaz. Mevcut gönderici ve secretlar değiştirilmez.
-3. Ayrı onayla mevcut dağıtımlar güncellenir (adres değişmez), Portal/Mobil sürüm/cache numaraları yayın sırasında artırılır, ilgili yeni istemciler dağıtılır. Kademeli dağıtım ve eski mobil sürüm sınırı hesaba katılır.
-4. Yalnız ayrıca onaylanmış sentetik/test hesaplarıyla izin, kayıt, onay ve alıcı kontrolü yapılır. Gerçek veliler test alıcısı değildir.
-5. Ayrı aktivasyon onayıyla iki projede `KK_UYELIK_AKTIF=evet`. Kapatmak için bayrak kaldırılır; gönderim kayıtları korunur.
+Kuyruk ve sağlayıcı işlemleri proje kilidiyle seri çalışır. Gönderim gövdesi ve UUID idempotency anahtarı sağlayıcı çağrısından **önce** kalıcı kaydedilir. Aynı e-posta adresiyle ikinci UID için adres rezervasyonu ikinci gönderimi önler. Gönderim başlamadan iptal edilen rezervasyon güvenle bırakılabilir. Başlayan/belirsiz girişim sıfırlanmaz. Hesap e-postası sonradan değişirse bekleyen deneme yeni adrese yönlendirilmez.
 
-## Önizleme ve yerel kontroller
+Brevo'nun belgelenmiş UUID/idempotency sözleşmesi 30 dakikalık tekrar koruması sağlar; kod daha kısa **20 dakika** güvenli tekrar penceresi kullanır. Zaman aşımından sonra aynı gövde/UUID tekrar edilir; belgelenmiş `duplicate_parameter` kabul edilmiş aynı isteği ifade eder. Süre dolduktan sonra kör yeniden gönderim yoktur: iş `needs_review` olarak kuyrukta kalır, sağlık kaydında görünür ve mail worker kontrol gerektiren hata üretir. Böylece kayıp iş sessizce başarı sayılmaz. Bu, sınırsız süreli “exactly once” veya gelen kutusuna teslim garantisi değildir.
 
-`qa/kitap-kulubu-uyelik/hos-geldiniz.html` ve 390/1280 px PNG'ler sentetik isimle üretildi, görsel incelendi; yatay taşma yok. Link `https://portal.bircicekkoleji.com/kitap-kulubu.html` salt okunur HTTP HEAD ile 200 döndü; bu kontrol oturum sonrası içeriğe erişim kanıtı değildir. Gerçek Outlook/Gmail render testi yapılmadı.
+Provider öncesi geçici okuma/config hataları tekrar denenir. Sağlayıcı kabulü sonrası durum yazımı kesilirse aynı UUID tekrar koruması kullanılır. `accepted` sağlayıcı kabulünü, `queued/retry` kuyruk durumunu, `needs_review` belirsizliği gösterir; **teslim bilgisi henüz yoktur**.
 
-Testler sentetik Node/VM testleridir; gerçek Apps Script veya Firestore emulator concurrency/rules testi değildir. Mevcut mail ve push yetki regresyon testleri de çalıştırıldı. Ayrıntılı test komutları PR açıklamasındadır. Tüm sistemin geçtiği iddia edilmez.
+FCM'nin bu akışta sağlayıcı idempotency anahtarı yoktur. Kalıcı bildirim daima önce yazılır ve tarama tekrarları eksik alıcıları tamamlar. FCM denemesi belirsizse ikinci sesli push gönderilmez; durum işaretinde inceleme için saklanır. Kalıcı bildirim kaybolmaz. Popup mevcut Portal tercih/ilk snapshot kurallarına tabidir; telefon gösterimi ayrıca kanıtlanmalıdır.
+
+Kaynaklar (22 Ekim kontrolü):
+- [Brevo idempotency](https://developers.brevo.com/docs/heterogenous-versions-batch-emails)
+- [Firebase Auth admin lookup ve izin](https://docs.cloud.google.com/identity-platform/docs/reference/rest/v1/projects.accounts/lookup)
+- [Apps Script OAuth token](https://developers.google.com/apps-script/reference/script/script-app#getOAuthToken())
+
+## Ayrı onay gerektiren canlı bileşenler
+
+**Bu değişiklikler yalnız kod/tasarım; trigger kurulmadı, izin verilmedi, aktivasyon yapılmadı.** Önceki taslak bayrağı bu worker'ı açamaz. Yeni `KK_KUYRUK_AKTIF` varsayılan kapalıdır; `KK_KUYRUK_BASLANGIC` onaylanmış yeni aktivasyon anı olmalıdır. Önceki `KK_UYELIK_*` bayrakları yeni worker için yetki sayılmaz.
+
+1. Mevcut iki Apps Script kaynak/sürümünü ve proje ayarlarını yedekleyip karşılaştır. Ortak `KitapKulubu_Queue.gs` iki projeye de; `KitapKulubu_Mail.gs` yalnız BCK_MailProxy'ye, `KitapKulubu_Push.gs` yalnız ZEKY Push'a eklenir. Her projenin ana dosyası da birlikte güncellenir.
+2. **Mail worker için yeni OAuth kapsam onayı gerekiyor:** mevcut çalıştıran hesabın `datastore` ve `identitytoolkit` kapsamları ile `script.external_request`. `ScriptApp.getOAuthToken()` kullanılır; yeni key, servis hesabı veya push private key kopyası yoktur. bcka-site üzerinde gereken mevcut IAM izinleri: `datastore.entities.get`, `datastore.entities.list`, `firebaseauth.users.get`. Mevcut hesapta var mı **doğrulanmadı**. Yoksa en az yetkili grant ayrıca onaylanmalıdır; kod grant yapmaz. Kesin taslak sözleşme: `server/apps-script/kitap-kulubu-mail-scopes.example.json`.
+3. **Mail projesinde `kkMailTara` için 5 dakikalık zaman tetikleyicisinin kurulması ayrıca onay gerekir.** Kod otomatik trigger kurmaz. Push mevcut `sabahKapiTara` tetikleyicisini kullanır; canlıda gerçekten kurulu olduğu doğrulanmalı, yoksa onun kurulumu da ayrıca onay ister. Mevcut push servis hesabının kapsamları değiştirilmedi.
+4. Firestore canlı kuralları: üyelik create/status/delete sınırları, yalnız alıcının bildirim okuması ve dedup işaretlerinin yetkisiz silinememesi doğrulanmalı. Kuyruk Script Properties içindedir, istemci erişimi veya yeni Firestore yazma izni gerekmez. Script editörleri güvenilir yönetici sınırındadır.
+5. Ayrı merge/deploy onayından sonra istemci dosyaları/PWA cache sürümleri dağıtılır; salt okunur durum endpoint'i worker kapalıyken test edilebilir. Sonra ayrı aktivasyon onayıyla iki projede aynı yeni başlangıç ve `KK_KUYRUK_AKTIF=evet` ayarlanır. Gerçek veli test alıcısı değildir.
+
+Yeni ücretli servis kurulmaz. Mevcut Firestore okuma, Apps Script kota ve Brevo gönderim kullanımı artar: her tarama en fazla 25 üyelik belgesi, mail çalıştırması ayrıca en fazla 10 işin profil/üyelik kontrolleri. Kuyruk kapasitesi izlenmelidir; Script Properties kotası dolarsa iş keşfi durur ve kaynak kayıtlardan sonra kurtarılabilir; dedup kayıtları otomatik silinmez. `kkKuyrukDurumu()` yalnız editörden, ağ çağrısı veya yazım yapmadan sayaç/sağlık durumu verir.
+
+## İstemci sürümleri ve kanıtlar
+
+- **Sunucu otomasyonu:** mevcut `kitapKulubuUyeler/{uid}` şemasını yazan eski ve yeni Portal/ZEKY istemcilerinde çalışır. Kayıttan/onaydan sonra açık istemci veya mail enrollment çağrısı gerekmez. Farklı şema kullanan istemciler kapsam dışıdır.
+- **Durum ekranı düzeltmesi:** bu devam commitlerini içeren Portal dosyalarının dağıtılması ve güncel modüllerin alınması gerekir. Eski cache'teki yanlış düğme, yeni sayfa yüklenene kadar eski davranışı gösterebilir. Salt okunur endpoint eski sunucuda yoksa yeni UI güvenli durum açıklaması gösterir.
+- **Mobil yönlendirme:** ilk ZEKY #85 kaynak değişikliği zaten merge edilmiş; native mağaza paketine dağıtıldığı doğrulanmadı. Eski paket bildirim kaydını okuyabilir, yeni hedef yönlendirme garantisi yalnız ilgili modülü içeren paket içindir.
+- İlk **204 odak testi** ilk taslağa aitti; bütün sistem veya canlı teslim testi değildi. İstemci gönderimiyle ilgili eski testler yeni salt okunur/server-worker sözleşmesine uyarlandı.
+- Güncel odak koşusu: **Portal 64 + ZEKY 184 = 248 test**. Bunların içinde **22 yeni kuyruk testi + 5 yeni durum testi** var; ayrıca mevcut sabah/operasyon planlayıcılarından **20 regresyon testi** eklendi. Kalanlar kulüp izinleri, mevcut mail/push auth ve yönlendirme regresyonlarıdır.
+- Gerçek yönetim UI kodu bağımsız başsız tarayıcıda 390 px, sentetik üye ile 4 durumdan geçirildi: kapalı servis, kuyruk, sağlayıcı kabulü, erişilemeyen servis. **4 durum sorgusu, 0 üyelik yazımı, 0 dış ağ isteği**; “Onay öncesi” hatası ve eski kabul bilgisinin kalması yok. `qa/kitap-kulubu-uyelik/durum-kontrolu-390.png` Portal deposundadır.
+- Mail HTML/390/1280 PNG önizlemeleri korunur; gerçek kulüp URL'si ilk çalışmada HTTP 200 idi. Outlook/Gmail render, canlı Apps Script izin/trigger, gerçek FCM/APNs, Firestore emulator ve canlı Rules testleri yapılmadı. Finans tarayıcısı/Cloud Shell kullanılmadı.

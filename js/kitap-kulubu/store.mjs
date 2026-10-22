@@ -1,6 +1,6 @@
-import { membershipEffects } from "./membership-effects.mjs";
+import { readWelcomeStatus } from "./mail-status.mjs";
 import { accessFor, profileEmail, validatePost } from "./core.mjs";
-export function createStore(fb, db, auth, effects = membershipEffects) {
+export function createStore(fb, db, auth) {
   const {
     doc,
     collection,
@@ -127,12 +127,18 @@ export function createStore(fb, db, auth, effects = membershipEffects) {
         tx.set(ref, {uid:u.uid,name:String(u.displayName || "Kulüp üyesi").slice(0,100),status:"pending",updatedAt:serverTimestamp()});
       });
       if (current().uid !== u.uid) throw Error("Oturum değişti.");
-      return effects(u,u.uid,"pending");
+      return { saved:true }; // server scanner recovers this persisted request
+    },
+    mailStatus: async (uid) => {
+      const u=current();
+      if (!(await identity()).manage) throw Error("Yönetim yetkisi gerekli.");
+      const result=await readWelcomeStatus(u,uid);
+      if (current().uid!==u.uid) throw Error("Oturum değişti.");
+      return result;
     },
     setMember: async (uid, status) => {
       const u = current();
       if (!(await identity()).manage) throw Error("Yönetim yetkisi gerekli.");
-      if (status === "approved") await effects(u,uid,"prepare");
       await runTransaction(db, async tx => {
         const ref = memberRef(uid), existing = await tx.get(ref);
         if (!existing.exists()) throw Error("Üyelik bulunamadı.");
@@ -140,7 +146,7 @@ export function createStore(fb, db, auth, effects = membershipEffects) {
         tx.update(ref,{status,updatedAt:serverTimestamp()});
       });
       if (current().uid !== u.uid) throw Error("Oturum değişti.");
-      if (status === "approved") return effects(u,uid,"approved");
+      return { saved:true }; // approved membership is recoverable mail intent
     },
     posts: (id, next, error) =>
       onSnapshot(

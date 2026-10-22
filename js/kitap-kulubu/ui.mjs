@@ -94,7 +94,7 @@ export async function mountClub(root, store) {
         : writable
           ? "Paylaşımlar tüm onaylı anne hesapları ve okul ekibi tarafından görülebilir."
           : member?.status === "pending"
-            ? "Katılım talebiniz okul ekibinin onayını bekliyor. <button data-join>Bildirimleri yeniden dene</button>"
+            ? "Katılım talebiniz okul ekibinin onayını bekliyor."
             : member?.status === "blocked"
               ? "Paylaşım yetkiniz kapalı. Bilgi için okul ekibiyle görüşebilirsiniz."
               : "Sohbeti okuyabilirsiniz. Mesaj ve fotoğraf eklemek için kulübe katılın. <button data-join>Kulübe katılmak istiyorum</button>";
