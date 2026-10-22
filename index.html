@@ -15758,6 +15758,10 @@ function portalBildirimMerkeziBaslat() {
 async function portalBildirimGit(b) {
   const personelMi = isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif");
   const tip = String(b?.tip || "");
+  if (tip === "kitap_kulubu_talep") {
+    location.href = "kitap-kulubu-yonetim.html";
+    return;
+  }
   if (tip === "mesaj") {
     let id = String(b.kaynakId || "");
     if (!id) {

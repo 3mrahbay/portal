@@ -539,3 +539,8 @@ test('bulk treats a missing read flag as unread and rejects an adapter becoming 
     const result=await work;assert.equal(result.status,'partial');assert.equal(result.failedCount,1);assert.equal(result.readCount,8);assert.equal(center.getState().unreadCount,1);
   });
 });
+test('club requests use existing popup tracker and deduplicate replays',()=>{
+ const tracker=createNotificationNoticeTracker();tracker.update([],{fromCache:false});
+ const item=record('club',{tip:'kitap_kulubu_talep',olayAnahtari:'kk-talep:u1'});
+ assert.equal(notificationLabel(item),'Kitap Kulübü');assert.equal(tracker.update([item]).length,1);assert.equal(tracker.update([{...item,id:'retry'}]).length,0);
+});
