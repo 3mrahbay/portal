@@ -5,7 +5,7 @@ export function timestampLabel(value) {
 }
 export function requestLabel(member) {
   // Legacy schema only retains updatedAt, which moderation overwrites.
-  return member.status === 'pending' ? timestampLabel(member.updatedAt) : 'Kayıtlı değil';
+  return member.status === 'pending' ? timestampLabel(member.updatedAt) : 'Ayrı talep zamanı tutulmamış';
 }
 export function summary(data) {
   return [

@@ -12,7 +12,7 @@ test('management allows only active management/PDR and existing admin exception'
 });
 test('request timestamps never misrepresent a moderation timestamp',()=>{
   assert.match(requestLabel({status:'pending',updatedAt:stamp}),/19:00/);
-  for(const status of ['approved','blocked']) assert.equal(requestLabel({status,updatedAt:stamp}),'Kayıtlı değil');
+  for(const status of ['approved','blocked']) assert.equal(requestLabel({status,updatedAt:stamp}),'Ayrı talep zamanı tutulmamış');
 });
 test('summary excludes blocked members, archived books and removed posts',()=>{
   assert.deepEqual(summary({members:[{status:'pending'},{status:'approved'},{status:'blocked'}],books:[{status:'active'},{status:'archived'}],posts:[{deleted:true},{deleted:false}]}).map(x=>x[1]),[1,1,1,1]);

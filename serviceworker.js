@@ -15,7 +15,7 @@ const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
   "./kitap-kulubu.html",
-  "./js/kitap-kulubu/membership-effects.mjs",
+  "./js/kitap-kulubu/mail-status.mjs",
   "./kitap-kulubu-yonetim.html",
   "./js/kitap-kulubu/admin-page.mjs?v=2",
   "./js/kitap-kulubu/store.mjs?v=214",

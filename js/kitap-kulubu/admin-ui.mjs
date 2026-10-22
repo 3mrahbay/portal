@@ -1,3 +1,4 @@
+import { welcomeStatusText } from './mail-status.mjs';
 import { escapeHTML as esc, dateLabel } from './core.mjs';
 import { memberLabels, timestampLabel, requestLabel, summary, localDate, bookData } from './admin-core.mjs';
 
@@ -40,7 +41,7 @@ export async function mountManagement(root, store) {
     root.querySelectorAll('[data-section]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.section === tab)));
     if (tab === 'requests' || tab === 'members') {
       const rows = data.members.filter(m => filter === 'all' || m.status === filter);
-      content().innerHTML = `<h2>${tab === 'requests' ? 'Katılım Talepleri' : 'Üyeler'}</h2><label>Üyelik durumu<select data-member-filter>${[['all','Tüm durumlar'],...Object.entries(memberLabels)].map(([v,l]) => `<option value="${v}" ${v===filter?'selected':''}>${l}</option>`).join('')}</select></label><p class="kc-muted">Eski kayıtlarda ayrı talep tarihi bulunmaz. Onay veya engelleme sonrasında bu tarih geri getirilemez.</p>${rows.slice(0,shown).map(m => `<article class="kc-post"><h3>${esc(m.name)}</h3><p><span class="kc-badge">${esc(memberLabels[m.status] || 'Bilinmeyen durum')}</span></p><p>Talep zamanı: ${esc(requestLabel(m))}<br>Son güncelleme: ${esc(timestampLabel(m.updatedAt))}</p><div class="kc-actions">${m.status!=='approved'?`<button data-member="${esc(m.id)}" data-status="approved">Onayla</button>`:`<button data-member="${esc(m.id)}" data-status="approved">Hoş geldiniz durumunu kontrol et</button>`}${m.status!=='blocked'?`<button data-member="${esc(m.id)}" data-status="blocked">Paylaşımı kapat</button>`:''}</div></article>`).join('') || '<p class="kc-empty">Bu durumda bir katılım kaydı yok.</p>'}${more(rows)}`;
+      content().innerHTML = `<h2>${tab === 'requests' ? 'Katılım Talepleri' : 'Üyeler'}</h2><label>Üyelik durumu<select data-member-filter>${[['all','Tüm durumlar'],...Object.entries(memberLabels)].map(([v,l]) => `<option value="${v}" ${v===filter?'selected':''}>${l}</option>`).join('')}</select></label><p class="kc-muted">Eski kayıtlarda ayrı talep zamanı tutulmamıştır; son güncelleme talep tarihi yerine kullanılmaz. E-posta durum kontrolü, varsa sunucu kayıt oluşturma zamanını ayrıca gösterir.</p>${rows.slice(0,shown).map(m => `<article class="kc-post"><h3>${esc(m.name)}</h3><p><span class="kc-badge">${esc(memberLabels[m.status] || 'Bilinmeyen durum')}</span></p><p>Talep zamanı: ${esc(requestLabel(m))}<br>Son güncelleme: ${esc(timestampLabel(m.updatedAt))}</p><div class="kc-actions">${m.status!=='approved'?`<button data-member="${esc(m.id)}" data-status="approved">Onayla</button>`:`<button data-mail-status="${esc(m.id)}">Hoş geldiniz durumunu kontrol et</button>`}${m.status!=='blocked'?`<button data-member="${esc(m.id)}" data-status="blocked">Paylaşımı kapat</button>`:''}</div><p data-mail-result="${esc(m.id)}" role="status" style="white-space:pre-line"></p></article>`).join('') || '<p class="kc-empty">Bu durumda bir katılım kaydı yok.</p>'}${more(rows)}`;
     } else if (tab === 'posts') {
       const rows = data.posts.filter(p => !bookFilter || p.bookId === bookFilter);
       content().innerHTML = `<h2>Paylaşımlar</h2><label>Kitap / buluşma<select data-book-filter><option value="">Tüm kitaplar ve buluşmalar</option>${data.books.map(b => `<option value="${esc(b.id)}" ${bookFilter===b.id?'selected':''}>${esc(b.title)} · ${esc(dateLabel(b.date))}</option>`).join('')}</select></label>${rows.slice(0,shown).map(p => `<article class="kc-post"><p class="kc-muted">${esc(data.books.find(b=>b.id===p.bookId)?.title)}</p><div class="kc-post-head"><strong>${esc(p.authorName)}</strong><time>${esc(timestampLabel(p.createdAt))}</time></div>${p.deleted?'<p class="kc-muted">Bu paylaşım kaldırıldı.</p>':`<p class="kc-text">${esc(p.text)}</p>${/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.image || '')?`<img src="${p.image}" alt="${esc(p.authorName)} tarafından paylaşılan fotoğraf" loading="lazy">`:''}<button data-remove="${esc(p.id)}" data-book="${esc(p.bookId)}">Paylaşımı kaldır</button>`}</article>`).join('') || '<p class="kc-empty">Bu seçime ait paylaşım yok.</p>'}${more(rows)}`;
@@ -101,6 +102,20 @@ export async function mountManagement(root, store) {
     if (b.hasAttribute('data-new')) editor();
     if (b.dataset.edit) editor(data.books.find(book => book.id===b.dataset.edit));
     if (b.hasAttribute('data-cancel')) root.querySelector('[data-editor]').replaceChildren();
+    if (b.dataset.mailStatus) {
+      lock(true);root.querySelector('[data-error]').textContent='';
+      const resultElement=[...root.querySelectorAll('[data-mail-result]')].find(el=>el.dataset.mailResult===b.dataset.mailStatus);
+      if(resultElement)resultElement.textContent='E-posta durumu sorgulanıyor…';
+      try {
+        const status=await store.mailStatus(b.dataset.mailStatus);
+        if(alive) {
+          const result=[...root.querySelectorAll('[data-mail-result]')].find(el=>el.dataset.mailResult===b.dataset.mailStatus);
+          if(result)result.textContent=welcomeStatusText(status);
+        }
+      } catch(e) { if(alive && resultElement)resultElement.textContent='E-posta durumu doğrulanamadı.';error(e); }
+      finally {if(alive)lock(false);}
+      return;
+    }
     if (b.dataset.member) {
       if (b.dataset.status==='blocked' && !confirm('Bu üyenin mesaj ve fotoğraf paylaşma yetkisi kapatılsın mı?')) return;
       await mutate(() => store.setMember(b.dataset.member,b.dataset.status));
