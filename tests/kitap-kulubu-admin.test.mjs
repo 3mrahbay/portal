@@ -55,10 +55,15 @@ test('failed, cancelled and changed-session loads do not return partial totals',
   const other=fixture({changeSession:true});await assert.rejects(other.store.managementData(),/iptal/);assert.equal(other.calls.length,1);
 });
 
-test('Portal management entry is outside module-filtered tabs and hidden until identity check',async()=>{
+test('Portal management entry is under Kurum in the sidebar and hidden until identity check',async()=>{
   const {readFile}=await import('node:fs/promises');
   const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
-  assert.match(html,/<a class="bk-management-entry" data-bk-manage hidden href="kitap-kulubu-yonetim.html"/);
+  const sidebar=html.match(/<aside class="crm-sidebar"[\s\S]*?<\/aside>/)[0];
+  const kurum=sidebar.split('>KURUM</div>')[1].split('>İLETİŞİM &amp; İŞLEYİŞ</div>')[0];
+  assert.match(kurum,/<a class="side-item" data-bk-manage hidden href="kitap-kulubu-yonetim.html"/);
+  assert.equal((html.match(/data-bk-manage hidden href=/g)||[]).length,1);
+  assert(!html.includes('bk-management-entry'));
+  assert.match(html,/\.side-item\[data-bk-manage\]\[hidden\] \{ display: none !important;/);
   assert(!html.includes('class="tab" data-bk-manage'));
   const ui=await readFile(new URL('../js/kitap-kulubu/ui.mjs',import.meta.url),'utf8');
   assert.match(ui,/access.manage \?/);assert.match(ui,/kitap-kulubu-yonetim.html/);

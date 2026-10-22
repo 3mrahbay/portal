@@ -1126,6 +1126,8 @@ html, body {
   font-family: var(--font-body); font-weight: 600; font-size: 13.5px;
   cursor: pointer; transition: all .14s ease; text-align: left; width: 100%;
 }
+.side-item[data-bk-manage] { text-decoration: none; }
+.side-item[data-bk-manage][hidden] { display: none !important; }
 .side-item:hover { background: #F1F2F7; color: #1F2544; }
 .side-item.active { background: #EDEFFB; color: #2B3674; box-shadow: inset 3px 0 0 #5A6ACF; }
 .side-ikon { font-size: 16px; width: 22px; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
@@ -9575,6 +9577,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <button class="side-item" data-modul="ozlukM" onclick="modulSec('ozlukM')"><span class="side-ikon"><i data-lucide="clock"></i></span><span class="side-ad">Özlük &amp; Puantaj</span></button>
         <button class="side-item" data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon"><i data-lucide="book-open"></i></span><span class="side-ad">Eğitim</span></button>
         <button class="side-item" data-modul="pdr" onclick="modulSec('pdr')"><span class="side-ikon"><i data-lucide="brain"></i></span><span class="side-ad">PDR</span></button>
+        <a class="side-item" data-bk-manage hidden href="kitap-kulubu-yonetim.html"><span class="side-ikon"><i data-lucide="library"></i></span><span class="side-ad">Kitap Kulübü Yönetimi</span></a>
         <button class="side-item" data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon"><i data-lucide="wallet"></i></span><span class="side-ad">Muhasebe</span></button>
         <button class="side-item" data-modul="profilim" onclick="modulSec('profilim')"><span class="side-ikon"><i data-lucide="user-circle"></i></span><span class="side-ad">Profilim</span></button>
         <button class="side-item" data-modul="denetim" onclick="modulSec('denetim')"><span class="side-ikon"><i data-lucide="clipboard-check"></i></span><span class="side-ad">MEB Denetim</span></button>
@@ -9598,8 +9601,6 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <button class="side-item" data-modul="gelisim" onclick="modulSec('gelisim')"><span class="side-ikon"><i data-lucide="sparkles"></i></span><span class="side-ad">Gelişim &amp; Kalite</span></button>
       </div>
     </aside>
-
-    <a class="bk-management-entry" data-bk-manage hidden href="kitap-kulubu-yonetim.html"><strong>📚 Kitap Kulübü Yönetimi</strong><span>Katılım talepleri, üyeler, paylaşımlar ve buluşmalar →</span></a>
 
     <!-- Tabs (modülün alt sekmeleri) -->
     <div class="tabs">
@@ -14100,7 +14101,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v214";
+window.PORTAL_SURUM = "v215";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -48867,13 +48868,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=214");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=215");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v214";
+          const anahtar = "portalSwReload_v215";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
