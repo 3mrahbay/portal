@@ -236,6 +236,3 @@
 }
 
 [data-bk-manage][hidden] { display: none !important; }
-
-.bk-management-entry { display:flex; flex-wrap:wrap; gap:8px 20px; padding:16px 20px; margin:14px 0; border:1px solid #e4e7ec; border-radius:16px; background:#eef0fa; color:#2b3674; text-decoration:none; overflow-wrap:anywhere; }
-.bk-management-entry span { font-size:13px; }
