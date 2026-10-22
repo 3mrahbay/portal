@@ -1,5 +1,6 @@
+import { membershipEffects } from "./membership-effects.mjs";
 import { accessFor, profileEmail, validatePost } from "./core.mjs";
-export function createStore(fb, db, auth) {
+export function createStore(fb, db, auth, effects = membershipEffects) {
   const {
     doc,
     collection,
@@ -16,6 +17,7 @@ export function createStore(fb, db, auth) {
     limit,
     startAfter,
     serverTimestamp,
+    runTransaction,
   } = fb;
   const current = () => {
     if (!auth.currentUser) throw Error("Lütfen yeniden giriş yapın.");
@@ -114,17 +116,32 @@ export function createStore(fb, db, auth) {
         (s) => next(s.docs.map((d) => ({ id: d.id, ...d.data() }))),
         error,
       ),
-    join: () => {
+    join: async () => {
       const u = current();
-      return setDoc(memberRef(u.uid), {
-        uid: u.uid,
-        name: String(u.displayName || "Kulüp üyesi").slice(0, 100),
-        status: "pending",
-        updatedAt: serverTimestamp(),
+      await runTransaction(db, async tx => {
+        const ref = memberRef(u.uid), existing = await tx.get(ref);
+        if (existing.exists()) {
+          if (existing.data().status !== "pending") throw Error("Üyelik durumunuz değişti. Sayfayı yenileyin.");
+          return;
+        }
+        tx.set(ref, {uid:u.uid,name:String(u.displayName || "Kulüp üyesi").slice(0,100),status:"pending",updatedAt:serverTimestamp()});
       });
+      if (current().uid !== u.uid) throw Error("Oturum değişti.");
+      return effects(u,u.uid,"pending");
     },
-    setMember: (uid, status) =>
-      updateDoc(memberRef(uid), { status, updatedAt: serverTimestamp() }),
+    setMember: async (uid, status) => {
+      const u = current();
+      if (!(await identity()).manage) throw Error("Yönetim yetkisi gerekli.");
+      if (status === "approved") await effects(u,uid,"prepare");
+      await runTransaction(db, async tx => {
+        const ref = memberRef(uid), existing = await tx.get(ref);
+        if (!existing.exists()) throw Error("Üyelik bulunamadı.");
+        if (existing.data().status === status) return;
+        tx.update(ref,{status,updatedAt:serverTimestamp()});
+      });
+      if (current().uid !== u.uid) throw Error("Oturum değişti.");
+      if (status === "approved") return effects(u,uid,"approved");
+    },
     posts: (id, next, error) =>
       onSnapshot(
         query(
