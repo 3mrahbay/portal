@@ -40,6 +40,7 @@ const PRECACHE = [
   "./js/portal-galeri-canli.js?v=192",
   "./js/portal-galeri-medya.js?v=192",
   "./js/portal-galeri-etkilesim.js?v=166",
+  "./js/veli-hedefli-okuma.js?v=1",
   "./js/portal-bildirim-yerlesim.js?v=165",
   "./js/portal-bildirim-basliklari.js?v=165",
   "./js/portal-mesaj-bildirim.js?v=164",

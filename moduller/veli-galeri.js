@@ -3,6 +3,7 @@ import { mountMedia, disposeMedia, recordOpen, downloadMedia } from '../js/porta
 import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=166';
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryIsObservation, galleryFolderKey } from '../js/galeri-klasorleri.js?v=182';
 import { galleryMediaType, galleryDisplayUrl, downloadSource } from '../js/portal-galeri-medya.js?v=192';
+import { veliSorgulariniOlustur } from '../js/veli-hedefli-okuma.js?v=1';
 // VELİ GALERİSİ — hedefli okuma; klasör anahtarları erişim yetkisi vermez.
 const P = () => window.PortalAPI;
 let _filtre = 'tumu';
@@ -78,9 +79,10 @@ async function hedefliGaleriOku(fb,db,ogr,sinif){
   const sorgular=[
     fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','tumOkul')),
     ...sinifAdaylari(sinif).map(ad=>fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','sinif'),fb.where('hedefDeger','==',ad))),
-    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','ogrenci'),fb.where('hedefDeger','==',ogr.id)),
-    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefOgrenciId','==',ogr.id)),
-    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('ogrenciId','==',ogr.id))
+    // Faz 3b: çocuğa özel sorgular ortak sözleşmeden (hedefTur in COCUK_HEDEFLERI + hedefDeger /
+    // hedefOgrenciId, durum == 'onaylandi'). hedefTur'suz hedefOgrenciId / ogrenciId sorguları kuralca
+    // reddedileceği için kaldırıldı; istemci süzmesi (childTargetMatches) aynen kalır.
+    ...veliSorgulariniOlustur(fb,db,'galeri',[ogr.id],{genel:false})
   ];
   const sonuclar=await Promise.allSettled(sorgular.map(q=>fb.getDocs(q)));
   const benzersiz=new Map();

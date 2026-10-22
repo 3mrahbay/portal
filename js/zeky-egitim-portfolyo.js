@@ -1,5 +1,6 @@
 // Veli eğitim ekranları için ortak, salt-okunur portföy veri modeli.
 // Onaylı galeri kayıtları ile ogrenciGelisim aşamalarını tek zaman çizgisinde birleştirir.
+import { veliHedefliOku } from './veli-hedefli-okuma.js?v=1';
 
 export const EGITIM_PROGRAMLARI = [
   { id:'montessori', ad:'Montessori', renk:'#356B4A', acik:'#EAF3EC' },
@@ -44,11 +45,10 @@ export async function onayliGaleriGetir(ogrenciId, portal = globalThis.window?.P
   if (!ogrenciId || !portal?.fb || !portal?.db) return [];
   const { fb, db } = portal;
   try {
-    // Veli galerisinin çalışan güvenlik kapsamıyla aynı sorgu: yalnız onaylı
-    // kayıtları ister. Öğrenci filtresi istemcide uygulanır; böylece birleşik
-    // Firestore indeksi gerektirmez ve sorgu izin kurallarıyla uyumlu kalır.
-    const q = fb.query(fb.collection(db,'galeri'), fb.where('durum','==','onaylandi'));
-    const snap = await fb.getDocs(q), sonuc = [];
+    // Faz 3b: tüm onaylı galeri değil, yalnız bu çocuğa özel onaylı kayıtlar istenir
+    // (hedefTur in COCUK_HEDEFLERI + hedefDeger / hedefOgrenciId; js/veli-hedefli-okuma.js).
+    // Eğitim portföyü genel/sınıf kayıtlarını kullanmaz. Öğrenci filtresi istemcide de kalır.
+    const snap = await veliHedefliOku(fb, db, 'galeri', [ogrenciId], { genel:false, etiket:'veli eğitim galerisi' }), sonuc = [];
     snap.forEach(d => {
       const v = d.data() || {};
       const hedef = v.ogrenciId || v.hedefOgrenciId || (v.hedefTur === 'ogrenci' ? v.hedefDeger : '');
