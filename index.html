@@ -17786,6 +17786,7 @@ window.veliOnayla = async function(veliTipi) {
       ogrenciIds: ogrenciIds,
       rol: veliTipi,  // "anne" | "baba"
       onaylandi: true,
+      aktif: true,  // Onaylı veli = aktif veli (randevu, bildirim vb. bu alanı okur)
       onaylayan: currentUser.email,
       onayTarihi: new Date().toISOString()
     }, { merge: true });
@@ -17833,6 +17834,7 @@ window.veliKaldir = async function(veliTipi) {
         email: email,
         ogrenciIds: [],
         onaylandi: false,
+        aktif: false,  // Onay kalkınca aktif de kapanır
         kaldirildi: new Date().toISOString(),
         kaldiran: currentUser.email
       }, { merge: true });
@@ -28305,7 +28307,11 @@ window.veliListesiYukle = async function() {
           const w = whitelist[v.email] || null;
           harita.set(v.email, {
             email: v.email, ad: v.ad, telefon: v.telefon, yakinlik: v.yakinlik,
-            cocuklar: [], kayitli: !!w, onayli: !!(w && w.onaylandi === true)
+            cocuklar: [], kayitli: !!w, onayli: !!(w && w.onaylandi === true),
+            // Onaylı ama "aktif" alanı hiç yazılmamış eski kayıt: randevu ve
+            // randevu bildirimleri bu veliyi kapalı sayar. Açıkça aktif:false
+            // yazılmış kayıtlar bilinçli kapatmadır, onlara dokunulmaz.
+            aktifEksik: !!(w && w.onaylandi === true && w.aktif !== true && w.aktif !== false)
           });
         }
         const k = harita.get(v.email);
@@ -28334,6 +28340,33 @@ window.veliListesiYukle = async function() {
   } finally {
     veliListesiYukleniyor = false;
   }
+};
+
+// Tek seferlik onarım: onaylı ama "aktif" alanı eksik velilere yalnız
+// aktif:true yazar; başka hiçbir alana dokunmaz, hiçbir şey silmez.
+// Personel profili de olan e-postalar atlanır (randevu kimliği tek profil ister).
+window.veliAktifOnar = async function(btn) {
+  const hedef = veliListesi.filter(v => v.aktifEksik).map(v => v.email);
+  if (!hedef.length) return;
+  if (!confirm(`${hedef.length} onaylı velinin kaydına "aktif" işareti eklenecek. Başka bilgi değişmez. Devam edilsin mi?`)) return;
+  if (btn) { btn.disabled = true; btn.textContent = "Düzeltiliyor..."; }
+  let personelSet;
+  try {
+    const ps = await getDocs(collection(db, "personeller"));
+    personelSet = new Set(ps.docs.map(d => String(d.id || "").trim().toLowerCase()));
+  } catch (e) {
+    showToast("Personel listesi okunamadı; işlem yapılmadı.", "error");
+    if (btn) { btn.disabled = false; btn.textContent = "Hepsini aktif yap"; }
+    return;
+  }
+  let tamam = 0, atlanan = 0, hata = 0;
+  for (const email of hedef) {
+    if (personelSet.has(email)) { atlanan++; continue; }
+    try { await updateDoc(doc(db, "veliler", email), { aktif: true }); tamam++; }
+    catch (e) { hata++; console.warn("veli aktif onarımı", e?.code || e?.message); }
+  }
+  showToast(`✓ ${tamam} veli aktif yapıldı` + (atlanan ? ` · ${atlanan} personel atlandı` : "") + (hata ? ` · ${hata} hata` : ""), hata ? "error" : undefined);
+  await veliListesiYukle();
 };
 
 function veliFiltreliListe() {
@@ -28385,6 +28418,12 @@ window.veliListesiRender = function() {
     if (bekleyen + kayitsiz > 0) {
       h += `<div style="background:#FDF3D6; color:#8A6A0B; border-radius:11px; padding:11px 14px; font-size:13px; margin-bottom:10px;">
         <b>${bekleyen + kayitsiz} velinin</b> portal ve uygulama erişimi yok. Giriş yapabilmeleri için <i>veliler</i> kaydının oluşturulup onaylanması gerekir.</div>`;
+    }
+    const aktifEksikSayi = veliListesi.filter(v => v.aktifEksik).length;
+    if (aktifEksikSayi > 0) {
+      h += `<div style="background:#E0ECFF; color:#1E3A8A; border-radius:11px; padding:11px 14px; font-size:13px; margin-bottom:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <span style="flex:1; min-width:200px;"><b>${aktifEksikSayi} onaylı veli</b> randevu ve randevu bildirimleri için aktif görünmüyor (eski kayıt).</span>
+        <button type="button" onclick="veliAktifOnar(this)" style="background:#1E3A8A; color:#fff; border:0; border-radius:9px; padding:9px 14px; font-weight:700; font-size:13px; cursor:pointer; min-height:40px;">Hepsini aktif yap</button></div>`;
     }
     if (veliVelisizOgrenciler.length) {
       const isimler = veliVelisizOgrenciler.slice(0, 6).map(o => escapeHtml(o.ad)).join(", ");
@@ -31368,6 +31407,7 @@ window.basvuruOnayla = async function(basvuruId) {
         ogrenciIds: ogrenciIds,
         rol: v.rol,
         onaylandi: true,
+        aktif: true,  // Onaylı veli = aktif veli
         onaylayan: currentUser.email,
         onayTarihi: new Date().toISOString(),
         kaynakBasvuruId: basvuruId
@@ -47950,6 +47990,7 @@ async function autoOnaylaVeliler(ogrenciId, anneData, babaData, vasiData) {
         ogrenciIds: ogrenciIds,
         rol: v.rol,
         onaylandi: true,
+        aktif: true,  // Onaylı veli = aktif veli
         onaylayan: currentUser.email,
         onayTarihi: mevcut.exists() ? (mevcut.data().onayTarihi || new Date().toISOString()) : new Date().toISOString(),
         guncellendi: new Date().toISOString(),
@@ -48122,6 +48163,7 @@ window.yeniOgrenciKaydet = async function() {
         ogrenciIds: ogrenciIds,
         rol: ve.rol,
         onaylandi: true,
+        aktif: true,  // Onaylı veli = aktif veli
         onaylayan: currentUser.email,
         onayTarihi: new Date().toISOString(),
         kaynakBasvuruId: "manuel"
