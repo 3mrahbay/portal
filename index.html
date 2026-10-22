@@ -28204,6 +28204,42 @@ document.addEventListener("click", () => {
 let veliListesi = [];          // Türetilmiş veli kayıtları
 let veliVelisizOgrenciler = [];
 let veliListesiYukleniyor = false;
+let veliAktifEksikEpostalar = []; // onaylı, aktif dönem öğrencisine bağlı ama aktif alanı eksik hesaplar
+let veliMukerrerPlan = [];        // [{ogrenciId, ogrenciAd, veliAd, eski, yeni}]
+
+// Telefonun son 10 hanesi (905xx… / 05xx… / 5xx… aynı numara sayılır)
+function veliTelAnahtar(t) {
+  const s = String(t || "").replace(/\D/g, "");
+  return s.length >= 10 ? s.slice(-10) : "";
+}
+
+function veliIlkAd(ad) {
+  return String(ad || "").toLocaleLowerCase("tr").trim().split(/\s+/)[0] || "";
+}
+
+// Mükerrer veli e-postası: öğrenci kartında portal kaydı OLMAYAN bir e-posta,
+// aynı çocukta AYNI TELEFON ve AYNI ADLA kayıtlı, erişimi açık (onaylı, bu
+// çocuğa bağlı) tek bir e-postayla eşleşiyorsa aynı kişinin eski adresidir.
+// Ad şartı, anne-babanın aynı telefonu yazdığı ailelerde yanlış birleştirmeyi
+// önler. Eşleşme belirsizse (0 ya da 2+ aday) dokunulmaz.
+function veliMukerrerleriBul(o, ad, whitelist) {
+  const kayitlar = veliKayitlariCikar(o);
+  const acik = kayitlar.filter(v => {
+    const w = whitelist[v.email];
+    return w && w.onaylandi === true && (w.ogrenciIds || []).includes(o.id);
+  });
+  const plan = [];
+  kayitlar.forEach(v => {
+    if (whitelist[v.email]) return;
+    const t = veliTelAnahtar(v.telefon);
+    const ilk = v.ad.includes("@") ? "" : veliIlkAd(v.ad);
+    if (!t || !ilk) return;
+    const es = acik.filter(a => veliTelAnahtar(a.telefon) === t && veliIlkAd(a.ad) === ilk);
+    if (es.length !== 1) return;
+    plan.push({ ogrenciId: o.id, ogrenciAd: ad, veliAd: v.ad, eski: v.email, yeni: es[0].email });
+  });
+  return plan;
+}
 
 // Bir öğrenci belgesinden tüm veli kayıtlarını çıkarır (app: ogrenciVelileri)
 function veliKayitlariCikar(o) {
@@ -28296,9 +28332,19 @@ window.veliListesiYukle = async function() {
     // Mükerrer kayıt tespiti de yalnızca görülebilen aktif dönem kayıtlarında.
     mukerrerGruplar = mukerrerTespit(ogrenciler);
 
+    // Onaylı = aktif kuralı: öğrenci kartında yazmasa da aktif dönem
+    // öğrencisine bağlı onaylı hesaplar da kapsanır.
+    const aktifOgrenciIdleri = new Set(ogrenciler.map(o => o.id));
+    veliAktifEksikEpostalar = Object.entries(whitelist)
+      .filter(([, w]) => w.onaylandi === true && w.aktif !== true && w.aktif !== false &&
+        (w.ogrenciIds || []).some(id => aktifOgrenciIdleri.has(id)))
+      .map(([e]) => e);
+    veliMukerrerPlan = [];
+
     ogrenciler.forEach(o => {
       const ad = o.ogrenciAdSoyad || o.adSoyad || [o.ad, o.soyad].filter(Boolean).join(" ") || "İsimsiz";
       const sinif = o.sinif || o.sinifi || "";
+      veliMukerrerPlan.push(...veliMukerrerleriBul(o, ad, whitelist));
       const veliler = veliKayitlariCikar(o);
       if (!veliler.length) { veliVelisizOgrenciler.push({ id: o.id, ad, sinif }); return; }
 
@@ -28346,7 +28392,7 @@ window.veliListesiYukle = async function() {
 // aktif:true yazar; başka hiçbir alana dokunmaz, hiçbir şey silmez.
 // Personel profili de olan e-postalar atlanır (randevu kimliği tek profil ister).
 window.veliAktifOnar = async function(btn) {
-  const hedef = veliListesi.filter(v => v.aktifEksik).map(v => v.email);
+  const hedef = veliAktifEksikEpostalar.slice();
   if (!hedef.length) return;
   if (!confirm(`${hedef.length} onaylı velinin kaydına "aktif" işareti eklenecek. Başka bilgi değişmez. Devam edilsin mi?`)) return;
   if (btn) { btn.disabled = true; btn.textContent = "Düzeltiliyor..."; }
@@ -28366,6 +28412,64 @@ window.veliAktifOnar = async function(btn) {
     catch (e) { hata++; console.warn("veli aktif onarımı", e?.code || e?.message); }
   }
   showToast(`✓ ${tamam} veli aktif yapıldı` + (atlanan ? ` · ${atlanan} personel atlandı` : "") + (hata ? ` · ${hata} hata` : ""), hata ? "error" : undefined);
+  await veliListesiYukle();
+};
+
+// Mükerrer veli e-postalarını birleştirir: öğrenci kartındaki eski e-posta,
+// aynı velinin erişimi açık e-postasıyla DEĞİŞTİRİLİR. Veli satırı silinmez;
+// ad, telefon, adres, TC vb. tüm bilgiler korunur. Eski adres veli satırında
+// "eskiEmail", kartta "eskiVeliEpostalari" olarak saklanır (geri dönülebilir).
+window.veliMukerrerBirlestir = async function(btn) {
+  const plan = veliMukerrerPlan.slice();
+  if (!plan.length) return;
+  const liste = plan.map(p => `• ${p.veliAd} (${p.ogrenciAd}): ${p.eski} → ${p.yeni}`).join("\n");
+  if (!confirm(`Aşağıdaki eski e-postalar, aynı velinin erişimi açık e-postasıyla değiştirilecek. Veli bilgileri (ad, telefon, adres vb.) korunur, eski adres kayıtta saklanır.\n\n${liste}\n\nDevam edilsin mi?`)) return;
+  if (btn) { btn.disabled = true; btn.textContent = "Birleştiriliyor..."; }
+  const gruplar = new Map();
+  plan.forEach(p => {
+    if (!gruplar.has(p.ogrenciId)) gruplar.set(p.ogrenciId, new Map());
+    gruplar.get(p.ogrenciId).set(p.eski, p.yeni);
+  });
+  const ALANLAR = ["veli1Eposta", "veli2Eposta", "veli1Email", "veli2Email", "veliEposta", "veliEmail"];
+  let tamam = 0, hata = 0;
+  for (const [ogrenciId, harita] of gruplar) {
+    try {
+      const ref = doc(db, "ogrenciler", ogrenciId);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) { hata++; continue; }
+      const o = snap.data();
+      const yeniEposta = s => harita.get(String(s || "").trim().toLowerCase());
+      const guncelleme = {};
+      if (Array.isArray(o.veliler)) {
+        let degisti = false;
+        const yeniVeliler = o.veliler.map(v => {
+          if (!v) return v;
+          const yeni = yeniEposta(v.email) || yeniEposta(v.eposta);
+          if (!yeni) return v;
+          degisti = true;
+          const n = { ...v, eskiEmail: String(v.email || v.eposta || "").trim() };
+          if (v.email !== undefined) n.email = yeni;
+          if (v.eposta !== undefined) n.eposta = yeni;
+          return n;
+        });
+        if (degisti) guncelleme.veliler = yeniVeliler;
+      }
+      ALANLAR.forEach(a => { const yeni = yeniEposta(o[a]); if (yeni) guncelleme[a] = yeni; });
+      if (!Object.keys(guncelleme).length) continue;
+      const onbellek = { ...guncelleme };
+      guncelleme.eskiVeliEpostalari = arrayUnion(...harita.keys());
+      await updateDoc(ref, guncelleme);
+      tamam += harita.size;
+      // Veli ekranı öğrenci listesini önbellekten okur; değişikliği oraya da yansıt.
+      const onb = (typeof ogrenciList !== "undefined" && Array.isArray(ogrenciList))
+        ? ogrenciList.find(x => x.id === ogrenciId) : null;
+      if (onb) Object.assign(onb, onbellek);
+    } catch (e) {
+      hata++;
+      console.warn("veli mükerrer birleştirme", e?.code || e?.message);
+    }
+  }
+  showToast(`✓ ${tamam} mükerrer veli e-postası birleştirildi` + (hata ? ` · ${hata} hata` : ""), hata ? "error" : undefined);
   await veliListesiYukle();
 };
 
@@ -28419,7 +28523,12 @@ window.veliListesiRender = function() {
       h += `<div style="background:#FDF3D6; color:#8A6A0B; border-radius:11px; padding:11px 14px; font-size:13px; margin-bottom:10px;">
         <b>${bekleyen + kayitsiz} velinin</b> portal ve uygulama erişimi yok. Giriş yapabilmeleri için <i>veliler</i> kaydının oluşturulup onaylanması gerekir.</div>`;
     }
-    const aktifEksikSayi = veliListesi.filter(v => v.aktifEksik).length;
+    if (veliMukerrerPlan.length > 0) {
+      h += `<div style="background:#F3E8FF; color:#5B21B6; border-radius:11px; padding:11px 14px; font-size:13px; margin-bottom:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <span style="flex:1; min-width:200px;"><b>${veliMukerrerPlan.length} veli</b> eski bir e-postayla mükerrer görünüyor (aynı kişinin aynı telefonla erişimi açık hesabı var).</span>
+        <button type="button" onclick="veliMukerrerBirlestir(this)" style="background:#5B21B6; color:#fff; border:0; border-radius:9px; padding:9px 14px; font-weight:700; font-size:13px; cursor:pointer; min-height:40px;">Mükerrerleri birleştir</button></div>`;
+    }
+    const aktifEksikSayi = veliAktifEksikEpostalar.length;
     if (aktifEksikSayi > 0) {
       h += `<div style="background:#E0ECFF; color:#1E3A8A; border-radius:11px; padding:11px 14px; font-size:13px; margin-bottom:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <span style="flex:1; min-width:200px;"><b>${aktifEksikSayi} onaylı veli</b> randevu ve randevu bildirimleri için aktif görünmüyor (eski kayıt).</span>
