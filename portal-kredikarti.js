@@ -169,7 +169,7 @@ window.kartTalepOlustur = async function(ogrenciId, borc, gecikenAy) {
     `;
     brevoMail({
       to: OKUL_MAIL, toName: "Okul Yönetimi",
-      subject: `<i data-lucide="credit-card" style="width:13px;height:13px;vertical-align:-2px;"></i> Yeni Kart Talebi - ${talepData.ogrenciAd}`,
+      subject: `💳 Yeni Kart Talebi - ${talepData.ogrenciAd}`,
       htmlContent: portalMailSablon("Yeni Kart Talebi", adminMail, "Veli kredi kartı ile ödeme talep etti.")
     });
 
