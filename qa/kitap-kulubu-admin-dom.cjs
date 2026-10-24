@@ -15,7 +15,7 @@ const fs=require('node:fs');
  const click=async selector=>{assert(root.querySelector(selector),selector);root.querySelector(selector).click();await tick();};
  let stop=await mountManagement(root,store);await tick();
  assert.equal(root.querySelectorAll('[data-summary] article').length,4);assert.equal(root.querySelectorAll('img').length,0);
- await click('[data-member][data-status=approved]');assert.deepEqual(calls.at(-1),['member','m','approved']);assert.match(root.textContent,/Talep zamanı: Kayıtlı değil/);
+ await click('[data-member][data-status=approved]');assert.deepEqual(calls.at(-1),['member','m','approved']);assert.match(root.textContent,/Talep zamanı: Ayrı talep zamanı tutulmamış/);
  await click('[data-member][data-status=blocked]');assert.deepEqual(calls.at(-1),['member','m','blocked']);
  await click('[data-section=posts]');assert.equal(root.querySelectorAll('[data-content] article').length,20);await click('[data-more]');assert.equal(root.querySelectorAll('[data-content] article').length,21);
  await click('[data-remove=p20]');assert.deepEqual(calls.at(-1),['remove','b','p20']);assert.match(root.textContent,/kaldırıldı/);

@@ -1,7 +1,7 @@
 /* Shared Portal / ZEKY component. No account data or registration writes. */
 (function () {
   "use strict";
-  const promotionUntil = Date.parse("2026-10-23T00:00:00+03:00");
+  const promotionUntil = Date.parse("2026-11-27T00:00:00+03:00");
   const icon = `<svg class="bk-icon" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
     <circle cx="60" cy="60" r="58" fill="#F9E5A0"/>
     <path d="M51 14c-5 5 5 7 0 12m15-12c-5 5 5 7 0 12" fill="none" stroke="#9A694A" stroke-width="2" stroke-linecap="round"/>
@@ -15,9 +15,9 @@
     const surface = platform === "portal" ? "portal" : "zeky";
     return `<div data-bk-host hidden><article class="bk-card bk-${surface}" aria-label="Annelere özel Kitap Kulübü">
       <div class="bk-top">${icon}<div><p class="bk-eyebrow">ANNELERE ÖZEL · KİTAP & ÇAY</p>
-      <h2>Kitap Kulübü</h2><p class="bk-spot">Sevgimizi gösteriyoruz. Peki çocuğumuz onu nasıl hissediyor?</p></div></div>
-      <div class="bk-book"><span>BU AY BİRLİKTE OKUYORUZ</span><strong>Çocuklar İçin Beş Sevgi Dili</strong><p>Gary Chapman & Ross Campbell</p></div>
-      <p class="bk-date"><time datetime="2026-10-22T19:00:00+03:00">22 Ekim · 19.00</time></p>
+      <h2>Kitap Kulübü</h2><p class="bk-spot">Günlük telaşın içinde kendimizi ve çocuğumuzu gerçekten duyabiliyor muyuz?</p></div></div>
+      <div class="bk-book"><span>İKİNCİ BULUŞMAMIZDA OKUYORUZ</span><strong>Ebeveynliği Hissetmek</strong><p>Jennifer Day</p></div>
+      <p class="bk-date"><time datetime="2026-11-26T19:00:00+03:00">26 Kasım 2026 Perşembe · 19.00</time></p>
       <p class="bk-leader">Psikolog <strong>Şeyma Baydaroğlu</strong> liderliğinde</p>
       <button type="button" class="bk-button" data-bk-open="${surface}">Kulüp alanını aç <span aria-hidden="true">↗</span></button>
     </article></div>`;

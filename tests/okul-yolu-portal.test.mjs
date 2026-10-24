@@ -62,8 +62,8 @@ test('PWA: modülün sürümlü adresi önbelleğe alınır ve önbellek sürüm
   const pwa = await installedPwa();
   assertPrecachedImport(pwa, 'index.html', 'js/zeky-yol.js');
   assertPrecachedImport(pwa, 'moduller/pickup-yetkilileri.js', 'js/zeky-yol.js');
-  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v214-kitap-kulubu-modul";/);
-  assert.match(index, /window\.PORTAL_SURUM = "v214";/);
+  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v217-ikinci-kitap";/);
+  assert.match(index, /window\.PORTAL_SURUM = "v217";/);
 });
 
 const OKUL_AYARI = { ad: 'Bir Çiçek Koleji Anaokulu', adres: 'Aydınlı Mah., Bahçeler Sok. No:45, 34953 Tuzla/İstanbul', placeId: 'ChIJEe3U8uHbyhQR_75zGX5PEDk' };

@@ -9,6 +9,39 @@ export const INITIAL_BOOK = Object.freeze({
   place: "Buluşma yeri için okul ekibinden bilgi alabilirsiniz.",
 });
 export const INITIAL_ID = "2026-10-bes-sevgi-dili";
+
+export const SECOND_ID = "2026-11-ebeveynligi-hissetmek";
+export const SECOND_BOOK = Object.freeze({
+  title: "Ebeveynliği Hissetmek",
+  authors: "Jennifer Day",
+  leader: "Psikolog Şeyma Baydaroğlu",
+  date: "2026-11-26T19:00:00+03:00",
+  status: "active",
+  purpose: "Annelere özel ikinci buluşmamızda, günlük telaşın içinde hem kendimizi hem çocuğumuzu duymaya alan açıyoruz. Ebeveynliği Hissetmek eşliğinde, çocuğumuzun yanında tüm dikkatimizi vererek bulunmayı ve kendi iç sesimize kulak vermeyi birlikte keşfedeceğiz.",
+  place: "Buluşma yeri için okul ekibinden bilgi alabilirsiniz.",
+});
+export function eventDetails(id) {
+  if (id === SECOND_ID) return {
+    why: "Her şeyi doğru yapmaya çalışırken kendimizi nasıl hissediyoruz? Bir fincan çay eşliğinde durup soluklanmak, başka annelerle ortak duygularımızı keşfetmek ve çocuğumuzla bağ kurduğumuz küçük anları çoğaltmak için buluşalım. Dilerseniz paylaşın, dilerseniz yalnızca dinleyin.",
+    topics: [
+      "Çocuğumuzun yanında olmakla bütün dikkatimizle onunla olmak arasında neler değişiyor?",
+      "Kendi duygularımızı fark etmek, çocuğumuzu dinleyişimizi nasıl etkiliyor?",
+      "Tavsiyeler arasında kendi iç sesimize nasıl alan açabiliriz?",
+      "Günlük telaşta bağ kurmak için hangi küçük molaları deneyebiliriz?",
+    ],
+    preparation: "Okurken sizi durup düşündüren bir cümleyi işaretleyin. Çocuğunuzla yakınlık hissettiğiniz küçük bir anı ve aklınıza takılan bir soruyu düşünün; dilerseniz not alın. Kitabınızı ve merakınızı getirmeniz yeterli. Kitabı bitiremediyseniz de aramıza katılabilirsiniz.",
+  };
+  return {
+    why: "Kendinize bir sohbet molası verin. Diğer annelerin deneyimlerinden ilham alın; evde deneyebileceğiniz küçük fikirlerle ayrılın. Dilerseniz paylaşın, dilerseniz yalnızca dinleyin.",
+    topics: id === INITIAL_ID ? [
+      "Kitaptaki beş sevgi dili günlük yaşamda nasıl karşılık buluyor?",
+      "Çocuğumuz hangi anlarda sevildiğini hissediyor?",
+      "Yoğun günlerde bağ kurmak için hangi küçük adımları atabiliriz?",
+    ] : ["Kitabın bize düşündürdükleri", "Kendi yaşamımızdan örnekler ve sorularımız", "Birlikte deneyebileceğimiz küçük adımlar"],
+    preparation: "Kitabınızı, aklınızda kalan bir cümleyi ve paylaşmak istediğiniz bir soruyu getirebilirsiniz. Kitabı bitiremediyseniz de sohbetimize katılabilirsiniz.",
+  };
+}
+
 export const MAX_IMAGE = 280000;
 export function escapeHTML(value) {
   return String(value ?? "").replace(

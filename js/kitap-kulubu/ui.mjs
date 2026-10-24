@@ -3,7 +3,7 @@ import {
   dateLabel,
   canPost,
   groupBooks,
-  INITIAL_ID,
+  eventDetails,
 } from "./core.mjs";
 import { preparePhoto } from "./photo.mjs";
 export async function mountClub(root, store) {
@@ -133,9 +133,10 @@ export async function mountClub(root, store) {
     oldCursor = null;
     hasOlder = false;
     olderLoaded = false;
+    const details = eventDetails(book.id);
     const el = root.querySelector("[data-book]");
     el.hidden = false;
-    el.innerHTML = `<div class="kc-event"><p class="bk-eyebrow">${book.status === "archived" ? "GEÇMİŞ OKUMAMIZ" : "BİRLİKTE OKUYORUZ"}</p><h2>${esc(book.title)}</h2><p>${esc(book.authors)}</p><p class="kc-date">${esc(dateLabel(book.date))}</p><p>${esc(book.leader)} liderliğinde</p><p>${esc(book.place)}</p><details><summary>Buluşmayı keşfet</summary><h3>Neden buluşuyoruz?</h3><p>${esc(book.purpose)}</p><h3>Neden katılmalı?</h3><p>Kendinize bir sohbet molası verin. Diğer annelerin deneyimlerinden ilham alın; evde deneyebileceğiniz küçük fikirlerle ayrılın. Dilerseniz paylaşın, dilerseniz yalnızca dinleyin.</p><h3>Neler konuşacağız?</h3><ul>${book.id === INITIAL_ID ? "<li>Kitaptaki beş sevgi dili günlük yaşamda nasıl karşılık buluyor?</li><li>Çocuğumuz hangi anlarda sevildiğini hissediyor?</li><li>Yoğun günlerde bağ kurmak için hangi küçük adımları atabiliriz?</li>" : "<li>Kitabın bize düşündürdükleri</li><li>Kendi yaşamımızdan örnekler ve sorularımız</li><li>Birlikte deneyebileceğimiz küçük adımlar</li>"}</ul><h3>Yanınızda ne getirmeli?</h3><p>Kitabınızı, aklınızda kalan bir cümleyi ve paylaşmak istediğiniz bir soruyu getirebilirsiniz. Kitabı bitiremediyseniz de sohbetimize katılabilirsiniz.</p></details></div><h2 class="kc-feed-title">Paylaşım köşemiz</h2><div data-member-note class="kc-member-note"></div><form data-compose class="kc-compose" hidden><label for="kc-message">Sohbete bir not bırakın</label><textarea id="kc-message" maxlength="2000" rows="3" placeholder="Bu bölüm bana şunu düşündürdü…"></textarea><label class="kc-file">Fotoğraf ekle <input type="file" data-photo accept="image/jpeg,image/png,image/webp"></label><div data-photo-preview></div><p class="kc-muted">Yalnızca paylaşma izniniz olan fotoğrafları ekleyin.</p><button type="submit" class="bk-button">Paylaş</button><p data-save-status role="status"></p></form><div data-posts aria-live="polite">Paylaşımlar yükleniyor…</div><button data-older hidden>Daha eski paylaşımlar</button>`;
+    el.innerHTML = `<div class="kc-event"><p class="bk-eyebrow">${book.status === "archived" ? "GEÇMİŞ OKUMAMIZ" : "BİRLİKTE OKUYORUZ"}</p><h2>${esc(book.title)}</h2><p>${esc(book.authors)}</p><p class="kc-date">${esc(dateLabel(book.date))}</p><p>${esc(book.leader)} liderliğinde</p><p>${esc(book.place)}</p><details><summary>Buluşmayı keşfet</summary><h3>Neden buluşuyoruz?</h3><p>${esc(book.purpose)}</p><h3>Neden katılmalı?</h3><p>${esc(details.why)}</p><h3>Neler konuşacağız?</h3><ul>${details.topics.map(topic => `<li>${esc(topic)}</li>`).join("")}</ul><h3>Yanınızda ne getirmeli?</h3><p>${esc(details.preparation)}</p></details></div><h2 class="kc-feed-title">Paylaşım köşemiz</h2><div data-member-note class="kc-member-note"></div><form data-compose class="kc-compose" hidden><label for="kc-message">Sohbete bir not bırakın</label><textarea id="kc-message" maxlength="2000" rows="3" placeholder="Bu bölüm bana şunu düşündürdü…"></textarea><label class="kc-file">Fotoğraf ekle <input type="file" data-photo accept="image/jpeg,image/png,image/webp"></label><div data-photo-preview></div><p class="kc-muted">Yalnızca paylaşma izniniz olan fotoğrafları ekleyin.</p><button type="submit" class="bk-button">Paylaş</button><p data-save-status role="status"></p></form><div data-posts aria-live="polite">Paylaşımlar yükleniyor…</div><button data-older hidden>Daha eski paylaşımlar</button>`;
     composer();
     library();
     postStop = store.posts(
