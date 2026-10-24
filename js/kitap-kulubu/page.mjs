@@ -1,5 +1,5 @@
 import { auth, db, fb, onAuthStateChanged } from "./adapter.mjs";
-import { createStore } from "./store.mjs";
+import { createStore } from "./store.mjs?v=214";
 import { mountClub } from "./ui.mjs";
 const host = document.getElementById("club");
 const geri = document.querySelector("[data-kc-back]");

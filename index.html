@@ -14101,7 +14101,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v215";
+window.PORTAL_SURUM = "v217";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -49023,13 +49023,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=215");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=217");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v215";
+          const anahtar = "portalSwReload_v217";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
