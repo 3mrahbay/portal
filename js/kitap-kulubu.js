@@ -9,8 +9,8 @@
     <rect x="33" y="85" width="57" height="13" rx="4" fill="#B74327"/><rect x="37" y="88" width="17" height="6" rx="2" fill="#FFF8EA"/>
     <rect x="25" y="98" width="73" height="13" rx="4" fill="#2D5E3E"/><rect x="72" y="101" width="21" height="6" rx="2" fill="#FFF8EA"/>
   </svg>`;
-  function card(platform, now = Date.now()) {
-    const poster = platform === "portal" ? `<a class="bk-hero-poster" href="kitap-kulubu.html" aria-label="Annelerle Kitap Kulübü alanını aç"><img src="assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg" width="1024" height="1536" alt="Annelerle Kitap Kulübü · Bir kitap, birçok duygu, güzel buluşma" decoding="async"></a>` : "";
+  function content(platform, now = Date.now()) {
+    const poster = platform === "portal" ? `<a class="bk-hero-poster" href="kitap-kulubu.html" aria-label="Annelerle Kitap Kulübü alanını aç"><img src="assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg" width="1024" height="1536" alt="Annelerle Kitap Kulübü · Bir kitap, birçok duygu, güzel bir buluşma" decoding="async"></a>` : "";
     if (now >= promotionUntil)
       return `<div data-bk-host hidden><article class="bk-card bk-${platform === "portal" ? "portal" : "zeky"}">${poster}<div class="bk-top">${icon}<div><p class="bk-eyebrow">ANNELER İLE · KİTAP & ÇAY</p><h2>Kitap Kulübü</h2><p>Kitaplığımız, sohbetlerimiz ve buluşmalardan anılarımız burada.</p></div></div><button class="bk-button" data-bk-open="library">Kulüp alanını aç ↗</button></article></div>`;
     const surface = platform === "portal" ? "portal" : "zeky";
@@ -23,7 +23,40 @@
       <button type="button" class="bk-button" data-bk-open="${surface}">Kulüp alanını aç <span aria-hidden="true">↗</span></button>
     </article></div>`;
   }
+  let viewer = "", collapsed = false;
+  const preferenceKey = () => `kitapKulubu:collapsed:${viewer}`;
+  function refresh() {
+    document.querySelectorAll("[data-bk-host]").forEach(host => {
+      const panel = host.querySelector("[data-bk-panel]");
+      const restore = host.querySelector("[data-bk-restore]");
+      if (panel) panel.hidden = collapsed;
+      if (restore) restore.hidden = !collapsed;
+    });
+  }
+  function setViewer(uid) {
+    viewer = uid || "";
+    collapsed = false;
+    try { collapsed = !!viewer && localStorage.getItem(preferenceKey()) === "1"; } catch {}
+    refresh();
+  }
+  function card(platform, now = Date.now()) {
+    return content(platform, now)
+      .replace('<article ', `<button type="button" class="bk-restore" data-bk-restore aria-label="Kitap Kulübü görselini yeniden göster" ${collapsed ? "" : "hidden"}>${icon}<span>Kitap Kulübü</span></button><section data-bk-panel ${collapsed ? "hidden" : ""}><button type="button" class="bk-dismiss" data-bk-dismiss aria-label="Kitap Kulübü görselini gizle">×</button><article `)
+      .replace('</article></div>', '</article></section></div>')
+      .replace('<h2>Kitap Kulübü</h2>', '<h2>Kitap Kulübü</h2><p class="bk-tagline">Bir kitap, birçok duygu,<br>güzel bir buluşma.</p>');
+  }
   document.addEventListener("click", (event) => {
+    const toggle = event.target.closest("[data-bk-dismiss], [data-bk-restore]");
+    if (toggle) {
+      const host = toggle.closest("[data-bk-host]");
+      if (!host || host.hidden) return;
+      collapsed = toggle.hasAttribute("data-bk-dismiss");
+      try { if (viewer) localStorage.setItem(preferenceKey(), collapsed ? "1" : "0"); } catch {}
+      refresh();
+      host.querySelector(collapsed ? "[data-bk-restore]" : "[data-bk-dismiss]")?.focus();
+      return;
+    }
+
     if (event.target.closest("[data-bk-open]"))
       location.href = "kitap-kulubu.html";
   });
@@ -32,7 +65,7 @@
       host.innerHTML = card(host.dataset.bkMount);
     });
   }
-  window.KitapKulubu = Object.freeze({ card });
+  window.KitapKulubu = Object.freeze({ card, setViewer });
   if (document.readyState === "loading")
     document.addEventListener("DOMContentLoaded", mount, { once: true });
   else mount();

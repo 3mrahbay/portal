@@ -246,3 +246,12 @@
   .bk-portal .bk-hero-poster { width: 190px; margin: 0 auto 20px; }
   .bk-portal > :not(.bk-hero-poster) { width: 100%; }
 }
+
+/* The compact entry stays inside the existing account access gate. */
+[data-bk-panel] { position: relative; }
+[data-bk-panel][hidden], [data-bk-restore][hidden] { display: none !important; }
+.bk-dismiss { position: absolute; z-index: 1; top: 8px; right: 8px; width: 44px; height: 44px; border: 1px solid #d5ddd5; border-radius: 50%; background: #fff; color: #234b33; font-size: 28px; cursor: pointer; }
+.bk-restore { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 14px; border: 1px solid #d5ddd5; border-radius: 18px; background: #fff9ed; color: #234b33; font: inherit; font-weight: 700; cursor: pointer; }
+.bk-restore .bk-icon { width: 42px; height: 42px; }
+.bk-dismiss:focus-visible, .bk-restore:focus-visible { outline: 3px solid #2d5e3e; outline-offset: 3px; }
+.bk-card .bk-tagline, .kc-hero-tagline { font-weight: 700; }
