@@ -15,6 +15,7 @@ new MutationObserver(apply).observe(document.body, {
 });
 onAuthStateChanged(auth, async (user) => {
   const turn = ++epoch;
+  window.KitapKulubu?.setViewer(user?.uid);
   allowed = false;
   manage = false;
   apply();
