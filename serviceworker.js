@@ -10,10 +10,11 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v217-ikinci-kitap";
+const CACHE_VERSION = "v218-kitap-kulubu-gorsel";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg",
   "./js/kitap-kulubu/page.mjs?v=2",
   "./js/kitap-kulubu/core.mjs",
   "./js/kitap-kulubu/ui.mjs",
@@ -113,7 +114,7 @@ const PRECACHE = [
   "./moduller/pdr.js",
   "./moduller/program-belgeleme.js",
   "./moduller/geri-bildirim.js",
-  "./moduller/veli-galeri.js?v=v217",
+  "./moduller/veli-galeri.js?v=v218",
   "./js/portal-galeri-lightbox-ui.js",
   "./js/bunny-stream-upload.js?v=192",
   "./okul_logo.png",

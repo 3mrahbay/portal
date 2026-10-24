@@ -38,3 +38,7 @@ Geri alma gerekiyorsa kitapları/paylaşımları silmeyin. Yetkili yönetim ekra
 - Portal yönetim DOM akışı ve yeni iki kitap DOM akışı başarılı: aktif seçim, geçmiş kitap, eski mesaj/fotoğraf, arşivde kapalı yazma formu, geri dönüş, yönetim tarihi ve metinleri.
 - ZEKY: 1143/1143 Node testi; Python 49 başarılı, 3 araç koşullu atlama. Python için gerçek çalışma dizininde `TMPDIR` kullanıldı (macOS `/var` → `/private/var` yol farkı giderildi).
 - ZEKY iki kitap DOM akışı başarılı. Canlı anne hesabından veya mağaza paketinden dağıtım testi yapılmadı.
+
+## Kalıcı Portal görseli
+
+Kullanıcının sağladığı özgün JPEG, `assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg` olarak eklenmiştir (1024×1536). Portal ana sayfa kartında ve kulüp sayfasının ilk bölümünde yer alır; duyuru süresi dolunca veya geçmiş okumaya geçilince kaldırılmaz. Kulüp başlığındaki görsele dokunarak tam afiş açılabilir. Görselin kendi üzerindeki Kasım etkinliği bilgileri aynen korunmuştur; yeni ay duyurusu gerektiğinde bu dosyanın editoryal olarak güncellenmesi gerekir. İzin kapısı korunur, görsel mevcut herkese açık statik site varlığı olarak sunulur. Yeni görsel çevrimdışı önbelleğe dahildir (v218).

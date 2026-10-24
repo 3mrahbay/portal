@@ -424,3 +424,22 @@ body[data-surface="portal"] .kc-book-choice small {
 [data-content] h3 { margin-top:0; }
 [data-content] > h3 { margin-top:24px; }
 @media(max-width:600px) { .kc-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } .kc-summary-card { padding:12px; } }
+
+/* Permanent club artwork, independent of the selected book and promotion dates. */
+.kc-heading-illustrated {
+  display: grid;
+  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+  align-items: center;
+  gap: 30px;
+  padding: 26px;
+}
+.kc-hero-poster { display: block; position: relative; z-index: 1; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 28px rgba(17,24,39,.2); }
+.kc-hero-poster img { display: block; width: 100%; height: auto; }
+.kc-hero-copy { position: relative; z-index: 1; }
+.kc-hero-copy .kc-hero-tagline { font-size: clamp(21px, 3vw, 30px); font-weight: 650; line-height: 1.35; margin: 20px 0 14px; color: #FFF0C4; }
+.kc-hero-note { display: block; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.25); font-size: 13px; opacity: .9; }
+@media (max-width: 600px) {
+  .kc-heading-illustrated { grid-template-columns: minmax(0,1fr); gap: 20px; padding: 20px; }
+  .kc-hero-poster { width: min(100%, 260px); margin: auto; }
+  .kc-hero-copy { text-align: center; }
+}

@@ -22,8 +22,8 @@ for(const [importer,target] of edges) test(`media release installs exact current
 });
 test('media release runtime, service worker registration, reload guard and cache generation agree',async()=>{
  const pwa=await installedPwa();await assertPwaBootstrap(pwa);
- assert.equal(pwa.cacheVersion,'v217-ikinci-kitap');
- assert.ok(readPortal('index.html').includes('window.PORTAL_SURUM = "v217";'));
+ assert.equal(pwa.cacheVersion,'v218-kitap-kulubu-gorsel');
+ assert.ok(readPortal('index.html').includes('window.PORTAL_SURUM = "v218";'));
 });
 test('actual parent gallery dynamic loader matches the one installed parent-gallery URL',async()=>{
  const html=readPortal('index.html'),start=html.indexOf('const _yuklenenModuller = {}'),end=html.indexOf('\n};',start)+3;
@@ -60,5 +60,5 @@ test('new controller generation reloads once after an earlier v191 reload',async
   sessionStorage:{getItem:key=>stored.get(key),setItem:(key,value)=>stored.set(key,value)},
   location:{reload:()=>{reloads++;}}});
  await events.load();events.controllerchange();events.controllerchange();
- assert.equal(reloads,1);assert.equal(stored.get('portalSwReload_v217'),'1');
+ assert.equal(reloads,1);assert.equal(stored.get('portalSwReload_v218'),'1');
 });
