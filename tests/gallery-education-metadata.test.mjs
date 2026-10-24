@@ -99,3 +99,19 @@ test('supported legacy program display labels use the canonical curriculum and s
   const m=await metadata.hydrateGalleryEducationMetadata({...legacy,program:label},f);assert.equal(m.alanAd,'Practical Life');assert.equal(m.gozlemDurum,'T');assert(f.reads.includes('mufredatlar/'+code));
  }
 });
+
+test('approval hydrates existing curriculum descriptions for all four programs without changing observation notes',async()=>{
+ for(const program of ['montessori','orman','degerler','ingilizce']){
+  const key="practical__Care__I like / I don't like",media={...legacy,program,kazanimAnahtari:key,aciklama:''},before=structuredClone(media);
+  const f=readFixture({['mufredatlar/'+program]:{kazanimAciklamalari:{[key]:'Kazanıma özel <açıklama>'},alanAciklamalari:{practical:'Genel alan'}}});
+  const result=await metadata.hydrateGalleryEducationMetadata(media,f);
+  assert.equal(result.kazanimAciklamasi,'Kazanıma özel <açıklama>');assert.equal(result.kazanimAciklamaKaynagi,'kazanim');assert.equal(result.aciklama,'');assert.deepEqual(media,before);
+  const c={...metadata,window:{PortalAPI:{state:{rol:'mudur'}}}};vm.createContext(c);vm.runInContext(bridge,c);
+  const html=c.detayHTML(result);assert.match(html,/Kazanım açıklaması/);assert.match(html,/Kazanıma özel &lt;açıklama&gt;/);assert.doesNotMatch(html,/Bu gözlem için açıklama girilmemiş/);
+ }
+});
+test('area fallback and real teacher note remain separate in the approval view',()=>{
+ const m=metadata.galleryEducationMetadata({...legacy,aciklama:'Çocuğa özel not'},{curriculum:{kazanimAciklamalari:{[legacy.kazanimAnahtari]:'  '},alanAciklamalari:{practical:'Alan rehberi'}}});
+ assert.equal(m.kazanimAciklamasi,'Alan rehberi');assert.equal(m.kazanimAciklamaKaynagi,'alan');assert.equal(m.aciklama,'Çocuğa özel not');
+ const c={...metadata,window:{PortalAPI:{state:{}}}};vm.createContext(c);vm.runInContext(bridge,c);const html=c.detayHTML(m);assert.match(html,/Alan açıklaması/);assert.match(html,/Alan rehberi/);assert.match(html,/Çocuğa özel not/);
+});

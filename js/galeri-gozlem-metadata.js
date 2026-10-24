@@ -25,7 +25,7 @@ export function gallerySenderEmail(media = {}) {
     .map(value => text(value).toLowerCase()).filter(value => /^[^\s/@]+@[^\s/@]+\.[^\s/@]+$/.test(value)))];
   return emails.length === 1 ? emails[0] : '';
 }
-export function galleryEducationMetadata(media = {}, {student = {}, settings = {}, personnel = {}, areas = [], observation = {}, currentPeriod = ''} = {}) {
+export function galleryEducationMetadata(media = {}, {student = {}, settings = {}, personnel = {}, areas = [], observation = {}, curriculum = {}, currentPeriod = ''} = {}) {
   const parts = text(media.kazanimAnahtari).split('__');
   const program = galleryEducationProgram(media);
   const detail = observation?.[program]?.detay?.[media.kazanimAnahtari] || {};
@@ -41,7 +41,14 @@ export function galleryEducationMetadata(media = {}, {student = {}, settings = {
     samePeriod ? student.sinif : '', samePeriod ? student.sinifi : '');
   const senderName = galleryPersonName(media.yukleyenAd, media.yukleyenAdSoyad, media.gonderenAd, media.olusturanAd,
     personnel.adSoyad, [personnel.ad, personnel.soyad].filter(Boolean).join(' '), personnel.displayName);
+  // Curriculum guidance is presentation-only, never a child's observation note.
+  const achievementKey = first(media.kazanimAnahtari,
+    areaId && media.grupAd && media.kazanimAdi ? `${areaId}__${media.grupAd}__${media.kazanimAdi}` : '');
+  const achievementText = text(curriculum.kazanimAciklamalari?.[achievementKey]);
+  const areaText = text(curriculum.alanAciklamalari?.[areaId]);
   return {...media,
+    kazanimAciklamasi:first(achievementText, areaText, media.kazanimAciklamasi),
+    kazanimAciklamaKaynagi:achievementText ? 'kazanim' : areaText ? 'alan' : text(media.kazanimAciklamaKaynagi),
     hedefOgrenciAd:studentName, sinifAdi:className,
     alanId:areaId, alanAd:first(media.alanAd, bound.alanAd, area.ad),
     grupAd:first(media.grupAd, parts.length >= 3 ? parts[1] : '', bound.grupAd),
@@ -69,5 +76,5 @@ export async function hydrateGalleryEducationMetadata(media, {fb, db, state = {}
     studentId && media.kazanimAnahtari ? read('ogrenciGelisim', studentId) : {}
   ]);
   if (!isCurrent()) return null;
-  return galleryEducationMetadata(media, {student, settings, personnel, areas:curriculum.alanlar || [], observation, currentPeriod:state.aktifDonem});
+  return galleryEducationMetadata(media, {student, settings, personnel, areas:curriculum.alanlar || [], curriculum, observation, currentPeriod:state.aktifDonem});
 }
