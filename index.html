@@ -13952,7 +13952,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
     <button onclick="closeGaleriLightbox()" style="position:absolute; top:-40px; right:0; background:white; border:none; width:36px; height:36px; border-radius:50%; font-size:20px; cursor:pointer; z-index:10;">×</button>
     <div id="galeriLightboxIcerik" style="background:white; border-radius:14px; overflow:hidden; max-height:95vh; display:flex; align-items:center; justify-content:center;"></div>
     <div style="position:absolute; bottom:10px; left:0; right:0; text-align:center;">
-      <button onclick="aktifLightboxOge && galeriGonderiDuzenle(aktifLightboxOge.id)" id="galeriLightboxDuzenleBtn" style="display:none;padding:10px 20px; margin-right:8px; background:white; border:1px solid #d1d5db; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);"><i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px;"></i> Gönderiyi Düzenle</button>
+      <button onclick="galeriLightboxDuzenle()" id="galeriLightboxDuzenleBtn" style="display:none;padding:10px 20px; margin-right:8px; background:white; border:1px solid #d1d5db; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);"><i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px;"></i> Gönderiyi Düzenle</button>
       <button onclick="galeriLightboxIndir()" id="galeriLightboxIndirBtn" style="padding:10px 20px; background:white; border:1px solid #d1d5db; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15);"><i data-lucide="download" style="width:13px;height:13px;vertical-align:-2px;"></i> İndir</button>
     </div>
   </div>
@@ -37635,6 +37635,13 @@ window.closeGaleriLightbox = function() {
   document.getElementById("galeriLightbox").classList.remove("active");
   document.getElementById("galeriLightboxIcerik").innerHTML = "";
   aktifLightboxOge = null;
+};
+
+// Inline HTML handlers cannot access module-scoped aktifLightboxOge.
+// Resolve the current selection inside the module; keep authorization in the editor.
+window.galeriLightboxDuzenle = function() {
+  if (!aktifLightboxOge) return;
+  return window.galeriGonderiDuzenle(aktifLightboxOge.id);
 };
 
 window.galeriGonderiDuzenle = async function(id) {
