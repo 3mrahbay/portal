@@ -10,10 +10,11 @@
     <rect x="25" y="98" width="73" height="13" rx="4" fill="#2D5E3E"/><rect x="72" y="101" width="21" height="6" rx="2" fill="#FFF8EA"/>
   </svg>`;
   function card(platform, now = Date.now()) {
+    const poster = platform === "portal" ? `<a class="bk-hero-poster" href="kitap-kulubu.html" aria-label="Annelerle Kitap Kulübü alanını aç"><img src="assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg" width="1024" height="1536" alt="Annelerle Kitap Kulübü · Bir kitap, birçok duygu, güzel buluşma" decoding="async"></a>` : "";
     if (now >= promotionUntil)
-      return `<div data-bk-host hidden><article class="bk-card bk-${platform === "portal" ? "portal" : "zeky"}"><div class="bk-top">${icon}<div><p class="bk-eyebrow">ANNELER İLE · KİTAP & ÇAY</p><h2>Kitap Kulübü</h2><p>Kitaplığımız, sohbetlerimiz ve buluşmalardan anılarımız burada.</p></div></div><button class="bk-button" data-bk-open="library">Kulüp alanını aç ↗</button></article></div>`;
+      return `<div data-bk-host hidden><article class="bk-card bk-${platform === "portal" ? "portal" : "zeky"}">${poster}<div class="bk-top">${icon}<div><p class="bk-eyebrow">ANNELER İLE · KİTAP & ÇAY</p><h2>Kitap Kulübü</h2><p>Kitaplığımız, sohbetlerimiz ve buluşmalardan anılarımız burada.</p></div></div><button class="bk-button" data-bk-open="library">Kulüp alanını aç ↗</button></article></div>`;
     const surface = platform === "portal" ? "portal" : "zeky";
-    return `<div data-bk-host hidden><article class="bk-card bk-${surface}" aria-label="Annelere özel Kitap Kulübü">
+    return `<div data-bk-host hidden><article class="bk-card bk-${surface}" aria-label="Annelere özel Kitap Kulübü">${poster}
       <div class="bk-top">${icon}<div><p class="bk-eyebrow">ANNELERE ÖZEL · KİTAP & ÇAY</p>
       <h2>Kitap Kulübü</h2><p class="bk-spot">Günlük telaşın içinde kendimizi ve çocuğumuzu gerçekten duyabiliyor muyuz?</p></div></div>
       <div class="bk-book"><span>İKİNCİ BULUŞMAMIZDA OKUYORUZ</span><strong>Ebeveynliği Hissetmek</strong><p>Jennifer Day</p></div>
