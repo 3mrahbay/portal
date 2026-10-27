@@ -1,9 +1,10 @@
 import { galleryLightboxStyles, galleryLightboxIcons, lightboxDownload } from '../js/portal-galeri-lightbox-ui.js';
-import { mountMedia, disposeMedia, recordOpen, downloadMedia } from '../js/portal-galeri-canli.js?v=192';
-import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=166';
+import { mountMedia, disposeMedia, recordOpen, downloadMedia } from '../js/portal-galeri-canli.js?v=193';
+import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=167';
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryIsObservation, galleryFolderKey } from '../js/galeri-klasorleri.js?v=182';
 import { galleryMediaType, galleryDisplayUrl, downloadSource } from '../js/portal-galeri-medya.js?v=192';
-import { veliSorgulariniOlustur } from '../js/veli-hedefli-okuma.js?v=1';
+import { veliSorgulariniOlustur } from '../js/veli-hedefli-okuma.js?v=2';
+import { galeriHedefAnahtari } from '../js/galeri-hedefi.js?v=2';
 // VELİ GALERİSİ — hedefli okuma; klasör anahtarları erişim yetkisi vermez.
 const P = () => window.PortalAPI;
 let _filtre = 'tumu';
@@ -62,7 +63,8 @@ function secimleriSifirla(){_acikAlbum='';_egitimProgram='';_egitimAlan='';}
 function erisebilir(m){const ogr=aktifOgrenci();return _yuklenenKapsam===kapsamAnahtari()&&isGalleryParent(P().state)&&!!ogr&&!!targetChild(m,[ogr],P().state);}
 // Only local numbers enter handlers; titles, IDs, targets and JSON keys stay in closures.
 function eylem(fn){const id=++_eylemNo,kapsam=_yuklenenKapsam;_eylemler.set(id,button=>{if(kapsam===kapsamAnahtari())return fn(button);});return`window._vg.eylem(${id},this)`;}
-function albumKey(m){return String(m.albumId||'').trim()||JSON.stringify([String(m.etkinlikTarih||'').slice(0,10),(m.etkinlikBaslik||'Diğer').trim(),m.hedefTur||'',m.hedefDeger||'']);}
+// Çoklu öğrenci albümü ilk öğrencinin albümüyle birleşmez: hedef parçası tüm kümedir (js/galeri-hedefi.js).
+function albumKey(m){return String(m.albumId||'').trim()||JSON.stringify([String(m.etkinlikTarih||'').slice(0,10),(m.etkinlikBaslik||'Diğer').trim(),m.hedefTur||'',galeriHedefAnahtari(m)]);}
 function tarih(m){return String(m?.etkinlikTarih||m?.yuklemeZamani||'').slice(0,10);}
 function tarihYazi(t){if(!t)return'';const d=new Date(t+'T12:00:00');return isNaN(d)?t:d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});}
 function alanKodu(m){return String(m?.alanId||m?.kazanimAnahtari||'').split('__')[0]||'genel';}
@@ -80,7 +82,7 @@ async function hedefliGaleriOku(fb,db,ogr,sinif){
     fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','tumOkul')),
     ...sinifAdaylari(sinif).map(ad=>fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','sinif'),fb.where('hedefDeger','==',ad))),
     // Faz 3b: çocuğa özel sorgular ortak sözleşmeden (hedefTur in COCUK_HEDEFLERI + hedefDeger /
-    // hedefOgrenciId, durum == 'onaylandi'). hedefTur'suz hedefOgrenciId / ogrenciId sorguları kuralca
+    // hedefOgrenciId / ogrenciler array-contains, durum == 'onaylandi'). hedefTur'suz hedefOgrenciId / ogrenciId sorguları kuralca
     // reddedileceği için kaldırıldı; istemci süzmesi (childTargetMatches) aynen kalır.
     ...veliSorgulariniOlustur(fb,db,'galeri',[ogr.id],{genel:false})
   ];

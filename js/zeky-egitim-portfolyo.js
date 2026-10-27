@@ -1,6 +1,7 @@
 // Veli eğitim ekranları için ortak, salt-okunur portföy veri modeli.
 // Onaylı galeri kayıtları ile ogrenciGelisim aşamalarını tek zaman çizgisinde birleştirir.
-import { veliHedefliOku } from './veli-hedefli-okuma.js?v=1';
+import { veliHedefliOku } from './veli-hedefli-okuma.js?v=2';
+import { galeriCocugaAitMi } from './galeri-hedefi.js?v=2';
 
 export const EGITIM_PROGRAMLARI = [
   { id:'montessori', ad:'Montessori', renk:'#356B4A', acik:'#EAF3EC' },
@@ -51,8 +52,10 @@ export async function onayliGaleriGetir(ogrenciId, portal = globalThis.window?.P
     const snap = await veliHedefliOku(fb, db, 'galeri', [ogrenciId], { genel:false, etiket:'veli eğitim galerisi' }), sonuc = [];
     snap.forEach(d => {
       const v = d.data() || {};
-      const hedef = v.ogrenciId || v.hedefOgrenciId || (v.hedefTur === 'ogrenci' ? v.hedefDeger : '');
-      if (hedef !== ogrenciId || !egitimGaleriKaydiMi(v)) return;
+      // Çocuk hedefi tek ya da çoklu seçim olabilir; çelişkili kayıt kullanılmaz (js/galeri-hedefi.js).
+      const ait = (v.hedefTur === 'ogrenci' || v.hedefTur === 'cocuk') ? galeriCocugaAitMi(v, ogrenciId)
+        : (v.ogrenciId || v.hedefOgrenciId) === ogrenciId;
+      if (!ait || !egitimGaleriKaydiMi(v)) return;
       const url = v.url || v.bunnyUrl || '';
       if (!v.kazanimAnahtari || !ASAMA_SIRASI.includes(v.gozlemDurum || '')) return;
       sonuc.push({ id:d.id, ...v, url });

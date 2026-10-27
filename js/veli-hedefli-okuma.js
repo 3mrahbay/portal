@@ -17,11 +17,12 @@ export const EN_FAZLA_COCUK = 10;
 
 // Koleksiyona göre çocuğa özel sorgu alanları.
 // duyurular · takvim: çoklu öğrenci seçiminde tam liste "ogrenciler" dizisinde; hedefDeger yalnız ilk çocuk.
-// galeri: hedefOgrenciId eski şema; her galeri sorgusu ayrıca durum == 'onaylandi' taşır.
+// galeri: hedefOgrenciId eski şema; çoklu çocuk seçiminde tam liste "ogrenciler" (js/galeri-hedefi.js);
+//         her galeri sorgusu ayrıca durum == 'onaylandi' taşır.
 const COCUK_ALANLARI = Object.freeze({
   duyurular: Object.freeze([['hedefDeger', '=='], ['ogrenciler', 'array-contains']]),
   takvim: Object.freeze([['hedefDeger', '=='], ['ogrenciler', 'array-contains']]),
-  galeri: Object.freeze([['hedefDeger', '=='], ['hedefOgrenciId', '==']])
+  galeri: Object.freeze([['hedefDeger', '=='], ['hedefOgrenciId', '=='], ['ogrenciler', 'array-contains']])
 });
 
 export const DESTEKLENEN_KOLEKSIYONLAR = Object.freeze(Object.keys(COCUK_ALANLARI));
@@ -40,7 +41,7 @@ export function cocukIdleriniHazirla(cocuklar) {
 // Sözleşmedeki sorgu biçimlerini üretir:
 //  (a) genel: hedefTur in GENEL_HEDEFLER
 //  (b) her çocuk için: hedefTur in COCUK_HEDEFLERI + hedefDeger == id
-//  (c) duyurular · takvim: + ogrenciler array-contains id · galeri: + hedefOgrenciId == id
+//  (c) duyurular · takvim: + ogrenciler array-contains id · galeri: + hedefOgrenciId == id, ogrenciler array-contains id
 export function veliSorgulariniOlustur(fb, db, koleksiyon, cocuklar, { genel = true, ekKosullar = [] } = {}) {
   const alanlar = COCUK_ALANLARI[koleksiyon];
   if (!alanlar) throw new Error(`Veli hedefli okuma bu koleksiyonu desteklemiyor: ${koleksiyon}`);

@@ -4,7 +4,8 @@
 // sayacı olan dokunmatik uyumlu onay kutusu listesi. ZEKY'deki tercih-olustur
 // ekranıyla aynı davranış. Firebase'e dokunmaz; seçim yalnız bellekte tutulur.
 //
-//   const secici = ogrenciCokluSecici(kapEl, { ogrenciler: [{ id, ad, sinif }], secili: [id] });
+//   const secici = ogrenciCokluSecici(kapEl, { ogrenciler: [{ id, ad, sinif, pasif? }], secili: [id] });
+//   pasif: dolu metin (ör. "Fotoğraf izni yok") → satır görünür ama seçilemez; neden yanında yazar.
 //   secici.seciliIdler()      → ['id1', 'id2']
 //   secici.seciliOgrenciler() → [{ id, ad, sinif }]
 //   secici.ayarla(['id1'])    · secici.ogrencileriAyarla(liste) · secici.temizle()
@@ -25,9 +26,13 @@ const STIL = `
 .ocs .ocs-satir{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:0;border-bottom:1px solid var(--gray-100,#f3f4f6);cursor:pointer;min-height:44px;box-sizing:border-box;text-transform:none;letter-spacing:normal;font-weight:400;font-size:14px;color:var(--gray-800,#1f2937)}
 .ocs .ocs-satir:last-child{border-bottom:none}
 .ocs .ocs-satir input[type=checkbox]{width:18px;height:18px;min-height:0;flex:none;accent-color:#2d6a4f;margin:0;padding:0;border:none}
-.ocs-ad{flex:1;min-width:0;font-size:14px;color:var(--gray-800,#1f2937);overflow-wrap:anywhere}
+.ocs-ad{flex:1 1 auto;min-width:min(110px,45%);font-size:14px;color:var(--gray-800,#1f2937);overflow-wrap:anywhere}
+.ocs .ocs-satir{flex-wrap:wrap;row-gap:4px}
 .ocs-sinif-ad{flex:none;font-size:11.5px;color:var(--gray-500,#6b7280)}
 .ocs-satir.secili{background:#f0fdf4}
+.ocs .ocs-satir.pasif{cursor:not-allowed;background:#fafaf9;color:var(--gray-500,#6b7280)}
+.ocs .ocs-satir.pasif .ocs-ad{color:var(--gray-500,#6b7280)}
+.ocs-pasif-neden{flex:none;font-size:11px;font-weight:600;color:#b45309;background:#fff7ed;border:1px solid #fed7aa;border-radius:999px;padding:2px 8px}
 .ocs-bos{padding:16px;text-align:center;font-size:13px;color:var(--gray-500,#6b7280)}
 `;
 
@@ -47,7 +52,8 @@ function stilEkle(belge) {
 function hazirla(liste) {
   const gorulen = new Set();
   return (Array.isArray(liste) ? liste : [])
-    .map(o => ({ id: String(o?.id || '').trim(), ad: String(o?.ad || '').trim(), sinif: String(o?.sinif || '').trim() }))
+    .map(o => ({ id: String(o?.id || '').trim(), ad: String(o?.ad || '').trim(), sinif: String(o?.sinif || '').trim(),
+      pasif: String(o?.pasif || '').trim() }))
     .filter(o => o.id && !gorulen.has(o.id) && gorulen.add(o.id))
     .sort((a, b) => a.sinif.localeCompare(b.sinif, 'tr') || a.ad.localeCompare(b.ad, 'tr'));
 }
@@ -57,7 +63,8 @@ export function ogrenciCokluSecici(kap, { ogrenciler = [], secili = [], bosMetin
   const belge = kap.ownerDocument || document;
   stilEkle(belge);
   let liste = hazirla(ogrenciler);
-  let secim = new Set((secili || []).map(String));
+  const seciliOlabilir = id => !liste.some(o => o.id === id && o.pasif);
+  let secim = new Set((secili || []).map(String).filter(seciliOlabilir));
   let ara = '';
   let sinifSuzgeci = '';
 
@@ -100,9 +107,9 @@ export function ogrenciCokluSecici(kap, { ogrenciler = [], secili = [], bosMetin
   function listeyiCiz() {
     const g = gorunenler();
     listeEl.innerHTML = g.length ? g.map(o => {
-      const s = secim.has(o.id);
-      return `<label class="ocs-satir${s ? ' secili' : ''}"><input type="checkbox" data-id="${kacis(o.id)}"${s ? ' checked' : ''}>`
-        + `<span class="ocs-ad">${kacis(o.ad || 'Adsız öğrenci')}</span>${o.sinif ? `<span class="ocs-sinif-ad">${kacis(o.sinif)}</span>` : ''}</label>`;
+      const s = !o.pasif && secim.has(o.id);
+      return `<label class="ocs-satir${s ? ' secili' : ''}${o.pasif ? ' pasif' : ''}"${o.pasif ? ` title="${kacis(o.pasif)}"` : ''}><input type="checkbox" data-id="${kacis(o.id)}"${s ? ' checked' : ''}${o.pasif ? ' disabled aria-disabled="true"' : ''}>`
+        + `<span class="ocs-ad">${kacis(o.ad || 'Adsız öğrenci')}</span>${o.pasif ? `<span class="ocs-pasif-neden">${kacis(o.pasif)}</span>` : ''}${o.sinif ? `<span class="ocs-sinif-ad">${kacis(o.sinif)}</span>` : ''}</label>`;
     }).join('') : `<div class="ocs-bos">${kacis(liste.length ? 'Aramayla eşleşen öğrenci yok' : bosMetin)}</div>`;
     sayaciYaz();
   }
@@ -123,13 +130,14 @@ export function ogrenciCokluSecici(kap, { ogrenciler = [], secili = [], bosMetin
     const kutu = e.target.closest('input[data-id]');
     if (!kutu) return;
     const id = kutu.getAttribute('data-id');
+    if (!seciliOlabilir(id)) { kutu.checked = false; return; }
     if (kutu.checked) secim.add(id); else secim.delete(id);
     kutu.closest('.ocs-satir')?.classList.toggle('secili', kutu.checked);
     bildir();
   });
   kap.querySelector('.ocs-arac').addEventListener('click', e => {
     const islem = e.target.closest('[data-islem]')?.getAttribute('data-islem');
-    if (islem === 'gorunenler') gorunenler().forEach(o => secim.add(o.id));
+    if (islem === 'gorunenler') gorunenler().filter(o => !o.pasif).forEach(o => secim.add(o.id));
     else if (islem === 'temizle') secim.clear();
     else return;
     listeyiCiz();
@@ -145,8 +153,10 @@ export function ogrenciCokluSecici(kap, { ogrenciler = [], secili = [], bosMetin
     seciliOgrenciler() {
       return api.seciliIdler().map(id => liste.find(o => o.id === id) || { id, ad: '', sinif: '' });
     },
-    ayarla(idler) { secim = new Set((idler || []).map(String).filter(Boolean)); listeyiCiz(); },
-    ogrencileriAyarla(yeni) { liste = hazirla(yeni); siniflariCiz(); listeyiCiz(); },
+    ayarla(idler) { secim = new Set((idler || []).map(String).filter(Boolean).filter(seciliOlabilir)); listeyiCiz(); },
+    ogrencileriAyarla(yeni) { liste = hazirla(yeni); secim = new Set([...secim].filter(seciliOlabilir)); siniflariCiz(); listeyiCiz(); },
+    // Seçilemeyen (pasif) satırlar: { id, ad, pasif }
+    pasifler() { return liste.filter(o => o.pasif).map(o => ({ ...o })); },
     temizle() { secim.clear(); ara = ''; araEl.value = ''; sinifSuzgeci = ''; siniflariCiz(); listeyiCiz(); }
   };
   siniflariCiz();

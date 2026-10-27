@@ -4,7 +4,7 @@
 // ayrı güvenlik köprüsüyle kurulur.
 
 const KURULUM = '__zekyVeliEgitimKoprusuV8';
-const SURUM = 'v8';
+const SURUM = 'v9';
 let baslatiliyor = false;
 
 // Portalın çekirdeği Firestore erişimini PortalAPI üzerinden yayımlıyor.
@@ -56,7 +56,7 @@ async function modulleriYukle(win) {
     import(`../moduller/veli-egitim-gelisim.js?${SURUM}`),
     import('./zeky-ogrenci-guvenlik-koprusu.js?v=7'),
     import('./zeky-aktif-donem-senkron.js?v=3'),
-    import('./zeky-veli-ogrenme-deneyimi.js?v=3')
+    import('./zeky-veli-ogrenme-deneyimi.js?v=4')
   ]);
 
   return {

@@ -1,4 +1,4 @@
-import { onayliGaleriGetir, portfolyoOlustur, programSunumlari } from '../js/zeky-egitim-portfolyo.js?v=2';
+import { onayliGaleriGetir, portfolyoOlustur, programSunumlari } from '../js/zeky-egitim-portfolyo.js?v=3';
 
 // ═══════════════════════════════════════════════════════════════════
 // VELİ EĞİTİM GELİŞİMİ — ZEKY mobil ile aynı veri modeli

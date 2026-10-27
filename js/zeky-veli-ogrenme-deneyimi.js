@@ -1,5 +1,5 @@
-import { onayliGaleriGetir, portfolyoOlustur, bugununSunumlari } from './zeky-egitim-portfolyo.js?v=2';
-import { veliHedefliOku } from './veli-hedefli-okuma.js?v=1';
+import { onayliGaleriGetir, portfolyoOlustur, bugununSunumlari } from './zeky-egitim-portfolyo.js?v=3';
+import { veliHedefliOku } from './veli-hedefli-okuma.js?v=2';
 import { ogrenciHedefte } from './icerik-hedefi.js?v=1';
 
 // Veli ana sayfası: son eğitim sunumu, günlük akış ve çocuk bildirimleri.
