@@ -42,8 +42,8 @@ test('veli galerisi eğitim klasörlerini program ve gelişim alanına ayırır'
   assert.match(s, /egitimProgramAc/);
   assert.match(s, /egitimAlanAc/);
   assert.match(s, /alanKodu/);
-  assert.match(s, /where\('hedefTur','==','ogrenci'\)/);
-  assert.match(s, /where\('hedefDeger','==',ogr\.id\)/);
+  // Faz 3b: çocuğa özel galeri sorguları ortak sözleşmeden (hedefTur in COCUK_HEDEFLERI + hedefDeger / hedefOgrenciId).
+  assert.match(s, /veliSorgulariniOlustur\(fb,db,'galeri',\[ogr\.id\],\{genel:false\}\)/);
 });
 
 test('galeri onayı kazanım açıklaması, aşama ve öğrenci bağlamını gösterir', async () => {

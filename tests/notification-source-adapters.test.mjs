@@ -167,7 +167,7 @@ test('görüşme gönderiminde root/source olay kimliği eşleşir, push özel m
 });
 
 test('veli sıradan popup merkezi görünce okumaz/göstermez; simsek ve geçmiş yolu korunur',async()=>{
-  const trimmed=parentSource.replace(/^import .*;\n/,'').replace("if(typeof window!=='undefined')kur();",'');
+  const trimmed=parentSource.replace(/^import .*;\n/gm,'').replace("if(typeof window!=='undefined')kur();",'');
   const x=fixture(trimmed);let queried=0;x.window.PortalAPI.fb.getDocs=async()=>{queried++;throw Error('must not query');};
   x.state.veliAktifOgrenci={id:'child'};await x.context.popupKontrol();assert.equal(queried,0);
   x.context.popupGoster([{id:'one'}],0,{id:'child'},new Set());assert.equal(x.removed,1);

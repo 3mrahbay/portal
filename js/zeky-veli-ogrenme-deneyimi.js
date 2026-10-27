@@ -1,7 +1,10 @@
 import { onayliGaleriGetir, portfolyoOlustur, bugununSunumlari } from './zeky-egitim-portfolyo.js?v=2';
+import { veliHedefliOku } from './veli-hedefli-okuma.js?v=1';
 
 // Veli ana sayfası: son eğitim sunumu, günlük akış ve çocuk bildirimleri.
 // Yalnız seçili çocuğun doğrudan belgelerini / alt koleksiyonunu okur.
+// Faz 3b: takvim ve duyurular tüm koleksiyon olarak okunmaz; genel + seçili çocuğa özel
+// sorgular (js/veli-hedefli-okuma.js). "etkinlikler" herkese açık koleksiyon, değişmedi.
 
 const KURULUM = '__zekyVeliOgrenmeDeneyimiV2';
 const PROGRAM = {
@@ -78,7 +81,7 @@ async function gunlukHareketleriGetir(o){
 }
 
 function etkinlikUygun(e,o){const h=e?.hedefTur||'tumOkul';return h==='tumOkul'||(h==='ogrenci'&&(e.hedefDeger===o.id||e.hedefOgrenciId===o.id))||(h==='sinif'&&String(e.hedefDeger||'')===String(sinif(o)));}
-async function bugununEtkinlikleri(o){const p=P();if(!p?.fb||!p?.db)return[];const oku=async ad=>{try{const q=p.fb.query(p.fb.collection(p.db,ad),p.fb.where('tarih','==',bugun()));const s=await p.fb.getDocs(q),l=[];s.forEach(d=>{const v=d.data()||{};if(!v.arsiv&&etkinlikUygun(v,o))l.push({id:d.id,...v});});return l;}catch(e){console.warn('günlük akış etkinlik',ad,e?.code||e?.message);return[];}};const [a,b]=await Promise.all([oku('etkinlikler'),oku('takvim')]);return [...a,...b];}
+async function bugununEtkinlikleri(o){const p=P();if(!p?.fb||!p?.db)return[];const oku=async ad=>{try{const s=ad==='takvim'?await veliHedefliOku(p.fb,p.db,'takvim',[o.id],{ekKosullar:[['tarih','==',bugun()]],etiket:'günlük akış takvimi'}):await p.fb.getDocs(p.fb.query(p.fb.collection(p.db,ad),p.fb.where('tarih','==',bugun()))),l=[];s.forEach(d=>{const v=d.data()||{};if(!v.arsiv&&etkinlikUygun(v,o))l.push({id:d.id,...v});});return l;}catch(e){console.warn('günlük akış etkinlik',ad,e?.code||e?.message);return[];}};const [a,b]=await Promise.all([oku('etkinlikler'),oku('takvim')]);return [...a,...b];}
 
 async function anaSayfayiZenginlestir(){
   const o=ogrenci(),ozet=document.getElementById('caHomeEgitimOzet'),dash=document.querySelector('.ca-page .ca-dash');if(!o?.id||!ozet||!dash)return;
@@ -109,10 +112,10 @@ async function ogrenciBildirimleriGetir(force=false){
 }
 
 async function etkinlikBildirimleriGetir(o){
-  const p=P();if(!o?.id||!p?.fb||!p?.db)return[];const oku=async ad=>{try{const s=await p.fb.getDocs(p.fb.collection(p.db,ad)),l=[];s.forEach(d=>{const v=d.data()||{};if(v.arsiv||!v.tarih||v.tarih<bugun()||!etkinlikUygun(v,o))return;l.push({id:`etkinlik:${ad}:${d.id}`,tip:'etkinlik_yeni',baslik:`Yeni etkinlik · ${v.baslik||'Okul etkinliği'}`,icerik:[tarihYazi(v.tarih),v.baslangicSaat,v.konum].filter(Boolean).join(' · '),olusturuldu:v.olusturuldu||v.guncellendi||`${v.tarih}T00:00:00`,etkinlikTarih:v.tarih});});return l;}catch(e){console.warn('veli etkinlik bildirimi',ad,e?.code||e?.message);return[];}};const [a,b]=await Promise.all([oku('etkinlikler'),oku('takvim')]);return[...a,...b].sort((x,y)=>tarihHam(y.olusturuldu).localeCompare(tarihHam(x.olusturuldu))).slice(0,15);
+  const p=P();if(!o?.id||!p?.fb||!p?.db)return[];const oku=async ad=>{try{const s=ad==='takvim'?await veliHedefliOku(p.fb,p.db,'takvim',[o.id],{etiket:'veli etkinlik bildirimi'}):await p.fb.getDocs(p.fb.collection(p.db,ad)),l=[];s.forEach(d=>{const v=d.data()||{};if(v.arsiv||!v.tarih||v.tarih<bugun()||!etkinlikUygun(v,o))return;l.push({id:`etkinlik:${ad}:${d.id}`,tip:'etkinlik_yeni',baslik:`Yeni etkinlik · ${v.baslik||'Okul etkinliği'}`,icerik:[tarihYazi(v.tarih),v.baslangicSaat,v.konum].filter(Boolean).join(' · '),olusturuldu:v.olusturuldu||v.guncellendi||`${v.tarih}T00:00:00`,etkinlikTarih:v.tarih});});return l;}catch(e){console.warn('veli etkinlik bildirimi',ad,e?.code||e?.message);return[];}};const [a,b]=await Promise.all([oku('etkinlikler'),oku('takvim')]);return[...a,...b].sort((x,y)=>tarihHam(y.olusturuldu).localeCompare(tarihHam(x.olusturuldu))).slice(0,15);
 }
 
-async function duyuruPopupGetir(o){const p=P();if(!o?.id||!p?.fb||!p?.db)return[];try{const s=await p.fb.getDocs(p.fb.collection(p.db,'duyurular')),l=[];s.forEach(d=>{const v=d.data()||{};if(v.arsiv||v.simsek||!etkinlikUygun(v,o))return;l.push({id:`duyuru:${d.id}`,tip:'duyuru_yeni',baslik:v.baslik||'Yeni duyuru',icerik:v.icerik||'',olusturuldu:v.olusturuldu||v.olusturulmaTarihi||v.guncellendi||''});});return l;}catch(e){console.warn('veli duyuru popup',e?.code||e?.message);return[];}}
+async function duyuruPopupGetir(o){const p=P();if(!o?.id||!p?.fb||!p?.db)return[];try{const s=await veliHedefliOku(p.fb,p.db,'duyurular',[o.id],{etiket:'veli duyuru popup'}),l=[];s.forEach(d=>{const v=d.data()||{};if(v.arsiv||v.simsek||!etkinlikUygun(v,o))return;l.push({id:`duyuru:${d.id}`,tip:'duyuru_yeni',baslik:v.baslik||'Yeni duyuru',icerik:v.icerik||'',olusturuldu:v.olusturuldu||v.olusturulmaTarihi||v.guncellendi||''});});return l;}catch(e){console.warn('veli duyuru popup',e?.code||e?.message);return[];}}
 
 async function sonGozlemBildirimiGetir(o){try{const [gel,galeri]=await Promise.all([gelisimGetir(o),onayliGaleriGetir(o.id,P())]),g=portfolyoOlustur(gel,galeri)[0];if(!g)return[];return[{id:`gelisim:${g.program||''}:${g.anahtar||''}:${g.durum||''}:${tarihHam(g.tarih)}`,tip:'egitim_gelisim',baslik:`${g.dersAd||'Yeni kazanım'} · ${ASAMA[g.durum]?.ad||'Yeni aşama'}`,icerik:g.not||`${PROGRAM[g.program]?.ad||g.programAd||'Eğitim'} programında yeni bir gelişim kaydı var.`,program:g.program,kazanimAnahtari:g.anahtar,gozlemDurum:g.durum,galeriId:g.galeriId||'',olusturuldu:g.tarih}];}catch(_){return[];}}
 

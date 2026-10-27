@@ -14082,6 +14082,7 @@ import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-uplo
 import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
 import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=187";
 import { bildirimZamani, enYeniBildirimOnce, canliListeOlustur } from "./js/okul-zili-liste-core.js?v=168";
+import { veliHedefliOku, cocukHedefliMi, cocukHedefiUygunMu } from "./js/veli-hedefli-okuma.js?v=1";
 
 const firebaseConfig = {
   apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
@@ -14095,6 +14096,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+// Faz 3b: veli okumaları (duyurular · takvim · galeri) js/veli-hedefli-okuma.js ile
+// genel + kendi çocuğuna özel sorgulara bölünür; Firestore fonksiyonları oraya buradan verilir.
+const veliOkumaFb = { collection, query, where, getDocs };
+// Veli oturumu: personel/yönetici değil. Personel yolları tüm koleksiyon okumasını korur.
+function veliOturumuMu() {
+  return !!currentUser && !isAdmin && !aktifPersonel;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // MODÜL KÖPRÜSÜ — moduller/*.js dosyaları buradan portalın altyapısına ulaşır.
@@ -25520,7 +25528,8 @@ async function simsekDuyuruKontrolEt() {
   try {
     const okunmaModul = await modulYukle("duyuru-okunma");
     const veliOkuma = okunmaModul ? await okunmaModul.veliDurumuYukle() : null;
-    const snap = await getDocs(collection(db, "duyurular"));
+    // Faz 3b: tüm koleksiyon değil; genel + kendi çocuklarına özel duyuru sorguları.
+    const snap = await veliHedefliOku(veliOkumaFb, db, "duyurular", veliOgrenciler, { etiket: "şimşek duyuru" });
     const bekleyen = [];
     snap.forEach(d => {
       const data = d.data();
@@ -25703,10 +25712,14 @@ const TAKVIM_TIP_LABEL = {
 };
 
 let takvimEtkinlikler = [];
+let takvimEtkinliklerKapsam = "";
 let takvimAktifAy = new Date();
 
 async function takvimEtkinlikleriYukle(force = false) {
-  if (takvimEtkinlikler.length > 0 && !force) return takvimEtkinlikler;
+  // Önbellek oturuma bağlı: personel ↔ veli geçişinde ya da çocuk listesi değişince yeniden okunur.
+  const veliMi = veliOturumuMu();
+  const kapsam = JSON.stringify([currentUser?.uid || "", veliMi, veliMi ? (veliOgrenciler || []).map(o => o?.id || "") : []]);
+  if (takvimEtkinlikler.length > 0 && !force && takvimEtkinliklerKapsam === kapsam) return takvimEtkinlikler;
 
   // ═══ İKİ KOLEKSİYON BİRDEN OKUNUR (ZEKY app ile ortak) ═══
   // Etkinlik Yönetimi modülü "etkinlikler"e yazıyor, eski okul takvimi
@@ -25716,9 +25729,13 @@ async function takvimEtkinlikleriYukle(force = false) {
   const liste = [];
   const gorulen = new Set();
 
-  const oku = async (koleksiyonAdi) => {
+  const oku = async (koleksiyonAdi, veliSorgusu = false) => {
     try {
-      const snap = await getDocs(collection(db, koleksiyonAdi));
+      // Faz 3b: veli oturumunda "takvim" tüm koleksiyon olarak okunmaz; genel + kendi
+      // çocuklarına özel sorgular birleştirilir. Personel tüm koleksiyonu okumaya devam eder.
+      const snap = veliSorgusu
+        ? await veliHedefliOku(veliOkumaFb, db, koleksiyonAdi, veliOgrenciler, { etiket: "veli takvimi" })
+        : await getDocs(collection(db, koleksiyonAdi));
       snap.forEach(d => {
         const v = d.data() || {};
         if (v.arsiv === true) return;
@@ -25733,9 +25750,10 @@ async function takvimEtkinlikleriYukle(force = false) {
   };
 
   await oku("etkinlikler");   // önce Etkinlik Yönetimi kayıtları
-  await oku("takvim");        // sonra eski okul takvimi
+  await oku("takvim", veliMi); // sonra eski okul takvimi (veliye hedefli sorgular)
 
   takvimEtkinlikler = liste;
+  takvimEtkinliklerKapsam = kapsam;
   return liste;
 }
 
@@ -26391,6 +26409,8 @@ async function caEtkinlikleriRender() {
       if (!sinifim || !hedef) return true;
       return String(hedef).toLocaleLowerCase("tr").trim() === String(sinifim).toLocaleLowerCase("tr").trim();
     }
+    // Gizlilik: çocuğa özel (ogrenci/cocuk) etkinlik yalnız velinin kendi çocuğunu hedefliyorsa görünür.
+    if (cocukHedefliMi(e)) return cocukHedefiUygunMu(e, veliOgrenciler);
     return true;
   });
 
@@ -38199,11 +38219,9 @@ async function veliRenderGaleri() {
 
   try {
     // Veli sorgusu Firestore güvenlik kuralıyla aynı kapsamı istemeli.
-// Aksi halde koleksiyondaki tek bir onaysız kayıt tüm sorguyu reddeder.
-const snap = await getDocs(query(
-  collection(db, "galeri"),
-  where("durum", "==", "onaylandi")
-));
+    // Faz 3b: yalnız onaylı (durum == 'onaylandi') ve genel ya da kendi çocuklarına özel
+    // galeri kayıtları; js/veli-hedefli-okuma.js her galeri sorgusuna onay koşulunu ekler.
+    const snap = await veliHedefliOku(veliOkumaFb, db, "galeri", veliOgrenciler, { etiket: "veli galerisi" });
     const tumu = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Velinin çocuklarına göre filtrele
@@ -41464,7 +41482,8 @@ async function veliRenderBildirimler() {
 
     // 2. Duyurular - veli hedefli olanlar
     try {
-      const duyuruSnap = await getDocs(collection(db, "duyurular"));
+      // Faz 3b: tüm koleksiyon değil; genel + kendi çocuklarına özel duyuru sorguları.
+      const duyuruSnap = await veliHedefliOku(veliOkumaFb, db, "duyurular", veliOgrenciler, { etiket: "veli duyuruları" });
       const duyurular = duyuruSnap.docs.map(d => ({ id: d.id, ...d.data(), _tip: "duyuru" }));
 
       for (const d of duyurular) {
@@ -41676,22 +41695,17 @@ async function veliZamanCizelgesiYukle() {
 
   // ── 2) Galeri (sınıf medyası) ──
   try {
-    // Sadece bu ayın medyası (tarih alanına tek alanlı indeks yeterli).
-    // 'tarih' alanı olmayan eski kayıtlar bu sorguya girmez; sorgu tümden
-    // başarısız olursa tam koleksiyona düşülür.
-    let snap;
-    try {
-      snap = await getDocs(query(collection(db, "galeri"),
-                                 where("tarih", ">=", ayBas), where("tarih", "<=", ayBit)));
-    } catch (indeksHatasi) {
-      console.warn("galeri tarih sorgusu başarısız, tam okuma:", indeksHatasi?.message);
-      snap = await getDocs(collection(db, "galeri"));
-    }
+    // Faz 3b: veli tüm galeriyi ya da tarih aralığını sorgulayamaz. Yalnız onaylı, genel
+    // ve bu çocuğa özel kayıtlar istenir; tarih aralığı bileşik indeks istediği için
+    // sorguya eklenmez, ay süzmesi aşağıda istemcide yapılır.
+    const snap = await veliHedefliOku(veliOkumaFb, db, "galeri", [o.id], { etiket: "okul hayatı galerisi" });
     snap.forEach(d => {
       const v = d.data() || {};
       if (v.durum !== "onaylandi") return;
       const t = (v.tarih || v.olusturuldu || "").slice(0, 10);
-      if (!t.startsWith(ayKod)) return;   // yedek yolda gerekli
+      if (!t.startsWith(ayKod)) return;   // ay süzmesi istemcide
+      // Gizlilik: tek çocuğa ait gözlem fotoğrafı sınıf eşleşse de yalnız o çocuğun akışında görünür.
+      if (cocukHedefliMi(v) && !cocukHedefiUygunMu(v, [o.id])) return;
       const sinifi = v.sinif || v.hedefDeger || "";
       if (sinifi && typeof sinifAdiResmiEsle === "function" &&
           sinifAdiResmiEsle(sinifi) !== sinifAdiResmiEsle(o.sinif || "")) return;
@@ -41707,6 +41721,8 @@ async function veliZamanCizelgesiYukle() {
     (liste || []).forEach(v => {
       if (!(v.tarih || "").startsWith(ayKod)) return;
       const tur = v.hedefTur || v.hedefTip || "tumOkul";
+      // Gizlilik: çocuğa özel etkinlik yalnız bu çocuğun akışında görünür.
+      if (cocukHedefliMi(v) && !cocukHedefiUygunMu(v, [o.id])) return;
       if (tur === "sinif" && v.hedefDeger && typeof sinifAdiResmiEsle === "function" &&
           sinifAdiResmiEsle(v.hedefDeger) !== sinifAdiResmiEsle(o.sinif || "")) return;
       etkinlikSayi++;
