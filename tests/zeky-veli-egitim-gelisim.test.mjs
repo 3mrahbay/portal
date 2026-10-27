@@ -36,7 +36,9 @@ test('veli eğitim fotoğraf fallback sorgusu onaylı kapsamı ister ve seçili 
   const portfolyo = await readFile(new URL('js/zeky-egitim-portfolyo.js', kok), 'utf8');
   // Faz 3b: onay koşulu (durum == 'onaylandi') ortak veli sorgu yardımcısından gelir; yalnız seçili çocuğa özel sorgular.
   assert.match(portfolyo, /veliHedefliOku\(fb, db, 'galeri', \[ogrenciId\], \{ genel:false/);
-  assert.match(portfolyo, /hedef !== ogrenciId/);
+  // Seçili öğrenci istemcide ayrılır: çocuk hedefinde ortak galeri kümesi (tek ya da çoklu seçim, çelişki = gösterilmez)
+  assert.match(portfolyo, /galeriCocugaAitMi\(v, ogrenciId\)/);
+  assert.match(portfolyo, /if \(!ait \|\| !egitimGaleriKaydiMi\(v\)\) return;/);
   assert.doesNotMatch(portfolyo, /where\('ogrenciId'/);
   assert.doesNotMatch(kaynak, /URLSearchParams/);
   assert.match(kaynak, /state\.veliAktifOgrenci/);

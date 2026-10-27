@@ -9,6 +9,7 @@ import { readPortal, installedPwa, assertPrecachedImport } from './helpers/porta
 import * as hedefli from '../js/veli-hedefli-okuma.js';
 import { onayliGaleriGetir } from '../js/zeky-egitim-portfolyo.js';
 import { ogrenciHedefte, hedefKapsar } from '../js/icerik-hedefi.js';
+import { GALERI_HEDEF_GLOBALS } from './helpers/galeri-hedef-baglami.mjs';
 
 const {
   GENEL_HEDEFLER, COCUK_HEDEFLERI, EN_FAZLA_COCUK, cocukIdleriniHazirla, veliSorgulariniOlustur,
@@ -60,7 +61,8 @@ function sahteFirestore(belgeler = {}, { hata = () => null, filtresiz = false } 
 const COCUK_ALANLARI = {
   duyurular: [['hedefDeger', '=='], ['ogrenciler', 'array-contains']],
   takvim: [['hedefDeger', '=='], ['ogrenciler', 'array-contains']],
-  galeri: [['hedefDeger', '=='], ['hedefOgrenciId', '==']]
+  // galeri: çoklu çocuk (27 Eki) — 3b kuralı ogrenciler.hasAny(veliOgrenciIdleri()) ile kanıtlar
+  galeri: [['hedefDeger', '=='], ['hedefOgrenciId', '=='], ['ogrenciler', 'array-contains']]
 };
 function kuralIzinVerir({ ad, kosullar }, cocukIdleri) {
   if (!COCUK_ALANLARI[ad]) return true;
@@ -121,7 +123,8 @@ test('galeri sorgularının hepsi durum == onaylandi taşır; eski şema hedefOg
   assert.deepEqual(sorgular.map(bicim), [
     'durum == "onaylandi" & hedefTur in ["tumOkul","okul","tum","sinif"]',
     'durum == "onaylandi" & hedefTur in ["ogrenci","cocuk"] & hedefDeger == "a"',
-    'durum == "onaylandi" & hedefTur in ["ogrenci","cocuk"] & hedefOgrenciId == "a"'
+    'durum == "onaylandi" & hedefTur in ["ogrenci","cocuk"] & hedefOgrenciId == "a"',
+    'durum == "onaylandi" & hedefTur in ["ogrenci","cocuk"] & ogrenciler array-contains "a"'
   ]);
   assert.deepEqual(veliSorgulariniOlustur(fb, {}, 'galeri', ['a'], { genel: false }).map(bicim), sorgular.slice(1).map(bicim));
   assert.ok(sorgular.every(q => kuralIzinVerir(q, ['a'])));
@@ -392,7 +395,8 @@ test('eğitim portföyü galerisi yalnız seçili çocuğa özel onaylı sorgula
   assert.deepEqual(sonuc.map(x => x.id), ['g1']);
   assert.deepEqual(sorgular.map(bicim), [
     'durum == "onaylandi" & hedefTur in ["ogrenci","cocuk"] & hedefDeger == "kendi"',
-    'durum == "onaylandi" & hedefTur in ["ogrenci","cocuk"] & hedefOgrenciId == "kendi"'
+    'durum == "onaylandi" & hedefTur in ["ogrenci","cocuk"] & hedefOgrenciId == "kendi"',
+    'durum == "onaylandi" & hedefTur in ["ogrenci","cocuk"] & ogrenciler array-contains "kendi"'
   ]);
 });
 
@@ -445,6 +449,7 @@ function zamanCizelgesi({ galeri, takvim, filtresiz = false }) {
   const { fb, sorgular } = sahteFirestore({ galeri, gunlukRaporlar: [], devamsizlik: [] }, { filtresiz });
   const tip = { ad: '', ikon: '', renk: '', bg: '' };
   const c = vm.createContext({
+    ...GALERI_HEDEF_GLOBALS,
     document: { getElementById: id => elemanlar[id] || null },
     veliZamanAy: new Date(2026, 9, 1), veliAktifOgrenci: VELI_COCUKLARI[0], veliOgrenciler: VELI_COCUKLARI,
     getDocs: fb.getDocs, query: fb.query, collection: fb.collection, where: fb.where, documentId: () => ID_ALANI,
@@ -467,6 +472,10 @@ test('okul hayatı akışı: başka çocuğun gözlem fotoğrafı ve etkinliği 
     foto('G-GOZLEM-KENDI', { hedefTur: 'ogrenci', hedefDeger: 'kendi', hedefOgrenciId: 'kendi', sinif: 'Lale' }),
     foto('G-GOZLEM-BASKA', { hedefTur: 'ogrenci', hedefDeger: 'baska', hedefOgrenciId: 'baska', sinif: 'Lale', hedefOgrenciAd: 'GİZLİ ÇOCUK' }),
     foto('G-GOZLEM-KARDES', { hedefTur: 'ogrenci', hedefDeger: 'kardes', hedefOgrenciId: 'kardes', sinif: 'Lale' }),
+    // Çoklu çocuk (27 Eki): ilk çocuk başkası olsa da listede bu çocuk varsa görünür; listede yoksa görünmez
+    foto('G-COKLU-KENDI', { hedefTur: 'ogrenci', hedefDeger: 'baska', hedefOgrenciId: 'baska', ogrenciId: 'baska', ogrenciler: ['baska', 'kendi'], hedefOgrenciAd: '2 öğrenci' }),
+    foto('G-COKLU-BASKA', { hedefTur: 'ogrenci', hedefDeger: 'baska', hedefOgrenciId: 'baska', ogrenciId: 'baska', ogrenciler: ['baska', 'kardes'], hedefOgrenciAd: '2 öğrenci' }),
+    foto('G-COKLU-CELISKI', { hedefTur: 'ogrenci', hedefDeger: 'yabanci', hedefOgrenciId: 'yabanci', ogrenciler: ['kendi'] }),
     foto('G-BEKLEYEN', { hedefTur: 'tumOkul', durum: 'beklemede' }),
     foto('G-EYLUL', { hedefTur: 'tumOkul', tarih: '2026-09-30' })
   ];
@@ -476,14 +485,14 @@ test('okul hayatı akışı: başka çocuğun gözlem fotoğrafı ve etkinliği 
     { id: 't3', baslik: 'T-COCUK-BASKA', tarih: '2026-10-12', hedefTur: 'ogrenci', hedefDeger: 'baska', hedefOgrenciAd: 'GİZLİ ÇOCUK' },
     { id: 't4', baslik: 'T-SINIF-BASKA', tarih: '2026-10-13', hedefTur: 'sinif', hedefDeger: 'Papatya' }
   ];
-  const beklenen = ['G-GENEL', 'G-SINIF', 'G-GOZLEM-KENDI', 'T-GENEL', 'T-COCUK-KENDI'];
-  const yasak = ['G-BASKA-SINIF', 'G-GOZLEM-BASKA', 'G-GOZLEM-KARDES', 'G-BEKLEYEN', 'G-EYLUL', 'T-COCUK-BASKA', 'T-SINIF-BASKA'];
+  const beklenen = ['G-GENEL', 'G-SINIF', 'G-GOZLEM-KENDI', 'G-COKLU-KENDI', 'T-GENEL', 'T-COCUK-KENDI'];
+  const yasak = ['G-BASKA-SINIF', 'G-GOZLEM-BASKA', 'G-GOZLEM-KARDES', 'G-COKLU-BASKA', 'G-COKLU-CELISKI', 'G-BEKLEYEN', 'G-EYLUL', 'T-COCUK-BASKA', 'T-SINIF-BASKA'];
 
   // 1) Faz 3b sorguları: galeri tarih aralığıyla ya da tam okunmaz; her sorgu kural sözleşmesinde.
   const hedefliOkuma = zamanCizelgesi({ galeri, takvim });
   await hedefliOkuma.c.yukle();
   const galeriSorgulari = hedefliOkuma.sorgular.filter(q => q.ad === 'galeri');
-  assert.equal(galeriSorgulari.length, 3);
+  assert.equal(galeriSorgulari.length, 4); // genel + hedefDeger + hedefOgrenciId + ogrenciler array-contains
   for (const q of galeriSorgulari) assert.ok(kuralIzinVerir(q, ['kendi']), bicim(q));
   for (const b of beklenen) assert.ok(hedefliOkuma.html().includes(`>${b}<`), b);
   for (const b of yasak) assert.ok(!hedefliOkuma.html().includes(`>${b}<`), b);

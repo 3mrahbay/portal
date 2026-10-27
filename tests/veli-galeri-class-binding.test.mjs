@@ -7,6 +7,7 @@ import * as folders from '../js/galeri-klasorleri.js';
 import * as media from '../js/portal-galeri-medya.js';
 import {downloadMedia} from '../js/portal-galeri-canli.js';
 import * as hedefliOkuma from '../js/veli-hedefli-okuma.js';
+import {GALERI_HEDEF_GLOBALS} from './helpers/galeri-hedef-baglami.mjs';
 const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const getter=index.match(/get state\(\) \{([\s\S]*?)\n  \},/)[1];
 const helpers=index.slice(index.indexOf('// Gallery-only proof from'),index.indexOf('async function loadVeliPanel'));
@@ -27,7 +28,7 @@ function reader(f,rows){
  const root={innerHTML:'',querySelectorAll:()=>[]},calls=[],opened=[],downloads=[];let failure=()=>false;
  const fb={collection:(_,n)=>n,where:(field,operator,value)=>({field,operator,value}),query:(collection,...filters)=>({collection,filters}),getDocs:async q=>{calls.push(q);if(failure(q))throw Object.assign(Error('private provider detail'),{code:'permission-denied'});const chosen=rows.filter(r=>q.filters.every(w=>w.operator==='in'?w.value.includes(r[w.field]):r[w.field]===w.value));return{forEach:fn=>chosen.forEach(r=>fn({id:r.id,data:()=>r}))}}};
  const window={PortalAPI:{get state(){return f.state()},fb,db:{},esc:v=>String(v??''),lucide(){},galeriSinifYenile:()=>f.run(f.c.veliAktifOgrenci)},addEventListener(){}};
- const c={...scope,...folders,...media,...hedefliOkuma,window,console,document:{getElementById:id=>id==='g'?root:null},disposeMedia(){},mountMedia(){},recordOpen:m=>opened.push(m),downloadMedia:m=>downloads.push(m)};
+ const c={...GALERI_HEDEF_GLOBALS,...scope,...folders,...media,...hedefliOkuma,window,console,document:{getElementById:id=>id==='g'?root:null},disposeMedia(){},mountMedia(){},recordOpen:m=>opened.push(m),downloadMedia:m=>downloads.push(m)};
  vm.runInNewContext(moduleSource+';globalThis.renderGallery=render;',c);
  return{root,calls,opened,downloads,window,render:()=>c.renderGallery('g'),fail:fn=>failure=fn,ids:()=>[...root.innerHTML.matchAll(/data-vg-thumbnail="([^"]+)"/g)].map(m=>m[1])};
 }
@@ -51,7 +52,7 @@ test('binding clears synchronously before read; a missing, inactive or unclassif
  for(const data of [null,{}, {aktif:false,kayit:{sinif:'Yasemin'}},{durum:'arsiv',kayit:{sinif:'Yasemin'}},{kayit:{sinif:''}}]){const f=await hydrated(),p=f.run(childA);assert.equal(scope.galleryChildClass(childA,f.state()),'');f.resolve(1,data);await p;assert.equal(scope.galleryChildClass(childA,f.state()),'');assert.equal(f.state().galeriSinifBaglami.durum,'eksik');}
 });
 test('read failure is explicit; retry can recover without querying an unverified class',async()=>{
- const f=fixture(),p=f.run(childB);f.pending[0].reject(Error('private URL/token'));await p;assert.equal(f.state().galeriSinifBaglami.durum,'hata');const r=reader(f,[photo('yes')]);await r.render();assert.equal(r.calls.length,3);assert.match(r.root.innerHTML,/sınıfı doğrulanamadı/);assert.doesNotMatch(r.root.innerHTML,/Henüz paylaşılan anı yok|private/);
+ const f=fixture(),p=f.run(childB);f.pending[0].reject(Error('private URL/token'));await p;assert.equal(f.state().galeriSinifBaglami.durum,'hata');const r=reader(f,[photo('yes')]);await r.render();assert.equal(r.calls.length,4);/* tüm okul + çocuğa özel: hedefDeger, hedefOgrenciId, ogrenciler array-contains */assert.match(r.root.innerHTML,/sınıfı doğrulanamadı/);assert.doesNotMatch(r.root.innerHTML,/Henüz paylaşılan anı yok|private/);
  const retry=r.window._vg.tekrar('g');f.resolve(1,{kayit:{sinif:'Yasemin'}});await retry;assert.deepEqual(r.ids(),['yes']);assert.doesNotMatch(r.root.innerHTML,/eksik olabilir/);
 });
 test('foreign selected child cannot hydrate and stale bindings cannot authorize class actions',async()=>{

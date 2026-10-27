@@ -36,6 +36,7 @@ const PRECACHE = [
   "./js/veli-hedefli-okuma.js?v=1",
   "./js/icerik-hedefi.js?v=1",
   "./js/ogrenci-coklu-secici.js?v=1",
+  "./js/galeri-hedefi.js?v=1",
   "./js/portal-bildirim-yerlesim.js?v=165",
   "./js/portal-bildirim-basliklari.js?v=166",
   "./js/portal-mesaj-bildirim.js?v=164",

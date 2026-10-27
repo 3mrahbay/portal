@@ -8,6 +8,7 @@ import {isGalleryParent,targetChild,childTargetMatches,createInteractionService,
 import {saveBlob,downloadMedia} from '../js/portal-galeri-canli.js';
 import {galleryMediaType,galleryDisplayUrl,downloadSource,isPlayerUrl} from '../js/portal-galeri-medya.js';
 import {veliSorgulariniOlustur} from '../js/veli-hedefli-okuma.js';
+import {GALERI_HEDEF_GLOBALS} from './helpers/galeri-hedef-baglami.mjs';
 const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const source=fs.readFileSync(new URL('../moduller/veli-galeri.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
 const child={id:'child-a',sinif:'Mimoza'},user={uid:'parent-a',email:'synthetic@example.invalid',providerData:[]};
@@ -38,7 +39,7 @@ function fixture(rows,overrides={}){
  const emit=(name,event={})=>{for(const f of events.get(name)||[])f(event);};
  const history={get state(){return stack[at]},pushState(s){stack.splice(++at);stack[at]=s;},replaceState(s){stack[at]=s;},back(){backCalls++;backQueued=true;}};
  const window={PortalAPI:{get state(){return auth.api.state},esc,lucide(){},db:{},fb:{collection:()=> 'galeri',where:(field,op,value)=>({field,value}),query:(collection,...where)=>({collection,where}),getDocs:async q=>{calls.queries.push(q);return{forEach:f=>rows.forEach(r=>f({id:r.id,data:()=>r}))};}}},history,addEventListener:(n,f)=>events.set(n,[...events.get(n)||[],f])};
- const ctx={galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,...folders,veliSorgulariniOlustur,window,document,console,isGalleryParent,targetChild,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,downloadSource,mountMedia:(h,m,o)=>calls.mount.push({id:m.id,opts:o}),disposeMedia:d=>calls.dispose.push(d),recordOpen:m=>calls.open.push(m.id),downloadMedia:m=>calls.download.push(m.id)};
+ const ctx={...GALERI_HEDEF_GLOBALS,galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,...folders,veliSorgulariniOlustur,window,document,console,isGalleryParent,targetChild,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,downloadSource,mountMedia:(h,m,o)=>calls.mount.push({id:m.id,opts:o}),disposeMedia:d=>calls.dispose.push(d),recordOpen:m=>calls.open.push(m.id),downloadMedia:m=>calls.download.push(m.id)};
  vm.runInNewContext(source+';globalThis.render=render;',ctx);
  return {auth,window,root,nodes,calls,document,history,emit,get backCalls(){return backCalls},
   render:()=>ctx.render('gallery'),html:()=>root.innerHTML,lightbox:()=>nodes.get('vgLightbox'),

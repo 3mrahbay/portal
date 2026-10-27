@@ -2,6 +2,7 @@ import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js';
 export { galleryProgram } from './galeri-klasorleri.js';
 import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=192';
 import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=166';
+import { galeriHedefAnahtari } from './galeri-hedefi.js?v=1';
 
 const api = () => window.PortalAPI;
 const service = createInteractionService(api);
@@ -144,6 +145,13 @@ async function reportPanel(media) {
     if (panel.isConnected) panel.querySelector('[data-pg-report]').textContent = 'Etkileşim kayıtları okunamadı. Galeri etkileşim kurallarını ve bağlantıyı kontrol edin; bu durum hiç kimsenin açmadığı anlamına gelmez.';
   }
 }
+// Öğrenci albümünde değer, hedef kümesinin anahtarı olabilir ("ogrenci:id1,id2"): çoklu öğrenci albümü
+// ilk öğrencinin tek öğrencili albümüyle karışmaz. Eski çağrılar hedefDeger gönderir.
+function hedefEslesir(item, targetType, targetValue) {
+  const deger = String(targetValue || '');
+  if (targetType === 'ogrenci' && deger.startsWith('ogrenci:')) return galeriHedefAnahtari(item) === deger;
+  return String(item.hedefDeger || '') === deger;
+}
 let albumBusy = false;
 export async function downloadAlbum(title, date, targetType, targetValue, folderScope = null) {
   if (albumBusy) return false;
@@ -156,7 +164,7 @@ export async function downloadAlbum(title, date, targetType, targetValue, folder
     if (folderScope) return galleryProgram(item) === folderScope.program && galleryFolderKey(item) === folderScope.folderKey;
     if (targetType === '__egitim__') return galleryProgram(item) === targetValue;
     return item.etkinlikBaslik === title && item.etkinlikTarih === date &&
-      (!targetType || item.hedefTur === targetType) && (!targetType || String(item.hedefDeger || '') === String(targetValue || ''));
+      (!targetType || item.hedefTur === targetType) && (!targetType || hedefEslesir(item, targetType, targetValue));
   });
   if (!media.length) { toast('Dosya bulunamadı', 'error'); return false; }
   const downloadable = media.filter(item => downloadSource(item));

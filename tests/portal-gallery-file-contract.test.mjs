@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {galeriYuklemeBaglami} from './helpers/galeri-hedef-baglami.mjs';
 import {classifyGalleryFile,validateStreamVideo,requestStreamAuthorization,uploadStreamVideo} from '../js/bunny-stream-upload.js';
 import {installedPwa,assertPrecachedImport} from './helpers/portal-pwa.mjs';
 
@@ -76,7 +77,7 @@ test('actual Portal selected-file preview uses the same video classifier',()=>{
 function uploadFixture(files) {
   const saved=[],routes=[],nodes=new Map();
   const values={galeriEtkinlik:'Synthetic',galeriEtkinlikTarih:'2026-10-06',galeriAciklama:'',galeriHedefTur:'sinif',galeriHedefSinif:'Synthetic class',galeriKategori:''};
-  const c={window:{PortalAPI:{state:{}}},classifyGalleryFile,validateStreamVideo,galeriSecilenDosyalar:files,
+  const c={...galeriYuklemeBaglami(),window:{PortalAPI:{state:{}}},classifyGalleryFile,validateStreamVideo,galeriSecilenDosyalar:files,
     document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:values[id]||'',style:{},checked:false});return nodes.get(id);}},
     gallerySession:()=> 'synthetic-session',galleryText:x=>x,galeriProgramKodu:()=>'',currentUser:{email:'synthetic@example.invalid'},AKTIF_DONEM:'synthetic',isAdmin:false,aktifKullaniciRol:'ogretmen',
     db:{},doc:()=>({id:'synthetic-record'}),collection:()=>{},setDoc:async(ref,value)=>saved.push({ref,value}),

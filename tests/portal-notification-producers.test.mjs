@@ -10,6 +10,7 @@ import { galleryText, galleryProgram } from '../js/galeri-klasorleri.js';
 import { hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js';
 import { hedefAlanlari, hedefMetni } from '../js/icerik-hedefi.js';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from '../js/ogretmen-sinif-core.js';
+import {galeriYuklemeBaglami} from './helpers/galeri-hedef-baglami.mjs';
 
 const source=await readFile(new URL('../index.html',import.meta.url),'utf8');
 function section(start,end){
@@ -71,7 +72,7 @@ function environment(t,{role='mudur'}={}){
   }};
   const quiet={warn(){},error(){},log(){}};
   const attachment={yuklemeSuruyor:()=>false,formEkleri:()=>[],kayitTamamlandi(){}};
-  ctx=vm.createContext({window,bridge,classifyGalleryFile,gallerySession,galleryApprovalTarget,notifyGalleryApproval:async media=>{approvalNotices.push(media);return{ok:true};},galleryText,galleryProgram,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
+  ctx=vm.createContext({...galeriYuklemeBaglami(),window,bridge,classifyGalleryFile,gallerySession,galleryApprovalTarget,notifyGalleryApproval:async media=>{approvalNotices.push(media);return{ok:true};},galleryText,galleryProgram,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
     currentUser:{uid:'sender',email:'staff@example.invalid'},aktifPersonel:{adSoyad:'Private Teacher Name'},isAdmin:role==='mudur',aktifKullaniciRol:role,aktifKullaniciSiniflari:['A'],
     AKTIF_DONEM:donem,ogrenciList:students,ayarListesi:settings,db:window.PortalAPI.db,
     veliOgrenciler:students.slice(0,3),veliAktifOgrenci:students[0],
