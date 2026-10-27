@@ -11078,7 +11078,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
               <div class="form-group" id="galeriHedefOgrenciWrap" style="display:none; grid-column:1 / -1;">
                 <label>Öğrenciler</label>
                 <div id="galeriHedefOgrenciSecici"></div>
-                <div class="field-hint">Birden fazla öğrenci seçebilirsiniz. Fotoğraf izni geri alınmış öğrenci seçilemez.</div>
+                <div class="field-hint">Birden fazla öğrenci seçebilirsiniz (en çok 30). Fotoğraf yalnızca seçilen öğrencilerin velilerine görünür.</div>
               </div>
             </div>
 
@@ -14063,7 +14063,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, setDoc, updateDoc, deleteDoc,
+  getFirestore, collection, doc, getDoc, getDocFromServer, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction,
   documentId, deleteField, getCountFromServer, FieldPath
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -14077,7 +14077,7 @@ import { bildirimZamani, enYeniBildirimOnce, canliListeOlustur } from "./js/okul
 import { veliHedefliOku, cocukHedefliMi, cocukHedefiUygunMu } from "./js/veli-hedefli-okuma.js?v=2";
 import { icerikHedefi, hedefKapsar, ogrenciHedefte, hedefAlanlari, formHedefi, hedefMetni, hedefEtiketi, veliHedefEtiketi } from "./js/icerik-hedefi.js?v=1";
 import { ogrenciCokluSecici } from "./js/ogrenci-coklu-secici.js?v=2";
-import { galeriCocuklari, galeriCocugaAitMi, galeriHedefAnahtari, fotoIzniGeriAlinanlar, galeriHedefAlanlari, galeriHedefKopyala, GALERI_EN_FAZLA_COCUK, IZIN_YOK_METNI, GALERI_IZIN_KONTROL_SURUMU } from "./js/galeri-hedefi.js?v=2";
+import { galeriCocuklari, galeriCocugaAitMi, galeriHedefAnahtari, galeriHedefAlanlari, galeriHedefKopyala, GALERI_EN_FAZLA_COCUK } from "./js/galeri-hedefi.js?v=2";
 
 const firebaseConfig = {
   apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
@@ -22458,8 +22458,6 @@ async function caGozlemFotoYukle(st, anahtar, ders, notMetin, alan = {}, grup = 
   const sonuc = await medyaYukle(isaretli, `galeri/ogrenci/${st.ogrId}/${st.disiplin}/${tarih}`);
   const yonetimYuklemesi = isAdmin || ["kurucu_mudur","mudur","egitim_koordinator"].includes(aktifKullaniciRol);
   const durum = yonetimYuklemesi ? "onaylandi" : "beklemede";
-  // Doğrudan yayında fotoğraf izni yazımdan hemen önce yeniden denetlenir (izni geri alınmışsa yayın yok).
-  if (yonetimYuklemesi) await galeriYayinIzniDogrula([st.ogrId]);
   const simdi = new Date().toISOString();
   const ref = doc(collection(db, "galeri"));
   const oge = {
@@ -22476,8 +22474,7 @@ async function caGozlemFotoYukle(st, anahtar, ders, notMetin, alan = {}, grup = 
     yukleyenRol:aktifKullaniciRol || aktifPersonel?.rol || "", yukleyenUid:currentUser?.uid || "",
     yuklemeZamani:simdi, tarih:simdi, durum,
     onaylayanEmail:yonetimYuklemesi ? (currentUser?.email || "") : "",
-    onayTarihi:yonetimYuklemesi ? simdi : "",
-    ...(yonetimYuklemesi ? { izinKontrolSurumu: GALERI_IZIN_KONTROL_SURUMU } : {})
+    onayTarihi:yonetimYuklemesi ? simdi : ""
   };
   await setDoc(ref, oge);
   return { id:ref.id, url:sonuc.url, yol:sonuc.yol||"", durum };
@@ -36827,20 +36824,12 @@ window.galeriOnayla = async function(id) {
     if (!onceki.exists()) return false;
     const oge = { id, ...onceki.data() };
     if (!galeriBekliyorMu(oge.durum)) return false;
-    // Çocuğa özel içerik: hedef listesi tutarlı olmalı ve hiçbir çocuğun fotoğraf izni geri alınmamış olmalı.
+    // Çocuğa özel içerik: hedef listesi tutarlı olmalı (çelişkili kayıt hiçbir veliye açılmaz).
+    // Galeride fotoğraf izni denetimi yok (aileler yazılı onay verdi; Emrah Bay, 28 Eki 2026).
     const cocuklar = galeriCocuklari(oge);
     const cocugaOzel = oge.hedefTur === "ogrenci" || oge.hedefTur === "cocuk";
-    if (cocugaOzel) {
-      if (!cocuklar.length) { showToast("Bu içeriğin hedef öğrenci bilgisi çelişkili; onaylanamaz. Reddedip yeniden yükleyin.", "error"); return false; }
-      try { await galeriYayinIzniDogrula(cocuklar); }
-      catch (e) {
-        showToast(e?.izinHatasi === "geriAlindi"
-          ? `Bu içerikteki ${cocuklar.filter(c => e.izinsiz?.has(c)).length} öğrencinin fotoğraf izni geri alınmış; onaylanamaz. İçeriği reddedin.`
-          : "Fotoğraf izinleri doğrulanamadı; onay yapılmadı. Yeniden deneyin.", "error");
-        return false;
-      }
-    }
-    // İzin denetiminin hemen ardından işlem içinde: kayıt hâlâ onay bekliyor ve hedefi denetlenenle aynı olmalı.
+    if (cocugaOzel && !cocuklar.length) { showToast("Bu içeriğin hedef öğrenci bilgisi çelişkili; onaylanamaz. Reddedip yeniden yükleyin.", "error"); return false; }
+    // İşlem içinde: kayıt hâlâ onay bekliyor ve hedefi okunanla aynı olmalı (eşzamanlı onay/düzenleme).
     const hedefImzasi = JSON.stringify([oge.hedefTur || "", oge.hedefDeger || "", cocuklar]);
     let degisti = false;
     await runTransaction(db, async tx => {
@@ -36849,8 +36838,7 @@ window.galeriOnayla = async function(id) {
       if (!guncel || !galeriBekliyorMu(guncel.durum)) { degisti = "islendi"; return; }
       if (JSON.stringify([guncel.hedefTur || "", guncel.hedefDeger || "", galeriCocuklari(guncel)]) !== hedefImzasi) { degisti = "hedef"; return; }
       tx.update(ref, {
-        durum: "onaylandi", onaylayanEmail: currentUser.email, onayTarihi: new Date().toISOString(),
-        izinKontrolSurumu: GALERI_IZIN_KONTROL_SURUMU
+        durum: "onaylandi", onaylayanEmail: currentUser.email, onayTarihi: new Date().toISOString()
       });
     });
     if (degisti === "islendi") return false;
@@ -37260,35 +37248,11 @@ window.galeriHedefDegisti = function() {
 };
 
 // ── Galeri: çoklu öğrenci seçimi (27 Eki 2026) ──
-// Seçilebilecek öğrenciler duyurudakiyle aynı (aktif; öğretmende yalnız kendi sınıfı). Fotoğraf izni
-// AÇIKÇA geri alınmış öğrenci (izinGunlugu en son 'foto' kaydı durum:true değil) listede pasif görünür,
-// seçilemez. Kaydı olmayan öğrenci izinli (kayıt sözleşmesi). İzinler her açılışta sunucudan okunur.
+// Seçilebilecek öğrenciler duyurudakiyle aynı (aktif; öğretmende yalnız kendi sınıfı), en çok 30.
+// Galeride fotoğraf izni süzgeci yok: aileler yazılı onay verdi (Emrah Bay, 28 Eki 2026).
 let galeriOgrenciSecici = null;
-let galeriIzinsizIdler = null;   // Set; null = henüz okunmadı / okunamadı
-let galeriIzinOkumaNo = 0;
-async function galeriIzinsizleriOku() {
-  const snap = await getDocsFromServer(collection(db, "izinGunlugu"));
-  const kayitlar = [];
-  snap.forEach(d => kayitlar.push(d.data() || {}));
-  return fotoIzniGeriAlinanlar(kayitlar);
-}
-// Yayın / kayıt öncesi son izin denetimi: izin günlüğü sunucudan yeniden okunur. Çocuk kümesinde izni geri
-// alınmış öğrenci varsa ya da günlük okunamazsa hata fırlatır (yazım yapılmaz). Onaylı her galeri yazımı bu
-// denetimden hemen sonra yapılır ve izinKontrolSurumu taşır (js/galeri-hedefi.js).
-async function galeriYayinIzniDogrula(cocuklar) {
-  const liste = (Array.isArray(cocuklar) ? cocuklar : []).filter(Boolean);
-  if (!liste.length) return true;
-  let izinsiz;
-  try { izinsiz = await galeriIzinsizleriOku(); }
-  catch (e) { throw Object.assign(new Error("Fotoğraf izinleri doğrulanamadı. Bağlantıyı kontrol edip yeniden deneyin."), { izinHatasi: "okunamadi" }); }
-  const sayi = liste.filter(id => izinsiz.has(id)).length;
-  if (sayi) throw Object.assign(new Error(`Seçilen öğrencilerden ${sayi} tanesinin fotoğraf izni geri alınmış. Bu öğrenciler için yükleme ya da yayın yapılamaz.`), { izinHatasi: "geriAlindi", izinsiz });
-  return true;
-}
-window.galeriYayinIzniDogrula = galeriYayinIzniDogrula;
 function galeriSecilebilirOgrenciler() {
-  const izinsiz = galeriIzinsizIdler || new Set();
-  return hedefSecilebilirOgrenciler().map(o => ({ id: o.id, ad: o.ad, sinif: o.sinif, pasif: izinsiz.has(o.id) ? IZIN_YOK_METNI : "" }));
+  return hedefSecilebilirOgrenciler().map(o => ({ id: o.id, ad: o.ad, sinif: o.sinif }));
 }
 function doldurGaleriOgrenciSecici(seciliIdler = []) {
   const kap = document.getElementById("galeriHedefOgrenciSecici");
@@ -37301,19 +37265,6 @@ function doldurGaleriOgrenciSecici(seciliIdler = []) {
     galeriOgrenciSecici.ogrencileriAyarla(ogrenciler);
     galeriOgrenciSecici.ayarla(seciliIdler);
   }
-  const no = ++galeriIzinOkumaNo;
-  galeriIzinsizleriOku().then(izinsiz => {
-    if (no !== galeriIzinOkumaNo || !galeriOgrenciSecici) return;
-    galeriIzinsizIdler = izinsiz;
-    const onceki = galeriOgrenciSecici.seciliIdler();
-    galeriOgrenciSecici.ogrencileriAyarla(galeriSecilebilirOgrenciler());
-    const cikan = onceki.filter(id => izinsiz.has(id)).length;
-    if (cikan) showToast(`${cikan} öğrencinin fotoğraf izni geri alınmış; seçimden çıkarıldı.`, "warning");
-  }).catch(e => {
-    if (no !== galeriIzinOkumaNo) return;
-    galeriIzinsizIdler = null;
-    console.warn("Galeri fotoğraf izinleri okunamadı:", e?.code || e?.message || e);
-  });
 }
 
 // Drag & Drop
@@ -37472,15 +37423,6 @@ window.galeriYukle = async function() {
       const disarida = hedef.ogrenciler.filter(id => !izinli.has(id)).length;
       if (disarida) return showToast(`Yalnızca kendi sınıfınızdaki aktif öğrencileri seçebilirsiniz (${disarida} seçim uygun değil).`, "error");
     }
-    // Fotoğraf izni yüklemeden önce ve her kayıttan hemen önce sunucudan yeniden doğrulanır; doğrulanamazsa yazım yok.
-    try { await galeriYayinIzniDogrula(hedef.ogrenciler); }
-    catch (e) {
-      if (e?.izinsiz) {
-        galeriIzinsizIdler = e.izinsiz;
-        if (galeriOgrenciSecici && !albumEkleMod) galeriOgrenciSecici.ogrencileriAyarla(galeriSecilebilirOgrenciler());
-      }
-      return showToast(e.message, "error");
-    }
   }
 
   const btn = document.getElementById("btnGaleriYukle");
@@ -37495,7 +37437,7 @@ window.galeriYukle = async function() {
   const etkinlikSlug = (etkinlikTarih + "-" + etkinlik).replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\-]/g, "-").replace(/-+/g, "-").toLowerCase();
   const klasorPath = `galeri/${hedefPath}/${etkinlikSlug}`;
 
-  let basarili = 0, hatali = 0, izinDurdurdu = "";
+  let basarili = 0, hatali = 0;
   const yuklemeHatalari = [];
   let yayinlananFotoSayisi = 0, yayinlananVideoSayisi = 0;
   const yayinlananOgeIdleri = [];
@@ -37568,14 +37510,6 @@ window.galeriYukle = async function() {
       oge.durum = yonetimYuklemesi ? "onaylandi" : "beklemede";
       oge.onaylayanEmail = yonetimYuklemesi ? currentUser.email : "";
       oge.onayTarihi = yonetimYuklemesi ? new Date().toISOString() : "";
-      if (yonetimYuklemesi) oge.izinKontrolSurumu = GALERI_IZIN_KONTROL_SURUMU;
-
-      // Çocuğa özel hedefte izin, yükleme sürerken değişmiş olabilir: kayıttan hemen önce yeniden denetlenir.
-      // İzni geri alınan öğrenci varsa bu ve sonraki dosyalar kaydedilmez.
-      if (hedef.hedefTur === "ogrenci") {
-        try { await galeriYayinIzniDogrula(hedef.ogrenciler); }
-        catch (e) { izinDurdurdu = e.message; hatali += galeriSecilenDosyalar.length - i; break; }
-      }
 
       // Firestore'a metadata kaydet
       if (!yuklemeGecerli()) return;
@@ -37620,7 +37554,6 @@ window.galeriYukle = async function() {
     }
   }
 
-  if (izinDurdurdu) { yuklemeHatalari.unshift(izinDurdurdu); showToast(izinDurdurdu, "error"); }
   const yuklemeOzet = `${basarili} başarılı${hatali > 0 ? `, ${hatali} hatalı` : ''}`;
   const ilkHata = yuklemeHatalari[0] || "";
   document.getElementById("galeriYuklemeDurum").textContent =

@@ -19,7 +19,6 @@ function observationRuntime(options={}){
  document:{getElementById:id=>nodes.get(id)||null,createElement:()=>new FakeElement()},
  BCK,PortalAPI:{state},showToast:(message,type)=>calls.toasts.push({message,type}),
  notifyGalleryApproval:async item=>{calls.events.push('approval-notice');assert.equal(calls.committed.filter(x=>['galeri/synthetic-gallery-id','ogrenciGelisim/synthetic-child'].includes(x.ref.path)).length,2,'both gallery and observation must already be committed before approval notice');calls.notices.push(item);return options.notify?await options.notify():{ok:true,push:{ok:true}};},
- galeriYayinIzniDogrula:async ids=>{calls.events.push('permission-check:'+ids.join(','));if(options.permissionWithdrawn)throw Object.assign(Error('Seçilen öğrencilerden 1 tanesinin fotoğraf izni geri alınmış.'),{izinHatasi:'geriAlindi'});return true;},
  hedefVeliEmailleri:()=>['synthetic-parent@example.test'],bildirimKaydetVePush:async()=>{calls.events.push('parent-push');return{ok:true,push:{ok:true}};}};
  context.window=context;vm.createContext(context);vm.runInContext(source+'\nglobalThis.fixture={save:kaydet,close:kapat,read:()=>S,initialize:x=>S=x};',context);
  context.fixture.initialize({ogrId:'synthetic-child',ogrAd:'Synthetic Child',sinif:'Synthetic Class',program:'montessori',alanlar:[{id:'synthetic-area',ad:'Synthetic area',gruplar:[{ad:'Synthetic group',dersler:['Synthetic lesson']}]}],alanIdx:0,grupIdx:0,dersIdx:0,durum:'S',not:'Synthetic observation',foto:options.photo===false?null:{synthetic:true},fotoOniz:options.photo===false?'':'blob:preview'});
@@ -38,14 +37,7 @@ test('failed image upload has no database writes or notifications',async()=>{
 });
 for(const role of ['egitim_koordinator','mudur','kurucu_mudur'])test(`actual ${role} observation keeps autoapproved publishing and skips approval request`,async()=>{
  const r=observationRuntime({role});await r.save();assert.deepEqual(r.calls.notices,[]);assert.equal(r.calls.committed[0].data.durum,'onaylandi');assert.equal(r.calls.committed[1].data.sonGozlem.fotoUrl,'https://synthetic-media.test/observation.jpg');assert.equal(r.calls.parentNotices.length,1);assert.equal(r.calls.parentNotices[0].data.galeriId,'synthetic-gallery-id');assert(r.calls.events.indexOf('transaction-commit')<r.calls.events.indexOf('parent-notice-save'));
- assert.equal(r.calls.committed[0].data.izinKontrolSurumu,2,'doğrudan yayın izin kontrol sürümünü taşır');
- const check=r.calls.events.indexOf('permission-check:synthetic-child');assert(check>r.calls.events.indexOf('upload')&&check<r.calls.events.indexOf('transaction-start'),'izin yazımdan hemen önce denetlenir');
-});
-test('management observation whose child photo permission was withdrawn writes nothing',async()=>{
- const r=observationRuntime({role:'mudur',permissionWithdrawn:true});await r.save();assert.deepEqual(r.calls.committed,[]);assert.deepEqual(r.calls.parentNotices,[]);assert(!r.calls.events.includes('transaction-start'));assert.match(r.calls.toasts.at(-1).message,/izni geri alınmış|kaydedilemedi/);
-});
-test('teacher observation stays pending without permission version (approver writes it)',async()=>{
- const r=observationRuntime();await r.save();assert.equal('izinKontrolSurumu' in r.calls.committed[0].data,false);
+ assert.equal('izinKontrolSurumu' in r.calls.committed[0].data,false,'galeride izin sürümü yazılmaz');
 });
 test('text-only observation retains its parent notification and does not create gallery or approval items',async()=>{
  const r=observationRuntime({photo:false});await r.save();assert.equal(r.calls.committed.length,1);assert.equal(r.calls.committed[0].ref.path,'ogrenciGelisim/synthetic-child');assert.equal(r.calls.parentNotices.length,1);assert.deepEqual(r.calls.notices,[]);assert(!r.calls.events.includes('upload'));

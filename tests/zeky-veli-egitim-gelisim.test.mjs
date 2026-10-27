@@ -86,7 +86,7 @@ test('eğitim köprüsü PortalAPI uyumluluğuyla global caGo ve veli deneyimini
   assert.match(kopru, /typeof win\.caGo === 'function'/);
   assert.match(kopru, /ekran === 'egitim'/);
   assert.match(kopru, /veliEgitimRender\('cicekAppRoot'\)/);
-  assert.match(kopru, /zeky-ogrenci-guvenlik-koprusu\.js\?v=8/);
+  assert.match(kopru, /zeky-ogrenci-guvenlik-koprusu\.js\?v=7/);
   assert.match(kopru, /zeky-aktif-donem-senkron\.js\?v=3/);
   assert.match(kopru, /zeky-veli-ogrenme-deneyimi\.js\?v=4/);
   assert.match(kopru, /__zekyEgitimKoprusuSurum/);

@@ -212,7 +212,7 @@ test('admin mixed gallery upload notifies only successfully published photo and 
 test('actual pending gallery approval notifies after approved write, while repeated approval is silent',async t=>{
   const e=environment(t);e.seeds('photo');
   assert.equal(await e.window.galeriOnayla('photo'),true);
-  assert.equal(e.docs.get('galeri/photo').durum,'onaylandi');assert.equal(e.docs.get('galeri/photo').izinKontrolSurumu,2);assert.equal(e.notices.length,1);
+  assert.equal(e.docs.get('galeri/photo').durum,'onaylandi');assert.equal('izinKontrolSurumu' in e.docs.get('galeri/photo'),false);assert.equal(e.notices.length,1);
   assert.ok(e.trace.indexOf('update:galeri/photo')<e.trace.indexOf('notify:galeri'));
   assert.deepEqual(e.notices[0].emails,['a1@example.invalid','a2@example.invalid']);
   assert.equal(await e.window.galeriOnayla('photo'),false);assert.equal(e.notices.length,1);
