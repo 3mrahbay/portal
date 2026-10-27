@@ -1,4 +1,4 @@
-import { galeriCocugaAitMi } from './galeri-hedefi.js?v=1';
+import { galeriCocugaAitMi } from './galeri-hedefi.js?v=2';
 // The same existing schema as ZEKY. No new permissions or tracking fields.
 // Portal intentionally uses null for a parent role. A session-bound gallery marker
 // is set only after the existing assigned-child loader succeeds; null alone is not enough.

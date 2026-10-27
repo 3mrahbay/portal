@@ -13953,7 +13953,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js';
-import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=192';
+import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=193';
 import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
 import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
@@ -14074,10 +14074,10 @@ import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-uplo
 import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
 import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=188";
 import { bildirimZamani, enYeniBildirimOnce, canliListeOlustur } from "./js/okul-zili-liste-core.js?v=168";
-import { veliHedefliOku, cocukHedefliMi, cocukHedefiUygunMu } from "./js/veli-hedefli-okuma.js?v=1";
+import { veliHedefliOku, cocukHedefliMi, cocukHedefiUygunMu } from "./js/veli-hedefli-okuma.js?v=2";
 import { icerikHedefi, hedefKapsar, ogrenciHedefte, hedefAlanlari, formHedefi, hedefMetni, hedefEtiketi, veliHedefEtiketi } from "./js/icerik-hedefi.js?v=1";
-import { ogrenciCokluSecici } from "./js/ogrenci-coklu-secici.js?v=1";
-import { galeriCocuklari, galeriCocugaAitMi, galeriHedefAnahtari, fotoIzniGeriAlinanlar, galeriHedefAlanlari, galeriHedefKopyala, GALERI_EN_FAZLA_COCUK, IZIN_YOK_METNI } from "./js/galeri-hedefi.js?v=1";
+import { ogrenciCokluSecici } from "./js/ogrenci-coklu-secici.js?v=2";
+import { galeriCocuklari, galeriCocugaAitMi, galeriHedefAnahtari, fotoIzniGeriAlinanlar, galeriHedefAlanlari, galeriHedefKopyala, GALERI_EN_FAZLA_COCUK, IZIN_YOK_METNI, GALERI_IZIN_KONTROL_SURUMU } from "./js/galeri-hedefi.js?v=2";
 
 const firebaseConfig = {
   apiKey: "AIzaSyARlqAoh-HRBC9xPwj7qRgG-IuZFSH39Uc",
@@ -14104,7 +14104,7 @@ function veliOturumuMu() {
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v207";
+window.PORTAL_SURUM = "v220";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -22458,6 +22458,8 @@ async function caGozlemFotoYukle(st, anahtar, ders, notMetin, alan = {}, grup = 
   const sonuc = await medyaYukle(isaretli, `galeri/ogrenci/${st.ogrId}/${st.disiplin}/${tarih}`);
   const yonetimYuklemesi = isAdmin || ["kurucu_mudur","mudur","egitim_koordinator"].includes(aktifKullaniciRol);
   const durum = yonetimYuklemesi ? "onaylandi" : "beklemede";
+  // Doğrudan yayında fotoğraf izni yazımdan hemen önce yeniden denetlenir (izni geri alınmışsa yayın yok).
+  if (yonetimYuklemesi) await galeriYayinIzniDogrula([st.ogrId]);
   const simdi = new Date().toISOString();
   const ref = doc(collection(db, "galeri"));
   const oge = {
@@ -22474,7 +22476,8 @@ async function caGozlemFotoYukle(st, anahtar, ders, notMetin, alan = {}, grup = 
     yukleyenRol:aktifKullaniciRol || aktifPersonel?.rol || "", yukleyenUid:currentUser?.uid || "",
     yuklemeZamani:simdi, tarih:simdi, durum,
     onaylayanEmail:yonetimYuklemesi ? (currentUser?.email || "") : "",
-    onayTarihi:yonetimYuklemesi ? simdi : ""
+    onayTarihi:yonetimYuklemesi ? simdi : "",
+    ...(yonetimYuklemesi ? { izinKontrolSurumu: GALERI_IZIN_KONTROL_SURUMU } : {})
   };
   await setDoc(ref, oge);
   return { id:ref.id, url:sonuc.url, yol:sonuc.yol||"", durum };
@@ -36826,17 +36829,32 @@ window.galeriOnayla = async function(id) {
     if (!galeriBekliyorMu(oge.durum)) return false;
     // Çocuğa özel içerik: hedef listesi tutarlı olmalı ve hiçbir çocuğun fotoğraf izni geri alınmamış olmalı.
     const cocuklar = galeriCocuklari(oge);
-    if (oge.hedefTur === "ogrenci" || oge.hedefTur === "cocuk") {
+    const cocugaOzel = oge.hedefTur === "ogrenci" || oge.hedefTur === "cocuk";
+    if (cocugaOzel) {
       if (!cocuklar.length) { showToast("Bu içeriğin hedef öğrenci bilgisi çelişkili; onaylanamaz. Reddedip yeniden yükleyin.", "error"); return false; }
-      let izinsiz;
-      try { izinsiz = await galeriIzinsizleriOku(); }
-      catch (e) { showToast("Fotoğraf izinleri doğrulanamadı; onay yapılmadı. Yeniden deneyin.", "error"); return false; }
-      const sayi = cocuklar.filter(c => izinsiz.has(c)).length;
-      if (sayi) { showToast(`Bu içerikteki ${sayi} öğrencinin fotoğraf izni geri alınmış; onaylanamaz. İçeriği reddedin.`, "error"); return false; }
+      try { await galeriYayinIzniDogrula(cocuklar); }
+      catch (e) {
+        showToast(e?.izinHatasi === "geriAlindi"
+          ? `Bu içerikteki ${cocuklar.filter(c => e.izinsiz?.has(c)).length} öğrencinin fotoğraf izni geri alınmış; onaylanamaz. İçeriği reddedin.`
+          : "Fotoğraf izinleri doğrulanamadı; onay yapılmadı. Yeniden deneyin.", "error");
+        return false;
+      }
     }
-    await updateDoc(ref, {
-      durum: "onaylandi", onaylayanEmail: currentUser.email, onayTarihi: new Date().toISOString()
+    // İzin denetiminin hemen ardından işlem içinde: kayıt hâlâ onay bekliyor ve hedefi denetlenenle aynı olmalı.
+    const hedefImzasi = JSON.stringify([oge.hedefTur || "", oge.hedefDeger || "", cocuklar]);
+    let degisti = false;
+    await runTransaction(db, async tx => {
+      const s = await tx.get(ref);
+      const guncel = s.exists() ? { id, ...s.data() } : null;
+      if (!guncel || !galeriBekliyorMu(guncel.durum)) { degisti = "islendi"; return; }
+      if (JSON.stringify([guncel.hedefTur || "", guncel.hedefDeger || "", galeriCocuklari(guncel)]) !== hedefImzasi) { degisti = "hedef"; return; }
+      tx.update(ref, {
+        durum: "onaylandi", onaylayanEmail: currentUser.email, onayTarihi: new Date().toISOString(),
+        izinKontrolSurumu: GALERI_IZIN_KONTROL_SURUMU
+      });
     });
+    if (degisti === "islendi") return false;
+    if (degisti === "hedef") { showToast("İçeriğin hedefi onay sırasında değişti; listeyi yenileyip yeniden deneyin.", "warning"); return false; }
     await galeriGozlemOnayiEsitle(oge, "onaylandi");
     if (!(oge.kazanimAnahtari && (oge.ogrenciId || oge.hedefOgrenciId || (oge.hedefTur === "ogrenci" && oge.hedefDeger)))) {
       await galeriGuncellemeBildirimi({
@@ -37254,6 +37272,20 @@ async function galeriIzinsizleriOku() {
   snap.forEach(d => kayitlar.push(d.data() || {}));
   return fotoIzniGeriAlinanlar(kayitlar);
 }
+// Yayın / kayıt öncesi son izin denetimi: izin günlüğü sunucudan yeniden okunur. Çocuk kümesinde izni geri
+// alınmış öğrenci varsa ya da günlük okunamazsa hata fırlatır (yazım yapılmaz). Onaylı her galeri yazımı bu
+// denetimden hemen sonra yapılır ve izinKontrolSurumu taşır (js/galeri-hedefi.js).
+async function galeriYayinIzniDogrula(cocuklar) {
+  const liste = (Array.isArray(cocuklar) ? cocuklar : []).filter(Boolean);
+  if (!liste.length) return true;
+  let izinsiz;
+  try { izinsiz = await galeriIzinsizleriOku(); }
+  catch (e) { throw Object.assign(new Error("Fotoğraf izinleri doğrulanamadı. Bağlantıyı kontrol edip yeniden deneyin."), { izinHatasi: "okunamadi" }); }
+  const sayi = liste.filter(id => izinsiz.has(id)).length;
+  if (sayi) throw Object.assign(new Error(`Seçilen öğrencilerden ${sayi} tanesinin fotoğraf izni geri alınmış. Bu öğrenciler için yükleme ya da yayın yapılamaz.`), { izinHatasi: "geriAlindi", izinsiz });
+  return true;
+}
+window.galeriYayinIzniDogrula = galeriYayinIzniDogrula;
 function galeriSecilebilirOgrenciler() {
   const izinsiz = galeriIzinsizIdler || new Set();
   return hedefSecilebilirOgrenciler().map(o => ({ id: o.id, ad: o.ad, sinif: o.sinif, pasif: izinsiz.has(o.id) ? IZIN_YOK_METNI : "" }));
@@ -37440,15 +37472,14 @@ window.galeriYukle = async function() {
       const disarida = hedef.ogrenciler.filter(id => !izinli.has(id)).length;
       if (disarida) return showToast(`Yalnızca kendi sınıfınızdaki aktif öğrencileri seçebilirsiniz (${disarida} seçim uygun değil).`, "error");
     }
-    // Fotoğraf izni kayıttan hemen önce sunucudan yeniden doğrulanır; doğrulanamazsa yükleme yapılmaz.
-    let izinsiz;
-    try { izinsiz = await galeriIzinsizleriOku(); }
-    catch (e) { return showToast("Fotoğraf izinleri doğrulanamadı. Bağlantıyı kontrol edip yeniden deneyin.", "error"); }
-    const izinsizSecilen = hedef.ogrenciler.filter(id => izinsiz.has(id)).length;
-    if (izinsizSecilen) {
-      galeriIzinsizIdler = izinsiz;
-      if (galeriOgrenciSecici && !albumEkleMod) galeriOgrenciSecici.ogrencileriAyarla(galeriSecilebilirOgrenciler());
-      return showToast(`Seçilen öğrencilerden ${izinsizSecilen} tanesinin fotoğraf izni geri alınmış. Bu öğrenciler için yükleme yapılamaz.`, "error");
+    // Fotoğraf izni yüklemeden önce ve her kayıttan hemen önce sunucudan yeniden doğrulanır; doğrulanamazsa yazım yok.
+    try { await galeriYayinIzniDogrula(hedef.ogrenciler); }
+    catch (e) {
+      if (e?.izinsiz) {
+        galeriIzinsizIdler = e.izinsiz;
+        if (galeriOgrenciSecici && !albumEkleMod) galeriOgrenciSecici.ogrencileriAyarla(galeriSecilebilirOgrenciler());
+      }
+      return showToast(e.message, "error");
     }
   }
 
@@ -37464,7 +37495,7 @@ window.galeriYukle = async function() {
   const etkinlikSlug = (etkinlikTarih + "-" + etkinlik).replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\-]/g, "-").replace(/-+/g, "-").toLowerCase();
   const klasorPath = `galeri/${hedefPath}/${etkinlikSlug}`;
 
-  let basarili = 0, hatali = 0;
+  let basarili = 0, hatali = 0, izinDurdurdu = "";
   const yuklemeHatalari = [];
   let yayinlananFotoSayisi = 0, yayinlananVideoSayisi = 0;
   const yayinlananOgeIdleri = [];
@@ -37537,6 +37568,14 @@ window.galeriYukle = async function() {
       oge.durum = yonetimYuklemesi ? "onaylandi" : "beklemede";
       oge.onaylayanEmail = yonetimYuklemesi ? currentUser.email : "";
       oge.onayTarihi = yonetimYuklemesi ? new Date().toISOString() : "";
+      if (yonetimYuklemesi) oge.izinKontrolSurumu = GALERI_IZIN_KONTROL_SURUMU;
+
+      // Çocuğa özel hedefte izin, yükleme sürerken değişmiş olabilir: kayıttan hemen önce yeniden denetlenir.
+      // İzni geri alınan öğrenci varsa bu ve sonraki dosyalar kaydedilmez.
+      if (hedef.hedefTur === "ogrenci") {
+        try { await galeriYayinIzniDogrula(hedef.ogrenciler); }
+        catch (e) { izinDurdurdu = e.message; hatali += galeriSecilenDosyalar.length - i; break; }
+      }
 
       // Firestore'a metadata kaydet
       if (!yuklemeGecerli()) return;
@@ -37581,6 +37620,7 @@ window.galeriYukle = async function() {
     }
   }
 
+  if (izinDurdurdu) { yuklemeHatalari.unshift(izinDurdurdu); showToast(izinDurdurdu, "error"); }
   const yuklemeOzet = `${basarili} başarılı${hatali > 0 ? `, ${hatali} hatalı` : ''}`;
   const ilkHata = yuklemeHatalari[0] || "";
   document.getElementById("galeriYuklemeDurum").textContent =
@@ -49090,13 +49130,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=207");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=220");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v207";
+          const anahtar = "portalSwReload_v220";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
@@ -49107,7 +49147,7 @@ window.showBulkUpload = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=193"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=194"></script>
 
 <!-- Read-only, user-triggered pickup diagnosis. No automatic data requests. -->
 <script>

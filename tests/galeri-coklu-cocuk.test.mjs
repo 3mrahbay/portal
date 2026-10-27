@@ -6,13 +6,13 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import {
   galeriCocuklari, galeriCocugaAitMi, galeriHedefAnahtari, fotoIzniGeriAlinanlar, galeriHedefAlanlari,
-  galeriHedefKopyala, galeriVeliEtiketi, GALERI_EN_FAZLA_COCUK
+  galeriHedefKopyala, galeriVeliEtiketi, GALERI_EN_FAZLA_COCUK, izinKaydiZamani
 } from '../js/galeri-hedefi.js';
 import { childTargetMatches, targetChild } from '../js/portal-galeri-etkilesim.js';
 import { classifyGalleryFile } from '../js/bunny-stream-upload.js';
 import { gallerySession, pendingGallery } from '../js/galeri-onay-canli.js';
 import { galleryText, galleryProgram } from '../js/galeri-klasorleri.js';
-import { galeriYuklemeBaglami, GALERI_HEDEF_GLOBALS } from './helpers/galeri-hedef-baglami.mjs';
+import { galeriYuklemeBaglami, GALERI_HEDEF_GLOBALS, yayinIzniDogrulayici } from './helpers/galeri-hedef-baglami.mjs';
 
 const index = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const dilim = (bas, son) => { const i = index.indexOf(bas); assert.ok(i >= 0, bas); return index.slice(i, index.indexOf(son, i)); };
@@ -71,6 +71,24 @@ test('fotoIzniGeriAlinanlar: yalnız en son "foto" kaydı açıkça kapalı olan
   assert.equal(izinsiz.has('kaydi-yok'), false);
 });
 
+test('fotoIzniGeriAlinanlar: sıralama önce olusturuldu (Timestamp), yoksa tarih; boş ogrenciId yok sayılır', () => {
+  const ts = ms => ({ toMillis: () => ms });
+  const izinsiz = fotoIzniGeriAlinanlar([
+    // tarih alanı yanıltıcı (eski kapalı kaydın tarihi daha yeni), olusturuldu belirleyici
+    { ogrenciId: 'a', tur: 'foto', durum: false, tarih: '2026-12-01T00:00:00Z', olusturuldu: ts(Date.parse('2026-10-01T00:00:00Z')) },
+    { ogrenciId: 'a', tur: 'foto', durum: true, tarih: '2026-01-01T00:00:00Z', olusturuldu: ts(Date.parse('2026-10-05T00:00:00Z')) },
+    { ogrenciId: 'b', tur: 'foto', durum: true, olusturuldu: { seconds: 100, nanoseconds: 0 } },
+    { ogrenciId: 'b', tur: 'foto', durum: false, olusturuldu: { seconds: 200, nanoseconds: 0 } },
+    { ogrenciId: 'c', tur: 'foto', durum: true, tarih: '2026-10-01' },
+    { ogrenciId: 'c', tur: 'foto', durum: false, tarih: '2026-10-02' },
+    { ogrenciId: '', tur: 'foto', durum: false, tarih: '2026-10-02' },
+    { ogrenciId: '   ', tur: 'foto', durum: false, tarih: '2026-10-02' }
+  ]);
+  assert.deepEqual([...izinsiz].sort(), ['b', 'c']);
+  assert.equal(izinKaydiZamani({ olusturuldu: { _seconds: 5 } }), 5000);
+  assert.equal(izinKaydiZamani({}), 0);
+});
+
 test('galeriHedefAlanlari: sözleşme alanları; tek çocukta ad, çoklu seçimde başka çocuk adı yok', () => {
   assert.deepEqual(galeriHedefAlanlari({ tur: 'ogrenci', ogrenciler: [{ id: 'a', ad: 'Ada' }, { id: 'b', ad: 'Bora' }, { id: 'a', ad: 'Ada' }] }), {
     hedefTur: 'ogrenci', hedefDeger: 'a', hedefOgrenciId: 'a', ogrenciId: 'a', ogrenciler: ['a', 'b'],
@@ -97,16 +115,17 @@ test('albüme ekleme hedefi birebir taşır; çelişkili albüme ekleme yapılma
 });
 
 // ─────────────── yükleme ───────────────
-function yukleme({ secili, izinsiz = [], izinOkumaHatasi = false, ogretmen = false, secilebilir = null } = {}) {
+function yukleme({ secili, izinsiz = [], izinOkumaHatasi = false, ogretmen = false, secilebilir = null, dosyaSayisi = 1, izinSirasi = null } = {}) {
   const yazilar = [], bildirimler = [], toastlar = [], yuklenen = [], nodes = new Map();
   const degerler = { galeriEtkinlik: 'Bahçe', galeriEtkinlikTarih: '2026-10-27', galeriAciklama: '', galeriHedefTur: 'ogrenci', galeriKategori: '' };
   const document = { getElementById: id => { if (!nodes.has(id)) nodes.set(id, { value: degerler[id] || '', style: {}, checked: false, textContent: '' }); return nodes.get(id); } };
   let sayac = 0;
   const ctx = vm.createContext({
     ...galeriYuklemeBaglami({ secili, izinsiz, izinOkumaHatasi, secilebilir }),
+    ...(izinSirasi ? { galeriYayinIzniDogrula: yayinIzniDogrulayici(async () => new Set(izinSirasi.shift() || [])) } : {}),
     classifyGalleryFile, gallerySession, galeriBekliyorMu: pendingGallery, notifyGalleryApproval: async () => ({ ok: true }),
     window: { PortalAPI: { state: { currentUser: { uid: 'u' } } } }, document, console: { error() {}, warn() {} },
-    galeriSecilenDosyalar: [{ name: 'f.jpg', type: 'image/jpeg', size: 10 }],
+    galeriSecilenDosyalar: Array.from({ length: dosyaSayisi }, (_, i) => ({ name: `f${i}.jpg`, type: 'image/jpeg', size: 10 })),
     aktifKullaniciRol: ogretmen ? 'ogretmen' : 'mudur', isAdmin: !ogretmen, currentUser: { email: 'personel@example.invalid' },
     AKTIF_DONEM: '2026-2027', db: {}, galleryText, galeriProgramKodu: galleryProgram, ogretmenRolMu: () => ogretmen, aktifKullaniciSiniflari: ['Lale'],
     isoTarih: () => '2026-10-27', showToast: (...v) => toastlar.push(v), resimSikistir: async f => f,
@@ -129,6 +148,19 @@ test('yönetim yüklemesi: çoklu öğrenci sözleşme alanlarıyla yazılır, b
   assert.equal(w.durum, 'onaylandi');
   assert.doesNotMatch(JSON.stringify(w), /Ada|Bora/, 'çoklu kayıtta çocuk adı yok');
   assert.deepEqual([...y.bildirimler[0].ogrenciler], ['a', 'b']);
+  assert.equal(w.izinKontrolSurumu, 2, 'yönetimin doğrudan yayını izin kontrol sürümünü taşır');
+});
+
+test('yükleme: izin her yazımdan hemen önce yeniden okunur; arada geri alınırsa kalan dosyalar yazılmaz', async () => {
+  // 1: ilk denetim, 2: birinci dosya yazımı öncesi, 3: ikinci dosya yazımı öncesi (bu sırada izin geri alındı)
+  const y = yukleme({ secili: [{ id: 'a', ad: 'Ada' }, { id: 'b', ad: 'Bora' }], dosyaSayisi: 3, izinSirasi: [[], [], ['b'], []] });
+  await y.calistir();
+  assert.equal(y.yazilar.length, 1, 'izin geri alındıktan sonra hiçbir kare yazılmaz');
+  assert.ok(y.toastlar.some(([m]) => /fotoğraf izni geri alınmış/.test(m)));
+  const ogretmen = yukleme({ ogretmen: true, secili: [{ id: 'a', ad: 'Ada' }], secilebilir: [{ id: 'a', ad: 'Ada' }] });
+  await ogretmen.calistir();
+  assert.equal(ogretmen.yazilar[0].durum, 'beklemede');
+  assert.equal('izinKontrolSurumu' in ogretmen.yazilar[0], false, 'onay bekleyen kare sürüm almaz; onaylayan yazar');
 });
 
 test('izni geri alınmış öğrenci seçiliyse yükleme yapılmaz; izinler okunamazsa da yapılmaz', async () => {
@@ -152,19 +184,25 @@ test('öğretmen: kendi sınıfı dışından öğrenci seçemez; kendi sınıf�
 });
 
 // ─────────────── onay ───────────────
-function onay(kayit, { izinsiz = [], izinOkumaHatasi = false } = {}) {
-  const guncellenen = [], bildirimler = [], toastlar = [];
+function onay(kayit, { izinsiz = [], izinOkumaHatasi = false, islemdeki = null } = {}) {
+  const guncellenen = [], bildirimler = [], toastlar = [], olaylar = [];
+  const izinOku = async () => { olaylar.push('izin'); if (izinOkumaHatasi) throw new Error('x'); return new Set(izinsiz); };
+  const snap = v => ({ exists: () => !!v, data: () => ({ ...v }) });
   const ctx = vm.createContext({
     ...GALERI_HEDEF_GLOBALS,
     window: {}, isAdmin: true, aktifKullaniciRol: 'mudur', currentUser: { email: 'mudur@example.invalid' },
-    doc: (_db, _k, id) => ({ id }), db: {}, getDoc: async () => ({ exists: () => true, data: () => ({ ...kayit }) }),
-    updateDoc: async (ref, veri) => guncellenen.push(veri), galeriBekliyorMu: pendingGallery,
-    galeriIzinsizleriOku: async () => { if (izinOkumaHatasi) throw new Error('x'); return new Set(izinsiz); },
+    doc: (_db, _k, id) => ({ id }), db: {}, getDoc: async () => snap(kayit),
+    updateDoc: async () => { throw new Error('onay işlem dışında yazmamalı'); }, galeriBekliyorMu: pendingGallery,
+    runTransaction: async (_db, fn) => {
+      olaylar.push('islem');
+      return fn({ get: async () => snap(islemdeki || kayit), update: (_ref, veri) => { olaylar.push('yaz'); guncellenen.push(veri); } });
+    },
+    galeriIzinsizleriOku: izinOku, galeriYayinIzniDogrula: yayinIzniDogrulayici(izinOku),
     galeriGozlemOnayiEsitle: async () => {}, galeriGuncellemeBildirimi: async v => bildirimler.push(v),
     showToast: (...v) => toastlar.push(v), renderGaleri: async () => {}, console: { error() {} }
   });
   vm.runInContext(dilim('window.galeriOnayla = async function(id) {', 'window.galeriReddet'), ctx);
-  return { calistir: () => ctx.window.galeriOnayla('g1'), guncellenen, bildirimler, toastlar };
+  return { calistir: () => ctx.window.galeriOnayla('g1'), guncellenen, bildirimler, toastlar, olaylar };
 }
 
 test('onay: izni geri alınmış öğrenci içeren kare onaylanmaz; uygun kare tüm listeye bildirilir', async () => {
@@ -178,8 +216,20 @@ test('onay: izni geri alınmış öğrenci içeren kare onaylanmaz; uygun kare t
   const ok = onay(coklu({ durum: 'beklemede' }));
   assert.equal(await ok.calistir(), true);
   assert.equal(ok.guncellenen[0].durum, 'onaylandi'); assert.deepEqual([...ok.bildirimler[0].ogrenciler], ['a', 'b']);
+  assert.equal(ok.guncellenen[0].izinKontrolSurumu, 2, 'onaylanan kare izin kontrol sürümünü taşır');
+  assert.deepEqual([...ok.olaylar], ['izin', 'islem', 'yaz'], 'izin yazımdan hemen önce okunur, yazım işlem içindedir');
   const sinif = onay({ hedefTur: 'sinif', hedefDeger: 'Lale', durum: 'beklemede' }, { izinOkumaHatasi: true });
   assert.equal(await sinif.calistir(), true, 'sınıf hedefinde öğrenci izni sorulmaz (değişmedi)');
+  assert.equal(sinif.guncellenen[0].izinKontrolSurumu, 2);
+});
+
+test('onay işlemi: arada başka biri işlediyse ya da hedef değiştiyse yazılmaz', async () => {
+  const islendi = onay(coklu({ durum: 'beklemede' }), { islemdeki: coklu({ durum: 'onaylandi' }) });
+  assert.equal(await islendi.calistir(), false); assert.equal(islendi.guncellenen.length, 0);
+  const hedef = onay(coklu({ durum: 'beklemede' }), { islemdeki: coklu({ durum: 'beklemede', ogrenciler: ['a', 'b', 'c'] }) });
+  assert.equal(await hedef.calistir(), false); assert.equal(hedef.guncellenen.length, 0);
+  assert.match(hedef.toastlar[0][0], /hedefi onay sırasında değişti/);
+  assert.equal(hedef.bildirimler.length, 0);
 });
 
 // ─────────────── bildirim ───────────────
@@ -207,4 +257,34 @@ test('kaynak: yükleme modalı tek seçimli öğrenci listesi değil çoklu seç
   assert.match(index, /<div id="galeriHedefOgrenciSecici"><\/div>/);
   assert.match(index, /getDocsFromServer\(collection\(db, "izinGunlugu"\)\)/);
   assert.match(index, /pasif: izinsiz\.has\(o\.id\) \? IZIN_YOK_METNI : ""/);
+});
+
+// ─────────────── gözlem fotoğrafı (index.html) ───────────────
+function gozlemFoto({ rol = 'mudur', izinsiz = [] } = {}) {
+  const olaylar = [], yazilar = [];
+  const izinOku = async () => { olaylar.push('izin'); return new Set(izinsiz); };
+  const ctx = vm.createContext({
+    ...GALERI_HEDEF_GLOBALS, galeriYayinIzniDogrula: yayinIzniDogrulayici(izinOku),
+    isAdmin: false, aktifKullaniciRol: rol, currentUser: { email: 'p@example.invalid', uid: 'u' }, aktifPersonel: {},
+    AKTIF_DONEM: '2026-2027', ayarListesi: {}, ogrenciList: [], db: {},
+    caGozlemFiligranliDosya: async f => ({ ...f, size: 1, name: 'g.jpg' }), caGozlemProgramAdi: () => 'Montessori',
+    medyaYukle: async () => { olaylar.push('yukle'); return { url: 'https://example.invalid/g.jpg', yol: 'g' }; },
+    collection: () => ({}), doc: () => ({ id: 'g1' }), setDoc: async (_r, v) => { olaylar.push('yaz'); yazilar.push(v); }
+  });
+  vm.runInContext(dilim('async function caGozlemFotoYukle(', 'async function caGozlemDetayKaydet('), ctx);
+  const st = { foto: {}, ogrId: 'a', ogrAd: 'Ada', disiplin: 'montessori', sinif: 'Lale', seviye: 'S' };
+  return { calistir: () => vm.runInContext('caGozlemFotoYukle', ctx)(st, 'k', 'Ders', ''), olaylar, yazilar };
+}
+
+test('gözlem fotoğrafı: yönetim yayını izni yazımdan hemen önce denetler ve sürüm yazar; öğretmen beklemede kalır', async () => {
+  const y = gozlemFoto();
+  await y.calistir();
+  assert.deepEqual([...y.olaylar], ['yukle', 'izin', 'yaz']);
+  assert.equal(y.yazilar[0].durum, 'onaylandi'); assert.equal(y.yazilar[0].izinKontrolSurumu, 2);
+  const geri = gozlemFoto({ izinsiz: ['a'] });
+  await assert.rejects(geri.calistir(), /fotoğraf izni geri alınmış/);
+  assert.equal(geri.yazilar.length, 0);
+  const ogretmen = gozlemFoto({ rol: 'ogretmen', izinsiz: ['a'] });
+  await ogretmen.calistir();
+  assert.equal(ogretmen.yazilar[0].durum, 'beklemede'); assert.equal('izinKontrolSurumu' in ogretmen.yazilar[0], false);
 });

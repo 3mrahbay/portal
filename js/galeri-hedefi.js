@@ -34,15 +34,34 @@ export function galeriHedefAnahtari(m) {
   return `${m?.hedefTur || ''}:${m?.hedefDeger || ''}`;
 }
 
-// izinGunlugu kayıtları → izni geri alınmış çocuk kimlikleri (en son 'foto' kaydı durum:true değil)
+// İzin günlüğü kaydının zamanı (ms): sunucu zamanı (olusturuldu, Timestamp) varsa o, yoksa istemci "tarih"i.
+// İstemci saati yanlış olabildiği için sıralamada sunucu zamanı önceliklidir.
+export function izinKaydiZamani(k) {
+  const o = k?.olusturuldu;
+  if (o) {
+    if (typeof o.toMillis === 'function') { const ms = o.toMillis(); if (Number.isFinite(ms)) return ms; }
+    if (Number.isFinite(o.seconds)) return o.seconds * 1000 + Math.floor((Number(o.nanoseconds) || 0) / 1e6);
+    if (Number.isFinite(o._seconds)) return o._seconds * 1000 + Math.floor((Number(o._nanoseconds) || 0) / 1e6);
+    if (typeof o === 'string' || o instanceof Date) { const ms = Date.parse(o); if (Number.isFinite(ms)) return ms; }
+  }
+  const t = Date.parse(String(k?.tarih || ''));
+  return Number.isFinite(t) ? t : 0;
+}
+
+// izinGunlugu kayıtları → izni geri alınmış çocuk kimlikleri (en son 'foto' kaydı durum:true değil).
+// Öğrenci kimliği boş kayıt yok sayılır.
 export function fotoIzniGeriAlinanlar(kayitlar = []) {
   const son = new Map();
   [...(Array.isArray(kayitlar) ? kayitlar : [])]
-    .filter(k => k && k.tur === 'foto' && typeof k.ogrenciId === 'string' && k.ogrenciId)
-    .sort((a, b) => String(b.tarih || '').localeCompare(String(a.tarih || '')))
-    .forEach(k => { if (!son.has(k.ogrenciId)) son.set(k.ogrenciId, k); });
-  return new Set([...son.values()].filter(k => k.durum !== true).map(k => k.ogrenciId));
+    .filter(k => k && k.tur === 'foto' && typeof k.ogrenciId === 'string' && k.ogrenciId.trim())
+    .sort((a, b) => izinKaydiZamani(b) - izinKaydiZamani(a))
+    .forEach(k => { const id = k.ogrenciId.trim(); if (!son.has(id)) son.set(id, k); });
+  return new Set([...son.entries()].filter(([, k]) => k.durum !== true).map(([id]) => id));
 }
+
+// Onaylı (durum 'onaylandi') galeri yazımlarının taşıdığı izin denetimi sürümü: yazımdan hemen önce çocuk
+// kümesinin fotoğraf izni (bu dosyadaki kural) sunucudan yeniden okundu. Kurallar çoklu çocuk kaydında arar.
+export const GALERI_IZIN_KONTROL_SURUMU = 2;
 
 // Formdaki seçimden galeri hedef alanları. ogrenciler: [{ id, ad }] ya da kimlik metni.
 export function galeriHedefAlanlari({ tur, sinif = '', ogrenciler = [] } = {}) {

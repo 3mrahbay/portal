@@ -1,10 +1,10 @@
 import { galleryLightboxStyles, galleryLightboxIcons, lightboxDownload } from '../js/portal-galeri-lightbox-ui.js';
-import { mountMedia, disposeMedia, recordOpen, downloadMedia } from '../js/portal-galeri-canli.js?v=192';
-import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=166';
+import { mountMedia, disposeMedia, recordOpen, downloadMedia } from '../js/portal-galeri-canli.js?v=193';
+import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=167';
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryIsObservation, galleryFolderKey } from '../js/galeri-klasorleri.js?v=182';
 import { galleryMediaType, galleryDisplayUrl, downloadSource } from '../js/portal-galeri-medya.js?v=192';
-import { veliSorgulariniOlustur } from '../js/veli-hedefli-okuma.js?v=1';
-import { galeriHedefAnahtari } from '../js/galeri-hedefi.js?v=1';
+import { veliSorgulariniOlustur } from '../js/veli-hedefli-okuma.js?v=2';
+import { galeriHedefAnahtari } from '../js/galeri-hedefi.js?v=2';
 // VELİ GALERİSİ — hedefli okuma; klasör anahtarları erişim yetkisi vermez.
 const P = () => window.PortalAPI;
 let _filtre = 'tumu';

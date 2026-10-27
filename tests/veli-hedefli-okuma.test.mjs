@@ -243,7 +243,7 @@ test('index.html veli fonksiyonları duyurular/takvim/galeri koleksiyonunu kıs�
   }
   const zaman = fonk(index, 'veliZamanCizelgesiYukle');
   assert.doesNotMatch(zaman, /collection\(db, "galeri"\)/, 'okul hayatı galeriyi ne tarih aralığıyla ne de tam okur');
-  assert.match(index, /import \{ veliHedefliOku, cocukHedefliMi, cocukHedefiUygunMu \} from "\.\/js\/veli-hedefli-okuma\.js\?v=1";/);
+  assert.match(index, /import \{ veliHedefliOku, cocukHedefliMi, cocukHedefiUygunMu \} from "\.\/js\/veli-hedefli-okuma\.js\?v=2";/);
   assert.match(index, /const veliOkumaFb = \{ collection, query, where, getDocs \};/);
 });
 
@@ -257,7 +257,7 @@ test('takvim yükleyici veli oturumunda hedefli okur, personelde tüm koleksiyon
 
 test('ZEKY veli modülleri: takvim/duyurular/galeri tüm koleksiyon okuması yok', () => {
   const ogrenme = readPortal('js/zeky-veli-ogrenme-deneyimi.js');
-  assert.match(ogrenme, /^import \{ veliHedefliOku \} from '\.\/veli-hedefli-okuma\.js\?v=1';$/m);
+  assert.match(ogrenme, /^import \{ veliHedefliOku \} from '\.\/veli-hedefli-okuma\.js\?v=2';$/m);
   assert.doesNotMatch(ogrenme, /p\.fb\.collection\(p\.db,'duyurular'\)/);
   assert.match(ogrenme, /veliHedefliOku\(p\.fb,p\.db,'duyurular',\[o\.id\]/);
   // Tüm koleksiyon / tarih eşitliğiyle okuma yalnız herkese açık "etkinlikler" için kalır.

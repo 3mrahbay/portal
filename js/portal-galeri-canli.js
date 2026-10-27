@@ -1,8 +1,8 @@
 import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js';
 export { galleryProgram } from './galeri-klasorleri.js';
 import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=192';
-import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=166';
-import { galeriHedefAnahtari } from './galeri-hedefi.js?v=1';
+import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=167';
+import { galeriHedefAnahtari } from './galeri-hedefi.js?v=2';
 
 const api = () => window.PortalAPI;
 const service = createInteractionService(api);

@@ -86,12 +86,12 @@ test('eğitim köprüsü PortalAPI uyumluluğuyla global caGo ve veli deneyimini
   assert.match(kopru, /typeof win\.caGo === 'function'/);
   assert.match(kopru, /ekran === 'egitim'/);
   assert.match(kopru, /veliEgitimRender\('cicekAppRoot'\)/);
-  assert.match(kopru, /zeky-ogrenci-guvenlik-koprusu\.js\?v=7/);
+  assert.match(kopru, /zeky-ogrenci-guvenlik-koprusu\.js\?v=8/);
   assert.match(kopru, /zeky-aktif-donem-senkron\.js\?v=3/);
-  assert.match(kopru, /zeky-veli-ogrenme-deneyimi\.js\?v=3/);
+  assert.match(kopru, /zeky-veli-ogrenme-deneyimi\.js\?v=4/);
   assert.match(kopru, /__zekyEgitimKoprusuSurum/);
   assert.doesNotMatch(kopru, /typeof win\.caEgitimYukle/);
-  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=9/);
+  assert.match(baslangic, /zeky-veli-egitim-koprusu\.js\?v=10/);
 });
 
 test('öğrenci güvenlik köprüsü aktif dönem, gözlem ve e-posta gizliliğini uygular', async () => {

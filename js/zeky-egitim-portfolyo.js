@@ -1,7 +1,7 @@
 // Veli eğitim ekranları için ortak, salt-okunur portföy veri modeli.
 // Onaylı galeri kayıtları ile ogrenciGelisim aşamalarını tek zaman çizgisinde birleştirir.
-import { veliHedefliOku } from './veli-hedefli-okuma.js?v=1';
-import { galeriCocugaAitMi } from './galeri-hedefi.js?v=1';
+import { veliHedefliOku } from './veli-hedefli-okuma.js?v=2';
+import { galeriCocugaAitMi } from './galeri-hedefi.js?v=2';
 
 export const EGITIM_PROGRAMLARI = [
   { id:'montessori', ad:'Montessori', renk:'#356B4A', acik:'#EAF3EC' },

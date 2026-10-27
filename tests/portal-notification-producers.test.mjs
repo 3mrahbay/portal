@@ -85,9 +85,9 @@ function environment(t,{role='mudur'}={}){
       let pending=[];
       for(let i=0;i<(controls.transactionAttempts||1);i++){
         pending=[];trace.push('transaction-attempt');
-        await callback({get:ref=>ctx.getDoc(ref),set:(ref,data)=>pending.push({ref,data})});
+        await callback({get:ref=>ctx.getDoc(ref),set:(ref,data)=>pending.push({ref,data}),update:(ref,data)=>pending.push({ref,data,kind:'update'})});
       }
-      for(const {ref,data} of pending)await save('transaction',ref,data);
+      for(const {ref,data,kind} of pending)await save(kind||'transaction',ref,data);
       trace.push('transaction-commit');
     },
     showToast:(...args)=>toasts.push(args),danismaSaltOkunurEngelle:()=>false,ogretmenRolMu:()=>ctx.aktifKullaniciRol==='ogretmen',
@@ -212,7 +212,7 @@ test('admin mixed gallery upload notifies only successfully published photo and 
 test('actual pending gallery approval notifies after approved write, while repeated approval is silent',async t=>{
   const e=environment(t);e.seeds('photo');
   assert.equal(await e.window.galeriOnayla('photo'),true);
-  assert.equal(e.docs.get('galeri/photo').durum,'onaylandi');assert.equal(e.notices.length,1);
+  assert.equal(e.docs.get('galeri/photo').durum,'onaylandi');assert.equal(e.docs.get('galeri/photo').izinKontrolSurumu,2);assert.equal(e.notices.length,1);
   assert.ok(e.trace.indexOf('update:galeri/photo')<e.trace.indexOf('notify:galeri'));
   assert.deepEqual(e.notices[0].emails,['a1@example.invalid','a2@example.invalid']);
   assert.equal(await e.window.galeriOnayla('photo'),false);assert.equal(e.notices.length,1);
