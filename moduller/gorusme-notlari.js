@@ -335,8 +335,9 @@ async function notlariYukle() {
   const sorgular = [];
   if (d.yonetim || d.pdr) sorgular.push(fb.getDocs(col));
   else {
-    sorgular.push(fb.getDocs(fb.query(col, fb.where("yazanEmail", "==", d.eposta))));
-    sorgular.push(fb.getDocs(fb.query(col, fb.where("bildirimAlicilari", "array-contains", d.eposta))));
+    // Gizli notlar yalnız PDR ve yönetimde; kural bu sorguları ancak gizli==false ile kabul eder.
+    sorgular.push(fb.getDocs(fb.query(col, fb.where("yazanEmail", "==", d.eposta), fb.where("gizli", "==", false))));
+    sorgular.push(fb.getDocs(fb.query(col, fb.where("bildirimAlicilari", "array-contains", d.eposta), fb.where("gizli", "==", false))));
     if (d.koordinator) sorgular.push(fb.getDocs(fb.query(col, fb.where("gizli", "==", false))));
     else if (d.ogretmen) d.siniflar.forEach(s => sorgular.push(fb.getDocs(fb.query(col, fb.where("sinif", "==", s), fb.where("gizli", "==", false)))));
   }
