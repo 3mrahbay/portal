@@ -9903,6 +9903,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         </div>
       </div>
 
+      <section id="kayitDuyurulariWrap" aria-label="Kayıt duyurusu talepleri" style="padding:20px;border:1px solid #dce2d8;border-radius:16px;margin-bottom:24px"></section>
+
       <!-- FİLTRELER -->
       <div style="display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; align-items:center;">
         <span style="font-size:11px; font-weight:700; color:#92400e; letter-spacing:.05em;">DURUM:</span>
@@ -17275,6 +17277,7 @@ window.signOut = async function() {
 
 let portalOturumSurumu = 0;
 onAuthStateChanged(auth, async (user) => {
+  void import("./js/kayit-duyurulari.js").then(m => m.clearKayitDuyurulari());
   window.veliKatilim?.durdur?.();
   if (!user && currentUser) googleGiris.invalidate();
   galeriVeliUid = "";
@@ -30973,7 +30976,29 @@ function renderTable() {
 let basvuruListesi = [];
 let aktifOnayFilter = "beklemede";
 
+async function loadKayitDuyuruPaneli() {
+  const root = document.getElementById("kayitDuyurulariWrap");
+  if (!root) return;
+  try {
+    const m = await import("./js/kayit-duyurulari.js");
+    await m.loadKayitDuyurulari({
+      root,
+      getUid: () => currentUser?.uid || "",
+      allowed: () => ["kurucu_mudur", "mudur"].includes(rolNormalize(aktifKullaniciRol)),
+      list: async data => {
+        const [runtime, sdk] = await Promise.all([
+          import("./js/zeky-randevu-cutover-runtime.js"),
+          import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js")
+        ]);
+        const fn = sdk.httpsCallable(await runtime.guvenliFunctionsGetir(), "kayitDuyuruListeV1");
+        return (await fn(data)).data;
+      }
+    });
+  } catch { root.textContent = "Bildirim bölümü yüklenemedi. Sayfayı yenileyin."; }
+}
+
 async function loadOnayBekleyenler() {
+  void loadKayitDuyuruPaneli();
   const wrap = document.getElementById("onayListesiWrap");
   if (!wrap) return;
   wrap.innerHTML = '<div class="loading"><div class="spinner"></div><p>Başvurular yükleniyor...</p></div>';
@@ -49023,13 +49048,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=219");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=220");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v219";
+          const anahtar = "portalSwReload_v220";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
