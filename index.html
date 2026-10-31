@@ -17277,7 +17277,7 @@ window.signOut = async function() {
 
 let portalOturumSurumu = 0;
 onAuthStateChanged(auth, async (user) => {
-  void import("./js/kayit-duyurulari.js").then(m => m.clearKayitDuyurulari());
+  void import("./js/kayit-duyurulari.js?v=222").then(m => m.clearKayitDuyurulari());
   window.veliKatilim?.durdur?.();
   if (!user && currentUser) googleGiris.invalidate();
   galeriVeliUid = "";
@@ -30980,7 +30980,7 @@ async function loadKayitDuyuruPaneli() {
   const root = document.getElementById("kayitDuyurulariWrap");
   if (!root) return;
   try {
-    const m = await import("./js/kayit-duyurulari.js");
+    const m = await import("./js/kayit-duyurulari.js?v=222");
     await m.loadKayitDuyurulari({
       root,
       getUid: () => currentUser?.uid || "",
@@ -49048,13 +49048,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=221");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=222");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v221";
+          const anahtar = "portalSwReload_v222";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
