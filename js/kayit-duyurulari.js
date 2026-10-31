@@ -39,11 +39,11 @@ export async function loadKayitDuyurulari({root, getUid, allowed, list}) {
         const row=el('div','');row.style.cssText='padding:12px;border:1px solid #dce2d8;border-radius:10px';
         row.append(el('strong',item.email));
         const date=item.updatedAt ? new Date(item.updatedAt).toLocaleString('tr-TR') : '—';
-        row.append(el('div',`${item.source==='yenikayit'?'Yeni kayıt':'Kayıt yenileme'} · Brevo güncellemesi: ${date}`));
+        row.append(el('div',`${item.source==='yenikayit'?'Yeni kayıt':'Kayıt yenileme'} · Güncelleme: ${date}`));
         rows.append(row);
       }
       next=data.nextOffset;more.hidden=next===null;
-      status.textContent=data.items.length ? `${data.items.length} talep gösteriliyor. Liste Brevo’dan güncellendi.` : 'Bu sayfada etkin bildirim talebi yok.';
+      status.textContent=data.items.length ? `${data.items.length} talep gösteriliyor. Brevo’dan alınan son bildirimler gösteriliyor.` : 'Bu sayfada etkin bildirim talebi yok.';
     } catch {
       if(valid()) status.textContent='Bildirim listesi alınamadı. Bağlantı ve erişim yetkisini kontrol ederek yeniden deneyin.';
     } finally { if(valid()) {source.disabled=false;refresh.disabled=false;} }
