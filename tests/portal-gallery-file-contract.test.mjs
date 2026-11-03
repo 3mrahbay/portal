@@ -63,20 +63,20 @@ test('unchanged signer rejects unnormalized unsupported MIME before Bunny creati
   const f=signerFixture();assert.throws(()=>f.run({dosyaAdi:'synthetic.mp4',dosyaBoyutu:1024,mimeType:'application/octet-stream'}),/video türü/);assert.equal(f.calls.length,0);
 });
 test('actual Portal picker accepts missing/generic video MIME and rejects unsafe or empty videos',()=>{
-  const selected=[],warnings=[];const c={classifyGalleryFile,validateStreamVideo,galeriSecilenDosyalar:selected,showToast:x=>warnings.push(x),renderGaleriSecilenDosyalar(){}};
+  const selected=[],warnings=[];const c={classifyGalleryFile,validateStreamVideo,galeriSecilenDosyalar:selected,galeriYuklemeCalisiyor:false,window:{},document:{getElementById:()=>null},showToast:x=>warnings.push(x),renderGaleriSecilenDosyalar(){}};
   vm.runInNewContext(slice('function galeriDosyalarEkle(files)','function renderGaleriSecilenDosyalar()')+';this.pick=galeriDosyalarEkle;',c);
   const accepted=[file(),file({type:'application/octet-stream'}),file({name:'synthetic.jpg',type:'image/jpeg'})];
   c.pick([...accepted,file({type:'application/pdf'}),file({size:0})]);assert.deepEqual(selected,accepted);assert.equal(warnings.length,2);
 });
 test('actual Portal selected-file preview uses the same video classifier',()=>{
-  const el={innerHTML:''};const c={classifyGalleryFile,galeriSecilenDosyalar:[file()],document:{getElementById:()=>el},escapeHtml:x=>x};
+  const el={innerHTML:''};const c={classifyGalleryFile,galeriSecilenDosyalar:[file()],galeriYuklemeCalisiyor:false,galeriYuklenenDosyalar:new Map(),galeriOnizlemeAdresleri:new Map(),document:{getElementById:()=>el},escapeHtml:x=>x};
   vm.runInNewContext(slice('function renderGaleriSecilenDosyalar()', 'window.galeriDosyaKaldir')+';renderGaleriSecilenDosyalar();',c);
-  assert.match(el.innerHTML,/🎥 synthetic.mp4/);
+  assert.match(el.innerHTML,/🎥/);assert.match(el.innerHTML,/synthetic.mp4/);assert.match(el.innerHTML,/Listeden çıkar/);
 });
 function uploadFixture(files) {
   const saved=[],routes=[],nodes=new Map();
   const values={galeriEtkinlik:'Synthetic',galeriEtkinlikTarih:'2026-10-06',galeriAciklama:'',galeriHedefTur:'sinif',galeriHedefSinif:'Synthetic class',galeriKategori:''};
-  const c={window:{PortalAPI:{state:{}}},classifyGalleryFile,validateStreamVideo,galeriSecilenDosyalar:files,
+  const c={window:{PortalAPI:{state:{}}},classifyGalleryFile,validateStreamVideo,galeriSecilenDosyalar:files,galeriYuklemeCalisiyor:false,galeriYuklenenDosyalar:new Map(),renderGaleriSecilenDosyalar(){},galeriOnizlemeleriTemizle(){},
     document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:values[id]||'',style:{},checked:false});return nodes.get(id);}},
     gallerySession:()=> 'synthetic-session',galleryText:x=>x,galeriProgramKodu:()=>'',currentUser:{email:'synthetic@example.invalid'},AKTIF_DONEM:'synthetic',isAdmin:false,aktifKullaniciRol:'ogretmen',
     db:{},doc:()=>({id:'synthetic-record'}),collection:()=>{},setDoc:async(ref,value)=>saved.push({ref,value}),
@@ -84,7 +84,7 @@ function uploadFixture(files) {
     resimSikistir:async f=>{routes.push('foto');return f;},medyaYukle:async()=>({url:'https://example.invalid/photo.jpg',yol:'photo.jpg'}),
     galeriBekliyorMu:()=>true,notifyGalleryApproval:async()=>({ok:true}),showToast(){},console:{error(){}},albumEkleMod:null,closeGaleriYuklemeModal(){},renderGaleri(){}};
   vm.runInNewContext(slice('window.galeriYukle = async function()', '// Lightbox\nlet aktifLightboxOge'),c);
-  return {saved,routes,run:c.window.galeriYukle};
+  return {saved,routes,run:c.window.galeriYukle,context:c};
 }
 test('actual Portal upload routes missing/generic MIME videos to Stream and persists normalized MIME',async()=>{
   for(const type of ['', 'application/octet-stream']){
@@ -99,4 +99,18 @@ test('actual Portal image upload stays on the photo path and unrecognized input 
 });
 test('shared classifier import reuses the exact existing precached Stream module without a release bump',async()=>{
   const worker=await installedPwa();assertPrecachedImport(worker,'index.html','js/bunny-stream-upload.js');
+});
+test('upload locks double submit, snapshots the queue, and never reuploads completed files',async()=>{
+ const files=[file({name:'first.jpg',type:'image/jpeg'}),file({name:'second.jpg',type:'image/jpeg'})];
+ const f=uploadFixture(files);let release;const gate=new Promise(resolve=>{release=resolve;});let photos=0;
+ f.context.resimSikistir=async item=>{if(++photos===1)await gate;return item;};
+ const first=f.run();await f.run();assert.equal(photos,1);files.splice(0,2);release();await first;assert.equal(f.saved.length,2,'captured queue is stable');
+ const completed=[...f.context.galeriYuklenenDosyalar.keys()];files.push(...completed);await f.run();assert.equal(f.saved.length,2,'completed files are not uploaded again');
+ files.push(file({name:'third.jpg',type:'image/jpeg'}));await f.run();assert.equal(f.saved.length,3);assert.equal(f.context.galeriYuklemeCalisiyor,false);
+});
+test('failed files can be retried without duplicating successful uploads',async()=>{
+ const f=uploadFixture([file({name:'first.jpg',type:'image/jpeg'}),file({name:'second.jpg',type:'image/jpeg'})]);let uploads=0;
+ f.context.medyaYukle=async()=>{if(++uploads===1)throw Error('synthetic failure');return{url:'https://example.invalid/photo.jpg',yol:'photo.jpg'};};
+ await f.run();assert.equal(f.saved.length,1);assert.match(f.context.document.getElementById('btnGaleriYukle').textContent,/tekrar dene/);
+ await f.run();assert.equal(f.saved.length,2);assert.equal(uploads,3);assert.equal(f.context.document.getElementById('btnGaleriYukle').textContent,'Kapat');
 });

@@ -91,7 +91,7 @@ function environment(t,{role='mudur'}={}){
     modulYukle:async()=>attachment,closeDuyuruModal(){},renderDuyurular(){},closeEtkinlikModal(){},renderEtkinlikler(){},
     duyuruMailGonder:data=>mails.push(data),etkinlikMailGonder:data=>mails.push(data),galeriBildirimMailGonder:async data=>mails.push(data),
     galeriGozlemOnayiEsitle:async()=>{},renderGaleri:async()=>{},confirm:()=>controls.confirmed,
-    galeriSecilenDosyalar:[{name:'one.jpg',type:'image/jpeg',size:100}],albumEkleMod:null,
+    galeriSecilenDosyalar:[{name:'one.jpg',type:'image/jpeg',size:100}],galeriYuklemeCalisiyor:false,galeriYuklenenDosyalar:new Map(),renderGaleriSecilenDosyalar(){},galeriOnizlemeleriTemizle(){},albumEkleMod:null,
     GALERI_EGITIM_PROGRAMLARI:{montessori:'Montessori',orman:'Orman Okulu'},
     isoTarih:()=> '2026-09-30',resimSikistir:async file=>file,
     medyaYukle:async file=>{if(controls.uploadFail===true||controls.uploadFail===file.name)throw Error('synthetic-upload-failed');return {url:'https://synthetic.invalid/image',yol:'synthetic/path'};},
