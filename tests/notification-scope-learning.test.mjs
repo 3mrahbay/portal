@@ -25,8 +25,8 @@ function fixture(t,{students,settings,failWrite=false,pushFail=false,transaction
     addDoc:async(path,data)=>{if(failWrite===true||failWrite===data.aliciEmail)throw Error('permission-denied');
       const ref={id:`root-${++seq}`};writes.push({path:`${path}/${ref.id}`,data:structuredClone(data)});return ref;},
     serverTimestamp:()=>({seconds:1})};
-  if(transaction)fb.runTransaction=async(_db,callback)=>callback({get:fb.getDoc,set:fb.setDoc});
-  globalThis.window={PortalAPI:{db:{},fb,state:{isAdmin:true,rol:'mudur',aktifDonem:donem,currentUser:{uid:'sender'},
+  fb.runTransaction=async(_db,callback)=>callback({get:fb.getDoc,set:fb.setDoc});
+  globalThis.window={PortalAPI:{db:{},fb,state:{isAdmin:true,rol:'mudur',personel:{durum:'aktif'},aktifDonem:donem,currentUser:{uid:'sender'},
     ogrenciList:students??[{id:'child',aktifDonem:donem,aktifDonemDurum:'aktif',sinif:'A',veli1Eposta:'parent@example.test'}],
     ayarListesi:settings??{}},toast:(...args)=>warnings.push(args)}};
   globalThis.fetch=async(_url,request)=>{pushes.push(JSON.parse(request.body));return {ok:!pushFail,status:pushFail?500:200,
@@ -120,7 +120,7 @@ test('successful pending approval notifies only exact parent once with generic p
   await Promise.all([window.galeriOnayla('new'),window.galeriOnayla('new')]);
   await window.galeriOnayla('new');
   assert.equal(actions,2);assert.equal(f.root().length,1);assert.equal(f.pushes.length,1);
-  const root=f.root()[0].data;assert.equal(root.kaynakId,'egitim_new');assert.equal(root.olayAnahtari,'egitim_new');assert.equal(root.ogrenciId,'child');
+  const root=f.root()[0].data;assert.equal(root.kaynakId,'new');assert.match(root.olayAnahtari,/^galeri-onay-grup:/);assert.equal(root.ogrenciId,'child');
   assert.deepEqual(f.pushes[0].aliciEmailler,['parent@example.test']);assert.equal(f.pushes[0].hedefSayfa,'veli-egitim.html');
   const payload=JSON.stringify(f.pushes[0]);for(const value of [gallery.baslik,gallery.aciklama,gallery.hedefOgrenciAd,gallery.yukleyenAd,gallery.url,'egitim_new','child'])assert.ok(!payload.includes(value),value);
 });

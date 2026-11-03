@@ -10,10 +10,11 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v222-kayit-duyuru-cache";
+const CACHE_VERSION = "v223-galeri-toplu-onay";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/galeri-toplu-onay.js?v=223",
   "./js/kayit-duyurulari.js?v=222",
   "./assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg",
   "./js/kitap-kulubu/page.mjs?v=2",
@@ -91,12 +92,12 @@ const PRECACHE = [
   "./js/zeky-randevu-callable-adapter.js",
   "./js/zeky-randevu-parent-page.js",
   "./js/zeky-randevu-staff-page.js",
-  "./js/zeky-randevu-modal-koprusu.js?v=193",
+  "./js/zeky-randevu-modal-koprusu.js?v=223",
   "./js/zeky-veli-odeme-ozeti.js",
   "./js/zeky-hava.js?v=1",
   "./js/zeky-yol.js?v=4",
-  "./js/zeky-galeri-filigran-koprusu.js?v=193",
-  "./js/zeky-galeri-onay-egitim.js?v=216",
+  "./js/zeky-galeri-filigran-koprusu.js?v=223",
+  "./js/zeky-galeri-onay-egitim.js?v=223",
   "./js/galeri-gozlem-metadata.js?v=216",
   "./js/zeky-veli-egitim-koprusu.js?v=9",
   "./js/zeky-veli-ogrenme-deneyimi.js?v=3",
@@ -115,7 +116,7 @@ const PRECACHE = [
   "./moduller/pdr.js",
   "./moduller/program-belgeleme.js",
   "./moduller/geri-bildirim.js",
-  "./moduller/veli-galeri.js?v=v219",
+  "./moduller/veli-galeri.js?v=v223",
   "./js/portal-galeri-lightbox-ui.js",
   "./js/bunny-stream-upload.js?v=192",
   "./okul_logo.png",

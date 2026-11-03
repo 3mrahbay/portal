@@ -2,7 +2,7 @@
 
 import { galleryEducationMetadata, galleryPersonName, hydrateGalleryEducationMetadata } from './galeri-gozlem-metadata.js?v=216';
 import { gallerySession } from './galeri-onay-canli.js?v=186';
-import { bildirimKaydetVePush, hedefVeliEmailleri } from './zeky-bildirim-koprusu.js';
+import { notifyGalleryPublication } from './galeri-toplu-onay.js?v=223';
 
 const KURULUM='__zekyGaleriOnayEgitimV4';
 const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi',degerlerPlus:'Değerler+',jimnastik:'Jimnastik',drama:'Drama',kodlama:'Kodlama'};
@@ -84,6 +84,7 @@ function fonksiyonlariSar(){
 function api(){const p=window.PortalAPI||{},b=window.BCK||{};return{db:p.db||b.db,fb:p.fb||b};}
 async function galeriBelgesi(id){const{db,fb}=api();if(!db||!fb?.getDoc||!fb?.doc)return null;const s=await fb.getDoc(fb.doc(db,'galeri',id));return s.exists()?{id,...(s.data()||{})}:null;}
 export async function egitimOnayiniEsitle(id,durum,{canliOnay=false}={}){
+  const onayOturumu=gallerySession(window.PortalAPI?.state||{});
   const{db,fb}=api();if(!db||!fb?.getDoc||!fb?.setDoc||!fb?.doc)return false;
   const m=await galeriBelgesi(id);if(!m||m.durum!==durum||!egitimMi(m))return false;
   const ogrenciId=m.ogrenciId||m.hedefOgrenciId||(m.hedefTur==='ogrenci'?m.hedefDeger:''),program=programKodu(m),anahtar=m.kazanimAnahtari||'',kod=m.gozlemDurum||'';
@@ -123,13 +124,9 @@ export async function egitimOnayiniEsitle(id,durum,{canliOnay=false}={}){
     if(canliOnay&&!bildirimHazir)window.PortalAPI?.toast?.('Eğitim onaylandı · bildirim oluşturulamadı','warning');
     // Bu bayrak yalnız başarılı açık beklemede→onaylandı işleminin sarmalayıcısında
     // verilir. Sayfa açılışı/onarımı hiçbir zaman kök bildirim veya push üretmez.
-    if(canliOnay&&bildirimHazir){
-      const kaynakId=`egitim_${id}`;
-      const sonuc=await bildirimKaydetVePush(hedefVeliEmailleri({hedefTur:'ogrenci',hedefDeger:ogrenciId}),{
-        tip:'egitim_gelisim',baslik:'Yeni eğitim güncellemesi',metin:'Eğitim gelişiminde yeni bir güncelleme var.',
-        hedefSayfa:'veli-egitim.html',ogrenciId,kaynakId,olayAnahtari:kaynakId
-      });
-      if(sonuc.ok!==true||sonuc.push?.ok!==true){
+    if(canliOnay&&bildirimHazir&&onayOturumu===gallerySession(window.PortalAPI?.state||{})){
+      const sonuc=await notifyGalleryPublication({...m,id,hedefTur:'ogrenci',hedefDeger:ogrenciId},window.PortalAPI,{education:true});
+      if(sonuc.ok!==true||sonuc.push?.ok===false){
         console.warn('Eğitim onaylandı; bildirim teslimi doğrulanamadı');
         window.PortalAPI?.toast?.('Eğitim onaylandı · bildirim teslimi doğrulanamadı','warning');
       }
@@ -161,6 +158,7 @@ export function onayFonksiyonlariniSar(){
   for(const [ad,durum] of [['galeriOnayla','onaylandi'],['galeriReddet','reddedildi']]){
     const eski=window[ad];if(typeof eski!=='function'){hazir=false;continue;}if(eski.__zekyEgitimOnayEsitle)continue;
     const yeni=function(id,...args){
+      const oturum=gallerySession(window.PortalAPI?.state||{});
       const islemAnahtari=String(id);
       if(onayIsleri.has(islemAnahtari))return onayIsleri.get(islemAnahtari);
       const islem=(async()=>{
@@ -169,7 +167,7 @@ export function onayFonksiyonlariniSar(){
         const r=await eski.call(this,id,...args);
         // Eski fonksiyon hatayı yakalayıp dönebilir. Açık başarı olmadan,
         // iptal/red/başarısızlık üzerine bildirim üretmek güvenli değildir.
-        if(r!==true)return r;
+        if(r!==true||oturum!==gallerySession(window.PortalAPI?.state||{}))return r;
         try{
           const canliOnay=durum==='onaylandi'&&bekliyor(onceki)&&yonetimMi();
           if(await egitimOnayiniEsitle(id,durum,{canliOnay}))onarilanKayitlar.add(id);

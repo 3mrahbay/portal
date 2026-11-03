@@ -6,6 +6,9 @@ import vm from 'node:vm';
 import { installedPwa, assertPwaBootstrap, assertPrecachedImport, readPortal } from './helpers/portal-pwa.mjs';
 const origin='https://portal.example.invalid/';
 const edges=[
+ ['index.html','js/galeri-toplu-onay.js'],
+ ['js/zeky-galeri-onay-egitim.js','js/galeri-toplu-onay.js'],
+ ['js/zeky-galeri-filigran-koprusu.js','js/zeky-galeri-onay-egitim.js'],
  ['index.html','js/bunny-stream-upload.js'],
  ['index.html','js/portal-galeri-klasor-ui.js'],
  ['index.html','js/zeky-randevu-modal-koprusu.js'],
@@ -18,12 +21,12 @@ const edges=[
 ];
 for(const [importer,target] of edges) test(`media release installs exact current edge ${importer} -> ${target}`,async()=>{
  const pwa=await installedPwa(),url=assertPrecachedImport(pwa,importer,target);
- assert.equal(url.search,new Set(['js/zeky-randevu-modal-koprusu.js','js/zeky-galeri-filigran-koprusu.js']).has(target)?'?v=193':new Set(['js/bunny-stream-upload.js','js/portal-galeri-klasor-ui.js','js/zeky-galeri-filigran-koprusu.js','js/portal-galeri-canli.js','js/portal-galeri-medya.js']).has(target)?'?v=192':'?v=188');
+ assert.equal(url.search,new Set(['js/galeri-toplu-onay.js','js/zeky-galeri-onay-egitim.js','js/zeky-randevu-modal-koprusu.js','js/zeky-galeri-filigran-koprusu.js']).has(target)?'?v=223':new Set(['js/bunny-stream-upload.js','js/portal-galeri-klasor-ui.js','js/zeky-galeri-filigran-koprusu.js','js/portal-galeri-canli.js','js/portal-galeri-medya.js']).has(target)?'?v=192':'?v=188');
 });
 test('media release runtime, service worker registration, reload guard and cache generation agree',async()=>{
  const pwa=await installedPwa();await assertPwaBootstrap(pwa);
- assert.equal(pwa.cacheVersion,'v219-kitap-kulubu-tercihi');
- assert.ok(readPortal('index.html').includes('window.PORTAL_SURUM = "v219";'));
+ assert.equal(pwa.cacheVersion,'v223-galeri-toplu-onay');
+ assert.ok(readPortal('index.html').includes('window.PORTAL_SURUM = "v223";'));
 });
 test('actual parent gallery dynamic loader matches the one installed parent-gallery URL',async()=>{
  const html=readPortal('index.html'),start=html.indexOf('const _yuklenenModuller = {}'),end=html.indexOf('\n};',start)+3;
@@ -60,5 +63,5 @@ test('new controller generation reloads once after an earlier v191 reload',async
   sessionStorage:{getItem:key=>stored.get(key),setItem:(key,value)=>stored.set(key,value)},
   location:{reload:()=>{reloads++;}}});
  await events.load();events.controllerchange();events.controllerchange();
- assert.equal(reloads,1);assert.equal(stored.get('portalSwReload_v219'),'1');
+ assert.equal(reloads,1);assert.equal(stored.get('portalSwReload_v223'),'1');
 });
