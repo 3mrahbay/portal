@@ -50,7 +50,7 @@ test('binding clears synchronously before read; a missing, inactive or unclassif
  for(const data of [null,{}, {aktif:false,kayit:{sinif:'Yasemin'}},{durum:'arsiv',kayit:{sinif:'Yasemin'}},{kayit:{sinif:''}}]){const f=await hydrated(),p=f.run(childA);assert.equal(scope.galleryChildClass(childA,f.state()),'');f.resolve(1,data);await p;assert.equal(scope.galleryChildClass(childA,f.state()),'');assert.equal(f.state().galeriSinifBaglami.durum,'eksik');}
 });
 test('read failure is explicit; retry can recover without querying an unverified class',async()=>{
- const f=fixture(),p=f.run(childB);f.pending[0].reject(Error('private URL/token'));await p;assert.equal(f.state().galeriSinifBaglami.durum,'hata');const r=reader(f,[photo('yes')]);await r.render();assert.equal(r.calls.length,4);assert.match(r.root.innerHTML,/sınıfı doğrulanamadı/);assert.doesNotMatch(r.root.innerHTML,/Henüz paylaşılan anı yok|private/);
+ const f=fixture(),p=f.run(childB);f.pending[0].reject(Error('private URL/token'));await p;assert.equal(f.state().galeriSinifBaglami.durum,'hata');const r=reader(f,[photo('yes')]);await r.render();assert.equal(r.calls.length,5);assert.match(r.root.innerHTML,/sınıfı doğrulanamadı/);assert.doesNotMatch(r.root.innerHTML,/Henüz paylaşılan anı yok|private/);
  const retry=r.window._vg.tekrar('g');f.resolve(1,{kayit:{sinif:'Yasemin'}});await retry;assert.deepEqual(r.ids(),['yes']);assert.doesNotMatch(r.root.innerHTML,/eksik olabilir/);
 });
 test('foreign selected child cannot hydrate and stale bindings cannot authorize class actions',async()=>{
@@ -58,7 +58,7 @@ test('foreign selected child cannot hydrate and stale bindings cannot authorize 
 });
 test('query-faithful class aliases stay within approved audience and exact active period',async()=>{
  const f=await hydrated(),r=reader(f,[photo('alias',{hedefDeger:'Kardelenler Sınıfı'}),photo('current'),photo('legacy-period',{donem:undefined}),photo('old',{donem:'2025-2026'}),photo('pending',{durum:'beklemede'}),photo('class-only',{hedefTur:undefined,hedefDeger:undefined,sinif:'Yasemin'}),photo('wrong',{hedefDeger:'Mimoza'}),photo('conflict',{hedefTur:'ogrenci',hedefDeger:'a',ogrenciId:'b'})]);await r.render();assert.deepEqual(r.ids().sort(),['alias','current','legacy-period']);assert.equal(scope.targetChild(photo('old',{donem:'2025-2026'}),[childA],f.state()),null);
- for(const q of r.calls){assert.equal(q.collection,'galeri');assert.ok(q.filters.some(w=>w.field==='durum'&&w.value==='onaylandi'));assert.ok(q.filters.some(w=>['hedefTur','hedefOgrenciId','ogrenciId'].includes(w.field)));assert.ok(!q.filters.some(w=>w.field==='sinif'));}
+ for(const q of r.calls){assert.equal(q.collection,'galeri');assert.ok(q.filters.some(w=>w.field==='durum'&&w.value==='onaylandi'));assert.ok(q.filters.some(w=>['hedefTur','hedefOgrenciId','ogrenciId','ogrenciIds'].includes(w.field)));assert.ok(!q.filters.some(w=>w.field==='sinif'));}
 });
 test('partial and all query failures show incomplete state; retry replaces counts with complete results',async()=>{
  const f=await hydrated(),r=reader(f,[photo('class'),photo('school',{hedefTur:'tumOkul'}),photo('child',{hedefTur:'ogrenci',hedefDeger:'a'})]);r.fail(q=>q.filters.some(w=>w.field==='hedefTur'&&w.value==='sinif'));await r.render();assert.deepEqual(r.ids().sort(),['child','school']);assert.match(r.root.innerHTML,/sorguları tamamlanamadı/);assert.doesNotMatch(r.root.innerHTML,/private/);assert.doesNotMatch(r.root.innerHTML.split('<pre hidden')[0],/permission-denied/);

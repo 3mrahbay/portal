@@ -1,0 +1,87 @@
+    // Secondary English groups: existing ogrenciler IDs only; no student copies.
+    // egitimGruplari/{id}: ad(1..80), program='ingilizce', donem, active teacher
+    // email(<=180), durum, immutable creator/time and last editor/time.
+    // egitimGrupUyelikleri/{donem}__ingilizce__{studentId}: one membership per
+    // child/period, optional empty grupId for removal, immutable child/period,
+    // and sonIslemId pointing to the immutable audit entry in the same commit.
+    function egAktifPersonel() {
+      let p = get(/databases/$(database)/documents/personeller/$(userEmail())).data;
+      return isSignedIn() && p.durum == 'aktif' && p.get('aktif', true) != false;
+    }
+    function egYonetici() { return egAktifPersonel() && personelRol() in ['kurucu_mudur','mudur','egitim_koordinator']; }
+    function egKimlik(v) { return v is string && v.size() > 0 && v.size() <= 180 && !v.matches('.*[/].*') && v != '.' && v != '..'; }
+    function egGrupOgretmeni(d) {
+      return egAktifPersonel() && isOgretmen() && d.program == 'ingilizce' && d.donem == aktifDonem()
+        && d.durum == 'aktif' && d.ogretmenEmail == userEmail();
+    }
+    function egGrupOkur(id) {
+      return egKimlik(id) && exists(/databases/$(database)/documents/egitimGruplari/$(id))
+        && egGrupOgretmeni(get(/databases/$(database)/documents/egitimGruplari/$(id)).data);
+    }
+    function egOgretmenGecerli(email) {
+      let p = get(/databases/$(database)/documents/personeller/$(email)).data;
+      return p.durum == 'aktif' && p.get('aktif', true) != false && p.rol in [
+        'ogretmen','yardimci_ogretmen','ingilizce_ogretmeni','degerler_ogretmeni','orman_ogretmeni','brans_ogretmeni'];
+    }
+    function egGrupGecerli(d) {
+      return d.keys().hasAll(['ad','program','donem','ogretmenEmail','durum','olusturan','olusturuldu','guncelleyen','guncellendi'])
+        && d.keys().hasOnly(['ad','program','donem','ogretmenEmail','durum','olusturan','olusturuldu','guncelleyen','guncellendi'])
+        && d.ad is string && d.ad.size() > 0 && d.ad.size() <= 80
+        && d.program == 'ingilizce' && d.donem is string && d.donem.size() == 9 && d.donem == aktifDonem()
+        && d.ogretmenEmail is string && d.ogretmenEmail.size() <= 180
+        && d.ogretmenEmail == d.ogretmenEmail.lower() && d.ogretmenEmail.matches('^[^@ /]+@[^@ /]+[.][^@ /]+$')
+        && egOgretmenGecerli(d.ogretmenEmail) && d.durum in ['aktif','pasif']
+        && egKimlik(d.olusturan) && d.olusturuldu is timestamp
+        && d.guncelleyen == request.auth.uid && d.guncellendi == request.time;
+    }
+    function egUyelikGecerli(d, id) {
+      let hedef = d.grupId == '' || (egKimlik(d.grupId)
+        && get(/databases/$(database)/documents/egitimGruplari/$(d.grupId)).data.durum == 'aktif'
+        && get(/databases/$(database)/documents/egitimGruplari/$(d.grupId)).data.program == 'ingilizce'
+        && get(/databases/$(database)/documents/egitimGruplari/$(d.grupId)).data.donem == d.donem);
+      return d.keys().hasAll(['ogrenciId','donem','program','grupId','sonIslemId','olusturan','olusturuldu','guncelleyen','guncellendi'])
+        && d.keys().hasOnly(['ogrenciId','donem','program','grupId','sonIslemId','olusturan','olusturuldu','guncelleyen','guncellendi'])
+        && egKimlik(d.ogrenciId) && exists(/databases/$(database)/documents/ogrenciler/$(d.ogrenciId))
+        && d.donem is string && d.donem.size() == 9 && d.donem == aktifDonem() && d.program == 'ingilizce'
+        && id == d.donem + '__ingilizce__' + d.ogrenciId && d.grupId is string && hedef
+        && egKimlik(d.sonIslemId) && egKimlik(d.olusturan) && d.olusturuldu is timestamp
+        && d.guncelleyen == request.auth.uid && d.guncellendi == request.time;
+    }
+    function egGecmisGecerli(d, id) {
+      let onceki = exists(/databases/$(database)/documents/egitimGrupUyelikleri/$(id))
+        ? get(/databases/$(database)/documents/egitimGrupUyelikleri/$(id)).data.grupId : '';
+      return d.keys().hasAll(['ogrenciId','donem','oncekiGrupId','yeniGrupId','degistiren','tarih'])
+        && d.keys().hasOnly(['ogrenciId','donem','oncekiGrupId','yeniGrupId','degistiren','tarih'])
+        && egKimlik(d.ogrenciId) && d.donem == aktifDonem()
+        && id == d.donem + '__ingilizce__' + d.ogrenciId
+        && d.oncekiGrupId == onceki && d.oncekiGrupId is string && d.oncekiGrupId.size() <= 180
+        && d.yeniGrupId is string && d.yeniGrupId.size() <= 180 && d.yeniGrupId != onceki
+        && d.degistiren == request.auth.uid && d.tarih == request.time;
+    }
+    function egUyelikGecmisi(d,id) {
+      let h = getAfter(/databases/$(database)/documents/egitimGrupUyelikleri/$(id)/gecmis/$(d.sonIslemId)).data;
+      return egGecmisGecerli(h,id) && h.ogrenciId == d.ogrenciId && h.yeniGrupId == d.grupId;
+    }
+    match /egitimGruplari/{id} {
+      allow read: if egYonetici() || egGrupOgretmeni(resource.data);
+      allow create: if egYonetici() && egKimlik(id) && egGrupGecerli(request.resource.data)
+        && request.resource.data.olusturan == request.auth.uid && request.resource.data.olusturuldu == request.time;
+      allow update: if egYonetici() && egGrupGecerli(request.resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['olusturan','olusturuldu','donem','program']);
+      allow delete: if false;
+    }
+    match /egitimGrupUyelikleri/{id} {
+      allow read: if egYonetici() || (resource.data.donem == aktifDonem() && egGrupOkur(resource.data.grupId));
+      allow create: if egYonetici() && egUyelikGecerli(request.resource.data,id) && egUyelikGecmisi(request.resource.data,id)
+        && request.resource.data.olusturan == request.auth.uid && request.resource.data.olusturuldu == request.time;
+      allow update: if egYonetici() && egUyelikGecerli(request.resource.data,id) && egUyelikGecmisi(request.resource.data,id)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ogrenciId','donem','program','olusturan','olusturuldu']);
+      allow delete: if false;
+      match /gecmis/{islemId} {
+        allow read: if egYonetici();
+        allow create: if egYonetici() && egKimlik(islemId) && egGecmisGecerli(request.resource.data,id)
+          && getAfter(/databases/$(database)/documents/egitimGrupUyelikleri/$(id)).data.sonIslemId == islemId
+          && getAfter(/databases/$(database)/documents/egitimGrupUyelikleri/$(id)).data.grupId == request.resource.data.yeniGrupId;
+        allow update, delete: if false;
+      }
+    }

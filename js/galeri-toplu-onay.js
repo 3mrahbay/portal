@@ -1,17 +1,19 @@
+import {contentChildIds} from './egitim-gruplari-core.mjs';
 import { galleryApprover, gallerySession, pendingGallery } from './galeri-onay-canli.js?v=186';
-import { hedefVeliEmailleri } from './zeky-bildirim-koprusu.js';
+import { hedefVeliEmailleri } from './zeky-bildirim-koprusu.js?v=225';
 import { genelPushGonder } from './zeky-operasyon-push.js';
 
 export const GALLERY_NOTICE_INTERVAL = 10 * 60 * 1000;
 export function galleryApprovalScope(media) {
   const type = media?.hedefTur || (media?.hedefOgrenciId ? 'ogrenci' : '');
   const value = String(media?.hedefDeger || media?.hedefOgrenciId || '').trim();
+  if(type==='ogrenci'){const ids=contentChildIds(media);if(!ids.length)return null;return {hedefTur:type,hedefDeger:ids[0],...(ids.length>1?{ogrenciIds:ids}:{}),...(media.egitimGrupId?{egitimGrupId:media.egitimGrupId}:{})};}
   return ['sinif', 'ogrenci', 'tumOkul'].includes(type) && (type === 'tumOkul' || value)
     ? { hedefTur: type, hedefDeger: type === 'tumOkul' ? '' : value } : null;
 }
 export function galleryApprovalScopeKey(media) {
   const scope = galleryApprovalScope(media);
-  return scope ? JSON.stringify([scope.hedefTur, scope.hedefDeger]) : '';
+  return scope ? JSON.stringify([scope.hedefTur,scope.ogrenciIds?[...scope.ogrenciIds].sort():scope.hedefDeger,...(scope.egitimGrupId?[scope.egitimGrupId]:[])]) : '';
 }
 
 // Recheck on transaction retries: two approvers cannot publish the same item.
@@ -49,14 +51,14 @@ export async function notifyGalleryPublication(media, api = globalThis.window?.P
   if (recipients.length > 499) return { ok: false, hata: 'bildirim-alici-siniri' };
   const kind = options.education ? 'egitim' : 'galeri';
   const period = String(api.state.aktifDonem || '');
-  const key = JSON.stringify([period, kind, scope.hedefTur, scope.hedefDeger]);
+  const key = JSON.stringify([period,kind,scope.hedefTur,scope.ogrenciIds?[...scope.ogrenciIds].sort():scope.hedefDeger,...(scope.egitimGrupId?[scope.egitimGrupId]:[])]);
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
   const hash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
   const { fb, db } = api;
   const marker = fb.doc(db, 'ayarlar', `galeriOnayBildirim_${hash}`);
   const content = options.education
     ? { tip: 'egitim_gelisim', baslik: 'Yeni eğitim güncellemesi', metin: 'Eğitim gelişimindeki yeni güncellemeleri inceleyebilirsiniz.', hedefSayfa: 'veli-egitim.html', ogrenciId: scope.hedefDeger }
-    : { tip: 'galeri', baslik: 'Yeni galeri içeriği', metin: 'Galeriye yeni fotoğraf veya videolar eklendi. Tüm yeni içerikleri galeride görebilirsiniz.', hedefSayfa: 'galeri.html', ogrenciId: scope.hedefTur === 'ogrenci' ? scope.hedefDeger : '' };
+    : { tip: 'galeri', baslik: 'Yeni galeri içeriği', metin: 'Galeriye yeni fotoğraf veya videolar eklendi. Tüm yeni içerikleri galeride görebilirsiniz.', hedefSayfa: 'galeri.html', ogrenciId: scope.hedefTur === 'ogrenci' && !scope.ogrenciIds ? scope.hedefDeger : '' };
   const refs = recipients.map(() => fb.doc(fb.collection(db, 'bildirimler')));
   try {
     const created = await fb.runTransaction(db, async tx => {

@@ -1,7 +1,7 @@
-import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js';
-export { galleryProgram } from './galeri-klasorleri.js';
+import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js?v=225';
+export { galleryProgram } from './galeri-klasorleri.js?v=225';
 import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=192';
-import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=166';
+import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=225';
 
 const api = () => window.PortalAPI;
 const service = createInteractionService(api);

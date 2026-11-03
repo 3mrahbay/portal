@@ -9820,6 +9820,8 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         </div>
       </div>
 
+      <button class="btn-ikincil" onclick="egitimGruplariAc()">İngilizce grupları ve öğrenci atama</button>
+      <div id="egitimGruplariPanel" hidden style="margin:16px 0"></div>
       <div id="sinifUyari"></div>
 
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
@@ -10558,8 +10560,9 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
               <select id="duyuruHedefTur" onchange="duyuruHedefDegisti()">
                 <option value="tumOkul">🏫 Tüm Okul</option>
                 <option value="sinif">👥 Belirli Sınıf</option>
-                <option value="ogrenci">👤 Belirli Öğrenci</option>
-              </select>
+                <option value="ogrenci">👥 Seçilen öğrenciler</option>
+              <option value="egitimGrup">🇬🇧 İngilizce grubu</option>
+</select>
             </div>
           </div>
 
@@ -10575,10 +10578,11 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
             </div>
           </div>
 
+          <div class="form-group" id="duyuruHedefGrupWrap" style="display:none"><label>İngilizce grubu</label><select id="duyuruHedefGrup"></select></div>
           <div class="form-grid full" id="duyuruHedefOgrenciWrap" style="display:none;">
             <div class="form-group">
               <label>Öğrenci Seç</label>
-              <select id="duyuruHedefOgrenci">
+              <select id="duyuruHedefOgrenci" multiple size="7" aria-label="Öğrenciler (birden fazla seçilebilir)">
                 <option value="">-- Öğrenci Seçin --</option>
               </select>
               <div class="field-hint">Öğrencinin velilerine gönderilecek</div>
@@ -11080,8 +11084,9 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
                 <select id="galeriHedefTur" onchange="galeriHedefDegisti()">
                   <option value="tumOkul" class="yonetim-only-opt">🏫 Tüm Okul</option>
                   <option value="sinif">👥 Belirli Sınıf</option>
-                  <option value="ogrenci">👤 Belirli Öğrenci</option>
-                </select>
+                  <option value="ogrenci">👥 Seçilen öğrenciler</option>
+                <option value="egitimGrup">🇬🇧 İngilizce grubu</option>
+</select>
               </div>
               <div class="form-group" id="galeriHedefSinifWrap" style="display:none;">
                 <label>Sınıf</label>
@@ -11092,9 +11097,10 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
                   <option value="Nar Çiçekleri Sınıfı">Nar Çiçekleri Sınıfı</option>
                 </select>
               </div>
-              <div class="form-group" id="galeriHedefOgrenciWrap" style="display:none;">
+              <div class="form-group" id="galeriHedefGrupWrap" style="display:none"><label>İngilizce grubu</label><select id="galeriHedefGrup"></select></div>
+          <div class="form-group" id="galeriHedefOgrenciWrap" style="display:none;">
                 <label>Öğrenci</label>
-                <select id="galeriHedefOgrenci">
+                <select id="galeriHedefOgrenci" multiple size="7" aria-label="Öğrenciler (birden fazla seçilebilir)">
                   <option value="">-- Seçin --</option>
                 </select>
               </div>
@@ -13970,12 +13976,13 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
-import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js';
-import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=224';
+import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js?v=225';
+import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=225';
 import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
 import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
-import { approveGalleryItem, reviewGalleryItem, notifyGalleryPublication, galleryApprovalScopeKey } from './js/galeri-toplu-onay.js?v=223';
-import { canDeleteGalleryMedia, galleryDeleteButton, removeGalleryMedia } from './js/galeri-silme.js?v=224';
+import { contentChildIds } from "./js/egitim-gruplari-core.mjs";
+import { approveGalleryItem, reviewGalleryItem, notifyGalleryPublication, galleryApprovalScopeKey } from './js/galeri-toplu-onay.js?v=225';
+import { canDeleteGalleryMedia, galleryDeleteButton, removeGalleryMedia } from './js/galeri-silme.js?v=225';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
 import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=171';
 import {receiptInput} from './js/expenses/receipt-input.js';
@@ -14113,7 +14120,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v224";
+window.PORTAL_SURUM = "v225";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14659,7 +14666,7 @@ function personelYonetebilirMi() {
 // Öğretmen/Branş: kendi sınıfı + eğitim + iletişim, finans ve İK YOK.
 const SEKME_YETKILERI = {
   // Ana sayfa herkese açık
-  anasayfa:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
+  anasayfa:    ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr", "ingilizce_ogretmeni"],
   // Öğrenci & Okul
   ogrenciler:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
   veliler:     ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen"],
@@ -14690,9 +14697,9 @@ const SEKME_YETKILERI = {
   veliKatilim: ["kurucu_mudur"],
   // Görüşme notları: velilere kapalı; öğretmen yalnız kendi sınıfını görür (Rules ile birebir)
   gorusmeNotlari: ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "pdr"],
-  galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  galeri:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "ingilizce_ogretmeni"],
   // Öğretmen bunları GÖRÜR (yazma yetkisi ayrıca kontrol edilir)
-  duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma", "pdr"],
+  duyurular:   ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma", "pdr", "ingilizce_ogretmeni"],
   yemek:       ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
   etkinlik:    ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen", "danisma", "pdr"],
   mesajlasma:  ["kurucu_mudur", "mudur", "egitim_koordinator", "muhasebe", "ogretmen", "danisma", "pdr"],
@@ -15833,8 +15840,18 @@ async function portalBildirimGit(b) {
 // Bu köprü yalnız kullanıcının yeni kaydettiği/yayınladığı olaydan çağrılır.
 async function portalHedefBildir(hedef, bildirim) {
   try {
-    const m = await import("./js/zeky-bildirim-koprusu.js?v=164");
-    const alicilar = m.hedefVeliEmailleri(hedef);
+    const m = await import("./js/zeky-bildirim-koprusu.js?v=225");
+    let overrides={};
+    if(Array.isArray(hedef.ogrenciIds)){
+    const session=gallerySession(window.PortalAPI.state);
+    const ids=hedef.hedefTur==='ogrenci'?contentChildIds(hedef):[];
+    const roster=window.PortalAPI.state.ogrenciList||[];
+    const missing=ids.filter(id=>!roster.some(o=>o.id===id));
+    const extra=await Promise.all(missing.map(id=>getDoc(doc(db,'ogrenciler',id))));
+    if(session!==gallerySession(window.PortalAPI.state))return {ok:false,hata:'oturum-degisti'};
+    overrides={ogrenciler:[...roster,...extra.filter(d=>d.exists()).map(d=>({...d.data(),id:d.id}))]};
+    }
+    const alicilar = m.hedefVeliEmailleri(hedef,overrides);
     if (!alicilar.length) { console.warn("Bildirim için uygun veli alıcısı bulunamadı"); return {ok:false,hata:"alici-yok"}; }
     const sonuc = await m.bildirimKaydetVePush(alicilar, bildirim);
     if (!sonuc.ok) showToast("Kayıt kaydedildi; bazı bildirim kayıtları oluşturulamadı.", "warn");
@@ -17294,6 +17311,8 @@ onAuthStateChanged(auth, async (user) => {
   veliGaleriSinifSifirla();
   window._vg?.invalidate?.();
   const oturumSurumu = ++portalOturumSurumu;
+  document.getElementById('egitimGruplariPanel')?.replaceChildren?.();
+  window.egitimGrupTemizle?.();
   // Eski hesabın kimliği ve veli bağı yeni hesabın asenkron yüklemesine taşınmaz.
   currentUser = user || null;
   isAdmin = false;
@@ -25567,7 +25586,7 @@ function simsekHedefUygun(d) {
     });
   }
   if (d.hedefTur === "ogrenci") {
-    return veliOgrenciler.some(o => o.id === d.hedefDeger);
+    return veliOgrenciler.some(o => contentChildIds(d).includes(o.id));
   }
   return false;
 }
@@ -28811,6 +28830,7 @@ const SINIF_RENKLERI = [
 ];
 const SINIF_EMOJILER = ["🌼","🌷","🌺","🌿","🍀","🌸","🌻","🌱"];
 
+window.egitimGruplariAc = async function(){return (await import('./moduller/egitim-gruplari.js?v=225')).open();};
 window.sinifYonetimYukle = async function() {
   const el = document.getElementById("sinifListesi");
   if (!el) return;
@@ -32124,8 +32144,8 @@ window.openDuyuruModal = function(mevcutEkler) {
   document.getElementById("duyuruMailGonder").checked = true;
   document.getElementById("duyuruSimsek").checked = false;
   document.getElementById("duyuruSilBtn").style.display = "none";
-  duyuruHedefDegisti();
-  doldurOgrenciSecici();
+  duyuruRolKisitiUygula();duyuruHedefDegisti();doldurOgrenciSecici();
+  import('./moduller/egitim-gruplari.js?v=225').then(m=>m.fillGroupSelect('duyuruHedefGrup'));
   // Resim/dosya ekleri — düzenlemede mevcut ekler gelir
   modulYukle("duyuru-ekleri").then(m => m && m.formHazirla(Array.isArray(mevcutEkler) ? mevcutEkler : []));
 };
@@ -32139,6 +32159,7 @@ window.closeDuyuruModal = function(kayitSonrasi = false) {
 // Hedef türü değiştiğinde alt alan göster/gizle
 window.duyuruHedefDegisti = function() {
   const hedef = document.getElementById("duyuruHedefTur").value;
+  document.getElementById('duyuruHedefGrupWrap').style.display=hedef==='egitimGrup'?'block':'none';
   document.getElementById("duyuruHedefSinifWrap").style.display = hedef === "sinif" ? "block" : "none";
   document.getElementById("duyuruHedefOgrenciWrap").style.display = hedef === "ogrenci" ? "block" : "none";
 };
@@ -32147,7 +32168,8 @@ window.duyuruHedefDegisti = function() {
 function doldurOgrenciSecici() {
   const sel = document.getElementById("duyuruHedefOgrenci");
   if (!sel) return;
-  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
+  sel.disabled=false;
+  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif" && (!ogretmenRolMu() || (aktifKullaniciSiniflari||[]).includes(_a.kayit?.sinif||o.sinif||o.sinifi||"")); });
   aktif.sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || ""));
   sel.innerHTML = '<option value="">-- Öğrenci Seçin --</option>';
   for (const o of aktif) {
@@ -32158,6 +32180,7 @@ function doldurOgrenciSecici() {
     opt.dataset.ad = o.ogrenciAdSoyad || "";
     sel.appendChild(opt);
   }
+  import('./moduller/egitim-gruplari.js?v=225').then(m=>m.fillTeacherChildren('duyuruHedefOgrenci'));
 }
 
 // Düzenle
@@ -32173,7 +32196,11 @@ window.duzenleDuyuru = function(id) {
   document.getElementById("duyuruAciliyet").value = d.aciliyet || "normal";
   document.getElementById("duyuruHedefTur").value = d.hedefTur || "tumOkul";
   if (d.hedefTur === "sinif") document.getElementById("duyuruHedefSinif").value = d.hedefDeger || "";
-  if (d.hedefTur === "ogrenci") document.getElementById("duyuruHedefOgrenci").value = d.hedefDeger || "";
+  if(d.hedefTur==='ogrenci'){
+    const ids=contentChildIds(d),sel=document.getElementById('duyuruHedefOgrenci');
+    ids.forEach(id=>{if(![...sel.options].some(o=>o.value===id))sel.add(new Option('Önceki seçili öğrenci',id));});
+    [...sel.options].forEach(o=>o.selected=ids.includes(o.value));
+  }
   document.getElementById("duyuruMailGonder").checked = false; // Düzenlemede mail yeniden gönderilmez
   document.getElementById("duyuruSimsek").checked = !!d.simsek;
   document.getElementById("duyuruSilBtn").style.display = "inline-block";
@@ -32184,12 +32211,16 @@ window.duzenleDuyuru = function(id) {
 // Duyuru: öğretmen yalnızca kendi sınıfına duyuru yapabilir
 window.duyuruRolKisitiUygula = function() {
   try {
-    if (typeof ogretmenRolMu !== "function" || !ogretmenRolMu()) return;
+    if (typeof ogretmenRolMu !== "function" || !ogretmenRolMu()) {
+      const sel=document.getElementById('duyuruHedefTur');
+      if(sel&&![...sel.options].some(o=>o.value==='tumOkul'))sel.insertBefore(new Option('🏫 Tüm Okul','tumOkul'),sel.firstChild);
+      document.querySelectorAll('#duyuruHedefSinif option').forEach(o=>o.disabled=false);return;
+    }
     const sel = document.getElementById("duyuruHedefTur");
     if (sel) {
       // Okul geneli ve öğrenci bazlı seçenekleri kaldır
       [...sel.options].forEach(o => {
-        if (o.value === "tumOkul" || o.value === "ogrenci") o.remove();
+        if (o.value === "tumOkul") o.remove();
       });
       if (sel.value !== "sinif") {
         sel.value = "sinif";
@@ -32202,7 +32233,7 @@ window.duyuruRolKisitiUygula = function() {
       const not = document.createElement("div");
       not.id = "duyuruOgrNot";
       not.style.cssText = "background:#EFF6FF; border:1px solid #BFDBFE; border-radius:10px; padding:10px 13px; font-size:12px; color:#1D4ED8; margin-bottom:12px;";
-      not.textContent = "Duyurunuz yalnızca kendi sınıfınızın velilerine gönderilir.";
+      not.textContent = "Kendi sınıfınıza, öğrencilerinize veya atanmış İngilizce grubunuza paylaşım yapabilirsiniz.";
       govde.prepend(not);
     }
   } catch (e) { console.warn("duyuru rol kısıtı:", e); }
@@ -32218,7 +32249,7 @@ window.kaydetDuyuru = async function() {
   const baslik = document.getElementById("duyuruBaslik").value.trim();
   const icerik = document.getElementById("duyuruIcerik").value.trim();
   const aciliyet = document.getElementById("duyuruAciliyet").value;
-  const hedefTur = document.getElementById("duyuruHedefTur").value;
+  let hedefTur = document.getElementById("duyuruHedefTur").value;
   const mailGonder = document.getElementById("duyuruMailGonder").checked;
   const simsek = document.getElementById("duyuruSimsek").checked;
 
@@ -32230,20 +32261,24 @@ window.kaydetDuyuru = async function() {
   if (hedefTur === "sinif") {
     hedefDeger = document.getElementById("duyuruHedefSinif").value;
     if (!hedefDeger) return showToast("Sınıf seçin", "error");
-  } else if (hedefTur === "ogrenci") {
-    hedefDeger = document.getElementById("duyuruHedefOgrenci").value;
-    if (!hedefDeger) return showToast("Öğrenci seçin", "error");
-    const sel = document.getElementById("duyuruHedefOgrenci");
-    hedefOgrenciAd = sel.options[sel.selectedIndex]?.dataset?.ad || "";
+  }
+  let hedefBilgi={};
+  if(!['tumOkul','sinif','ogrenci','egitimGrup'].includes(hedefTur))return showToast('Hedef kitle seçin','error');
+  if(hedefTur==='ogrenci'||hedefTur==='egitimGrup'){
+    const hedefOturumu=gallerySession(window.PortalAPI.state);
+    const groups=await import('./moduller/egitim-gruplari.js?v=225');
+    hedefBilgi=await groups.selectedAudience(hedefTur,document.getElementById('duyuruHedefGrup').value,document.getElementById('duyuruHedefOgrenci').selectedOptions,{announcement:true});
+    if(hedefOturumu!==gallerySession(window.PortalAPI.state))throw Error('Oturum değişti.');
+    ({hedefTur,hedefDeger,hedefOgrenciAd}=hedefBilgi);
   }
 
   // ── ÖĞRETMEN KISITI: yalnızca kendi sınıfına ──
   if (typeof ogretmenRolMu === "function" && ogretmenRolMu()) {
-    if (hedefTur !== "sinif") {
+    if (!["sinif","ogrenci"].includes(hedefTur)) {
       return showToast("Yalnızca kendi sınıfınıza duyuru yapabilirsiniz.", "error");
     }
     const kendi = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari) || [];
-    if (kendi.length && !kendi.includes(hedefDeger)) {
+    if (hedefTur === "sinif" && !kendi.includes(hedefDeger)) {
       return showToast("Yalnızca kendi sınıfınıza duyuru yapabilirsiniz.", "error");
     }
   }
@@ -32255,7 +32290,12 @@ window.kaydetDuyuru = async function() {
   }
 
   const data = {
-    baslik, icerik, aciliyet, hedefTur, hedefDeger, hedefOgrenciAd,
+    ...hedefBilgi, baslik, icerik, aciliyet, hedefTur, hedefDeger, hedefOgrenciAd,
+    hedefTip:hedefTur==='ogrenci'?'cocuk':hedefTur==='sinif'?'sinif':'okul',
+    ogrenciIds:hedefBilgi.ogrenciIds||[],ogrenciler:hedefBilgi.ogrenciIds||[],
+    hedefOgrenciId:hedefTur==='ogrenci'?hedefDeger:'',ogrenciId:'',
+    siniflar:hedefTur==='sinif'?[hedefDeger]:[],
+    egitimGrupId:hedefBilgi.egitimGrupId||'',egitimGrupAdi:hedefBilgi.egitimGrupAdi||'',donem:AKTIF_DONEM,
     mailGonder,
     simsek: !!simsek,
     arsiv: false,
@@ -32276,7 +32316,7 @@ window.kaydetDuyuru = async function() {
       await setDoc(ref, data);
       // Ekler artık kayıt tarafından kullanılıyor; bildirim beklenirken silinmemeli.
       duyuruEkModul?.kayitTamamlandi();
-      await portalHedefBildir({hedefTur,hedefDeger}, {
+      await portalHedefBildir({...hedefBilgi,hedefTur,hedefDeger}, {
         tip:"duyuru",baslik:"Yeni okul duyurusu",metin:"Okuldan yeni bir duyurunuz var.",
         hedefSayfa:"bildirimler.html",kaynakId:ref.id,olayAnahtari:"duyuru:"+ref.id,
         sessizUyari:!!simsek
@@ -32310,7 +32350,7 @@ async function duyuruMailGonder(data) {
       let dahil = false;
       if (data.hedefTur === "tumOkul") dahil = true;
       else if (data.hedefTur === "sinif" && ogrSinif === data.hedefDeger) dahil = true;
-      else if (data.hedefTur === "ogrenci" && o.id === data.hedefDeger) dahil = true;
+      else if (data.hedefTur === "ogrenci" && contentChildIds(data).includes(o.id)) dahil = true;
 
       if (!dahil) continue;
 
@@ -32330,7 +32370,7 @@ async function duyuruMailGonder(data) {
     const konu = `${aciliyetLabels[data.aciliyet] || '<i data-lucide="megaphone" style="width:13px;height:13px;vertical-align:-2px;"></i> Duyuru'}: ${data.baslik}`;
 
     // Tek tek gönder (çünkü her velinin adı özelleşmiş olmalı)
-    for (const v of hedefMailler) {
+    for (const v of new Map(hedefMailler.map(v=>[String(v.mail).trim().toLowerCase(),v])).values()) {
       const icerik = `
         <p style="margin:0 0 14px; font-size:15px;">Sayın <strong>${escapeHtml(v.ad)}</strong>,</p>
 
@@ -37132,7 +37172,7 @@ async function renderGaleri() {
     const albumTarih = egitimAlbumu ? "" : (g.etkinlikTarih || "");
     const anahtar = programKodu && !galleryIsObservation(g) ? galleryFolderKey(g) : egitimAlbumu
       ? `egitim|${programKodu}`
-      : `${albumTarih || "tarihsiz"}|${albumBaslik}|${g.hedefTur || ""}|${g.hedefDeger || ""}`;
+      : `${albumTarih || "tarihsiz"}|${albumBaslik}|${galleryApprovalScopeKey(g)}`;
     if (!gruplar[anahtar]) {
       gruplar[anahtar] = {
         etkinlikTarih: albumTarih,
@@ -37184,8 +37224,8 @@ async function renderGaleri() {
       : grup.programKodu
       ? `<button onclick="egitimAlbumuneEkle('${grup.programKodu}')" style="padding:7px 12px; background:#9333ea; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ İçerik Ekle</button>
          <button onclick="albumZipIndir('${grup.etkinlikBaslik.replace(/'/g, "\\'")}', '', '__egitim__', '${grup.programKodu}')" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> ZIP İndir</button>`
-      : `<button onclick="albumEEkle(${eklArgs})" style="padding:7px 12px; background:#9333ea; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ İçerik Ekle</button>
-         <button onclick="albumZipIndir(${zipArgs})" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> ZIP İndir</button>`;
+      : `<button onclick="galeriAlbumeEkle('${encodeURIComponent(grup.dosyalar[0].id).replace(/'/g, "%27")}')" style="padding:7px 12px; background:#9333ea; border:none; color:white; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ İçerik Ekle</button>
+         <button onclick="galeriAlbumZip('${encodeURIComponent(grup.dosyalar[0].id).replace(/'/g, '%27')}')" style="padding:7px 12px; background:white; border:1px solid #e9d5ff; color:#6b21a8; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;"><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> ZIP İndir</button>`;
 
     html += `
       <div style="background:white; border:1px solid var(--gray-200); border-radius:14px; overflow:hidden;">
@@ -37340,8 +37380,8 @@ window.openGaleriYuklemeModal = function(mod) {
     if (kategoriSel) kategoriSel.value = "";
   }
 
-  galeriHedefDegisti();
-  doldurGaleriOgrenciSecici();
+  galeriRolKisitiUygula();galeriHedefDegisti();doldurGaleriOgrenciSecici();
+  import('./moduller/egitim-gruplari.js?v=225').then(async m=>{await m.fillGroupSelect('galeriHedefGrup');if(albumEkleMod?.egitimGrupId){const sel=document.getElementById('galeriHedefGrup');sel.value=albumEkleMod.egitimGrupId;sel.disabled=true;}});
 };
 
 window.closeGaleriYuklemeModal = function() {
@@ -37353,6 +37393,7 @@ window.closeGaleriYuklemeModal = function() {
 
 window.galeriHedefDegisti = function() {
   const h = document.getElementById("galeriHedefTur").value;
+  document.getElementById('galeriHedefGrupWrap').style.display=h==='egitimGrup'?'block':'none';
   document.getElementById("galeriHedefSinifWrap").style.display = h === "sinif" ? "block" : "none";
   document.getElementById("galeriHedefOgrenciWrap").style.display = h === "ogrenci" ? "block" : "none";
 };
@@ -37360,8 +37401,9 @@ window.galeriHedefDegisti = function() {
 function doldurGaleriOgrenciSecici() {
   const sel = document.getElementById("galeriHedefOgrenci");
   if (!sel) return;
+  sel.disabled=false;
   sel.innerHTML = '<option value="">-- Öğrenci Seçin --</option>';
-  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif"; });
+  const aktif = ogrenciList.filter(o => { const _a = ayarListesi[o.id]; return _a && getOgrenciDurum(o, _a) === "aktif" && (!ogretmenRolMu() || (aktifKullaniciSiniflari||[]).includes(_a.kayit?.sinif||o.sinif||o.sinifi||"")); });
   aktif.sort((a, b) => (a.ogrenciAdSoyad || "").localeCompare(b.ogrenciAdSoyad || ""));
   for (const o of aktif) {
     const sinif = (ayarListesi[o.id]?.kayit?.sinif) || o.sinif || "";
@@ -37371,6 +37413,7 @@ function doldurGaleriOgrenciSecici() {
     opt.dataset.ad = o.ogrenciAdSoyad || "";
     sel.appendChild(opt);
   }
+  import('./moduller/egitim-gruplari.js?v=225').then(m=>m.fillTeacherChildren('galeriHedefOgrenci')).then(()=>{if(albumEkleMod?.hedefTur==='ogrenci'&&!albumEkleMod.egitimGrupId){const ids=contentChildIds(albumEkleMod);[...sel.options].forEach(o=>o.selected=ids.includes(o.value));}});
 }
 
 // Drag & Drop
@@ -37467,13 +37510,19 @@ window.galeriYuklenenDosyaSil = async function(index) {
 // Galeri yükleme: öğretmen yalnızca kendi sınıfına/öğrencisine yükleyebilir
 window.galeriRolKisitiUygula = function() {
   try {
-    if (typeof ogretmenRolMu !== "function" || !ogretmenRolMu()) return;
+    if (typeof ogretmenRolMu !== "function" || !ogretmenRolMu()) {
+      const sel=document.getElementById('galeriHedefTur');
+      if(sel&&![...sel.options].some(o=>o.value==='tumOkul'))sel.insertBefore(new Option('🏫 Tüm Okul','tumOkul'),sel.firstChild);
+      document.querySelectorAll('#galeriHedefSinif option').forEach(o=>o.disabled=false);return;
+    }
     const sel = document.getElementById("galeriHedefTur");
     if (!sel) return;
+    const own=aktifKullaniciSiniflari||[];
+    document.querySelectorAll('#galeriHedefSinif option').forEach(o=>o.disabled=!!o.value&&!own.includes(o.value));
     // "Tüm Okul" seçeneğini kaldır
     [...sel.options].forEach(o => { if (o.value === "tumOkul") o.remove(); });
     if (sel.value === "tumOkul" || !sel.value) {
-      sel.value = "sinif";
+      sel.value = own.length ? "sinif" : "egitimGrup";
       if (typeof galeriHedefDegisti === "function") galeriHedefDegisti();
     }
   } catch (e) { console.warn("galeri rol kısıtı:", e); }
@@ -37507,7 +37556,7 @@ window.galeriYukle = async function() {
     if (hedef === "sinif") {
       const sec = document.getElementById("galeriHedefSinif")?.value || "";
       const kendi = (typeof aktifKullaniciSiniflari !== "undefined" && aktifKullaniciSiniflari) || [];
-      if (kendi.length && !kendi.includes(sec)) {
+      if (!kendi.includes(sec)) {
         showToast("Yalnızca kendi sınıfınıza yükleme yapabilirsiniz.", "error");
         return;
       }
@@ -37521,20 +37570,24 @@ window.galeriYukle = async function() {
   const etkinlik = konu || "Genel";
   const etkinlikTarih = document.getElementById("galeriEtkinlikTarih").value || isoTarih(new Date());
   const aciklama = document.getElementById("galeriAciklama").value.trim();
-  const hedefTur = document.getElementById("galeriHedefTur").value;
+  let hedefTur = document.getElementById("galeriHedefTur").value;
   const kategori = document.getElementById("galeriKategori")?.value || "";
   const program = galeriProgramKodu({ kategori });
   if (program && !konu) return showToast("Program klasörü için konu adını yazın", "error");
 
-  let hedefDeger = "", hedefOgrenciAd = "";
+  let hedefDeger = '', hedefOgrenciAd = '', hedefBilgi = {};
+  if(!['tumOkul','sinif','ogrenci','egitimGrup'].includes(hedefTur))return showToast('Hedef kitle seçin','error');
   if (hedefTur === "sinif") {
     hedefDeger = document.getElementById("galeriHedefSinif").value;
     if (!hedefDeger) return showToast("Sınıf seçin", "error");
-  } else if (hedefTur === "ogrenci") {
-    hedefDeger = document.getElementById("galeriHedefOgrenci").value;
-    if (!hedefDeger) return showToast("Öğrenci seçin", "error");
-    const sel = document.getElementById("galeriHedefOgrenci");
-    hedefOgrenciAd = sel.options[sel.selectedIndex]?.dataset?.ad || "";
+  } else if (hedefTur === 'ogrenci' || hedefTur === 'egitimGrup') {
+    galeriYuklemeCalisiyor=true;
+    try{const groups=await import('./moduller/egitim-gruplari.js?v=225');
+      hedefBilgi=await groups.selectedAudience(hedefTur,document.getElementById('galeriHedefGrup').value,document.getElementById('galeriHedefOgrenci').selectedOptions);
+      if(!yuklemeGecerli())throw Error('Oturum değişti.');
+      if(albumEkleMod?.hedefTur==='ogrenci'&&!albumEkleMod.egitimGrupId){const original=contentChildIds(albumEkleMod),selected=contentChildIds(hedefBilgi);if(original.length!==selected.length||original.some(id=>!selected.includes(id)))throw Error('Albümün öğrenci listesi tam yüklenemedi. Ekranı yeniden açın.');}
+      ({hedefTur,hedefDeger,hedefOgrenciAd}=hedefBilgi);
+    }catch(e){galeriYuklemeCalisiyor=false;return showToast(e.message,'error');}
   }
 
   galeriYuklemeCalisiyor = true;
@@ -37568,7 +37621,7 @@ window.galeriYukle = async function() {
         konuAnahtari: program ? konu.toLocaleLowerCase("tr") : "",
         etkinlikTarih,
         aciklama,
-        hedefTur, hedefDeger, hedefOgrenciAd,
+        ...hedefBilgi, hedefTur, hedefDeger, hedefOgrenciAd,
         hedefOgrenciId: hedefTur === "ogrenci" ? hedefDeger : "",
         kategori,
         program,
@@ -37694,7 +37747,7 @@ window.galeriYukle = async function() {
   if (yayinlananOgeIdleri.length > 0) {
     // Yalnız başarıyla YAYINLANMIŞ medya; onay bekleyenler veliye haber vermez.
     document.getElementById("galeriYuklemeDurum").textContent = "🔔 Veli bildirimleri oluşturuluyor...";
-    await galeriGuncellemeBildirimi({
+    await galeriGuncellemeBildirimi({...hedefBilgi,
       etkinlikBaslik: etkinlik,
       etkinlikTarih,
       hedefTur,
@@ -37707,7 +37760,7 @@ window.galeriYukle = async function() {
   if (!albumEkleMod && mailGonder && yayinlananOgeIdleri.length > 0) {
     // YENİ YÜKLEME: Mail gönder
     document.getElementById("galeriYuklemeDurum").innerHTML = `<i data-lucide="mail" style="width:13px;height:13px;vertical-align:-2px;"></i> Velilere mail gönderiliyor...`; window.lucideYenile && window.lucideYenile();
-    await galeriBildirimMailGonder({
+    await galeriBildirimMailGonder({...hedefBilgi,
       etkinlikBaslik: etkinlik,
       etkinlikTarih,
       aciklama,
@@ -37944,8 +37997,10 @@ window.silGaleriOge = async function(id) {
 // ============ MEVCUT ALBÜME İÇERİK EKLEME (Düzenleme) ============
 let albumEkleMod = null; // { etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, hedefOgrenciAd }
 
-window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, hedefOgrenciAd, program = "") {
-  albumEkleMod = { etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger: hedefDeger || "", hedefOgrenciAd: hedefOgrenciAd || "" };
+window.galeriAlbumZip = function(encodedId){const m=galeriListesiVerisi.find(g=>g.id===decodeURIComponent(encodedId));if(m)return window.albumZipIndir(m.etkinlikBaslik,m.etkinlikTarih,m.hedefTur,m.hedefDeger,{scopeKey:galleryApprovalScopeKey(m)});};
+window.galeriAlbumeEkle = function(encodedId){const m=galeriListesiVerisi.find(g=>g.id===decodeURIComponent(encodedId));if(m)window.albumEEkle(m.etkinlikBaslik,m.etkinlikTarih,m.hedefTur,m.hedefDeger,m.hedefOgrenciAd,galeriProgramKodu(m),m);};
+window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, hedefOgrenciAd, program = "", media = {}) {
+  albumEkleMod = { ...media, etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger: hedefDeger || "", hedefOgrenciAd: hedefOgrenciAd || "" };
   openGaleriYuklemeModal();
 
   // Modal'ı düzenleme moduna çevir - alanları kilitle ve doldur
@@ -37972,7 +38027,8 @@ window.albumEEkle = function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger
     galeriHedefDegisti();
 
     if (hedefTur === "sinif" && sinifSel) { sinifSel.value = hedefDeger; sinifSel.disabled = true; sinifSel.style.background = "#f3f4f6"; sinifSel.style.cursor = "not-allowed"; }
-    if (hedefTur === "ogrenci" && ogrSel) { ogrSel.value = hedefDeger; ogrSel.disabled = true; ogrSel.style.background = "#f3f4f6"; ogrSel.style.cursor = "not-allowed"; }
+    if(hedefTur==='ogrenci'&&ogrSel){const ids=contentChildIds({...media,hedefTur,hedefDeger});[...ogrSel.options].forEach(o=>o.selected=ids.includes(o.value));ogrSel.disabled=true;
+      if(media.egitimGrupId){hedefSel.value='egitimGrup';galeriHedefDegisti();const sel=document.getElementById('galeriHedefGrup');sel.replaceChildren(new Option(media.egitimGrupAdi||'İngilizce grubu',media.egitimGrupId));sel.disabled=true;}}
 
     // Mail checkbox'ı kapat ve gizle (güncellemede mail gitmez, sistem bildirim yeterli)
     if (mailChk) {
@@ -37997,7 +38053,7 @@ window.galeriKonuEEkle = function(id) {
   const media = galeriListesiVerisi.find(g => g.id === id);
   if (!media) return;
   if (!media.donem || media.donem !== AKTIF_DONEM) return showToast("Bu klasörün dönemi seçili dönemle eşleşmiyor. Yeni yükleme için program ekranını kullanın.", "warning");
-  window.albumEEkle(galleryTopic(media), isoTarih(new Date()), media.hedefTur, media.hedefDeger, media.hedefOgrenciAd, galeriProgramKodu(media));
+  window.albumEEkle(galleryTopic(media), isoTarih(new Date()), media.hedefTur, media.hedefDeger, media.hedefOgrenciAd, galeriProgramKodu(media),media);
 };
 window.galeriKonuZipIndir = function(id) {
   const media = galeriListesiVerisi.find(g => g.id === id);
@@ -38020,12 +38076,14 @@ window.egitimAlbumuneEkle = function(programKodu) {
 };
 
 // Eski fonksiyonu güncelle - düzenleme modunu da destekleyecek
-window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger) {
+window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, hedefDeger, options = {}) {
   try { await window.portalAracYukle("zip"); }
   catch (e) { return showToast("ZIP aracı yüklenemedi. İnternet bağlantınızı kontrol edin.", "error"); }
 
   // Bu albüme ait dosyaları bul
   const dosyalar = (window.galeriListesiVerisi || []).filter(g => {
+    if(options.folderKey)return galleryFolderKey(g)===options.folderKey;
+    if(options.scopeKey&&galleryApprovalScopeKey(g)!==options.scopeKey)return false;
     if (hedefTur === "__egitim__") return galeriProgramKodu(g) === hedefDeger;
     return g.etkinlikBaslik === etkinlikBaslik &&
       g.etkinlikTarih === etkinlikTarih &&
@@ -38035,6 +38093,7 @@ window.albumZipIndir = async function(etkinlikBaslik, etkinlikTarih, hedefTur, h
 
   // Veli panelinden çağrılıyorsa veliGaleriVerisi'ne bak
   const dosyalarVeli = (window.veliGaleriVerisi || []).filter(g =>
+    (!options.scopeKey||galleryApprovalScopeKey(g)===options.scopeKey) &&
     g.etkinlikBaslik === etkinlikBaslik &&
     g.etkinlikTarih === etkinlikTarih
   );
@@ -38173,7 +38232,7 @@ async function galeriGuncellemeBildirimi(grup) {
       let dahil = false;
       if (hedefTur === "tumOkul") dahil = true;
       else if (hedefTur === "sinif" && ogrSinif === hedefDeger) dahil = true;
-      else if (hedefTur === "ogrenci" && o.id === hedefDeger) dahil = true;
+      else if (hedefTur === "ogrenci" && contentChildIds(grup).includes(o.id)) dahil = true;
 
       if (dahil) hedefOgrenciler.push(o);
     }
@@ -38213,7 +38272,7 @@ async function galeriGuncellemeBildirimi(grup) {
       if (cocukHatasi) showToast("İçerik onaylandı; bazı öğrenci bildirimleri oluşturulamadı.", "warning");
       return;
     }
-    const kokSonuc = await portalHedefBildir({hedefTur,hedefDeger}, {
+    const kokSonuc = await portalHedefBildir({...grup,hedefTur,hedefDeger}, {
       tip:"galeri",baslik:"Yeni galeri içeriği",metin:"Okul galerisinde yeni içerik yayınlandı.",
       hedefSayfa:"galeri.html",kaynakId:String(grup.kaynakId || ""),
       olayAnahtari:String(grup.olayAnahtari || "")
@@ -38239,7 +38298,7 @@ async function galeriBildirimMailGonder(grup) {
       const ogrSinif = ayar.kayit?.sinif || o.sinif || o.sinifi || "";
       if (hedefTur === "tumOkul") return true;
       if (hedefTur === "sinif") return ogrSinif === hedefDeger;
-      if (hedefTur === "ogrenci") return o.id === hedefDeger;
+      if (hedefTur === "ogrenci") return contentChildIds(grup).includes(o.id);
       return false;
     });
     const hedefOgrenciIdleri = new Set(hedefOgrenciler.map(o => String(o.id)));
@@ -38455,7 +38514,7 @@ function renderVeliGaleri() {
       liste = liste.filter(g => {
         if (g.hedefTur === "tumOkul") return true;
         if (g.hedefTur === "sinif" && g.hedefDeger === sinif) return true;
-        if (g.hedefTur === "ogrenci" && g.hedefDeger === veliGaleriAktifCocuk) return true;
+        if (g.hedefTur === "ogrenci" && contentChildIds(g).includes(veliGaleriAktifCocuk)) return true;
         return false;
       });
     }
@@ -41632,7 +41691,7 @@ async function veliRenderBildirimler() {
             if (ogrSinif === d.hedefDeger) { dahil = true; break; }
           }
         } else if (d.hedefTur === "ogrenci") {
-          dahil = (veliOgrenciler || []).some(o => o.id === d.hedefDeger);
+          dahil = (veliOgrenciler || []).some(o => contentChildIds(d).includes(o.id));
         }
 
         if (dahil) bildirimler.push(d);
@@ -49176,13 +49235,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=224");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=225");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v224";
+          const anahtar = "portalSwReload_v225";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
@@ -49193,7 +49252,7 @@ window.showBulkUpload = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=223"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=225"></script>
 
 <!-- Read-only, user-triggered pickup diagnosis. No automatic data requests. -->
 <script>

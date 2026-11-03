@@ -115,7 +115,7 @@ test('download guard aborts a writer before close on a context change and never 
 });
 test('unscoped and class-only legacy documents are not broadened into school audience',async()=>{
  const r=fixture([photo('yes'),photo('class-only',{hedefTur:undefined,hedefDeger:undefined,sinif:'Mimoza',tip:'video'}),photo('missing-scope',{hedefTur:undefined,hedefDeger:undefined}),photo('unknown-scope',{hedefTur:'legacy',sinif:'Mimoza'}),photo('conflicting-child',{hedefTur:'ogrenci',hedefDeger:'other',sinif:'Mimoza'})]);
- await r.render();assert.deepEqual(r.ids(),['yes']);for(const q of r.calls.queries){assert.ok(q.where.some(w=>['hedefTur','hedefOgrenciId','ogrenciId'].includes(w.field)));assert.ok(q.where.some(w=>w.field==='durum'&&w.value==='onaylandi'));}
+ await r.render();assert.deepEqual(r.ids(),['yes']);for(const q of r.calls.queries){assert.ok(q.where.some(w=>['hedefTur','hedefOgrenciId','ogrenciId','ogrenciIds'].includes(w.field)));assert.ok(q.where.some(w=>w.field==='durum'&&w.value==='onaylandi'));}
 });
 
 test('approved school-wide tracking follows selected sibling B, not the first child',async()=>{

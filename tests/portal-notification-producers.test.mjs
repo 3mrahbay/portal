@@ -1,3 +1,5 @@
+import {contentChildIds} from '../js/egitim-gruplari-core.mjs';
+import * as groupAdapter from '../moduller/egitim-gruplari.js';
 // Execute the real inline handlers against a synthetic DOM/Firestore adapter.
 // No real accounts, writes, uploads, messages, or network requests are used.
 import test from 'node:test';
@@ -29,7 +31,7 @@ const production=[
   section('const galeriOnayIsleri = new Map();', '// Onay bekleyen medya sayısı'),
   section('window.galeriYukle = async function()', '// Lightbox'),
   section('async function galeriGuncellemeBildirimi(', 'async function galeriBildirimMailGonder(')
-].join('\n');
+].join('\n').replace(/const groups=await import\([^;]+\);/g,'const groups=groupAdapter;');
 const donem='2026-2027';
 function environment(t,{role='mudur'}={}){
   const oldWindow=globalThis.window,elements=new Map(),docs=new Map(),writes=[],notices=[],approvalNotices=[],toasts=[],mails=[],trace=[];
@@ -69,7 +71,7 @@ function environment(t,{role='mudur'}={}){
   }};
   const quiet={warn(){},error(){},log(){}};
   const attachment={yuklemeSuruyor:()=>false,formEkleri:()=>[],kayitTamamlandi(){}};
-  ctx=vm.createContext({window,bridge,reviewGalleryItem,approveGalleryItem,notifyGalleryPublication:async media=>bridge.bildirimKaydetVePush(hedefVeliEmailleri(media),{tip:'galeri',baslik:'Yeni galeri içeriği',metin:'Yeni içerikler yayınlandı.',hedefSayfa:'galeri.html'}),classifyGalleryFile,gallerySession,galleryApprovalTarget,notifyGalleryApproval:async media=>{approvalNotices.push(media);return{ok:true};},galleryText,galleryProgram,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
+  ctx=vm.createContext({window,bridge,contentChildIds,groupAdapter,reviewGalleryItem,approveGalleryItem,notifyGalleryPublication:async media=>bridge.bildirimKaydetVePush(hedefVeliEmailleri(media),{tip:'galeri',baslik:'Yeni galeri içeriği',metin:'Yeni içerikler yayınlandı.',hedefSayfa:'galeri.html'}),classifyGalleryFile,gallerySession,galleryApprovalTarget,notifyGalleryApproval:async media=>{approvalNotices.push(media);return{ok:true};},galleryText,galleryProgram,console:quiet,document:{getElementById:element,querySelector:element,querySelectorAll:()=>[]},
     currentUser:{uid:'sender',email:'staff@example.invalid'},aktifPersonel:{adSoyad:'Private Teacher Name'},isAdmin:role==='mudur',aktifKullaniciRol:role,aktifKullaniciSiniflari:['A'],
     AKTIF_DONEM:donem,ogrenciList:students,ayarListesi:settings,db:window.PortalAPI.db,
     veliOgrenciler:students.slice(0,3),veliAktifOgrenci:students[0],
@@ -101,7 +103,7 @@ function environment(t,{role='mudur'}={}){
   vm.runInContext(production,ctx);
   Object.assign(element('duyuruBaslik'),{value:'Private announcement title'});
   element('duyuruIcerik').value='Private announcement body';element('duyuruAciliyet').value='normal';
-  element('duyuruHedefTur').value='sinif';element('duyuruHedefSinif').value='A';element('duyuruHedefOgrenci').value='b';
+  element('duyuruHedefTur').value='sinif';element('duyuruHedefSinif').value='A';element('duyuruHedefOgrenci').value='b';element('duyuruHedefOgrenci').selectedOptions=[{value:'b',dataset:{ad:'Synthetic Child'}}];
   element('etkinlikBaslik').value='Private event title';element('etkinlikTarih').value='2026-10-02';
   element('etkinlikHedefTur').value='sinif';element('etkinlikHedefSinif').value='A';element('etkinlikKategori').value='diger';
   element('galeriEtkinlik').value='Private album title';element('galeriEtkinlikTarih').value='2026-09-30';
@@ -274,3 +276,11 @@ test('parent legacy learning click without child identity keeps selected child a
   const e=environment(t,{role:'veli'});await e.run(`portalBildirimGit({tip:'egitim_gelisim'})`);
   assert.equal(e.ctx.veliAktifOgrenci.id,'a1');assert.deepEqual(e.trace,['tab:yeniapp','page:egitim']);
 });
+
+ test('multiple selected students retain one announcement and notify both families once',async t=>{
+ const e=environment(t);e.element('duyuruHedefTur').value='ogrenci';
+ e.element('duyuruHedefOgrenci').selectedOptions=[{value:'a1',dataset:{ad:'A'}},{value:'b',dataset:{ad:'B'}},{value:'a1',dataset:{ad:'A'}}];
+ await e.window.kaydetDuyuru();assert.equal(e.sources('duyurular').length,1);
+ assert.deepEqual(e.sources('duyurular')[0].data.ogrenciIds,['a1','b']);
+ assert.deepEqual(e.notices[0].emails,['a1@example.invalid','b@example.invalid']);
+ });

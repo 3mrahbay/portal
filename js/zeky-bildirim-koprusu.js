@@ -1,3 +1,4 @@
+import {contentChildIds} from './egitim-gruplari-core.mjs';
 import { genelPushGonder } from './zeky-operasyon-push.js';
 
 function temizEmail(e){ return String(e || '').trim().toLowerCase(); }
@@ -62,9 +63,10 @@ export async function bildirimKaydetVePush(aliciEmailler, {
   return {ok:adet===emailler.length,adet,istenen:emailler.length,kayitHatalari,push,tekrar:emailler.length-yeniler.length};
 }
 
-export function hedefVeliEmailleri({ hedefTur='tumOkul', hedefDeger='', sinifEsle=null } = {}) {
+export function hedefVeliEmailleri(hedef={}, overrides={}) {
+  const {hedefTur='tumOkul',hedefDeger='',sinifEsle=null}=hedef;
   const {state,p,b}=altyapi();
-  const ogrenciler=state.ogrenciList ?? b.ogrenciler?.() ?? [];
+  const ogrenciler=overrides.ogrenciler ?? state.ogrenciList ?? b.ogrenciler?.() ?? [];
   const ayarlar=state.ayarListesi ?? b.ayarlar?.() ?? {};
   const donem=String(state.aktifDonem ?? b.donem?.() ?? '');
   // Bilinmeyen/boşaltılmış hedef hiçbir zaman tüm okula genişletilmez.
@@ -87,7 +89,7 @@ export function hedefVeliEmailleri({ hedefTur='tumOkul', hedefDeger='', sinifEsl
     const sinif=a?.kayit?.sinif || o.sinif || o.sinifi || '';
     let dahil=hedefTur==='tumOkul';
     if (hedefTur==='sinif') dahil=!!sinif && (sinifEsle ? !!sinifEsle(sinif,hedefDeger) : sinif===hedefDeger);
-    if (hedefTur==='ogrenci') dahil=o.id===hedefDeger;
+    if (hedefTur==='ogrenci') dahil=contentChildIds(hedef).includes(o.id);
     if (!dahil) continue;
     // Yalnız uygun öğrencinin kendi kayıtlarındaki veli alanları okunur.
     // Bağımsız veli/personel rehberi sorgulanmaz veya kapsama eklenmez.

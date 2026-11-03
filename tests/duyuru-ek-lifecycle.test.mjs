@@ -40,7 +40,7 @@ async function environment(kind) {
     writes.push({ ref, data });
   };
   const ctx = vm.createContext({
-    File, URL, console, document: { getElementById: element, addEventListener() {} },
+    AKTIF_DONEM:'2026-2027', File, URL, console, document: { getElementById: element, addEventListener() {} },
     addEventListener() {},
     PortalAPI: { medya: {
       yukle: async () => ({ url: 'https://media.example.invalid/attachment.txt', yol: `${kind}/2026-10/attachment.txt` }),

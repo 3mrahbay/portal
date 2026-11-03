@@ -17,7 +17,7 @@
 //
 // YUKLEME
 //   index.html icinde </body> oncesine:
-//   <script type="module" src="./js/zeky-randevu-modal-koprusu.js"></script>
+//   <script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=225"></script>
 //
 //   Modul yuklenince window.zekyRandevuApi hazir olur ve eski
 //   caRandevuTalepAc / caRandevuTalepGonder fonksiyonlarinin yerine
@@ -29,7 +29,7 @@ import {
   guvenliId, gunAnahtari, zamanYazi
 } from './zeky-randevu-cutover-runtime.js';
 import { kartOzeti } from './finans/core.js';
-import './zeky-galeri-filigran-koprusu.js?v=223';
+import './zeky-galeri-filigran-koprusu.js?v=225';
 import './zeky-gozlem-modal-modern.js?v=1';
 import './zeky-randevu-veli-arayuz.js?v=1';
 

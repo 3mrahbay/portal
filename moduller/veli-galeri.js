@@ -1,7 +1,7 @@
 import { galleryLightboxStyles, galleryLightboxIcons, lightboxDownload } from '../js/portal-galeri-lightbox-ui.js';
-import { mountMedia, disposeMedia, recordOpen, downloadMedia } from '../js/portal-galeri-canli.js?v=192';
-import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=166';
-import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryIsObservation, galleryFolderKey } from '../js/galeri-klasorleri.js?v=182';
+import { mountMedia, disposeMedia, recordOpen, downloadMedia } from '../js/portal-galeri-canli.js?v=225';
+import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=225';
+import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryIsObservation, galleryFolderKey } from '../js/galeri-klasorleri.js?v=225';
 import { galleryMediaType, galleryDisplayUrl, downloadSource } from '../js/portal-galeri-medya.js?v=192';
 // VELİ GALERİSİ — hedefli okuma; klasör anahtarları erişim yetkisi vermez.
 const P = () => window.PortalAPI;
@@ -80,7 +80,8 @@ async function hedefliGaleriOku(fb,db,ogr,sinif){
     ...sinifAdaylari(sinif).map(ad=>fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','sinif'),fb.where('hedefDeger','==',ad))),
     fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefTur','==','ogrenci'),fb.where('hedefDeger','==',ogr.id)),
     fb.query(fb.collection(db,'galeri'),...ortak,fb.where('hedefOgrenciId','==',ogr.id)),
-    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('ogrenciId','==',ogr.id))
+    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('ogrenciId','==',ogr.id)),
+    fb.query(fb.collection(db,'galeri'),...ortak,fb.where('ogrenciIds','array-contains',ogr.id))
   ];
   const sonuclar=await Promise.allSettled(sorgular.map(q=>fb.getDocs(q)));
   const benzersiz=new Map();
