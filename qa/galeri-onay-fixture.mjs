@@ -2,6 +2,7 @@
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as approval from '../js/galeri-onay-canli.js';
+import { reviewGalleryItem, approveGalleryItem, galleryApprovalScopeKey } from '../js/galeri-toplu-onay.js';
 import * as folders from '../js/galeri-klasorleri.js';
 const index = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 function selected(start, end) {
@@ -34,20 +35,21 @@ export class FakeElement {
   setAttribute(k,v){this.attributes[k]=v;}
 }
 export function galleryRuntime(options={}){
- const nodes=new Map();for(const id of ['tab-galeri','galeriListesi','galeriOnayCanliDurum','galeriOnayBekleyenRozet','galeriMenuOnayRozet','galeriOnayFiltreBtn','galeriLightbox','galeriLightboxIcerik','galeriLightboxDuzenleBtn'])nodes.set(id,new FakeElement(id));nodes.get('tab-galeri').classList.add('active');nodes.set('tab-profilim',new FakeElement('tab-profilim'));const tabs=['galeri','profilim'].map(name=>{const tab=new FakeElement();tab.dataset.tab=name;return tab;});
- const calls={reads:[],writes:[],listeners:[],toasts:[],modules:[]};let rows=options.rows||[];
+ const nodes=new Map();for(const id of ['tab-galeri','galeriListesi','galeriOnayCanliDurum','galeriOnayBekleyenRozet','galeriMenuOnayRozet','galeriOnayFiltreBtn','galeriTopluOnayBar','galeriTopluOnayHedef','galeriTopluOnayBtn','galeriLightbox','galeriLightboxIcerik','galeriLightboxDuzenleBtn'])nodes.set(id,new FakeElement(id));nodes.get('tab-galeri').classList.add('active');nodes.set('tab-profilim',new FakeElement('tab-profilim'));const tabs=['galeri','profilim'].map(name=>{const tab=new FakeElement();tab.dataset.tab=name;return tab;});
+ const calls={reads:[],writes:[],listeners:[],toasts:[],modules:[],notices:[]};let rows=options.rows||[];
  const state={currentUser:{uid:'synthetic-admin-a',email:'admin-a@example.test'},rol:'mudur',personel:{durum:'aktif'},galeriOturumSurumu:1,...options.state};
  const snap=rows=>({docs:rows.map(row=>({id:row.id,data:()=>row})),metadata:{fromCache:false}});
  const fb={collection:(_db,name)=>name,where:(field,op,value)=>({field,op,value}),query:(collection,...constraints)=>({collection,constraints}),
  onSnapshot(query,_options,next,error){const entry={query,next,error,stopped:false};calls.listeners.push(entry);return()=>{entry.stopped=true;};},
  getDocs:async query=>{calls.reads.push({type:'list',query});return snap(await(options.getRows?options.getRows(query):rows));},
  doc:(_db,collection,id)=>({collection,id}),getDoc:async ref=>{calls.reads.push({type:'doc',ref});const row=options.getMedia?await options.getMedia(ref.id):rows.find(x=>x.id===ref.id);return{id:ref.id,exists:()=>!!row,data:()=>row};},
+ runTransaction:async(_db,run)=>{ const staged=[]; const value=await run({get:ref=>fb.getDoc(ref),update:(ref,data)=>staged.push({ref,data})}); await options.beforeCommit?.(staged); for(const {ref,data} of staged){calls.writes.push({ref,data}); const row=rows.find(r=>r.id===ref.id);if(row)Object.assign(row,data);} return value;},
  updateDoc:async(ref,data)=>calls.writes.push({ref,data}),setDoc:async(...args)=>calls.writes.push(args)};
- const context={...approval,...folders,...fb,db:{},console:{warn(){},error(){}},setTimeout:()=>0,clearTimeout,URLSearchParams,Date,MODUL_HARITASI:{galeri:{tablar:['galeri'],varsayilan:'galeri'},profilim:{tablar:['profilim'],varsayilan:'profilim'}},aktifModul:'galeri',sekmeyeErisim:()=>true,mesajlasmaDurdur(){},egitimArkaPlanCalismasiniDurdur(){},adminHomeArkaPlanCalismasiniDurdur(){},
+ const context={reviewGalleryItem,approveGalleryItem,galleryApprovalScopeKey,notifyGalleryPublication:async media=>{calls.notices.push(media);return{ok:true,birlestirildi:true};},...approval,...folders,...fb,db:{},console:{warn(){},error(){}},setTimeout:()=>0,clearTimeout,URLSearchParams,Date,MODUL_HARITASI:{galeri:{tablar:['galeri'],varsayilan:'galeri'},profilim:{tablar:['profilim'],varsayilan:'profilim'}},aktifModul:'galeri',sekmeyeErisim:()=>true,mesajlasmaDurdur(){},egitimArkaPlanCalismasiniDurdur(){},adminHomeArkaPlanCalismasiniDurdur(){},
  document:{getElementById:id=>nodes.get(id)||null,querySelector:selector=>selector.startsWith('.tab[data-tab=')?tabs.find(t=>selector.includes(t.dataset.tab)):null,querySelectorAll:selector=>['.tab','.tabs .tab'].includes(selector)?tabs:selector==='.tab-panel'?[nodes.get('tab-galeri'),nodes.get('tab-profilim')]:[],createElement:()=>new FakeElement()},
- PortalAPI:{state,fb},currentUser:state.currentUser,aktifKullaniciRol:state.rol,isAdmin:false,AKTIF_DONEM:'2026-2027',
+ PortalAPI:{state,fb,db:{}},currentUser:state.currentUser,aktifKullaniciRol:state.rol,isAdmin:false,AKTIF_DONEM:'2026-2027',
  createGalleryFolderView:()=>({reset(){},render(){throw new Error('Education view outside approval fixture');}}),escapeHtml:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
- showToast:(message,type)=>calls.toasts.push({message,type}),modulSec:id=>{calls.modules.push(id);nodes.get('tab-galeri').classList.add('active');},confirm:()=>true};
+ showToast:(message,type)=>calls.toasts.push({message,type}),modulSec:id=>{calls.modules.push(id);nodes.get('tab-galeri').classList.add('active');},confirm:options.confirm||(()=>true)};
  context.window=context;vm.createContext(context);vm.runInContext(gallerySource+'\n'+navigationSource+exposeGallery,context);const moduleSelect=context.modulSec;context.modulSec=(...args)=>{calls.modules.push(args[0]);return moduleSelect(...args);};
  return{...context.fixtureAPI,window:context,state,calls,nodes,tabs,html:()=>nodes.get('galeriListesi').innerHTML,
  setRows:x=>{rows=x;},switchAccount:(uid='synthetic-admin-b')=>{state.currentUser={uid,email:`${uid}@example.test`};state.galeriOturumSurumu++;context.currentUser=state.currentUser;},
