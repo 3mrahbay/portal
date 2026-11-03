@@ -19,7 +19,8 @@ const escapeHtml=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const showToast=(text)=>{document.getElementById('result').textContent=text;};
 const notifyGalleryPublication=async()=>({ok:true,birlestirildi:true});
 `;
-const script=helpers+'\n'+bootstrap+'\n'+gallerySource+'\ngaleriFilter("onayBekliyor");';
+const deletion=`const {galleryDeleteButton,canDeleteGalleryMedia,removeGalleryMedia}=(()=>{${plain(read('js/galeri-silme.js'))};return {galleryDeleteButton,canDeleteGalleryMedia,removeGalleryMedia};})();`;
+const script=helpers+'\n'+deletion+'\n'+bootstrap+'\n'+gallerySource+'\ngaleriFilter("onayBekliyor");';
 new vm.Script(script);
 const html=`<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galeri toplu onay · yerel önizleme</title><style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;background:#faf8fc;color:#17212b;margin:0;padding:24px}main{max-width:1100px;margin:auto}body.mobile main{width:320px;padding:8px;border:1px solid #ddd}button:disabled{opacity:.5;cursor:not-allowed!important}#result{padding:12px;color:#166534}${selectedStyles}</style></head><body><main><small>YEREL ÖNİZLEME · Örnek medya, gerçek veri kullanılmaz</small><button onclick="document.body.classList.toggle('mobile')" style="float:right">320 px görünüm</button><h1>Galeri</h1><section id="tab-galeri" class="active">${galleryControls}<div id="galeriListesi"></div></section><div id="result" role="status"></div>${lightboxMarkup}</main><script>${script}</script></body></html>`;
 const dir=new URL('../../gallery-preview/',import.meta.url);mkdirSync(dir,{recursive:true});writeFileSync(new URL('index.html',dir),html);console.log('Synthetic gallery preview prepared.');

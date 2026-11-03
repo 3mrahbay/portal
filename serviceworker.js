@@ -10,10 +10,11 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v223-galeri-toplu-onay";
+const CACHE_VERSION = "v224-galeri-ogretmen-silme";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/galeri-silme.js?v=224",
   "./js/galeri-toplu-onay.js?v=223",
   "./js/kayit-duyurulari.js?v=222",
   "./assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg",
@@ -40,7 +41,7 @@ const PRECACHE = [
   "./stil/arayuz-duzeltmeleri.css?v=5",
   "./stil/randevu-sayfalari.css?v=2",
   "./js/galeri-klasorleri.js?v=182",
-  "./js/portal-galeri-klasor-ui.js?v=192",
+  "./js/portal-galeri-klasor-ui.js?v=224",
   "./js/ogretmen-sinif-core.js?v=173",
   "./js/ogrenci-liste-core.js?v=170",
   "./js/ogrenci-liste-xlsx.js?v=170",
@@ -116,7 +117,7 @@ const PRECACHE = [
   "./moduller/pdr.js",
   "./moduller/program-belgeleme.js",
   "./moduller/geri-bildirim.js",
-  "./moduller/veli-galeri.js?v=v223",
+  "./moduller/veli-galeri.js?v=v224",
   "./js/portal-galeri-lightbox-ui.js",
   "./js/bunny-stream-upload.js?v=192",
   "./okul_logo.png",

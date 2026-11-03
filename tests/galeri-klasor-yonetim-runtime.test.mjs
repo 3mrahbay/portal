@@ -39,3 +39,8 @@ test('education overlay resolves new escaped JSON-action cards through their exa
  const overlay=readFileSync(new URL('../js/zeky-galeri-onay-egitim.js',import.meta.url),'utf8');const start=overlay.indexOf('function kartId('),end=overlay.indexOf('function tarih(',start);const ctx=vm.createContext({});vm.runInContext(overlay.slice(start,end),ctx);
  const id='synthetic-1';assert.equal(ctx.kartId({dataset:{galleryMediaId:id},getAttribute:()=>`acGaleriLightbox("${id}")`}),id);assert.equal(ctx.kartId({getAttribute:()=>`acGaleriLightbox('${id}')`}),id);
 });
+test('education folders show deletion for own teacher media only',()=>{
+ const rows=[row('own',{yukleyen:'teacher@example.test'}),row('other',{yukleyen:'other@example.test'})];const r=runtime(rows);
+ r.options.management=false;r.options.canDelete=media=>media.yukleyen==='teacher@example.test';r.render(rows);r.click('data-program-index',6);r.click('data-folder-index');
+ assert.equal(r.host.querySelectorAll('[data-folder-delete]').length,1);r.click('data-folder-delete');assert.deepEqual(r.calls.deleted,['own']);assert.equal(r.host.querySelectorAll('[data-approve]').length,0);
+});

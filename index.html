@@ -13971,10 +13971,11 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js';
-import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=192';
+import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=224';
 import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
 import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
 import { approveGalleryItem, reviewGalleryItem, notifyGalleryPublication, galleryApprovalScopeKey } from './js/galeri-toplu-onay.js?v=223';
+import { canDeleteGalleryMedia, galleryDeleteButton, removeGalleryMedia } from './js/galeri-silme.js?v=224';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
 import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=171';
 import {receiptInput} from './js/expenses/receipt-input.js';
@@ -14112,7 +14113,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v223";
+window.PORTAL_SURUM = "v224";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -36655,6 +36656,13 @@ async function resimSikistir(file, maxBoyut = 1920, kalite = 0.85) {
 let galeriListesiVerisi = [];
 let aktifGaleriFilter = "tumu";
 let galeriSecilenDosyalar = [];
+let galeriYuklemeCalisiyor = false;
+const galeriYuklenenDosyalar = new Map();
+const galeriOnizlemeAdresleri = new Map();
+function galeriOnizlemeleriTemizle() {
+  for (const url of galeriOnizlemeAdresleri.values()) URL.revokeObjectURL(url);
+  galeriOnizlemeAdresleri.clear();
+}
 let galeriGorunum = "grid"; // "grid" (Instagram) | "album" (gruplu)
 let galeriOnayTakibi = null;
 let galeriOnayDurumu = { status:"idle", items:[], error:"" };
@@ -36822,6 +36830,9 @@ function galeriOnayTakibiniDurdur() {
   galeriOnayTakibi?.stop(); galeriOnayTakibi = null;
   galeriOnayDurumu = {status:"idle",items:[],error:""};
   galeriOnayHedefi = "";
+  galeriSecilenDosyalar = []; galeriYuklenenDosyalar.clear(); galeriOnizlemeleriTemizle();
+  document.getElementById("galeriYuklemeModal")?.classList.remove("active");
+  document.getElementById("galeriSecilenDosyalar")?.replaceChildren();
   ++galeriRenderSurumu; ++galeriOnayGezinmeSurumu;
   galeriListesiVerisi = []; window.galeriListesiVerisi = [];
   aktifGaleriFilter = "tumu";
@@ -37029,6 +37040,7 @@ async function renderGaleri() {
   if (aktifGaleriFilter === "egitim") {
     galeriKlasorGorunumu.render(el, liste, {
       management: yonetimMi,
+      canDelete: media => canDeleteGalleryMedia(media, window.PortalAPI.state),
       activePeriod: AKTIF_DONEM,
       addProgram: program => window.egitimAlbumuneEkle(program),
       addTopic: media => window.galeriKonuEEkle(media.id)
@@ -37093,7 +37105,7 @@ async function renderGaleri() {
           }
           ${rozet}
           ${onayBtn}
-          <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" class="galeri-sil-btn" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:26px; height:26px; border-radius:50%; cursor:pointer; opacity:0; transition:opacity 0.2s; display:grid; place-items:center;" onmouseover="this.style.opacity='1'"><i data-lucide="trash-2" style="width:13px;height:13px;"></i></button>
+          ${galleryDeleteButton(d, window.PortalAPI.state)}
         </div>`;
     }
     gHtml += `</div><style>.galeri-sil-btn:hover{opacity:1 !important;}div:hover > .galeri-sil-btn{opacity:0.85;}</style>`;
@@ -37235,7 +37247,7 @@ async function renderGaleri() {
           }
           ${durumRozet}
           ${onayButonlari}
-          <button onclick="event.stopPropagation(); silGaleriOge('${d.id}')" style="position:absolute; top:6px; left:6px; background:rgba(220,38,38,0.9); color:white; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:11px; opacity:0; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" class="galeri-sil-btn">🗑</button>
+          ${galleryDeleteButton(d, window.PortalAPI.state)}
         </div>
       `;
     }
@@ -37247,6 +37259,8 @@ async function renderGaleri() {
 
 // Yükleme Modalı
 window.openGaleriYuklemeModal = function(mod) {
+  if (galeriYuklemeCalisiyor) { showToast("Yükleme sürüyor; tamamlanmasını bekleyin.", "warning"); return; }
+  galeriOnizlemeleriTemizle(); galeriYuklenenDosyalar.clear();
   // mod: 'foto' | 'video' | 'album' | undefined (grid ekleme kutularından gelir)
   window._galeriYuklemeMod = mod || 'foto';
   // "Yeni Yükleme" butonu tıklandıysa (albumEkleMod null ise) sıfırla
@@ -37314,6 +37328,7 @@ window.openGaleriYuklemeModal = function(mod) {
   if (btn) {
     btn.textContent = "🚀 Yükle";
     btn.onclick = galeriYukle;
+    btn.disabled = false;
   }
 
   // Varsayılan değerler (sadece yeni yüklemede)
@@ -37330,6 +37345,8 @@ window.openGaleriYuklemeModal = function(mod) {
 };
 
 window.closeGaleriYuklemeModal = function() {
+  if (galeriYuklemeCalisiyor) { showToast("Yükleme sürüyor; tamamlanmasını bekleyin.", "warning"); return; }
+  galeriOnizlemeleriTemizle();
   document.getElementById("galeriYuklemeModal").classList.remove("active");
   albumEkleMod = null; // Modu temizle
 };
@@ -37379,9 +37396,13 @@ window.galeriDrop = function(e) {
 window.galeriDosyalarSecildi = function(e) {
   const files = Array.from(e.target.files);
   galeriDosyalarEkle(files);
+  e.target.value = "";
 };
 
 function galeriDosyalarEkle(files) {
+  if (galeriYuklemeCalisiyor) { showToast("Yükleme sürerken dosya listesi değiştirilemez.", "warning"); return; }
+  const button = document.getElementById("btnGaleriYukle");
+  if (button) { button.textContent = "🚀 Yükle"; button.onclick = window.galeriYukle; button.disabled = false; }
   for (const f of files) {
     const dosyaTuru = classifyGalleryFile(f);
     const resimMi = dosyaTuru?.kind === "foto";
@@ -37406,30 +37427,40 @@ function galeriDosyalarEkle(files) {
 
 function renderGaleriSecilenDosyalar() {
   const el = document.getElementById("galeriSecilenDosyalar");
-  if (galeriSecilenDosyalar.length === 0) { el.innerHTML = ""; return; }
-
-  let html = `<div style="background:#faf5ff; border:1px solid #e9d5ff; border-radius:10px; padding:12px; margin-top:12px;">
-    <div style="font-size:13px; font-weight:600; color:#6b21a8; margin-bottom:8px;">📂 ${galeriSecilenDosyalar.length} dosya seçildi:</div>
-    <div style="display:flex; flex-direction:column; gap:4px;">`;
+  if (!galeriSecilenDosyalar.length) { el.innerHTML = ""; return; }
+  let html = `<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;padding:12px;">
+    <div style="font-size:13px;font-weight:600;color:#6b21a8;margin-bottom:8px;">${galeriSecilenDosyalar.length} dosya · Yüklemeden önce kontrol edin</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">`;
   for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
-    const f = galeriSecilenDosyalar[i];
-    const boyutMB = (f.size / 1024 / 1024).toFixed(1);
-    const tip = classifyGalleryFile(f)?.kind === "video" ? "🎥" : "🖼";
-    html += `
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; background:white; border-radius:8px; font-size:12px;">
-        <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${tip} ${escapeHtml(f.name)}</div>
-        <div style="color:var(--gray-500); font-size:11px;">${boyutMB} MB</div>
-        <button onclick="galeriDosyaKaldir(${i})" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:14px;">×</button>
-      </div>
-    `;
+    const file = galeriSecilenDosyalar[i], saved = galeriYuklenenDosyalar.get(file);
+    const photo = classifyGalleryFile(file)?.kind === "foto";
+    if (photo && !galeriOnizlemeAdresleri.has(file)) galeriOnizlemeAdresleri.set(file, URL.createObjectURL(file));
+    const preview = galeriOnizlemeAdresleri.get(file);
+    html += `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px;background:white;border-radius:8px;">
+      ${preview ? `<img src="${escapeHtml(preview)}" alt="Seçilen fotoğrafın önizlemesi" style="width:64px;height:64px;object-fit:cover;border-radius:7px;">` : '<span aria-hidden="true" style="font-size:30px;">🎥</span>'}
+      <div style="flex:1;min-width:100px;font-size:12px;overflow-wrap:anywhere;">${escapeHtml(file.name)}<div style="color:#64748b;margin-top:5px;">${(file.size/1024/1024).toFixed(1)} MB · ${saved ? "Yüklendi" : "Henüz yüklenmedi"}</div></div>
+      <button type="button" onclick="${saved ? 'galeriYuklenenDosyaSil' : 'galeriDosyaKaldir'}(${i})" ${galeriYuklemeCalisiyor ? 'disabled' : ''} style="min-height:40px;padding:8px 12px;border:1px solid #fecaca;border-radius:8px;background:#fff1f2;color:#b91c1c;cursor:pointer;font-weight:600;">${saved ? 'Galeriden sil' : 'Listeden çıkar'}</button>
+    </div>`;
   }
-  html += `</div></div>`;
-  el.innerHTML = html;
+  el.innerHTML = html + '</div></div>';
 }
-
 window.galeriDosyaKaldir = function(index) {
-  galeriSecilenDosyalar.splice(index, 1);
-  renderGaleriSecilenDosyalar();
+  if (galeriYuklemeCalisiyor || !Number.isInteger(index) || index < 0 || index >= galeriSecilenDosyalar.length) return;
+  const file = galeriSecilenDosyalar[index];
+  if (galeriYuklenenDosyalar.has(file)) return window.galeriYuklenenDosyaSil(index);
+  const url = galeriOnizlemeAdresleri.get(file); if (url) URL.revokeObjectURL(url);
+  galeriOnizlemeAdresleri.delete(file);
+  galeriSecilenDosyalar.splice(index, 1); renderGaleriSecilenDosyalar();
+};
+window.galeriYuklenenDosyaSil = async function(index) {
+  if (galeriYuklemeCalisiyor) return;
+  const file = galeriSecilenDosyalar[index], media = galeriYuklenenDosyalar.get(file);
+  if (!media) return;
+  const removed = await window.silGaleriOge(media.id);
+  if (!removed || galeriYuklenenDosyalar.get(file)?.id !== media.id) return;
+  galeriYuklenenDosyalar.delete(file);
+  const position = galeriSecilenDosyalar.indexOf(file);
+  if (position >= 0) window.galeriDosyaKaldir(position);
 };
 
 // YÜKLE
@@ -37462,6 +37493,7 @@ async function galeriVideoYukle(file, options = {}) {
 window.galeriVideoYukle = galeriVideoYukle;
 
 window.galeriYukle = async function() {
+  if (galeriYuklemeCalisiyor) return;
   const yuklemeOturumu = gallerySession(window.PortalAPI.state);
   const yuklemeGecerli = () => yuklemeOturumu === gallerySession(window.PortalAPI.state);
   let onayBildirimHatasi = 0;
@@ -37482,7 +37514,8 @@ window.galeriYukle = async function() {
     }
   }
 
-  if (galeriSecilenDosyalar.length === 0) return showToast("Dosya seçin", "error");
+  const yuklenecekDosyalar = galeriSecilenDosyalar.filter(file => !galeriYuklenenDosyalar.has(file));
+  if (yuklenecekDosyalar.length === 0) return showToast("Dosya seçin", "error");
 
   const konu = galleryText(document.getElementById("galeriEtkinlik").value);
   const etkinlik = konu || "Genel";
@@ -37504,11 +37537,14 @@ window.galeriYukle = async function() {
     hedefOgrenciAd = sel.options[sel.selectedIndex]?.dataset?.ad || "";
   }
 
+  galeriYuklemeCalisiyor = true;
+  renderGaleriSecilenDosyalar();
+  try {
   const btn = document.getElementById("btnGaleriYukle");
   btn.disabled = true;
   btn.textContent = "⏳ Yükleniyor...";
   document.getElementById("galeriYuklemeIlerleme").style.display = "block";
-  document.getElementById("galeriYuklemeToplam").textContent = galeriSecilenDosyalar.length;
+  document.getElementById("galeriYuklemeToplam").textContent = yuklenecekDosyalar.length;
 
   // Klasör path: galeri/{hedefTur}/{hedefDeger}/{etkinlikTarih}-{etkinlikBaslik}/
   const hedefPath = hedefTur === "tumOkul" ? "tumOkul"
@@ -37520,8 +37556,8 @@ window.galeriYukle = async function() {
   const yuklemeHatalari = [];
   let yayinlananFotoSayisi = 0, yayinlananVideoSayisi = 0;
   const yayinlananOgeIdleri = [];
-  for (let i = 0; i < galeriSecilenDosyalar.length; i++) {
-    const f = galeriSecilenDosyalar[i];
+  for (let i = 0; i < yuklenecekDosyalar.length; i++) {
+    const f = yuklenecekDosyalar[i];
     document.getElementById("galeriYuklemeDurum").textContent = `${f.name}...`;
     document.getElementById("galeriYuklemeSayac").textContent = i + 1;
 
@@ -37539,6 +37575,7 @@ window.galeriYukle = async function() {
         albumTuru: program ? "egitim" : "genel",
         egitimKaydi: false,
         yukleyen: currentUser.email,
+        yukleyenEmail: currentUser.email.toLowerCase(),
         yuklemeZamani: new Date().toISOString(),
         dosyaBoyutu: f.size,
         orjinalAd: f.name,
@@ -37551,7 +37588,7 @@ window.galeriYukle = async function() {
         // Dosya Apps Script'e/base64'e girmez; proxy yalnız kısa ömürlü imza üretir.
         const sonuc = await galeriVideoYukle(f, {
           onProgress: ({percent}) => {
-            const toplam = ((i + Math.max(0, Math.min(100, percent)) / 100) / galeriSecilenDosyalar.length) * 100;
+            const toplam = ((i + Math.max(0, Math.min(100, percent)) / 100) / yuklenecekDosyalar.length) * 100;
             const bar = document.getElementById("galeriYuklemeBar");
             if (bar) bar.style.width = `${toplam}%`;
             const durum = document.getElementById("galeriYuklemeDurum");
@@ -37596,6 +37633,8 @@ window.galeriYukle = async function() {
       const ref = doc(collection(db, "galeri"));
       await setDoc(ref, oge);
       if (!yuklemeGecerli()) return;
+      galeriYuklenenDosyalar.set(f, { ...oge, id: ref.id });
+      renderGaleriSecilenDosyalar();
       basarili++;
       if (galeriBekliyorMu(oge.durum)) {
         const bildirim = await notifyGalleryApproval({id:ref.id,durum:oge.durum}, window.PortalAPI)
@@ -37609,7 +37648,7 @@ window.galeriYukle = async function() {
         else if (oge.dosyaTipi === "foto") yayinlananFotoSayisi++;
       }
 
-      const toplam = ((i + 1) / galeriSecilenDosyalar.length) * 100;
+      const toplam = ((i + 1) / yuklenecekDosyalar.length) * 100;
       document.getElementById("galeriYuklemeBar").style.width = `${toplam}%`;
     } catch (e) {
       if (!yuklemeGecerli()) return;
@@ -37686,10 +37725,23 @@ window.galeriYukle = async function() {
     document.getElementById("galeriYuklemeDurum").textContent = uyari;
     showToast(uyari, "warning");
   }
-  btn.textContent = "Kapat";
-  btn.onclick = closeGaleriYuklemeModal;
+  const bekleyenDosya = galeriSecilenDosyalar.some(file => !galeriYuklenenDosyalar.has(file));
+  btn.textContent = bekleyenDosya ? "Yüklenmeyenleri tekrar dene" : "Kapat";
+  btn.onclick = bekleyenDosya ? window.galeriYukle : closeGaleriYuklemeModal;
   btn.disabled = false;
   renderGaleri();
+  } catch (e) {
+    if (yuklemeGecerli()) {
+      showToast("Yükleme tamamlanamadı: " + e.message, "error");
+      const btn = document.getElementById("btnGaleriYukle");
+      btn.textContent = "Tekrar dene"; btn.onclick = window.galeriYukle;
+    }
+  } finally {
+    galeriYuklemeCalisiyor = false;
+    if (yuklemeGecerli()) document.getElementById("btnGaleriYukle").disabled = false;
+    if (!yuklemeGecerli()) { galeriSecilenDosyalar = []; galeriYuklenenDosyalar.clear(); galeriOnizlemeleriTemizle(); }
+    renderGaleriSecilenDosyalar();
+  }
 };
 
 // Lightbox
@@ -37857,26 +37909,35 @@ window.galeriLightboxIndir = async function() {
   }
 };
 
-// Sil
+// Sil: Firestore sahipliği doğrular; depodaki dosya güvenli medya katmanıyla temizlenir.
+const galeriSilmeIsleri = new Map();
 window.silGaleriOge = async function(id) {
-  const oge = galeriListesiVerisi.find(g => g.id === id);
-  if (!oge) return;
-  if (!confirm(`"${oge.orjinalAd || oge.etkinlikBaslik}" silinsin mi?`)) return;
-
-  try {
-    // Bunny'den sil
-    if (oge.dosyaTipi === "video" && oge.bunnyVideoId) {
-      await bunnyDeleteVideo(oge.bunnyVideoId);
-    } else if (oge.dosyaTipi === "foto" && oge.bunnyPath) {
-      await bunnyDeleteFile(oge.bunnyPath);
+  const session = gallerySession(window.PortalAPI.state);
+  const operation = JSON.stringify([session,id]);
+  if (galeriSilmeIsleri.has(operation)) return galeriSilmeIsleri.get(operation);
+  const task = (async () => {
+    try {
+      const snap = await getDoc(doc(db,"galeri",id));
+      if (session !== gallerySession(window.PortalAPI.state)) return false;
+      if (!snap.exists()) { showToast("Bu içerik zaten galeriden kaldırılmış."); await renderGaleri(); return true; }
+      const media = {...snap.data(),id};
+      if (!canDeleteGalleryMedia(media,window.PortalAPI.state)) { showToast("Yalnızca kendi yüklediğiniz içerikleri silebilirsiniz.","error"); return false; }
+      if (!confirm(`"${media.orjinalAd || media.etkinlikBaslik || 'Bu içerik'}" galeriden silinsin mi?`)) return false;
+      const result = await removeGalleryMedia(id,window.PortalAPI);
+      if (session !== gallerySession(window.PortalAPI.state)) return result.removed;
+      if (aktifLightboxOge?.id === id) window.closeGaleriLightbox();
+      if (result.warnings?.length) showToast(result.warnings.join(" "),"warning");
+      else showToast(result.missing ? "İçerik zaten kaldırılmış." : "İçerik galeriden silindi.");
+      await renderGaleri();
+      return result.removed || result.missing;
+    } catch (e) {
+      if (session === gallerySession(window.PortalAPI.state)) showToast("Silinemedi: " + e.message,"error");
+      return false;
     }
-    // Firestore'dan sil
-    await deleteDoc(doc(db, "galeri", id));
-    showToast("✗ Silindi");
-    renderGaleri();
-  } catch (e) {
-    showToast("Silinemedi: " + e.message, "error");
-  }
+  })();
+  galeriSilmeIsleri.set(operation,task);
+  task.finally(() => galeriSilmeIsleri.delete(operation)).catch(() => {});
+  return task;
 };
 
 // ============ ALBÜM ZIP İNDİRME (Admin + Veli ortak) ============
@@ -49115,13 +49176,13 @@ window.showBulkUpload = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=223");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=224");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v223";
+          const anahtar = "portalSwReload_v224";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

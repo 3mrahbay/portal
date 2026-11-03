@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as approval from '../js/galeri-onay-canli.js';
 import { reviewGalleryItem, approveGalleryItem, galleryApprovalScopeKey } from '../js/galeri-toplu-onay.js';
+import { galleryDeleteButton, canDeleteGalleryMedia, removeGalleryMedia } from '../js/galeri-silme.js';
 import * as folders from '../js/galeri-klasorleri.js';
 const index = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 function selected(start, end) {
@@ -10,7 +11,7 @@ function selected(start, end) {
   if(a<0||b<a)throw new Error('Active gallery fixture boundary missing');
   return index.slice(a,b);
 }
-export const gallerySource = selected('let galeriListesiVerisi = [];','// Yükleme Modalı') + '\n' + selected('let aktifLightboxOge = null;','window.galeriGonderiDuzenle =');
+export const gallerySource = selected('let galeriListesiVerisi = [];','// Yükleme Modalı') + '\n' + selected('let aktifLightboxOge = null;','window.galeriGonderiDuzenle =') + '\n' + selected('// Sil: Firestore sahipliği doğrular;', '// ============ ALBÜM ZIP');
 export const navigationSource = selected('window.modulSec = function(modulKey, tabTikla = true)','// Bir sekme adına göre modül vurgusunu güncelle') + "\n" + selected('document.querySelectorAll(".tab").forEach(tab => {','// Etkinlik & Takvim iç alt-sekme geçişi');
 export const lightboxMarkup = selected('<div class="modal-overlay" id="galeriLightbox"','<!-- ============ SCRIPTS ============ -->');
 export const selectedStyles = selected('.modal-overlay {','@keyframes fadeIn') + selected('.btn-mini {','.sozlesme-empty {');
@@ -36,18 +37,18 @@ export class FakeElement {
 }
 export function galleryRuntime(options={}){
  const nodes=new Map();for(const id of ['tab-galeri','galeriListesi','galeriOnayCanliDurum','galeriOnayBekleyenRozet','galeriMenuOnayRozet','galeriOnayFiltreBtn','galeriTopluOnayBar','galeriTopluOnayHedef','galeriTopluOnayBtn','galeriLightbox','galeriLightboxIcerik','galeriLightboxDuzenleBtn'])nodes.set(id,new FakeElement(id));nodes.get('tab-galeri').classList.add('active');nodes.set('tab-profilim',new FakeElement('tab-profilim'));const tabs=['galeri','profilim'].map(name=>{const tab=new FakeElement();tab.dataset.tab=name;return tab;});
- const calls={reads:[],writes:[],listeners:[],toasts:[],modules:[],notices:[]};let rows=options.rows||[];
+ const calls={reads:[],writes:[],listeners:[],toasts:[],modules:[],notices:[],storage:[]};let rows=options.rows||[];
  const state={currentUser:{uid:'synthetic-admin-a',email:'admin-a@example.test'},rol:'mudur',personel:{durum:'aktif'},galeriOturumSurumu:1,...options.state};
  const snap=rows=>({docs:rows.map(row=>({id:row.id,data:()=>row})),metadata:{fromCache:false}});
  const fb={collection:(_db,name)=>name,where:(field,op,value)=>({field,op,value}),query:(collection,...constraints)=>({collection,constraints}),
  onSnapshot(query,_options,next,error){const entry={query,next,error,stopped:false};calls.listeners.push(entry);return()=>{entry.stopped=true;};},
  getDocs:async query=>{calls.reads.push({type:'list',query});return snap(await(options.getRows?options.getRows(query):rows));},
  doc:(_db,collection,id)=>({collection,id}),getDoc:async ref=>{calls.reads.push({type:'doc',ref});const row=options.getMedia?await options.getMedia(ref.id):rows.find(x=>x.id===ref.id);return{id:ref.id,exists:()=>!!row,data:()=>row};},
- runTransaction:async(_db,run)=>{ const staged=[]; const value=await run({get:ref=>fb.getDoc(ref),update:(ref,data)=>staged.push({ref,data})}); await options.beforeCommit?.(staged); for(const {ref,data} of staged){calls.writes.push({ref,data}); const row=rows.find(r=>r.id===ref.id);if(row)Object.assign(row,data);} return value;},
+ runTransaction:async(_db,run)=>{ const staged=[]; const value=await run({get:ref=>fb.getDoc(ref),update:(ref,data)=>staged.push({ref,data}),delete:ref=>staged.push({ref,deleted:true})}); await options.beforeCommit?.(staged); for(const {ref,data,deleted} of staged){calls.writes.push({ref,data,deleted}); if(deleted)rows=rows.filter(r=>r.id!==ref.id);else {const row=rows.find(r=>r.id===ref.id);if(row)Object.assign(row,data);}} return value;},
  updateDoc:async(ref,data)=>calls.writes.push({ref,data}),setDoc:async(...args)=>calls.writes.push(args)};
- const context={reviewGalleryItem,approveGalleryItem,galleryApprovalScopeKey,notifyGalleryPublication:async media=>{calls.notices.push(media);return{ok:true,birlestirildi:true};},...approval,...folders,...fb,db:{},console:{warn(){},error(){}},setTimeout:()=>0,clearTimeout,URLSearchParams,Date,MODUL_HARITASI:{galeri:{tablar:['galeri'],varsayilan:'galeri'},profilim:{tablar:['profilim'],varsayilan:'profilim'}},aktifModul:'galeri',sekmeyeErisim:()=>true,mesajlasmaDurdur(){},egitimArkaPlanCalismasiniDurdur(){},adminHomeArkaPlanCalismasiniDurdur(){},
+ const context={removeGalleryMedia,galleryDeleteButton,canDeleteGalleryMedia,URL:{revokeObjectURL(){}},reviewGalleryItem,approveGalleryItem,galleryApprovalScopeKey,notifyGalleryPublication:async media=>{calls.notices.push(media);return{ok:true,birlestirildi:true};},...approval,...folders,...fb,db:{},console:{warn(){},error(){}},setTimeout:()=>0,clearTimeout,URLSearchParams,Date,MODUL_HARITASI:{galeri:{tablar:['galeri'],varsayilan:'galeri'},profilim:{tablar:['profilim'],varsayilan:'profilim'}},aktifModul:'galeri',sekmeyeErisim:()=>true,mesajlasmaDurdur(){},egitimArkaPlanCalismasiniDurdur(){},adminHomeArkaPlanCalismasiniDurdur(){},
  document:{getElementById:id=>nodes.get(id)||null,querySelector:selector=>selector.startsWith('.tab[data-tab=')?tabs.find(t=>selector.includes(t.dataset.tab)):null,querySelectorAll:selector=>['.tab','.tabs .tab'].includes(selector)?tabs:selector==='.tab-panel'?[nodes.get('tab-galeri'),nodes.get('tab-profilim')]:[],createElement:()=>new FakeElement()},
- PortalAPI:{state,fb,db:{}},currentUser:state.currentUser,aktifKullaniciRol:state.rol,isAdmin:false,AKTIF_DONEM:'2026-2027',
+ PortalAPI:{state,fb,db:{},medya:{sil:async path=>{calls.storage.push(path);await options.storage?.(path);}}},currentUser:state.currentUser,aktifKullaniciRol:state.rol,isAdmin:false,AKTIF_DONEM:'2026-2027',
  createGalleryFolderView:()=>({reset(){},render(){throw new Error('Education view outside approval fixture');}}),escapeHtml:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
  showToast:(message,type)=>calls.toasts.push({message,type}),modulSec:id=>{calls.modules.push(id);nodes.get('tab-galeri').classList.add('active');},confirm:options.confirm||(()=>true)};
  context.window=context;vm.createContext(context);vm.runInContext(gallerySource+'\n'+navigationSource+exposeGallery,context);const moduleSelect=context.modulSec;context.modulSec=(...args)=>{calls.modules.push(args[0]);return moduleSelect(...args);};
