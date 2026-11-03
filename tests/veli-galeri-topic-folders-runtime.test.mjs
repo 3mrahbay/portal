@@ -111,7 +111,7 @@ test('approved targeted reads retain post-query audience checks and deduplicate 
     media('school',{hedefTur:'tumOkul'}),media('child',{hedefTur:'ogrenci',hedefDeger:'child-a'})
   ]);
   await r.render();await r.click('Jimnastik');
-  for(const q of r.calls.queries){assert.equal(q.collection,'galeri');assert.ok(q.where.some(w=>w.field==='durum'&&w.value==='onaylandi'));assert.ok(q.where.some(w=>['hedefTur','hedefOgrenciId','ogrenciId'].includes(w.field)));}
+  for(const q of r.calls.queries){assert.equal(q.collection,'galeri');assert.ok(q.where.some(w=>w.field==='durum'&&w.value==='onaylandi'));assert.ok(q.where.some(w=>['hedefTur','hedefOgrenciId','ogrenciId','ogrenciIds'].includes(w.field)));}
   assert.equal(r.actions(r.html()).filter(a=>a.text.includes('Denge')).length,3);
   assert.ok(!r.html().includes('wrong'));assert.ok(!r.html().includes('pending'));
   await r.click('Denge');assert.deepEqual(r.ids(),['yes']);

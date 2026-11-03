@@ -1,3 +1,4 @@
+import {contentChildIds} from './egitim-gruplari-core.mjs';
 // The same existing schema as ZEKY. No new permissions or tracking fields.
 // Portal intentionally uses null for a parent role. A session-bound gallery marker
 // is set only after the existing assigned-child loader succeeds; null alone is not enough.
@@ -46,8 +47,7 @@ export function classKey(value) {
   return s;
 }
 export function childTargetMatches(media, childId) {
-  const ids = [media?.hedefDeger,media?.hedefOgrenciId,media?.ogrenciId].filter(Boolean);
-  return !!childId && ids.length > 0 && ids.every(id => typeof id === 'string' && id === childId);
+  return !!childId && contentChildIds(media).includes(childId);
 }
 export function targetChild(media, children, state = {}) {
   if (media?.durum !== 'onaylandi') return null;

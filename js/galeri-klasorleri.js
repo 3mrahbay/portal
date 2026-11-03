@@ -1,3 +1,4 @@
+import {contentChildIds} from './egitim-gruplari-core.mjs';
 // Display-only folder identity. Never use a folder key to grant media access.
 export const GALLERY_PROGRAMS = Object.freeze({
   montessori: 'Montessori', orman: 'Orman Okulu', degerler: 'Değerler Eğitimi',
@@ -63,7 +64,7 @@ export function galleryTopic(m = {}) {
 export function galleryAudience(m = {}) {
   const tur = m.hedefTur || ((m.hedefOgrenciId || m.ogrenciId) ? 'ogrenci' : m.sinif ? 'sinif' : 'tumOkul');
   if (['tumOkul', 'okul', 'tum'].includes(tur)) return [tur, ''];
-  if (tur === 'ogrenci') return ['ogrenci', String(m.hedefDeger || m.hedefOgrenciId || m.ogrenciId || '')];
+  if(tur==='ogrenci'){const ids=contentChildIds(m);return ['ogrenci',ids.length>1?JSON.stringify([...ids].sort()):(ids[0]||''),...(m.egitimGrupId?[m.egitimGrupId]:[])];}
   if (tur === 'sinif') return ['sinif', String(m.hedefDeger || m.sinif || '')];
   return [String(tur), String(m.hedefDeger || '')];
 }
