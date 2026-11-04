@@ -9820,7 +9820,9 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         </div>
       </div>
 
-      <button class="btn-ikincil" onclick="egitimGruplariAc()">İngilizce grupları ve öğrenci atama</button>
+      <button id="egitimGruplariAc" type="button" aria-controls="egitimGruplariPanel" aria-expanded="false" onclick="egitimGruplariAc()" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin-bottom:14px;padding:14px 18px;border:1px solid var(--c-line,#E2E8F0);border-radius:14px;background:#F2F7F3;color:#2D5E3E;font:inherit;cursor:pointer;">
+        <span aria-hidden="true" style="font-size:22px;">🌍</span><span style="min-width:0;"><strong style="display:block;font-family:var(--font-display);font-size:14px;">İngilizce grupları ve öğrenci atama</strong><span style="display:block;font-size:12px;margin-top:4px;">Grupları düzenle, öğretmen belirle ve öğrenci ekle.</span></span>
+      </button>
       <div id="egitimGruplariPanel" hidden style="margin:16px 0"></div>
       <div id="sinifUyari"></div>
 
