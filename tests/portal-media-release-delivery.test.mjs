@@ -26,7 +26,7 @@ for(const [importer,target] of edges) test(`media release installs exact current
 });
 test('media release runtime, service worker registration, reload guard and cache generation agree',async()=>{
  const pwa=await installedPwa();await assertPwaBootstrap(pwa);
- assert.equal(pwa.cacheVersion,'v225-ingilizce-gruplari');
+ assert.equal(pwa.cacheVersion,'v225-mufredat-yetki');
  assert.ok(readPortal('index.html').includes('window.PORTAL_SURUM = "v225";'));
 });
 test('actual parent gallery dynamic loader matches the one installed parent-gallery URL',async()=>{

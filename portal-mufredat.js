@@ -1,3 +1,4 @@
+import {mufredatIslem} from './js/mufredat-servis.js';
 // ══════════════════════════════════════════════════════════════
 // PORTAL · MÜFREDAT EDİTÖRÜ MODÜLÜ
 // --------------------------------------------------------------
@@ -25,9 +26,11 @@ const { db, doc, getDoc, getDocs, collection, setDoc, updateDoc,
 const bildir = (m, t) => (typeof showToast === "function" ? showToast(m, t) : console.log(m));
 
 let aktifDisiplin  = "montessori";
+let temelKopyalar = {};
 let calismaKopyasi = {};   // { disiplin: [alan, ...] } — düzenlenen taslak
 let bekleyenTasima = [];   // { disiplin, eski, yeni, etiket }
 let degisiklikVar  = false;
+let kaydediliyor = false;
 
 // ── Yardımcılar ───────────────────────────────────────────────
 
@@ -64,78 +67,15 @@ function diziTasi(dizi, i, yon) {
 // Taşıma kuyruğuna ekle (aynı öğe tekrar adlandırılırsa zinciri kısaltır)
 function tasimaEkle(disiplin, eski, yeni, etiket) {
   if (eski === yeni) return;
-  const oncekiler = bekleyenTasima.filter(t => t.disiplin === disiplin && t.yeni === eski);
-  if (oncekiler.length) { oncekiler.forEach(t => { t.yeni = yeni; t.etiket = etiket; }); return; }
   bekleyenTasima.push({ disiplin, eski, yeni, etiket });
 }
 
 // ── Firestore ─────────────────────────────────────────────────
 
 async function mufredatOku(disiplin) {
-  const cache = (B.mufredatCache && B.mufredatCache()) || {};
-  if (Array.isArray(cache[disiplin]) && cache[disiplin].length) return kopyala(cache[disiplin]);
-  try {
-    const snap = await getDoc(doc(db, "mufredatlar", disiplin));
-    if (snap.exists() && Array.isArray(snap.data().alanlar)) return kopyala(snap.data().alanlar);
-  } catch (e) { console.error("Müfredat okunamadı:", e); }
-  return [];
-}
-
-async function mufredatYaz(disiplin, alanlar) {
-  await setDoc(doc(db, "mufredatlar", disiplin),
-    { alanlar, sonGuncelleme: serverTimestamp() }, { merge: true });
-  if (B.mufredatCacheAta) B.mufredatCacheAta(disiplin, kopyala(alanlar));
-}
-
-// Öğrenci kayıtlarını eski anahtardan yeni anahtara taşı.
-// DİKKAT: setDoc({merge:true}) burada İŞE YARAMAZ — eski anahtarları silmez.
-// Disiplin nesnesinin tamamı updateDoc ile değiştirilir.
-async function kayitlariTasi(liste) {
-  if (!liste.length) return { belge: 0, kayit: 0 };
-  let belgeSayisi = 0, kayitSayisi = 0;
-  const snap = await getDocs(collection(db, "ogrenciGelisim"));
-
-  for (const d of snap.docs) {
-    const veri = d.data() || {};
-    let belgeDegisti = false;
-    const yeniVeri = {};
-
-    for (const t of liste) {
-      const dis = veri[t.disiplin];
-      if (!dis || !dis.kayitlar) continue;
-      const kayitlar = Object.assign({}, dis.kayitlar);
-      const tarihler = Object.assign({}, dis.tarihler || {});
-      let bolumDegisti = false;
-
-      for (const anahtar of Object.keys(dis.kayitlar)) {
-        // Tam eşleşme (ders) veya önek eşleşmesi (alan / grup)
-        const tamEsit = anahtar === t.eski;
-        const onekEsit = anahtar.startsWith(t.eski + "__");
-        if (!tamEsit && !onekEsit) continue;
-        const yeniAnahtar = tamEsit ? t.yeni : t.yeni + anahtar.slice(t.eski.length);
-        if (yeniAnahtar === anahtar) continue;
-        kayitlar[yeniAnahtar] = kayitlar[anahtar];
-        delete kayitlar[anahtar];
-        if (tarihler[anahtar] !== undefined) {
-          tarihler[yeniAnahtar] = tarihler[anahtar];
-          delete tarihler[anahtar];
-        }
-        bolumDegisti = true; kayitSayisi++;
-      }
-
-      if (bolumDegisti) {
-        yeniVeri[t.disiplin] = Object.assign({}, veri[t.disiplin], { kayitlar, tarihler });
-        veri[t.disiplin] = yeniVeri[t.disiplin];   // aynı belgede sıradaki taşıma bunu görsün
-        belgeDegisti = true;
-      }
-    }
-
-    if (belgeDegisti) {
-      await updateDoc(doc(db, "ogrenciGelisim", d.id), yeniVeri);
-      belgeSayisi++;
-    }
-  }
-  return { belge: belgeSayisi, kayit: kayitSayisi };
+  const {alanlar} = await mufredatIslem({action:'load',disiplin});
+  temelKopyalar[disiplin] = kopyala(alanlar);
+  return kopyala(alanlar);
 }
 
 // ── Modal ─────────────────────────────────────────────────────
@@ -147,7 +87,7 @@ function modalKur() {
   m.id = "mufredatEditorModal";
   m.className = "modal-overlay";
   m.innerHTML = `
-    <div class="modal-box" style="max-width:860px; width:96%;">
+    <div class="modal modal-large" style="max-width:860px; width:96%;">
       <div class="modal-header">
         <h3 style="margin:0;">⚙️ Müfredat Düzenle</h3>
         <button class="btn-close" onclick="mufredatEditorKapat()">×</button>
@@ -222,9 +162,9 @@ function icerikCiz() {
   }
 
   el.innerHTML = alanlar.map((alan, ai) => `
-    <div class="mufredat-alan-kart" style="border-left:4px solid ${alan.renk || "#7c3aed"};">
+    <div class="mufredat-alan-kart" style="border-left:4px solid ${escapeHtml(alan.renk || "#7c3aed")};">
       <div class="mufredat-alan-baslik" style="gap:6px;">
-        <span style="font-size:18px;">${alan.ikon || "📚"}</span>
+        <span style="font-size:18px;">${escapeHtml(alan.ikon || "📚")}</span>
         <input class="mf-ad" value="${escapeHtml(alan.ad)}"
                onchange="mufredatAdDegistir('alan',${ai},-1,-1,this.value)"
                style="flex:1; font-size:14px; font-weight:700; border:1px solid transparent; background:transparent;
@@ -288,8 +228,12 @@ function altButonlar() {
 
 // ── Dışa açılan işlemler ──────────────────────────────────────
 
-window.mufredatEditorAc = async function() {
+export async function ac() {
+  const izin = await mufredatIslem({action:'status'});
+  if (!izin.allowed) throw new Error('Müfredat düzenleme yetkiniz kapalı. Yönetimden yetki isteyebilirsiniz.');
+  calismaKopyasi = {}; temelKopyalar = {};
   modalKur().style.display = "flex";
+  modalKur().classList.add("active");
   bekleyenTasima = []; degisiklikVar = false;
   const liste = disiplinler();
   if (!liste.find(d => d.id === aktifDisiplin)) aktifDisiplin = liste[0].id;
@@ -327,7 +271,7 @@ window.mufredatAdDegistir = function(tip, ai, gi, di, yeniAd) {
 
   if (tip === "alan") {
     const eskiId = alan.id || alanIdUret(alan.ad, ai);
-    const yeniId = alanIdUret(yeniAd, ai);
+    const yeniId = eskiId;
     if (eskiId !== yeniId) tasimaEkle(aktifDisiplin, eskiId, yeniId, `Alan: ${alan.ad} → ${yeniAd}`);
     alan.ad = yeniAd; alan.id = yeniId;
   } else if (tip === "grup") {
@@ -439,21 +383,22 @@ window.mufredatJsonIceAktarAc = function() {
 };
 
 window.mufredatKaydetVeKapat = async function() {
-  const btn = event && event.target;
+  if (kaydediliyor) return;
+  kaydediliyor = true;
+  const controls = [...document.querySelectorAll('#mufredatEditorModal button, #mufredatEditorModal input')].map(el=>[el,el.disabled]);
+  controls.forEach(([el])=>{el.disabled=true;});
+  const btn = document.querySelector("#mufredatEditorModal .modal-footer .btn-primary");
   if (btn) { btn.disabled = true; btn.textContent = "Kaydediliyor…"; }
   try {
-    for (const d of Object.keys(calismaKopyasi)) {
-      // Alan id'leri her kayıtta yeniden üretilir (ad değişmişse tutarlı kalsın)
-      calismaKopyasi[d].forEach((a, i) => { a.id = a.id || alanIdUret(a.ad, i); });
-      await mufredatYaz(d, calismaKopyasi[d]);
+    const changes = Object.keys(calismaKopyasi).filter(d => JSON.stringify(calismaKopyasi[d]) !== JSON.stringify(temelKopyalar[d])).map(d => ({
+      disiplin:d, alanlar:calismaKopyasi[d], base:temelKopyalar[d], tasimalar:bekleyenTasima.filter(t=>t.disiplin===d)
+    }));
+    if (changes.length) {
+      await mufredatIslem({action:'save', changes});
+      for (const c of changes) B.mufredatCacheAta?.(c.disiplin,kopyala(c.alanlar));
     }
-    let ozet = "";
-    if (bekleyenTasima.length) {
-      if (btn) btn.textContent = "Kayıtlar taşınıyor…";
-      const s = await kayitlariTasi(bekleyenTasima);
-      ozet = ` · ${s.kayit} kayıt ${s.belge} öğrencide taşındı`;
-    }
-    bildir(`✓ Müfredat kaydedildi${ozet}`);
+    bildir('✓ Müfredat kaydedildi');
+    kaydediliyor = false;
     degisiklikVar = false; bekleyenTasima = [];
     window.mufredatEditorKapat();
     if (typeof renderGelisimSekmesi === "function" &&
@@ -464,6 +409,8 @@ window.mufredatKaydetVeKapat = async function() {
     console.error(e);
     bildir("Kaydedilemedi: " + e.message, "error");
   } finally {
+    kaydediliyor = false;
+    controls.forEach(([el,disabled])=>{el.disabled=disabled;});
     if (btn) { btn.disabled = false; btn.textContent = "Kaydet"; }
   }
 };
