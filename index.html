@@ -45648,7 +45648,7 @@ window.odemePlaniPDFCiktisi = async function() {
     y = pdf.lastAutoTable.finalY + 6;
 
     // ---- ÖDEME SATIRLARI ----
-    const ayListesi = (typeof getAyListesi === "function") ? getAyListesi(baslangic, taksit) : [];
+    const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit)) : [];
     const rows = [];
     let toplamTaksit = 0;
 
@@ -46753,7 +46753,7 @@ function renderAylikOdeme() {
     return;
   }
 
-  const ayListesi = getAyListesi(baslangic, taksit);
+  const ayListesi = getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit));
   const mevcutOdemeler = (currentOgrenci && ayarListesi[currentOgrenci.id] &&
                          ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
   // Dönem aylıkları (saveAyarlar/hesapla ile bellekte tutulur)
@@ -46939,10 +46939,10 @@ window.aidatOtomatikDoldur = function() {
   const baslangic = document.getElementById("ayarBaslangic")?.value || "";
   const secenek = document.querySelector('input[name="ayarHesapTuru"]:checked')?.value || "esit";
 
-  const yillikToplam = aylik * taksit;
+  const yillikToplam = aylik * (baslangic ? getGercekOdemeSayisi(baslangic, taksit) : taksit);
 
   // Ay listesinden I. dönem (Eylül-Ocak) ve II. dönem (Şubat-Ağustos) sayıları
-  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, taksit) : [];
+  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit)) : [];
   let iDonemSayi = ayListesi.filter(a => a.ay >= 9 || a.ay <= 1).length;
   let iiDonemSayi = ayListesi.filter(a => a.ay >= 2 && a.ay <= 8).length;
   if (iDonemSayi + iiDonemSayi === 0) { iDonemSayi = 5; iiDonemSayi = taksit - 5; }
@@ -47022,11 +47022,11 @@ window.donemFarkiHesaplaOtomatik = function() {
     onOdemeInput.value = onOdeme;
   }
 
-  const yillikToplam = aylik * taksit;
+  const yillikToplam = aylik * (baslangic ? getGercekOdemeSayisi(baslangic, taksit) : taksit);
   const kalan = yillikToplam - onOdeme;
 
   // Ay listesini al, I. dönem (Eylül-Ocak) ve II. dönem (Şubat-Haziran) aylarını say
-  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, taksit) : [];
+  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit)) : [];
   const iDonemAylar = ayListesi.filter(a => a.ay >= 9 || a.ay <= 1);
   const iiDonemAylar = ayListesi.filter(a => a.ay >= 2 && a.ay <= 8);
   const iDonemSayi = iDonemAylar.length || 5;
@@ -47541,7 +47541,7 @@ window.aylikToplu = function(tip) {
     return;
   }
 
-  const ayListesi = getAyListesi(baslangic, taksit);
+  const ayListesi = getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit));
   const bugun = new Date();
 
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
