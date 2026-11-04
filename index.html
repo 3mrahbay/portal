@@ -11813,6 +11813,10 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         </div>
       </div>
 
+      <div class="form-group" id="personelMufredatGrup" style="display:none;">
+        <label><input type="checkbox" id="personelMufredatYetki" onchange="personelMufredatYetkiKaydet(this)"> Müfredat ekleme, düzenleme ve silme yetkisi</label>
+        <small class="form-ipucu">Değişiklik anında kaydedilir. Portal ve ZEKY için geçerlidir. Okulun ortak müfredatını değiştirir; öğrenci erişim yetkisini değiştirmez.</small>
+      </div>
       <div id="personelFormUyari" class="personel-form-uyari" style="display:none;"></div>
     </div>
     <div class="modal-footer">
@@ -15064,6 +15068,7 @@ window.personelFormAc = function() {
   document.getElementById("personelEmail").value = "";
   document.getElementById("personelEmail").disabled = false;
   document.getElementById("personelRol").value = "";
+  document.getElementById("personelMufredatYetki").checked = false;
   document.getElementById("personelUnvan").value = "";
   document.getElementById("personelTelefon").value = "";
   personelSeciliSiniflar = [];
@@ -15088,6 +15093,7 @@ window.personelDuzenle = function(email) {
   document.getElementById("personelEmail").value = p.email || p.id;
   document.getElementById("personelEmail").disabled = true; // E-posta değiştirilemez (doküman ID)
   document.getElementById("personelRol").value = p.rol || "";
+  document.getElementById("personelMufredatYetki").checked = p.mufredatDuzenleme === true;
   document.getElementById("personelUnvan").value = p.unvan || "";
   document.getElementById("personelTelefon").value = p.telefon || "";
   personelSeciliSiniflar = [...(personelAtamaHaritasi[email.toLowerCase()] || [])];
@@ -15096,9 +15102,30 @@ window.personelDuzenle = function(email) {
   document.getElementById("personelModal").classList.add("active");
 };
 
+// This switch updates one permission field only; class assignments and role remain intact.
+window.personelMufredatYetkiKaydet = async function(input) {
+  const email = document.getElementById('personelDuzenleEmail').value;
+  const enabled = input.checked;
+  input.disabled = true;
+  try {
+    await runTransaction(db, async tx => {
+      const ref = doc(db,'personeller',email);
+      const snap = await tx.get(ref);
+      if (!snap.exists() || !["ogretmen","yardimci_ogretmen","ingilizce_ogretmeni","degerler_ogretmeni","orman_ogretmeni","brans_ogretmeni"].includes(snap.data().rol)) throw new Error('Öğretmen kaydı bulunamadı.');
+      tx.update(ref,{mufredatDuzenleme:enabled});
+    });
+    const p = personelListesi.find(p => (p.email || p.id) === email);
+    if (p) p.mufredatDuzenleme = enabled;
+    showToast(enabled ? 'Müfredat yetkisi açıldı' : 'Müfredat yetkisi kapatıldı');
+  } catch(e) { input.checked = !enabled; showToast('Yetki kaydedilemedi: '+e.message,'error'); }
+  finally { input.disabled = false; }
+};
+
 // Rol değişince sınıf atama alanını göster/gizle
 window.personelRolDegisti = function() {
   const rol = document.getElementById("personelRol").value;
+  const mevcut = personelListesi.find(p => (p.email || p.id) === document.getElementById("personelDuzenleEmail").value);
+  document.getElementById("personelMufredatGrup").style.display = mevcut && ["ogretmen","yardimci_ogretmen","ingilizce_ogretmeni","degerler_ogretmeni","orman_ogretmeni","brans_ogretmeni"].includes(mevcut.rol) ? "" : "none";
   const grup = document.getElementById("personelSinifAtamaGrup");
   if (rol === "ogretmen") {
     grup.style.display = "";
@@ -23429,6 +23456,7 @@ function ogretmenHomeHTML(ad) {
         <h3 class="ca-head" style="font-size:15px; margin-bottom:10px;">Hızlı işlemler</h3>
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:10px; max-width:640px;">
           <button class="ca-qbtn" onclick="modulSec('devamsizlik')"><span class="ca-qicon" style="background:var(--c-green-light); color:#fff;"><i data-lucide="check"></i></span><span class="ca-qlabel">Yoklama</span></button>
+          <button class="ca-qbtn" onclick="mufredatEditorAc()"><span class="ca-qicon">⚙️</span><span class="ca-qlabel">Müfredat</span></button>
           <button class="ca-qbtn" onclick="modulSec('egitim')"><span class="ca-qicon" style="background:var(--c-yellow-soft);"><i data-lucide="eye"></i></span><span class="ca-qlabel">Gözlem</span></button>
           <button class="ca-qbtn" onclick="modulSec('ogrencilerM')"><span class="ca-qicon" style="background:var(--c-blue-soft);"><i data-lucide="notebook-pen"></i></span><span class="ca-qlabel">Sınıfım</span></button>
           <button class="ca-qbtn" onclick="modulSec('mesaj')"><span class="ca-qicon" style="background:var(--c-pink-soft);"><i data-lucide="message-circle" style="width:15px;height:15px;vertical-align:-2px;"></i></span><span class="ca-qlabel">Veli Mesajı</span></button>
@@ -49227,6 +49255,17 @@ window.showBulkUpload = async function() {
   }
 };
 
+
+window.BCK = { db, doc, getDoc, getDocs, collection, setDoc, updateDoc, serverTimestamp, escapeHtml,
+  DISIPLINLER: () => DISIPLINLER, mufredatCacheAta: (id, value) => { aktifMufredatlar[id] = value; } };
+let mufredatEditorSozu;
+window.mufredatEditorAc = async function() {
+  try {
+    if (!mufredatEditorSozu) mufredatEditorSozu = import('./portal-mufredat.js?v=1').catch(e => { mufredatEditorSozu = null; throw e; });
+    const editor = await mufredatEditorSozu;
+    await editor.ac();
+  } catch(e) { showToast(e.message || 'Müfredat açılamadı.', 'error'); }
+};
 </script>
 <script src="aidat-donem-genislet.js"></script>
 

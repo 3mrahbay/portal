@@ -10,10 +10,12 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v226-aidat-baslangic-ayi";
+const CACHE_VERSION = "v225-mufredat-yetki";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./portal-mufredat.js?v=1",
+  "./js/mufredat-servis.js",
   "./js/galeri-silme.js?v=225",
   "./js/egitim-gruplari-core.mjs",
   "./js/egitim-gruplari-data.mjs",

@@ -62,7 +62,7 @@ test('PWA: modülün sürümlü adresi önbelleğe alınır ve önbellek sürüm
   const pwa = await installedPwa();
   assertPrecachedImport(pwa, 'index.html', 'js/zeky-yol.js');
   assertPrecachedImport(pwa, 'moduller/pickup-yetkilileri.js', 'js/zeky-yol.js');
-  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v225-ingilizce-gruplari";/);
+  assert.match(readPortal('serviceworker.js'), /const CACHE_VERSION = "v225-mufredat-yetki";/);
   assert.match(index, /window\.PORTAL_SURUM = "v225";/);
 });
 

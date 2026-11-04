@@ -119,6 +119,6 @@ test('sürüm: önbellek, kayıt ve galeri modülü birlikte', () => {
   assert.match(index, /serviceworker\.js\?v=225/);
   assert.match(index, /"portalSwReload_v225"/);
   const sw = readPortal('serviceworker.js');
-  assert.match(sw, /const CACHE_VERSION = "v225-ingilizce-gruplari";/);
+  assert.match(sw, /const CACHE_VERSION = "v225-mufredat-yetki";/);
   assert.match(sw, /"\.\/moduller\/veli-galeri\.js\?v=v225",/);
 });
