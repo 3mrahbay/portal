@@ -18,7 +18,7 @@ test('portrait, landscape and video stages center and fit the available grid row
 });
 test('dynamic mobile viewport, safe areas, long captions and compact landscape have explicit layout rules',()=>{
  assert.match(css,/height:100vh;height:100dvh/);for(const side of ['top','right','bottom','left'])assert.ok(css.includes(`env(safe-area-inset-${side})`));
- assert.match(css,/max-height:min\(18dvh,112px\);overflow:auto/);assert.match(css,/overflow-wrap:anywhere/);
+ assert.match(css,/max-height:min\(28dvh,200px\);overflow:auto/);assert.match(css,/overflow-wrap:anywhere/);
  assert.match(css,/@media\(max-width:600px\)/);assert.match(css,/@media\(max-height:500px\) and \(min-width:601px\)/);
 });
 test('modern controls have explicit resets, touch targets, focus indication and reduced-motion handling',()=>{

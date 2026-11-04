@@ -14,6 +14,7 @@ const CACHE_VERSION = "v225-ingilizce-gruplari";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/gallery-navigation.js",
   "./js/galeri-silme.js?v=225",
   "./js/egitim-gruplari-core.mjs",
   "./js/egitim-gruplari-data.mjs",

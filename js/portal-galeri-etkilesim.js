@@ -140,5 +140,37 @@ export function createInteractionService(getApi) {
     if (getApi()?.state?.currentUser?.uid !== owner || !management(getApi()?.state)) throw new Error('Oturum değişti');
     return rows;
   }
-  return { record, report };
+  function favoriteContext(media = null) {
+    const api=getApi(),state=api?.state||{},context=galleryParentKey(state),user=state.currentUser;
+    const email=String(user?.email||'').trim().toLowerCase(),child=state.veliAktifOgrenci||state.veliOgrenciler?.[0];
+    const valid=()=>!!email&&!email.includes('/')&&isGalleryParent(getApi()?.state)&&galleryParentKey(getApi()?.state)===context&&String(getApi()?.state?.currentUser?.email||'').trim().toLowerCase()===email&&(media===null||!!targetChild(media,[child].filter(Boolean),getApi()?.state));
+    const guard=()=>{if(!user?.uid||(media!==null&&!media?.id)||!valid())throw Object.assign(new Error('Galeri bağlamı değişti'),{name:'AbortError'});};
+    guard();return {api,guard,user,email,child,ref:api.fb.doc(api.db,'kullaniciTercihleri',email)};
+  }
+  async function favoriteIds() {
+    const {api,guard,ref}=favoriteContext(),snapshot=await api.fb.getDoc(ref);guard();
+    const ids=snapshot.exists()?snapshot.data()?.galeriFavoriler:[];
+    return [...new Set(Array.isArray(ids)?ids.filter(id=>typeof id==='string'):[])];
+  }
+  async function favorite(media) {
+    const {api,guard,ref}=favoriteContext(media),snapshot=await api.fb.getDoc(ref);guard();
+    const ids=snapshot.exists()?snapshot.data()?.galeriFavoriler:[];
+    return Array.isArray(ids)&&ids.includes(media.id);
+  }
+  async function setFavorite(media,value) {
+    const {api,guard,ref,user,email,child}=favoriteContext(media);
+    const hash=await emailHash(email);guard();if(!hash)throw new Error('Beğeni kimliği doğrulanamadı');
+    const eventRef=api.fb.doc(api.db,'galeri',media.id,'etkilesimler',user.uid);
+    return api.fb.runTransaction(api.db,async tx=>{
+      const snapshot=await tx.get(ref);guard();
+      const previous=snapshot.exists()?snapshot.data()?.galeriFavoriler:[];
+      const ids=new Set(Array.isArray(previous)?previous:[]);
+      if(value===true)ids.add(media.id);else ids.delete(media.id);
+      const now=new Date().toISOString();
+      tx.set(ref,{galeriFavoriler:[...ids],guncellendi:now},{merge:true});
+      tx.set(eventRef,{veliUid:user.uid,veliEmailHash:hash,ogrenciId:child.id,uygulama:'portal',guncellendi:now,favori:value===true},{merge:true});
+      return true;
+    });
+  }
+  return { record, report, favorite, favoriteIds, setFavorite };
 }

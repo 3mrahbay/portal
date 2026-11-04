@@ -53,7 +53,13 @@ function lightboxZenginlestir(id){
   const hedef=icerik.querySelector('.zgo-medya');hedef.append(...medya);
   const img=hedef.querySelector('img');if(img)img.style.cssText='width:100%;height:100%;max-width:min(64vw,980px);max-height:92vh;object-fit:contain';
   const eylemleriBagla=()=>{
-  icerik.querySelector('[data-zgo-onay]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriOnayla?.(id);});
+  icerik.querySelector('[data-zgo-onay]')?.addEventListener('click',async event=>{
+    const button=event.currentTarget;if(button.disabled)return;button.disabled=true;button.textContent='Onaylanıyor…';
+    try{const result=await window.galeriOnayla?.(id);if(!halaAcik())return;
+      if(result===true){m.durum='onaylandi';const actions=icerik.querySelector('.zgo-actions');if(actions){actions.setAttribute('role','status');actions.textContent='✓ Onaylandı · Sonraki görsel için kaydırın veya Sonraki düğmesini kullanın.';}}
+      else{button.disabled=false;button.textContent='Onayla';}
+    }catch(_){if(halaAcik()){button.disabled=false;button.textContent='Onayla';}}
+  });
   icerik.querySelector('[data-zgo-red]')?.addEventListener('click',async()=>{window.closeGaleriLightbox?.();await window.galeriReddet?.(id);});
   };
   eylemleriBagla();
