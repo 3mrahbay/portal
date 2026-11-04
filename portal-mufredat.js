@@ -75,7 +75,15 @@ function tasimaEkle(disiplin, eski, yeni, etiket) {
 async function mufredatOku(disiplin) {
   const {alanlar} = await mufredatIslem({action:'load',disiplin});
   temelKopyalar[disiplin] = kopyala(alanlar);
-  return kopyala(alanlar);
+  const working = kopyala(alanlar);
+  working.forEach((a,i)=>{
+    if(a.id) return;
+    const id = alanIdUret(a.ad,i);
+    for(const g of a.gruplar||[]) for(const lesson of g.dersler||[])
+      tasimaEkle(disiplin,`${String(a.id)}__${g.ad}__${lesson}`,`${id}__${g.ad}__${lesson}`,'Eski alan kimliği');
+    a.id=id;
+  });
+  return working;
 }
 
 // ── Modal ─────────────────────────────────────────────────────
