@@ -1,3 +1,4 @@
+import {galleryEducationMetadata,galleryEducationProgram} from '../js/galeri-gozlem-metadata.js';
 import { galleryLightboxStyles, galleryLightboxIcons, lightboxDownload } from '../js/portal-galeri-lightbox-ui.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,6 +27,7 @@ function fixture(rows,overrides={}){
   constructor(tag='div'){this.tagName=tag.toUpperCase();this.style={};this.dataset={};this.attributes={};this._html='';this.controls=[];this.isConnected=true;}
   set innerHTML(s){this._html=s;this.controls=[...s.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].map(m=>{const e=new Element('button');e.parent=this;e.text=m[2].replace(/<[^>]*>/g,'');e.action=Number(m[1].match(/eylem\((\d+),this\)/)?.[1]);e.label=m[1].match(/aria-label="([^"]*)"/)?.[1];e.disabled=/\bdisabled(?:\s|$)/.test(m[1]);return e;});}
   get innerHTML(){return this._html;}
+  addEventListener(){}
   setAttribute(k,v){this.attributes[k]=v;}
   focus(){document.activeElement=this;}
   remove(){nodes.delete(this.id);this.isConnected=false;}
@@ -37,7 +39,7 @@ function fixture(rows,overrides={}){
  const emit=(name,event={})=>{for(const f of events.get(name)||[])f(event);};
  const history={get state(){return stack[at]},pushState(s){stack.splice(++at);stack[at]=s;},replaceState(s){stack[at]=s;},back(){backCalls++;backQueued=true;}};
  const window={PortalAPI:{get state(){return auth.api.state},esc,lucide(){},db:{},fb:{collection:()=> 'galeri',where:(field,op,value)=>({field,value}),query:(collection,...where)=>({collection,where}),getDocs:async q=>{calls.queries.push(q);return{forEach:f=>rows.forEach(r=>f({id:r.id,data:()=>r}))};}}},history,addEventListener:(n,f)=>events.set(n,[...events.get(n)||[],f])};
- const ctx={galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,...folders,window,document,console,isGalleryParent,targetChild,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,downloadSource,mountMedia:(h,m,o)=>calls.mount.push({id:m.id,opts:o}),disposeMedia:d=>calls.dispose.push(d),recordOpen:m=>calls.open.push(m.id),downloadMedia:m=>calls.download.push(m.id)};
+ const ctx={galleryLightboxStyles,galleryLightboxIcons,lightboxDownload,galleryEducationMetadata,galleryEducationProgram,bindGallerySwipe:()=>()=>{},...folders,window,document,console,isGalleryParent,targetChild,childTargetMatches,galleryChildClass,galleryParentKey,galleryMediaType,galleryDisplayUrl,downloadSource,mountMedia:(h,m,o)=>calls.mount.push({id:m.id,opts:o}),disposeMedia:d=>calls.dispose.push(d),recordOpen:m=>calls.open.push(m.id),downloadMedia:m=>calls.download.push(m.id)};
  vm.runInNewContext(source+';globalThis.render=render;',ctx);
  return {auth,window,root,nodes,calls,document,history,emit,get backCalls(){return backCalls},
   render:()=>ctx.render('gallery'),html:()=>root.innerHTML,lightbox:()=>nodes.get('vgLightbox'),

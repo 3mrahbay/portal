@@ -82,6 +82,12 @@ export function downloadSource(media) {
     try { return !/\.(m3u8|mpd)$/i.test(decodeURIComponent(new URL(url).pathname)); } catch (_) { return false; }
   }) || '' : sources.image;
 }
+// Only stored direct file URLs are download sources. Player/thumbnail metadata
+// must never be used to invent MP4 URLs; private Stream downloads require a
+// server that checks the current user's audience and returns an authorized URL.
+export function canDownloadMedia(media) {
+  return Boolean(downloadSource(media));
+}
 export function renderMedia(host, media, { thumbnail = false } = {}) {
   const document = host.ownerDocument, sources = mediaSources(media);
   host.replaceChildren();

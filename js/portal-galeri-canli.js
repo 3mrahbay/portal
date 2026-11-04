@@ -1,6 +1,8 @@
+import { bindGallerySwipe, visibleGalleryIds } from './gallery-navigation.js';
+import { gallerySession } from './galeri-onay-canli.js?v=186';
 import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js?v=225';
 export { galleryProgram } from './galeri-klasorleri.js?v=225';
-import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=192';
+import { renderMedia, downloadSource, canDownloadMedia, galleryMediaType } from './portal-galeri-medya.js?v=192';
 import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=225';
 
 const api = () => window.PortalAPI;
@@ -18,6 +20,9 @@ function trackingFailure(owner) {
     toast('İçerik açılabilir; etkileşim kaydı kaydedilemedi. Bağlantı ve galeri etkileşim kuralları kontrol edilmeli.', 'warning');
   }
 }
+export const readFavoriteIds=()=>service.favoriteIds();
+export const readMediaFavorite=media=>service.favorite(media);
+export const setMediaFavorite=(media,value)=>service.setFavorite(media,value);
 export function recordOpen(media) {
   const owner = api()?.state?.currentUser?.uid;
   service.record(media, 'acma').catch(() => trackingFailure(owner));
@@ -35,12 +40,14 @@ export function mountMedia(host, media, options) {
   return renderMedia(host, media, options);
 }
 function fileName(media) {
-  const fallback = media.dosyaTipi === 'video' ? 'video.mp4' : 'fotograf.jpg';
-  return String(media.orjinalAd || fallback).replace(/[\\/\x00-\x1f:*?"<>|]/g, '-').slice(0, 160) || fallback;
+  const fallback = galleryMediaType(media) === 'video' ? 'video.mp4' : 'fotograf.jpg';
+  let name=String(media.orjinalAd || fallback).replace(/[\\/\x00-\x1f:*?"<>|]/g, '-').slice(0, 160) || fallback;
+  if(galleryMediaType(media)==='video'&&/\.mp4(?:[?#]|$)/i.test(downloadSource(media)))name=name.replace(/\.[^.]+$/,'')+'.mp4';
+  return name;
 }
 export async function fetchMediaBlob(media, win = window) {
   const url = downloadSource(media);
-  if (!url) throw new Error('Bu video için indirilebilir dosya bağlantısı bulunamadı');
+  if (!url) throw new Error('Bu video için indirilebilir dosya bağlantısı yok. Video oynatılabilir; güvenli indirme henüz kullanılamıyor.');
   const response = await win.fetch(url);
   if (!response.ok) throw new Error('Medya indirilemedi');
   const blob = await response.blob();
@@ -73,8 +80,9 @@ export async function downloadMedia(media, button = null) {
   try {
     if (button) { button.disabled = true; button.textContent = 'İndiriliyor…'; }
     check();
-    if (!downloadSource(media)) throw new Error('Bu medya için indirilebilir dosya bulunamadı');
-    const handle = window.showSaveFilePicker ? await window.showSaveFilePicker({suggestedName:fileName(media)}) : null;
+    if (!canDownloadMedia(media)) throw new Error('Bu medya için indirilebilir dosya bulunamadı');
+    let handle=null;
+    if(window.showSaveFilePicker){try{handle=await window.showSaveFilePicker({suggestedName:fileName(media)});}catch(error){if(error.name!=='SecurityError'&&error.name!=='NotAllowedError')throw error;}}
     check();
     const blob = await fetchMediaBlob(media);check();
     const completed = await saveBlob(blob, fileName(media), {handle,guard});check();
@@ -103,11 +111,11 @@ export function interactionRowHtml(row) {
 function downloadControl() {
   const button = document.getElementById('galeriLightboxIndirBtn'); if (!button) return;
   if (!('pgDownloadLabel' in button.dataset)) button.dataset.pgDownloadLabel = button.innerHTML;
-  const available = Boolean(active && downloadSource(active));
+  const available = Boolean(active && canDownloadMedia(active));
   const busy = available && downloadOperations.get(button)?.mediaId === active.id;
   button.disabled = !available || busy;
   button.setAttribute('aria-disabled', String(button.disabled));
-  button.title = available ? '' : 'İndirilebilir dosya bağlantısı yok';
+  button.title = available ? '' : 'İndirilebilir dosya bağlantısı yok. Güvenli video indirme henüz kullanılamıyor.';
   if (busy) button.textContent = 'İndiriliyor…';
   else if (available) button.innerHTML = button.dataset.pgDownloadLabel;
   else button.textContent = 'İndirme bağlantısı yok';
@@ -159,7 +167,7 @@ export async function downloadAlbum(title, date, targetType, targetValue, folder
       (!targetType || item.hedefTur === targetType) && (!targetType || String(item.hedefDeger || '') === String(targetValue || ''));
   });
   if (!media.length) { toast('Dosya bulunamadı', 'error'); return false; }
-  const downloadable = media.filter(item => downloadSource(item));
+  const downloadable = media.filter(item => canDownloadMedia(item));
   const unavailable = media.length - downloadable.length;
   if (!downloadable.length) { toast(`Bu albümde indirilebilir dosya bağlantısı yok (${unavailable} dosya).`, 'error'); return false; }
   if (unavailable) toast(`${downloadable.length} dosya ZIP'e alınabilir; ${unavailable} dosyanın indirme bağlantısı yok, atlanacak.`, 'warning');
@@ -237,15 +245,31 @@ export function installLiveGallery(win = window) {
   if (win.__portalGaleriCanli192) return true;
   if (!win.PortalAPI || typeof win.acGaleriLightbox !== 'function' || typeof win.veliAcGaleriLightbox !== 'function') return false;
   win.__portalGaleriCanliAktif = true;
+  let navigation=[],navigationSession='',navigating=false,swipeCleanup=()=>{};
+  const navCurrent=()=>navigationSession===gallerySession(api()?.state||{});
+  const neighbor=step=>{const start=navigation.indexOf(active?.id);if(start<0)return null;for(let i=start+step;i>=0&&i<navigation.length;i+=step){if(currentMedia(navigation[i]))return navigation[i];}return null;};
+  win.galeriLightboxGezin=step=>{if(!navCurrent()||!active||![-1,1].includes(step))return;const id=neighbor(step);if(!id)return;navigating=true;try{win.acGaleriLightbox(id);}finally{navigating=false;}};
+  function navigationControls(parent){
+    swipeCleanup();document.getElementById('pgGalleryNavigation')?.remove();
+    if(parent||!active)return;
+    const container=document.getElementById('galeriLightboxIcerik');if(!container)return;
+    const nav=document.createElement('div');nav.id='pgGalleryNavigation';nav.setAttribute('aria-label','Galeri gezinme');
+    nav.style.cssText='position:absolute;top:10px;left:10px;z-index:20;display:flex;gap:8px;align-items:center;padding:6px;border-radius:12px;background:#14231ee6;color:white';
+    for(const [step,label] of [[-1,'Önceki'],[1,'Sonraki']]){const button=document.createElement('button');button.type='button';button.textContent=(step<0?'← ':'')+label+(step>0?' →':'');button.disabled=!neighbor(step);button.style.cssText='min-height:44px;padding:8px 12px;border:1px solid #ffffff60;border-radius:9px;background:transparent;color:white;font:inherit;cursor:pointer';button.onclick=()=>win.galeriLightboxGezin(step);nav.append(button);}
+    container.parentNode.append(nav);swipeCleanup=bindGallerySwipe(container,win.galeriLightboxGezin);
+  }
+  win.addEventListener?.('keydown',event=>{if(!document.getElementById('galeriLightbox')?.classList.contains('active')||event.target?.closest?.('input,textarea,select,video,[contenteditable]'))return;if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();win.galeriLightboxGezin(event.key==='ArrowLeft'?-1:1);}});
   for (const [name, parent] of [['acGaleriLightbox', false], ['veliAcGaleriLightbox', true]]) {
     const original = win[name];
     const wrapped = function(id, ...args) {
       const media = currentMedia(id, parent); if (!media) return;
       disposeMedia(document.getElementById('galeriLightboxIcerik'));
+      if(!parent&&!navigating){navigation=visibleGalleryIds(document.getElementById('galeriListesi'));if(!navigation.includes(id))navigation=[id];navigationSession=gallerySession(api()?.state||{});}
       active = media; const ticket = ++sequence;
       const result = original.call(this, id, ...args);
       reportControl();
       downloadControl();
+      navigationControls(parent);
       replaceActivePlayer(media, ticket);
       // Existing education approval wrapper adds the details pane asynchronously.
       win.setTimeout(() => replaceActivePlayer(media, ticket), 0);
@@ -258,7 +282,7 @@ export function installLiveGallery(win = window) {
     win[name] = wrapped;
   }
   const close = win.closeGaleriLightbox;
-  const wrappedClose = function(...args) { ++sequence; active = null; reportControl(); downloadControl(); disposeMedia(document.getElementById('galeriLightboxIcerik')); return close?.apply(this, args); };
+  const wrappedClose = function(...args) { swipeCleanup();navigation=[];document.getElementById('pgGalleryNavigation')?.remove();++sequence; active = null; reportControl(); downloadControl(); disposeMedia(document.getElementById('galeriLightboxIcerik')); return close?.apply(this, args); };
   if (close?.__zekyEgitimKapat) wrappedClose.__zekyEgitimKapat = true;
   wrappedClose.__eski = close;
   win.closeGaleriLightbox = wrappedClose;

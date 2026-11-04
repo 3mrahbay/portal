@@ -20,7 +20,7 @@ export const galleryLightboxStyles = `
 #vgLightbox [data-vg-media] > iframe {display:block;width:100%;height:100%!important;max-width:100%;min-height:0;border:0;border-radius:18px;}
 #vgLightbox .pg-media-status {max-width:100%;max-height:100%;overflow:auto;border-radius:16px;}
 #vgLightbox .vg-lb-footer {display:flex;flex-direction:column;align-items:center;gap:14px;width:min(760px,100%);min-width:0;}
-#vgLightbox .vg-lb-details {width:100%;min-width:0;max-height:112px;max-height:min(18dvh,112px);overflow:auto;text-align:center;overflow-wrap:anywhere;line-height:1.45;scrollbar-width:thin;}
+#vgLightbox .vg-lb-details {width:100%;min-width:0;max-height:200px;max-height:min(28dvh,200px);overflow:auto;text-align:center;overflow-wrap:anywhere;line-height:1.45;scrollbar-width:thin;}
 #vgLightbox .vg-lb-title {font-size:17px;font-weight:700;line-height:1.35;margin:0;}
 #vgLightbox .vg-lb-subtitle {font-size:12px;color:#bbc9c3;margin-top:5px;}
 #vgLightbox .vg-lb-caption {font-size:13px;color:#e4ebe7;margin-top:8px;}
@@ -37,6 +37,9 @@ export const galleryLightboxStyles = `
 #vgLightbox .vg-lb-btn:active {transform:scale(.95);}
 #vgLightbox .vg-lb-btn:focus-visible {outline:3px solid #a6ddbb;outline-offset:4px;}
 #vgLightbox .vg-lb-btn:disabled {cursor:wait;opacity:.6;transform:none;}
+#vgLightbox .vg-lb-actions.has-like {grid-template-columns:48px 48px minmax(116px,auto) 48px;}
+#vgLightbox .vg-lb-like[aria-pressed="true"] {color:#ffb2c8;border-color:#ffb2c8;}
+#vgLightbox .vg-lb-like[aria-pressed="true"] svg {fill:currentColor;}
 #vgLightbox .vg-lb-download {width:auto;min-width:116px;padding:0 22px;border-radius:999px;background:#315a43;border-color:#669b7a;white-space:nowrap;}
 #vgLightbox .vg-lb-download:hover {background:#3e7053;}
 @media(max-width:600px) {
@@ -44,6 +47,7 @@ export const galleryLightboxStyles = `
   #vgLightbox .vg-lb-top {gap:12px;}
   #vgLightbox .vg-lb-btn {width:44px;height:44px;}
   #vgLightbox .vg-lb-actions {grid-template-columns:44px minmax(116px,auto) 44px;gap:10px;}
+  #vgLightbox .vg-lb-actions.has-like {grid-template-columns:44px 44px minmax(116px,auto) 44px;gap:8px;}
   #vgLightbox .vg-lb-download {width:auto;}
   #vgLightbox .vg-lb-title {font-size:15px;}
   #vgLightbox .vg-lb-footer {gap:10px;}
@@ -58,6 +62,7 @@ export const galleryLightboxStyles = `
 @media(prefers-reduced-motion:reduce) {#vgLightbox .vg-lb-btn {transition:none;}}
 `;
 export const galleryLightboxIcons = Object.freeze({
+  heart:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>',
   close:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg>',
   previous:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6"/></svg>',
   next:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m10 6 6 6-6 6"/></svg>',
