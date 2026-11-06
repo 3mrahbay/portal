@@ -13802,7 +13802,12 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
       <div style="margin:14px 0;">
         <label class="yo-label">TC KİMLİK NO</label>
-        <input type="text" id="yoTcKimlik" class="yo-input" placeholder="11 haneli (opsiyonel)" maxlength="11">
+        <input type="text" id="yoTcKimlik" class="yo-input" placeholder="11 haneli (opsiyonel)" maxlength="11" inputmode="numeric">
+      </div>
+
+      <div style="margin:14px 0;">
+        <label class="yo-label" for="yoEvAdresi">ÖĞRENCİ EV ADRESİ</label>
+        <textarea id="yoEvAdresi" class="yo-input" rows="3" placeholder="Mahalle, sokak, bina, daire, ilçe ve il" oninput="yeniOgrenciAdresEsitle()"></textarea>
       </div>
 
       <div class="yo-grid2">
@@ -13827,8 +13832,15 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
       <div style="margin:14px 0;">
         <label class="yo-label">AYLIK AİDAT (₺) <span style="color:#dc2626;">*</span></label>
-        <input type="number" id="yoAylikAidat" class="yo-input" placeholder="Örn: 37000">
-        <div style="font-size:11px; color:var(--gray-500); margin-top:4px;">Yıllık ve dönemsel taksitler bu tutardan BCK formülüyle otomatik hesaplanır.</div>
+        <input type="number" id="yoAylikAidat" class="yo-input" min="0.01" step="0.01" placeholder="Örn: 37000" oninput="yeniOgrenciOdemeOzeti()">
+      </div>
+      <div style="margin:14px 0;">
+        <label class="yo-label" for="yoHesapTuru">ÖDEME PLANI</label>
+        <select id="yoHesapTuru" class="yo-input" onchange="yeniOgrenciOdemeOzeti()">
+          <option value="cift_donem">Ön ödemeli — dönemsel taksit</option>
+          <option value="esit">Eşit taksit — ön ödemesiz</option>
+        </select>
+        <div id="yoOdemeOzeti" role="status" style="font-size:13px; color:var(--gray-500); margin-top:8px;"></div>
       </div>
 
       <!-- Veli Bilgileri -->
@@ -13849,6 +13861,17 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <label class="yo-label">ANNE E-POSTA</label>
         <input type="email" id="yoAnneEposta" class="yo-input" placeholder="anne@ornek.com">
       </div>
+      <div style="margin:14px 0;">
+        <label class="yo-label" for="yoAnneTcKimlik">ANNE T.C. KİMLİK NO</label>
+        <input type="text" id="yoAnneTcKimlik" class="yo-input" maxlength="11" inputmode="numeric" placeholder="11 haneli (opsiyonel)">
+      </div>
+      <div style="margin:14px 0;">
+        <label class="yo-label" for="yoAnneEvAdresi">ANNE EV ADRESİ</label>
+        <label style="display:flex; gap:8px; align-items:center; margin:8px 0;">
+          <input type="checkbox" id="yoAnneAyniAdres" checked onchange="yeniOgrenciAdresEsitle()"> Öğrenciyle aynı adres
+        </label>
+        <textarea id="yoAnneEvAdresi" class="yo-input" rows="2" readonly></textarea>
+      </div>
 
       <div class="yo-grid2">
         <div>
@@ -13863,6 +13886,17 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       <div style="margin:14px 0;">
         <label class="yo-label">BABA E-POSTA</label>
         <input type="email" id="yoBabaEposta" class="yo-input" placeholder="baba@ornek.com">
+      </div>
+      <div style="margin:14px 0;">
+        <label class="yo-label" for="yoBabaTcKimlik">BABA T.C. KİMLİK NO</label>
+        <input type="text" id="yoBabaTcKimlik" class="yo-input" maxlength="11" inputmode="numeric" placeholder="11 haneli (opsiyonel)">
+      </div>
+      <div style="margin:14px 0;">
+        <label class="yo-label" for="yoBabaEvAdresi">BABA EV ADRESİ</label>
+        <label style="display:flex; gap:8px; align-items:center; margin:8px 0;">
+          <input type="checkbox" id="yoBabaAyniAdres" checked onchange="yeniOgrenciAdresEsitle()"> Öğrenciyle aynı adres
+        </label>
+        <textarea id="yoBabaEvAdresi" class="yo-input" rows="2" readonly></textarea>
       </div>
     </div>
 
@@ -14124,7 +14158,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v225";
+window.PORTAL_SURUM = "v226";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -48370,13 +48404,52 @@ window.openCsvYukleModal = function() {
 };
 
 // ============ YENİ ÖĞRENCİ EKLE (manuel) ============
+window.yeniOgrenciAdresEsitle = function() {
+  const adres = document.getElementById("yoEvAdresi").value;
+  ["Anne", "Baba"].forEach(rol => {
+    const alan = document.getElementById(`yo${rol}EvAdresi`);
+    alan.readOnly = document.getElementById(`yo${rol}AyniAdres`).checked;
+    if (alan.readOnly) alan.value = adres;
+  });
+};
+
+function yeniOgrenciAidatHesapla(aylikAidat, program, hesapTuru) {
+  const ayarlar = bckAidatHesapla(aylikAidat, program);
+  ayarlar.hesapTuru = hesapTuru;
+  if (hesapTuru === "esit") {
+    ayarlar.onOdeme = 0;
+    ayarlar.iDonemAylik = aylikAidat;
+    ayarlar.iiDonemAylik = aylikAidat;
+  }
+  return ayarlar;
+}
+
+window.yeniOgrenciOdemeOzeti = function() {
+  const aylik = Number(document.getElementById("yoAylikAidat").value);
+  const ozet = document.getElementById("yoOdemeOzeti");
+  if (!Number.isFinite(aylik) || aylik <= 0) {
+    ozet.textContent = "Ödeme planını görmek için aylık aidatı girin.";
+    return;
+  }
+  const a = yeniOgrenciAidatHesapla(aylik, "", document.getElementById("yoHesapTuru").value);
+  const tl = n => n.toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
+  ozet.textContent = a.hesapTuru === "esit"
+    ? `Yıllık toplam: ${tl(a.yillikToplam)} · Ön ödeme yok · 10 × ${tl(aylik)}`
+    : `Yıllık toplam: ${tl(a.yillikToplam)} · Ön ödeme: ${tl(a.onOdeme)} · I. dönem: 5 × ${tl(a.iDonemAylik)} · II. dönem: 5 × ${tl(a.iiDonemAylik)}`;
+};
+
 window.yeniOgrenciAc = function() {
   // Formu temizle
   ["yoAdSoyad","yoDogumTarihi","yoCinsiyet","yoTcKimlik","yoSinif","yoProgram","yoAylikAidat",
-   "yoAnneAd","yoAnneTel","yoAnneEposta","yoBabaAd","yoBabaTel","yoBabaEposta"].forEach(id => {
+   "yoAnneAd","yoAnneTel","yoAnneEposta","yoBabaAd","yoBabaTel","yoBabaEposta",
+   "yoEvAdresi","yoAnneTcKimlik","yoBabaTcKimlik","yoAnneEvAdresi","yoBabaEvAdresi"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
+  document.getElementById("yoHesapTuru").value = "cift_donem";
+  ["Anne", "Baba"].forEach(rol => { document.getElementById(`yo${rol}AyniAdres`).checked = true; });
+  yeniOgrenciAdresEsitle();
+  yeniOgrenciOdemeOzeti();
   document.getElementById("yeniOgrenciModal").classList.add("active");
 };
 
@@ -48393,7 +48466,9 @@ window.yeniOgrenciKaydet = async function() {
   const tcKimlik = v("yoTcKimlik");
   const sinif = v("yoSinif");
   const program = v("yoProgram");
-  const aylikAidat = Number(v("yoAylikAidat")) || 0;
+  const aylikAidat = Number(v("yoAylikAidat"));
+  const hesapTuru = v("yoHesapTuru");
+  const evAdresi = v("yoEvAdresi");
 
   // Zorunlu alan kontrolü
   if (!adSoyad) { showToast("Öğrenci adı soyadı zorunlu", "error"); return; }
@@ -48401,10 +48476,16 @@ window.yeniOgrenciKaydet = async function() {
   if (!cinsiyet) { showToast("Cinsiyet seçiniz", "error"); return; }
   if (!sinif) { showToast("Sınıf seçiniz", "error"); return; }
   if (!program) { showToast("Program türü seçiniz", "error"); return; }
-  if (aylikAidat <= 0) { showToast("Geçerli bir aylık aidat giriniz", "error"); return; }
+  if (!Number.isFinite(aylikAidat) || aylikAidat <= 0) { showToast("Geçerli bir aylık aidat giriniz", "error"); return; }
 
-  const anne = { adSoyad: v("yoAnneAd"), cepTel: v("yoAnneTel"), eposta: v("yoAnneEposta") };
-  const baba = { adSoyad: v("yoBabaAd"), cepTel: v("yoBabaTel"), eposta: v("yoBabaEposta") };
+  if (!["cift_donem", "esit"].includes(hesapTuru)) { showToast("Ödeme planı seçiniz", "error"); return; }
+  for (const [alan, ad] of [["yoTcKimlik", "Öğrenci"], ["yoAnneTcKimlik", "Anne"], ["yoBabaTcKimlik", "Baba"]]) {
+    if (v(alan) && !/^\d{11}$/.test(v(alan))) { showToast(`${ad} T.C. kimlik numarası 11 rakam olmalı`, "error"); return; }
+  }
+  yeniOgrenciAdresEsitle();
+
+  const anne = { adSoyad: v("yoAnneAd"), cepTel: v("yoAnneTel"), eposta: v("yoAnneEposta"), tcKimlik: v("yoAnneTcKimlik"), evAdresi: v("yoAnneEvAdresi") };
+  const baba = { adSoyad: v("yoBabaAd"), cepTel: v("yoBabaTel"), eposta: v("yoBabaEposta"), tcKimlik: v("yoBabaTcKimlik"), evAdresi: v("yoBabaEvAdresi") };
 
   const btn = document.getElementById("yoKaydetBtn");
   const eskiMetin = btn.textContent;
@@ -48416,6 +48497,7 @@ window.yeniOgrenciKaydet = async function() {
     const ogrenciAnaData = {
       ogrenciAdSoyad: adSoyad,
       tcKimlik: tcKimlik,
+      evAdresi: evAdresi,
       cinsiyet: cinsiyet,
       dogumTarihi: dogumTarihi,
       sinif: sinif,
@@ -48440,28 +48522,8 @@ window.yeniOgrenciKaydet = async function() {
     await setDoc(yeniRef, ogrenciAnaData);
     const yeniOgrenciId = yeniRef.id;
 
-    // 2. BCK aidat formülü (basvuruOnayla ile birebir aynı)
-    const yillikToplam = aylikAidat * 10;
-    const onOdeme = aylikAidat;
-    const kalan = yillikToplam - onOdeme;
-    const iDonemAylik = Math.round((kalan * 0.488) / 5 / 100) * 100;
-    const iiDonemAylik = Math.round((kalan - iDonemAylik * 5) / 5);
-    const egitimUcreti = Math.round(yillikToplam * 0.60);
-    const yemekUcreti = yillikToplam - egitimUcreti;
-
-    const zenginAidatAyarlari = {
-      aylikAidat: aylikAidat,
-      iDonemAylik: iDonemAylik,
-      iiDonemAylik: iiDonemAylik,
-      onOdeme: onOdeme,
-      yillikToplam: yillikToplam,
-      egitimUcreti: egitimUcreti,
-      yemekUcreti: yemekUcreti,
-      taksitSayisi: 10,
-      programTuru: program,
-      pesinOdeme: false,
-      indirimOrani: 0
-    };
+    // Seçilen planı mevcut dönem ödeme şemasında sakla.
+    const zenginAidatAyarlari = yeniOgrenciAidatHesapla(aylikAidat, program, hesapTuru);
 
     // 3. Diğer ödemeler - 5 standart kalem (0 TL, sonradan girilir)
     const digerOdemelerVarsayilan = {
@@ -48477,7 +48539,7 @@ window.yeniOgrenciKaydet = async function() {
       donemYili: AKTIF_DONEM,
       aktif: true,
       aidatAyarlari: zenginAidatAyarlari,
-      ogrenci: { adSoyad: adSoyad, tcKimlik: tcKimlik, cinsiyet: cinsiyet, dogumTarihi: dogumTarihi },
+      ogrenci: { adSoyad: adSoyad, tcKimlik: tcKimlik, cinsiyet: cinsiyet, dogumTarihi: dogumTarihi, evAdresi: evAdresi },
       saglik: {},
       acilDurum: {},
       anne: anne,
@@ -49274,13 +49336,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=225");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=226");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v225";
+          const anahtar = "portalSwReload_v226";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
