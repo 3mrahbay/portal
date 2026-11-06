@@ -63,7 +63,7 @@ test('missing target, teacher, inactive manager, and missing recipients cannot c
 });
 test('education updates are grouped by child and keep their destination',async()=>{
   const d=database();for(let i=0;i<5;i++)await d.notice(media(String(i),{hedefTur:'ogrenci',hedefDeger:'child'}),{education:true});
-  assert.equal(d.pushes.length,1);assert.equal(d.pushes[0].content.hedefSayfa,'veli-egitim.html');
+  assert.equal(d.pushes.length,1);assert.equal(d.pushes[0].content.hedefSayfa,'veli-egitim.html?id=child&kaynak=0');
   await d.notice(media('other',{hedefTur:'ogrenci',hedefDeger:'other-child'}),{education:true});assert.equal(d.pushes.length,2);
 });
 test('atomic approval publishes once even with concurrent clicks; processed or missing records are skipped',async()=>{
