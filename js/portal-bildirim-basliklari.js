@@ -43,6 +43,7 @@ function storedSender(record) {
 export function notificationPresentation(record, { senderName = '', sourceTitle = '' } = {}) {
   const label = labelFor(record), type = lower(record?.tip);
   if (messages.has(type)) return { title: storedSender(record) || personName(senderName) || label, label };
+  if (type === 'rozet' && text(record?.metin)) return { title:text(record.metin), label };
   const stored = meaningfulTitle(record?.baslik, label);
   const title = stored || text(sourceTitle) || text(record?.baslik) || label;
   return { title, label };
@@ -119,6 +120,10 @@ function sourcePlan(record, state) {
   if (type === 'egitim_gelisim' && /^egitim_/.test(id) && safeId(record.ogrenciId)
       && array(state.veliOgrenciler).some(child => child.id === record.ogrenciId)) {
     return { path:['ogrenciler', record.ogrenciId, 'bildirimler', id], kind:'child', cache:'' };
+  }
+  if (type === 'egitim_gelisim' && safeId(record.ogrenciId)
+      && array(state.veliOgrenciler).some(child => child.id === record.ogrenciId)) {
+    return { path:['galeri', id], kind:'gallery', cache:'galleries' };
   }
   return null;
 }
