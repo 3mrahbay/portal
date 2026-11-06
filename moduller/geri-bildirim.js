@@ -82,8 +82,7 @@ function memnuniyetForm(el, hedefId) {
         </div>`).join("")}
       <textarea id="gbYorum" rows="2" placeholder="Eklemek istediğiniz bir şey var mı? (isteğe bağlı)"
         style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #E2E8F0; border-radius:9px; font-family:inherit; font-size:13px; margin-top:10px;"></textarea>
-      <label style="display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--c-muted); margin-top:8px; cursor:pointer;">
-        <input type="checkbox" id="gbGizli"> İsmim görünmesin (anonim)</label>
+      <p style="font-size:12px;color:#64748B;line-height:1.5">Bu haftalık anket anonim değildir. Yanıtlarınız veli ve öğrenci bilgilerinizle birlikte okul yönetimi tarafından değerlendirilir; gerekli konular ŞÖK toplantılarında ele alınabilir.</p>
       <button class="ca-btn" style="width:100%; margin-top:10px; padding:11px;" onclick="window._gb.memnuniyetGonder('${hedefId}')">Gönder</button>
     </div>`;
 }
@@ -104,7 +103,7 @@ async function memnuniyetGonder(hedefId) {
   if (doluSoru < SORULAR.length) { toast(`${SORULAR.length - doluSoru} soru daha puanlayın`, "error"); return; }
   const vals = Object.values(_puanlar);
   const ort = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
-  const gizli = !!document.getElementById("gbGizli")?.checked;
+  const gizli = false; // Haftalık geri bildirim veli kimliğiyle kaydedilir.
   try {
     await fb.setDoc(fb.doc(db, "memnuniyet", email + "__" + haftaKodu()), {
       veliEmail: email,
@@ -403,8 +402,7 @@ export function memnuniyetPopupAc() {
           </div>`).join("")}
         <textarea id="gbYorum" rows="2" placeholder="Eklemek istediğiniz bir şey var mı? (isteğe bağlı)"
           style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #E2E8F0; border-radius:10px; font-family:inherit; font-size:13px; margin-top:12px;"></textarea>
-        <label style="display:flex; align-items:center; gap:7px; font-size:11.5px; color:#64748B; margin-top:9px; cursor:pointer;">
-          <input type="checkbox" id="gbGizli"> İsmim görünmesin (anonim)</label>
+        <p style="font-size:12px;color:#64748B;line-height:1.5">Bu haftalık anket anonim değildir. Yanıtlarınız veli ve öğrenci bilgilerinizle birlikte okul yönetimi tarafından değerlendirilir; gerekli konular ŞÖK toplantılarında ele alınabilir.</p>
         <button class="btn-mini" onclick="window._gb.popupGonder()"
           style="width:100%; margin-top:12px; padding:12px; background:#059669; color:#fff; border:none; font-weight:700; font-size:14px;">Gönder</button>
         <button onclick="window._gb.popupErtele()"
@@ -422,7 +420,7 @@ async function popupGonder() {
   if (dolu < SORULAR.length) { toast(`${SORULAR.length - dolu} soru daha puanlayın`, "error"); return; }
   const vals = Object.values(_puanlar);
   const ort = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
-  const gizli = !!document.getElementById("gbGizli")?.checked;
+  const gizli = false; // Haftalık geri bildirim veli kimliğiyle kaydedilir.
   try {
     await fb.setDoc(fb.doc(db, "memnuniyet", email + "__" + haftaKodu()), {
       veliEmail: email,
