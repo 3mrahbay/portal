@@ -1,6 +1,6 @@
 import {contentChildIds} from './egitim-gruplari-core.mjs';
 import { galleryApprover, gallerySession, pendingGallery } from './galeri-onay-canli.js?v=186';
-import { hedefVeliEmailleri } from './zeky-bildirim-koprusu.js?v=225';
+import { hedefVeliEmailleri } from './zeky-bildirim-koprusu.js?v=227';
 import { genelPushGonder } from './zeky-operasyon-push.js';
 
 export const GALLERY_NOTICE_INTERVAL = 10 * 60 * 1000;

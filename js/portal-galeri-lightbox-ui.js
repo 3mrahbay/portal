@@ -26,6 +26,9 @@ export const galleryLightboxStyles = `
 #vgLightbox .vg-lb-caption {font-size:13px;color:#e4ebe7;margin-top:8px;}
 #vgLightbox .vg-lb-date {font-size:11px;color:#9eadab;margin-top:5px;}
 #vgLightbox .vg-lb-actions {display:grid;grid-template-columns:48px minmax(116px,auto) 48px;align-items:center;gap:12px;max-width:100%;}
+#vgLightbox .vg-lb-extra {display:flex;align-items:center;justify-content:center;gap:12px;}
+#vgLightbox .vg-lb-like[aria-pressed="true"] {background:#e8436a;border-color:#ff8fa8;}
+#vgLightbox .vg-lb-like[aria-pressed="true"] svg {fill:currentColor;}
 #vgLightbox .vg-lb-btn {
   appearance:none;-webkit-appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:9px;
   width:48px;height:48px;min-width:44px;min-height:44px;margin:0;padding:0;border:1px solid #ffffff30;border-radius:50%;
@@ -61,7 +64,9 @@ export const galleryLightboxIcons = Object.freeze({
   close:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg>',
   previous:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6"/></svg>',
   next:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m10 6 6 6-6 6"/></svg>',
-  download:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4"/></svg>'
+  download:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4"/></svg>',
+  like:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20.5s-7.5-4.6-9.3-9.1C1.5 8.3 3.4 4.8 6.8 4.5c2-.2 3.6.9 5.2 2.8 1.6-1.9 3.2-3 5.2-2.8 3.4.3 5.3 3.8 4.1 6.9-1.8 4.5-9.3 9.1-9.3 9.1z"/></svg>',
+  share:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>'
 });
 
 // The shared downloader temporarily writes textContent. Restore this dialog's

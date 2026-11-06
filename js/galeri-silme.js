@@ -1,5 +1,5 @@
 import { galleryApprover, gallerySession } from './galeri-onay-canli.js?v=186';
-import { galleryProgram } from './galeri-klasorleri.js?v=225';
+import { galleryProgram } from './galeri-klasorleri.js?v=227';
 
 const TEACHERS = new Set(['ogretmen','yardimci_ogretmen','ingilizce_ogretmeni','degerler_ogretmeni','orman_ogretmeni','brans_ogretmeni']);
 const email = value => String(value || '').trim().toLowerCase();

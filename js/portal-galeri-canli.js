@@ -1,7 +1,7 @@
-import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js?v=225';
-export { galleryProgram } from './galeri-klasorleri.js?v=225';
-import { renderMedia, downloadSource } from './portal-galeri-medya.js?v=192';
-import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=225';
+import { galleryProgram, galleryFolderKey } from './galeri-klasorleri.js?v=227';
+export { galleryProgram } from './galeri-klasorleri.js?v=227';
+import { renderMedia, downloadSource, downloadAvailable, resolveDownloadUrl, galleryMediaType } from './portal-galeri-medya.js?v=227';
+import { createInteractionService, management, targetChild, isGalleryParent, galleryParentKey } from './portal-galeri-etkilesim.js?v=227';
 
 const api = () => window.PortalAPI;
 const service = createInteractionService(api);
@@ -38,8 +38,8 @@ function fileName(media) {
   const fallback = media.dosyaTipi === 'video' ? 'video.mp4' : 'fotograf.jpg';
   return String(media.orjinalAd || fallback).replace(/[\\/\x00-\x1f:*?"<>|]/g, '-').slice(0, 160) || fallback;
 }
-export async function fetchMediaBlob(media, win = window) {
-  const url = downloadSource(media);
+export async function fetchMediaBlob(media, win = window, url = '') {
+  url = url || await resolveDownloadUrl(media, win.fetch?.bind(win));
   if (!url) throw new Error('Bu video için indirilebilir dosya bağlantısı bulunamadı');
   const response = await win.fetch(url);
   if (!response.ok) throw new Error('Medya indirilemedi');
@@ -73,10 +73,26 @@ export async function downloadMedia(media, button = null) {
   try {
     if (button) { button.disabled = true; button.textContent = 'İndiriliyor…'; }
     check();
-    if (!downloadSource(media)) throw new Error('Bu medya için indirilebilir dosya bulunamadı');
+    if (!downloadAvailable(media)) throw new Error('Bu medya için indirilebilir dosya bulunamadı');
+    // Kaydetme penceresi kullanıcı dokunuşu sürerken açılmalı; adres çözümü ondan sonra.
     const handle = window.showSaveFilePicker ? await window.showSaveFilePicker({suggestedName:fileName(media)}) : null;
     check();
-    const blob = await fetchMediaBlob(media);check();
+    const url = await resolveDownloadUrl(media);check();
+    let blob;
+    try { blob = await fetchMediaBlob(media, window, url); }
+    catch (fetchError) {
+      // Bunny CDN tarayıcıdan dosya okumaya (CORS) izin vermezse dosyayı yeni sekmede aç;
+      // veli oradan "Kaydet / Paylaş" ile telefonuna alabilir.
+      if (fetchError?.name === 'AbortError' || downloadSource(media)) throw fetchError;
+      check();
+      const sekme = window.open(url, '_blank'); // 'noopener' verilirse tarayıcı null döndürür
+      if (sekme) { try { sekme.opener = null; } catch (_) {} }
+      if (!sekme) { toast('Tarayıcı yeni sekmeyi engelledi. Açılır pencereye izin verip tekrar deneyin.', 'warning'); return false; }
+      await recordDownload(media, false, owner);
+      toast('Video yeni sekmede açıldı. Kaydetmek için oradaki ⋮ / Paylaş menüsünü kullanın.');
+      return true;
+    }
+    check();
     const completed = await saveBlob(blob, fileName(media), {handle,guard});check();
     await recordDownload(media, completed, owner);check();
     toast(completed ? 'Dosya kaydedildi' : 'İndirme başlatıldı');
@@ -92,6 +108,59 @@ export async function downloadMedia(media, button = null) {
     }
   }
 }
+// ── PAYLAŞ: dosyanın kendisi paylaşılır; çocuk videosunun herkese açık bağlantısı paylaşılmaz.
+export function shareSupported(win = window) { return typeof win.navigator?.share === 'function'; }
+export async function shareMedia(media, button = null) {
+  if (!media || button?.disabled) return false;
+  if (!shareSupported()) { toast('Bu tarayıcı dosya paylaşımını desteklemiyor. Önce indirip sonra paylaşabilirsiniz.', 'warning'); return false; }
+  const initial = api()?.state || {}, owner = initial.currentUser?.uid, parent = isGalleryParent(initial), context = galleryParentKey(initial);
+  const guard = () => { const s=api()?.state || {}; return s.currentUser?.uid===owner && (!parent || (isGalleryParent(s)&&galleryParentKey(s)===context)); };
+  if (button) button.disabled = true;
+  try {
+    if (!downloadAvailable(media)) throw new Error('Paylaşılacak dosya bulunamadı');
+    toast('Paylaşım hazırlanıyor…');
+    const blob = await fetchMediaBlob(media);
+    if (!guard()) return false;
+    const type = blob.type || (galleryMediaType(media) === 'video' ? 'video/mp4' : 'image/jpeg');
+    const file = new File([blob], fileName(media), { type });
+    if (navigator.canShare && !navigator.canShare({ files:[file] })) { toast('Bu cihaz bu dosyayı paylaşamıyor. İndirip galeriden paylaşabilirsiniz.', 'warning'); return false; }
+    await navigator.share({ files:[file], title: media.baslik || media.etkinlikBaslik || 'Bir Çiçek Koleji' });
+    return true;
+  } catch (error) {
+    if (error?.name === 'AbortError') return false;
+    toast(/fetch|network|load failed/i.test(String(error?.message)) ? 'Dosya alınamadı. Önce indirip sonra paylaşmayı deneyin.' : (error?.message || 'Paylaşım başlatılamadı'), 'error');
+    return false;
+  } finally { if (button) button.disabled = false; }
+}
+
+// ── BEĞEN (favori): ZEKY ile aynı alanlar — kullaniciTercihleri/{eposta}.galeriFavoriler
+// ve galeri/{id}/etkilesimler/{uid}.favori. Böylece iki uygulamada aynı kalp görünür.
+let favoriler = null, favoriSahibi = '';
+export async function loadFavorites() {
+  const a = api(), user = a?.state?.currentUser, email = String(user?.email || '').toLowerCase();
+  if (!email) return new Set();
+  if (favoriler && favoriSahibi === email) return favoriler;
+  try {
+    const snap = await a.fb.getDoc(a.fb.doc(a.db, 'kullaniciTercihleri', email));
+    const list = snap.exists() ? snap.data()?.galeriFavoriler : [];
+    favoriler = new Set(Array.isArray(list) ? list.filter(x => typeof x === 'string') : []);
+  } catch (_) { favoriler = new Set(); }
+  favoriSahibi = email;
+  return favoriler;
+}
+export function isFavorite(media) { return !!(media?.id && favoriler && favoriSahibi === String(api()?.state?.currentUser?.email || '').toLowerCase() && favoriler.has(media.id)); }
+export async function toggleFavorite(media) {
+  const a = api(), user = a?.state?.currentUser, email = String(user?.email || '').toLowerCase();
+  if (!media?.id || !email) throw new Error('Favori kaydedilemedi');
+  const set = await loadFavorites(), onceVardi = set.has(media.id);
+  if (onceVardi) set.delete(media.id); else set.add(media.id);
+  try {
+    await a.fb.setDoc(a.fb.doc(a.db, 'kullaniciTercihleri', email), { galeriFavoriler:[...set], guncellendi:new Date().toISOString() }, { merge:true });
+  } catch (error) { if (onceVardi) set.add(media.id); else set.delete(media.id); throw error; }
+  service.record(media, 'favori', !onceVardi).catch(() => trackingFailure(user.uid));
+  return !onceVardi;
+}
+
 export function reportTime(value) {
   const date = new Date(value);
   return value && Number.isFinite(date.getTime()) ? date.toLocaleString('tr-TR', { timeZone:'Europe/Istanbul', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' }) : 'Zaman kaydı yok';
@@ -103,7 +172,7 @@ export function interactionRowHtml(row) {
 function downloadControl() {
   const button = document.getElementById('galeriLightboxIndirBtn'); if (!button) return;
   if (!('pgDownloadLabel' in button.dataset)) button.dataset.pgDownloadLabel = button.innerHTML;
-  const available = Boolean(active && downloadSource(active));
+  const available = Boolean(active && downloadAvailable(active));
   const busy = available && downloadOperations.get(button)?.mediaId === active.id;
   button.disabled = !available || busy;
   button.setAttribute('aria-disabled', String(button.disabled));
@@ -159,7 +228,7 @@ export async function downloadAlbum(title, date, targetType, targetValue, folder
       (!targetType || item.hedefTur === targetType) && (!targetType || String(item.hedefDeger || '') === String(targetValue || ''));
   });
   if (!media.length) { toast('Dosya bulunamadı', 'error'); return false; }
-  const downloadable = media.filter(item => downloadSource(item));
+  const downloadable = media.filter(item => downloadAvailable(item));
   const unavailable = media.length - downloadable.length;
   if (!downloadable.length) { toast(`Bu albümde indirilebilir dosya bağlantısı yok (${unavailable} dosya).`, 'error'); return false; }
   if (unavailable) toast(`${downloadable.length} dosya ZIP'e alınabilir; ${unavailable} dosyanın indirme bağlantısı yok, atlanacak.`, 'warning');

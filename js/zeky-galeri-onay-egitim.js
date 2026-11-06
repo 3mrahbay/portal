@@ -2,7 +2,7 @@
 
 import { galleryEducationMetadata, galleryPersonName, hydrateGalleryEducationMetadata } from './galeri-gozlem-metadata.js?v=216';
 import { gallerySession } from './galeri-onay-canli.js?v=186';
-import { notifyGalleryPublication } from './galeri-toplu-onay.js?v=225';
+import { notifyGalleryPublication } from './galeri-toplu-onay.js?v=227';
 
 const KURULUM='__zekyGaleriOnayEgitimV4';
 const PROGRAM={montessori:'Montessori',orman:'Orman Okulu',degerler:'Değerler Eğitimi',ingilizce:'İngilizce Eğitimi',degerlerPlus:'Değerler+',jimnastik:'Jimnastik',drama:'Drama',kodlama:'Kodlama'};

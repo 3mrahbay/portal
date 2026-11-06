@@ -14014,13 +14014,13 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
 <!-- ============ SCRIPTS ============ -->
 <script type="module">
-import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js?v=225';
-import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=225';
+import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js?v=227';
+import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=227';
 import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
 import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
 import { contentChildIds } from "./js/egitim-gruplari-core.mjs";
-import { approveGalleryItem, reviewGalleryItem, notifyGalleryPublication, galleryApprovalScopeKey } from './js/galeri-toplu-onay.js?v=225';
-import { canDeleteGalleryMedia, galleryDeleteButton, removeGalleryMedia } from './js/galeri-silme.js?v=225';
+import { approveGalleryItem, reviewGalleryItem, notifyGalleryPublication, galleryApprovalScopeKey } from './js/galeri-toplu-onay.js?v=227';
+import { canDeleteGalleryMedia, galleryDeleteButton, removeGalleryMedia } from './js/galeri-silme.js?v=227';
 import { sinifEslesir as ogretmenSinifEslesir, ogrenciSinifiCoz } from './js/ogretmen-sinif-core.js?v=173';
 import { ogrenciListeDisaAktarmaGuncelle } from './js/ogrenci-liste-disa-aktar.js?v=171';
 import {receiptInput} from './js/expenses/receipt-input.js';
@@ -14158,7 +14158,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v226";
+window.PORTAL_SURUM = "v227";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -15901,7 +15901,7 @@ async function portalBildirimGit(b) {
 // Bu köprü yalnız kullanıcının yeni kaydettiği/yayınladığı olaydan çağrılır.
 async function portalHedefBildir(hedef, bildirim) {
   try {
-    const m = await import("./js/zeky-bildirim-koprusu.js?v=225");
+    const m = await import("./js/zeky-bildirim-koprusu.js?v=227");
     let overrides={};
     if(Array.isArray(hedef.ogrenciIds)){
     const session=gallerySession(window.PortalAPI.state);
@@ -28892,7 +28892,7 @@ const SINIF_RENKLERI = [
 ];
 const SINIF_EMOJILER = ["🌼","🌷","🌺","🌿","🍀","🌸","🌻","🌱"];
 
-window.egitimGruplariAc = async function(){return (await import('./moduller/egitim-gruplari.js?v=225')).open();};
+window.egitimGruplariAc = async function(){return (await import('./moduller/egitim-gruplari.js?v=227')).open();};
 window.sinifYonetimYukle = async function() {
   const el = document.getElementById("sinifListesi");
   if (!el) return;
@@ -32207,7 +32207,7 @@ window.openDuyuruModal = function(mevcutEkler) {
   document.getElementById("duyuruSimsek").checked = false;
   document.getElementById("duyuruSilBtn").style.display = "none";
   duyuruRolKisitiUygula();duyuruHedefDegisti();doldurOgrenciSecici();
-  import('./moduller/egitim-gruplari.js?v=225').then(m=>m.fillGroupSelect('duyuruHedefGrup'));
+  import('./moduller/egitim-gruplari.js?v=227').then(m=>m.fillGroupSelect('duyuruHedefGrup'));
   // Resim/dosya ekleri — düzenlemede mevcut ekler gelir
   modulYukle("duyuru-ekleri").then(m => m && m.formHazirla(Array.isArray(mevcutEkler) ? mevcutEkler : []));
 };
@@ -32242,7 +32242,7 @@ function doldurOgrenciSecici() {
     opt.dataset.ad = o.ogrenciAdSoyad || "";
     sel.appendChild(opt);
   }
-  import('./moduller/egitim-gruplari.js?v=225').then(m=>m.fillTeacherChildren('duyuruHedefOgrenci'));
+  import('./moduller/egitim-gruplari.js?v=227').then(m=>m.fillTeacherChildren('duyuruHedefOgrenci'));
 }
 
 // Düzenle
@@ -32328,7 +32328,7 @@ window.kaydetDuyuru = async function() {
   if(!['tumOkul','sinif','ogrenci','egitimGrup'].includes(hedefTur))return showToast('Hedef kitle seçin','error');
   if(hedefTur==='ogrenci'||hedefTur==='egitimGrup'){
     const hedefOturumu=gallerySession(window.PortalAPI.state);
-    const groups=await import('./moduller/egitim-gruplari.js?v=225');
+    const groups=await import('./moduller/egitim-gruplari.js?v=227');
     hedefBilgi=await groups.selectedAudience(hedefTur,document.getElementById('duyuruHedefGrup').value,document.getElementById('duyuruHedefOgrenci').selectedOptions,{announcement:true});
     if(hedefOturumu!==gallerySession(window.PortalAPI.state))throw Error('Oturum değişti.');
     ({hedefTur,hedefDeger,hedefOgrenciAd}=hedefBilgi);
@@ -37443,7 +37443,7 @@ window.openGaleriYuklemeModal = function(mod) {
   }
 
   galeriRolKisitiUygula();galeriHedefDegisti();doldurGaleriOgrenciSecici();
-  import('./moduller/egitim-gruplari.js?v=225').then(async m=>{await m.fillGroupSelect('galeriHedefGrup');if(albumEkleMod?.egitimGrupId){const sel=document.getElementById('galeriHedefGrup');sel.value=albumEkleMod.egitimGrupId;sel.disabled=true;}});
+  import('./moduller/egitim-gruplari.js?v=227').then(async m=>{await m.fillGroupSelect('galeriHedefGrup');if(albumEkleMod?.egitimGrupId){const sel=document.getElementById('galeriHedefGrup');sel.value=albumEkleMod.egitimGrupId;sel.disabled=true;}});
 };
 
 window.closeGaleriYuklemeModal = function() {
@@ -37475,7 +37475,7 @@ function doldurGaleriOgrenciSecici() {
     opt.dataset.ad = o.ogrenciAdSoyad || "";
     sel.appendChild(opt);
   }
-  import('./moduller/egitim-gruplari.js?v=225').then(m=>m.fillTeacherChildren('galeriHedefOgrenci')).then(()=>{if(albumEkleMod?.hedefTur==='ogrenci'&&!albumEkleMod.egitimGrupId){const ids=contentChildIds(albumEkleMod);[...sel.options].forEach(o=>o.selected=ids.includes(o.value));}});
+  import('./moduller/egitim-gruplari.js?v=227').then(m=>m.fillTeacherChildren('galeriHedefOgrenci')).then(()=>{if(albumEkleMod?.hedefTur==='ogrenci'&&!albumEkleMod.egitimGrupId){const ids=contentChildIds(albumEkleMod);[...sel.options].forEach(o=>o.selected=ids.includes(o.value));}});
 }
 
 // Drag & Drop
@@ -37644,7 +37644,7 @@ window.galeriYukle = async function() {
     if (!hedefDeger) return showToast("Sınıf seçin", "error");
   } else if (hedefTur === 'ogrenci' || hedefTur === 'egitimGrup') {
     galeriYuklemeCalisiyor=true;
-    try{const groups=await import('./moduller/egitim-gruplari.js?v=225');
+    try{const groups=await import('./moduller/egitim-gruplari.js?v=227');
       hedefBilgi=await groups.selectedAudience(hedefTur,document.getElementById('galeriHedefGrup').value,document.getElementById('galeriHedefOgrenci').selectedOptions);
       if(!yuklemeGecerli())throw Error('Oturum değişti.');
       if(albumEkleMod?.hedefTur==='ogrenci'&&!albumEkleMod.egitimGrupId){const original=contentChildIds(albumEkleMod),selected=contentChildIds(hedefBilgi);if(original.length!==selected.length||original.some(id=>!selected.includes(id)))throw Error('Albümün öğrenci listesi tam yüklenemedi. Ekranı yeniden açın.');}
@@ -49336,13 +49336,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=226");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=227");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v226";
+          const anahtar = "portalSwReload_v227";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
@@ -49353,7 +49353,7 @@ window.mufredatEditorAc = async function() {
     });
   }
 </script>
-<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=225"></script>
+<script type="module" src="./js/zeky-randevu-modal-koprusu.js?v=227"></script>
 
 <!-- Read-only, user-triggered pickup diagnosis. No automatic data requests. -->
 <script>

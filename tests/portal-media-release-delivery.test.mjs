@@ -22,12 +22,12 @@ const edges=[
 ];
 for(const [importer,target] of edges) test(`media release installs exact current edge ${importer} -> ${target}`,async()=>{
  const pwa=await installedPwa(),url=assertPrecachedImport(pwa,importer,target);
- assert.equal(url.search,new Set(['js/bunny-stream-upload.js','js/portal-galeri-medya.js']).has(target)?'?v=192':'?v=225');
+ assert.equal(url.search,target==='js/bunny-stream-upload.js'?'?v=192':'?v=227');
 });
 test('media release runtime, service worker registration, reload guard and cache generation agree',async()=>{
  const pwa=await installedPwa();await assertPwaBootstrap(pwa);
- assert.equal(pwa.cacheVersion,'v225-mufredat-yetki');
- assert.ok(readPortal('index.html').includes('window.PORTAL_SURUM = "v225";'));
+ assert.equal(pwa.cacheVersion,'v227-galeri-indir-paylas');
+ assert.ok(readPortal('index.html').includes('window.PORTAL_SURUM = "v227";'));
 });
 test('actual parent gallery dynamic loader matches the one installed parent-gallery URL',async()=>{
  const html=readPortal('index.html'),start=html.indexOf('const _yuklenenModuller = {}'),end=html.indexOf('\n};',start)+3;
@@ -64,5 +64,5 @@ test('new controller generation reloads once after an earlier v191 reload',async
   sessionStorage:{getItem:key=>stored.get(key),setItem:(key,value)=>stored.set(key,value)},
   location:{reload:()=>{reloads++;}}});
  await events.load();events.controllerchange();events.controllerchange();
- assert.equal(reloads,1);assert.equal(stored.get('portalSwReload_v225'),'1');
+ assert.equal(reloads,1);assert.equal(stored.get('portalSwReload_v227'),'1');
 });
