@@ -4,7 +4,7 @@
 // Mevcut caGozlemAc giriş noktasını korur; veri yapısı ogrenciGelisim ile aynıdır.
 // ═══════════════════════════════════════════════════════════════════
 
-import { bildirimKaydetVePush, hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js?v=225';
+import { bildirimKaydetVePush, hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js?v=227';
 import { notifyGalleryApproval } from '../js/galeri-onay-bildirimi.js?v=186';
 import { gallerySession } from '../js/galeri-onay-canli.js?v=186';
 

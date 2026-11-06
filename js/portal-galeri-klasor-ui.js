@@ -1,5 +1,5 @@
-import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryFolderKey, galleryIsObservation } from './galeri-klasorleri.js?v=225';
-import { mountMedia, disposeMedia, refreshGalleryCards, downloadAlbum } from './portal-galeri-canli.js?v=225';
+import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryFolderKey, galleryIsObservation } from './galeri-klasorleri.js?v=227';
+import { mountMedia, disposeMedia, refreshGalleryCards, downloadAlbum } from './portal-galeri-canli.js?v=227';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const handler = (name, id) => escape(`${name}(${JSON.stringify(String(id))})`);

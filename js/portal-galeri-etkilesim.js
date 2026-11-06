@@ -66,6 +66,8 @@ export function interactionPatch(previous, type, now, completed = false) {
   if (type === 'acma') return { ilkAcma:previous.ilkAcma || now, sonAcma:now, acmaSayisi:Number(previous.acmaSayisi || 0) + 1 };
   if (type === 'indirme') return { indirmeBaslatildi:true, indirildi:completed || previous.indirildi === true,
     sonIndirme:now, sonIndirmeDurumu:completed ? 'tamamlandi' : 'baslatildi', indirmeSayisi:Number(previous.indirmeSayisi || 0) + 1 };
+  // 'favori' için completed = yeni durum (true: beğenildi, false: beğeni kaldırıldı); ZEKY ile aynı alanlar.
+  if (type === 'favori') return { favori:completed === true, favoriDegisimZamani:now, ...(completed === true ? { favoriZamani:previous.favoriZamani || now } : {}) };
   return null;
 }
 export function eventTime(value) {

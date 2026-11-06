@@ -26,7 +26,7 @@ function reader(f,rows){
  const root={innerHTML:'',querySelectorAll:()=>[]},calls=[],opened=[],downloads=[];let failure=()=>false;
  const fb={collection:(_,n)=>n,where:(field,operator,value)=>({field,operator,value}),query:(collection,...filters)=>({collection,filters}),getDocs:async q=>{calls.push(q);if(failure(q))throw Object.assign(Error('private provider detail'),{code:'permission-denied'});const chosen=rows.filter(r=>q.filters.every(w=>r[w.field]===w.value));return{forEach:fn=>chosen.forEach(r=>fn({id:r.id,data:()=>r}))}}};
  const window={PortalAPI:{get state(){return f.state()},fb,db:{},esc:v=>String(v??''),lucide(){},galeriSinifYenile:()=>f.run(f.c.veliAktifOgrenci)},addEventListener(){}};
- const c={...scope,...folders,...media,window,console,document:{getElementById:id=>id==='g'?root:null},disposeMedia(){},mountMedia(){},recordOpen:m=>opened.push(m),downloadMedia:m=>downloads.push(m)};
+ const c={...scope,...folders,...media,shareMedia:async()=>false,shareSupported:()=>false,loadFavorites:async()=>new Set(),isFavorite:()=>false,toggleFavorite:async()=>true,window,console,document:{getElementById:id=>id==='g'?root:null},disposeMedia(){},mountMedia(){},recordOpen:m=>opened.push(m),downloadMedia:m=>downloads.push(m)};
  vm.runInNewContext(moduleSource+';globalThis.renderGallery=render;',c);
  return{root,calls,opened,downloads,window,render:()=>c.renderGallery('g'),fail:fn=>failure=fn,ids:()=>[...root.innerHTML.matchAll(/data-vg-thumbnail="([^"]+)"/g)].map(m=>m[1])};
 }

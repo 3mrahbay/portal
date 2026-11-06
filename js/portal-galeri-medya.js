@@ -73,8 +73,58 @@ export async function streamPlaybackInfo(media = {}, fetchImpl = globalThis.fetc
     ready, failed, status, progress,
     thumbnailUrl: safeMediaUrl(data?.thumbnailUrl || ''),
     previewUrl: safeMediaUrl(data?.previewUrl || ''),
-    availableResolutions: String(video.availableResolutions || '')
+    availableResolutions: String(video.availableResolutions || ''),
+    // MP4 yedek dosyası: Bunny kütüphanesinde "MP4 Fallback" açıksa üretilir.
+    hasMp4Fallback: typeof video.hasMP4Fallback === 'boolean' ? video.hasMP4Fallback : null,
+    fallbackUrl: safeMediaUrl(data?.fallbackUrl || '')
   };
+}
+
+// ── BUNNY STREAM İNDİRME (MP4 yedek dosyası) ─────────────────────────────
+// Stream videolarında kayıtta yalnız oynatıcı (iframe) adresi bulunur; indirilebilir
+// dosya Bunny'nin MP4 yedeğidir: https://{cdn}/{videoId}/play_{yükseklik}p.mp4
+const STREAM_MP4_MAX = 1080;
+function streamIds(media = {}) {
+  const libraryId = String(media.streamLibraryId || '').trim();
+  const videoId = String(media.streamVideoId || '').trim();
+  return /^\d+$/.test(libraryId) && /^[a-zA-Z0-9-]{8,}$/.test(videoId) ? { libraryId, videoId } : null;
+}
+function cdnHostGecerli(value) {
+  const host = String(value || '').trim().toLowerCase();
+  return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(host) ? host : '';
+}
+export function streamMp4Height(availableResolutions = '') {
+  const heights = String(availableResolutions).split(',')
+    .map(x => Number(String(x).trim().replace(/p$/i, ''))).filter(h => Number.isInteger(h) && h > 0 && h <= STREAM_MP4_MAX);
+  return heights.length ? Math.max(...heights) : 0;
+}
+export function streamMp4Url(media = {}, height = 720, host = '') {
+  const ids = streamIds(media), cdn = cdnHostGecerli(host) || cdnHostGecerli(media.streamCdnHost);
+  const h = Number(height);
+  if (!ids || !cdn || !Number.isInteger(h) || h < 144 || h > STREAM_MP4_MAX) return '';
+  return safeMediaUrl(`https://${cdn}/${ids.videoId}/play_${h}p.mp4`);
+}
+// Düğmeyi açmak için: doğrudan dosya varsa veya Bunny Stream kimliği varsa indirilebilir.
+export function downloadAvailable(media = {}) {
+  return Boolean(downloadSource(media)) || (galleryMediaType(media) === 'video' && Boolean(streamIds(media)));
+}
+function hataKodlu(message, code) { return Object.assign(new Error(message), { code }); }
+// İndirme/paylaşım anında gerçek dosya adresini bulur. Doğrudan adres her zaman önceliklidir.
+export async function resolveDownloadUrl(media = {}, fetchImpl = globalThis.fetch) {
+  const direct = downloadSource(media);
+  if (direct) return direct;
+  if (galleryMediaType(media) !== 'video' || !streamIds(media)) throw hataKodlu('Bu medya için indirilebilir dosya bulunamadı', 'media/no-source');
+  let info = null;
+  try { info = await streamPlaybackInfo(media, fetchImpl); } catch (_) { info = null; }
+  if (info?.failed) throw hataKodlu('Video işlenirken sorun oluştu; indirilemiyor.', 'stream/failed');
+  if (info && !info.ready) throw hataKodlu('Video hâlâ hazırlanıyor. Birkaç dakika sonra tekrar deneyin.', 'stream/not-ready');
+  if (info?.hasMp4Fallback === false) throw hataKodlu('Bu video için indirilebilir dosya oluşturulmamış.', 'stream/no-mp4');
+  if (info?.fallbackUrl && /\.mp4$/i.test(new URL(info.fallbackUrl).pathname)) return info.fallbackUrl;
+  let host = '';
+  try { if (info?.thumbnailUrl) host = new URL(info.thumbnailUrl).hostname; } catch (_) {}
+  const url = streamMp4Url(media, streamMp4Height(info?.availableResolutions) || 720, host);
+  if (!url) throw hataKodlu('Bu video için indirme adresi oluşturulamadı.', 'stream/no-host');
+  return url;
 }
 export function downloadSource(media) {
   const sources = mediaSources(media);

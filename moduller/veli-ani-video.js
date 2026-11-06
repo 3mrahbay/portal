@@ -100,7 +100,7 @@ function stilEkle() {
 .vav-perde { position:fixed; inset:0; z-index:10050; background:rgba(8,20,12,.94); display:flex; flex-direction:column; align-items:center;
   justify-content:center; gap:12px; padding:max(14px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px))
   max(14px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); }
-.vav-perde video { width:min(100%, calc((100dvh - 120px) * 9 / 16)); max-height:calc(100dvh - 120px); aspect-ratio:9/16;
+.vav-perde video { width:min(100%, calc((100dvh - 180px) * 9 / 16)); max-height:calc(100dvh - 180px); aspect-ratio:9/16;
   border-radius:18px; background:#000; display:block; }
 .vav-perde-ust { width:min(100%, 520px); display:flex; align-items:center; gap:10px; color:#fff; }
 .vav-perde-ust div { min-width:0; }
@@ -108,8 +108,64 @@ function stilEkle() {
 .vav-perde-ust span { display:block; font-size:12px; opacity:.75; }
 .vav-kapat { margin-left:auto; width:40px; height:40px; border-radius:50%; border:0; background:rgba(255,255,255,.14); color:#fff;
   font-size:22px; line-height:1; cursor:pointer; flex:0 0 auto; }
-.vav-kapat:focus-visible, .vav-kart:focus-visible, .vav-uyari:focus-visible { outline:3px solid #F2C14E; outline-offset:2px; }`;
+.vav-kapat:focus-visible, .vav-kart:focus-visible, .vav-uyari:focus-visible, .vav-eylem:focus-visible { outline:3px solid #F2C14E; outline-offset:2px; }
+.vav-eylemler { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.vav-eylem { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.12); color:#fff; font:600 13px/1 inherit; cursor:pointer; }
+.vav-eylem.ana { background:#315a43; border-color:#669b7a; }
+.vav-eylem:disabled { opacity:.6; cursor:wait; }
+.vav-eylem svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }`;
   document.head.appendChild(s);
+}
+
+const INDIR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4"/></svg>';
+const PAYLAS_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>';
+const bildir = (metin, tur) => { try { P()?.toast?.(metin, tur); } catch (_) {} };
+
+export function dosyaAdi(video) {
+  const temel = String(video?.baslik || 'ani-videosu').normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 60) || 'ani-videosu';
+  return temel + '.mp4';
+}
+async function videoDosyasi(video) {
+  const yanit = await fetch(video.url);
+  if (!yanit.ok) throw new Error('Video alınamadı');
+  const blob = await yanit.blob();
+  if (!blob.size) throw new Error('Video alınamadı');
+  return new File([blob], dosyaAdi(video), { type: blob.type || 'video/mp4' });
+}
+// İndir: tarayıcı dosyayı okuyabiliyorsa kaydeder; okuyamıyorsa (CORS) videoyu yeni sekmede açar.
+export async function indir(video, dugme) {
+  if (!guvenliAdres(video?.url)) return false;
+  if (dugme) dugme.disabled = true;
+  try {
+    const dosya = await videoDosyasi(video);
+    const adres = URL.createObjectURL(dosya), a = document.createElement('a');
+    a.href = adres; a.download = dosya.name; document.body.appendChild(a);
+    try { a.click(); } finally { a.remove(); setTimeout(() => URL.revokeObjectURL(adres), 60000); }
+    bildir('İndirme başladı');
+    return true;
+  } catch (_) {
+    const sekme = window.open(video.url, '_blank');
+    if (sekme) { try { sekme.opener = null; } catch (_) {} bildir('Video yeni sekmede açıldı. Kaydetmek için oradaki ⋮ / Paylaş menüsünü kullanın.'); return true; }
+    bildir('Video indirilemedi. Açılır pencereye izin verip tekrar deneyin.', 'error');
+    return false;
+  } finally { if (dugme) dugme.disabled = false; }
+}
+// Paylaş: dosyanın kendisi paylaşılır; videonun bağlantısı dışarı verilmez.
+export async function paylas(video, dugme) {
+  if (!guvenliAdres(video?.url) || typeof navigator.share !== 'function') return false;
+  if (dugme) dugme.disabled = true;
+  try {
+    bildir('Paylaşım hazırlanıyor…');
+    const dosya = await videoDosyasi(video);
+    if (navigator.canShare && !navigator.canShare({ files: [dosya] })) { bildir('Bu cihaz videoyu paylaşamıyor. Önce indirip galeriden paylaşabilirsiniz.', 'warning'); return false; }
+    await navigator.share({ files: [dosya], title: video.baslik });
+    return true;
+  } catch (e) {
+    if (e?.name !== 'AbortError') bildir('Paylaşım başlatılamadı. Önce indirip sonra paylaşmayı deneyin.', 'error');
+    return false;
+  } finally { if (dugme) dugme.disabled = false; }
 }
 
 const OYNAT_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.52.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>';
@@ -140,11 +196,17 @@ export function oynat(video, ogrId) {
   perde.innerHTML = `
     <div class="vav-perde-ust"><div><b>${esc(video.baslik)}</b><span>${esc(video.alt)}</span></div>
       <button type="button" class="vav-kapat" aria-label="Kapat">×</button></div>
-    <video controls playsinline autoplay preload="auto"></video>`;
+    <video controls playsinline autoplay preload="auto"></video>
+    <div class="vav-eylemler" role="group" aria-label="Video işlemleri">
+      <button type="button" class="vav-eylem ana" data-vav-indir>${INDIR_SVG}<span>İndir</span></button>
+      ${typeof navigator.share === 'function' ? `<button type="button" class="vav-eylem" data-vav-paylas>${PAYLAS_SVG}<span>Paylaş</span></button>` : ''}
+    </div>`;
   const v = perde.querySelector('video');
   v.src = video.url;
   if (video.kapak) v.poster = video.kapak;
   perde.querySelector('.vav-kapat').addEventListener('click', kapat);
+  perde.querySelector('[data-vav-indir]').addEventListener('click', (e) => indir(video, e.currentTarget));
+  perde.querySelector('[data-vav-paylas]')?.addEventListener('click', (e) => paylas(video, e.currentTarget));
   perde.addEventListener('click', (e) => { if (e.target === perde) kapat(); });
   document.body.appendChild(perde);
   document.body.style.overflow = 'hidden';

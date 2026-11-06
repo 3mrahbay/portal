@@ -1,8 +1,8 @@
 import { galleryLightboxStyles, galleryLightboxIcons, lightboxDownload } from '../js/portal-galeri-lightbox-ui.js';
-import { mountMedia, disposeMedia, recordOpen, downloadMedia } from '../js/portal-galeri-canli.js?v=225';
-import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=225';
-import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryIsObservation, galleryFolderKey } from '../js/galeri-klasorleri.js?v=225';
-import { galleryMediaType, galleryDisplayUrl, downloadSource } from '../js/portal-galeri-medya.js?v=192';
+import { mountMedia, disposeMedia, recordOpen, downloadMedia, shareMedia, shareSupported, loadFavorites, isFavorite, toggleFavorite } from '../js/portal-galeri-canli.js?v=227';
+import { targetChild, isGalleryParent, childTargetMatches, galleryChildClass, galleryParentKey } from '../js/portal-galeri-etkilesim.js?v=227';
+import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryIsObservation, galleryFolderKey } from '../js/galeri-klasorleri.js?v=227';
+import { galleryMediaType, galleryDisplayUrl, downloadSource, downloadAvailable } from '../js/portal-galeri-medya.js?v=227';
 // VELİ GALERİSİ — hedefli okuma; klasör anahtarları erişim yetkisi vermez.
 const P = () => window.PortalAPI;
 let _filtre = 'tumu';
@@ -140,7 +140,8 @@ export async function render(hedefId){
   if(_aktifKapsam!==kapsam){secimleriSifirla();_tur='tumu';_aktifKapsam=kapsam;}
   _medya=[];_albumler=[];_tekiller=[];_yuklenenKapsam='';_teknikDurum=null;
   el.innerHTML='<div class="ca-card" style="text-align:center;padding:24px;color:var(--c-muted);font-size:13px">Yükleniyor…</div>';
-  const sonuc=isGalleryParent(P().state)?await yukle(ogr,aktifSinif(ogr),P().state.aktifDonem):{medya:[],eksik:false};
+  const veli=isGalleryParent(P().state);
+  const [sonuc]=await Promise.all([veli?yukle(ogr,aktifSinif(ogr),P().state.aktifDonem):{medya:[],eksik:false},veli?loadFavorites().catch(()=>null):null]);
   if(renderNo!==_renderNo||kapsam!==kapsamAnahtari())return;
   _medya=sonuc.medya;_okumaEksik=sonuc.eksik;_teknikDurum=sonuc.tani||null;_yuklenenKapsam=kapsam;albumleriHazirla();
   if(window.__zekyGaleriBaslangicFiltre==='egitim'){_filtre='egitim';secimleriSifirla();window.__zekyGaleriBaslangicFiltre='';}
@@ -204,7 +205,7 @@ function buyut(id,hedefId,origin){
   if(_closingHistory)return;
   const{esc}=P(),havuz=gorunenMedya(),i=havuz.findIndex(m=>m.id===id);if(i<0)return;
   const m=havuz[i],gozlem=galleryIsObservation(m);if(!erisebilir(m))return;
-  const indirilebilir=Boolean(downloadSource(m));
+  const indirilebilir=downloadAvailable(m),begenildi=isFavorite(m),paylasilabilir=indirilebilir&&shareSupported();
   const replacing=!!_dialog;
   if(!replacing){_dialogOrigin=origin||document.activeElement;_bodyOverflow=document.body.style?.overflow||'';if(document.body.style)document.body.style.overflow='hidden';}
   temizle(false);const d=document.createElement('div');_dialog=d;d.id='vgLightbox';d.className='vg-lightbox';d.setAttribute?.('role','dialog');d.setAttribute?.('aria-modal','true');d.setAttribute?.('aria-label',galleryMediaType(m)==='video'?'Video':'Fotoğraf');d.tabIndex=-1;d.onclick=e=>{if(e.target===d)kapat()};
@@ -212,6 +213,7 @@ function buyut(id,hedefId,origin){
     <div class="vg-lb-top"><span class="vg-lb-position">${galleryMediaType(m)==='video'?'Video':'Fotoğraf'} · ${i+1}/${havuz.length}</span><button type="button" class="vg-lb-btn" onclick="${eylem(kapat)}" aria-label="Kapat" title="Kapat (Esc)">${galleryLightboxIcons.close}</button></div>
     <div data-vg-media></div>
     <div class="vg-lb-footer"><div class="vg-lb-details"><div class="vg-lb-title">${esc(gozlem?m.baslik||m.etkinlikBaslik||'':galleryTopic(m))}</div>${egitimMi(m)?`<div class="vg-lb-subtitle">${esc(PROGRAMLAR[programKodu(m)]?.ad||m.programAd||'Eğitim')}${gozlem?` · ${esc(alanAdi(m))}${m.gozlemDurum?` · ${esc(ASAMA[m.gozlemDurum]||m.gozlemDurum)}`:''}`:''}</div>${m.aciklama?`<div class="vg-lb-caption">${esc(m.aciklama)}</div>`:''}`:''}<div class="vg-lb-date">${esc(tarihYazi(tarih(m)))}</div>${indirilebilir?'':'<div id="vgDownloadReason" class="vg-lb-date" role="status">İndirilebilir dosya bağlantısı yok</div>'}</div>
+    <div class="vg-lb-extra" role="group" aria-label="Beğen ve paylaş"><button type="button" data-vg-like class="vg-lb-btn vg-lb-like" aria-pressed="${begenildi}" onclick="${eylem(button=>window._vg.begen(m.id,button))}" aria-label="${begenildi?'Beğeniyi kaldır':'Beğen'}" title="${begenildi?'Beğeniyi kaldır':'Beğen'}">${galleryLightboxIcons.like}</button>${paylasilabilir?`<button type="button" data-vg-share class="vg-lb-btn" onclick="${eylem(button=>window._vg.paylas(m.id,button))}" aria-label="Paylaş" title="Paylaş">${galleryLightboxIcons.share}</button>`:''}</div>
     <div class="vg-lb-actions" role="group" aria-label="Medya işlemleri">${i>0?`<button type="button" data-vg-prev class="vg-lb-btn" onclick="${eylem(()=>buyut(havuz[i-1].id,hedefId))}" aria-label="Önceki" title="Önceki">${galleryLightboxIcons.previous}</button>`:'<span aria-hidden="true"></span>'}<button type="button" class="vg-lb-btn vg-lb-download" ${indirilebilir?`onclick="${eylem(button=>window._vg.indir(m.id,button))}"`:'disabled aria-disabled="true" aria-describedby="vgDownloadReason" title="İndirilebilir dosya bağlantısı yok" style="cursor:not-allowed"'} aria-label="İndir">${galleryLightboxIcons.download}<span>İndir</span></button>${i<havuz.length-1?`<button type="button" data-vg-next class="vg-lb-btn" onclick="${eylem(()=>buyut(havuz[i+1].id,hedefId))}" aria-label="Sonraki" title="Sonraki">${galleryLightboxIcons.next}</button>`:'<span aria-hidden="true"></span>'}</div></div>`;
   document.body.appendChild(d);mountMedia(d.querySelector('[data-vg-media]'),m);recordOpen(m);
   (d.querySelector('[aria-label="Kapat"]')||d).focus?.();
@@ -260,7 +262,18 @@ window._vg={
   },
   tur:(k,h)=>{if(!['tumu','foto','video'].includes(k))return;_tur=k;return render(h);},
   eylem:(id,button)=>_eylemler.get(id)?.(button),
-  indir:(id,button)=>{const m=_medya.find(x=>x.id===id);if(m&&erisebilir(m)&&downloadSource(m))return lightboxDownload(button,()=>downloadMedia(m,button));},
+  indir:(id,button)=>{const m=_medya.find(x=>x.id===id);if(m&&erisebilir(m)&&downloadAvailable(m))return lightboxDownload(button,()=>downloadMedia(m,button));},
+  paylas:(id,button)=>{const m=_medya.find(x=>x.id===id);if(m&&erisebilir(m)&&downloadAvailable(m))return shareMedia(m,button);},
+  begen:async(id,button)=>{
+    const m=_medya.find(x=>x.id===id);if(!m||!erisebilir(m)||button?.disabled)return;
+    if(button)button.disabled=true;
+    try{
+      const yeni=await toggleFavorite(m);
+      if(button?.isConnected){button.setAttribute('aria-pressed',String(yeni));button.setAttribute('aria-label',yeni?'Beğeniyi kaldır':'Beğen');button.title=yeni?'Beğeniyi kaldır':'Beğen';}
+      P().toast?.(yeni?'Beğendiklerinize eklendi':'Beğeni kaldırıldı');
+    }catch(_){P().toast?.('Beğeni kaydedilemedi','error');}
+    finally{if(button)button.disabled=false;}
+  },
   filtre:(k,h)=>{_filtre=k;secimleriSifirla();return render(h);},
   albumAc:(id,h)=>{_acikAlbum=id;_egitimProgram='';_egitimAlan='';return render(h);},
   albumKapat:h=>{_acikAlbum='';return render(h);},
