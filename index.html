@@ -14158,7 +14158,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v227";
+window.PORTAL_SURUM = "v228";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -15892,7 +15892,15 @@ async function portalBildirimGit(b) {
     window.veliSwitchTab("yeniapp");
     if (/galeri/.test(tip)) window.caGo("galeri");
     else if (/etkinlik/.test(tip)) window.caGo("takvim");
-    else if (/egitim|kazanim|rozet/.test(tip)) window.caGo("egitim");
+    else if (tip === "rozet") {
+      window.alert(String(b.metin || b.icerik || "Çocuğunuz yeni bir gelişim rozeti kazandı."));
+      window.__zekyEgitimBaslangic = null;
+      window.caGo("egitim");
+    }
+    else if (/egitim|kazanim/.test(tip)) {
+      window.__zekyEgitimBaslangic = { ...b, bildirim: true };
+      window.caGo("egitim");
+    }
     else if (/^(pickup|sabah)/.test(tip)) window.caGo("home");
     else window.veliSwitchTab("bildirimler");
   }
@@ -49336,13 +49344,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=227");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=228");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v227";
+          const anahtar = "portalSwReload_v228";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

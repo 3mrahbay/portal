@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v227-galeri-indir-paylas";
+const CACHE_VERSION = "v228-egitim-bildirim-rapor";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -110,6 +110,7 @@ const PRECACHE = [
   "./js/zeky-veli-ogrenme-deneyimi.js?v=3",
   "./js/zeky-egitim-portfolyo.js?v=2",
   "./js/zeky-veli-donem-raporu.js?v=1",
+  "./js/veli-egitim-gorunum.js?v=1",
   "./js/zeky-ogrenci-guvenlik-koprusu.js?v=7",
   "./js/zeky-aktif-donem-senkron.js?v=3",
   "./js/zeky-gozlem-modal-modern.js?v=1",
@@ -209,3 +210,4 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+

@@ -145,7 +145,7 @@ test('PWA cache eğitim, güvenlik ve gözlem zincirinin tam canlı import URLle
     ['js/zeky-veli-egitim-koprusu.js', 'js/zeky-veli-ogrenme-deneyimi.js'],
     ['js/zeky-veli-ogrenme-deneyimi.js', 'js/zeky-egitim-portfolyo.js'],
     ['moduller/veli-egitim-gelisim.js', 'js/zeky-egitim-portfolyo.js'],
-    ['moduller/veli-egitim-gelisim.js', 'js/zeky-veli-donem-raporu.js'],
+    ['moduller/veli-egitim-gelisim.js', 'js/veli-egitim-gorunum.js'],
     ['js/zeky-ogrenci-guvenlik-koprusu.js', 'moduller/ogretmen-egitim-gozlem.js']
   ]) assertPrecachedImport(pwa, importer, target);
 });
