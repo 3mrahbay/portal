@@ -57,7 +57,7 @@ export async function notifyGalleryPublication(media, api = globalThis.window?.P
   const { fb, db } = api;
   const marker = fb.doc(db, 'ayarlar', `galeriOnayBildirim_${hash}`);
   const content = options.education
-    ? { tip: 'egitim_gelisim', baslik: 'Yeni eğitim güncellemesi', metin: 'Eğitim gelişimindeki yeni güncellemeleri inceleyebilirsiniz.', hedefSayfa: 'veli-egitim.html', ogrenciId: scope.hedefDeger }
+    ? { tip: 'egitim_gelisim', baslik: 'Yeni eğitim güncellemesi', metin: 'Eğitim gelişimindeki yeni güncellemeleri inceleyebilirsiniz.', hedefSayfa: 'veli-egitim.html?' + new URLSearchParams({id:scope.hedefDeger,kaynak:String(media.id || '')}), ogrenciId: scope.hedefDeger }
     : { tip: 'galeri', baslik: 'Yeni galeri içeriği', metin: 'Galeriye yeni fotoğraf veya videolar eklendi. Tüm yeni içerikleri galeride görebilirsiniz.', hedefSayfa: 'galeri.html', ogrenciId: scope.hedefTur === 'ogrenci' && !scope.ogrenciIds ? scope.hedefDeger : '' };
   const refs = recipients.map(() => fb.doc(fb.collection(db, 'bildirimler')));
   try {
@@ -84,3 +84,4 @@ export async function notifyGalleryPublication(media, api = globalThis.window?.P
     return { ok: false, hata: String(error?.code || error?.message || error) };
   }
 }
+
