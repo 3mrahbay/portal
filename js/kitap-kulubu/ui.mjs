@@ -1,3 +1,4 @@
+import { createPhotoInteractions } from "./interactions-ui.mjs";
 import {
   escapeHTML as esc,
   dateLabel,
@@ -23,6 +24,8 @@ export async function mountClub(root, store) {
     oldCursor = null,
     hasOlder = false,
     olderLoaded = false;
+  const interactions = createPhotoInteractions(root, store);
+  const syncInteractions = () => interactions.sync(selected, posts, access, member);
   const listeners = [];
   const listen = (event, fn) => {
     root.addEventListener(event, fn);
@@ -30,6 +33,7 @@ export async function mountClub(root, store) {
   };
   const stop = () => {
     listeners.forEach(([event, fn]) => root.removeEventListener(event, fn));
+    interactions.clear();
     alive = false;
     generation++;
     postStop?.();
@@ -82,6 +86,7 @@ export async function mountClub(root, store) {
     if (!selected || !alive) return;
     const form = root.querySelector("[data-compose]");
     if (!form) return;
+    syncInteractions();
     const writable = canPost(access, member, selected);
     form.hidden = !writable;
     form
@@ -103,6 +108,10 @@ export async function mountClub(root, store) {
     if (!alive || !selected) return;
     const target = root.querySelector("[data-posts]");
     if (!target) return;
+    const activeReply = target.contains(root.ownerDocument.activeElement)
+      && root.ownerDocument.activeElement.matches('[data-reply-form] textarea')
+      ? root.ownerDocument.activeElement : null;
+    const selection = activeReply ? [activeReply.selectionStart, activeReply.selectionEnd] : null;
     const list = [...posts.values()].sort(
       (a, b) =>
         (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0) ||
@@ -112,15 +121,21 @@ export async function mountClub(root, store) {
       ? list
           .map(
             (p) =>
-              `<article class="kc-post"><div class="kc-post-head"><strong>${esc(p.authorName)}</strong><time>${p.createdAt?.toDate ? esc(dateLabel(p.createdAt.toDate())) : "Gönderiliyor…"}</time></div>${p.deleted ? '<p class="kc-muted">Bu paylaşım kaldırıldı.</p>' : `<p class="kc-text">${esc(p.text)}</p>${p.image && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.image) ? `<img src="${p.image}" alt="${esc(p.authorName)} tarafından paylaşılan kitap kulübü fotoğrafı" loading="lazy">` : ""}${access.manage || p.authorUid === access.uid ? `<button class="kc-text-button" data-remove="${esc(p.id)}">Paylaşımı kaldır</button>` : ""}`}</article>`,
+              `<article class="kc-post"><div class="kc-post-head"><strong>${esc(p.authorName)}</strong><time>${p.createdAt?.toDate ? esc(dateLabel(p.createdAt.toDate())) : "Gönderiliyor…"}</time></div>${p.deleted ? '<p class="kc-muted">Bu paylaşım kaldırıldı.</p>' : `<p class="kc-text">${esc(p.text)}</p>${p.image && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.image) ? `<img src="${p.image}" alt="${esc(p.authorName)} tarafından paylaşılan kitap kulübü fotoğrafı" loading="lazy">` : ""}${p.image ? `<div data-photo-interactions="${esc(p.id)}"></div>` : ""}${access.manage || p.authorUid === access.uid ? `<button class="kc-text-button" data-remove="${esc(p.id)}">Paylaşımı kaldır</button>` : ""}`}</article>`,
           )
           .join("")
       : '<p class="kc-empty">Bu okumaya ait henüz paylaşım yok. Katılımcıların mesajları ve fotoğrafları burada birikecek.</p>';
     root.querySelector("[data-older]").hidden = !hasOlder;
+    syncInteractions();
+    if (activeReply?.isConnected) {
+      activeReply.focus({ preventScroll: true });
+      activeReply.setSelectionRange(...selection);
+    }
   }
   function selectBook(id) {
     const book = books.find((b) => b.id === id);
     if (!book) return;
+    interactions.clear();
     generation++;
     const gen = generation;
     postStop?.();
@@ -157,6 +172,7 @@ export async function mountClub(root, store) {
       (e) => {
         if (gen !== generation) return;
         posts.clear();
+        interactions.clear();
         root.querySelector("[data-posts]").textContent =
           "Paylaşımlar yüklenemedi. Sayfayı yenileyerek tekrar deneyin.";
         error(e);
@@ -175,6 +191,7 @@ export async function mountClub(root, store) {
         const list = groupBooks(books)[tab];
         if (list.length) selectBook(list[0].id);
         else {
+          interactions.clear();
           generation++;
           postStop?.();
           selected = null;
@@ -299,6 +316,7 @@ export async function mountClub(root, store) {
             composer();
           }
         } else {
+          interactions.clear();
           generation++;
           postStop?.();
           selected = null;

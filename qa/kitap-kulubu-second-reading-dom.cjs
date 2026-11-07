@@ -8,7 +8,7 @@ const assert=require('node:assert/strict');
   const root=dom.window.document.getElementById('club');
   const books=[{id:SECOND_ID,...SECOND_BOOK},{id:INITIAL_ID,...INITIAL_BOOK,status:'archived'}];
   const calls=[];
-  const store={identity:async()=>({read:true,staff:false,manage:false}),member:next=>{next({status:'approved'});return()=>{};},books:next=>{next(books);return()=>{};},posts:(id,next)=>{calls.push(id);next(id===INITIAL_ID?[{id:'old-post',authorName:'Anne',text:'İlk buluşmadan anımız',image:'data:image/jpeg;base64,YQ=='}]:[]);return()=>{};}};
+  const store={reactions:(_b,_p,next)=>{next([]);return()=>{};},ownReaction:(_b,_p,next)=>{next("");return()=>{};},identity:async()=>({read:true,staff:false,manage:false}),member:next=>{next({status:'approved'});return()=>{};},books:next=>{next(books);return()=>{};},posts:(id,next)=>{calls.push(id);next(id===INITIAL_ID?[{id:'old-post',authorName:'Anne',text:'İlk buluşmadan anımız',image:'data:image/jpeg;base64,YQ=='}]:[]);return()=>{};}};
   const stop=await mountClub(root,store);
   assert.match(root.querySelector('[data-book]').textContent,/Ebeveynliği Hissetmek/);
   assert.match(root.textContent,/26 Kasım 2026/);

@@ -65,5 +65,45 @@
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','image','deleted'])
           && request.resource.data.text == '' && request.resource.data.image == '' && request.resource.data.deleted == true;
         allow delete: if false;
+        // Photo interactions: replies contain only text, display name, UID and time.
+        // Reactions use the authenticated UID as document ID (one reaction per member).
+        function kkPhoto() {
+          let photo = get(/databases/$(database)/documents/kitapKulubu/$(bookId)/paylasimlar/$(postId)).data;
+          return exists(/databases/$(database)/documents/kitapKulubu/$(bookId))
+            && photo.deleted == false && photo.image is string && photo.image.size() > 0;
+        }
+        function kkPhotoActive() {
+          let photo = getAfter(/databases/$(database)/documents/kitapKulubu/$(bookId)/paylasimlar/$(postId)).data;
+          return getAfter(/databases/$(database)/documents/kitapKulubu/$(bookId)).data.status == 'active'
+            && photo.deleted == false && photo.image is string && photo.image.size() > 0;
+        }
+        function kkReplyValid(d) {
+          return d.keys().hasAll(['text','authorUid','authorName','createdAt'])
+            && d.keys().hasOnly(['text','authorUid','authorName','createdAt'])
+            && d.text is string && d.text.size() > 0 && d.text.size() <= 500
+            && !d.text.matches('[\\s]*')
+            && d.authorUid == request.auth.uid
+            && d.authorName is string && d.authorName.size() > 0 && d.authorName.size() <= 100
+            && d.createdAt == request.time;
+        }
+        function kkReactionValid(d) {
+          return d.keys().hasAll(['emoji','updatedAt']) && d.keys().hasOnly(['emoji','updatedAt'])
+            && d.emoji in ['❤️','👏','🌸','😍'] && d.updatedAt == request.time;
+        }
+        match /yanitlar/{replyId} {
+          allow get: if kkYazar() && kkPhoto();
+          allow list: if kkYazar() && kkPhoto() && request.query.limit <= 20;
+          allow create: if kkYazar() && kkPhotoActive() && kkReplyValid(request.resource.data);
+          allow update: if false;
+          allow delete: if kkYazar() && kkPhoto()
+            && (request.auth.uid == resource.data.authorUid || kkYonetici());
+        }
+        match /tepkiler/{uid} {
+          allow get: if kkYazar() && kkPhoto();
+          allow list: if kkYazar() && kkPhoto() && request.query.limit <= 1000;
+          allow create, update: if kkYazar() && kkPhotoActive() && uid == request.auth.uid
+            && kkReactionValid(request.resource.data);
+          allow delete: if kkYazar() && kkPhoto() && uid == request.auth.uid;
+        }
       }
     }
