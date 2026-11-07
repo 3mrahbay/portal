@@ -1,3 +1,4 @@
+import { createInteractionsStore } from "./interactions-store.mjs";
 import { readWelcomeStatus } from "./mail-status.mjs";
 import { accessFor, profileEmail, validatePost } from "./core.mjs";
 export function createStore(fb, db, auth) {
@@ -88,6 +89,7 @@ export function createStore(fb, db, auth) {
     return { books, members, posts };
   }
   return {
+    ...createInteractionsStore(fb, db, auth),
     identity,
     managementData,
     books: (next, error) =>

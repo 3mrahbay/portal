@@ -304,17 +304,18 @@ const {
     }
     // Account profile remapping: never fall back from an inactive/conflicting UID record.
     await env.withSecurityRulesDisabled(async (c) => {
-      await setDoc(doc(c.firestore(), "kullaniciKimlikleri", "alias"), {
+      const identityDb = c.firestore();
+      await setDoc(doc(identityDb, "kullaniciKimlikleri", "alias"), {
         aktif: true,
         primaryProfile: "veli",
         refEmail: "anne2@example.test",
       });
-      await setDoc(doc(c.firestore(), "kullaniciKimlikleri", "disabled"), {
+      await setDoc(doc(identityDb, "kullaniciKimlikleri", "disabled"), {
         aktif: false,
         primaryProfile: "veli",
         refEmail: "anne2@example.test",
       });
-      await setDoc(doc(c.firestore(), "kullaniciKimlikleri", "conflict"), {
+      await setDoc(doc(identityDb, "kullaniciKimlikleri", "conflict"), {
         aktif: true,
         primaryProfile: "veli",
         refEmail: "anne2@example.test",
