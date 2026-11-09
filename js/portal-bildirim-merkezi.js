@@ -6,6 +6,7 @@ import { setupMessageSound, showPortalNotice, dismissPortalNotice } from './port
 const clean = value => String(value ?? '').trim();
 const kind = value => clean(value).toLocaleLowerCase('tr-TR');
 const TYPE_LABELS = Object.freeze({
+  kitap_kulubu_yanit: 'Kitap Kulübü', kitap_kulubu_tepki: 'Kitap Kulübü',
   kitap_kulubu_talep: 'Kitap Kulübü',
   mesaj: 'Mesaj', mesaj_yeni: 'Mesaj', sohbet: 'Mesaj', kapıdanmesaj: 'Mesaj', kapidanmesaj: 'Mesaj',
   duyuru: 'Duyuru', duyuru_yeni: 'Duyuru', simsek: 'Duyuru',

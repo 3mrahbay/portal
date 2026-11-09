@@ -8,6 +8,10 @@ import {
 } from "./core.mjs";
 import { preparePhoto } from "./photo.mjs";
 export async function mountClub(root, store) {
+  const params = new URLSearchParams(root.ownerDocument.defaultView?.location.search || '');
+  const safeId = value => value && value.length <= 1500 && !/[\x00-\x1f/\\]/.test(value) ? value : '';
+  const targetBook = safeId(params.get('book')), targetPost = safeId(params.get('post'));
+  let targetStop = null, targetOpened = false;
   let alive = true,
     access,
     books = [],
@@ -36,6 +40,7 @@ export async function mountClub(root, store) {
     interactions.clear();
     alive = false;
     generation++;
+    targetStop?.();
     postStop?.();
     unsubs.forEach((f) => f());
     root.replaceChildren();
@@ -127,9 +132,20 @@ export async function mountClub(root, store) {
       : '<p class="kc-empty">Bu okumaya ait henüz paylaşım yok. Katılımcıların mesajları ve fotoğrafları burada birikecek.</p>';
     root.querySelector("[data-older]").hidden = !hasOlder;
     syncInteractions();
+    openTarget();
     if (activeReply?.isConnected) {
       activeReply.focus({ preventScroll: true });
       activeReply.setSelectionRange(...selection);
+    }
+  }
+  function openTarget() {
+    if (targetOpened || selected?.id !== targetBook || !targetPost) return;
+    const slot = [...root.querySelectorAll('[data-photo-interactions]')].find(el => el.dataset.photoInteractions === targetPost);
+    const button = slot?.querySelector('[data-open]');
+    if (button) {
+      targetOpened = true;
+      if (button.getAttribute('aria-expanded') !== 'true') button.click();
+      slot.closest('article')?.scrollIntoView?.({behavior:'smooth',block:'center'});
     }
   }
   function selectBook(id) {
@@ -138,6 +154,7 @@ export async function mountClub(root, store) {
     interactions.clear();
     generation++;
     const gen = generation;
+    targetStop?.();
     postStop?.();
     selected = book;
     posts.clear();
@@ -154,11 +171,20 @@ export async function mountClub(root, store) {
     el.innerHTML = `<div class="kc-event"><p class="bk-eyebrow">${book.status === "archived" ? "GEÇMİŞ OKUMAMIZ" : "BİRLİKTE OKUYORUZ"}</p><h2>${esc(book.title)}</h2><p>${esc(book.authors)}</p><p class="kc-date">${esc(dateLabel(book.date))}</p><p>${esc(book.leader)} liderliğinde</p><p>${esc(book.place)}</p><details><summary>Buluşmayı keşfet</summary><h3>Neden buluşuyoruz?</h3><p>${esc(book.purpose)}</p><h3>Neden katılmalı?</h3><p>${esc(details.why)}</p><h3>Neler konuşacağız?</h3><ul>${details.topics.map(topic => `<li>${esc(topic)}</li>`).join("")}</ul><h3>Yanınızda ne getirmeli?</h3><p>${esc(details.preparation)}</p></details></div><h2 class="kc-feed-title">Paylaşım köşemiz</h2><div data-member-note class="kc-member-note"></div><form data-compose class="kc-compose" hidden><label for="kc-message">Sohbete bir not bırakın</label><textarea id="kc-message" maxlength="2000" rows="3" placeholder="Bu bölüm bana şunu düşündürdü…"></textarea><label class="kc-file">Fotoğraf ekle <input type="file" data-photo accept="image/jpeg,image/png,image/webp"></label><div data-photo-preview></div><p class="kc-muted">Yalnızca paylaşma izniniz olan fotoğrafları ekleyin.</p><button type="submit" class="bk-button">Paylaş</button><p data-save-status role="status"></p></form><div data-posts aria-live="polite">Paylaşımlar yükleniyor…</div><button data-older hidden>Daha eski paylaşımlar</button>`;
     composer();
     library();
+    if (id === targetBook && targetPost && store.postById) {
+      targetStop = store.postById(id, targetPost, post => {
+        if (!alive || gen !== generation) return;
+        const targetMissing = !post || post.deleted;
+        if (post) posts.set(post.id, post); else posts.delete(targetPost);
+        if (targetMissing) error(new Error('Bildirimdeki paylaşım kaldırılmış veya artık erişilemiyor.'));
+        renderPosts();
+      }, e => { if (alive && gen === generation) error(e); });
+    }
     postStop = store.posts(
       id,
       (rows) => {
         if (!alive || gen !== generation) return;
-        if (posts.size && rows.length && !rows.some((p) => posts.has(p.id))) {
+        if (posts.size && rows.length && !rows.some((p) => posts.has(p.id)) && selected.id !== targetBook) {
           posts.clear();
           olderLoaded = false;
         }
@@ -193,7 +219,8 @@ export async function mountClub(root, store) {
         else {
           interactions.clear();
           generation++;
-          postStop?.();
+          targetStop?.();
+    postStop?.();
           selected = null;
           root.querySelector("[data-book]").hidden = true;
         }
@@ -298,6 +325,7 @@ export async function mountClub(root, store) {
     store.member((m) => {
       member = m;
       composer();
+      openTarget();
     }, error),
   );
   unsubs.push(
@@ -305,7 +333,12 @@ export async function mountClub(root, store) {
       books = rows;
       library();
       if (!selected && rows.length) {
-        const first = groupBooks(rows)[tab][0];
+        const requested = rows.find(b => b.id === targetBook);
+        const first = requested || groupBooks(rows)[tab][0];
+        if (requested) {
+          tab = requested.status === 'archived' ? 'archive' : 'active';
+          root.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === tab)));
+        } else if (targetBook) error(new Error('Bildirimdeki kitap artık listede bulunmuyor.'));
         if (first) selectBook(first.id);
       } else if (selected) {
         const updated = rows.find((b) => b.id === selected.id);
@@ -318,7 +351,8 @@ export async function mountClub(root, store) {
         } else {
           interactions.clear();
           generation++;
-          postStop?.();
+          targetStop?.();
+    postStop?.();
           selected = null;
           root.querySelector("[data-book]").hidden = true;
         }
