@@ -110,8 +110,10 @@ async function fotoYukle(anahtar,ders,alan,grup){
   const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};
   if(!b?.resimSikistir||!b?.medyaYukle)throw new Error('Medya yükleyici hazır değil.');
   const sik=await b.resimSikistir(S.foto,1920,.85);const isaretli=await filigranla(sik);
+  // Canvas çıktısı Blob'dur; medya servisine JPEG adı olan bir File gönder.
+  const dosya=new File([isaretli],(S.foto.name||'gozlem').replace(/\.[^.]+$/,'')+'.jpg',{type:isaretli.type||'image/jpeg'});
   const tarih=new Date().toISOString().slice(0,10),alanId=alan?.id||'genel',klasor=`galeri/ogrenci/${S.ogrId}/egitim/${S.program}/${alanId}/${tarih}`;
-  const sonuc=await b.medyaYukle(isaretli,klasor);const dogrudan=yonetimMi(),durum=dogrudan?'onaylandi':'beklemede';
+  const sonuc=await b.medyaYukle(dosya,klasor);const dogrudan=yonetimMi(),durum=dogrudan?'onaylandi':'beklemede';
   kontrol();const ref=b.doc(b.collection(b.db,'galeri'));
   const p=programBilgi(S.program),simdi=new Date().toISOString(),donem=window.PortalAPI?.state?.aktifDonem||'';
   const galeriVerisi={url:sonuc.url,bunnyUrl:sonuc.url,bunnyPath:sonuc.yol||'',dosyaTipi:'foto',tip:'image',baslik:ders,kazanimAdi:ders,etkinlikBaslik:p.ad,aciklama:(S.not||'').trim(),sinif:S.sinif||'',hedefTur:'ogrenci',hedefDeger:S.ogrId,hedefOgrenciId:S.ogrId,hedefOgrenciAd:ogrAd(),kategori:S.program,program:S.program,programAd:p.ad,alanId,alanAd:alan?.ad||'',grupAd:grup?.ad||'',albumId:`egitim|${S.program}|${alanId}`,albumTuru:'egitim',egitimKaydi:true,durum,kazanimAnahtari:anahtar,gozlemDurum:S.durum,ogrenciId:S.ogrId,donem,filigran:'BÇKA · Bir Çiçek Koleji Anaokulu',filigranVersiyon:2,yukleyen:b.kullanici?.()?.email||'',yukleyenAd:personelAd(),yukleyenRol:b.rol?.()||'',yukleyenUid:b.kullanici?.()?.uid||'',sinifAdi:S.sinif||'',filigranOpaklik:0.50,tarih:simdi,yuklemeZamani:simdi,olusturuldu:b.serverTimestamp?b.serverTimestamp():simdi};
