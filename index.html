@@ -14161,7 +14161,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v229";
+window.PORTAL_SURUM = "v232";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -49339,7 +49339,15 @@ window.showBulkUpload = async function() {
 };
 
 
-window.BCK = { db, doc, getDoc, getDocs, collection, setDoc, updateDoc, serverTimestamp, escapeHtml,
+// Eğitim modülleri galeriyle aynı medya, kayıt ve güncel oturum işlevlerini kullanır.
+window.BCK = { db, ...window.PortalAPI.fb, escapeHtml, resimSikistir, medyaYukle,
+  kullanici: () => window.PortalAPI.state.currentUser,
+  personel: () => window.PortalAPI.state.personel,
+  rol: () => window.PortalAPI.state.rol,
+  siniflari: () => window.PortalAPI.state.siniflar,
+  ogrenciler: () => window.PortalAPI.state.ogrenciList,
+  yoneticiMi: () => window.PortalAPI.state.isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(window.PortalAPI.state.rol),
+  toast: (mesaj, tip) => window.PortalAPI.toast(mesaj, tip),
   DISIPLINLER: () => DISIPLINLER, mufredatCacheAta: (id, value) => { aktifMufredatlar[id] = value; } };
 let mufredatEditorSozu;
 window.mufredatEditorAc = async function() {
@@ -49357,13 +49365,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=229");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=232");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v229";
+          const anahtar = "portalSwReload_v232";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
