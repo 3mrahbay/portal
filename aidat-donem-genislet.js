@@ -98,19 +98,7 @@
   // ============================================================
   function dropdownGenisle() {
     // Modal açıldığında "Dönem Uzunluğu" select'ini bul
-    const tumSelectler = document.querySelectorAll('select');
-    let donemSelect = null;
-
-    for (const sel of tumSelectler) {
-      // İçindeki option metinlerine bakarak doğru dropdown'u bul
-      const optionMetinleri = Array.from(sel.options).map(o => o.textContent || '').join('|');
-      if (optionMetinleri.includes('10 ay') &&
-          optionMetinleri.includes('Eylül') &&
-          optionMetinleri.includes('Haziran')) {
-        donemSelect = sel;
-        break;
-      }
-    }
+    const donemSelect = document.getElementById('ayarTaksit');
 
     if (!donemSelect) return false;
 

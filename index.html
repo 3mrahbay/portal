@@ -13009,7 +13009,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
       <div class="form-grid">
         <div class="form-group">
           <label>Dönem</label>
-          <input type="text" id="ayarDonem" value="2025-2026" readonly>
+          <input type="text" id="ayarDonem" value="" readonly>
         </div>
         <div class="form-group">
           <label>Program Türü</label>
@@ -13034,11 +13034,11 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
           <input type="number" id="ayarAidat" placeholder="28500" min="0">
         </div>
         <div class="form-group">
-          <label>Dönem Uzunluğu</label>
+          <label>Öğrencinin Devam Süresi</label>
           <select id="ayarTaksit">
-            <option value="10">10 ay (Eylül - Haziran)</option>
-            <option value="11">11 ay (Eylül - Temmuz)</option>
-            <option value="12" selected>12 ay (Eylül - Ağustos)</option>
+            <option value="10">10 ay</option>
+            <option value="11">11 ay</option>
+            <option value="12" selected>12 ay</option>
           </select>
         </div>
       </div>
@@ -13380,6 +13380,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <div class="form-group">
           <label>Yönetici Notları (Opsiyonel)</label>
           <textarea id="ayarNotlar" rows="2" placeholder="Bu öğrenci veya ödeme planı hakkında notlar..."></textarea>
+          <button type="button" class="btn-save" onclick="saveAyarlar(true)">Aidat Bilgilerini Kaydet</button>
         </div>
       </div>
       </div>
@@ -14135,6 +14136,7 @@ import {
   documentId, deleteField, getCountFromServer, FieldPath
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import { maliKayitImzasi, maliKayitYamasi } from "./js/aidat-mali-kayit.js?v=1";
 import { createGooglePopupFlow } from "./js/portal-google-login.js?v=178";
 import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-upload.js?v=192";
 
@@ -14161,7 +14163,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v232";
+window.PORTAL_SURUM = "v233";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -44294,6 +44296,7 @@ function topluYenileButonGorunurluk() {
   btn.style.display = yenilenebilir ? "inline-flex" : "none";
 }
 
+let aidatIlkImza = "";
 // ============ AYAR MODAL ============
 window.openAyarModal = async function(ogrenciId) {
   const o = ogrenciList.find(x => x.id === ogrenciId);
@@ -44303,6 +44306,7 @@ window.openAyarModal = async function(ogrenciId) {
 
   // Dönem seçimine göre başlangıç ayı dropdown'ını doldur
   populateBaslangicDropdown();
+  document.getElementById("ayarDonem").value = AKTIF_DONEM;
 
   // Modal sekmeyi her açılışta "Öğrenci" sekmesine resetle
   resetModalTab();
@@ -44346,11 +44350,12 @@ window.openAyarModal = async function(ogrenciId) {
   
   // Mevcut ayarları yükle
   const ayar = ayarListesi[ogrenciId];
+  aidatIlkImza = maliKayitImzasi(ayar);
   if (ayar && ayar.aidatAyarlari) {
     const a = ayar.aidatAyarlari;
     document.getElementById("ayarProgram").value = a.programTuru || o.programTuru || "Tam Gün";
     document.getElementById("ayarAidat").value = a.aylikAidat || "";
-    document.getElementById("ayarTaksit").value = a.taksitSayisi || 12;
+    document.getElementById("ayarTaksit").value = getGercekOdemeSayisi(a.baslangicAyi || getDefaultBaslangic(), a.taksitSayisi || 12);
     document.getElementById("ayarBaslangic").value = a.baslangicAyi || getDefaultBaslangic();
     document.getElementById("ayarIndirim").value = a.indirimOrani || 0;
     document.getElementById("ayarIndirimNedeni").value = a.indirimNedeni || "";
@@ -45682,7 +45687,7 @@ window.odemePlaniPDFCiktisi = async function() {
 
     const gv = (id) => document.getElementById(id)?.value;
     const aidat = parseFloat(gv("ayarAidat")) || Number(a.aylikAidat) || 0;
-    const taksit = parseInt(gv("ayarTaksit")) || Number(a.taksitSayisi) || 10;
+    const taksit = parseInt(gv("ayarTaksit")) || getGercekOdemeSayisi(a.baslangicAyi || getDefaultBaslangic(), Number(a.taksitSayisi) || 10);
     const baslangic = gv("ayarBaslangic") || a.baslangicAyi || "";
     const onOdeme = parseFloat(gv("ayarOnOdeme")) || Number(a.onOdeme) || 0;
     const iDonemAylik = Number(a.iDonemAylik) || aidat;
@@ -45731,7 +45736,7 @@ window.odemePlaniPDFCiktisi = async function() {
     y = pdf.lastAutoTable.finalY + 6;
 
     // ---- ÖDEME SATIRLARI ----
-    const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit)) : [];
+    const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, taksit) : [];
     const rows = [];
     let toplamTaksit = 0;
 
@@ -46836,7 +46841,7 @@ function renderAylikOdeme() {
     return;
   }
 
-  const ayListesi = getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit));
+  const ayListesi = getAyListesi(baslangic, taksit);
   const mevcutOdemeler = (currentOgrenci && ayarListesi[currentOgrenci.id] &&
                          ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
   // Dönem aylıkları (saveAyarlar/hesapla ile bellekte tutulur)
@@ -47022,10 +47027,10 @@ window.aidatOtomatikDoldur = function() {
   const baslangic = document.getElementById("ayarBaslangic")?.value || "";
   const secenek = document.querySelector('input[name="ayarHesapTuru"]:checked')?.value || "esit";
 
-  const yillikToplam = aylik * (baslangic ? getGercekOdemeSayisi(baslangic, taksit) : taksit);
+  const yillikToplam = aylik * taksit;
 
   // Ay listesinden I. dönem (Eylül-Ocak) ve II. dönem (Şubat-Ağustos) sayıları
-  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit)) : [];
+  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, taksit) : [];
   let iDonemSayi = ayListesi.filter(a => a.ay >= 9 || a.ay <= 1).length;
   let iiDonemSayi = ayListesi.filter(a => a.ay >= 2 && a.ay <= 8).length;
   if (iDonemSayi + iiDonemSayi === 0) { iDonemSayi = 5; iiDonemSayi = taksit - 5; }
@@ -47105,11 +47110,11 @@ window.donemFarkiHesaplaOtomatik = function() {
     onOdemeInput.value = onOdeme;
   }
 
-  const yillikToplam = aylik * (baslangic ? getGercekOdemeSayisi(baslangic, taksit) : taksit);
+  const yillikToplam = aylik * taksit;
   const kalan = yillikToplam - onOdeme;
 
   // Ay listesini al, I. dönem (Eylül-Ocak) ve II. dönem (Şubat-Haziran) aylarını say
-  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit)) : [];
+  const ayListesi = (typeof getAyListesi === "function" && baslangic) ? getAyListesi(baslangic, taksit) : [];
   const iDonemAylar = ayListesi.filter(a => a.ay >= 9 || a.ay <= 1);
   const iiDonemAylar = ayListesi.filter(a => a.ay >= 2 && a.ay <= 8);
   const iDonemSayi = iDonemAylar.length || 5;
@@ -47624,7 +47629,7 @@ window.aylikToplu = function(tip) {
     return;
   }
 
-  const ayListesi = getAyListesi(baslangic, getGercekOdemeSayisi(baslangic, taksit));
+  const ayListesi = getAyListesi(baslangic, taksit);
   const bugun = new Date();
 
   if (!ayarListesi[currentOgrenci.id]) ayarListesi[currentOgrenci.id] = {};
@@ -47909,6 +47914,14 @@ function getGercekOdemeSayisi(baslangicAyi, taksitSayisi) {
   return Math.max(1, Math.min(aylar, taksitSayisi));
 }
 
+// Formdaki süre başlangıç ayından itibaren devam edilecek gerçek ay sayısıdır.
+// Depodaki eski dönem-uzunluğu şemasını koruyarak kaydet; mevcut kayıtları taşıma.
+function getKayitDonemUzunlugu(baslangicAyi, aySayisi) {
+  const [yil, ay] = baslangicAyi.split("-").map(Number);
+  const donemYili = Number(AKTIF_DONEM.split("-")[0]);
+  return aySayisi + Math.max(0, (yil - donemYili) * 12 + ay - 9);
+}
+
 // Ay adı yazdırma ("2025-09" → "Eylül 2025")
 function ayAdi(yyyymm) {
   const aylar = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran",
@@ -47924,9 +47937,9 @@ function recalcTotals() {
   const indirim = parseFloat(document.getElementById("ayarIndirim").value) || 0;
   const pesin = document.getElementById("ayarPesin").checked;
 
-  // GERÇEK ödeme ay sayısı (dönem ortası kayıt için)
-  const gercekAy = getGercekOdemeSayisi(baslangic, taksit);
-  const donemSonu = getDonemSonu(taksit);
+  // Formda seçilen süre, öğrencinin başlangıcından itibaren sayılır.
+  const gercekAy = taksit;
+  const donemSonu = getDonemSonu(getKayitDonemUzunlugu(baslangic, taksit));
   const donemSonuStr = `${["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"][donemSonu.getMonth()]} ${donemSonu.getFullYear()}`;
 
   let brut = aidat * gercekAy;
@@ -47998,7 +48011,7 @@ function recalcTotals() {
 }
 
 // ============ KAYDET ============
-window.saveAyarlar = async function() {
+window.saveAyarlar = async function(sadeceAidat = false) {
   if (!currentOgrenci) return;
 
   const aidat = parseFloat(document.getElementById("ayarAidat").value) || 0;
@@ -48174,9 +48187,9 @@ window.saveAyarlar = async function() {
   const digerToplam = digerUcretler.egitimMateryali + digerUcretler.okulKiyafeti +
                       digerUcretler.ormanKiyafeti + digerUcretler.servis1 + digerUcretler.servis2;
 
-  // GERÇEK ödeme ay sayısı (dönem ortası kayıt için)
-  const gercekAy = getGercekOdemeSayisi(baslangic, taksit);
-  const donemSonu = getDonemSonu(taksit);
+  // Formda seçilen süre, öğrencinin başlangıcından itibaren sayılır.
+  const gercekAy = taksit;
+  const donemSonu = getDonemSonu(getKayitDonemUzunlugu(baslangic, taksit));
   const donemSonuAyi = `${donemSonu.getFullYear()}-${String(donemSonu.getMonth()+1).padStart(2,"0")}`;
   
   // Toplam hesap (gerçek ay sayısı üzerinden)
@@ -48231,7 +48244,8 @@ window.saveAyarlar = async function() {
     iDonemAylik: iDonemAylik,
     iiDonemAylik: iiDonemAylik,
     hesapTuru: secilenHesapTuru,
-    taksitSayisi: taksit,
+    // Eski kayıt şeması Eylül başlangıçlı dönem uzunluğunu saklar.
+    taksitSayisi: getKayitDonemUzunlugu(baslangic, taksit),
     gercekAySayisi: gercekAy,
     baslangicAyi: baslangic,
     donemSonuAyi: donemSonuAyi,
@@ -48258,6 +48272,33 @@ window.saveAyarlar = async function() {
   const mevcutAylikOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].aylikOdemeler) || {};
   // Diğer ödemeleri local state'ten al
   const mevcutDigerOdemeler = (ayarListesi[currentOgrenci.id] && ayarListesi[currentOgrenci.id].digerOdemeler) || {};
+  if (sadeceAidat === true) {
+    const ogrenciId = currentOgrenci.id;
+    const ref = doc(db, "ogrenciler", ogrenciId, "donemler", AKTIF_DONEM);
+    let yama;
+    try {
+      await runTransaction(db, async tx => {
+        const snap = await tx.get(ref);
+        if (!snap.exists() || maliKayitImzasi(snap.data()) !== aidatIlkImza) {
+          throw new Error("Aidat kaydı başka bir işlemde değişmiş. Sayfayı yenileyip tekrar kontrol edin.");
+        }
+        yama = maliKayitYamasi(snap.data(), aidatAyarlari, mevcutAylikOdemeler, mevcutDigerOdemeler, notlar);
+        tx.update(ref, {...yama, guncellendi:new Date().toISOString()});
+      });
+      const saved = (await getDocFromServer(ref)).data();
+      if (maliKayitImzasi(saved) !== maliKayitImzasi(yama)) {
+        throw new Error("Kayıt sonucu doğrulanamadı. Tekrar kaydetmeden önce sayfayı yenileyin.");
+      }
+      ayarListesi[ogrenciId] = saved;
+      aidatIlkImza = maliKayitImzasi(saved);
+      showToast("✓ Aidat bilgileri sunucuda doğrulandı");
+      closeAyarModal(); renderTable(); updateStats();
+    } catch (e) {
+      showToast("Aidat kaydı doğrulanamadı: " + e.message, "error");
+    }
+    return;
+  }
+
   const mevcutDonemDurumu = getOgrenciDurum(currentOgrenci, ayarListesi[currentOgrenci.id]);
 
   const donemDoc = {
@@ -49365,13 +49406,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=232");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=233");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v232";
+          const anahtar = "portalSwReload_v233";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
