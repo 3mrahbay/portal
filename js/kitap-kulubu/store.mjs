@@ -91,6 +91,9 @@ export function createStore(fb, db, auth) {
   return {
     ...createInteractionsStore(fb, db, auth),
     identity,
+    postById: (bookId, postId, next, error) => onSnapshot(
+      doc(db, 'kitapKulubu', bookId, 'paylasimlar', postId),
+      snap => next(snap.exists() ? { ...snap.data(), id: snap.id } : null), error),
     managementData,
     books: (next, error) =>
       onSnapshot(

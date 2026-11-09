@@ -11634,6 +11634,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
           </div>
 
           <!-- Liste -->
+          <section data-club-notices hidden aria-label="Kitap Kulübü bildirimleri"></section>
           <div id="duyurularListesi">
             <div class="loading"><div class="spinner"></div><p>Duyurular yükleniyor...</p></div>
           </div>
@@ -12134,6 +12135,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
       <!-- BİLDİRİMLER SEKMESİ -->
       <div class="veli-tab-panel" id="veliPanel-bildirimler">
+        <section data-club-notices hidden aria-label="Kitap Kulübü bildirimleri"></section>
         <div class="vbd-sayfa">
           <p class="vbd-aciklama">Okul duyuruları ve ödeme talepleriniz burada, en yenisi üstte.</p>
           <div id="veliBildirimlerContent">
@@ -14137,6 +14139,7 @@ import { createGooglePopupFlow } from "./js/portal-google-login.js?v=178";
 import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-upload.js?v=192";
 
 import { createMessageNoticeTracker, setupMessageSound, showMessageNotice, clearMessageNotices } from "./js/portal-mesaj-bildirim.js?v=164";
+import { clubTarget, renderClubNotices } from "./js/kitap-kulubu/notices.mjs";
 import { startNotificationCenter } from "./js/portal-bildirim-merkezi.js?v=187";
 import { bildirimZamani, enYeniBildirimOnce, canliListeOlustur } from "./js/okul-zili-liste-core.js?v=168";
 
@@ -15804,6 +15807,7 @@ function portalBildirimMerkeziDurdur() {
   portalBildirimTercihleri = null;
   window.portalBildirimMerkezi?.stop();
   window.portalBildirimMerkezi = null;
+  document.querySelectorAll("[data-club-notices]").forEach(el => renderClubNotices(el, []));
 }
 
 function portalBildirimMerkeziBaslat() {
@@ -15822,7 +15826,15 @@ function portalBildirimMerkeziBaslat() {
     suppressAlert: b => b.sessizUyari === true || !portalBildirimUyariAcikMi(b.tip) || !!merkez?.ownedTypes?.has(b.tip),
     excludeFromCount: b => !!merkez?.ownedTypes?.has(b.tip),
     navigate: portalBildirimGit,
-    onStateChange: () => {
+    onStateChange: state => {
+      document.querySelectorAll('[data-club-notices]').forEach(el => renderClubNotices(el, state.items, {
+        isActive: () => String(currentUser?.email || '').toLowerCase() === email,
+        open: async (record, target) => {
+          // Do not block navigation indefinitely on an offline read receipt.
+          await Promise.race([merkez.markRead(record.id), new Promise(resolve => setTimeout(resolve, 800))]);
+          if (String(currentUser?.email || '').toLowerCase() === email) location.href = target;
+        }
+      }));
       // Mikro-görev, aynı snapshot içindeki okuma/UI güncellemesine yeniden girmesin.
       Promise.resolve().then(() => {
         if (window.portalBildirimMerkezi === merkez && String(currentUser?.email || "").toLowerCase() === email) {
@@ -15838,6 +15850,7 @@ function portalBildirimMerkeziBaslat() {
 async function portalBildirimGit(b) {
   const personelMi = isAdmin || (aktifPersonel && aktifPersonel.durum === "aktif");
   const tip = String(b?.tip || "");
+  if (clubTarget(b)) { location.href = clubTarget(b); return; }
   if (tip === "kitap_kulubu_talep") {
     location.href = "kitap-kulubu-yonetim.html";
     return;
