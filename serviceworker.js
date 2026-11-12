@@ -10,7 +10,7 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v233-aidat-devam-suresi";
+const CACHE_VERSION = "v234-duyuru-toplu-okundu";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -210,4 +210,3 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
-

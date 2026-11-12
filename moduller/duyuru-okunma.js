@@ -170,6 +170,24 @@ export async function simsekKapat(duyuruId) {
   ]);
 }
 
+/** Yalnız gösterilmeyi bekleyen duyuruları, sunucu kaydı başarılıysa kapatır. */
+export async function simsekTopluKapat(duyurular) {
+  const a = P(), eposta = veliEpostam();
+  const idler = [...new Set((duyurular || []).map(d => d?.id).filter(Boolean))];
+  if (!eposta || !a?.fb?.arrayUnion || !idler.length) throw new Error("Oturum bulunamadı");
+  await a.fb.setDoc(a.fb.doc(a.db, "kullaniciTercihleri", eposta), {
+    okunanDuyurular: a.fb.arrayUnion(...idler),
+    kapatilanSimsekler: a.fb.arrayUnion(...idler),
+    guncellendi: new Date().toISOString()
+  }, { merge: true });
+  if (veliEpostam() !== eposta) return;
+  const durum = { eposta, okunan: new Set(yerelOku(eposta, "okunan")), kapatilan: new Set(yerelOku(eposta, "kapatilan")) };
+  idler.forEach(id => { durum.okunan.add(id); durum.kapatilan.add(id); });
+  yerelYaz(durum);
+  // Ana kayıt kalıcıdır; ilk onay zamanını koruyan ayrı okuma kayıtları da güncellenir.
+  await Promise.allSettled(idler.map(id => okumaKaydiYaz(id, "simsekOnay")));
+}
+
 /** Eski çağrılar için (önceki sürüm index.html). */
 export async function goruldu(duyuruId, kaynak = "liste") {
   if (kaynak === "simsek") return simsekKapat(duyuruId);
@@ -783,6 +801,6 @@ if (typeof window !== "undefined") {
   dinleyiciKur();
   window.duyuruOkunma = {
     goruldu, rozetHtml, panelAc, panelKapat, veliDurumuYukle, veliOkudu,
-    veliGorulenleriKaydet, simsekKapatildiMi, simsekKapat, eskiKayitlariAktar
+    veliGorulenleriKaydet, simsekKapatildiMi, simsekKapat, simsekTopluKapat, eskiKayitlariAktar
   };
 }
