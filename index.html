@@ -14163,7 +14163,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v233";
+window.PORTAL_SURUM = "v234";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -25722,6 +25722,9 @@ function simsekPopupGoster(kuyruk, idx) {
             ${icerikSafe}
           </div>
           ${window.duyuruEkleri ? window.duyuruEkleri.html(d.ekler, { kompakt: true }) : ""}
+          ${kuyruk.length - idx > 3 ? `<p style="font-size:13px;line-height:1.5;color:#64748b;">${kuyruk.length - idx} bekleyen duyuru var. Tümünü okundu yaparak bu pencereleri kapatabilirsiniz. Duyurulara daha sonra Duyurular bölümünden ulaşabilirsiniz.</p>
+          <button id="simsekTumunuOku" type="button" style="width:100%;min-height:48px;padding:12px;border:1px solid #c5dccb;border-radius:12px;background:#eef5f0;color:#1F5F33;font-weight:600;cursor:pointer;">Tümünü okundu yap</button>
+          <p id="simsekTopluHata" role="alert" style="color:#b91c1c;font-size:13px;"></p>` : ''}
           <div style="display:flex; gap:8px; margin-top:18px;">
             ${kuyruk.length > 1 ? `<div style="flex:1; text-align:center; align-self:center; font-size:11px; color:#9ca3af;">${idx + 1} / ${kuyruk.length}</div>` : ''}
             <button id="simsekAnladim" style="flex:${kuyruk.length > 1 ? '2' : '1'}; background:#1F5F33; color:white; border:none; padding:14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; min-height:48px;">
@@ -25739,7 +25742,31 @@ function simsekPopupGoster(kuyruk, idx) {
   `;
   document.body.insertAdjacentHTML("beforeend", html);
 
+  const popupUser = currentUser;
+  let popupMesgul = false;
+  const topluBtn = document.getElementById("simsekTumunuOku");
+  if (topluBtn) topluBtn.onclick = async () => {
+    if (popupMesgul || currentUser !== popupUser) return;
+    popupMesgul = true; topluBtn.disabled = true;
+    const tekBtn = document.getElementById("simsekAnladim");
+    tekBtn.disabled = true; topluBtn.textContent = "Kaydediliyor…";
+    const hata = document.getElementById("simsekTopluHata"); hata.textContent = "";
+    try {
+      const m = await modulYukle("duyuru-okunma");
+      if (currentUser !== popupUser || !m?.simsekTopluKapat) throw new Error("Oturum değişti");
+      await m.simsekTopluKapat(kuyruk.slice(idx));
+      document.getElementById("simsekOverlay")?.remove();
+    } catch (e) {
+      popupMesgul = false; topluBtn.disabled = false; tekBtn.disabled = false;
+      topluBtn.textContent = "Tümünü okundu yap";
+      hata.textContent = "Kaydedilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.";
+    }
+  };
+
   document.getElementById("simsekAnladim").onclick = async () => {
+    if (popupMesgul || currentUser !== popupUser) return;
+    popupMesgul = true;
+    if (topluBtn) topluBtn.disabled = true;
     const btn = document.getElementById("simsekAnladim");
     btn.disabled = true; btn.textContent = "Kaydediliyor...";
     await simsekKapat(d.id);
@@ -49406,7 +49433,7 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=233");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=234");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
