@@ -14163,7 +14163,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v234";
+window.PORTAL_SURUM = "v235";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -21811,12 +21811,7 @@ window.ozetRozetleriGuncelle = function(gecikenSayisi) {
   yaz("hbRozetMesaj", mesajBildirimToplam);
 
   // Bekleyen başvuru
-  let basvuruN = 0;
-  try {
-    basvuruN = (typeof basvuruListesi !== "undefined" ? basvuruListesi : [])
-      .filter(b => (b.durum || "beklemede") === "beklemede").length;
-  } catch (e) {}
-  yaz("hbRozetBasvuru", basvuruN);
+  yaz("hbRozetBasvuru", basvuruBekleyenSayisi || 0);
 
   // Geciken ödeme (renderAdminHome'dan gelir)
   yaz("hbRozetTahsilat", gecikenSayisi || 0);
@@ -23042,7 +23037,7 @@ function yonetimHomeHTML(ad) {
   }).join("") || `<div style="font-size:13px; color:var(--c-muted); padding:10px 0;">Henüz personel eklenmemiş.</div>`;
 
   // ===== BAŞVURU (ön kayıt) SAYISI =====
-  const bekleyenBasvuru = (typeof basvuruListesi !== "undefined" ? basvuruListesi : []).filter(b => (b.durum||"beklemede")==="beklemede").length;
+  const bekleyenBasvuru = basvuruBekleyenSayisi;
 
   // ===== BUGÜNKÜ GÖRÜŞMELER/RANDEVULAR =====
   const buGunISO = new Date().toISOString().substring(0,10);
@@ -23141,10 +23136,10 @@ function yonetimHomeHTML(ad) {
             <span class="kpi-more">···</span>
           </div>
           <div class="kpi-buyuk-row">
-            <span class="kpi-buyuk-dark">${bekleyenBasvuru}</span>
-            ${bekleyenBasvuru>0?`<span class="kpi-trend-up">bekliyor</span>`:``}
+            <span class="kpi-buyuk-dark" id="ozetBasvuruSayisi">${bekleyenBasvuru ?? "—"}</span>
+            <span class="kpi-trend-up" id="ozetBasvuruBekliyor" style="display:${bekleyenBasvuru > 0 ? "" : "none"}">bekliyor</span>
           </div>
-          <div class="kpi-alt">${bekleyenBasvuru>0 ? `${bekleyenBasvuru} yeni ön kayıt onayınızı bekliyor.` : "Bekleyen ön kayıt başvurusu yok."}</div>
+          <div class="kpi-alt" id="ozetBasvuruAciklama">${bekleyenBasvuru === null ? "Başvurular yükleniyor…" : bekleyenBasvuru>0 ? `${bekleyenBasvuru} yeni ön kayıt onayınızı bekliyor.` : "Bekleyen ön kayıt başvurusu yok."}</div>
           <button class="kpi-mini-btn" onclick="adminGotoTab('onay')">Başvuru Havuzu →</button>
         </div>
       </div>
@@ -31116,6 +31111,8 @@ function renderTable() {
 
 // ============ ONAY BEKLEYENLER ============
 let basvuruListesi = [];
+let basvuruBekleyenSayisi = null;
+const basvuruSilmeIslemleri = new Set();
 let aktifOnayFilter = "beklemede";
 
 async function loadKayitDuyuruPaneli() {
@@ -31155,10 +31152,10 @@ async function loadOnayBekleyenler() {
 
     // basvurular (yeni şema) - doğrudan al
     const fromBasvurular = basvuruSnap.docs.map(d => ({
+      ...d.data(),
       id: d.id,
       _kaynak: "basvurular",
-      _koleksiyon: "basvurular",
-      ...d.data()
+      _koleksiyon: "basvurular"
     }));
 
     // yenikayit koleksiyonu (eski şema) - normalize et
@@ -31174,6 +31171,7 @@ async function loadOnayBekleyenler() {
         basvuruTarihi: data.kayitTarihi || data.olusturma || "",
         onayTarihi: data.onayTarihi || "",
         retTarihi: data.retTarihi || "",
+        retNedeni: data.retNedeni || "",
         notlar: data.notlar || "",
         // Öğrenci bilgileri
         ogrenci: {
@@ -31253,6 +31251,7 @@ async function loadOnayBekleyenler() {
         basvuruTarihi: data.kayitTarihi || data.olusturma || "",
         onayTarihi: data.onayTarihi || "",
         retTarihi: data.retTarihi || "",
+        retNedeni: data.retNedeni || "",
         notlar: data.notlar || "",
         ogrenci: {
           adSoyad: (data.childFirstName && data.childLastName)
@@ -31330,8 +31329,20 @@ async function loadOnayBekleyenler() {
   }
 }
 
-function updateOnaySayac() {
-  const bekleyen = basvuruListesi.filter(b => (b.durum || "beklemede") === "beklemede").length;
+function updateOnaySayac(bekleyen = basvuruListesi.filter(b => (b.durum || "beklemede") === "beklemede").length) {
+  basvuruBekleyenSayisi = bekleyen;
+  const sayi = document.getElementById("ozetBasvuruSayisi");
+  if (sayi) sayi.textContent = bekleyen;
+  const etiket = document.getElementById("ozetBasvuruBekliyor");
+  if (etiket) etiket.style.display = bekleyen > 0 ? "" : "none";
+  const aciklama = document.getElementById("ozetBasvuruAciklama");
+  if (aciklama) aciklama.textContent = bekleyen > 0
+    ? `${bekleyen} yeni ön kayıt onayınızı bekliyor.` : "Bekleyen ön kayıt başvurusu yok.";
+  const hizliRozet = document.getElementById("hbRozetBasvuru");
+  if (hizliRozet) {
+    hizliRozet.textContent = bekleyen > 0 ? (bekleyen > 99 ? "99+" : bekleyen) : "";
+    hizliRozet.classList.toggle("dolu", bekleyen > 0);
+  }
   const rozet = document.getElementById("onaySayacRozet");
   if (rozet) {
     if (bekleyen > 0) {
@@ -31407,6 +31418,7 @@ function renderOnayBekleyenler() {
 
   let html = "";
   for (const b of filtrelenmis) {
+    const islemArgumanlari = escapeHtml(JSON.stringify(b.id) + "," + JSON.stringify(b._koleksiyon));
     const durum = b.durum || "beklemede";
     const rozetMetni = { beklemede: "⏱ Beklemede", onaylandi: "✓ Onaylandı", reddedildi: "✗ Reddedildi" }[durum];
     const basvuruTarihi = b.basvuruTarihi || b.olusturuldu || "";
@@ -31464,14 +31476,16 @@ function renderOnayBekleyenler() {
 
         <div class="basvuru-aksiyon-row">
           ${durum === "beklemede" ? `
-            <button class="btn-mini btn-primary" onclick="basvuruOnayla('${b.id}')">✓ Onayla ve Sisteme Ekle</button>
-            <button class="btn-mini danger" onclick="basvuruReddet('${b.id}')">✗ Reddet</button>
-            <button class="btn-mini" onclick="basvuruDetayGoster('${b.id}')"><i data-lucide="search" style="width:13px;height:13px;vertical-align:-2px;"></i> Tam Detay</button>
+            <button class="btn-mini btn-primary" onclick="basvuruOnayla(${islemArgumanlari})">✓ Onayla ve Sisteme Ekle</button>
+            <button class="btn-mini danger" onclick="basvuruReddet(${islemArgumanlari})">✗ Reddet</button>
+            <button class="btn-mini" onclick="basvuruDetayGoster(${islemArgumanlari})"><i data-lucide="search" style="width:13px;height:13px;vertical-align:-2px;"></i> Tam Detay</button>
           ` : `
-            <button class="btn-mini" onclick="basvuruDetayGoster('${b.id}')"><i data-lucide="search" style="width:13px;height:13px;vertical-align:-2px;"></i> Detay</button>
-            ${durum === "reddedildi" ? `<button class="btn-mini btn-primary" onclick="basvuruOnayla('${b.id}')">↩ Yine de Onayla</button>` : ""}
+            <button class="btn-mini" onclick="basvuruDetayGoster(${islemArgumanlari})"><i data-lucide="search" style="width:13px;height:13px;vertical-align:-2px;"></i> Detay</button>
+            ${durum === "reddedildi" ? `<button class="btn-mini btn-primary" onclick="basvuruOnayla(${islemArgumanlari})">↩ Yine de Onayla</button>` : ""}
           `}
+          <button class="btn-mini danger" onclick="basvuruSil(${islemArgumanlari})">Sil</button>
         </div>
+        ${durum === "reddedildi" ? `<div style="margin-top:10px; font-size:12px;">Başvuru geçmişte saklanıyor.${b.retNedeni ? ` Ret nedeni: ${escapeHtml(b.retNedeni)}` : ""}</div>` : ""}
 
         ${b.notlar ? `<div style="margin-top:10px; padding:8px 10px; background:#fef9c3; border-radius:6px; font-size:12px; color:#78350f;">📝 ${escapeHtml(b.notlar)}</div>` : ""}
       </div>
@@ -31493,23 +31507,30 @@ function formatTarihTam(iso) {
   } catch { return iso; }
 }
 
-window.basvuruDetayGoster = function(basvuruId) {
-  const b = basvuruListesi.find(x => x.id === basvuruId);
-  if (!b) return;
+// Kimlikler koleksiyonlar arasında tekrar edebilir; belirsiz çağrıda işlem yapma.
+function basvuruBul(basvuruId, koleksiyon) {
+  const eslesenler = basvuruListesi.filter(b => b.id === basvuruId &&
+    (!koleksiyon || b._koleksiyon === koleksiyon));
+  return eslesenler.length === 1 ? eslesenler[0] : null;
+}
+
+window.basvuruDetayGoster = function(basvuruId, koleksiyon) {
+  const b = basvuruBul(basvuruId, koleksiyon);
+  if (!b) return showToast("Başvuru bulunamadı veya kimliği belirsiz. Listeyi yenileyin.", "error");
   // Basit bir JSON dump modal — istersen detaylandırırsın
   const detayText = JSON.stringify(b, null, 2);
   alert(`BAŞVURU DETAYI\n\n${detayText}`);
 };
 
-window.basvuruOnayla = async function(basvuruId) {
-  let b = basvuruListesi.find(x => x.id === basvuruId);
+window.basvuruOnayla = async function(basvuruId, koleksiyon) {
+  let b = basvuruBul(basvuruId, koleksiyon);
 
   // FALLBACK: Liste boşalmışsa veya başvuru kayıpsa, Firestore'dan tekrar yükle
   if (!b) {
     console.log(`[basvuruOnayla] Liste'de bulunamadı (${basvuruId}), yeniden yükleniyor...`);
     try {
       await loadOnayBekleyenler();
-      b = basvuruListesi.find(x => x.id === basvuruId);
+      b = basvuruBul(basvuruId, koleksiyon);
     } catch(e) { console.warn("Liste yenileme hatası:", e); }
   }
 
@@ -31905,19 +31926,19 @@ function hosgeldinMailIcerigi(veliAdi, ogrenciAdi, veliEmail, basvuru) {
   return portalMailSablon("Veli Portalımıza Hoş Geldiniz! 🌸", icerik, "");
 }
 
-window.basvuruReddet = async function(basvuruId) {
-  let b = basvuruListesi.find(x => x.id === basvuruId);
+window.basvuruReddet = async function(basvuruId, koleksiyon) {
+  let b = basvuruBul(basvuruId, koleksiyon);
 
   // FALLBACK: Liste boşalmışsa Firestore'dan tekrar yükle
   if (!b) {
     try {
       await loadOnayBekleyenler();
-      b = basvuruListesi.find(x => x.id === basvuruId);
+      b = basvuruBul(basvuruId, koleksiyon);
     } catch(e) { console.warn(e); }
   }
   if (!b) return showToast("Başvuru bulunamadı. Sayfayı yenileyip tekrar deneyin.", "error");
 
-  const neden = prompt(`${b.ogrenci?.adSoyad || "Bu başvuruyu"} reddetmek istediğinize emin misiniz?\n\nRet nedeni (opsiyonel):`);
+  const neden = prompt(`${b.ogrenci?.adSoyad || "Bu başvuruyu"} reddetmek istediğinize emin misiniz?\n\nBaşvuru bekleyenlerden kaldırılacak; geçmişi Reddedilen bölümünde saklanacak.\n\nRet nedeni (opsiyonel):`);
   if (neden === null) return; // İptal
 
   try {
@@ -31929,11 +31950,44 @@ window.basvuruReddet = async function(basvuruId) {
       retTarihi: new Date().toISOString(),
       reddeden: currentUser.email
     });
-    showToast("✗ Başvuru reddedildi");
+    showToast("Başvuru reddedildi; geçmişi Reddedilen bölümünde saklandı.");
     await loadOnayBekleyenler();
   } catch (e) {
     console.error(e);
     showToast("Reddedilemedi: " + e.message, "error");
+  }
+};
+
+// Silme yalnızca seçilen başvuru belgesini kaldırır; öğrenci/veli kaydına dokunmaz.
+window.basvuruSil = async function(basvuruId, koleksiyon) {
+  if (!["basvurular", "yenikayit", "kayitYenileme"].includes(koleksiyon)) {
+    return showToast("Başvuru kaynağı belirsiz. Listeyi yenileyin.", "error");
+  }
+  const anahtar = `${koleksiyon}/${basvuruId}`;
+  if (basvuruSilmeIslemleri.has(anahtar)) return;
+  basvuruSilmeIslemleri.add(anahtar);
+  try {
+    let b = basvuruBul(basvuruId, koleksiyon);
+    if (!b) {
+      await loadOnayBekleyenler();
+      b = basvuruBul(basvuruId, koleksiyon);
+    }
+    if (!b) return showToast("Başvuru bulunamadı. Listeyi yenileyin.", "error");
+    const cevap = prompt(`${b.ogrenci?.adSoyad || "Bu başvuru"} kalıcı olarak silinecek.\n\nBaşvuru bilgileri ve ret geçmişi geri alınamaz. Geçmişi saklamak için Reddet seçeneğini kullanın. Mevcut öğrenci ve veli kayıtları silinmez.\n\nOnaylamak için SİL yazın:`);
+    if (!cevap || cevap.trim().toLocaleUpperCase("tr-TR") !== "SİL") return;
+    const ref = doc(db, koleksiyon, basvuruId);
+    await deleteDoc(ref);
+    const kontrol = await getDocFromServer(ref);
+    if (kontrol.exists()) throw new Error("Silme doğrulanamadı. Listeyi yenileyin.");
+    basvuruListesi = basvuruListesi.filter(x => !(x.id === basvuruId && x._koleksiyon === koleksiyon));
+    renderOnayBekleyenler();
+    updateOnaySayac();
+    showToast("Başvuru kalıcı olarak silindi.");
+  } catch (e) {
+    console.error(e);
+    showToast("Silme tamamlanamadı veya doğrulanamadı: " + e.message, "error");
+  } finally {
+    basvuruSilmeIslemleri.delete(anahtar);
   }
 };
 
@@ -31953,23 +32007,8 @@ async function initOnayBekleyenler() {
         if ((data.durum || "beklemede") === "beklemede") sayac++;
       }
     }
-    // NOT: basvuruListesi'ni BURADA SIFIRLAMA — loadOnayBekleyenler kendi doldurur.
-    // Aksi takdirde Onayla butonu "Başvuru bulunamadı" hatası verir.
-    const rozet = document.getElementById("onaySayacRozet");
-    if (rozet) {
-      if (sayac > 0) {
-        rozet.style.display = "inline-flex";
-        rozet.textContent = sayac;
-      } else {
-        rozet.style.display = "none";
-      }
-    }
-    // Faz A: modül barındaki rozeti senkronla
-    const mRozet2 = document.getElementById("modulOnayRozet");
-    if (mRozet2) {
-      mRozet2.textContent = sayac;
-      mRozet2.style.display = sayac > 0 ? "inline-flex" : "none";
-    }
+    // Sayacı paylaş; başvuru kartlarının ayrıntılı listesini değiştirme.
+    updateOnaySayac(sayac);
   } catch (e) {
     // Sessiz geç
   }
@@ -49433,7 +49472,7 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=234");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=235");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
