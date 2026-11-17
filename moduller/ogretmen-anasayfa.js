@@ -23,6 +23,44 @@ const temiz = (t) => String(t || "").replace(EMOJI, "").replace(/\s+/g, " ").tri
 const git = (m) => { try { window.modulSec?.(m); } catch (_) {} };
 const sayiTopla = (el, s) => [...el.querySelectorAll(s)].reduce((t, x) => t + (parseInt(metin(x), 10) || 0), 0);
 
+
+// Öğretmen Kitap Kulübü'ne mevcut hesabıyla girer; yeni üyelik veya yönetim yetkisi verilmez.
+// Erişim kararı mevcut Kitap Kulübü kimlik/Firestore kurallarındadır.
+// data-bk-host mevcut gate.mjs tarafından yalnız yetkili oturumlarda gösterilir.
+export function kitapKulubuKisayollariKur() {
+  const sayfa = document.getElementById("ogrHomeSinif")?.closest(".ca-page");
+  if (!sayfa) return;
+
+  const hizli = sayfa.querySelector(".ca-qbtn")?.parentElement;
+  if (hizli && !hizli.querySelector("[data-bk-teacher-quick]")) {
+    const bag = document.createElement("a");
+    bag.href = "kitap-kulubu.html";
+    bag.className = "ca-qbtn oak-kitap-giris";
+    bag.setAttribute("data-bk-teacher-quick", "");
+    bag.setAttribute("data-bk-host", "");
+    bag.setAttribute("aria-label", "Kitap Kulübü'nü aç");
+    bag.hidden = true;
+    bag.innerHTML = '<span class="ca-qicon" style="background:#E6F1E8;color:#2D5E3E;"><i data-lucide="book-open"></i></span><span class="ca-qlabel">Kitap Kulübü</span>';
+    hizli.appendChild(bag);
+  }
+
+  const menu = document.getElementById("modulBar");
+  if (menu && !menu.querySelector("[data-bk-teacher-menu]")) {
+    const once = menu.querySelector('[data-modul="gorusmeNotlari"]') || menu.querySelector('[data-modul="gunlukRapor"]');
+    if (once) {
+      const bag = document.createElement("a");
+      bag.href = "kitap-kulubu.html";
+      bag.className = "side-item oak-kitap-menu";
+      bag.setAttribute("data-bk-teacher-menu", "");
+      bag.setAttribute("data-bk-host", "");
+      bag.setAttribute("aria-label", "Kitap Kulübü'nü aç");
+      bag.hidden = true;
+      bag.innerHTML = '<span class="side-ikon"><i data-lucide="book-open"></i></span><span class="side-ad">Kitap Kulübü</span>';
+      once.insertAdjacentElement("afterend", bag);
+    }
+  }
+}
+
 // ── Günün akışı karoları ──
 const KAROLAR = [
   { kartId: "ogrHomePlan", ad: "Günün planı", ikon: "calendar-check-2", renk: "#2E6A9E", acik: "#E9F3FC", baslikKart: true,
@@ -75,6 +113,7 @@ const DURUM_RENK = { aktif: "#16A34A", tamam: "#2D5E3E", uyari: "#D97706", bos: 
 // ═════════════════════════ DÜZENLE ═════════════════════════
 export function duzenle() {
   stilEkle();
+  kitapKulubuKisayollariKur();
   const sinif = document.getElementById("ogrHomeSinif");
   if (!sinif || sinif.dataset.oakDuzen) return;
   sinif.dataset.oakDuzen = "1";
@@ -211,6 +250,8 @@ function stilEkle() {
   const st = document.createElement("style");
   st.id = "ogretmenAnasayfaStil";
   st.textContent = `
+.oak-kitap-giris, .oak-kitap-menu { text-decoration:none !important; color:inherit; }
+.oak-kitap-giris[hidden], .oak-kitap-menu[hidden] { display:none !important; }
 [data-oak-gizli] { display:none !important; }
 .oak-akis { display:flex; flex-direction:column; gap:18px; margin-top:4px; }
 .oak-acik > .ca-card { margin-bottom:0 !important; }
