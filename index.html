@@ -41801,7 +41801,10 @@ window.talepOkunduIsaretle = async function(talepId) {
 };
 
 // ============ TUR C: VELİ TARAFI BİLDİRİMLER SEKMESİ ============
+let veliBildirimRenderSurumu = 0;
 async function veliRenderBildirimler() {
+  const renderSurumu = ++veliBildirimRenderSurumu;
+  const renderEpostasi = (currentUser?.email || "").toLowerCase();
   const el = document.getElementById("veliBildirimlerContent");
   if (!el) return;
 
@@ -41854,6 +41857,10 @@ async function veliRenderBildirimler() {
     const okunmaModul = await modulYukle("duyuru-okunma");
     const veliOkuma = okunmaModul ? await okunmaModul.veliDurumuYukle() : null;
 
+    // Başka bir sekme/hesap listesi yüklendiyse eski sonucu kullanma.
+    if (renderSurumu !== veliBildirimRenderSurumu ||
+        (currentUser?.email || "").toLowerCase() !== renderEpostasi) return;
+
     // Tarihe göre sırala (yeni üstte)
     bildirimler.sort((a, b) => (b.olusturuldu || "").localeCompare(a.olusturuldu || ""));
 
@@ -41904,9 +41911,22 @@ async function veliRenderBildirimler() {
       acil:   { renk: "#B91C1C", acik: "#FEE2E2", ikon: "siren",          label: "Acil duyuru" }
     };
     const TALEP_RENK = { bekliyor: ["#B45309", "#FEF3C7"], arandi: ["#1D4ED8", "#DBEAFE"], tamamlandi: ["#15803D", "#DCFCE7"], iptal: ["#6B7280", "#F3F4F6"] };
-    let html = `<div class="vbd-liste">`;
+    // Safari bellek kullanımını düşürmek için uzun duyuru listesini küçük gruplarla çiz.
+    // Sadece ekrana basılan duyurular okundu sayılır; diğer kayıtlar erişilebilir kalır.
+    const SAYFA_BOYUTU = 8;
     let sonGun = null;
-    for (const b of bildirimler) {
+    let gosterilen = 0;
+    el.innerHTML = '<div class="vbd-liste"></div><button type="button" class="vbd-devam" style="display:block;margin:16px auto;padding:11px 18px;background:#fff;border:1px solid #d1d5db;border-radius:12px;color:#2D5E3E;font-weight:600;cursor:pointer;min-height:44px;">Daha fazla duyuru göster</button>';
+    const listeEl = el.querySelector(".vbd-liste");
+    const devamBtn = el.querySelector(".vbd-devam");
+    function sonrakiBildirimler() {
+      // Eski/asenkron liste çağrılarının veya hesap değişikliğinin çıktısını basma.
+      if (renderSurumu !== veliBildirimRenderSurumu || !el.isConnected || !el.contains(listeEl) ||
+          (currentUser?.email || "").toLowerCase() !== renderEpostasi) return;
+      const yeni = bildirimler.slice(gosterilen, gosterilen + SAYFA_BOYUTU);
+      if (!yeni.length) { devamBtn.remove(); return; }
+      let html = "";
+      for (const b of yeni) {
       const zaman = b._tip === "duyuru" ? (b.olusturulmaTarihi || b.olusturuldu) : b.olusturuldu;
       const gun = gunBasligi(zaman);
       if (gun !== sonGun) { if (gun) html += `<div class="vbd-gun">${escapeHtml(gun)}</div>`; sonGun = gun; }
@@ -41954,11 +41974,20 @@ async function veliRenderBildirimler() {
         // KVKK: veli e-postası duyuru belgesine YAZILMAZ. Okundu kaydı döngü
         // sonunda toplu yapılır — moduller/duyuru-okunma.js (veliGorulenleriKaydet)
       }
+      }
+      listeEl.insertAdjacentHTML("beforeend", html);
+      gosterilen += yeni.length;
+      if (gosterilen >= bildirimler.length) devamBtn.remove();
+      if (window.lucideYenile) setTimeout(() => {
+        if (el.contains(listeEl)) window.lucideYenile(listeEl);
+      }, 30);
+      // Her açılışta bütün geçmiş duyurular için yazma işlemi başlatma.
+      if (okunmaModul && veliOkuma) {
+        void okunmaModul.veliGorulenleriKaydet(yeni.filter(x => x._tip === "duyuru"), veliOkuma);
+      }
     }
-    html += `</div>`;
-    el.innerHTML = html;
-    if (window.lucideYenile) setTimeout(() => window.lucideYenile(el), 30);
-    if (okunmaModul && veliOkuma) okunmaModul.veliGorulenleriKaydet(bildirimler.filter(x => x._tip === "duyuru"), veliOkuma);
+    devamBtn.addEventListener("click", sonrakiBildirimler);
+    sonrakiBildirimler();
   } catch (e) {
     el.innerHTML = `<div class="ozel-madde-empty">Bildirimler yüklenemedi: ${escapeHtml(e.message)}</div>`;
   }
