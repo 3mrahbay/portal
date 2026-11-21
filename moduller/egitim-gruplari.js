@@ -1,12 +1,19 @@
-import {mountGroups} from '../js/egitim-gruplari-ui.mjs';
+import {mountGroups,invalidateGroups} from '../js/egitim-gruplari-ui.mjs';
 import {loadGroups,resolveGroupAudience} from '../js/egitim-gruplari-data.mjs';
 import {groupManager,groupTeacher,groupSession,childAudience,distinctStudents} from '../js/egitim-gruplari-core.mjs';
 const api=()=>window.PortalAPI;
+let managerPanel=null,pendingOpen=null;
 export async function open(){
- const p=api(),host=document.getElementById('egitimGruplariPanel');if(!host)return;host.hidden=false;
+ const p=api(),host=document.getElementById('egitimGruplariPanel');if(!host)return;
+ const trigger=document.getElementById('egitimGruplariAc');
+ if(managerPanel?.valid()&&host.querySelector('.ig-panel')){host.hidden=!host.hidden;trigger?.setAttribute('aria-expanded',String(!host.hidden));return managerPanel;}
+ host.hidden=false;trigger?.setAttribute('aria-expanded','true');
+ if(pendingOpen?.session===groupSession(p.state))return pendingOpen.promise;
  if(p.state.ogrenciVerileriHazirMi===false){host.textContent='Öğrenci listesi henüz hazır değil. ';const retry=document.createElement('button');retry.textContent='Yeniden dene';retry.onclick=open;host.append(retry);return;}
  const students=p.state.ogrenciList.filter(o=>p.state.ayarListesi[o.id]&&p.ogrenciDurum(o,p.state.ayarListesi[o.id])==='aktif');
- return mountGroups(host,p,{students,notify:p.toast});
+ const request={session:groupSession(p.state)};pendingOpen=request;
+ request.promise=mountGroups(host,p,{students,notify:p.toast,onRetry:open});
+ try{const panel=await request.promise;if(pendingOpen===request)managerPanel=panel;return panel;}finally{if(pendingOpen===request)pendingOpen=null;}
 }
 const generations=new Map();
 export async function fillGroupSelect(id){
@@ -30,7 +37,7 @@ export async function selectedAudience(type,groupId,selectedOptions,{announcemen
  }else if(!groupManager(p.state)&&(!(announcement&&p.state.rol==='pdr'&&p.state.personel?.durum==='aktif')||ids.some(id=>!allowed.some(o=>o.id===id))))throw Error('Yalnız erişiminiz olan öğrencileri seçebilirsiniz.');
  return childAudience(ids,Object.fromEntries(selected.map(o=>[o.value,o.dataset.ad||o.textContent])));
 }
-export function clear(){document.getElementById('egitimGruplariPanel')?.replaceChildren();for(const id of ['galeriHedefGrup','duyuruHedefGrup','galeriHedefOgrenci','duyuruHedefOgrenci']){generations.set(id,(generations.get(id)||0)+1);const el=document.getElementById(id);if(el){el.replaceChildren();el.disabled=true;}}}
+export function clear(){managerPanel=null;pendingOpen=null;const host=document.getElementById('egitimGruplariPanel');if(host){invalidateGroups(host);host.hidden=true;}document.getElementById('egitimGruplariAc')?.setAttribute('aria-expanded','false');document.getElementById('egitimGruplariPanel')?.replaceChildren();for(const id of ['galeriHedefGrup','duyuruHedefGrup','galeriHedefOgrenci','duyuruHedefOgrenci']){generations.set(id,(generations.get(id)||0)+1);const el=document.getElementById(id);if(el){el.replaceChildren();el.disabled=true;}}}
 
 function primaryChildren(p){return (p.state.ogrenciList||[]).filter(o=>(p.state.siniflar||[]).includes(p.state.ayarListesi?.[o.id]?.kayit?.sinif||o.sinif||o.sinifi||''));}
 export async function fillTeacherChildren(id){
