@@ -13,19 +13,20 @@ function observationRuntime(options={}){
  const calls={events:[],committed:[],notices:[],parentNotices:[],toasts:[],revoked:[],uploads:[]},state={currentUser:{uid:'synthetic-teacher',email:'synthetic-teacher@example.test'},personel:{ad:'Synthetic',soyad:'Teacher'},rol:options.role||'ogretmen',galeriOturumSurumu:1,aktifDonem:'2026-2027'};
  const pathRef=path=>({path,id:path.split('/').at(-1)});
  const BCK={db:{},rol:()=>state.rol,yoneticiMi:()=>false,kullanici:()=>state.currentUser,personel:()=>({ad:'Synthetic',soyad:'Teacher'}),
+ getDoc:async()=>{await options.preflight?.();return{exists:()=>options.existing!==false};},
  collection:(_db,...parts)=>parts.join('/'),doc:(...args)=>args.length===1?pathRef(args[0]+'/synthetic-gallery-id'):pathRef(args.slice(1).join('/')),serverTimestamp:()=>({synthetic:true}),
  resimSikistir:async file=>{calls.events.push('compress');await options.compress?.();return file;},medyaYukle:async(file,path)=>{calls.events.push('upload');calls.uploads.push({file,path});await options.upload?.();return{url:'https://synthetic-media.test/observation.jpg',yol:'synthetic/media.jpg'};},
- setDoc:async(ref,data)=>{calls.events.push('parent-notice-save');calls.parentNotices.push({ref,data});},
+ setDoc:async(ref,data)=>{if(options.failParentNotice)throw Object.assign(Error('synthetic denied'),{code:'permission-denied'});calls.events.push('parent-notice-save');calls.parentNotices.push({ref,data});},
  runTransaction:async(_db,run)=>{calls.events.push('transaction-start');const staged=[];await run({get:async()=>{await options.transactionRead?.();return{exists:()=>false,data:()=>({})};},set:(ref,data,merge)=>{calls.events.push('transaction-stage:'+ref.path);staged.push({ref,data,merge});}});await options.beforeCommit?.();if(options.failCommit)throw Error('synthetic transaction rejected');calls.committed.push(...staged);calls.events.push('transaction-commit');await options.afterCommit?.();}};
  const canvasContext={drawImage(){},measureText:()=>({width:40}),save(){},restore(){},fillRect(){},fillText(){}};
  const context={File,Blob,gallerySession,console:{error(){},warn(){}},URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL:u=>calls.revoked.push(u)},Image:class{naturalWidth=100;naturalHeight=100;set src(_x){queueMicrotask(()=>options.watermark?this.onload?.():this.onerror?.(Error('synthetic image decoder not needed')));}},setTimeout:()=>0,
  document:{getElementById:id=>nodes.get(id)||null,createElement:tag=>tag==='canvas'?{getContext:()=>canvasContext,toBlob:cb=>cb(new Blob(['synthetic jpeg'],{type:'image/jpeg'}))}:new FakeElement()},
  BCK,PortalAPI:{state},showToast:(message,type)=>calls.toasts.push({message,type}),
  notifyGalleryApproval:async item=>{calls.events.push('approval-notice');assert.equal(calls.committed.filter(x=>['galeri/synthetic-gallery-id','ogrenciGelisim/synthetic-child'].includes(x.ref.path)).length,2,'both gallery and observation must already be committed before approval notice');calls.notices.push(item);return options.notify?await options.notify():{ok:true,push:{ok:true}};},
- hedefVeliEmailleri:()=>['synthetic-parent@example.test'],bildirimKaydetVePush:async()=>{calls.events.push('parent-push');return{ok:true,push:{ok:true}};}};
+ hedefVeliEmailleri:()=>['synthetic-parent@example.test'],bildirimKaydetVePush:async()=>{calls.events.push('parent-push');return options.pushResult||{ok:true,push:{ok:true}};}};
  context.window=context;vm.createContext(context);
- if(options.realBridge){Object.assign(context,BCK,{getDoc(){},getDocs(){},updateDoc(){},escapeHtml:x=>x,DISIPLINLER:[],aktifMufredatlar:{}});context.PortalAPI={state,db:BCK.db,fb:BCK,toast:context.showToast};vm.runInContext(bridgeSource,context);}
- vm.runInContext(source+'\nglobalThis.fixture={save:kaydet,close:kapat,read:()=>S,initialize:x=>S=x};',context);
+ if(options.realBridge){Object.assign(context,BCK,{getDocs(){},updateDoc(){},escapeHtml:x=>x,DISIPLINLER:[],aktifMufredatlar:{}});context.PortalAPI={state,db:BCK.db,fb:BCK,toast:context.showToast};vm.runInContext(bridgeSource,context);}
+ vm.runInContext(source+'\nglobalThis.fixture={save:kaydet,close:kapat,read:()=>S,programs:izinliProgramlar,initialize:x=>S=x};',context);
  context.fixture.initialize({ogrId:'synthetic-child',ogrAd:'Synthetic Child',sinif:'Synthetic Class',program:'montessori',alanlar:[{id:'synthetic-area',ad:'Synthetic area',gruplar:[{ad:'Synthetic group',dersler:['Synthetic lesson']}]}],alanIdx:0,grupIdx:0,dersIdx:0,durum:'S',not:'Synthetic observation',foto:options.photo===false?null:{synthetic:true},fotoOniz:options.photo===false?'':'blob:preview'});
  return {...context.fixture,calls,state,nodes,root,button,input,progress,bridge:context.BCK,switchAccount:()=>{state.currentUser={uid:'synthetic-other',email:'other@example.test'};state.galeriOturumSurumu++;}};
 }
@@ -68,4 +69,42 @@ for(const at of ['upload','transactionRead','afterCommit'])test(`account switch 
 });
 test('approval transport failure warns after successful save, without rolling back committed observation',async()=>{
  const r=observationRuntime({notify:()=>Promise.reject(Error('synthetic notify rejected'))});await r.save();assert.equal(r.calls.committed.length,2);assert.equal(r.calls.toasts.at(-1).type,'warning');assert.match(r.calls.toasts.at(-1).message,/yönetici onay bildirimi tam iletilemedi/);assert.equal(r.read(),null);
+});
+
+for(const [role,program] of Object.entries({ingilizce_ogretmeni:'ingilizce',degerler_ogretmeni:'degerler',orman_ogretmeni:'orman'})){
+ test(`${role} saves only its program and a pending photo`,async()=>{
+  const r=observationRuntime({role,realBridge:true});r.read().program=program;
+  assert.deepEqual(Array.from(r.programs(),p=>p.id),[program]);await r.save();
+  assert.equal(r.calls.committed.length,2,JSON.stringify(r.calls.toasts));
+  assert.deepEqual(Object.keys(r.calls.committed[1].data),[program]);
+  assert.equal(r.calls.committed[0].data.durum,'beklemede');assert.equal(r.calls.parentNotices.length,0);
+ });
+ test(`${role} rejects a different program before uploading`,async()=>{
+  const r=observationRuntime({role});await r.save();
+  assert.equal(r.calls.uploads.length,0);assert.equal(r.calls.committed.length,0);
+  assert.match(r.calls.toasts[0].message,/kendi eğitim programınıza/);
+ });
+}
+test('uninitialized program record is explained before any media upload',async()=>{
+ const r=observationRuntime({role:'ingilizce_ogretmeni',existing:false});r.read().program='ingilizce';await r.save();
+ assert.equal(r.calls.uploads.length,0);assert.equal(r.calls.committed.length,0);assert.equal(r.button.disabled,false);
+ assert.match(r.calls.toasts[0].message,/sınıf öğretmeni veya yönetim/);
+});
+for(const at of ['compress','preflight'])test(`account switch during ${at} cannot upload under the next account`,async()=>{
+ const gate=defer();let reached;const entered=new Promise(r=>reached=r);
+ const r=observationRuntime({role:'ingilizce_ogretmeni',[at]:()=>{reached();return gate.promise;}});r.read().program='ingilizce';
+ const pending=r.save();await entered;r.switchAccount();gate.resolve();await pending;
+ assert.equal(r.calls.uploads.length,0);assert.equal(r.calls.committed.length,0);assert.equal(r.calls.notices.length,0);
+});
+
+test('coordinator child-notice permission error cannot masquerade as an image upload failure',async()=>{
+ const r=observationRuntime({role:'egitim_koordinator',failParentNotice:true});await r.save();
+ assert.equal(r.calls.committed.length,2);assert.equal(r.calls.uploads.length,1);assert.equal(r.read(),null);
+ assert(!r.calls.events.includes('parent-push'));assert.equal(r.calls.toasts.at(-1).type,'warning');
+ assert.equal(r.calls.toasts.at(-1).message,'Gözlem ve fotoğraf kaydedildi · veli bildirimi oluşturulamadı');
+});
+test('coordinator push uncertainty is distinguished from a failed notification record',async()=>{
+ const r=observationRuntime({role:'egitim_koordinator',pushResult:{ok:true,push:{ok:false,hata:'push-fcm-sonucu-yok'}}});await r.save();
+ assert.equal(r.calls.committed.length,2);assert.equal(r.calls.parentNotices.length,1);
+ assert.equal(r.calls.toasts.at(-1).message,'Gözlem ve fotoğraf kaydedildi · telefon bildirimi doğrulanamadı');
 });

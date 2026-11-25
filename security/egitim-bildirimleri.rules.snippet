@@ -1,0 +1,54 @@
+    // Protected child education notices. Photo notices reference an approved
+    // gallery item for this child. No new access to other child subcollections.
+    match /ogrenciler/{ogrenciId}/bildirimler/{bildirimId} {
+      function ebYazar(program) {
+        let rol = personelRol();
+        let disiplin = rol == 'ingilizce_ogretmeni' ? 'ingilizce'
+          : rol == 'degerler_ogretmeni' ? 'degerler'
+          : rol == 'orman_ogretmeni' ? 'orman' : '__yok__';
+        return rol in ['kurucu_mudur', 'mudur', 'egitim_koordinator']
+          || ((rol in ['ogretmen', 'yardimci_ogretmen'] || program == disiplin)
+            && ogrenciSinifiEslesir(ogrenciId));
+      }
+      function ebMetin(d, key, max) {
+        return d.get(key, '') is string && d.get(key, '').size() <= max;
+      }
+      function ebFoto(d) {
+        let g = get(/databases/$(database)/documents/galeri/$(d.galeriId)).data;
+        return bildirimId == 'egitim_' + d.galeriId && d.fotoDurum == 'onaylandi'
+          && g.get('durum', '') == 'onaylandi' && g.get('egitimKaydi', false) == true
+          && g.get('ogrenciId', '') == ogrenciId && g.get('program', '') == d.program
+          && g.get('kazanimAnahtari', '') == d.kazanimAnahtari
+          && g.get('gozlemDurum', '') == d.gozlemDurum
+          && (d.get('fotoUrl', '') == '' || d.fotoUrl == g.get('bunnyUrl', g.get('url', '')));
+      }
+      function ebGecerli(d) {
+        return d.keys().hasAll(['tip','baslik','icerik','program','kazanimAnahtari','gozlemDurum','galeriId','fotoDurum','tarih','olusturuldu','okundu'])
+          && d.keys().hasOnly(['tip','baslik','icerik','program','programAd','alanId','alanAd','grupAd','kazanimAnahtari','kazanimAdi','gozlemDurum','galeriId','fotoDurum','fotoUrl','tarih','olusturuldu','gonderenAd','okundu','donem'])
+          && d.tip == 'egitim_gelisim' && d.program in ['montessori','ingilizce','degerler','degerlerPlus','orman']
+          && d.gozlemDurum in ['S','T','U'] && d.okundu is bool
+          && ebMetin(d,'baslik',1000) && d.baslik.size() > 0 && ebMetin(d,'icerik',20000)
+          && ebMetin(d,'programAd',200) && ebMetin(d,'alanId',200) && ebMetin(d,'alanAd',500)
+          && ebMetin(d,'grupAd',500) && ebMetin(d,'kazanimAdi',1000)
+          && ebMetin(d,'kazanimAnahtari',2000) && d.kazanimAnahtari.size() > 0
+          && ebMetin(d,'galeriId',200) && !d.galeriId.matches('.*[/].*')
+          && ebMetin(d,'fotoUrl',4096) && ebMetin(d,'tarih',40) && ebMetin(d,'olusturuldu',40)
+          && ebMetin(d,'gonderenAd',200) && ebMetin(d,'donem',20)
+          && (d.galeriId == '' ? (d.fotoDurum == '' && d.get('fotoUrl','') == '') : ebFoto(d));
+      }
+      allow read: if isSignedIn() && (isAdmin() || isYonetim() || isKoordinator()
+        || ogretmenOgrencisi(ogrenciId) || veliCocugu(ogrenciId));
+      allow create: if isSignedIn() && ebYazar(request.resource.data.get('program',''))
+        && exists(/databases/$(database)/documents/ogrenciler/$(ogrenciId))
+        && ebGecerli(request.resource.data) && request.resource.data.okundu == false;
+      allow update: if isSignedIn() && ebYazar(request.resource.data.get('program',''))
+        && ebGecerli(request.resource.data)
+        && request.resource.data.program == resource.data.program
+        && request.resource.data.kazanimAnahtari == resource.data.kazanimAnahtari
+        && request.resource.data.galeriId == resource.data.galeriId
+        && request.resource.data.olusturuldu == resource.data.olusturuldu
+        && request.resource.data.okundu == resource.data.okundu;
+      allow update: if isSignedIn() && veliCocugu(ogrenciId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['okundu'])
+        && request.resource.data.okundu == true;
+    }

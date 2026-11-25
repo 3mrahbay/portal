@@ -35,6 +35,26 @@ function ogrAd(){ return S?.ogrAd || 'Öğrenci'; }
 function personelAd(){ const b=B(); const p=b?.personel?.()||{}; const u=b?.kullanici?.()||{}; return [p.adSoyad,[p.ad,p.soyad].filter(Boolean).join(' '),u.displayName].map(x=>String(x||'').trim()).find(x=>x&&!/@/.test(x)) || ''; }
 function yonetimMi(){ const b=B(); const r=b?.rol?.()||''; return b?.yoneticiMi?.() || ['kurucu_mudur','mudur','egitim_koordinator'].includes(r); }
 
+// Match the released rules: program teachers update only their discipline.
+function ogretmenProgrami(){
+  if(yonetimMi())return '';
+  return {ingilizce_ogretmeni:'ingilizce',degerler_ogretmeni:'degerler',orman_ogretmeni:'orman'}[B()?.rol?.()]||'';
+}
+function izinliProgramlar(){
+  const program=ogretmenProgrami();
+  return program?PROGRAMLAR.filter(p=>p.id===program):PROGRAMLAR;
+}
+function programKontrol(){
+  const program=ogretmenProgrami();
+  if(program&&S.program!==program)throw new Error('Yalnızca kendi eğitim programınıza gözlem ekleyebilirsiniz.');
+}
+async function kayitOnKontrol(){
+  programKontrol();
+  if(!ogretmenProgrami())return;
+  const b=B(),snap=await b.getDoc(b.doc(b.db,'ogrenciGelisim',S.ogrId));
+  if(!snap.exists())throw new Error('Bu öğrencinin gelişim kaydını önce sınıf öğretmeni veya yönetim başlatmalıdır.');
+}
+
 function stil(){
   if(document.getElementById('zego-stil'))return;
   const x=document.createElement('style');x.id='zego-stil';x.textContent=`
@@ -71,7 +91,7 @@ function ciz(){
   const fotoUrl=S.fotoOniz||'';
   arka.querySelector('.zego-kart').innerHTML=`
     <div class="zego-ust"><div class="zego-bas"><b>${esc(ogrAd())} · Eğitim Gözlemi</b><span>${esc(S.sinif||'')} · Aşamayı, notu ve varsa fotoğrafı birlikte kaydedin.</span></div><button class="zego-kapat" data-act="kapat">×</button></div>
-    <div class="zego-grid"><div class="zego-field"><label>Program</label><select id="zegoProgram">${PROGRAMLAR.map(p=>`<option value="${p.id}" ${p.id===S.program?'selected':''}>${esc(p.ad)}</option>`).join('')}</select></div><div class="zego-field"><label>Gelişim alanı</label><select id="zegoAlan">${S.alanlar.map((a,i)=>`<option value="${i}" ${i===S.alanIdx?'selected':''}>${esc(a.ad)}</option>`).join('')}</select></div></div>
+    <div class="zego-grid"><div class="zego-field"><label>Program</label><select id="zegoProgram">${izinliProgramlar().map(p=>`<option value="${p.id}" ${p.id===S.program?'selected':''}>${esc(p.ad)}</option>`).join('')}</select></div><div class="zego-field"><label>Gelişim alanı</label><select id="zegoAlan">${S.alanlar.map((a,i)=>`<option value="${i}" ${i===S.alanIdx?'selected':''}>${esc(a.ad)}</option>`).join('')}</select></div></div>
     <div class="zego-grid"><div class="zego-field"><label>Grup</label><select id="zegoGrup">${gruplar.map((g,i)=>`<option value="${i}" ${i===S.grupIdx?'selected':''}>${esc(g.ad)}</option>`).join('')}</select></div><div class="zego-field"><label>Eğitim / kazanım</label><select id="zegoDers">${dersler.map((d,i)=>`<option value="${i}" ${i===S.dersIdx?'selected':''}>${esc(d)}</option>`).join('')}</select></div></div>
     <div class="zego-notice" id="zegoKazanimAciklama"><b>Kazanım açıklaması</b><div style="white-space:pre-wrap;margin-top:5px">${esc(ac.metin||'Bu kazanım için henüz açıklama eklenmemiş.')}</div></div>
     <div class="zego-field"><label>Aşama</label><div class="zego-durumlar">${DURUMLAR.map(d=>`<button type="button" class="zego-durum ${S.durum===d.kod?'on':''}" data-durum="${d.kod}" style="color:${d.renk};background:${d.bg}"><i data-lucide="${d.ikon}"></i><b>${d.ad}</b><span>${d.acik}</span></button>`).join('')}</div></div>
@@ -109,7 +129,7 @@ async function fotoYukle(anahtar,ders,alan,grup){
   if(!S.foto)return null;const b=B(),oturum=gallerySession(window.PortalAPI?.state||{});
   const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};
   if(!b?.resimSikistir||!b?.medyaYukle)throw new Error('Medya yükleyici hazır değil.');
-  const sik=await b.resimSikistir(S.foto,1920,.85);const isaretli=await filigranla(sik);
+  const sik=await b.resimSikistir(S.foto,1920,.85);kontrol();const isaretli=await filigranla(sik);kontrol();
   // Canvas çıktısı Blob'dur; medya servisine JPEG adı olan bir File gönder.
   const dosya=new File([isaretli],(S.foto.name||'gozlem').replace(/\.[^.]+$/,'')+'.jpg',{type:isaretli.type||'image/jpeg'});
   const tarih=new Date().toISOString().slice(0,10),alanId=alan?.id||'genel',klasor=`galeri/ogrenci/${S.ogrId}/egitim/${S.program}/${alanId}/${tarih}`;
@@ -124,6 +144,7 @@ async function fotoYukle(anahtar,ders,alan,grup){
 }
 
 async function gelisimKaydet(anahtar,ders,alan,grup,foto){
+  programKontrol();
   const b=B(),ref=b.doc(b.db,'ogrenciGelisim',S.ogrId),oturum=gallerySession(window.PortalAPI?.state||{});
   if(!b.runTransaction)throw new Error('Gözlem kayıt altyapısı hazır değil. Sayfayı yenileyin.');
   await b.runTransaction(b.db,async tx=>{
@@ -136,7 +157,7 @@ async function gelisimKaydet(anahtar,ders,alan,grup,foto){
   if(guncel){kayitlar[anahtar]=S.durum;tarihler[anahtar]=simdi.slice(0,10);}
   detay[anahtar]={...onceki,...(guncel?{durum:S.durum,not:yeni.not,tarih:yeni.tarih,yazar:yeni.yazar,paylas:true,fotoUrl:yeni.fotoUrl||'',fotoDurum:yeni.fotoDurum||'',galeriId:yeni.galeriId||'',dersAd:ders}:{}),asamalar};
   const yaz={[S.program]:{...dis,kayitlar,tarihler,detay,guncellendi:b.serverTimestamp?b.serverTimestamp():simdi}};
-  if(guncel)yaz.sonGozlem={disiplin:S.program,programAd:programBilgi(S.program).ad,anahtar,dersAd:ders,alanId:alan?.id||'',alanAd:alan?.ad||'',grupAd:grup?.ad||'',not:yeni.not,fotoUrl:yeni.fotoUrl||'',fotoDurum:yeni.fotoDurum||'',galeriId:yeni.galeriId||'',durum:S.durum,tarih:simdi,yazar:yeni.yazar,paylas:true};
+  if(guncel&&!ogretmenProgrami())yaz.sonGozlem={disiplin:S.program,programAd:programBilgi(S.program).ad,anahtar,dersAd:ders,alanId:alan?.id||'',alanAd:alan?.ad||'',grupAd:grup?.ad||'',not:yeni.not,fotoUrl:yeni.fotoUrl||'',fotoDurum:yeni.fotoDurum||'',galeriId:yeni.galeriId||'',durum:S.durum,tarih:simdi,yazar:yeni.yazar,paylas:true};
   kontrol();
   if(foto?.galeriKaydi)tx.set(foto.galeriKaydi.ref,foto.galeriKaydi.veri);
   tx.set(ref,yaz,{merge:true});
@@ -170,12 +191,12 @@ async function kaydet(){
   S.kaydediliyor=true;root?.querySelectorAll('button,select,textarea,input').forEach(el=>el.disabled=true);
   const anahtar=`${alan.id}__${grup.ad||''}__${ders}`;
   const kayitOturumu=S;
-  try{const oturum=gallerySession(window.PortalAPI?.state||{});const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};const foto=await fotoYukle(anahtar,ders,alan,grup);kontrol();await gelisimKaydet(anahtar,ders,alan,grup,foto);kontrol();if(foto&&['beklemede','onayBekliyor'].includes(foto.durum))foto.onayBildirim=await notifyGalleryApproval({id:foto.id,durum:foto.durum},window.PortalAPI).catch(()=>({ok:false}));kontrol();const bildirim=await bildirimOlustur(anahtar,ders,alan,grup,foto).catch(e=>{console.warn('eğitim bildirimi',e);return{ok:false};});const onayEksik=foto?.onayBildirim?.ok===false||foto?.onayBildirim?.push?.ok===false;const eksik=onayEksik||(bildirim&&(bildirim.ok!==true||bildirim.push?.ok!==true));toast(onayEksik?'Gözlem kaydedildi · yönetici onay bildirimi tam iletilemedi':eksik?'Gözlem kaydedildi · bildirim teslimi doğrulanamadı':foto&&foto.durum==='beklemede'?'Gözlem kaydedildi · fotoğraf yönetim onayında':'✓ Gözlem kaydedildi',eksik?'warning':'success');const geriSinif=S.sinif;kapat(true);try{if(typeof window.caAdminGo==='function')window.caAdminGo('egitim',geriSinif);}catch(_){}}
+  try{const oturum=gallerySession(window.PortalAPI?.state||{});const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};await kayitOnKontrol();kontrol();const foto=await fotoYukle(anahtar,ders,alan,grup);kontrol();await gelisimKaydet(anahtar,ders,alan,grup,foto);kontrol();if(foto&&['beklemede','onayBekliyor'].includes(foto.durum))foto.onayBildirim=await notifyGalleryApproval({id:foto.id,durum:foto.durum},window.PortalAPI).catch(()=>({ok:false}));kontrol();const bildirim=await bildirimOlustur(anahtar,ders,alan,grup,foto).catch(e=>{console.warn('eğitim bildirimi',e?.code||e?.message);return{ok:false,hata:'egitim-bildirim-kaydi'};});const onayEksik=foto?.onayBildirim?.ok===false||foto?.onayBildirim?.push?.ok===false;const eksik=onayEksik||(bildirim&&(bildirim.ok!==true||bildirim.push?.ok!==true));toast(onayEksik?'Gözlem kaydedildi · yönetici onay bildirimi tam iletilemedi':eksik?`${foto?'Gözlem ve fotoğraf kaydedildi':'Gözlem kaydedildi'} · ${bildirim?.hata==='alici-yok'?'veli bildirim alıcısı bulunamadı':bildirim?.ok===false?'veli bildirimi oluşturulamadı':'telefon bildirimi doğrulanamadı'}`:foto&&foto.durum==='beklemede'?'Gözlem kaydedildi · fotoğraf yönetim onayında':'✓ Gözlem kaydedildi',eksik?'warning':'success');const geriSinif=S.sinif;kapat(true);try{if(typeof window.caAdminGo==='function')window.caAdminGo('egitim',geriSinif);}catch(_){}}
   catch(e){if(e?.name==='AbortError'){if(S===kayitOturumu){S.kaydediliyor=false;kapat(true);}return;}console.error('gelişmiş gözlem',e);toast('Gözlem kaydedilemedi: '+(e.message||e),'error');if(S)S.kaydediliyor=false;root?.querySelectorAll('button,select,textarea,input').forEach(el=>el.disabled=false);if(btn)btn.disabled=false;if(pr){pr.textContent='Kayıt tamamlanamadı.';}}
 }
 
 export async function gozlemAc(ogrId,ogrAdValue,sinif){
-  if(!ogrId||S?.kaydediliyor)return;stil();S={ogrId,ogrAd:ogrAdValue||'Öğrenci',sinif:sinif||'',program:'montessori',alanlar:[],alanIdx:0,grupIdx:0,dersIdx:0,durum:'',not:'',foto:null,fotoOniz:''};
+  if(!ogrId||S?.kaydediliyor)return;stil();S={ogrId,ogrAd:ogrAdValue||'Öğrenci',sinif:sinif||'',program:ogretmenProgrami()||'montessori',alanlar:[],alanIdx:0,grupIdx:0,dersIdx:0,durum:'',not:'',foto:null,fotoOniz:''};
   const d=document.createElement('div');d.id='zegoArka';d.className='zego-arka';d.innerHTML='<div class="zego-kart"><div style="padding:30px;text-align:center;color:#7C8882">Müfredat yükleniyor…</div></div>';d.onclick=e=>{if(e.target===d)kapat()};document.body.appendChild(d);
   try{if(await mufredatYukle())ciz();}catch(e){console.error(e);toast('Eğitim programı yüklenemedi.','error');kapat();}
 }
