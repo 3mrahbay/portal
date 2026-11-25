@@ -9258,6 +9258,41 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 <link rel="stylesheet" href="stil/arayuz-duzeltmeleri.css?v=5">
 <link rel="stylesheet" href="js/kitap-kulubu.css?v=2">
 <script src="js/kitap-kulubu.js?v=1"></script>
+<style>
+@media(pointer:coarse){#egitimMatrixContainer .matrix-stu-buton,#egitimMatrixContainer[data-boyut] .matrix-stu-buton{min-width:44px;min-height:44px}}
+/* Education workspace: one scroll owner, including Safari dynamic viewport. */
+.egitim-calisma-araclari{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
+.egitim-calisma-araclari label{display:flex;align-items:center;gap:5px;font-size:12px}
+.egitim-calisma-araclari input{width:115px;min-width:0}
+.egitim-calisma-araclari button,.egitim-calisma-araclari select,.egitim-calisma-araclari input{min-height:38px;border:1px solid #cbd5d1;border-radius:8px;padding:6px;background:#fff;color:#244c35}
+html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important}
+#egitimMatrixContainer.egitim-tam-sayfa{position:fixed;inset:0;z-index:9000;background:#f6f8f6;padding:12px;box-sizing:border-box;display:flex!important;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+.egitim-tam-sayfa #egitimBelgelemeKap,.egitim-tam-sayfa .egitim-matrix-altbilgi{display:none!important}
+.egitim-tam-sayfa #egitimMatrixBaslik{padding:4px 10px;margin:0 0 6px;min-height:0}
+.egitim-tam-sayfa #egitimMatrixBaslik>div:first-child,.egitim-tam-sayfa #egitimMatrixBaslik h3+div{display:none}
+.egitim-tam-sayfa #egitimMatrixBaslik h3{font-size:18px;margin:0}
+.egitim-tam-sayfa .egitim-sinif-secici-bar,.egitim-tam-sayfa .egitim-secici-bar{padding:5px;margin-bottom:5px;flex-shrink:0}
+.egitim-tam-sayfa .egitim-sinif-secici-chiplar{flex-wrap:wrap;overflow:visible}
+#egitimMatrixContainer.egitim-tam-sayfa #egitimMatrixWrap{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#egitimMatrixContainer .matrix-stu-buton{min-width:40px;min-height:40px;font-size:12px}
+#egitimMatrixContainer[data-boyut=kompakt] .matrix-stu-buton{min-width:32px;min-height:32px;font-size:11px}
+#egitimMatrixContainer[data-boyut=buyuk] .matrix-stu-buton{min-width:48px;min-height:48px;font-size:15px}
+@media(max-width:600px){#egitimMatrixContainer.egitim-tam-sayfa{padding:6px;padding-top:max(6px,env(safe-area-inset-top));padding-bottom:max(6px,env(safe-area-inset-bottom))}.egitim-tam-sayfa .egitim-matrix-tablosu thead th.ders-baslik-h,.egitim-tam-sayfa .egitim-matrix-tablosu td.ders-adi{min-width:130px;width:130px;max-width:130px}.egitim-tam-sayfa .egitim-secici-bilgi{display:none}.egitim-tam-sayfa .egitim-matrix-tablosu thead th.ogrenci-h{height:100px}.egitim-calisma-araclari{gap:4px}.egitim-calisma-araclari input{width:85px}}
+</style>
+<style>@media(max-width:600px){#egitimMatrixContainer .matrix-stu-buton,#egitimMatrixContainer[data-boyut] .matrix-stu-buton{min-width:44px;min-height:44px}}</style>
+<style>.egitim-tam-sayfa .egitim-yonetim-araclari,.egitim-tam-sayfa #egitimSinifRaporBtn{display:none!important}
+#egitimMatrixContainer[data-boyut=kompakt] .egitim-matrix-hucre{padding:0;width:34px;min-width:34px}
+#egitimMatrixContainer[data-boyut=kompakt] .matrix-stu-buton{width:30px;height:30px;min-width:30px;min-height:30px;padding:0}
+.egitim-tam-sayfa .egitim-matrix-tablosu thead th.ogrenci-h{height:110px}
+.egitim-tam-sayfa .egitim-matrix-tablosu .ders-baslik-h,.egitim-tam-sayfa .egitim-matrix-tablosu td.ders-adi{width:220px;min-width:220px;max-width:220px}
+@media(max-width:600px),(pointer:coarse){#egitimMatrixContainer[data-boyut] .matrix-stu-buton{width:44px;height:44px;min-width:44px;min-height:44px}.egitim-tam-sayfa .egitim-matrix-tablosu .ders-baslik-h,.egitim-tam-sayfa .egitim-matrix-tablosu td.ders-adi{width:130px;min-width:130px;max-width:130px}}
+</style>
+<style>
+#egitimMatrixContainer[data-boyut=kompakt] .matrix-ogr-foto{width:28px;height:28px;font-size:11px}
+#egitimMatrixContainer[data-boyut=kompakt] .matrix-ogr-ad{font-size:11px;max-height:110px}
+#egitimMatrixContainer[data-boyut=normal] .egitim-matrix-hucre,#egitimMatrixContainer[data-boyut=buyuk] .egitim-matrix-hucre{padding:1px}
+@media(max-width:600px),(pointer:coarse){.egitim-calisma-araclari button,.egitim-calisma-araclari select,.egitim-calisma-araclari input,.egitim-sinif-secici-chiplar select{min-height:44px!important}.egitim-calisma-araclari input,.egitim-calisma-araclari select{font-size:16px}}
+</style>
 </head>
 <body>
 
@@ -10243,7 +10278,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
         <div style="position:relative; z-index:1;">
           <div style="font-size:11px; font-weight:600; letter-spacing:1.8px; opacity:0.85;"><i data-lucide="book-open" style="width:14px;height:14px;vertical-align:-2px;"></i> EĞİTİM TAKİP SİSTEMİ</div>
           <h2 style="font-family:var(--font-display); font-weight:600; font-size:30px; margin:8px 0 6px 0;">Program Bazlı Gelişim Takibi</h2>
-          <p style="opacity:0.92; font-size:14px; max-width:780px; margin:0;">BCDM programlarında tüm öğrencileri tek bakışta görüp hızlıca işaretleme yapın. Her hücreye tıklayarak <strong>Sunuldu (S) → Tekrar (T) → Uzmanlaştı (U) → Boş</strong> arasında geçiş yapabilirsiniz.</p>
+          <p style="opacity:0.92; font-size:14px; max-width:780px; margin:0;">BCDM programlarında tüm öğrencileri tek bakışta görüp hızlıca işaretleme yapın. Her hücreye tıklayarak <strong>S / T / U</strong> seçebilir, açıklama ve fotoğraf ekleyebilirsiniz.</p>
         </div>
       </div>
 
@@ -10270,10 +10305,11 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 
       <!-- MATRIX SİSTEMİ (gizli, disiplin seçilince açılır) -->
       <div id="egitimMatrixContainer" style="display:none;">
+        <div class="egitim-calisma-araclari"><button type="button" id="egitimTamSayfa" onclick="egitimTamSayfaDegistir()">⛶ Tam Sayfa Yap</button><label>İşaretleme <select id="egitimIsaretlemeModu"><option value="detay">Detaylı gözlem</option><option value="hizli">Hızlı işaretleme</option></select></label><label>Öğrenci <input id="egitimOgrenciAra" type="search" placeholder="Ad ara" oninput="egitimMatrixRender()"></label><label>Kazanım <input id="egitimKazanimAra" type="search" placeholder="Kazanım ara" oninput="egitimMatrixRender()"></label><label>Boyut <select id="egitimBoyut" onchange="egitimBoyutSec(this.value)"><option value="normal">Normal</option><option value="kompakt">Kompakt</option><option value="buyuk">Büyük</option></select></label></div>
         <!-- Program belgeleme: orman oturumu / değerler gözlemi (moduller/program-belgeleme.js) -->
         <div id="egitimBelgelemeKap" style="display:none; margin-bottom:16px;"></div>
         <!-- Geri & başlık -->
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+        <div class="egitim-yonetim-araclari" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
           <button class="rapor-geri-btn" onclick="egitimDisiplinKapat()">← Disiplin Seçimine Dön</button>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn-mini" onclick="mufredatEditorAc()" style="font-size:12px;">⚙️ Müfredat Düzenle</button>
@@ -10322,7 +10358,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
             <span><span class="stu-rozet stu-S">S</span> Sunuldu — Öğretmen tanıttı</span>
             <span><span class="stu-rozet stu-T">T</span> Tekrar — Çocuk üzerinde çalışıyor</span>
             <span><span class="stu-rozet stu-U">U</span> Uzmanlaştı — İçselleştirdi</span>
-            <span style="color:#6b7280; font-size:11px;"><i data-lucide="lightbulb" style="width:13px;height:13px;vertical-align:-2px;"></i> Hücreye tıklayarak durumu değiştirin</span>
+            <span style="color:#6b7280; font-size:11px;"><i data-lucide="lightbulb" style="width:13px;height:13px;vertical-align:-2px;"></i> Hücreden gözlem ekleyin · ✎ açıklama · ▧ fotoğraf</span>
           </div>
         </div>
       </div>
@@ -34044,6 +34080,35 @@ let egitimTumuKapaliMi = false;  // "Tümünü Kapat/Aç" düğmesinin durumu
 let egitimGelisimDinleyici = null;
 let egitimYuklemeSurumu = 0;
 
+function egitimYonetimMi() {
+  const s = window.PortalAPI?.state || {};
+  return !!s.isAdmin || ['kurucu_mudur','mudur','egitim_koordinator'].includes(s.rol);
+}
+function egitimSinifEslesir(a,b) {
+  return window.PortalData?.sinifEslesirMi ? window.PortalData.sinifEslesirMi(a,b) : a === b;
+}
+window.egitimBoyutSec = function(boyut) {
+  if(!['kompakt','normal','buyuk'].includes(boyut))boyut='kompakt';
+  document.getElementById('egitimMatrixContainer').dataset.boyut=boyut;
+  document.getElementById('egitimBoyut').value=boyut;
+  try{localStorage.setItem('egitimTabloBoyutu',boyut);}catch(_){}
+};
+let egitimSayfaKonumu = 0;
+window.egitimTamSayfaDegistir = function(ac) {
+  const el = document.getElementById('egitimMatrixContainer');
+  if (!el) return;
+  const aktif = el.classList.contains('egitim-tam-sayfa');
+  const yeni = typeof ac === 'boolean' ? ac : !aktif;
+  if (yeni && !aktif) {egitimSayfaKonumu = window.scrollY;let boyut='kompakt';try{boyut=localStorage.getItem('egitimTabloBoyutu')||boyut;}catch(_){}egitimBoyutSec(boyut);}
+  el.classList.toggle('egitim-tam-sayfa',yeni);
+  document.documentElement.classList.toggle('egitim-calisma-acik',yeni);
+  const btn = document.getElementById('egitimTamSayfa');
+  if (btn) {btn.textContent=yeni?'↙ Normal Görünüme Dön':'⛶ Tam Sayfa Yap';btn.setAttribute('aria-pressed',String(yeni));}
+  if (!yeni && aktif) window.scrollTo(0,egitimSayfaKonumu);
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape' && !document.getElementById('zegoArka')) egitimTamSayfaDegistir(false);});
+window.egitimMatrixRender = egitimMatrixRender;
+
 function egitimSekmesiAktifMi() {
   return document.getElementById("tab-egitim")?.classList.contains("active") === true;
 }
@@ -34055,6 +34120,7 @@ function egitimGelisimCanliDinlemeyiDurdur() {
 
 function egitimArkaPlanCalismasiniDurdur(ekraniTemizle = false) {
   // Devam eden async müfredat/matrix yüklemesini de geçersiz kılar.
+  egitimTamSayfaDegistir(false);
   egitimYuklemeSurumu++;
   egitimGelisimCanliDinlemeyiDurdur();
   egitimAktifDisiplin = null;
@@ -34538,7 +34604,7 @@ window.egitimDisiplinAc = async function(disiplin) {
   egitimAktifDisiplin = disiplin;
   egitimAktifAlanIdx = 0;
   egitimAktifGrupIdx = 0;
-  egitimAktifSinif = null; // null = tüm sınıflar (varsayılan)
+  egitimAktifSinif = null; // Yetkili yönetimde tüm sınıflar; öğretmende atanan sınıf aşağıda seçilir.
   egitimGrupAcik = {};
 
   // Seçici ekranlarını gizle (program + branş kutuları), matrix'i göster
@@ -34585,6 +34651,8 @@ window.egitimDisiplinAc = async function(disiplin) {
   // Container'ın da renk değişkeni
   document.getElementById("egitimMatrixContainer").style.setProperty("--matrix-renk", dInfo.renk);
 
+  const atanan = window.PortalAPI?.state?.siniflar || [];
+  if (!egitimYonetimMi() && atanan.length) egitimAktifSinif = egitimMatrixVerisi.ogrenciler.find(o => atanan.some(x => egitimSinifEslesir(o._sinif, x)))?._sinif || atanan[0];
   // Sınıf, alan seçicilerini doldur
   egitimSinifSeciciDoldur();
   egitimAlanSeciciDoldur();
@@ -34634,6 +34702,11 @@ async function egitimMatrixVeriYukle(zorlaGelisim = false) {
     o._sinif = (ayar && ayar.kayit && ayar.kayit.sinif) || o.sinif || "Sınıfsız";
   });
 
+  const kapsam = window.PortalAPI?.state || {};
+  if (!egitimYonetimMi() && ['ogretmen','yardimci_ogretmen','ingilizce_ogretmeni','degerler_ogretmeni','orman_ogretmeni','brans_ogretmeni'].includes(kapsam.rol)) {
+    aktifOgrenciler = aktifOgrenciler.filter(o => (kapsam.siniflar || []).some(x => egitimSinifEslesir(o._sinif, x)));
+  }
+
   // Önce sınıfa, sonra ada göre sırala
   aktifOgrenciler.sort((a,b) => {
     const sf = (a._sinif || "").localeCompare(b._sinif || "", "tr");
@@ -34657,7 +34730,7 @@ function egitimAlanSeciciDoldur() {
   const mufredat = aktifMufredatlar[egitimAktifDisiplin];
   if (!mufredat) return;
   sel.innerHTML = mufredat.map((alan, i) =>
-    `<option value="${i}" ${i===egitimAktifAlanIdx?"selected":""}>${alan.ikon} ${alan.ad}</option>`
+    `<option value="${i}" ${i===egitimAktifAlanIdx?"selected":""}>${alan.ikon || ''} ${alan.ad}</option>`
   ).join("");
 }
 
@@ -34686,25 +34759,10 @@ function egitimSinifSeciciDoldur() {
   }
   const sinifAdlari = Object.keys(sinifMap).sort((a, b) => a.localeCompare(b, "tr"));
 
-  let html = "";
-  // "Tüm Sınıflar" butonu
-  const tumAktif = egitimAktifSinif === null ? "aktif" : "";
-  html += `
-    <button type="button" class="egitim-sinif-chip ${tumAktif}" onclick="egitimSinifSec(null)">
-      <span>🌐 Tüm Sınıflar</span>
-      <span class="egitim-sinif-chip-sayi">${egitimMatrixVerisi.ogrenciler.length}</span>
-    </button>`;
-
-  // Her sınıf için bir chip
-  for (const s of sinifAdlari) {
-    const aktif = egitimAktifSinif === s ? "aktif" : "";
-    const sEsc = s.replace(/'/g, "\\'").replace(/"/g, '\\"');
-    html += `
-      <button type="button" class="egitim-sinif-chip ${aktif}" onclick="egitimSinifSec('${sEsc}')">
-        <span>${escapeHtmlGelisim(s)}</span>
-        <span class="egitim-sinif-chip-sayi">${sinifMap[s]}</span>
-      </button>`;
-  }
+  let html = `<select aria-label="Sınıf" onchange="egitimSinifSec(this.value || null)" style="max-width:100%;min-height:38px;border:1px solid #cbd5d1;border-radius:8px;background:white;padding:4px 8px">`;
+  if (egitimYonetimMi()) html += `<option value="" ${egitimAktifSinif===null?'selected':''}>Tüm Sınıflar (${egitimMatrixVerisi.ogrenciler.length})</option>`;
+  for (const sinif of sinifAdlari) html += `<option value="${escapeHtmlGelisim(sinif)}" ${egitimAktifSinif===sinif?'selected':''}>${escapeHtmlGelisim(sinif)} (${sinifMap[sinif]})</option>`;
+  html += '</select>';
 
   el.innerHTML = html;
 }
@@ -34719,8 +34777,8 @@ window.egitimSinifSec = function(sinif) {
 // Aktif sınıfa göre öğrenci listesini döndüren yardımcı
 function egitimAktifOgrenciler() {
   if (!egitimMatrixVerisi) return [];
-  if (egitimAktifSinif === null) return egitimMatrixVerisi.ogrenciler;
-  return egitimMatrixVerisi.ogrenciler.filter(o => (o._sinif || "Sınıfsız") === egitimAktifSinif);
+  const arama = (document.getElementById("egitimOgrenciAra")?.value || "").toLocaleLowerCase("tr");
+  return egitimMatrixVerisi.ogrenciler.filter(o => (egitimAktifSinif === null || (o._sinif || "Sınıfsız") === egitimAktifSinif) && (o.ogrenciAdSoyad || o.adSoyad || "").toLocaleLowerCase("tr").includes(arama));
 }
 
 window.egitimAlanDegisti = function() {
@@ -34811,6 +34869,8 @@ function egitimMatrixRender() {
     wrap.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Alan bulunamadı</div>`;
     return;
   }
+  const konum = {top:wrap.scrollTop,left:wrap.scrollLeft};
+  const kazanımArama = (document.getElementById("egitimKazanimAra")?.value || "").toLocaleLowerCase("tr");
   const alan = mufredat[egitimAktifAlanIdx];
   if (!alan.gruplar || alan.gruplar.length === 0) {
     wrap.innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Bu alanda grup bulunamadı</div>`;
@@ -34909,6 +34969,7 @@ function egitimMatrixRender() {
     `;
 
     g.dersler.forEach(d => {
+      if (!d.toLocaleLowerCase("tr").includes(kazanımArama)) return;
       const dersEsc = d.replace(/'/g, "\\'");
       html += `<tr class="matrix-grup-icerik-tr ${icerikSinif}" data-grup-ad="${grupAdAttr}">`;
       html += `<td class="ders-adi">${escapeHtmlGelisim(d)}</td>`;
@@ -34917,10 +34978,13 @@ function egitimMatrixRender() {
         const k = `${alan.id}__${grupAd}__${d}`;
         const v = kayitlar[k] || "";
         const sinif = v ? `aktif-${v}` : "";
-        const goster = v || "·";
+        const detay = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.detay?.[k] || {};
+        const asamalar = Object.values(detay.asamalar || {});
+        const simgeler = `${detay.not || asamalar.some(a=>a.not) ? ' ✎' : ''}${detay.galeriId || asamalar.some(a=>a.galeriId) ? ' ▧' : ''}`;
+        const goster = (v || "·") + simgeler;
         html += `
           <td class="egitim-matrix-hucre" onclick="matrixHucreTikla('${o.id}','${alan.id}','${grupAdEsc}','${dersEsc}', this)">
-            <button type="button" class="matrix-stu-buton ${sinif}">${goster}</button>
+            <button type="button" aria-label="${escapeHtmlGelisim(o.ogrenciAdSoyad || o.adSoyad || 'Öğrenci')} · ${escapeHtmlGelisim(d)} · ${v || 'İşaretlenmedi'}" class="matrix-stu-buton ${sinif}">${goster}</button>
           </td>`;
       });
       html += `</tr>`;
@@ -34929,6 +34993,7 @@ function egitimMatrixRender() {
 
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  wrap.scrollTop = konum.top; wrap.scrollLeft = konum.left;
 
   egitimTumuToggleBtnGuncelle();
 }
@@ -35043,98 +35108,31 @@ window.egitimSinifRaporuAc = function() {
   document.body.appendChild(modal);
 };
 
-// Hücre tıklandığında: boş → S → T → U → boş döngüsü
+// Both modes use the same transaction and existing photo/approval policy.
 window.matrixHucreTikla = async function(ogrId, alanId, grupAd, dersAd, hucreEl) {
-  const kayitlar = (egitimMatrixVerisi.gelisim[ogrId] || {})[egitimAktifDisiplin]?.kayitlar || {};
-  const k = `${alanId}__${grupAd}__${dersAd}`;
-  const mevcut = kayitlar[k] || "";
-  // Döngü
-  const sira = ["", "S", "T", "U"];
-  const idx = sira.indexOf(mevcut);
-  const yeni = sira[(idx + 1) % 4];
-
-  // ---- DEBUG ----
-  console.log("[Matrix Tıklama] Öğrenci ID:", ogrId, "| Disiplin:", egitimAktifDisiplin, "| Anahtar:", k, "| Yeni:", yeni);
-  // --------------
-
-  // UI'yi anlık güncelle
-  const btn = hucreEl?.querySelector(".matrix-stu-buton");
-  if (btn) {
-    btn.classList.remove("aktif-S","aktif-T","aktif-U");
-    if (yeni) btn.classList.add(`aktif-${yeni}`);
-    btn.textContent = yeni || "·";
-  }
-
-  // Cache'i güncelle
-  if (!egitimMatrixVerisi.gelisim[ogrId]) egitimMatrixVerisi.gelisim[ogrId] = {};
-  if (!egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin]) egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin] = { kayitlar:{}, notlar:[] };
-  if (yeni) egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin].kayitlar[k] = yeni;
-  else delete egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin].kayitlar[k];
-
-  // Firestore'a kaydet
-  const ok = await gelisimDersGuncelle(ogrId, egitimAktifDisiplin, alanId, grupAd, dersAd, yeni || null);
-  if (!ok) {
-    if (typeof showToast === "function") showToast("Kayıt başarısız!", "error");
-    // UI'yi geri al
-    if (btn) {
-      btn.classList.remove("aktif-S","aktif-T","aktif-U");
-      if (mevcut) btn.classList.add(`aktif-${mevcut}`);
-      btn.textContent = mevcut || "·";
+  const o = egitimAktifOgrenciler().find(o => o.id === ogrId);
+  if (!o || !egitimAktifDisiplin) return;
+  const program = egitimAktifDisiplin;
+  const oturum = window.PortalAPI?.state?.currentUser;
+  const surum = egitimYuklemeSurumu;
+  const gecerli = () => window.PortalAPI?.state?.currentUser === oturum && egitimAktifDisiplin === program && egitimYuklemeSurumu === surum;
+  const key = `${alanId}__${grupAd}__${dersAd}`;
+  const detail = egitimMatrixVerisi.gelisim[ogrId]?.[program]?.detay?.[key] || {};
+  const wrap = document.getElementById('egitimMatrixWrap');
+  const konum = {top:wrap.scrollTop,left:wrap.scrollLeft};
+  const { gozlemAc } = await import('./moduller/ogretmen-egitim-gozlem.js?v=11');
+  if (!gecerli()) return;
+  await gozlemAc(ogrId, o.ogrenciAdSoyad || o.adSoyad, o._sinif, {
+    program, alanId, grupAd, dersAd, detay:detail,
+    hizli:document.getElementById('egitimIsaretlemeModu')?.value === 'hizli',
+    onClose:()=>{if(!gecerli())return;wrap.scrollTop=konum.top;wrap.scrollLeft=konum.left;},
+    onSaved:async()=>{
+      if(!gecerli())return;
+      tumGelisimOnbelleginiTemizle();
+      await egitimMatrixVeriYukle(true);
+      if (gecerli()) { egitimMatrixRender();wrap.scrollTop=konum.top;wrap.scrollLeft=konum.left; }
     }
-  } else {
-    // Bilgi alanını + tıklanan grubun başlığındaki yüzdeyi güncelle (sınıf bazlı)
-    setTimeout(() => {
-      if (!egitimMatrixVerisi) return;
-      const mufredat = aktifMufredatlar[egitimAktifDisiplin];
-      if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
-      const alan = mufredat[egitimAktifAlanIdx];
-
-      // Sınıf filtresi uygulanmış öğrenci listesi
-      const ogrenciler = egitimAktifOgrenciler();
-
-      // 1) Üst bilgi (alan toplamı)
-      const bilgi = document.getElementById("egitimSeciciBilgi");
-      if (bilgi) {
-        let toplamHucre = 0;
-        let dolu = 0;
-        alan.gruplar.forEach(g => {
-          toplamHucre += g.dersler.length * ogrenciler.length;
-          ogrenciler.forEach(o => {
-            const kayitlar2 = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
-            g.dersler.forEach(d2 => {
-              const k2 = `${alan.id}__${g.ad}__${d2}`;
-              if (kayitlar2[k2]) dolu++;
-            });
-          });
-        });
-        const toplamDers = alan.gruplar.reduce((t, g) => t + g.dersler.length, 0);
-        const yuzdeAlan = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
-        const sinifEtiket = egitimAktifSinif === null ? "Tüm Sınıflar" : egitimAktifSinif;
-        bilgi.innerHTML = `<strong>${escapeHtmlGelisim(sinifEtiket)}</strong> · <strong>${alan.gruplar.length}</strong> grup · <strong>${toplamDers}</strong> ders × <strong>${ogrenciler.length}</strong> öğrenci · <strong>%${yuzdeAlan}</strong> dolu`;
-      }
-
-      // 2) Tıklanan grubun başlığındaki yüzde
-      const grupObj = alan.gruplar.find(g => g.ad === grupAd);
-      if (grupObj) {
-        let grupToplam = grupObj.dersler.length * ogrenciler.length;
-        let grupDolu = 0;
-        ogrenciler.forEach(o => {
-          const kayitlar3 = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
-          grupObj.dersler.forEach(d3 => {
-            const k3 = `${alan.id}__${grupAd}__${d3}`;
-            if (kayitlar3[k3]) grupDolu++;
-          });
-        });
-        const grupYuzde = grupToplam ? Math.round((grupDolu / grupToplam) * 100) : 0;
-        const grupAdAttr = grupAd.replace(/(["'\\\[\]\(\):])/g, "\\$1");
-        const baslikTr = document.querySelector(`tr.matrix-grup-baslik-tr[data-grup-ad="${grupAdAttr}"]`);
-        if (baslikTr) {
-          const yuzdeEl = baslikTr.querySelector(".matrix-grup-baslik-yuzde");
-          if (yuzdeEl) yuzdeEl.textContent = `%${grupYuzde}`;
-        }
-      }
-    }, 50);
-  }
+  });
 };
 
 

@@ -206,7 +206,7 @@ async function gozlemKur(){
       return;
     }
     delete window.__zekyGelismisGozlemV1;
-    const m=await import('../moduller/ogretmen-egitim-gozlem.js?v=10');
+    const m=await import('../moduller/ogretmen-egitim-gozlem.js?v=11');
     m.kur(window);
     await bekle(()=>window.__zekyGelismisGozlemV1===true&&typeof window.caGozlemAc==='function',80,100);
     gozlemAc=window.caGozlemAc;
