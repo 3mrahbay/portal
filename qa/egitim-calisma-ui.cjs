@@ -5,20 +5,22 @@ const styles=[...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m=>m[1
 const markup=source.slice(source.indexOf('<div id="egitimMatrixContainer"'),source.indexOf('<!-- YENİ BRANŞ EKLEME MODALI -->'));
 const matrix=source.slice(source.indexOf('let egitimAktifDisiplin ='),source.indexOf('// ============ SINIF RAPORU MODALI ============'));
 const click=source.slice(source.indexOf('// Both modes use the same transaction'),source.indexOf('\n};',source.indexOf('// Both modes use the same transaction'))+4);
+const scopeCode=fs.readFileSync(path.join(root,'js/egitim-gelisim-okuma.mjs'),'utf8').replaceAll('export ','');
 const bootstrap=`
+${scopeCode}
 window.calls={writes:0,pushes:0};window.messages=[];window.showToast=(m)=>messages.push(m);
 const escapeHtmlGelisim=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const aktifMufredatlar={montessori:[{id:'area',ad:'Günlük Yaşam',gruplar:[{ad:'Grup',dersler:Array.from({length:60},(_,i)=>'Kazanım '+i)}]}]};
 const ogrenciList=Array.from({length:25},(_,i)=>({id:'child-'+i,ogrenciAdSoyad:'Örnek Öğrenci '+i,sinif:'Örnek Sınıf'})),ayarListesi={};
 window.records={'child-4':{montessori:{kayitlar:{'area__Grup__Kazanım 15':'S'},detay:{'area__Grup__Kazanım 15':{asamalar:{S:{durum:'S',not:'Önceki gözlem',tarih:'2026-11-01'}}}}}}};
-const tumGelisimYukle=async()=>records,tumGelisimOnbelleginiTemizle=()=>{};
-window.PortalAPI={state:{currentUser:{uid:'synthetic',email:'synthetic@example.test'},rol:'ogretmen',siniflar:['Örnek Sınıf'],aktifDonem:'2026-2027'}};
+const tumGelisimYukle=async()=>{if(window.failReload)throw Error('synthetic read failure');return records},tumGelisimOnbelleginiTemizle=()=>{};
+window.PortalAPI={state:{currentUser:{uid:'synthetic',email:'synthetic@example.test'},rol:'ogretmen',personel:{sinifAtamalari:['Örnek Sınıf']},ogrenciVerileriHazirMi:true,ogrenciList,ayarListesi,siniflar:['Örnek Sınıf'],aktifDonem:'2026-2027'}};
 window.BCK={db:{},rol:()=>PortalAPI.state.rol,personel:()=>({adSoyad:'Örnek Öğretmen'}),kullanici:()=>PortalAPI.state.currentUser,yoneticiMi:()=>false,
  doc:(...x)=>({id:x.at(-1)}),collection:(...x)=>x.at(-1),getDoc:async r=>({exists:()=>!!records[r.id],data:()=>records[r.id]}),serverTimestamp:()=> 'now',setDoc:async()=>{},
  runTransaction:async(db,fn)=>{await fn({get:async r=>({exists:()=>!!records[r.id],data:()=>records[r.id]}),set:(r,v)=>{records[r.id]={...records[r.id],...v};calls.writes++;}});}};
 window.PortalData={mufredatAlanlariGetir:async()=>aktifMufredatlar.montessori,mufredatAciklamalariGetir:async()=>({}),aciklamaCoz:()=>({}),sinifEslesirMi:(a,b)=>a===b};
 `;
-const init=`egitimAktifDisiplin='montessori';egitimAktifSinif='Örnek Sınıf';egitimMatrixVerisi={ogrenciler:ogrenciList.map(o=>({...o,_sinif:o.sinif})),gelisim:records};document.getElementById('egitimMatrixContainer').style.display='block';egitimSinifSeciciDoldur();egitimAlanSeciciDoldur();egitimMatrixRender();window.ready=true;`;
+const init=`egitimOkumaDurumu='ready';egitimOkumaKapsami=educationReadScope(PortalAPI.state).key;egitimAktifDisiplin='montessori';egitimAktifSinif='Örnek Sınıf';egitimMatrixVerisi={ogrenciler:ogrenciList.map(o=>({...o,_sinif:o.sinif})),gelisim:records};document.getElementById('egitimMatrixContainer').style.display='block';egitimSinifSeciciDoldur();egitimAlanSeciciDoldur();egitimMatrixRender();window.ready=true;`;
 const html=`<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${styles}</style></head><body><div style="height:150px">Sentetik eğitim testi</div><section id="tab-egitim" class="active">${markup}</section><script>${bootstrap}\n${matrix}\n${click}\n${init}</script></body></html>`;
 const out=process.env.EDUCATION_QA_OUTPUT||path.resolve(root,'../qa-output');fs.mkdirSync(out,{recursive:true});
 if(process.env.EDUCATION_QA_PREPARE_ONLY){fs.writeFileSync(path.join(out,'fixture.html'),html);process.exit(0);}

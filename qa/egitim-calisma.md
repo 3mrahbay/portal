@@ -22,3 +22,7 @@ Kullanıcının tekil uyarısına ait ham hata/olay kimliği alınmadı. Dolayı
 ## Sınırlar
 
 Safari masaüstünde sentetik gözlem kaydetme ve tabloya dönüş, 320 px iframe görünümü kontrol edildi. Chrome 320 px iframe görünümü ve hücreden doğru kazanım önseçimi kontrol edildi. Chrome son kayıt dönüşü başka oturumun tarayıcı kullanımı nedeniyle doğrulanamadı. Headless Chromium/WebKit bu makinenin işlem izinlerinde başlatılamadı. Gerçek iPhone/Android kamera, klavye, yön değiştirme ve canlı FCM teslim testi yapılmadı. Yayın öncesi bu kontroller gerekli.
+
+## P0 entegrasyonu
+
+PR #138 (3bccbfe) kapsamlı okuma düzeltmesi bu dala alındı. Hazır/hata/scope/epoch ve rol/program kontrolleri modal öncesinde ve kaydetme öncesinde korunur. Modal, tablo açılırken sunucudan doğrulanan müfredatı kullanır; geçmiş belgesini sunucudan okur. Kayıt sonrası okuma hatası başarıyla yazılan gözlemi geri almaz, tabloyu hata/yeniden dene durumuna getirir. Entegrasyon sonrası 87 odaklı test ve 7 DOM akış testi geçti. Taslak v238 önbellek zinciri hazırdır; yayın yapılmadı.

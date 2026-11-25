@@ -1,4 +1,4 @@
-const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{JSDOM}=require('jsdom');
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{JSDOM}=require(process.env.JSDOM_MODULE||'jsdom');
 const {execFileSync}=require('node:child_process');
 execFileSync(process.execPath,[path.resolve(__dirname,'../qa/education-read-fixture.cjs')]);
 const html=fs.readFileSync(path.resolve(__dirname,'../../fixture.html'),'utf8');
