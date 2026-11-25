@@ -10,10 +10,11 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v236-egitim-bildirimleri";
+const CACHE_VERSION = "v237-egitim-kapsamli-okuma";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/egitim-gelisim-okuma.mjs?v=1",
   "./portal-mufredat.js?v=1",
   "./js/mufredat-servis.js",
   "./js/galeri-silme.js?v=227",
