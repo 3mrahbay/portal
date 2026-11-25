@@ -280,13 +280,10 @@ test('aktif dönem özeti kayıt ve durum değişimlerinde güvenli biçimde ana
   assert.match(kaydet, /\.\.\.aktifDonemOzetAlanlari\(mevcutDonemDurumu\)/);
 });
 
-test('gelişim koleksiyonu aynı render içinde tek uçuş ve süreli önbellek kullanır', async () => {
+test('gelişim okuması kapsamlı ve sunucu doğrulamalı okuyucuya bağlıdır', async () => {
   const s = await readFile(new URL('index.html', kok), 'utf8');
-  const bas = s.indexOf('let tumGelisimOnbellegi = null;');
-  const son = s.indexOf('// ============ EĞİTİM SEKMESİ', bas);
-  const cache = s.slice(bas, son);
-  assert.match(cache, /TUM_GELISIM_ONBELLEK_MS = 5 \* 60 \* 1000/);
-  assert.match(cache, /if \(tumGelisimYuklemeSozu\) return tumGelisimYuklemeSozu/);
-  assert.equal((cache.match(/getDocs\(collection\(db, "ogrenciGelisim"\)\)/g) || []).length, 1);
+  assert.match(s, /createEducationReader/);
+  assert.match(s, /getDocFromServer\(doc\(db, "ogrenciGelisim", id\)\)/);
+  assert.match(s, /getDocsFromServer\(collection\(db, "ogrenciGelisim"\)\)/);
   assert.match(s, /tumGelisimOnbelleginiTemizle\(\)/);
 });

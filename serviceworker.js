@@ -10,10 +10,11 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v236-egitim-bildirimleri";
+const CACHE_VERSION = "v238-egitim-calisma";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/egitim-gelisim-okuma.mjs?v=1",
   "./portal-mufredat.js?v=1",
   "./js/mufredat-servis.js",
   "./js/galeri-silme.js?v=227",
@@ -116,7 +117,8 @@ const PRECACHE = [
   "./js/zeky-gozlem-modal-modern.js?v=1",
   "./moduller/veli-egitim-gelisim.js?v8",
   "./portal-data.js?v8",
-  "./moduller/ogretmen-egitim-gozlem.js?v=10",
+  "./moduller/ogretmen-egitim-gozlem.js?v=11",
+  "./js/egitim-onay-sonucu.js?v=1",
   "./moduller/sabah-girisi.js",
   "./moduller/veli-izinleri.js",
   "./moduller/pickup-yetkilileri.js",

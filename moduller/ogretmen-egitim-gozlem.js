@@ -6,6 +6,7 @@
 
 import { bildirimKaydetVePush, hedefVeliEmailleri } from '../js/zeky-bildirim-koprusu.js?v=227';
 import { notifyGalleryApproval } from '../js/galeri-onay-bildirimi.js?v=186';
+import { onayBildirimUyarisi } from '../js/egitim-onay-sonucu.js?v=1';
 import { gallerySession } from '../js/galeri-onay-canli.js?v=186';
 
 const B = () => window.BCK;
@@ -42,7 +43,9 @@ function ogretmenProgrami(){
 }
 function izinliProgramlar(){
   const program=ogretmenProgrami();
-  return program?PROGRAMLAR.filter(p=>p.id===program):PROGRAMLAR;
+  const list = [...PROGRAMLAR];
+  if(S?.program && !list.some(p=>p.id===S.program)) list.push({id:S.program,ad:S.program});
+  return program?list.filter(p=>p.id===program):list;
 }
 function programKontrol(){
   const program=ogretmenProgrami();
@@ -50,6 +53,7 @@ function programKontrol(){
 }
 async function kayitOnKontrol(){
   programKontrol();
+  S.baglamKontrol?.();
   if(!ogretmenProgrami())return;
   const b=B(),snap=await b.getDoc(b.doc(b.db,'ogrenciGelisim',S.ogrId));
   if(!snap.exists())throw new Error('Bu öğrencinin gelişim kaydını önce sınıf öğretmeni veya yönetim başlatmalıdır.');
@@ -59,6 +63,7 @@ function stil(){
   if(document.getElementById('zego-stil'))return;
   const x=document.createElement('style');x.id='zego-stil';x.textContent=`
     .zego-arka{position:fixed;inset:0;z-index:9700;background:rgba(14,25,19,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}.zego-kart{width:min(620px,100%);max-height:92vh;overflow:auto;background:#FAFAF7;border-radius:22px;box-shadow:0 24px 70px rgba(0,0,0,.25);padding:20px}.zego-ust{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}.zego-bas{flex:1}.zego-bas b{display:block;font-size:18px;color:#2D5E3E}.zego-bas span{font-size:12px;color:#7E8B84}.zego-kapat{width:40px;height:40px;border:0;border-radius:50%;background:#fff;font-size:23px;cursor:pointer}.zego-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.zego-field{margin-bottom:12px}.zego-field label{display:block;font-size:10.5px;font-weight:850;color:#7C8882;letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px}.zego-field select,.zego-field textarea{width:100%;border:1.5px solid #E4E9E5;border-radius:11px;background:#fff;padding:10px 11px;font:500 13px inherit;color:#28342D}.zego-field textarea{resize:vertical;min-height:92px}.zego-durumlar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.zego-durum{border:2px solid transparent;border-radius:13px;padding:10px 8px;background:#fff;cursor:pointer;text-align:center;font-family:inherit}.zego-durum.on{border-color:currentColor}.zego-durum i,.zego-durum svg{width:18px;height:18px}.zego-durum b{display:block;font-size:12px;margin-top:4px}.zego-durum span{display:block;font-size:9.5px;line-height:1.35;margin-top:2px;color:#748078}.zego-foto{border:2px dashed #C9D8CF;border-radius:14px;padding:13px;background:#F6FAF7;text-align:center;cursor:pointer}.zego-foto img{display:block;width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-bottom:8px}.zego-foto b{font-size:12.5px;color:#2D5E3E}.zego-foto span{display:block;font-size:10.5px;color:#849089;margin-top:3px}.zego-notice{border-radius:11px;padding:10px 12px;background:#F0EAF6;color:#5B4189;font-size:11.5px;line-height:1.5;margin:10px 0}.zego-actions{display:flex;gap:9px;margin-top:14px}.zego-btn{flex:1;border:0;border-radius:13px;min-height:46px;font:750 13px inherit;cursor:pointer}.zego-btn.iptal{background:#EEF1EF;color:#526059}.zego-btn.kaydet{background:#2D5E3E;color:#fff}.zego-btn:disabled{opacity:.55}.zego-progress{display:none;margin-top:10px;padding:9px 11px;background:#EAF3EC;color:#2D5E3E;border-radius:10px;font-size:11.5px;font-weight:700}.zego-progress.on{display:block}@media(max-width:560px){.zego-arka{padding:0;align-items:flex-end}.zego-kart{border-radius:22px 22px 0 0;max-height:95vh}.zego-grid{grid-template-columns:1fr}.zego-durumlar{grid-template-columns:1fr}.zego-durum{text-align:left;display:grid;grid-template-columns:28px 100px 1fr;align-items:center;gap:6px}.zego-durum b,.zego-durum span{margin:0}}
+    .zego-kart{box-sizing:border-box;max-height:calc(100dvh - 24px);padding-bottom:max(20px,env(safe-area-inset-bottom))}.zego-actions{position:sticky;bottom:0;background:#FAFAF7;padding:8px 0}.zego-field textarea,.zego-field select{box-sizing:border-box}.zego-foto{min-height:44px}.zego-field select,.zego-field textarea{font-size:16px}@media(max-width:560px){.zego-kart{max-height:95dvh;width:100%;padding:14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}.zego-durum{grid-template-columns:20px 90px 1fr;min-height:44px}}
   `;document.head.appendChild(x);
 }
 
@@ -66,11 +71,18 @@ async function mufredatYukle(){
   const oturum=S, program=S.program, istek=(S.yuklemeNo||0)+1;
   S.yuklemeNo=istek;
   const [alanlar, aciklamalar]=await Promise.all([
-    D().mufredatAlanlariGetir(program).catch(()=>[]),
+    S.dogrulanmisAlanlar ? Promise.resolve(S.dogrulanmisAlanlar) : D().mufredatAlanlariGetir(program),
     D().mufredatAciklamalariGetir(program)
   ]);
   if(S!==oturum||S.program!==program||S.yuklemeNo!==istek)return false;
   S.alanlar=alanlar;S.aciklamalar=aciklamalar;
+  if(S.secim){
+    const a=alanlar.findIndex(a=>a.id===S.secim.alanId);
+    const g=alanlar[a]?.gruplar?.findIndex(g=>g.ad===S.secim.grupAd);
+    const d=alanlar[a]?.gruplar?.[g]?.dersler?.indexOf(S.secim.dersAd);
+    if(a<0||g<0||d<0)throw new Error('Seçilen kazanım artık müfredatta bulunmuyor.');
+    S.alanIdx=a;S.grupIdx=g;S.dersIdx=d;S.secim=null;
+  }
   if(S.alanIdx>=S.alanlar.length)S.alanIdx=0;
   const alan=S.alanlar[S.alanIdx]||null;
   if(S.grupIdx>=(alan?.gruplar||[]).length)S.grupIdx=0;
@@ -89,16 +101,25 @@ function ciz(){
   const {alan,gruplar,grup,dersler,ders}=secenekler();
   const ac=D().aciklamaCoz(S.aciklamalar,`${alan?.id}__${grup?.ad||''}__${ders}`,alan?.id);
   const fotoUrl=S.fotoOniz||'';
+  const anahtar=`${alan?.id}__${grup?.ad||''}__${ders}`;
+  const detay=S.gecmis?.[S.program]?.detay?.[anahtar] || {};
+  const gecmis=Object.values(detay.asamalar||{}).sort((a,b)=>String(b.tarih||'').localeCompare(String(a.tarih||'')));
+  if(!gecmis.length && detay.durum)gecmis.push(detay);
   arka.querySelector('.zego-kart').innerHTML=`
     <div class="zego-ust"><div class="zego-bas"><b>${esc(ogrAd())} · Eğitim Gözlemi</b><span>${esc(S.sinif||'')} · Aşamayı, notu ve varsa fotoğrafı birlikte kaydedin.</span></div><button class="zego-kapat" data-act="kapat">×</button></div>
     <div class="zego-grid"><div class="zego-field"><label>Program</label><select id="zegoProgram">${izinliProgramlar().map(p=>`<option value="${p.id}" ${p.id===S.program?'selected':''}>${esc(p.ad)}</option>`).join('')}</select></div><div class="zego-field"><label>Gelişim alanı</label><select id="zegoAlan">${S.alanlar.map((a,i)=>`<option value="${i}" ${i===S.alanIdx?'selected':''}>${esc(a.ad)}</option>`).join('')}</select></div></div>
     <div class="zego-grid"><div class="zego-field"><label>Grup</label><select id="zegoGrup">${gruplar.map((g,i)=>`<option value="${i}" ${i===S.grupIdx?'selected':''}>${esc(g.ad)}</option>`).join('')}</select></div><div class="zego-field"><label>Eğitim / kazanım</label><select id="zegoDers">${dersler.map((d,i)=>`<option value="${i}" ${i===S.dersIdx?'selected':''}>${esc(d)}</option>`).join('')}</select></div></div>
     <div class="zego-notice" id="zegoKazanimAciklama"><b>Kazanım açıklaması</b><div style="white-space:pre-wrap;margin-top:5px">${esc(ac.metin||'Bu kazanım için henüz açıklama eklenmemiş.')}</div></div>
-    <div class="zego-field"><label>Aşama</label><div class="zego-durumlar">${DURUMLAR.map(d=>`<button type="button" class="zego-durum ${S.durum===d.kod?'on':''}" data-durum="${d.kod}" style="color:${d.renk};background:${d.bg}"><i data-lucide="${d.ikon}"></i><b>${d.ad}</b><span>${d.acik}</span></button>`).join('')}</div></div>
+    <div class="zego-field"><label>Aşama</label><div class="zego-durumlar">${DURUMLAR.map(d=>`<button type="button" class="zego-durum ${S.durum===d.kod?'on':''}" data-durum="${d.kod}" style="color:${d.renk};background:${d.bg}"><i data-lucide="${d.ikon}"></i><b>${d.kod} · ${d.ad}</b><span>${d.acik}</span></button>`).join('')}</div></div>
+    <details class="zego-notice"><summary>Geçmiş gözlemler (${gecmis.length})</summary>${gecmis.map(a=>`<article><b>${esc(a.durum||'')} · ${esc(a.tarih||'')}</b><p>${esc(a.not||'Açıklama yok')}</p>${a.fotoUrl?`<img src="${esc(a.fotoUrl)}" alt="Gözlem fotoğrafı" style="max-width:100%;max-height:160px">`:a.galeriId?'<span>▧ Fotoğraf kaydı var · '+esc(a.fotoDurum||'')+'</span>':''}</article>`).join('')||'<p>Bu kazanım için kayıtlı gözlem yok.</p>'}</details>
+    <div class="zego-ayrinti" ${S.hizli?'hidden':''}>
     <div class="zego-field"><label>Gözlem notu</label><textarea id="zegoNot" placeholder="Bu aşamada gözlemlediğiniz gelişimi yazın…">${esc(S.not||'')}</textarea></div>
     <div class="zego-field"><label>Fotoğraf (opsiyonel)</label><input type="file" id="zegoFotoInput" accept="image/*" hidden><div class="zego-foto" id="zegoFotoSec">${fotoUrl?`<img src="${esc(fotoUrl)}" alt="Seçilen fotoğraf">`:''}<b>${S.foto?'Fotoğraf seçildi':'Fotoğraf ekle'}</b><span>Fotoğraf ilgili S/T/U aşamasında ve Eğitim Galerisi'nde görünür.</span></div></div>
     <div class="zego-notice">${yonetimMi()?'Yönetim hesabından eklenen fotoğraf doğrudan yayınlanır.':'Öğretmen fotoğrafı yönetim onayından sonra veliye ve Eğitim Galerisi’ne açılır.'}</div>
+    </div><button type="button" class="zego-btn" data-act="detay">${S.hizli?'Açıklama / fotoğraf ekle':'Hızlı moda dön'}</button>
+    <button type="button" class="zego-btn" data-act="geri" ${S.secimGecmisi?.length?'':'disabled'}>↶ Seçimi geri al</button><small>Kaydetmeden önceki aşama seçimini geri alır.</small>
     <div class="zego-progress" id="zegoProgress">Kaydediliyor…</div><div class="zego-actions"><button class="zego-btn iptal" data-act="kapat">Vazgeç</button><button class="zego-btn kaydet" data-act="kaydet">Gözlemi Kaydet</button></div>`;
+  if(S.hucreden)arka.querySelectorAll('select').forEach(el=>el.disabled=true);
   bagla();ikon();
 }
 
@@ -106,7 +127,9 @@ function bagla(){
   const root=document.getElementById('zegoArka');if(!root)return;
   root.querySelectorAll('[data-act="kapat"]').forEach(b=>b.onclick=kapat);
   root.querySelector('[data-act="kaydet"]').onclick=kaydet;
-  root.querySelectorAll('[data-durum]').forEach(b=>b.onclick=()=>{S.durum=b.dataset.durum;ciz();});
+  root.querySelector('[data-act="detay"]').onclick=()=>{S.hizli=!S.hizli;ciz();};
+  root.querySelectorAll('[data-durum]').forEach(b=>b.onclick=()=>{(S.secimGecmisi ||= []).push(S.durum);S.durum=b.dataset.durum;ciz();});
+  root.querySelector('[data-act="geri"]').onclick=()=>{if(S.secimGecmisi?.length){S.durum=S.secimGecmisi.pop();ciz();}};
   root.querySelector('#zegoProgram').onchange=async e=>{S.program=e.target.value;S.alanIdx=S.grupIdx=S.dersIdx=0;if(await mufredatYukle())ciz();};
   root.querySelector('#zegoAlan').onchange=e=>{S.alanIdx=+e.target.value;S.grupIdx=S.dersIdx=0;ciz();};
   root.querySelector('#zegoGrup').onchange=e=>{S.grupIdx=+e.target.value;S.dersIdx=0;ciz();};
@@ -116,7 +139,7 @@ function bagla(){
   root.querySelector('#zegoFotoInput').onchange=e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>10*1024*1024){toast('Fotoğraf en fazla 10 MB olabilir.','error');return;}S.foto=f;if(S.fotoOniz)URL.revokeObjectURL(S.fotoOniz);S.fotoOniz=URL.createObjectURL(f);ciz();};
 }
 
-function kapat(tamamlandi=false){if(S?.kaydediliyor&&tamamlandi!==true)return;if(S?.fotoOniz)try{URL.revokeObjectURL(S.fotoOniz)}catch(_){};document.getElementById('zegoArka')?.remove();S=null;}
+function kapat(tamamlandi=false){if(S?.kaydediliyor&&tamamlandi!==true)return;const onClose=S?.onClose,odak=S?.odak;if(S?.fotoOniz)try{URL.revokeObjectURL(S.fotoOniz)}catch(_){};document.getElementById('zegoArka')?.remove();S=null;onClose?.();if(odak?.isConnected)odak.focus({preventScroll:true});}
 
 async function blobResim(blob){return new Promise((resolve,reject)=>{const u=URL.createObjectURL(blob),img=new Image();img.onload=()=>{URL.revokeObjectURL(u);resolve(img)};img.onerror=e=>{URL.revokeObjectURL(u);reject(e)};img.src=u;});}
 async function filigranla(blob){
@@ -127,7 +150,7 @@ async function filigranla(blob){
 
 async function fotoYukle(anahtar,ders,alan,grup){
   if(!S.foto)return null;const b=B(),oturum=gallerySession(window.PortalAPI?.state||{});
-  const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};
+  const kontrol=()=>{S.baglamKontrol?.();if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};
   if(!b?.resimSikistir||!b?.medyaYukle)throw new Error('Medya yükleyici hazır değil.');
   const sik=await b.resimSikistir(S.foto,1920,.85);kontrol();const isaretli=await filigranla(sik);kontrol();
   // Canvas çıktısı Blob'dur; medya servisine JPEG adı olan bir File gönder.
@@ -148,7 +171,7 @@ async function gelisimKaydet(anahtar,ders,alan,grup,foto){
   const b=B(),ref=b.doc(b.db,'ogrenciGelisim',S.ogrId),oturum=gallerySession(window.PortalAPI?.state||{});
   if(!b.runTransaction)throw new Error('Gözlem kayıt altyapısı hazır değil. Sayfayı yenileyin.');
   await b.runTransaction(b.db,async tx=>{
-  const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};
+  const kontrol=()=>{S.baglamKontrol?.();if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};
   kontrol();const snap=await tx.get(ref);kontrol();const tum=snap.exists()?(snap.data()||{}):{},dis=tum[S.program]||{};
   const kayitlar={...(dis.kayitlar||{})},tarihler={...(dis.tarihler||{})},detay={...(dis.detay||{})},onceki=detay[anahtar]||{},asamalar={...(onceki.asamalar||{})},eski=asamalar[S.durum]||{};
   const simdi=new Date().toISOString(),not=(S.not||'').trim(),onayli=!foto||foto.durum==='onaylandi';
@@ -185,20 +208,23 @@ async function bildirimOlustur(anahtar,ders,alan,grup,foto){
 
 async function kaydet(){
   if(!S||S.kaydediliyor)return;
+  if(S.acilisOturumu && S.acilisOturumu!==gallerySession(window.PortalAPI?.state||{})){toast('Oturum değişti. Gözlemi yeniden açın.','error');kapat();return;}
   if(!S.durum){toast('Önce Sunuldu, Tekrar ediyor veya Ustalaştı aşamasını seçin.','error');return;}
   const {alan,grup,ders}=secenekler();if(!alan||!grup||!ders){toast('Bir eğitim/kazanım seçin.','error');return;}
   const root=document.getElementById('zegoArka'),btn=root?.querySelector('[data-act="kaydet"]'),pr=root?.querySelector('#zegoProgress');if(btn)btn.disabled=true;if(pr){pr.classList.add('on');pr.textContent=S.foto?'Fotoğraf işleniyor ve gözlem kaydediliyor…':'Gözlem kaydediliyor…';}
   S.kaydediliyor=true;root?.querySelectorAll('button,select,textarea,input').forEach(el=>el.disabled=true);
   const anahtar=`${alan.id}__${grup.ad||''}__${ders}`;
   const kayitOturumu=S;
-  try{const oturum=gallerySession(window.PortalAPI?.state||{});const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};await kayitOnKontrol();kontrol();const foto=await fotoYukle(anahtar,ders,alan,grup);kontrol();await gelisimKaydet(anahtar,ders,alan,grup,foto);kontrol();if(foto&&['beklemede','onayBekliyor'].includes(foto.durum))foto.onayBildirim=await notifyGalleryApproval({id:foto.id,durum:foto.durum},window.PortalAPI).catch(()=>({ok:false}));kontrol();const bildirim=await bildirimOlustur(anahtar,ders,alan,grup,foto).catch(e=>{console.warn('eğitim bildirimi',e?.code||e?.message);return{ok:false,hata:'egitim-bildirim-kaydi'};});const onayEksik=foto?.onayBildirim?.ok===false||foto?.onayBildirim?.push?.ok===false;const eksik=onayEksik||(bildirim&&(bildirim.ok!==true||bildirim.push?.ok!==true));toast(onayEksik?'Gözlem kaydedildi · yönetici onay bildirimi tam iletilemedi':eksik?`${foto?'Gözlem ve fotoğraf kaydedildi':'Gözlem kaydedildi'} · ${bildirim?.hata==='alici-yok'?'veli bildirim alıcısı bulunamadı':bildirim?.ok===false?'veli bildirimi oluşturulamadı':'telefon bildirimi doğrulanamadı'}`:foto&&foto.durum==='beklemede'?'Gözlem kaydedildi · fotoğraf yönetim onayında':'✓ Gözlem kaydedildi',eksik?'warning':'success');const geriSinif=S.sinif;kapat(true);try{if(typeof window.caAdminGo==='function')window.caAdminGo('egitim',geriSinif);}catch(_){}}
-  catch(e){if(e?.name==='AbortError'){if(S===kayitOturumu){S.kaydediliyor=false;kapat(true);}return;}console.error('gelişmiş gözlem',e);toast('Gözlem kaydedilemedi: '+(e.message||e),'error');if(S)S.kaydediliyor=false;root?.querySelectorAll('button,select,textarea,input').forEach(el=>el.disabled=false);if(btn)btn.disabled=false;if(pr){pr.textContent='Kayıt tamamlanamadı.';}}
+  try{const oturum=gallerySession(window.PortalAPI?.state||{});const kontrol=()=>{if(oturum!==gallerySession(window.PortalAPI?.state||{}))throw Object.assign(new Error('Oturum değişti'),{name:'AbortError'});};await kayitOnKontrol();kontrol();const foto=await fotoYukle(anahtar,ders,alan,grup);kontrol();await gelisimKaydet(anahtar,ders,alan,grup,foto);kontrol();if(foto&&['beklemede','onayBekliyor'].includes(foto.durum))foto.onayBildirim=await notifyGalleryApproval({id:foto.id,durum:foto.durum},window.PortalAPI).catch(e=>({ok:false,hata:e?.code||e?.message||'onay-bildirim-hatasi'}));kontrol();const bildirim=await bildirimOlustur(anahtar,ders,alan,grup,foto).catch(e=>{console.warn('eğitim bildirimi',e?.code||e?.message);return{ok:false,hata:'egitim-bildirim-kaydi'};});kontrol();if(foto?.onayBildirim && (foto.onayBildirim.ok===false||foto.onayBildirim.push?.ok===false))console.warn('Gözlem yönetici bildirimi', {hata:foto.onayBildirim.hata,aliciSorgusuBasarisiz:foto.onayBildirim.recipientLookupFailed,kayitHataKodlari:foto.onayBildirim.kayitHatalari?.map(x=>x.hata),pushHatasi:foto.onayBildirim.push?.hata});const onayEksik=foto?.onayBildirim?.ok===false||foto?.onayBildirim?.push?.ok===false;const eksik=onayEksik||(bildirim&&(bildirim.ok!==true||bildirim.push?.ok!==true));toast(onayEksik?'Gözlem kaydedildi · yönetici onay bildirimi tam iletilemedi':eksik?`${foto?'Gözlem ve fotoğraf kaydedildi':'Gözlem kaydedildi'} · ${bildirim?.hata==='alici-yok'?'veli bildirim alıcısı bulunamadı':bildirim?.ok===false?'veli bildirimi oluşturulamadı':'telefon bildirimi doğrulanamadı'}`:foto&&foto.durum==='beklemede'?'Gözlem kaydedildi · fotoğraf yönetim onayında':'✓ Gözlem kaydedildi',eksik?'warning':'success');try{if(foto?.onayBildirim)onayBildirimUyarisi(foto.onayBildirim,{active:()=>oturum===gallerySession(window.PortalAPI?.state||{}),retry:()=>notifyGalleryApproval({id:foto.id,durum:foto.durum},window.PortalAPI)});}catch(e){console.warn('Bildirim uyarısı gösterilemedi',e?.message);}const geriSinif=S.sinif,onSaved=S.onSaved;kapat(true);try{if(onSaved)await onSaved();else if(typeof window.caAdminGo==='function')window.caAdminGo('egitim',geriSinif);}catch(e){console.warn('Gözlem kaydedildi, görünüm yenilenemedi',e?.code||e?.message);}}
+  catch(e){if(e?.name==='AbortError'){if(S===kayitOturumu){S.kaydediliyor=false;kapat(true);}return;}console.error('gelişmiş gözlem',e);toast('Gözlem kaydedilemedi: '+(e.message||e),'error');if(S)S.kaydediliyor=false;root?.querySelectorAll('button,select,textarea,input').forEach(el=>el.disabled=false);if(S?.hucreden)root?.querySelectorAll('select').forEach(el=>el.disabled=true);if(btn)btn.disabled=false;if(pr){pr.textContent='Kayıt tamamlanamadı.';}}
 }
 
-export async function gozlemAc(ogrId,ogrAdValue,sinif){
-  if(!ogrId||S?.kaydediliyor)return;stil();S={ogrId,ogrAd:ogrAdValue||'Öğrenci',sinif:sinif||'',program:ogretmenProgrami()||'montessori',alanlar:[],alanIdx:0,grupIdx:0,dersIdx:0,durum:'',not:'',foto:null,fotoOniz:''};
-  const d=document.createElement('div');d.id='zegoArka';d.className='zego-arka';d.innerHTML='<div class="zego-kart"><div style="padding:30px;text-align:center;color:#7C8882">Müfredat yükleniyor…</div></div>';d.onclick=e=>{if(e.target===d)kapat()};document.body.appendChild(d);
-  try{if(await mufredatYukle())ciz();}catch(e){console.error(e);toast('Eğitim programı yüklenemedi.','error');kapat();}
+export async function gozlemAc(ogrId,ogrAdValue,sinif,secim={}){
+  if(secim.program && ogretmenProgrami() && secim.program!==ogretmenProgrami()){toast('Yalnızca kendi eğitim programınıza gözlem ekleyebilirsiniz.','error');return;}
+  if(!ogrId||S?.kaydediliyor)return;if(S)kapat();stil();S={odak:document.activeElement,...secim,acilisOturumu:gallerySession(window.PortalAPI?.state||{}),secim:secim.alanId?secim:null,hucreden:!!secim.alanId,ogrId,ogrAd:ogrAdValue||'Öğrenci',sinif:sinif||'',program:ogretmenProgrami()||secim.program||'montessori',alanlar:[],alanIdx:0,grupIdx:0,dersIdx:0,durum:'',not:'',foto:null,fotoOniz:''};
+  const d=document.createElement('div');d.id='zegoArka';d.className='zego-arka';d.innerHTML='<div class="zego-kart" role="dialog" aria-modal="true" aria-label="Eğitim gözlemi" tabindex="-1"><div style="padding:30px;text-align:center;color:#7C8882">Müfredat yükleniyor…</div></div>';d.onclick=e=>{if(e.target===d)kapat()};document.body.appendChild(d);d.querySelector('.zego-kart').focus();d.onkeydown=e=>{if(e.key==='Escape'){e.stopPropagation();kapat();}if(e.key==='Tab'){const list=[...d.querySelectorAll('button:not(:disabled),select:not(:disabled),textarea,input:not([hidden])')].filter(el=>el.getClientRects().length);const first=list[0],last=list.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};
+  const acilis=S;
+  try{const b=B();const snap=await (b.getDocFromServer||b.getDoc)(b.doc(b.db,'ogrenciGelisim',ogrId));if(S!==acilis)return;if(S.acilisOturumu!==gallerySession(window.PortalAPI?.state||{})){kapat();return;}S.gecmis=snap.exists()?snap.data():{};if(await mufredatYukle())ciz();}catch(e){if(S!==acilis)return;console.error(e);toast('Eğitim programı yüklenemedi.','error');kapat();}
 }
 
 export function kur(win=window){
