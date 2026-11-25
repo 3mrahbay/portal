@@ -14131,11 +14131,12 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocFromServer, getDocs, setDoc, updateDoc, deleteDoc,
+  getFirestore, collection, doc, getDoc, getDocFromServer, getDocs, getDocsFromServer, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot, addDoc, arrayUnion, increment, runTransaction,
   documentId, deleteField, getCountFromServer, FieldPath
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import { educationReadScope, createEducationReader, watchEducationRecords } from "./js/egitim-gelisim-okuma.mjs?v=1";
 import { maliKayitImzasi, maliKayitYamasi } from "./js/aidat-mali-kayit.js?v=1";
 import { createGooglePopupFlow } from "./js/portal-google-login.js?v=178";
 import { classifyGalleryFile, validateStreamVideo } from "./js/bunny-stream-upload.js?v=192";
@@ -14163,7 +14164,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v236";
+window.PORTAL_SURUM = "v237";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -17397,6 +17398,8 @@ onAuthStateChanged(auth, async (user) => {
   const oturumSurumu = ++portalOturumSurumu;
   document.getElementById('egitimGruplariPanel')?.replaceChildren?.();
   window.egitimGrupTemizle?.();
+  egitimArkaPlanCalismasiniDurdur(true);
+  tumGelisimOnbelleginiTemizle();
   // Eski hesabın kimliği ve veli bağı yeni hesabın asenkron yüklemesine taşınmaz.
   currentUser = user || null;
   isAdmin = false;
@@ -33849,14 +33852,18 @@ async function gelisimYukle(ogrenciId) {
 }
 
 // Tek bir ders durumunu güncelle (disipline göre)
-async function gelisimDersGuncelle(ogrenciId, disiplin, alanId, grupAd, dersAd, durum) {
+async function gelisimDersGuncelle(ogrenciId, disiplin, alanId, grupAd, dersAd, durum, beklenenDurum) {
   if (!ogrenciId || !disiplin) return false;
   const anahtar = `${alanId}__${grupAd}__${dersAd}`;
+  const oturum = portalOturumSurumu, uid = currentUser?.uid;
+  const oturumKontrol = () => { if (oturum !== portalOturumSurumu || uid !== currentUser?.uid) throw new Error("Oturum değişti"); };
   try {
     const ref = doc(db, "ogrenciGelisim", ogrenciId);
     await runTransaction(db, async tx => {
       const snap = await tx.get(ref);
       const mevcutDisiplin = (snap.exists() && snap.data()[disiplin]) ? snap.data()[disiplin] : {};
+      oturumKontrol();
+      if (beklenenDurum !== undefined && (mevcutDisiplin.kayitlar?.[anahtar] || "") !== beklenenDurum) throw new Error("Kayıt başka bir oturumda değişti. Yeniden yükleyin.");
       const kayitlar = { ...(mevcutDisiplin.kayitlar || {}) };
       const tarihler = { ...(mevcutDisiplin.tarihler || {}) };
       if (durum === null || durum === "") {
@@ -33995,41 +34002,21 @@ function disiplinGenelIlerleme(kayitlarDisiplin, mufredat) {
 // Tüm öğrencilerin gelişim verisi aynı ana sayfa render'ında birden fazla kart
 // tarafından istenir. Tek uçuş + kısa süreli bellek önbelleği aynı koleksiyonun
 // peş peşe yeniden okunmasını ve büyük belgelerin tekrar ayrıştırılmasını önler.
-let tumGelisimOnbellegi = null;
-let tumGelisimOnbellekZamani = 0;
-let tumGelisimYuklemeSozu = null;
-const TUM_GELISIM_ONBELLEK_MS = 5 * 60 * 1000;
-
-function tumGelisimOnbelleginiTemizle() {
-  tumGelisimOnbellegi = null;
-  tumGelisimOnbellekZamani = 0;
-}
-
-async function tumGelisimYukle(zorla = false) {
-  const simdi = Date.now();
-  if (!zorla && tumGelisimOnbellegi && simdi - tumGelisimOnbellekZamani < TUM_GELISIM_ONBELLEK_MS) {
-    return tumGelisimOnbellegi;
+const egitimOkuyucu = createEducationReader({
+  scope: () => educationReadScope(window.PortalAPI.state),
+  readAll: async () => {
+    const snap = await getDocsFromServer(collection(db, "ogrenciGelisim"));
+    const sonuc = {};
+    snap.forEach(d => { sonuc[d.id] = d.data(); });
+    return sonuc;
+  },
+  readOne: async id => {
+    const snap = await getDocFromServer(doc(db, "ogrenciGelisim", id));
+    return snap.exists() ? snap.data() : null;
   }
-  if (tumGelisimYuklemeSozu) return tumGelisimYuklemeSozu;
-
-  tumGelisimYuklemeSozu = (async () => {
-    try {
-      const snap = await getDocs(collection(db, "ogrenciGelisim"));
-      const sonuc = {};
-      snap.forEach(d => { sonuc[d.id] = d.data(); });
-      tumGelisimOnbellegi = sonuc;
-      tumGelisimOnbellekZamani = Date.now();
-      return sonuc;
-    } catch(e) {
-      console.error("Tüm gelişim yüklenemedi:", e);
-      return tumGelisimOnbellegi || {};
-    } finally {
-      tumGelisimYuklemeSozu = null;
-    }
-  })();
-  return tumGelisimYuklemeSozu;
-}
-
+});
+function tumGelisimOnbelleginiTemizle() { egitimOkuyucu.invalidate(); }
+async function tumGelisimYukle(zorla = false) { return egitimOkuyucu.read(zorla); }
 
 // ============ EĞİTİM SEKMESİ: SINIF BAZLI MATRIX SİSTEMİ ============
 // Ana sayfada, sınıfın tamamını tek tabloda gösteren Compass tarzı görünüm
@@ -34043,6 +34030,27 @@ let egitimGrupAcik = {};         // { 'GrupAd1': true, 'GrupAd2': false } — a�
 let egitimTumuKapaliMi = false;  // "Tümünü Kapat/Aç" düğmesinin durumu
 let egitimGelisimDinleyici = null;
 let egitimYuklemeSurumu = 0;
+let egitimOkumaDurumu = "idle";
+let egitimOkumaKapsami = "";
+function egitimOkumaHazirMi() {
+  try { return egitimOkumaDurumu === "ready" && egitimOkumaKapsami === educationReadScope(window.PortalAPI.state).key; }
+  catch (_) { return false; }
+}
+function egitimOkumaMesaji(hata = false) {
+  const wrap = document.getElementById("egitimMatrixWrap");
+  const bilgi = document.getElementById("egitimSeciciBilgi");
+  if (bilgi) bilgi.textContent = hata ? "Kayıtlar okunamadı · doluluk hesaplanmadı" : "Kayıtlar yükleniyor…";
+  if (wrap) wrap.innerHTML = hata
+    ? '<div role="alert" style="padding:28px">Kazanım kayıtları okunamadı. Bu durum kayıtların boş olduğu anlamına gelmez. İşaretleme kapalı.<br><button type="button" onclick="egitimMatrixYenile()">Yeniden dene</button></div>'
+    : '<div role="status" style="padding:28px">Kazanım kayıtları yükleniyor…</div>';
+}
+function egitimOkumaHatasi(e) {
+  egitimOkumaDurumu = "error";
+  egitimGelisimCanliDinlemeyiDurdur();
+  tumGelisimOnbelleginiTemizle();
+  console.warn("Eğitim kayıtları okunamadı:", e?.code || e?.message);
+  egitimOkumaMesaji(true);
+}
 
 function egitimSekmesiAktifMi() {
   return document.getElementById("tab-egitim")?.classList.contains("active") === true;
@@ -34056,6 +34064,8 @@ function egitimGelisimCanliDinlemeyiDurdur() {
 function egitimArkaPlanCalismasiniDurdur(ekraniTemizle = false) {
   // Devam eden async müfredat/matrix yüklemesini de geçersiz kılar.
   egitimYuklemeSurumu++;
+  egitimOkumaDurumu = "idle";
+  egitimOkumaKapsami = "";
   egitimGelisimCanliDinlemeyiDurdur();
   egitimAktifDisiplin = null;
   if (ekraniTemizle) {
@@ -34067,21 +34077,23 @@ function egitimArkaPlanCalismasiniDurdur(ekraniTemizle = false) {
 
 function egitimGelisimCanliDinlemeyiBaslat(disiplin) {
   egitimGelisimCanliDinlemeyiDurdur();
-  if (!disiplin || !egitimSekmesiAktifMi()) return;
+  if (!disiplin || !egitimSekmesiAktifMi() || !egitimOkumaHazirMi()) return;
   const dinleyiciSurumu = egitimYuklemeSurumu;
-  egitimGelisimDinleyici = onSnapshot(collection(db, "ogrenciGelisim"), snap => {
-    // Sekmeden ayrıldıktan veya başka bir yükleme başladıktan sonra gizli
-    // binlerce hücrelik matrisi yeniden çizme.
-    if (dinleyiciSurumu !== egitimYuklemeSurumu ||
-        !egitimSekmesiAktifMi() || egitimAktifDisiplin !== disiplin ||
-        !egitimMatrixVerisi) return;
-    const gelisim = {};
-    snap.forEach(d => { gelisim[d.id] = d.data(); });
-    egitimMatrixVerisi.gelisim = gelisim;
-    if (typeof egitimMatrixRender === "function") {
-      egitimMatrixRender();
-    }
-  }, e => console.warn("Eğitim gelişimi canlı yenilenemedi:", e?.code || e?.message || e));
+  const target = educationReadScope(window.PortalAPI.state);
+  egitimGelisimDinleyici = watchEducationRecords({
+    target,
+    current: () => dinleyiciSurumu === egitimYuklemeSurumu && egitimSekmesiAktifMi() && egitimAktifDisiplin === disiplin && egitimOkumaHazirMi(),
+    listenAll: (next, error) => onSnapshot(collection(db, "ogrenciGelisim"), {includeMetadataChanges:true}, snap => {
+      if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
+      const value = {}; snap.forEach(d => { value[d.id] = d.data(); }); next(value);
+    }, error),
+    listenOne: (id, next, error) => onSnapshot(doc(db, "ogrenciGelisim", id), {includeMetadataChanges:true}, snap => {
+      if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
+      next(snap.exists() ? snap.data() : null);
+    }, error),
+    update: gelisim => { egitimMatrixVerisi.gelisim = gelisim; tumGelisimOnbelleginiTemizle(); egitimMatrixRender(); },
+    error: egitimOkumaHatasi
+  });
 }
 
 // Sekme açıldığında çağrılır
@@ -34249,6 +34261,7 @@ window.egitimRaporAc = async function(disiplin) {
 
 // Detaylı rapor penceresi: program özeti + alan bazlı + sınıf bazlı + öğrenci bazlı
 window.egitimDetayliRaporGoster = function(disiplin) {
+  if (!egitimOkumaHazirMi()) { showToast("Önce kazanım kayıtlarını yeniden yükleyin.", "error"); return; }
   const dInfo = DISIPLINLER.find(x => x.id === disiplin) || { ad: disiplin, renk: "#4f46e5", ikon: "📚" };
   const mufredat = aktifMufredatlar[disiplin] || [];
   const gelisim = (egitimMatrixVerisi && egitimMatrixVerisi.gelisim) || {};
@@ -34503,6 +34516,7 @@ window.egitimDetayliRaporGoster = function(disiplin) {
 
 // Rapor Excel çıktısı
 window.egitimRaporExcel = function(disiplin) {
+  if (!egitimOkumaHazirMi()) { showToast("Önce kazanım kayıtlarını yeniden yükleyin.", "error"); return; }
   if (typeof XLSX === "undefined") { showToast("Excel kütüphanesi yüklenemedi", "error"); return; }
   const dInfo = DISIPLINLER.find(x => x.id === disiplin) || { ad: disiplin };
   const mufredat = aktifMufredatlar[disiplin] || [];
@@ -34535,6 +34549,8 @@ window.egitimRaporExcel = function(disiplin) {
 window.egitimDisiplinAc = async function(disiplin) {
   egitimGelisimCanliDinlemeyiDurdur();
   const yuklemeSurumu = ++egitimYuklemeSurumu;
+  egitimOkumaDurumu = "loading";
+  egitimOkumaKapsami = "";
   egitimAktifDisiplin = disiplin;
   egitimAktifAlanIdx = 0;
   egitimAktifGrupIdx = 0;
@@ -34562,10 +34578,21 @@ window.egitimDisiplinAc = async function(disiplin) {
 
   // Müfredat ve tüm öğrencilerin gelişimini yükle
   document.getElementById("egitimMatrixWrap").innerHTML = `<div style="padding:40px; text-align:center; color:#9ca3af;">Müfredat ve öğrenci verileri yükleniyor...</div>`;
-  await mufredatYukle(disiplin);
-  if (yuklemeSurumu !== egitimYuklemeSurumu || !egitimSekmesiAktifMi()) return;
-  await egitimMatrixVeriYukle();
-  if (yuklemeSurumu !== egitimYuklemeSurumu || !egitimSekmesiAktifMi()) return;
+  egitimOkumaMesaji();
+  try {
+    // Matrix editing requires the actual server curriculum; no fallback IDs or auto-create.
+    const mufredatSnap = await getDocFromServer(doc(db, "mufredatlar", disiplin));
+    if (yuklemeSurumu !== egitimYuklemeSurumu || !egitimSekmesiAktifMi()) return;
+    if (!mufredatSnap.exists() || !Array.isArray(mufredatSnap.data().alanlar)) throw new Error("Müfredat doğrulanamadı.");
+    aktifMufredatlar[disiplin] = mufredatSnap.data().alanlar;
+    if (yuklemeSurumu !== egitimYuklemeSurumu || !egitimSekmesiAktifMi()) return;
+    await egitimMatrixVeriYukle(true, yuklemeSurumu);
+    if (yuklemeSurumu !== egitimYuklemeSurumu || !egitimSekmesiAktifMi()) return;
+    egitimOkumaDurumu = "ready";
+  } catch (e) {
+    if (yuklemeSurumu === egitimYuklemeSurumu && egitimSekmesiAktifMi()) egitimOkumaHatasi(e);
+    return;
+  }
 
   // Disiplin başlığı + renk
   const dInfo = DISIPLINLER.find(x => x.id === disiplin);
@@ -34600,13 +34627,20 @@ window.egitimDisiplinKapat = function() {
 
 window.egitimMatrixYenile = async function() {
   if (!egitimAktifDisiplin) return;
-  await egitimMatrixVeriYukle(true);
-  egitimSinifSeciciDoldur(); // Sınıf chip'leri de yenilensin (yeni öğrenci eklenmişse)
-  egitimMatrixRender();
-  if (typeof showToast === "function") showToast("✓ Yenilendi");
+  // Use the complete open path so retry also rebuilds selectors after a failed first load.
+  const sinif = egitimAktifSinif, alan = egitimAktifAlanIdx;
+  const wrap = document.getElementById("egitimMatrixWrap"), top = wrap?.scrollTop || 0, left = wrap?.scrollLeft || 0;
+  const disiplin = egitimAktifDisiplin, surum = egitimYuklemeSurumu + 1;
+  await window.egitimDisiplinAc(disiplin);
+  if (surum === egitimYuklemeSurumu && disiplin === egitimAktifDisiplin && egitimOkumaHazirMi()) {
+    egitimAktifSinif = sinif; egitimAktifAlanIdx = alan;
+    egitimSinifSeciciDoldur(); egitimAlanSeciciDoldur(); egitimGrupSeciciDoldur(); egitimMatrixRender();
+    if (wrap) { wrap.scrollTop = top; wrap.scrollLeft = left; }
+  }
 };
 
-async function egitimMatrixVeriYukle(zorlaGelisim = false) {
+async function egitimMatrixVeriYukle(zorlaGelisim = false, yuklemeSurumu = egitimYuklemeSurumu) {
+  const kapsam = educationReadScope(window.PortalAPI.state);
   // Aktif öğrencileri filtrele - sistemdeki standart fonksiyonu kullan
   let aktifOgrenciler;
   if (typeof getOgrenciDurum === "function") {
@@ -34628,6 +34662,8 @@ async function egitimMatrixVeriYukle(zorlaGelisim = false) {
     aktifOgrenciler = [...ogrenciList];
   }
 
+  aktifOgrenciler = aktifOgrenciler.filter(o => kapsam.ids.includes(o.id));
+
   // Her öğrencinin sınıfını _sinif alanına yaz (filtreleme için)
   aktifOgrenciler.forEach(o => {
     const ayar = (typeof ayarListesi !== "undefined" && ayarListesi) ? ayarListesi[o.id] : null;
@@ -34643,6 +34679,9 @@ async function egitimMatrixVeriYukle(zorlaGelisim = false) {
 
   // Tüm öğrencilerin gelişim verilerini yükle
   const tumGelisim = await tumGelisimYukle(zorlaGelisim);
+  if (yuklemeSurumu !== egitimYuklemeSurumu || kapsam.key !== educationReadScope(window.PortalAPI.state).key) throw Object.assign(new Error("Eğitim kapsamı değişti"), {name:"AbortError"});
+  egitimOkumaKapsami = kapsam.key;
+  egitimOkumaDurumu = "ready";
 
   egitimMatrixVerisi = {
     ogrenciler: aktifOgrenciler,
@@ -34804,6 +34843,7 @@ function egitimTumuToggleBtnGuncelle() {
 }
 
 function egitimMatrixRender() {
+  if (!egitimOkumaHazirMi()) { egitimOkumaMesaji(egitimOkumaDurumu !== "loading"); return; }
   const wrap = document.getElementById("egitimMatrixWrap");
   if (!wrap || !egitimMatrixVerisi) return;
   const mufredat = aktifMufredatlar[egitimAktifDisiplin];
@@ -34935,6 +34975,7 @@ function egitimMatrixRender() {
 
 // ============ SINIF RAPORU MODALI ============
 window.egitimSinifRaporuAc = function() {
+  if (!egitimOkumaHazirMi()) { showToast("Önce kazanım kayıtlarını yeniden yükleyin.", "error"); return; }
   if (!egitimMatrixVerisi || !egitimAktifDisiplin) return;
   const mufredat = aktifMufredatlar[egitimAktifDisiplin];
   if (!mufredat) return;
@@ -35044,96 +35085,34 @@ window.egitimSinifRaporuAc = function() {
 };
 
 // Hücre tıklandığında: boş → S → T → U → boş döngüsü
+const egitimBekleyenHucreler = new Set();
 window.matrixHucreTikla = async function(ogrId, alanId, grupAd, dersAd, hucreEl) {
-  const kayitlar = (egitimMatrixVerisi.gelisim[ogrId] || {})[egitimAktifDisiplin]?.kayitlar || {};
-  const k = `${alanId}__${grupAd}__${dersAd}`;
-  const mevcut = kayitlar[k] || "";
-  // Döngü
-  const sira = ["", "S", "T", "U"];
-  const idx = sira.indexOf(mevcut);
-  const yeni = sira[(idx + 1) % 4];
-
-  // ---- DEBUG ----
-  console.log("[Matrix Tıklama] Öğrenci ID:", ogrId, "| Disiplin:", egitimAktifDisiplin, "| Anahtar:", k, "| Yeni:", yeni);
-  // --------------
-
-  // UI'yi anlık güncelle
-  const btn = hucreEl?.querySelector(".matrix-stu-buton");
-  if (btn) {
-    btn.classList.remove("aktif-S","aktif-T","aktif-U");
-    if (yeni) btn.classList.add(`aktif-${yeni}`);
-    btn.textContent = yeni || "·";
+  if (!egitimOkumaHazirMi() || !egitimMatrixVerisi?.ogrenciler.some(o => o.id === ogrId)) {
+    showToast("Kayıtlar doğrulanmadan işaretleme yapılamaz. Yeniden deneyin.", "error"); return;
   }
-
-  // Cache'i güncelle
-  if (!egitimMatrixVerisi.gelisim[ogrId]) egitimMatrixVerisi.gelisim[ogrId] = {};
-  if (!egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin]) egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin] = { kayitlar:{}, notlar:[] };
-  if (yeni) egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin].kayitlar[k] = yeni;
-  else delete egitimMatrixVerisi.gelisim[ogrId][egitimAktifDisiplin].kayitlar[k];
-
-  // Firestore'a kaydet
-  const ok = await gelisimDersGuncelle(ogrId, egitimAktifDisiplin, alanId, grupAd, dersAd, yeni || null);
-  if (!ok) {
-    if (typeof showToast === "function") showToast("Kayıt başarısız!", "error");
-    // UI'yi geri al
-    if (btn) {
-      btn.classList.remove("aktif-S","aktif-T","aktif-U");
-      if (mevcut) btn.classList.add(`aktif-${mevcut}`);
-      btn.textContent = mevcut || "·";
-    }
-  } else {
-    // Bilgi alanını + tıklanan grubun başlığındaki yüzdeyi güncelle (sınıf bazlı)
-    setTimeout(() => {
-      if (!egitimMatrixVerisi) return;
-      const mufredat = aktifMufredatlar[egitimAktifDisiplin];
-      if (!mufredat || !mufredat[egitimAktifAlanIdx]) return;
-      const alan = mufredat[egitimAktifAlanIdx];
-
-      // Sınıf filtresi uygulanmış öğrenci listesi
-      const ogrenciler = egitimAktifOgrenciler();
-
-      // 1) Üst bilgi (alan toplamı)
-      const bilgi = document.getElementById("egitimSeciciBilgi");
-      if (bilgi) {
-        let toplamHucre = 0;
-        let dolu = 0;
-        alan.gruplar.forEach(g => {
-          toplamHucre += g.dersler.length * ogrenciler.length;
-          ogrenciler.forEach(o => {
-            const kayitlar2 = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
-            g.dersler.forEach(d2 => {
-              const k2 = `${alan.id}__${g.ad}__${d2}`;
-              if (kayitlar2[k2]) dolu++;
-            });
-          });
-        });
-        const toplamDers = alan.gruplar.reduce((t, g) => t + g.dersler.length, 0);
-        const yuzdeAlan = toplamHucre ? Math.round((dolu/toplamHucre)*100) : 0;
-        const sinifEtiket = egitimAktifSinif === null ? "Tüm Sınıflar" : egitimAktifSinif;
-        bilgi.innerHTML = `<strong>${escapeHtmlGelisim(sinifEtiket)}</strong> · <strong>${alan.gruplar.length}</strong> grup · <strong>${toplamDers}</strong> ders × <strong>${ogrenciler.length}</strong> öğrenci · <strong>%${yuzdeAlan}</strong> dolu`;
-      }
-
-      // 2) Tıklanan grubun başlığındaki yüzde
-      const grupObj = alan.gruplar.find(g => g.ad === grupAd);
-      if (grupObj) {
-        let grupToplam = grupObj.dersler.length * ogrenciler.length;
-        let grupDolu = 0;
-        ogrenciler.forEach(o => {
-          const kayitlar3 = (egitimMatrixVerisi.gelisim[o.id] || {})[egitimAktifDisiplin]?.kayitlar || {};
-          grupObj.dersler.forEach(d3 => {
-            const k3 = `${alan.id}__${grupAd}__${d3}`;
-            if (kayitlar3[k3]) grupDolu++;
-          });
-        });
-        const grupYuzde = grupToplam ? Math.round((grupDolu / grupToplam) * 100) : 0;
-        const grupAdAttr = grupAd.replace(/(["'\\\[\]\(\):])/g, "\\$1");
-        const baslikTr = document.querySelector(`tr.matrix-grup-baslik-tr[data-grup-ad="${grupAdAttr}"]`);
-        if (baslikTr) {
-          const yuzdeEl = baslikTr.querySelector(".matrix-grup-baslik-yuzde");
-          if (yuzdeEl) yuzdeEl.textContent = `%${grupYuzde}`;
-        }
-      }
-    }, 50);
+  const state = window.PortalAPI.state, rol = state.rol;
+  const program = {ingilizce_ogretmeni:"ingilizce",degerler_ogretmeni:"degerler",orman_ogretmeni:"orman"}[rol];
+  if (!state.isAdmin && (rol === "brans_ogretmeni" || rol === "pdr" || (program && program !== egitimAktifDisiplin))) {
+    showToast("Bu programda işaretleme yetkiniz yok.", "error"); return;
+  }
+  const disiplin = egitimAktifDisiplin, surum = egitimYuklemeSurumu, kapsam = egitimOkumaKapsami;
+  const k = `${alanId}__${grupAd}__${dersAd}`, kilit = `${ogrId}__${disiplin}__${k}`;
+  if (egitimBekleyenHucreler.has(kilit)) return;
+  const mevcut = egitimMatrixVerisi.gelisim[ogrId]?.[disiplin]?.kayitlar?.[k] || "";
+  const sira = ["", "S", "T", "U"], yeni = sira[(sira.indexOf(mevcut) + 1) % 4];
+  egitimBekleyenHucreler.add(kilit);
+  const btn = hucreEl?.querySelector(".matrix-stu-buton");
+  if (btn) btn.disabled = true;
+  try {
+    // Transaction checks the server value before cycling; unread/stale cells cannot reset it.
+    const ok = await gelisimDersGuncelle(ogrId, disiplin, alanId, grupAd, dersAd, yeni || null, mevcut);
+    if (surum !== egitimYuklemeSurumu || kapsam !== egitimOkumaKapsami || !egitimOkumaHazirMi()) return;
+    if (!ok) { egitimOkumaHatasi(new Error("Kayıt doğrulanamadı; yeniden yükleyin.")); return; }
+    // Wait for a server-confirmed reload. Never mutate the shared cache optimistically.
+    await window.egitimMatrixYenile();
+  } finally {
+    egitimBekleyenHucreler.delete(kilit);
+    if (btn) btn.disabled = false;
   }
 };
 
@@ -49501,13 +49480,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=236");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=237");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v236";
+          const anahtar = "portalSwReload_v237";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
