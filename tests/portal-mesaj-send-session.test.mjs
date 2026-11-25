@@ -61,6 +61,7 @@ function fixture(v = variants[0], { media = 'image', pause = null } = {}) {
     loadPush: async () => { imports.push(true); if (pause === 'import') await gates.import.promise; return { genelPushGonder: async (...args) => { pushes.push(args); return { ok: true }; } }; },
     googleGiris: { invalidate() {}, isPending: () => false }, galeriVeliUid: '', veliGaleriSinifSifirla() {},
     portalBildirimMerkeziDurdur() {}, galeriOnayTakibiniDurdur() {},
+    egitimArkaPlanCalismasiniDurdur() {}, tumGelisimOnbelleginiTemizle() {},
     aktifDonemYukle: () => new Promise(() => {}), // Auth identity is installed before this real callback's first await.
     setTimeout() {}, location: { reload() {} },
     onAuthStateChanged: (_auth, callback) => { ctx.authCallback = callback; }
