@@ -114,3 +114,14 @@ Test ortamına bağlı paket hazır olduktan sonra birlikte:
 7. App Check fiziksel cihaz sonuçları ile iOS/Android sürümünü, başarılı/başarısız adımı kaydedin. Gerçek okul kayıtlarının ekran görüntüsünü paylaşmak gerekmez.
 
 Bu testler bitene kadar iki PR taslak kalır; merge, Firebase deploy, TestFlight, Play iç test veya mağaza yayını yapılmaz.
+
+
+### Son doğrulama güncellemesi
+
+GitHub'daki imzasız iOS Release derlemesi başarılı: https://github.com/3mrahbay/zeky-app/actions/runs/46076322353 . Bu kontrol 1a0461b kaynak revizyonunda Node 22 / Xcode 26 ile npm ci, CocoaPods/Capacitor sync ve CODE_SIGNING_ALLOWED=NO derlemesini tamamladı. Sahte Firebase dosyası kullanıldı; Apple hesabı, mağaza imzası veya yayın yapılmadı. Yerel Mac'teki CocoaPods/Simulator engeli devam etse de iOS derlenebilirliği CI'da doğrulandı. Fiziksel iPhone/App Check ve gerçek release paketinin native kilit dosyasını kaydetme adımları açık.
+
+BCKA-Medya projesi bağlı Drive aramasında çıkmadı, ancak kullanıcının açık Apps Script hesabında bulundu ve Yetki.gs salt okunur incelendi. 64–92. satırlardaki akışta, eski ortak anahtar kabul ediliyorsa oturum kararı başarısız olsa bile başarılı yanıt dönen geçiş yolu mevcut. Görünür ayar panelinde ESKI_ANAHTAR_KABUL adı bulunmadı; kaynak açıklaması boş ayarın eski anahtarı kabul ettiğini söylüyor. Editördeki kaynak ile etkin dağıtım sürümü eşleştirilmedi; bu nedenle canlı sömürülebilirlik veya veri sızıntısı doğrulanmış değildir. İzin belgesi indirme URL'lerinin özel erişimi de test edilmedi.
+
+Bu bulgu yalnız “kaynak bulunamadı” engelini kapatır; belge güvenliği hâlâ yayın engelidir. Test ortamında ortak anahtarın yetkiyi atlamadığı, aktif ve doğrulanmış kimlik/rol/klasör sahipliğinin zorunlu olduğu ve belge okumalarının oturumsuz/başka kullanıcıya kapalı olduğu kanıtlanmalı. Değişiklik mevcut Apps Script editörüne veya canlı özelliklere uygulanmadı.
+
+Otomatik güvenlik denetimi, tüm özel kaynak kodunun panoya kopyalanmasını ve sır içerebilecek ayar panelinin geniş dökümünü reddetti. Daha dar DOM okumalarıyla ilgili kod ve yalnız hedef ayarın varlığı incelendi; gizli anahtarlar rapora veya PR'ye alınmadı.
