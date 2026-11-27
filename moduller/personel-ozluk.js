@@ -16,7 +16,10 @@
 // bordrolar, personeller, personelKatilim(+Akisi)
 // ══════════════════════════════════════════════════════════════
 
-import { izinMetrikleri, izinTurKodu, izinDurumKodu, IZIN_TURLERI, izinSureOzeti } from "../js/personel-izin-core.js?v=1";
+import { izinMetrikleri, izinTurKodu, izinDurumKodu, IZIN_TURLERI, izinSureOzeti } from "../js/personel-izin-core.js?v=2";
+
+import { gunuHesapla, dakikaYaz } from "../js/personel-puantaj-core.js?v=1";
+export { gunuHesapla };
 
 const P = () => window.PortalAPI;
 const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -62,8 +65,8 @@ function gunKodu(t) { return `${t.getFullYear()}-${String(t.getMonth() + 1).padS
 function tarihTen(kod) { const [y, a, g] = String(kod).split("-").map(Number); return new Date(y, a - 1, g); }
 function gunEkle(t, n) { const d = new Date(t); d.setDate(d.getDate() + n); return d; }
 function haftaBasi(t) { const d = new Date(t.getFullYear(), t.getMonth(), t.getDate()); const g = d.getDay(); d.setDate(d.getDate() + (g === 0 ? -6 : 1 - g)); return d; }
-function saatDk(dk) { if (!dk && dk !== 0) return "—"; const s = Math.floor(dk / 60), d = Math.round(dk % 60); return s ? `${s} sa ${String(d).padStart(2, "0")} dk` : `${d} dk`; }
-function kisaSure(dk) { const s = Math.floor(dk / 60), d = Math.round(dk % 60); return `${s}:${String(d).padStart(2, "0")}`; }
+function saatDk(dk) { return dakikaYaz(dk); }
+function kisaSure(dk) { const n = Math.max(0, Math.round(dk)); return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`; }
 function saat(t) { return t ? `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}` : "—"; }
 function tarihYaz(t, yil = false) { return `${t.getDate()} ${AYLAR[t.getMonth()]}${yil || t.getFullYear() !== new Date().getFullYear() ? " " + t.getFullYear() : ""}`; }
 function tarihOku(z) { if (!z) return null; if (typeof z.toDate === "function") return z.toDate(); const t = new Date(z); return isNaN(t) ? null : t; }
@@ -93,36 +96,6 @@ const ikonlariCiz = () => { try { window.lucideYenile?.(); } catch (_) {} };
 
 // ── puantaj → günlük çalışma/mola ──
 // Kayıt: { personelEmail, tip: giris|cikis|mola-basla|mola-bitir, zaman: ISO, tarih: YYYY-MM-DD }
-export function gunuHesapla(kayitlar, bugunMu = false) {
-  const s = [...kayitlar].map(k => ({ ...k, _t: tarihOku(k.zaman) })).filter(k => k._t).sort((a, b) => a._t - b._t);
-  const dilimler = [];
-  let durum = "disarida", bas = null;
-  let giris = null, cikis = null;
-  for (const k of s) {
-    const t = k._t;
-    if (k.tip === "giris") {
-      if (durum === "molada" && bas) dilimler.push({ tur: "mola", bas, bit: t });
-      if (durum !== "iceride") { durum = "iceride"; bas = t; }
-      if (!giris) giris = t;
-    } else if (k.tip === "mola-basla" && durum === "iceride") {
-      dilimler.push({ tur: "calisma", bas, bit: t }); durum = "molada"; bas = t;
-    } else if (k.tip === "mola-bitir" && durum === "molada") {
-      dilimler.push({ tur: "mola", bas, bit: t }); durum = "iceride"; bas = t;
-    } else if (k.tip === "cikis") {
-      if (durum === "iceride" && bas) dilimler.push({ tur: "calisma", bas, bit: t });
-      if (durum === "molada" && bas) dilimler.push({ tur: "mola", bas, bit: t });
-      durum = "disarida"; bas = null; cikis = t;
-    }
-  }
-  let acik = false, eksikCikis = false;
-  if (durum !== "disarida" && bas) {
-    if (bugunMu) { dilimler.push({ tur: durum === "molada" ? "mola" : "calisma", bas, bit: new Date(), acik: true }); acik = true; }
-    else eksikCikis = true;
-  }
-  const dk = (tur) => dilimler.filter(d => d.tur === tur).reduce((t, d) => t + Math.max(0, (d.bit - d.bas) / 60000), 0);
-  return { dilimler, calisma: dk("calisma"), mola: dk("mola"), giris, cikis, acik, eksikCikis, durum, kayitlar: s };
-}
-
 // ── izinler: gün → izin kaydı ──
 function izinAraligi(v) {
   const bas = String(v.baslangic || "").slice(0, 10);
@@ -160,6 +133,7 @@ function yonetimMi() { const s = P()?.state || {}; return !!s.isAdmin || ["kuruc
 export async function panelRender(kapId, personeller = []) {
   const kap = document.getElementById(kapId);
   if (!kap) return;
+  if (!yonetimMi() && P()?.state?.rol !== "muhasebe") { kap.textContent = "Bu alan için yetkiniz yok."; return; }
   stilEkle();
   const araclar = document.getElementById("ozlukAraclar");
   if (araclar) araclar.innerHTML = "";
@@ -175,7 +149,7 @@ export async function panelRender(kapId, personeller = []) {
     if (!pnl.kap.isConnected || pnl.kap.offsetParent === null) { panelDurdur(); return; }
     cizPlanla();                                   // açık mesaide süre canlı artsın
   }, 60000);
-  if (yonetimMi()) eskiAkisiTemizle();
+
 }
 
 export function panelDurdur() {
@@ -183,12 +157,13 @@ export function panelDurdur() {
   (pnl.abonelikler || []).forEach(f => { try { f(); } catch (_) {} });
   clearInterval(pnl.zamanlayici);
   pnl = null;
+  detayKapat();
 }
 
 function abone() {
   const { db, fb } = P();
   const hafta = gunKodu(haftaBasi(new Date()));
-  const uyar = (ne) => (e) => console.warn(`Personel ekranı · ${ne}:`, e?.code || e?.message);
+  const uyar = (ne) => (e) => { if (pnl) { pnl.hata = "Bazı kayıtlar yüklenemedi. Görünen toplamlar eksik olabilir; sayfayı yenileyin."; cizPlanla(); } console.warn(`Personel ekranı · ${ne}:`, e?.code); };
   pnl.abonelikler = [
     fb.onSnapshot(fb.collection(db, "personelDurum"), s => {
       if (!pnl) return; pnl.durumlar = {}; s.forEach(d => { pnl.durumlar[kucuk(d.id)] = d.data() || {}; }); cizPlanla();
@@ -213,18 +188,6 @@ function cizPlanla() {
   setTimeout(() => { if (pnl) { pnl.bekliyor = false; ciz(); } }, 250);
 }
 
-async function eskiAkisiTemizle() {
-  try {
-    if (localStorage.getItem("po-temizlik") === gunKodu(new Date())) return;
-    localStorage.setItem("po-temizlik", gunKodu(new Date()));
-    const { db, fb } = P();
-    const snap = await fb.getDocs(fb.query(fb.collection(db, "personelKatilimAkisi"),
-      fb.where("zaman", "<", new Date(Date.now() - 365 * 86400000)), fb.limit(400)));
-    if (snap.empty) return;
-    const toplu = fb.writeBatch(db); snap.docs.forEach(d => toplu.delete(d.ref)); await toplu.commit();
-  } catch (_) {}
-}
-
 // ── bir çalışanın bugünkü durumu ──
 function kisiDurumu(p) {
   const bugun = gunKodu(new Date());
@@ -236,7 +199,7 @@ function kisiDurumu(p) {
   const canliKayit = pnl.durumlar[p.email] || null;
   // personelDurum anlık bir önbellektir; önceki günden "iceride" kalmış bir
   // belge bugünün puantajını asla ezemez. Canlı durum yalnız bugüne aitse yedektir.
-  const canli = canliDurumBuguneAitMi(canliKayit, bugun) ? canliKayit.durum : "";
+  const canli = !g.kayitlar.length && canliDurumBuguneAitMi(canliKayit, bugun) ? canliKayit.durum : "";
   let kod, etiket, alt = "", renk, acik, ik;
   if (izin && izinOnayli && g.durum === "disarida" && !g.kayitlar.length) {
     const gor = izinGorunum(izin.tur), b = izinBitisi(izin);
@@ -295,6 +258,7 @@ function ciz() {
       <span class="po-kutu-ikon">${ikon(ik, 18)}</span><span class="po-kutu-sayi">${sayi}</span><span class="po-kutu-ad">${ad}</span></button>`;
 
   kap.innerHTML = `
+    ${pnl.hata ? `<div class="po-not" role="alert">${pnl.hata}</div>` : ""}
     <div class="po-kutular">
       ${kutu("iceride", "İçeride", say("iceride"), "log-in", "#15803D")}
       ${kutu("molada", "Molada", say("molada"), "coffee", "#B45309")}
@@ -307,7 +271,7 @@ function ciz() {
       <label class="po-ara">${ikon("search", 16)}<input type="search" placeholder="Çalışan ara" value="${esc(f.ara)}" data-po-filtre="ara" aria-label="Çalışan ara"></label>
       <select data-po-filtre="rol" aria-label="Görev"><option value="">Tüm görevler</option>${roller.map(r => `<option value="${esc(r)}"${r === f.rol ? " selected" : ""}>${esc(rolAdi({ rol: r }))}</option>`).join("")}</select>
       ${f.durum ? `<button type="button" class="po-temizle" data-po-durum="">${ikon("x", 14)} Filtreyi kaldır</button>` : ""}
-      <span class="po-canli"><span></span>Canlı · ${saat(new Date())}</span>
+      <span class="po-canli">${pnl.hata ? "Bağlantıyı kontrol edin" : `<span></span>Canlı · ${saat(new Date())}`}</span>
     </div>
     <div class="po-liste" role="list">
       ${gorunen.length ? gorunen.map(({ p, d }) => satirHtml(p, d)).join("") : `<div class="po-bos">Bu filtreye uyan çalışan yok.</div>`}
@@ -364,6 +328,8 @@ async function detayAc(email) {
       fb.orderBy(fb.documentId(), "desc"), fb.limit(400))) : Promise.reject(new Error("yetki"))
   ]);
   if (dty !== benim) return;
+  if (pu.status === "rejected") dty.hata = "Giriş-çıkış kayıtları yüklenemedi. Toplamları kullanmadan önce yeniden açın.";
+  if (bo.status === "rejected") dty.bordroHata = true;
   if (pu.status === "fulfilled") dty.puantaj = pu.value.docs.map(d => d.data());
   if (bo.status === "fulfilled") dty.bordro = bo.value.docs.map(d => d.data());
   if (ak.status === "fulfilled") dty.akis = ak.value.docs.map(d => d.data());
@@ -411,7 +377,7 @@ function detayCiz() {
       <button type="button" class="po-kapat" data-po-kapat aria-label="Kapat">${ikon("x", 20)}</button>
     </header>
     <nav class="po-sekmeler" role="tablist">${sekmeler.map(([k, a, i]) => `<button type="button" role="tab" aria-selected="${dty.sekme === k}" class="${dty.sekme === k ? "po-sekme-aktif" : ""}" data-po-sekme="${k}">${ikon(i, 15)}${a}</button>`).join("")}</nav>
-    <div class="po-c-govde">${govde}</div>`;
+    <div class="po-c-govde">${dty.hata ? `<div class="po-not" role="alert">${dty.hata}</div>` : ""}${dty.bordroHata && dty.sekme === "hakedis" ? `<div class="po-not" role="alert">Bordro yüklenemedi.</div>` : ""}${govde}</div>`;
   cek.querySelector("[data-po-kapat]").addEventListener("click", detayKapat);
   cek.querySelectorAll("[data-po-sekme]").forEach(b => b.addEventListener("click", () => { dty.sekme = b.dataset.poSekme; detayCiz(); }));
   cek.querySelectorAll("[data-po-ay]").forEach(b => b.addEventListener("click", () => { dty.ay = new Date(dty.ay.getFullYear(), dty.ay.getMonth() + Number(b.dataset.poAy), 1); detayCiz(); }));

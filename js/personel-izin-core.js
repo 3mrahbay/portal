@@ -75,7 +75,7 @@ function tarihDegeri(iso) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return null;
   const [y, m, d] = String(iso).split('-').map(Number);
   const tarih = new Date(Date.UTC(y, m - 1, d, 12));
-  return Number.isNaN(tarih.getTime()) ? null : tarih;
+  return Number.isNaN(tarih.getTime()) || tarih.toISOString().slice(0,10) !== iso ? null : tarih;
 }
 
 export function izinGunSayisi(baslangic, bitis = baslangic) {
@@ -90,7 +90,7 @@ export function izinSaatSayisi(baslangicSaat, bitisSaat) {
     const es = /^(\d{2}):(\d{2})$/.exec(String(deger || ''));
     if (!es) return null;
     const dakika = Number(es[1]) * 60 + Number(es[2]);
-    return dakika >= 0 && dakika < 1440 ? dakika : null;
+    return Number(es[1]) < 24 && Number(es[2]) < 60 ? dakika : null;
   };
   const bas = cozum(baslangicSaat), bit = cozum(bitisSaat);
   return bas == null || bit == null || bit <= bas ? 0 : Math.round(((bit - bas) / 60) * 100) / 100;
@@ -98,14 +98,15 @@ export function izinSaatSayisi(baslangicSaat, bitisSaat) {
 
 function kayitGun(kayit) {
   const onaylanan = Number(kayit?.onaylananGun);
-  if (Number.isFinite(onaylanan) && onaylanan >= 0) return onaylanan;
+  if (kayit?.onaylananGun != null && kayit.onaylananGun !== '' && Number.isFinite(onaylanan) && onaylanan >= 0) return onaylanan;
   const gun = Number(kayit?.gun);
-  if (Number.isFinite(gun) && gun >= 0) return gun;
+  if (kayit?.gun != null && kayit.gun !== '' && Number.isFinite(gun) && gun >= 0) return gun;
   return izinGunSayisi(kayit?.baslangic, kayit?.bitis || kayit?.baslangic);
 }
 
 export function izinMetrikleri(izinler = [], yillikHak = 14) {
-  const toplam = Math.max(0, Number(yillikHak) || 14);
+  const hak = yillikHak == null || yillikHak === '' ? 14 : Number(yillikHak);
+  const toplam = Number.isFinite(hak) ? Math.max(0, hak) : 14;
   let kullanilan = 0, bekleyen = 0, raporGun = 0;
   for (const kayit of izinler || []) {
     const tur = izinTurKodu(kayit?.tur || kayit?.izinTuru);
@@ -143,7 +144,7 @@ export function izinTalebiDogrula(talep, kalanYillik = Infinity) {
   const tur = izinTurKodu(talep?.tur);
   const meta = IZIN_TURLERI[tur];
   if (!meta) throw new Error('İzin türü seçin.');
-  if (!talep?.baslangic) throw new Error(meta.sureTipi === 'saatlik' ? 'İzin tarihini seçin.' : 'Başlangıç tarihini seçin.');
+  if (!tarihDegeri(talep?.baslangic)) throw new Error(meta.sureTipi === 'saatlik' ? 'İzin tarihini seçin.' : 'Başlangıç tarihini seçin.');
   if (meta.sureTipi === 'saatlik') {
     const saat = izinSaatSayisi(talep.baslangicSaat, talep.bitisSaat);
     if (!saat) throw new Error('Geçerli bir başlangıç ve bitiş saati seçin.');

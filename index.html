@@ -14161,6 +14161,8 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
 import { GALLERY_PROGRAMS, galleryProgram, galleryTopic, galleryText, galleryFolderKey, galleryIsObservation } from './js/galeri-klasorleri.js?v=227';
 import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=227';
 import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
+import { gunuHesapla as puantajGunuHesapla, okulGunu } from './js/personel-puantaj-core.js?v=1';
+import { izinKararKaydet } from './js/personel-izin-karar.js?v=1';
 import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
 import { contentChildIds } from "./js/egitim-gruplari-core.mjs";
 import { approveGalleryItem, reviewGalleryItem, notifyGalleryPublication, galleryApprovalScopeKey } from './js/galeri-toplu-onay.js?v=227';
@@ -14179,7 +14181,7 @@ import {
   izinMetrikleri as personelIzinMetrikleri,
   izinSureOzeti as personelIzinSureOzeti,
   izinTalebiDogrula as personelIzinTalebiDogrula
-} from './js/personel-izin-core.js?v=1';
+} from './js/personel-izin-core.js?v=2';
 import {
   okulQrMetni,
   okulQrAyarDogrula,
@@ -19674,6 +19676,7 @@ let ORY_YONETIM = null;
 window.oryYonetimYukle = async function() {
   const el = document.getElementById("oryYonetimAlan");
   if (!el) return;
+  if (!isAdmin && !["kurucu_mudur", "mudur", "muhasebe"].includes(aktifKullaniciRol)) { el.textContent = "Bu alan için yetkiniz yok."; return; }
   el.innerHTML = `<div style="text-align:center; padding:40px; color:var(--c-muted,#64748B);"><p>Yükleniyor...</p></div>`;
   try {
     // Sınıf listesi seçici için gerekli
@@ -27157,7 +27160,12 @@ window.randevuTalepReddet = async function(id) {
     showToast("Talep reddedildi, veliye bilgi verildi");
     await randevuSlotlariYukle(true);
     randevuListesiRender();
-  } catch (e) { alert("İşlem yapılamadı: " + (e.message || e)); }
+  } catch (e) {
+    const hata = document.getElementById("ozlukIzinKararHata");
+    if (hata) { hata.textContent = "İşlem yapılamadı: " + (e.message || e); hata.style.display = "block"; }
+    else alert("İşlem yapılamadı: " + (e.message || e));
+    document.querySelectorAll("#ozlukIzinDetayModal button,#ozlukIzinDetayModal input,#ozlukIzinDetayModal textarea").forEach(x => x.disabled = false);
+  }
 };
 
 async function randevuListesiRender() {
@@ -29554,6 +29562,7 @@ function ozlukBugun() {
 function ozlukBuAy() { return ozlukBugun().slice(0, 7); }
 
 window.ozlukSekme = function(sekme) {
+  _yuklenenModuller["personel-puantaj"]?.panelDurdur();
   ozlukAktifSekme = sekme;
   document.querySelectorAll(".ozluk-tab").forEach(b => {
     const aktif = b.dataset.o === sekme;
@@ -30116,9 +30125,9 @@ async function ozlukIzinCiz() {
 window.ozlukIzinFiltreDegis = function(v) { window._ozlukIzinFiltre = v; ozlukYukle(); };
 window.ozlukIzinKarar = async function(id, karar, kararNotu = "", onaylananGun = null) {
   try {
-    const guncelleme = { durum: karar, kararTarihi: new Date().toISOString(), kararVeren: (currentUser?.email || ""), kararNotu: String(kararNotu || "").trim() };
-    if (karar === "onaylandi" && onaylananGun != null && Number.isFinite(Number(onaylananGun))) guncelleme.onaylananGun = Math.max(0, Number(onaylananGun));
-    await updateDoc(doc(db, "izinTalepleri", id), guncelleme);
+    await izinKararKaydet({ db, fb: { doc, runTransaction, serverTimestamp } }, {
+      id, actor: (currentUser?.email || "").toLowerCase(), karar, not: kararNotu, onaylananGun, kaynak: "portal"
+    });
     if (typeof showToast === "function") showToast(karar === "onaylandi" ? "Onaylandı" : "Reddedildi", "success");
     document.getElementById("ozlukIzinDetayModal")?.remove();
     ozlukYukle();
@@ -30331,50 +30340,34 @@ window.ozlukDuzeltmeAyDegis = function(ay) { ozlukDuzeltmeAy = ay; ozlukDuzeltme
 
 // Eksik çıkış için saat gir → puantaja çıkış hareketi + düzeltme izi
 window.ozlukCikisEkle = async function(email, tarih) {
+  if (!isAdmin && !["kurucu_mudur", "mudur", "egitim_koordinator"].includes(aktifKullaniciRol)) { showToast("Düzeltme yetkiniz yok.", "error"); return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tarih) || tarih >= okulGunu()) { showToast("Yalnız geçmiş günlerin eksik çıkışı tamamlanabilir.", "error"); return; }
   const p = ozlukPersoneller.find(x => (x.email || "").toLowerCase() === email);
   const ad = (p && (p.adSoyad || p.ad)) || email;
-  const girilen = prompt(`${ad} · ${tarih.split("-").reverse().join(".")}\n\nÇıkış saati (SS:DD):`, "17:00");
+  const girilen = prompt(`${ad} · ${tarih}\nÇıkış saati (SS:DD, Türkiye saati):`, "17:00");
   if (!girilen) return;
-  if (!/^\d{1,2}:\d{2}$/.test(girilen.trim())) { showToast("Saat biçimi hatalı (örn. 17:00)", "error"); return; }
-
-  const [ss, dd] = girilen.trim().split(":").map(Number);
-  if (ss > 23 || dd > 59) { showToast("Geçersiz saat", "error"); return; }
-  const zaman = new Date(`${tarih}T${String(ss).padStart(2,"0")}:${String(dd).padStart(2,"0")}:00`);
-
-  const not = prompt("Düzeltme nedeni (isteğe bağlı):", "Çıkış kaydı unutulmuş") || "";
-
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(girilen.trim())) { showToast("Saat biçimi hatalı (örn. 17:00)", "error"); return; }
+  const neden = prompt("Düzeltme nedeni (zorunlu):", "Çıkış kaydı unutulmuş");
+  if (neden == null) return;
+  const not = neden.trim();
+  if (not.length < 5 || not.length > 1000) { showToast("5–1000 karakterlik bir neden yazın.", "error"); return; }
+  const zaman = new Date(`${tarih}T${girilen.trim()}:00+03:00`);
   try {
-    // 1) Puantaja çıkış hareketi ekle
-    await addDoc(collection(db, "puantaj"), {
-      personelEmail: email,
-      personelAd: ad,
-      tip: "cikis",
-      zaman: zaman.toISOString(),
-      tarih: tarih,
-      yontem: "duzeltme",
-      duzelten: (currentUser?.email || "").toLowerCase(),
-      onayli: true
+    const snap = await getDocs(query(collection(db, "puantaj"), where("personelEmail", "==", email), where("tarih", "==", tarih)));
+    const gun = puantajGunuHesapla(snap.docs.map(d => d.data()));
+    if (!gun.eksikCikis || !gun.kayitlar.length || zaman <= gun.kayitlar.at(-1)._t) throw new Error("Çıkış, açık mesainin son hareketinden sonra olmalı. Kayıtları yeniden kontrol edin.");
+    const id = `${email}_${tarih}_cikis_duzeltme`;
+    const hareketRef = doc(db, "puantaj", id), izRef = doc(db, "puantajDuzeltmeleri", id);
+    const actor = (currentUser?.email || "").toLowerCase();
+    await runTransaction(db, async tx => {
+      const mevcut = await tx.get(hareketRef);
+      if (mevcut.exists()) throw new Error("Bu gün için çıkış düzeltmesi zaten kaydedilmiş.");
+      tx.set(hareketRef, { personelEmail: email, personelAd: ad, tip: "cikis", zaman: zaman.toISOString(), tarih, yontem: "duzeltme", duzelten: actor, onayli: true });
+      tx.set(izRef, { personelEmail: email, personelAd: ad, tarih, tur: "cikis-eklendi", eklenenSaat: girilen.trim(), aciklama: not, duzelten: actor, olusturuldu: serverTimestamp() });
     });
-
-    // 2) Düzeltme izi
-    await addDoc(collection(db, "puantajDuzeltmeleri"), {
-      personelEmail: email,
-      personelAd: ad,
-      tarih: tarih,
-      tur: "cikis-eklendi",
-      eklenenSaat: girilen.trim(),
-      aciklama: not || "Eksik çıkış kaydı tamamlandı",
-      duzelten: (currentUser?.email || "").toLowerCase(),
-      duzeltenAd: (typeof aktifPersonel !== "undefined" && aktifPersonel?.adSoyad) || currentUser?.displayName || "",
-      olusturuldu: new Date().toISOString()
-    });
-
-    showToast(`✓ ${ad} · ${girilen} çıkışı kaydedildi`);
+    showToast("Çıkış ve düzeltme geçmişi birlikte kaydedildi.");
     ozlukDuzeltmeCiz();
-  } catch (e) {
-    console.error("düzeltme:", e);
-    showToast("Kaydedilemedi: " + e.message, "error");
-  }
+  } catch(e) { showToast("Kaydedilemedi: " + e.message, "error"); }
 };
 
 // O günün tüm hareketlerini göster
@@ -30396,167 +30389,9 @@ window.ozlukGunuGoster = async function(email, tarih) {
 };
 
 async function ozlukPuantajCiz() {
-  const ay = window._ozlukPuantajAy || ozlukBuAy();
-  document.getElementById("ozlukAraclar").innerHTML = `
-    <label style="font-size:12.5px; font-weight:600; color:#64748B;">Ay:</label>
-    <input type="month" value="${ay}" onchange="ozlukPuantajAyDegis(this.value)"
-      style="padding:8px 12px; border:1px solid var(--c-line,#E2E8F0); border-radius:9px; font-family:inherit; font-size:13px;">`;
-
-  const kayitlar = [];
-  try {
-    const snap = await getDocs(collection(db, "puantaj"));
-    snap.forEach(d => { const v = d.data(); if ((v.tarih || "").startsWith(ay)) kayitlar.push(v); });
-  } catch (e) { console.warn("puantaj", e); }
-
-  // Onaylı izinler (ay içinde)
-  const izinGun = {};
-  try {
-    const snap = await getDocs(collection(db, "izinTalepleri"));
-    snap.forEach(d => {
-      const v = d.data();
-      const dur = (v.durum || "").toLowerCase();
-      if (dur !== "onaylandi" && dur !== "onaylandı") return;
-      const e = (v.personelEmail || "").toLowerCase();
-      const bas = new Date((v.baslangic || "").substring(0, 10));
-      const bit = new Date((v.bitis || v.baslangic || "").substring(0, 10));
-      if (isNaN(bas) || isNaN(bit)) return;
-      const onaylananSinir = Number(v.onaylananGun);
-      const gunSiniri = Number.isFinite(onaylananSinir) && onaylananSinir >= 0 ? onaylananSinir : Infinity;
-      let eklenenGun = 0;
-      for (let t = new Date(bas); t <= bit; t.setDate(t.getDate() + 1)) {
-        if (eklenenGun >= gunSiniri) break;
-        const gun = t.toISOString().substring(0, 10);
-        if (gun.startsWith(ay)) izinGun[e] = (izinGun[e] || 0) + 1;
-        eklenenGun++;
-      }
-    });
-  } catch (e) { console.warn("izinTalepleri", e); }
-
-  // Gün bazlı net süre hesabı (mola düşülür)
-  const gunNetDakika = (hareketler, gunTarihi) => {
-    const h = [...hareketler].sort((a, b) => new Date(a.zaman) - new Date(b.zaman));
-    let calisma = 0, mola = 0, aGiris = null, aMola = null;
-    h.forEach(x => {
-      const t = new Date(x.zaman);
-      if (x.tip === "giris") aGiris = t;
-      else if (x.tip === "cikis" && aGiris) { calisma += t - aGiris; aGiris = null; }
-      else if (x.tip === "mola-basla") aMola = t;
-      else if (x.tip === "mola-bitir" && aMola) { mola += t - aMola; aMola = null; }
-    });
-    // Açık kalan kayıt sadece BUGÜN canlı sayılır; geçmiş günde eksik çıkış demektir
-    const buGunMu = (gunTarihi === new Date().toISOString().slice(0, 10));
-    let eksik = false;
-    if (aGiris) { if (buGunMu) calisma += Date.now() - aGiris; else eksik = true; }
-    if (aMola)  { if (buGunMu) mola += Date.now() - aMola;     else eksik = true; }
-    return { net: Math.max(0, (calisma - mola) / 60000), mola: mola / 60000, eksikCikis: eksik };
-  };
-
-  // Personel × gün
-  const ozet = {};
-  kayitlar.forEach(k => {
-    const e = (k.personelEmail || "").toLowerCase();
-    ozet[e] = ozet[e] || { gunler: {} };
-    (ozet[e].gunler[k.tarih] = ozet[e].gunler[k.tarih] || []).push(k);
-  });
-
-  const bugunStr = ozlukBugun();
-  // Bu haftanın pazartesisi
-  const bg = new Date();
-  const gunIdx = (bg.getDay() + 6) % 7; // pazartesi = 0
-  const haftaBas = new Date(bg); haftaBas.setDate(bg.getDate() - gunIdx);
-  const haftaBasStr = haftaBas.toISOString().substring(0, 10);
-
-  const sureMetin = (dakika) => {
-    const d = Math.round(dakika);
-    if (d < 60) return d + " dk";
-    const s = Math.floor(d / 60), k = d % 60;
-    return k > 0 ? `${s}s ${k}dk` : `${s} sa`;
-  };
-
-  const satirlar = ozlukPersoneller.map(p => {
-    const e = (p.email || "").toLowerCase();
-    const gunler = (ozet[e] && ozet[e].gunler) || {};
-    let ayNet = 0, ayMola = 0, haftaNet = 0, gunNet = 0, calisilanGun = 0;
-    Object.keys(gunler).forEach(g => {
-      const r = gunNetDakika(gunler[g], g);
-      if (r.net > 0) calisilanGun++;
-      ayNet += r.net; ayMola += r.mola;
-      if (g >= haftaBasStr) haftaNet += r.net;
-      if (g === bugunStr) gunNet += r.net;
-    });
-    return {
-      ad: p.adSoyad || [p.ad, p.soyad].filter(Boolean).join(" ") || p.email,
-      rol: p.rol || p.unvan || "",
-      gunNet, haftaNet, ayNet, ayMola, calisilanGun,
-      izin: izinGun[e] || 0,
-      ortalama: calisilanGun > 0 ? ayNet / calisilanGun : 0
-    };
-  }).sort((a, b) => b.ayNet - a.ayNet);
-
-  const toplamAy = satirlar.reduce((s, x) => s + x.ayNet, 0);
-  const toplamHafta = satirlar.reduce((s, x) => s + x.haftaNet, 0);
-  const toplamGun = satirlar.reduce((s, x) => s + x.gunNet, 0);
-  const enUzun = Math.max(1, ...satirlar.map(x => x.ayNet));
-
-  const ustKart = (etiket, deger, renk, ikon) =>
-    `<div style="background:#fff; border:1px solid var(--c-line,#E2E8F0); border-left:4px solid ${renk}; border-radius:12px; padding:12px 15px;">
-      <div style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:800; color:${renk}; text-transform:uppercase; letter-spacing:.5px;">
-        <i data-lucide="${ikon}" style="width:13px;height:13px;"></i> ${etiket}</div>
-      <div style="font-size:22px; font-weight:800; color:#1E293B; margin-top:5px;">${deger}</div>
-    </div>`;
-
-  document.getElementById("ozlukIcerik").innerHTML = `
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:14px;">
-      ${ustKart("Bugün toplam", sureMetin(toplamGun), "#059669", "sun")}
-      ${ustKart("Bu hafta toplam", sureMetin(toplamHafta), "#5A6ACF", "calendar-days")}
-      ${ustKart("Bu ay toplam", sureMetin(toplamAy), "#7C3AED", "calendar-range")}
-      ${ustKart("Personel", satirlar.length, "#64748B", "users")}
-    </div>
-
-    <div style="overflow-x:auto; background:#fff; border:1px solid var(--c-line,#E2E8F0); border-radius:14px;">
-      <table style="width:100%; border-collapse:collapse; font-size:13px;">
-        <thead><tr style="background:#F8FAFC; text-align:left;">
-          <th style="padding:11px 14px; font-size:11px; text-transform:uppercase; color:#64748B;">Personel</th>
-          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Bugün</th>
-          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Bu Hafta</th>
-          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Bu Ay (net)</th>
-          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:center;">Gün</th>
-          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Ort./Gün</th>
-          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:right;">Mola</th>
-          <th style="padding:11px 10px; font-size:11px; text-transform:uppercase; color:#64748B; text-align:center;">İzin</th>
-          <th style="padding:11px 14px; font-size:11px; text-transform:uppercase; color:#64748B; width:110px;">Aylık Dağılım</th>
-        </tr></thead>
-        <tbody>
-          ${satirlar.length === 0
-            ? `<tr><td colspan="9" style="padding:24px; text-align:center; color:#94A3B8;">Bu ay için puantaj kaydı yok.</td></tr>`
-            : satirlar.map(x => `
-            <tr style="border-top:1px solid var(--c-line,#E2E8F0);">
-              <td style="padding:10px 14px;">
-                <div style="font-weight:700; color:#1E293B;">${escapeHtml(x.ad)}</div>
-                <div style="font-size:11.5px; color:#64748B;">${escapeHtml(x.rol)}</div>
-              </td>
-              <td style="padding:10px; text-align:right; color:${x.gunNet > 0 ? "#059669" : "#94A3B8"}; font-weight:${x.gunNet > 0 ? "700" : "400"};">${x.gunNet > 0 ? sureMetin(x.gunNet) : "—"}</td>
-              <td style="padding:10px; text-align:right; color:#475569;">${x.haftaNet > 0 ? sureMetin(x.haftaNet) : "—"}</td>
-              <td style="padding:10px; text-align:right; font-weight:800; color:#1E293B;">${x.ayNet > 0 ? sureMetin(x.ayNet) : "—"}</td>
-              <td style="padding:10px; text-align:center; color:#475569;">${x.calisilanGun}</td>
-              <td style="padding:10px; text-align:right; color:#475569;">${x.ortalama > 0 ? sureMetin(x.ortalama) : "—"}</td>
-              <td style="padding:10px; text-align:right; color:#B45309;">${x.ayMola > 0 ? sureMetin(x.ayMola) : "—"}</td>
-              <td style="padding:10px; text-align:center;">${x.izin > 0 ? `<span style="background:#F5F3FF; color:#6D28D9; padding:2px 8px; border-radius:10px; font-size:11.5px; font-weight:700;">${x.izin} gün</span>` : "—"}</td>
-              <td style="padding:10px 14px;">
-                <div style="height:7px; background:#F1F5F9; border-radius:100px; overflow:hidden;">
-                  <div style="width:${Math.round((x.ayNet / enUzun) * 100)}%; height:100%; background:linear-gradient(90deg,#7CB97C,#2D5E3E); border-radius:100px;"></div>
-                </div>
-              </td>
-            </tr>`).join("")}
-        </tbody>
-      </table>
-    </div>
-    <div style="margin-top:12px; padding:11px 14px; background:#F8FAFC; border-radius:12px; font-size:11.5px; color:#64748B;">
-      <i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i>
-      Net süre = giriş-çıkış arası toplam − mola süreleri. Hafta pazartesi başlar. İzin günleri onaylı taleplerden alınır.
-    </div>`;
-
-  if (window.lucideYenile) window.lucideYenile();
+  const m = await modulYukle("personel-puantaj");
+  if (!m) throw new Error("Puantaj raporu yüklenemedi.");
+  await m.panelRender("ozlukIcerik", ozlukPersoneller, window._ozlukPuantajAy || ozlukBuAy());
 }
 window.ozlukPuantajAyDegis = function(v) { window._ozlukPuantajAy = v; ozlukYukle(); };
 
