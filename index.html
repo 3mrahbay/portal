@@ -9262,6 +9262,15 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 @media(pointer:coarse){#egitimMatrixContainer .matrix-stu-buton,#egitimMatrixContainer[data-boyut] .matrix-stu-buton{min-width:44px;min-height:44px}}
 /* Education workspace: one scroll owner, including Safari dynamic viewport. */
 #egitimMatrixContainer .egitim-sinif-secici-bar,#egitimMatrixContainer .egitim-secici-bar{gap:8px;padding:10px 12px;margin-bottom:10px}
+/* Empty program headings must not leave a decorative spacer. */
+#egitimMatrixBaslik:empty{display:none}
+#egitimMatrixContainer .egitim-yonetim-araclari{margin-bottom:8px!important}
+#egitimMatrixContainer .egitim-sinif-secici-bar{border-left:4px solid #397653;background:linear-gradient(90deg,#f3f8f4,white 28%)}
+#egitimMatrixContainer .egitim-secici-bar{border-left:4px solid #7962ad;background:linear-gradient(90deg,#f6f3fa,white 28%)}
+#egitimMatrixContainer .egitim-sinif-secici-label,#egitimMatrixContainer .egitim-secici-grup>label{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:5px 7px;font-size:11px;line-height:1.2;letter-spacing:.02em;white-space:nowrap}
+#egitimMatrixContainer .egitim-sinif-secici-label{background:#e5f0e8;color:#285b3c}
+#egitimMatrixContainer .egitim-secici-grup>label{background:#ede7f6;color:#604690}
+
 #egitimMatrixContainer .egitim-arama,#egitimMatrixContainer .egitim-gorunum select,#egitimSinifSecici select{box-sizing:border-box;min-height:38px;border:1.5px solid #e5e7eb;border-radius:8px;padding:8px 10px;background:white;color:#374151;font-family:inherit;font-size:13px;font-weight:600}
 #egitimMatrixContainer .egitim-arama{width:150px;min-width:0;flex:0 1 150px}
 #egitimMatrixContainer .egitim-tam-sayfa-btn{min-height:38px;white-space:nowrap;color:var(--matrix-renk,#2D5E3E);font-family:inherit}
