@@ -9261,10 +9261,28 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 <style>
 @media(pointer:coarse){#egitimMatrixContainer .matrix-stu-buton,#egitimMatrixContainer[data-boyut] .matrix-stu-buton{min-width:44px;min-height:44px}}
 /* Education workspace: one scroll owner, including Safari dynamic viewport. */
-.egitim-calisma-araclari{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
-.egitim-calisma-araclari label{display:flex;align-items:center;gap:5px;font-size:12px}
-.egitim-calisma-araclari input{width:115px;min-width:0}
-.egitim-calisma-araclari button,.egitim-calisma-araclari select,.egitim-calisma-araclari input{min-height:38px;border:1px solid #cbd5d1;border-radius:8px;padding:6px;background:#fff;color:#244c35}
+#egitimMatrixContainer .egitim-sinif-secici-bar,#egitimMatrixContainer .egitim-secici-bar{gap:8px;padding:10px 12px;margin-bottom:10px}
+/* Empty program headings must not leave a decorative spacer. */
+#egitimMatrixBaslik:empty{display:none}
+#egitimMatrixContainer .egitim-yonetim-araclari{margin-bottom:8px!important}
+#egitimMatrixContainer .egitim-sinif-secici-bar{border-left:4px solid #397653;background:linear-gradient(90deg,#f3f8f4,white 28%)}
+#egitimMatrixContainer .egitim-secici-bar{border-left:4px solid #7962ad;background:linear-gradient(90deg,#f6f3fa,white 28%)}
+#egitimMatrixContainer .egitim-sinif-secici-label,#egitimMatrixContainer .egitim-secici-grup>label{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:5px 7px;font-size:11px;line-height:1.2;letter-spacing:.02em;white-space:nowrap}
+#egitimMatrixContainer .egitim-sinif-secici-label{background:#e5f0e8;color:#285b3c}
+#egitimMatrixContainer .egitim-secici-grup>label{background:#ede7f6;color:#604690}
+
+#egitimMatrixContainer .egitim-arama,#egitimMatrixContainer .egitim-gorunum select,#egitimSinifSecici select{box-sizing:border-box;min-height:38px;border:1.5px solid #e5e7eb;border-radius:8px;padding:8px 10px;background:white;color:#374151;font-family:inherit;font-size:13px;font-weight:600}
+#egitimMatrixContainer .egitim-arama{width:150px;min-width:0;flex:0 1 150px}
+#egitimMatrixContainer .egitim-tam-sayfa-btn{min-height:38px;white-space:nowrap;color:var(--matrix-renk,#2D5E3E);font-family:inherit}
+.egitim-gorunum{position:relative;margin-left:auto;flex-shrink:0}
+.egitim-gorunum summary{box-sizing:border-box;cursor:pointer;min-height:38px;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;background:#f9fafb;color:#374151;font-size:12px;font-weight:600}
+.egitim-gorunum[open] summary{border-color:var(--matrix-renk,#2D5E3E)}
+.egitim-gorunum-panel{position:absolute;right:0;top:calc(100% + 6px);z-index:40;display:grid;gap:8px;width:230px;max-width:calc(100vw - 28px);box-sizing:border-box;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:white;box-shadow:0 8px 24px #0002}
+.egitim-gorunum-panel label{font-size:12px;font-weight:600;color:#6b7280}
+#egitimMatrixContainer :is(input,select,button,summary):focus-visible{outline:2px solid var(--matrix-renk,#2D5E3E);outline-offset:2px}
+#egitimMatrixContainer .egitim-secici-bilgi{display:block;margin-left:0;font-size:11px;white-space:normal;border-top:1px solid #e5e7eb;padding-top:8px}
+@media(max-width:600px){#egitimMatrixContainer .egitim-sinif-secici-baslik{flex-basis:100%;min-width:0}#egitimMatrixContainer .egitim-secici-grup:first-child{flex:1;min-width:0}#egitimAlanSec{min-width:0;width:100%}#egitimMatrixContainer .egitim-arama{flex:1 1 100px;width:100px}#egitimMatrixContainer .egitim-sinif-secici-bar,#egitimMatrixContainer .egitim-secici-bar{gap:6px}.egitim-gorunum-panel{width:220px}}
+@media(max-width:600px){#egitimMatrixContainer .egitim-secici-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}#egitimMatrixContainer .egitim-secici-grup{min-width:0;gap:5px}#egitimMatrixContainer .egitim-secici-grup select{min-width:0;width:100%;max-width:100%}#egitimMatrixContainer .egitim-secici-bar .egitim-arama{width:100%}.egitim-gorunum{margin-left:0}.egitim-gorunum summary{text-align:center}}
 html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important}
 #egitimMatrixContainer.egitim-tam-sayfa{position:fixed;inset:0;z-index:9000;background:#f6f8f6;padding:12px;box-sizing:border-box;display:flex!important;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
 .egitim-tam-sayfa #egitimBelgelemeKap,.egitim-tam-sayfa .egitim-matrix-altbilgi{display:none!important}
@@ -9277,7 +9295,7 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
 #egitimMatrixContainer .matrix-stu-buton{min-width:40px;min-height:40px;font-size:12px}
 #egitimMatrixContainer[data-boyut=kompakt] .matrix-stu-buton{min-width:32px;min-height:32px;font-size:11px}
 #egitimMatrixContainer[data-boyut=buyuk] .matrix-stu-buton{min-width:48px;min-height:48px;font-size:15px}
-@media(max-width:600px){#egitimMatrixContainer.egitim-tam-sayfa{padding:6px;padding-top:max(6px,env(safe-area-inset-top));padding-bottom:max(6px,env(safe-area-inset-bottom))}.egitim-tam-sayfa .egitim-matrix-tablosu thead th.ders-baslik-h,.egitim-tam-sayfa .egitim-matrix-tablosu td.ders-adi{min-width:130px;width:130px;max-width:130px}.egitim-tam-sayfa .egitim-secici-bilgi{display:none}.egitim-tam-sayfa .egitim-matrix-tablosu thead th.ogrenci-h{height:100px}.egitim-calisma-araclari{gap:4px}.egitim-calisma-araclari input{width:85px}}
+@media(max-width:600px){#egitimMatrixContainer.egitim-tam-sayfa{padding:6px;padding-top:max(6px,env(safe-area-inset-top));padding-bottom:max(6px,env(safe-area-inset-bottom))}.egitim-tam-sayfa .egitim-matrix-tablosu thead th.ders-baslik-h,.egitim-tam-sayfa .egitim-matrix-tablosu td.ders-adi{min-width:130px;width:130px;max-width:130px}.egitim-tam-sayfa .egitim-matrix-tablosu thead th.ogrenci-h{height:100px}}
 </style>
 <style>@media(max-width:600px){#egitimMatrixContainer .matrix-stu-buton,#egitimMatrixContainer[data-boyut] .matrix-stu-buton{min-width:44px;min-height:44px}}</style>
 <style>.egitim-tam-sayfa .egitim-yonetim-araclari,.egitim-tam-sayfa #egitimSinifRaporBtn{display:none!important}
@@ -9291,7 +9309,7 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
 #egitimMatrixContainer[data-boyut=kompakt] .matrix-ogr-foto{width:28px;height:28px;font-size:11px}
 #egitimMatrixContainer[data-boyut=kompakt] .matrix-ogr-ad{font-size:11px;max-height:110px}
 #egitimMatrixContainer[data-boyut=normal] .egitim-matrix-hucre,#egitimMatrixContainer[data-boyut=buyuk] .egitim-matrix-hucre{padding:1px}
-@media(max-width:600px),(pointer:coarse){.egitim-calisma-araclari button,.egitim-calisma-araclari select,.egitim-calisma-araclari input,.egitim-sinif-secici-chiplar select{min-height:44px!important}.egitim-calisma-araclari input,.egitim-calisma-araclari select{font-size:16px}}
+@media(max-width:600px),(pointer:coarse){#egitimMatrixContainer .egitim-sinif-secici-bar button,#egitimMatrixContainer input,#egitimMatrixContainer select,.egitim-gorunum summary{min-height:44px!important}#egitimMatrixContainer input,#egitimMatrixContainer select{font-size:16px}}
 </style>
 </head>
 <body>
@@ -10305,7 +10323,6 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
 
       <!-- MATRIX SİSTEMİ (gizli, disiplin seçilince açılır) -->
       <div id="egitimMatrixContainer" style="display:none;">
-        <div class="egitim-calisma-araclari"><button type="button" id="egitimTamSayfa" onclick="egitimTamSayfaDegistir()">⛶ Tam Sayfa Yap</button><label>İşaretleme <select id="egitimIsaretlemeModu"><option value="detay">Detaylı gözlem</option><option value="hizli">Hızlı işaretleme</option></select></label><label>Öğrenci <input id="egitimOgrenciAra" type="search" placeholder="Ad ara" oninput="egitimMatrixRender()"></label><label>Kazanım <input id="egitimKazanimAra" type="search" placeholder="Kazanım ara" oninput="egitimMatrixRender()"></label><label>Boyut <select id="egitimBoyut" onchange="egitimBoyutSec(this.value)"><option value="normal">Normal</option><option value="kompakt">Kompakt</option><option value="buyuk">Büyük</option></select></label></div>
         <!-- Program belgeleme: orman oturumu / değerler gözlemi (moduller/program-belgeleme.js) -->
         <div id="egitimBelgelemeKap" style="display:none; margin-bottom:16px;"></div>
         <!-- Geri & başlık -->
@@ -10328,6 +10345,8 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
               <!-- Sınıf butonları buraya gelir -->
             </div>
           </div>
+          <input class="egitim-arama" id="egitimOgrenciAra" type="search" aria-label="Öğrenci ara" placeholder="Öğrenci ara" oninput="egitimMatrixRender()">
+          <button class="egitim-sinif-rapor-btn egitim-tam-sayfa-btn" type="button" id="egitimTamSayfa" aria-pressed="false" onclick="egitimTamSayfaDegistir()">⛶ Tam Sayfa Yap</button>
           <button type="button" id="egitimSinifRaporBtn" class="egitim-sinif-rapor-btn" onclick="egitimSinifRaporuAc()">
             <i data-lucide="bar-chart-3" style="width:13px;height:13px;vertical-align:-2px;"></i> Sınıf Raporu
           </button>
@@ -10336,7 +10355,7 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
         <!-- Alan seçici + Tümünü Aç/Kapat -->
         <div class="egitim-secici-bar">
           <div class="egitim-secici-grup">
-            <label>Alan:</label>
+            <label for="egitimAlanSec">Alan:</label>
             <select id="egitimAlanSec" onchange="egitimAlanDegisti()"></select>
           </div>
           <div class="egitim-secici-grup">
@@ -10344,7 +10363,17 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
               ⊟ Tümünü Kapat
             </button>
           </div>
-          <div class="egitim-secici-bilgi" id="egitimSeciciBilgi"></div>
+          <input class="egitim-arama" id="egitimKazanimAra" type="search" aria-label="Kazanım ara" placeholder="Kazanım ara" oninput="egitimMatrixRender()">
+          <details class="egitim-gorunum" id="egitimGorunum">
+            <summary>Görünüm / Araçlar</summary>
+            <div class="egitim-gorunum-panel">
+              <label for="egitimIsaretlemeModu">İşaretleme</label>
+              <select id="egitimIsaretlemeModu"><option value="detay">Detaylı gözlem</option><option value="hizli">Hızlı işaretleme</option></select>
+              <label for="egitimBoyut">Tablo boyutu</label>
+              <select id="egitimBoyut" onchange="egitimBoyutSec(this.value)"><option value="normal">Normal</option><option value="kompakt">Kompakt</option><option value="buyuk">Büyük</option></select>
+              <div class="egitim-secici-bilgi" id="egitimSeciciBilgi"></div>
+            </div>
+          </details>
         </div>
 
         <!-- MATRIX TABLOSU -->
@@ -14200,7 +14229,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v238";
+window.PORTAL_SURUM = "v239";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -22410,7 +22439,7 @@ function caAdminEgitimHTML(ogrenciler, tumGel, mufler) {
         <div class="ca-row"><button class="ca-back" onclick="caAdminGo('home')" title="Geri">←</button>
           <div><div class="ca-tile-sub">EĞİTİM TAKİBİ</div><h2 style="font-size:19px;">Sınıflar</h2></div>
         </div>
-        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Gözlem girişi"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Gözlem Gir</button>
+        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Tam sayfa, hızlı işaretleme ve gözlem araçları"><i data-lucide="table" style="width:14px;height:14px;vertical-align:-2px;"></i> Çalışma Tablosu</button>
       </div>
       <div class="ca-card-green">
         <div style="font-size:11px; letter-spacing:.08em; opacity:.85;">GENEL</div>
@@ -22443,7 +22472,7 @@ function caAdminSinifHTML(sinif, ogrenciler, tumGel, mufler) {
         <div class="ca-row"><button class="ca-back" onclick="caAdminGo('egitim')" title="Geri">←</button>
           <div><div class="ca-tile-sub">SINIF</div><h2 style="font-size:19px;">${escapeHtml(sinif)}</h2></div>
         </div>
-        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Gözlem girişi"><i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Gözlem Gir</button>
+        <button class="ca-btn ghost" onclick="adminGotoTab('egitim')" title="Tam sayfa, hızlı işaretleme ve gözlem araçları"><i data-lucide="table" style="width:14px;height:14px;vertical-align:-2px;"></i> Çalışma Tablosu</button>
       </div>
       <div class="ca-tile-sub">${ogrenciler.length} öğrenci · genel ilerleme (Montessori+İngilizce+Değerler)</div>
       <div class="ca-stack">${rows || '<div class="ca-card"><div class="ca-tile-sub">Öğrenci yok.</div></div>'}</div>
@@ -34114,7 +34143,13 @@ window.egitimTamSayfaDegistir = function(ac) {
   if (btn) {btn.textContent=yeni?'↙ Normal Görünüme Dön':'⛶ Tam Sayfa Yap';btn.setAttribute('aria-pressed',String(yeni));}
   if (!yeni && aktif) window.scrollTo(0,egitimSayfaKonumu);
 };
-document.addEventListener('keydown',e=>{if(e.key==='Escape' && !document.getElementById('zegoArka')) egitimTamSayfaDegistir(false);});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape' || document.getElementById('zegoArka')) return;
+  const menu=document.getElementById('egitimGorunum');
+  if(menu?.open){menu.open=false;menu.querySelector('summary')?.focus();return;}
+  egitimTamSayfaDegistir(false);
+});
+document.addEventListener('click',e=>{const menu=document.getElementById('egitimGorunum');if(menu?.open&&!menu.contains(e.target))menu.open=false;});
 window.egitimMatrixRender = egitimMatrixRender;
 
 function egitimSekmesiAktifMi() {
@@ -34793,7 +34828,12 @@ function egitimSinifSeciciDoldur() {
   }
   const sinifAdlari = Object.keys(sinifMap).sort((a, b) => a.localeCompare(b, "tr"));
 
-  let html = `<select aria-label="Sınıf" onchange="egitimSinifSec(this.value || null)" style="max-width:100%;min-height:38px;border:1px solid #cbd5d1;border-radius:8px;background:white;padding:4px 8px">`;
+  // Keep the displayed selection and rendered rows identical, including staff
+  // with several assigned classes or no legacy state.siniflar field.
+  if (egitimAktifSinif !== null && !sinifAdlari.includes(egitimAktifSinif)) egitimAktifSinif = null;
+  if (!egitimYonetimMi() && egitimAktifSinif === null) egitimAktifSinif = sinifAdlari[0] || null;
+
+  let html = `<select aria-label="Sınıf" onchange="egitimSinifSec(this.value || null)" style="max-width:100%">`;
   if (egitimYonetimMi()) html += `<option value="" ${egitimAktifSinif===null?'selected':''}>Tüm Sınıflar (${egitimMatrixVerisi.ogrenciler.length})</option>`;
   for (const sinif of sinifAdlari) html += `<option value="${escapeHtmlGelisim(sinif)}" ${egitimAktifSinif===sinif?'selected':''}>${escapeHtmlGelisim(sinif)} (${sinifMap[sinif]})</option>`;
   html += '</select>';
@@ -49555,13 +49595,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=238");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=239");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v238";
+          const anahtar = "portalSwReload_v239";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
