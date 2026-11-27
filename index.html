@@ -1127,6 +1127,7 @@ html, body {
   cursor: pointer; transition: all .14s ease; text-align: left; width: 100%;
 }
 .side-item[data-bk-manage] { text-decoration: none; }
+[data-hizli-erisim-grup][hidden] { display: none !important; }
 .side-item[data-bk-manage][hidden] { display: none !important; }
 .side-item:hover { background: #F1F2F7; color: #1F2544; }
 .side-item.active { background: #EDEFFB; color: #2B3674; box-shadow: inset 3px 0 0 #5A6ACF; }
@@ -9666,6 +9667,19 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
       <div class="side-grup">
         <button class="side-item active" data-modul="ozet" onclick="modulSec('ozet')"><span class="side-ikon"><i data-lucide="layout-dashboard"></i></span><span class="side-ad">Özet</span></button>
       </div>
+      <div class="side-kategori" data-hizli-erisim-grup hidden>Hızlı Erişim</div>
+      <div class="side-grup" data-hizli-erisim-grup hidden>
+        <button class="side-item" data-hizli-erisim data-modul="duyurular" onclick="modulSec('duyurular')"><span class="side-ikon"><i data-lucide="megaphone"></i></span><span class="side-ad">Duyurular</span></button>
+        <button class="side-item" data-hizli-erisim data-modul="egitim" onclick="modulSec('egitim')"><span class="side-ikon"><i data-lucide="book-open"></i></span><span class="side-ad">Eğitim</span></button>
+        <button class="side-item" data-hizli-erisim data-modul="galeri" onclick="modulSec('galeri')"><span class="side-ikon"><i data-lucide="image"></i></span><span class="side-ad">Galeri</span></button>
+        <button class="side-item" data-hizli-erisim data-modul="mesaj" onclick="modulSec('mesaj')"><span class="side-ikon"><i data-lucide="message-circle"></i></span><span class="side-ad">Mesajlar</span></button>
+        <button class="side-item" data-hizli-erisim data-modul="muhasebe" onclick="modulSec('muhasebe')"><span class="side-ikon"><i data-lucide="wallet"></i></span><span class="side-ad">Muhasebe</span></button>
+        <button class="side-item" data-hizli-erisim data-modul="ogrencilerM" onclick="modulSec('ogrencilerM')"><span class="side-ikon"><i data-lucide="users"></i></span><span class="side-ad">Öğrenciler</span></button>
+        <button class="side-item" data-hizli-erisim data-modul="ozlukM" onclick="modulSec('ozlukM')"><span class="side-ikon"><i data-lucide="clock"></i></span><span class="side-ad">Özlük &amp; Puantaj</span></button>
+        <button class="side-item" data-hizli-erisim data-modul="personel" onclick="modulSec('personel')"><span class="side-ikon"><i data-lucide="briefcase"></i></span><span class="side-ad">Personel</span></button>
+        <button class="side-item" data-hizli-erisim data-modul="velilerM" onclick="modulSec('velilerM')"><span class="side-ikon"><i data-lucide="contact"></i></span><span class="side-ad">Veliler</span></button>
+        <button class="side-item" data-hizli-erisim data-modul="yemek" onclick="modulSec('yemek')"><span class="side-ikon"><i data-lucide="utensils"></i></span><span class="side-ad">Yemek Listesi</span></button>
+      </div>
       <div class="side-kategori">ÖĞRENCİ &amp; OKUL</div>
       <div class="side-grup">
         <button class="side-item" data-modul="ogrencilerM" onclick="modulSec('ogrencilerM')"><span class="side-ikon"><i data-lucide="users"></i></span><span class="side-ad">Öğrenciler</span></button>
@@ -14292,7 +14306,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v244";
+window.PORTAL_SURUM = "v245";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14932,6 +14946,21 @@ function modulErisim(modulKey) {
   return (tanim.tablar || []).some(t => sekmeyeErisim(t));
 }
 
+// Kısayollar yalnızca yönetim rollerine açılır; mevcut modül yetkileri de uygulanır.
+function hizliErisimMenuyuAyarla() {
+  const yonetim = ["mudur", "kurucu_mudur"].includes(rolNormalize(aktifKullaniciRol));
+  let gorunur = false;
+  document.querySelectorAll("[data-hizli-erisim]").forEach(btn => {
+    const izinli = yonetim && modulErisim(btn.dataset.modul);
+    btn.style.display = izinli ? "" : "none";
+    gorunur ||= izinli;
+  });
+  document.querySelectorAll("[data-hizli-erisim-grup]").forEach(el => {
+    el.hidden = !gorunur;
+    el.style.display = gorunur ? "" : "none";
+  });
+}
+
 // Sol menüyü role göre filtrele; boş kalan kategori başlığını da gizle
 function solMenuyuRoleGoreAyarla() {
   document.querySelectorAll(".side-item").forEach(btn => {
@@ -14939,6 +14968,7 @@ function solMenuyuRoleGoreAyarla() {
     if (!mk) return;
     btn.style.display = modulErisim(mk) ? "" : "none";
   });
+  hizliErisimMenuyuAyarla();
   // Kategori başlıkları: altındaki grupta görünür öğe yoksa başlığı da gizle
   document.querySelectorAll(".side-kategori").forEach(baslik => {
     const grup = baslik.nextElementSibling;
@@ -16806,8 +16836,9 @@ function mesajBildirimRozetGuncelle(toplam) {
     if (btn) rozetYerlestir(btn, toplam, "veli-mesaj-rozet", "margin-left:auto;");
   } else {
     // PERSONEL: bağımsız Mesajlaşma sidebar öğesine + tab butonuna rozet
-    const mesajSideBtn = document.querySelector('.side-item[data-modul="mesaj"]');
-    if (mesajSideBtn) rozetYerlestir(mesajSideBtn, toplam, "mesaj-side-rozet", "");
+    document.querySelectorAll('.side-item[data-modul="mesaj"]').forEach(btn => {
+      rozetYerlestir(btn, toplam, "mesaj-side-rozet", "");
+    });
     const mesajTabBtn = document.querySelector('.tab[data-tab="mesajlasma"]');
     if (mesajTabBtn) rozetYerlestir(mesajTabBtn, toplam, "mesaj-alt-rozet", "");
   }
@@ -44317,6 +44348,7 @@ window.modulBarYenile = function() {
     );
     btn.style.display = erisebilir ? "" : "none";
   });
+  hizliErisimMenuyuAyarla();
   // Onay rozeti senkronu: mevcut onaySayacRozet ile aynı değeri modül rozetine yaz
   const kaynak = document.getElementById("onaySayacRozet");
   const hedef = document.getElementById("modulOnayRozet");
@@ -49732,13 +49764,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=244");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=245");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v244";
+          const anahtar = "portalSwReload_v245";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
