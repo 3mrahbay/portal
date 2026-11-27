@@ -1,3 +1,4 @@
+import {gunuHesapla} from '../js/personel-puantaj-core.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -93,11 +94,7 @@ test('devam durumu sunucu kayıtlarından doğru türetilir', () => {
 });
 
 test('aylık puantaj raporu sunucu kayıtlarını okur (mola düşülür)', () => {
-  const bas = html.indexOf('const gunNetDakika = (hareketler, gunTarihi) => {');
-  const son = html.indexOf('\n  };', bas);
-  assert.ok(bas > 0 && son > bas, 'rapor hesabı bulunamadı');
-  const gunNetDakika = new Function(`return (${html.slice(bas + 'const gunNetDakika = '.length, son + 4)})`)();
-  const sonuc = gunNetDakika(SUNUCU_KAYITLARI, '2026-09-24');
+  const sonuc = gunuHesapla(SUNUCU_KAYITLARI);
   assert.equal(Math.round(sonuc.net), 510);
   assert.equal(Math.round(sonuc.mola), 30);
   assert.equal(sonuc.eksikCikis, false);

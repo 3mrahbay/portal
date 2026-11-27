@@ -1,0 +1,9 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Özlük & Puantaj • Yerel önizleme</title><style>body{margin:0;background:#f7f9f6;font:15px system-ui;color:#243b31}main{max-width:1280px;margin:32px auto;padding:0 20px}header.demo{background:#2d5e3e;color:white;padding:18px 22px;border-radius:16px;margin-bottom:20px}header.demo p{margin:5px 0;font-size:13px;opacity:.85}</style></head><body><main><header class="demo"><b>Bir Çiçek Koleji · Özlük & Puantaj</b><p>Yerel tasarım önizlemesi · Tamamı örnek veri</p></header><div id="ozlukAraclar"></div><div id="ozlukIcerik"></div></main><script type="module">
+import {panelRender} from '../moduller/personel-puantaj.js';
+const people=[{email:'a@example.test',adSoyad:'Örnek Öğretmen',unvan:'Montessori Rehberi'},{email:'b@example.test',adSoyad:'Örnek Yardımcı',unvan:'Yardımcı Öğretmen'},{email:'c@example.test',adSoyad:'Örnek Personel',unvan:'Mutfak Sorumlusu'}];
+const rows=[];const add=(email,date,tip,time)=>rows.push({personelEmail:email,tarih:date,tip,zaman:`${date}T${time}:00+03:00`});
+for(const p of people.slice(0,2))for(const day of ['23','24','25','26']){const d=`2026-11-${day}`;add(p.email,d,'giris','08:00');add(p.email,d,'mola-basla','12:00');add(p.email,d,'mola-bitir','13:00');if(!(day==='26'&&p.email[0]==='a'))add(p.email,d,'cikis','17:00');}
+window.PortalAPI={state:{rol:'mudur'},db:{},fb:{collection:()=>({}),query:()=>({}),where:()=>({}),getDocs:async()=>({docs:rows.map(d=>({data:()=>d}))})}};
+window.ozlukPuantajAyDegis=ay=>panelRender('ozlukIcerik',people,ay);window.ozlukSekme=()=>{document.getElementById('ozlukIcerik').textContent='Önizleme: canlı düzeltme işlemi yapılmaz.';};
+await panelRender('ozlukIcerik',people,'2026-11');
+</script></body></html>

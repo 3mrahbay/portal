@@ -1,0 +1,56 @@
+const {initializeTestEnvironment,assertSucceeds,assertFails}=require('@firebase/rules-unit-testing');
+const fb=require('firebase/firestore'), fs=require('node:fs');
+(async()=>{
+ const endpoint=process.env.FIRESTORE_EMULATOR_HOST||'';
+ if(!/^127\.0\.0\.1:\d+$/.test(endpoint)||!process.env.OZLUK_RULES_FILE)throw Error('Local emulator and explicit rules required');
+ const [host,port]=endpoint.split(':');
+ const env=await initializeTestEnvironment({projectId:'demo-ozluk',firestore:{host,port:Number(port),rules:fs.readFileSync(process.env.OZLUK_RULES_FILE,'utf8')}});
+ const db=n=>env.authenticatedContext(n,{email:n+'@test.example',email_verified:true}).firestore();
+ const ref=(d,id)=>fb.doc(d,'izinTalepleri',id);
+ const sample={personelEmail:'teacher@test.example',tur:'yillik',baslangic:'2026-11-27',bitis:'2026-11-28',gun:2,durum:'bekliyor'};
+ let checks=0; const ok=async p=>{await assertSucceeds(p);checks++},no=async p=>{await assertFails(p);checks++};
+ try {
+ await env.clearFirestore();await env.withSecurityRulesDisabled(async c=>{
+  for(const [name,rol] of [['teacher','ogretmen'],['other','ogretmen'],['manager','mudur'],['accountant','muhasebe'],['coordinator','egitim_koordinator']])await fb.setDoc(fb.doc(c.firestore(),'personeller',name+'@test.example'),{rol});
+ });
+ await ok(fb.setDoc(ref(db('teacher'),'one'),sample));
+ await no(fb.setDoc(ref(db('teacher'),'approved'),{...sample,durum:'onaylandi'}));
+ await no(fb.setDoc(ref(db('outsider'),'outside'),{...sample,personelEmail:'outsider@test.example'}));
+ await no(fb.setDoc(ref(db('teacher'),'spoof'),{...sample,personelEmail:'other@test.example'}));
+ await no(fb.setDoc(ref(db('teacher'),'oversize'),{...sample,aciklama:'x'.repeat(2001)}));
+ await no(fb.setDoc(ref(db('teacher'),'schema'),{...sample,admin:true}));
+ await no(fb.setDoc(ref(db('teacher'),'type'),{...sample,gun:'2'}));
+ await no(fb.getDoc(ref(db('other'),'one')));
+ await no(fb.getDocs(fb.collection(db('teacher'),'izinTalepleri')));
+ await no(fb.getDocs(fb.collection(env.unauthenticatedContext().firestore(),'izinTalepleri')));
+ await ok(fb.getDocs(fb.query(fb.collection(db('teacher'),'izinTalepleri'),fb.where('personelEmail','==','teacher@test.example'))));
+ await ok(fb.getDocs(fb.collection(db('accountant'),'izinTalepleri')));
+ await no(fb.updateDoc(ref(db('teacher'),'one'),{durum:'onaylandi'}));
+ await no(fb.updateDoc(ref(db('manager'),'one'),{personelEmail:'other@test.example'}));
+ await no(fb.updateDoc(ref(db('manager'),'one'),{durum:'onaylandi',kararVeren:'manager@test.example',kararNotu:'',kararTarihi:new Date().toISOString()}));
+ const {izinKararKaydet}=await import('../js/personel-izin-karar.js');
+ await ok(izinKararKaydet({db:db('manager'),fb},{id:'one',actor:'manager@test.example',karar:'onaylandi',kaynak:'portal',onaylananGun:2}));
+ await no(fb.updateDoc(fb.doc(db('manager'),'ozlukIslemKayitlari','izin_one'),{actor:'other@test.example'}));
+ await no(fb.deleteDoc(fb.doc(db('manager'),'ozlukIslemKayitlari','izin_one')));
+ await no(fb.deleteDoc(ref(db('manager'),'one')));
+ await no(fb.setDoc(fb.doc(db('teacher'),'puantaj','fake'),{personelEmail:'teacher@test.example',tip:'giris'}));
+ const d=db('manager'),id='teacher@test.example_2026-11-27_cikis_duzeltme';
+ const event={personelEmail:'teacher@test.example',personelAd:'Test',tip:'cikis',tarih:'2026-11-27',zaman:'2026-11-27T14:00:00.000Z',yontem:'duzeltme',duzelten:'manager@test.example',onayli:true};
+ await no(fb.setDoc(fb.doc(d,'puantaj',id),event));
+ const batch=fb.writeBatch(d);batch.set(fb.doc(d,'puantaj',id),event);batch.set(fb.doc(d,'puantajDuzeltmeleri',id),{personelEmail:'teacher@test.example',personelAd:'Test',tarih:'2026-11-27',tur:'cikis-eklendi',eklenenSaat:'17:00',aciklama:'Eksik çıkış',duzelten:'manager@test.example',olusturuldu:fb.serverTimestamp()});
+ await ok(batch.commit());await no(fb.deleteDoc(fb.doc(d,'puantaj',id)));
+ await no(fb.updateDoc(fb.doc(db('teacher'),'puantajDuzeltmeleri',id),{personelEmail:'other@test.example'}));
+ await ok(fb.getDocs(fb.query(fb.collection(db('accountant'),'puantaj'),fb.where('tarih','>=','2026-11-01'),fb.where('tarih','<=','2026-11-31'))));
+ const admin=env.authenticatedContext('admin',{email:'emrahby@gmail.com',email_verified:true}).firestore();
+ await no(fb.deleteDoc(fb.doc(admin,'puantaj',id)));
+ await no(fb.deleteDoc(fb.doc(admin,'ozlukIslemKayitlari','izin_one')));
+ await no(fb.setDoc(fb.doc(admin,'ozlukIslemKayitlari','izin_forged'),{tur:'izin-karar',talepId:'one',personelEmail:'teacher@test.example',actor:'emrahby@gmail.com',oncekiDurum:'onaylandi',yeniDurum:'onaylandi',zaman:fb.serverTimestamp(),kaynak:'portal'}));
+ await no(fb.updateDoc(ref(admin,'one'),{personelEmail:'other@test.example'}));
+ await no(fb.setDoc(fb.doc(db('teacher'),'personelDurum','teacher@test.example'),{durum:'iceride'}));
+ await no(fb.setDoc(fb.doc(admin,'personelDurum','teacher@test.example'),{durum:'iceride'}));
+ await ok(fb.setDoc(ref(db('teacher'),'concurrent'),sample));
+ const outcomes=await Promise.allSettled(['onaylandi','reddedildi'].map(karar=>izinKararKaydet({db:db('manager'),fb},{id:'concurrent',actor:'manager@test.example',karar,not:'İncelendi',kaynak:'portal'})));
+ require('node:assert/strict').equal(outcomes.filter(r=>r.status==='fulfilled').length,1);checks++;
+ console.log(`${checks} authorization and atomic-audit checks passed`);
+ } finally {await env.cleanup();}
+})().catch(e=>{console.error(e);process.exit(1)});
