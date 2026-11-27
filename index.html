@@ -9262,6 +9262,21 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 @media(pointer:coarse){#egitimMatrixContainer .matrix-stu-buton,#egitimMatrixContainer[data-boyut] .matrix-stu-buton{min-width:44px;min-height:44px}}
 /* Education workspace: one scroll owner, including Safari dynamic viewport. */
 #egitimMatrixContainer .egitim-sinif-secici-bar,#egitimMatrixContainer .egitim-secici-bar{gap:8px;padding:10px 12px;margin-bottom:10px}
+/* Compact education introduction, retaining the portal's purple/green identity. */
+#zekyEgitimTakipHero{padding:16px 20px!important;margin-bottom:10px!important;border-radius:14px!important}
+#zekyEgitimTakipHero h2{font-size:22px!important;margin:4px 0!important}
+#zekyEgitimTakipHero p{font-size:12px!important;max-width:none!important;line-height:1.5}
+#zekyCoreYeniGozlemKart{padding:10px 14px!important;margin-bottom:12px!important;border-radius:12px!important;gap:10px!important;box-shadow:none!important}
+#zekyCoreYeniGozlemKart>div:first-child{width:34px!important;height:34px!important;font-size:18px!important;border-radius:9px!important;flex-shrink:0}
+#zekyCoreYeniGozlemKart>div:nth-child(2)>div:first-child{font-size:14px!important}
+#zekyCoreYeniGozlemKart button{padding:8px 12px!important;white-space:nowrap}
+#tab-egitim.egitim-matrix-aktif .egitim-program-secim-grubu{display:none}
+#tab-egitim.egitim-matrix-aktif #zekyEgitimTakipHero p{display:none}
+#egitimMatrixBaslik{padding:8px 12px;gap:10px;margin-bottom:8px}
+#egitimMatrixBaslik>div:first-child{font-size:24px!important}
+#egitimMatrixBaslik h3{font-size:18px}
+#egitimMatrixBaslik h3+div{font-size:11px!important}
+@media(max-width:600px){#zekyEgitimTakipHero{padding:12px 14px!important}#zekyEgitimTakipHero h2{font-size:18px!important}#zekyCoreYeniGozlemKart>div:nth-child(2)>div:nth-child(2){display:none}#zekyCoreYeniGozlemKart button{font-size:12px;min-height:44px}#egitimMatrixBaslik h3+div{display:none}.egitim-matrix-baslik-bilgi{font-size:11px}}
 /* Empty program headings must not leave a decorative spacer. */
 #egitimMatrixBaslik:empty{display:none}
 #egitimMatrixContainer .egitim-yonetim-araclari{margin-bottom:8px!important}
@@ -9282,7 +9297,7 @@ body.muhasebe-hesabi [data-modul="randevular"], body.muhasebe-hesabi [data-modul
 #egitimMatrixContainer :is(input,select,button,summary):focus-visible{outline:2px solid var(--matrix-renk,#2D5E3E);outline-offset:2px}
 #egitimMatrixContainer .egitim-secici-bilgi{display:block;margin-left:0;font-size:11px;white-space:normal;border-top:1px solid #e5e7eb;padding-top:8px}
 @media(max-width:600px){#egitimMatrixContainer .egitim-sinif-secici-baslik{flex-basis:100%;min-width:0}#egitimMatrixContainer .egitim-secici-grup:first-child{flex:1;min-width:0}#egitimAlanSec{min-width:0;width:100%}#egitimMatrixContainer .egitim-arama{flex:1 1 100px;width:100px}#egitimMatrixContainer .egitim-sinif-secici-bar,#egitimMatrixContainer .egitim-secici-bar{gap:6px}.egitim-gorunum-panel{width:220px}}
-@media(max-width:600px){#egitimMatrixContainer .egitim-secici-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}#egitimMatrixContainer .egitim-secici-grup{min-width:0;gap:5px}#egitimMatrixContainer .egitim-secici-grup select{min-width:0;width:100%;max-width:100%}#egitimMatrixContainer .egitim-secici-bar .egitim-arama{width:100%}.egitim-gorunum{margin-left:0}.egitim-gorunum summary{text-align:center}}
+@media(max-width:600px){#egitimMatrixContainer .egitim-secici-bar{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center}#egitimMatrixContainer .egitim-secici-grup{min-width:0;gap:5px}#egitimMatrixContainer .egitim-secici-bar>.egitim-secici-grup:first-child{grid-column:1/-1}#egitimMatrixContainer .egitim-secici-grup select{min-width:0;width:100%;max-width:100%}#egitimMatrixContainer .egitim-secici-bar .egitim-arama{width:100%}.egitim-gorunum{margin-left:0;grid-column:1/-1}.egitim-gorunum summary{text-align:center}}
 html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important}
 #egitimMatrixContainer.egitim-tam-sayfa{position:fixed;inset:0;z-index:9000;background:#f6f8f6;padding:12px;box-sizing:border-box;display:flex!important;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
 .egitim-tam-sayfa #egitimBelgelemeKap,.egitim-tam-sayfa .egitim-matrix-altbilgi{display:none!important}
@@ -10312,17 +10327,17 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
       </div>
 
       <!-- 5 PROGRAM + BRANŞLAR (BCDM) -->
-      <div style="margin-bottom:12px;">
+      <div class="egitim-program-secim-grubu" style="margin-bottom:12px;">
         <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--gray-500); margin-bottom:10px;">ANA PROGRAMLAR</div>
         <div class="egitim-disiplin-secici" id="egitimDisiplinSecici"></div>
       </div>
-      <div style="margin-top:18px;">
+      <div class="egitim-program-secim-grubu" style="margin-top:18px;">
         <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--gray-500); margin-bottom:10px;">BRANŞLAR</div>
         <div class="egitim-disiplin-secici" id="egitimBransSecici"></div>
       </div>
 
       <!-- MATRIX SİSTEMİ (gizli, disiplin seçilince açılır) -->
-      <div id="egitimMatrixContainer" style="display:none;">
+      <div id="egitimMatrixContainer" data-boyut="kompakt" style="display:none;">
         <!-- Program belgeleme: orman oturumu / değerler gözlemi (moduller/program-belgeleme.js) -->
         <div id="egitimBelgelemeKap" style="display:none; margin-bottom:16px;"></div>
         <!-- Geri & başlık -->
@@ -10370,7 +10385,7 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
               <label for="egitimIsaretlemeModu">İşaretleme</label>
               <select id="egitimIsaretlemeModu"><option value="detay">Detaylı gözlem</option><option value="hizli">Hızlı işaretleme</option></select>
               <label for="egitimBoyut">Tablo boyutu</label>
-              <select id="egitimBoyut" onchange="egitimBoyutSec(this.value)"><option value="normal">Normal</option><option value="kompakt">Kompakt</option><option value="buyuk">Büyük</option></select>
+              <select id="egitimBoyut" onchange="egitimBoyutSec(this.value)"><option value="normal">Normal</option><option value="kompakt" selected>Kompakt</option><option value="buyuk">Büyük</option></select>
               <div class="egitim-secici-bilgi" id="egitimSeciciBilgi"></div>
             </div>
           </details>
@@ -14229,7 +14244,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v239";
+window.PORTAL_SURUM = "v240";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -21939,26 +21954,35 @@ window.egitimIlerlemeDoldur = async function() {
   const ozetEl = document.getElementById("egitimIlerlemeOzet");
   if (!el) return;
 
+  if (ozetEl) ozetEl.textContent = "Güncel kayıtlar yükleniyor…";
+  el.innerHTML = "";
   try {
     if (typeof DISIPLINLER === "undefined" || !DISIPLINLER.length) { el.innerHTML = ""; return; }
     // Özel branşları da yükle
     if (typeof ozelBranslariYukle === "function" && typeof ozelBranslarYuklendi !== "undefined" && !ozelBranslarYuklendi) {
-      try { await ozelBranslariYukle(); } catch (e) {}
+      await ozelBranslariYukle();
     }
-    // Müfredatlar + gelişim verisi
-    await Promise.all(DISIPLINLER.map(d => mufredatYukle(d.id).catch(() => null)));
-    await egitimMatrixVeriYukle();
+    // Read-only server curricula: no default IDs, auto-creation or swallowed errors.
+    const mufredatlar = Object.fromEntries(await Promise.all(DISIPLINLER.map(async d => {
+      const snap = await getDocFromServer(doc(db, "mufredatlar", d.id));
+      if (!snap.exists()) return [d.id, []];
+      const alanlar = snap.data().alanlar;
+      if (!Array.isArray(alanlar)) throw new Error("Müfredat doğrulanamadı: " + d.ad);
+      return [d.id, alanlar];
+    })));
+    await egitimMatrixVeriYukle(true);
 
     const gelisim = (egitimMatrixVerisi && egitimMatrixVerisi.gelisim) || {};
     const ogrenciler = (egitimMatrixVerisi && egitimMatrixVerisi.ogrenciler) || [];
     if (!ogrenciler.length) {
+      if (ozetEl) ozetEl.textContent = "Aktif öğrenci yok";
       el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Aktif öğrenci verisi yok.</div>`;
       return;
     }
 
     const sonuc = [];
     for (const d of DISIPLINLER) {
-      const muf = aktifMufredatlar[d.id];
+      const muf = mufredatlar[d.id];
       if (!muf || !muf.length) continue;
       const anahtar = [];
       muf.forEach(a => (a.gruplar || []).forEach(g => (g.dersler || []).forEach(ders =>
@@ -21968,25 +21992,26 @@ window.egitimIlerlemeDoldur = async function() {
       let dolu = 0, usta = 0;
       ogrenciler.forEach(o => {
         const k = ((gelisim[o.id] || {})[d.id] || {}).kayitlar || {};
-        anahtar.forEach(key => { if (k[key]) { dolu++; if (k[key] === "U") usta++; } });
+        anahtar.forEach(key => { if (["S", "T", "U"].includes(k[key])) { dolu++; if (k[key] === "U") usta++; } });
       });
       const toplam = ogrenciler.length * anahtar.length;
       sonuc.push({
         ad: d.ad, ikon: d.ikon, renk: d.renk, tip: d.tip,
-        kazanim: anahtar.length,
+        kazanim: anahtar.length, dolu, toplam,
         yuzde: toplam ? Math.round((dolu / toplam) * 100) : 0,
         ustalik: toplam ? Math.round((usta / toplam) * 100) : 0
       });
     }
 
     if (!sonuc.length) {
+      if (ozetEl) ozetEl.textContent = "Müfredat tanımlı değil";
       el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Müfredat tanımlı program yok.</div>`;
       return;
     }
 
     sonuc.sort((a, b) => b.yuzde - a.yuzde);
     const genelOrt = Math.round(sonuc.reduce((s, x) => s + x.yuzde, 0) / sonuc.length);
-    if (ozetEl) ozetEl.textContent = `Genel %${genelOrt} · ${ogrenciler.length} öğrenci`;
+    if (ozetEl) ozetEl.textContent = `Program ort. %${genelOrt} · ${ogrenciler.length} öğrenci · tüm alanlar`;
 
     el.innerHTML = sonuc.slice(0, 6).map(x => `
       <div class="ozet-eg-satir">
@@ -21994,7 +22019,7 @@ window.egitimIlerlemeDoldur = async function() {
           <span class="ozet-eg-ad">${x.ikon} <span>${String(x.ad).replace(/</g,"&lt;")}</span>
             <span style="color:#94A3B8; font-weight:400; font-size:11px; flex-shrink:0;">${x.kazanim}</span>
           </span>
-          <span class="ozet-eg-yuzde" style="color:${x.renk};">%${x.yuzde}
+          <span class="ozet-eg-yuzde" title="${x.dolu} / ${x.toplam} öğrenci-kazanım hücresi işaretli; U: ustalaşılan hücrelerin oranı" style="color:${x.renk};">%${x.yuzde}
             <span style="color:#16a34a; font-size:10.5px; font-weight:700;">U%${x.ustalik}</span>
           </span>
         </div>
@@ -22003,7 +22028,8 @@ window.egitimIlerlemeDoldur = async function() {
 
   } catch (e) {
     console.warn("Eğitim ilerlemesi:", e);
-    el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">İlerleme verisi yüklenemedi.</div>`;
+    if (ozetEl) ozetEl.textContent = "Oran hesaplanamadı";
+    el.innerHTML = `<div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">İlerleme verisi yüklenemedi. <button type="button" class="btn-mini" onclick="egitimIlerlemeDoldur()">Yeniden Dene</button></div>`;
   }
 };
 
@@ -34274,6 +34300,7 @@ async function ozelBranslariYukle() {
 let ozelBranslarYuklendi = false;
 window.egitimSekmesiAcildi = async function() {
   egitimArkaPlanCalismasiniDurdur(true);
+  document.getElementById("tab-egitim")?.classList.remove("egitim-matrix-aktif");
   const yuklemeSurumu = egitimYuklemeSurumu;
   // Özel branşları bir kez yükle
   if (!ozelBranslarYuklendi) {
@@ -34648,6 +34675,10 @@ window.egitimRaporExcel = function(disiplin) {
 };
 
 window.egitimDisiplinAc = async function(disiplin) {
+  document.getElementById("tab-egitim")?.classList.add("egitim-matrix-aktif");
+  let boyut = 'kompakt';
+  try { boyut = localStorage.getItem('egitimTabloBoyutu') || boyut; } catch (_) {}
+  egitimBoyutSec(boyut);
   egitimGelisimCanliDinlemeyiDurdur();
   const yuklemeSurumu = ++egitimYuklemeSurumu;
   egitimOkumaDurumu = "loading";
@@ -49595,13 +49626,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=239");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=240");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v239";
+          const anahtar = "portalSwReload_v240";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
