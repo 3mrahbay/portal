@@ -9313,6 +9313,16 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
 @media(max-width:600px){#egitimMatrixContainer.egitim-tam-sayfa{padding:6px;padding-top:max(6px,env(safe-area-inset-top));padding-bottom:max(6px,env(safe-area-inset-bottom))}.egitim-tam-sayfa .egitim-matrix-tablosu thead th.ders-baslik-h,.egitim-tam-sayfa .egitim-matrix-tablosu td.ders-adi{min-width:130px;width:130px;max-width:130px}.egitim-tam-sayfa .egitim-matrix-tablosu thead th.ogrenci-h{height:100px}}
 
 @media(min-width:601px){#egitimMatrixContainer .egitim-sinif-secici-baslik{flex:0 1 auto}}
+/* Education landing: observation shortcut shares the introductory card. */
+#tab-egitim:not(.egitim-matrix-aktif) .egitim-ust-serit{grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:0;border:1px solid #e8def7;border-radius:16px;overflow:hidden;margin-bottom:18px;background:#f5f0fc}
+#tab-egitim:not(.egitim-matrix-aktif) #zekyEgitimTakipHero{margin:0!important;border-radius:0!important;display:flex;align-items:center;padding:18px 20px!important}
+#tab-egitim:not(.egitim-matrix-aktif) #zekyEgitimTakipHero h2{font-size:22px!important;line-height:1.3}
+#tab-egitim:not(.egitim-matrix-aktif) #zekyCoreYeniGozlemKart{margin:0!important;border-radius:0!important;background:#f5f0fc!important;color:#4c1d95!important;padding:16px 20px!important;flex-wrap:wrap;gap:10px;box-shadow:none!important}
+#tab-egitim:not(.egitim-matrix-aktif) #zekyCoreYeniGozlemKart>div:first-child{background:#e9def8!important}
+#tab-egitim:not(.egitim-matrix-aktif) #zekyCoreYeniGozlemKart>div:nth-child(2){min-width:140px}
+#tab-egitim:not(.egitim-matrix-aktif) #zekyCoreYeniGozlemKart button{color:#5b21b6!important;border-color:#d8c8ef!important;min-height:44px}
+@media(max-width:900px){#tab-egitim:not(.egitim-matrix-aktif) .egitim-ust-serit{grid-template-columns:minmax(0,1fr)}#tab-egitim:not(.egitim-matrix-aktif) #zekyCoreYeniGozlemKart{padding:12px 14px!important}#tab-egitim:not(.egitim-matrix-aktif) #zekyEgitimTakipHero{padding:14px!important}}
+@media(max-width:600px){#tab-egitim:not(.egitim-matrix-aktif) #zekyEgitimTakipHero h2{font-size:18px!important}}
 /* One program strip; original actions and IDs remain shared across roles. */
 #tab-egitim{--egitim-program-renk:#2D5E3E}
 .egitim-ust-serit{display:grid;gap:10px;margin-bottom:10px}
@@ -14268,7 +14278,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v241";
+window.PORTAL_SURUM = "v242";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -49667,13 +49677,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=241");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=242");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v241";
+          const anahtar = "portalSwReload_v242";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
