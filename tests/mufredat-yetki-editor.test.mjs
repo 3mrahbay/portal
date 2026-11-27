@@ -1,13 +1,13 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {createRequire} from 'node:module';
 const {JSDOM}=createRequire(import.meta.url)('jsdom');
-const source=fs.readFileSync(new URL('../portal-mufredat.js',import.meta.url),'utf8').replace(/^import .*\n/,'').replace('export async function ac()', 'async function ac()');
+const source=fs.readFileSync(new URL('../portal-mufredat.js',import.meta.url),'utf8').replace(/^import .*\n/,'').replace('export async function ac(', 'async function ac(');
 const base=[{id:'stable',ad:'Alan',ikon:'🌱',renk:'#123456',gruplar:[{ad:'Grup',dersler:['Eski']}]}];
 function fixture(){
  const dom=new JSDOM('<body></body>',{runScripts:'outside-only'}),w=dom.window;let allowed=false;const calls=[],messages=[];
  w.BCK={escapeHtml:s=>String(s).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),DISIPLINLER:()=>[{id:'montessori',ad:'Montessori'}],mufredatCacheAta:()=>{}};
  w.confirm=()=>true;w.showToast=(...x)=>messages.push(x);w.mufredatIslem=async data=>{
   calls.push(JSON.parse(JSON.stringify(data)));
-  if(data.action==='status')return {allowed};
+  if(data.action==='status')return {allowed,protocol:2,programs:['montessori']};
   if(!allowed)throw Error('Yetki kapalı');
   if(data.action==='load')return {alanlar:structuredClone(base)};
   return {saved:true};
@@ -34,4 +34,16 @@ test('permission switch writes only the flag and rolls back on denied writes',as
  const ctx={window:{},document:{getElementById:()=>({value:'t@example.test'})},db:{},doc:(_,...path)=>path,personelListesi:[{id:'t@example.test',rol:'ogretmen'}],showToast:()=>{},runTransaction:async(_db,fn)=>{if(denied)throw Error('denied');await fn({get:async()=>({exists:()=>true,data:()=>({rol:'ogretmen'})}),update:(ref,data)=>writes.push({ref,data})});}};
  vm.runInNewContext(code,ctx);await ctx.window.personelMufredatYetkiKaydet(input);assert.deepEqual(JSON.parse(JSON.stringify(writes)),[{ref:['personeller','t@example.test'],data:{mufredatDuzenleme:true}}]);
  denied=true;input.checked=false;await ctx.window.personelMufredatYetkiKaydet(input);assert.equal(input.checked,true);assert.equal(input.disabled,false);
+});
+test('a pending or failed load cannot save; retry recovers and out-of-scope tabs cannot load',async()=>{
+ const f=fixture();f.setAllowed(true);const original=f.w.mufredatIslem;let rejectLoad;
+ f.w.mufredatIslem=data=>data.action==='load'?new Promise((_,reject)=>{rejectLoad=reject}):original(data);
+ const opening=f.w.openEditor();await new Promise(r=>setTimeout(r,0));await f.w.mufredatKaydetVeKapat();assert(!f.calls.some(x=>x.action==='save'));
+ rejectLoad(Error('Read denied'));await opening;assert.match(f.w.document.getElementById('mfIcerik').textContent,/yüklenemedi/);
+ await f.w.mufredatKaydetVeKapat();assert(!f.calls.some(x=>x.action==='save'));
+ f.w.mufredatIslem=original;await f.w.document.querySelector('#mfIcerik button').onclick();assert.match(f.w.document.getElementById('mfIcerik').innerHTML,/Eski/);
+ const count=f.calls.length;await f.w.mufredatEditorDisiplinSec('ingilizce');assert.equal(f.calls.length,count);f.dom.window.close();
+});
+test('old server protocol cannot open the scoped editor',async()=>{
+ const f=fixture();f.w.mufredatIslem=async()=>({allowed:true});await assert.rejects(f.w.openEditor(),/henüz güncellenmedi/);assert.equal(f.w.document.getElementById('mufredatEditorModal'),null);f.dom.window.close();
 });

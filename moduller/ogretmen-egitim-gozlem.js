@@ -42,14 +42,13 @@ function ogretmenProgrami(){
   return {ingilizce_ogretmeni:'ingilizce',degerler_ogretmeni:'degerler',orman_ogretmeni:'orman'}[B()?.rol?.()]||'';
 }
 function izinliProgramlar(){
-  const program=ogretmenProgrami();
-  const list = [...PROGRAMLAR];
-  if(S?.program && !list.some(p=>p.id===S.program)) list.push({id:S.program,ad:S.program});
-  return program?list.filter(p=>p.id===program):list;
+  if(B()?.rol?.()==='pdr') return [];
+  const list = B()?.DISIPLINLER?.() || [];
+  const program = ogretmenProgrami();
+  return program ? list.filter(p=>p.id===program) : list;
 }
 function programKontrol(){
-  const program=ogretmenProgrami();
-  if(program&&S.program!==program)throw new Error('Yalnızca kendi eğitim programınıza gözlem ekleyebilirsiniz.');
+  if(!izinliProgramlar().some(p=>p.id===S.program)) throw new Error('Bu programa gözlem ekleme yetkiniz yok.');
 }
 async function kayitOnKontrol(){
   programKontrol();
@@ -220,8 +219,9 @@ async function kaydet(){
 }
 
 export async function gozlemAc(ogrId,ogrAdValue,sinif,secim={}){
+  if (!izinliProgramlar().length || (secim.program && !izinliProgramlar().some(p=>p.id===secim.program))) { toast('Bu programa gözlem ekleme yetkiniz yok.','error'); return; }
   if(secim.program && ogretmenProgrami() && secim.program!==ogretmenProgrami()){toast('Yalnızca kendi eğitim programınıza gözlem ekleyebilirsiniz.','error');return;}
-  if(!ogrId||S?.kaydediliyor)return;if(S)kapat();stil();S={odak:document.activeElement,...secim,acilisOturumu:gallerySession(window.PortalAPI?.state||{}),secim:secim.alanId?secim:null,hucreden:!!secim.alanId,ogrId,ogrAd:ogrAdValue||'Öğrenci',sinif:sinif||'',program:ogretmenProgrami()||secim.program||'montessori',alanlar:[],alanIdx:0,grupIdx:0,dersIdx:0,durum:'',not:'',foto:null,fotoOniz:''};
+  if(!ogrId||S?.kaydediliyor)return;if(S)kapat();stil();S={odak:document.activeElement,...secim,acilisOturumu:gallerySession(window.PortalAPI?.state||{}),secim:secim.alanId?secim:null,hucreden:!!secim.alanId,ogrId,ogrAd:ogrAdValue||'Öğrenci',sinif:sinif||'',program:secim.program||izinliProgramlar()[0].id,alanlar:[],alanIdx:0,grupIdx:0,dersIdx:0,durum:'',not:'',foto:null,fotoOniz:''};
   const d=document.createElement('div');d.id='zegoArka';d.className='zego-arka';d.innerHTML='<div class="zego-kart" role="dialog" aria-modal="true" aria-label="Eğitim gözlemi" tabindex="-1"><div style="padding:30px;text-align:center;color:#7C8882">Müfredat yükleniyor…</div></div>';d.onclick=e=>{if(e.target===d)kapat()};document.body.appendChild(d);d.querySelector('.zego-kart').focus();d.onkeydown=e=>{if(e.key==='Escape'){e.stopPropagation();kapat();}if(e.key==='Tab'){const list=[...d.querySelectorAll('button:not(:disabled),select:not(:disabled),textarea,input:not([hidden])')].filter(el=>el.getClientRects().length);const first=list[0],last=list.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};
   const acilis=S;
   try{const b=B();const snap=await (b.getDocFromServer||b.getDoc)(b.doc(b.db,'ogrenciGelisim',ogrId));if(S!==acilis)return;if(S.acilisOturumu!==gallerySession(window.PortalAPI?.state||{})){kapat();return;}S.gecmis=snap.exists()?snap.data():{};if(await mufredatYukle())ciz();}catch(e){if(S!==acilis)return;console.error(e);toast('Eğitim programı yüklenemedi.','error');kapat();}

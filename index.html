@@ -9327,6 +9327,8 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
 #tab-egitim.egitim-matrix-aktif #egitimMatrixBaslik h3{font-size:21px;margin:0}
 #tab-egitim.egitim-matrix-aktif #egitimMatrixBaslik h3+div{display:none}
 #tab-egitim.egitim-matrix-aktif .egitim-matrix-baslik-bilgi{width:100%;margin:0;font-size:11px;text-align:left}
+#tab-egitim.egitim-matrix-aktif.egitim-salt-okunur .egitim-ust-serit{grid-template-columns:1fr 1fr}
+@media(max-width:600px){#tab-egitim.egitim-matrix-aktif.egitim-salt-okunur .egitim-ust-serit{grid-template-columns:1fr}}
 .egitim-program-ozeti .egitim-yonetim-araclari{display:flex;flex-wrap:wrap;gap:6px}
 .egitim-program-ozeti .btn-mini{font-size:11px;padding:6px 9px;background:white}
 #tab-egitim.egitim-matrix-aktif #zekyCoreYeniGozlemKart{margin:0!important;border-radius:0!important;padding:14px 16px!important;background:color-mix(in srgb,var(--egitim-program-renk) 6%,white)!important;color:color-mix(in srgb,var(--egitim-program-renk) 80%,#10251b)!important;flex-wrap:wrap;gap:8px;border-left:1px solid color-mix(in srgb,var(--egitim-program-renk) 20%,white)}
@@ -10344,7 +10346,8 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
       <div class="egitim-program-ozeti">
         <div id="egitimMatrixBaslik" class="egitim-matrix-baslik"></div>
         <div class="egitim-yonetim-araclari">
-          <button type="button" class="btn-mini" onclick="mufredatEditorAc()">⚙️ Müfredat Düzenle</button>
+          <button type="button" class="btn-mini" id="egitimMufredatDuzenle" onclick="mufredatEditorAc()">⚙️ Müfredat Düzenle</button>
+          <button type="button" class="btn-mini" onclick="egitimMufredatGecmisiAc()">Değişiklik Geçmişi</button>
           <button type="button" class="btn-mini" onclick="egitimMatrixYenile()"><i data-lucide="refresh-cw" style="width:13px;height:13px;vertical-align:-2px;"></i> Yenile</button>
         </div>
       </div>
@@ -10426,7 +10429,7 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
             <span><span class="stu-rozet stu-S">S</span> Sunuldu — Öğretmen tanıttı</span>
             <span><span class="stu-rozet stu-T">T</span> Tekrar — Çocuk üzerinde çalışıyor</span>
             <span><span class="stu-rozet stu-U">U</span> Uzmanlaştı — İçselleştirdi</span>
-            <span style="color:#6b7280; font-size:11px;"><i data-lucide="lightbulb" style="width:13px;height:13px;vertical-align:-2px;"></i> Hücreden gözlem ekleyin · ✎ açıklama · ▧ fotoğraf</span>
+            <span id="egitimGozlemIpucu" style="color:#6b7280; font-size:11px;"><i data-lucide="lightbulb" style="width:13px;height:13px;vertical-align:-2px;"></i> Hücreden gözlem ekleyin · ✎ açıklama · ▧ fotoğraf</span>
           </div>
         </div>
       </div>
@@ -11893,7 +11896,13 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
           <option value="mudur">Müdür (tüm yetki)</option>
           <option value="egitim_koordinator">Eğitim Koordinatörü (tüm sınıflar, eğitim)</option>
           <option value="muhasebe">Muhasebe (mali işler)</option>
-          <option value="ogretmen">Öğretmen / Branş (atanan sınıflar)</option>
+          <option value="ogretmen">Sınıf Öğretmeni (Montessori / Orman)</option>
+          <option value="ingilizce_ogretmeni">İngilizce Öğretmeni</option>
+          <option value="degerler_ogretmeni">Değerler Öğretmeni</option>
+          <option value="orman_ogretmeni">Orman Öğretmeni</option>
+          <option value="brans_ogretmeni">Branş Öğretmeni</option>
+          <option value="yardimci_ogretmen">Yardımcı Öğretmen</option>
+          <option value="pdr">PDR (eğitim salt okunur)</option>
           <option value="danisma">Danışma Personeli (Okul Zili ve operasyon)</option>
           <option value="kurucu_mudur">Kurucu Müdür (tüm yetki)</option>
         </select>
@@ -11918,6 +11927,10 @@ html.egitim-calisma-acik,html.egitim-calisma-acik body{overflow:hidden!important
         </div>
       </div>
 
+      <div class="form-group" id="personelProgramGrup" style="display:none;">
+        <label>Eğitim programları</label><div id="personelProgramSecimleri"></div>
+        <small>Öğretmen yalnız seçili programları açar. Tek program seçiliyse doğrudan o program açılır. Müfredat düzenleme izni aşağıdan ayrıca yönetilir.</small>
+      </div>
       <div class="form-group" id="personelMufredatGrup" style="display:none;">
         <label><input type="checkbox" id="personelMufredatYetki" onchange="personelMufredatYetkiKaydet(this)"> Müfredat ekleme, düzenleme ve silme yetkisi</label>
         <small class="form-ipucu">Değişiklik anında kaydedilir. Portal ve ZEKY için geçerlidir. Okulun ortak müfredatını değiştirir; öğrenci erişim yetkisini değiştirmez.</small>
@@ -14240,6 +14253,7 @@ import {
   documentId, deleteField, getCountFromServer, FieldPath
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import { educationPrograms, canObserveProgram, EDUCATION_TEACHERS } from "./js/egitim-program-yetki.mjs?v=1";
 import { educationReadScope, createEducationReader, watchEducationRecords } from "./js/egitim-gelisim-okuma.mjs?v=1";
 import { maliKayitImzasi, maliKayitYamasi } from "./js/aidat-mali-kayit.js?v=1";
 import { createGooglePopupFlow } from "./js/portal-google-login.js?v=178";
@@ -14268,7 +14282,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v241";
+window.PORTAL_SURUM = "v243";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -14826,7 +14840,7 @@ const SEKME_YETKILERI = {
   profilim:    ["kurucu_mudur", "mudur", "mudur_yardimcisi", "egitim_koordinator", "egitim_koordinatoru",
                 "muhasebe", "ogretmen", "brans_ogretmeni", "yardimci_ogretmen", "ingilizce_ogretmeni",
                 "degerler_ogretmeni", "orman_ogretmeni", "danisma", "pdr", "asci", "temizlik"],
-  egitim:      ["kurucu_mudur", "mudur", "egitim_koordinator", "ogretmen"],
+  egitim:      ["kurucu_mudur", "mudur", "egitim_koordinator", "pdr", ...EDUCATION_TEACHERS],
   finans:      ["kurucu_mudur", "mudur", "muhasebe"],
   raporlar:    ["kurucu_mudur", "mudur", "muhasebe"],
   denetim:     ["kurucu_mudur", "mudur"],
@@ -15266,12 +15280,20 @@ window.personelMufredatYetkiKaydet = async function(input) {
 };
 
 // Rol değişince sınıf atama alanını göster/gizle
-window.personelRolDegisti = function() {
+window.personelRolDegisti = async function() {
   const rol = document.getElementById("personelRol").value;
+  const duzenlenenEmail = document.getElementById('personelDuzenleEmail').value;
   const mevcut = personelListesi.find(p => (p.email || p.id) === document.getElementById("personelDuzenleEmail").value);
   document.getElementById("personelMufredatGrup").style.display = mevcut && ["ogretmen","yardimci_ogretmen","ingilizce_ogretmeni","degerler_ogretmeni","orman_ogretmeni","brans_ogretmeni"].includes(mevcut.rol) ? "" : "none";
+  document.getElementById('personelProgramGrup').style.display = EDUCATION_TEACHERS.includes(rol) ? '' : 'none';
+  if (EDUCATION_TEACHERS.includes(rol)) {
+    await ozelBranslariYukle();
+    if (document.getElementById('personelRol').value !== rol || document.getElementById('personelDuzenleEmail').value !== duzenlenenEmail) return;
+    const secili = educationPrograms({currentUser:{uid:'preview'},rol,personel:mevcut || {}}, DISIPLINLER).map(d=>d.id);
+    document.getElementById('personelProgramSecimleri').innerHTML = DISIPLINLER.map(d=>`<label style="display:inline-flex;gap:6px;margin:6px 12px 6px 0"><input type="checkbox" value="${escapeHtml(d.id)}" ${secili.includes(d.id)?'checked':''}>${escapeHtml(d.ad)}</label>`).join('');
+  }
   const grup = document.getElementById("personelSinifAtamaGrup");
-  if (rol === "ogretmen") {
+  if (EDUCATION_TEACHERS.includes(rol)) {
     grup.style.display = "";
     personelSinifChiplariDoldur();
   } else {
@@ -15347,7 +15369,7 @@ window.personelKaydet = async function() {
   if (!emailRaw) return uyariGoster("E-posta zorunludur.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) return uyariGoster("Geçerli bir e-posta girin.");
   if (!rol) return uyariGoster("Rol seçmelisiniz.");
-  if (rol === "ogretmen" && personelSeciliSiniflar.length === 0) {
+  if (EDUCATION_TEACHERS.includes(rol) && personelSeciliSiniflar.length === 0) {
     return uyariGoster("Öğretmen için en az bir sınıf seçmelisiniz.");
   }
 
@@ -15385,6 +15407,10 @@ window.personelKaydet = async function() {
       if (mevcutP.eklemeTarihi) veri.eklemeTarihi = mevcutP.eklemeTarihi;
     }
 
+    if (EDUCATION_TEACHERS.includes(rol)) {
+      veri.egitimProgramlari = [...document.querySelectorAll('#personelProgramSecimleri input:checked')].map(el=>el.value);
+      if (!veri.egitimProgramlari.length) throw new Error('En az bir eğitim programı seçin.');
+    }
     await setDoc(doc(db, "personeller", email), veri, { merge: true });
 
     // Sınıf atamalarını güncelle (öğretmen için)
@@ -15394,7 +15420,7 @@ window.personelKaydet = async function() {
     const batch = writeBatch(db);
     eskiSnap.forEach(d => batch.delete(d.ref));
 
-    if (rol === "ogretmen") {
+    if (EDUCATION_TEACHERS.includes(rol)) {
       for (const sinif of personelSeciliSiniflar) {
         // Deterministik ID: email__sinif (Rules'daki ogretmenSinifaAtanmis ile uyumlu)
         const atamaId = `${email}__${sinif}`;
@@ -15417,8 +15443,8 @@ window.personelKaydet = async function() {
     // listesi boş geliyordu.
     // ZEKY app (ogretmenSiniflariniAyarla) da bu iki alanı birlikte yazar.
     batch.set(doc(db, "personeller", email), {
-      sinifAtamalari: rol === "ogretmen" ? personelSeciliSiniflar : [],
-      siniflar:       rol === "ogretmen" ? personelSeciliSiniflar : []
+      sinifAtamalari: EDUCATION_TEACHERS.includes(rol) ? personelSeciliSiniflar : [],
+      siniflar:       EDUCATION_TEACHERS.includes(rol) ? personelSeciliSiniflar : []
     }, { merge: true });
 
     await batch.commit();
@@ -22545,11 +22571,11 @@ window.caGozlemKapat = function() {
 };
 
 window.caGozlemAc = async function(ogrId, ogrAd, sinif) {
-  if (!ogrId) return;
+  if (!ogrId || window.PortalAPI.state.rol === "pdr" || !egitimYetkiliProgramlar().length) return;
   window.caGozlemKapat();
   caGozlemState = {
     ogrId, ogrAd: ogrAd || "Öğrenci", sinif: sinif || "",
-    disiplin: "montessori", alanIdx:0, grupIdx:0, dersIdx:0,
+    disiplin: egitimYetkiliProgramlar().find(d=>d.id===egitimAktifDisiplin)?.id || egitimYetkiliProgramlar()[0].id, alanIdx:0, grupIdx:0, dersIdx:0,
     seviye:null, not:"", foto:null, fotoOniz:"", kaydediliyor:false
   };
   const arka = document.createElement("div");
@@ -22564,6 +22590,7 @@ window.caGozlemAc = async function(ogrId, ogrAd, sinif) {
 window.caGozlemSet = async function(field, val) {
   const st = caGozlemState; if (!st || st.kaydediliyor) return;
   if (field === "disiplin") {
+    if (!egitimGozlemYetkisi(val)) return;
     st.disiplin = val; st.alanIdx = 0; st.grupIdx = 0; st.dersIdx = 0; st.seviye = null;
     await caGozlemRender();
   } else if (field === "alanIdx") {
@@ -22627,7 +22654,7 @@ async function caGozlemRender() {
     if (st.dersIdx >= dersler.length) st.dersIdx = 0;
 
     const aciklama = window.PortalData.aciklamaCoz(aciklamalar, `${secAlan.id}__${grup?.ad||""}__${dersler[st.dersIdx]||""}`, secAlan.id);
-    const programlar = [["montessori","Montessori"],["orman","Orman Okulu"],["degerler","Değerler"],["ingilizce","İngilizce"]];
+    const programlar = egitimYetkiliProgramlar().map(d => [d.id,d.ad]);
     const fotoHtml = st.fotoOniz
       ? `<div style="position:relative;"><img src="${escapeHtml(st.fotoOniz)}" style="width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:#F1F5F9;"><button type="button" onclick="caGozlemFotoTemizle()" style="position:absolute;right:8px;top:8px;border:0;background:rgba(15,23,42,.72);color:#fff;border-radius:999px;padding:6px 10px;cursor:pointer;">Kaldır</button></div>`
       : `<button type="button" onclick="caGozlemFotoSec()" style="width:100%;border:2px dashed #BFD0C4;background:#F4F8F5;border-radius:14px;padding:18px;cursor:pointer;font-family:inherit;color:#2D5E3E;"><span style="font-size:24px;display:block;margin-bottom:5px;">📷</span><b>Fotoğraf ekle</b><span style="display:block;font-size:11px;color:#718079;margin-top:4px;">İlgili eğitim aşamasına ve Eğitim Galerisi’ne bağlanır.</span></button>`;
@@ -22817,7 +22844,7 @@ function caGozlemEgitimGorunumunuGuncelle(st, kaydedilen) {
 }
 
 window.caGozlemKaydet = async function() {
-  const st = caGozlemState; if (!st || st.kaydediliyor) return;
+  const st = caGozlemState; if (!st || st.kaydediliyor || !egitimGozlemYetkisi(st.disiplin)) return;
   if (!st.seviye) return showToast("Sunuldu, Tekrar Ediyor veya Ustalaştı aşamasını seçin.", "error");
   const muf = await mufredatYukle(st.disiplin);
   const alan = muf[st.alanIdx];
@@ -30802,6 +30829,7 @@ window.ogrenciEgitimPopup = function(id) {
 
 // ZEKY çekirdek gözlem girişi — köprüye bağlı değildir.
 window.zekyGelismisGozlemAcCore = function(ogrenciId, ogrenciAd, sinif) {
+  if (window.PortalAPI.state.rol === "pdr" || !egitimYetkiliProgramlar().length) return;
   if (typeof window.caGozlemAc === "function") {
     return window.caGozlemAc(ogrenciId, ogrenciAd || "Öğrenci", sinif || "");
   }
@@ -30843,6 +30871,7 @@ window.zekyGozlemOgrenciSec = function(id) {
 };
 
 window.zekyYeniEgitimGozlemiAc = function() {
+  if (window.PortalAPI.state.rol === "pdr" || !egitimYetkiliProgramlar().length) return;
   document.getElementById("zekyCoreGozlemSecici")?.remove();
   const liste = zekiGozlemOgrenciListesi();
   const arka = document.createElement("div");
@@ -34183,6 +34212,9 @@ function egitimOkumaHatasi(e) {
   egitimOkumaMesaji(true);
 }
 
+function egitimYetkiliProgramlar() { return educationPrograms(window.PortalAPI.state, DISIPLINLER); }
+function egitimProgramGorebilir(id) { return egitimYetkiliProgramlar().some(d => d.id === id); }
+function egitimGozlemYetkisi(id) { return canObserveProgram(window.PortalAPI.state, id, DISIPLINLER); }
 function egitimYonetimMi() {
   const s = window.PortalAPI?.state || {};
   return !!s.isAdmin || ['kurucu_mudur','mudur','egitim_koordinator'].includes(s.rol);
@@ -34353,6 +34385,12 @@ window.egitimSekmesiAcildi = async function() {
   const bransSecici = document.getElementById("egitimBransSecici");
   const matrix = document.getElementById("egitimMatrixContainer");
 
+  const programlar = egitimYetkiliProgramlar();
+  const saltOkunur = window.PortalAPI.state.rol === 'pdr';
+  document.getElementById('tab-egitim')?.classList.toggle('egitim-salt-okunur',saltOkunur);
+  const gozlemKart = document.getElementById('zekyCoreYeniGozlemKart');
+  if (gozlemKart) gozlemKart.style.display = saltOkunur ? 'none' : 'flex';
+  if (!egitimYonetimMi() && !saltOkunur && programlar.length === 1) return egitimDisiplinAc(programlar[0].id);
   // Kutuları DISIPLINLER'den dinamik üret (BCDM kodlarıyla)
   function kutuHTML(d) {
     return `
@@ -34377,13 +34415,15 @@ window.egitimSekmesiAcildi = async function() {
   }
   // Program kutuları: görsel başlıklı (gradyan + desen) — kutuHTML zaten üstte tanımlı
   if (secici) {
-    secici.innerHTML = DISIPLINLER.filter(d => d.tip !== "brans").map(kutuHTML).join("");
+    if(secici.parentElement) secici.parentElement.style.display = programlar.some(d=>d.tip!=='brans') || !programlar.length ? '' : 'none';
+    secici.innerHTML = programlar.filter(d => d.tip !== "brans").map(kutuHTML).join("");
     secici.style.display = "grid";
     secici.style.display = "grid";
   }
   // Branş kutuları: kompakt dikdörtgen (programın yarısı kadar)
   if (bransSecici) {
-    const branslar = DISIPLINLER.filter(d => d.tip === "brans");
+    const branslar = programlar.filter(d => d.tip === "brans");
+    if(bransSecici.parentElement) bransSecici.parentElement.style.display = branslar.length || egitimYonetimMi() ? '' : 'none';
     const bransKutu = (d) => `
       <button type="button" class="egitim-brans-kutu" onclick="egitimDisiplinAc('${d.id}')" style="--b-renk:${d.renk};">
         <span class="ebk-gorsel" style="background:linear-gradient(135deg, ${d.renk} 0%, ${d.renk}bb 55%, ${d.renk}66 100%);">
@@ -34395,21 +34435,23 @@ window.egitimSekmesiAcildi = async function() {
         </span>
         <span class="ebk-ok">→</span>
       </button>`;
-    bransSecici.innerHTML = branslar.map(bransKutu).join("") + `
+    bransSecici.innerHTML = branslar.map(bransKutu).join("") + (egitimYonetimMi() ? `
       <button type="button" class="egitim-brans-kutu ebk-ekle" onclick="yeniBransModalAc()" style="--b-renk:#7c3aed;">
         <span class="ebk-gorsel" style="background:linear-gradient(135deg,#7c3aed,#a855f7);"><span class="ebk-ikon">＋</span></span>
         <span class="ebk-metin"><strong>Yeni Branş Ekle</strong><small>Robotik, müzik, drama…</small></span>
         <span class="ebk-ok">＋</span>
-      </button>`;
+      </button>` : "");
     bransSecici.style.display = "grid";
   }
   if (matrix) matrix.style.display = "none";
+  if (!programlar.length && secici) secici.innerHTML = '<p role="status">Eğitim programı atamanız bulunamadı. Yönetimle iletişime geçin.</p>';
   egitimAktifDisiplin = null;
 };
 
 // Disiplin kutusuna tıklandı
 // ═══ EĞİTİM RAPORU — matrix'e girmeden detaylı rapor penceresi ═══
 window.egitimRaporAc = async function(disiplin) {
+  if (!egitimProgramGorebilir(disiplin)) { showToast("Bu programa erişim yetkiniz yok.", "error"); return; }
   try {
     egitimAktifDisiplin = disiplin;
     if (typeof showToast === "function") showToast("Rapor hazırlanıyor…");
@@ -34715,7 +34757,14 @@ window.egitimRaporExcel = function(disiplin) {
 };
 
 window.egitimDisiplinAc = async function(disiplin) {
+  if (!egitimProgramGorebilir(disiplin)) { showToast("Bu programa erişim yetkiniz yok.", "error"); return; }
   document.getElementById("tab-egitim")?.classList.add("egitim-matrix-aktif");
+  const duzenle = document.getElementById('egitimMufredatDuzenle');
+  if (duzenle) duzenle.style.display = egitimYonetimMi() || (window.PortalAPI.state.rol !== 'pdr' && window.PortalAPI.state.personel?.mufredatDuzenleme === true) ? '' : 'none';
+  const ipucu=document.getElementById('egitimGozlemIpucu');
+  if(ipucu) ipucu.textContent=window.PortalAPI.state.rol==='pdr'?'Salt okunur · S/T/U kayıtları ve raporlar görüntülenebilir.':'Hücreden gözlem ekleyin · ✎ açıklama · ▧ fotoğraf';
+  const geri = document.querySelector('.egitim-programa-don');
+  if (geri) geri.style.display = !egitimYonetimMi() && egitimYetkiliProgramlar().length === 1 ? 'none' : '';
   let boyut = 'kompakt';
   try { boyut = localStorage.getItem('egitimTabloBoyutu') || boyut; } catch (_) {}
   egitimBoyutSec(boyut);
@@ -34740,7 +34789,7 @@ window.egitimDisiplinAc = async function(disiplin) {
   try {
     const bk = document.getElementById("egitimBelgelemeKap");
     if (bk) {
-      if (disiplin === "orman" || disiplin === "degerler") {
+      if (window.PortalAPI.state.rol !== "pdr" && (disiplin === "orman" || disiplin === "degerler")) {
         bk.style.display = "block";
         bk.innerHTML = '<div style="font-size:12.5px; color:var(--c-muted); padding:8px 0;">Yükleniyor…</div>';
         modulYukle("program-belgeleme").then(m => m && m.egitimKart("egitimBelgelemeKap", disiplin));
@@ -35131,7 +35180,7 @@ function egitimMatrixRender() {
         const goster = (v || "·") + simgeler;
         html += `
           <td class="egitim-matrix-hucre" onclick="matrixHucreTikla('${o.id}','${alan.id}','${grupAdEsc}','${dersEsc}', this)">
-            <button type="button" aria-label="${escapeHtmlGelisim(o.ogrenciAdSoyad || o.adSoyad || 'Öğrenci')} · ${escapeHtmlGelisim(d)} · ${v || 'İşaretlenmedi'}" class="matrix-stu-buton ${sinif}">${goster}</button>
+            <button type="button" ${egitimGozlemYetkisi(egitimAktifDisiplin) ? '' : 'disabled'} aria-label="${escapeHtmlGelisim(o.ogrenciAdSoyad || o.adSoyad || 'Öğrenci')} · ${escapeHtmlGelisim(d)} · ${v || 'İşaretlenmedi'}" class="matrix-stu-buton ${sinif}">${goster}</button>
           </td>`;
       });
       html += `</tr>`;
@@ -35259,6 +35308,7 @@ window.egitimSinifRaporuAc = function() {
 // Both modes use the same transaction and existing photo/approval policy.
 const egitimBekleyenHucreler = new Set();
 window.matrixHucreTikla = async function(ogrId, alanId, grupAd, dersAd, hucreEl) {
+  if (!egitimGozlemYetkisi(egitimAktifDisiplin)) { showToast("Bu program salt okunur.", "error"); return; }
   if (!egitimOkumaHazirMi() || !egitimMatrixVerisi?.ogrenciler.some(o => o.id === ogrId)) {
     showToast("Kayıtlar doğrulanmadan işaretleme yapılamaz. Yeniden deneyin.", "error"); return;
   }
@@ -49650,13 +49700,18 @@ window.BCK = { db, ...window.PortalAPI.fb, escapeHtml, resimSikistir, medyaYukle
   ogrenciler: () => window.PortalAPI.state.ogrenciList,
   yoneticiMi: () => window.PortalAPI.state.isAdmin || ["kurucu_mudur", "mudur", "egitim_koordinator"].includes(window.PortalAPI.state.rol),
   toast: (mesaj, tip) => window.PortalAPI.toast(mesaj, tip),
-  DISIPLINLER: () => DISIPLINLER, mufredatCacheAta: (id, value) => { aktifMufredatlar[id] = value; } };
+  DISIPLINLER: () => egitimYetkiliProgramlar(), aktifEgitimProgrami: () => egitimAktifDisiplin, mufredatCacheAta: (id, value) => { aktifMufredatlar[id] = value; } };
+window.egitimMufredatGecmisiAc = async function() {
+  if (!egitimProgramGorebilir(egitimAktifDisiplin)) return;
+  try { const m = await import('./js/mufredat-gecmisi.js?v=1'); await m.ac(egitimAktifDisiplin); }
+  catch(e) { showToast(e.message || 'Geçmiş yüklenemedi.', 'error'); }
+};
 let mufredatEditorSozu;
 window.mufredatEditorAc = async function() {
   try {
-    if (!mufredatEditorSozu) mufredatEditorSozu = import('./portal-mufredat.js?v=1').catch(e => { mufredatEditorSozu = null; throw e; });
+    if (!mufredatEditorSozu) mufredatEditorSozu = import('./portal-mufredat.js?v=2').catch(e => { mufredatEditorSozu = null; throw e; });
     const editor = await mufredatEditorSozu;
-    await editor.ac();
+    await editor.ac(egitimAktifDisiplin);
   } catch(e) { showToast(e.message || 'Müfredat açılamadı.', 'error'); }
 };
 </script>
@@ -49667,13 +49722,13 @@ window.mufredatEditorAc = async function() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
-        const reg = await navigator.serviceWorker.register("serviceworker.js?v=241");
+        const reg = await navigator.serviceWorker.register("serviceworker.js?v=243");
         reg.update().catch(() => {});
         let yenilendi = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v241";
+          const anahtar = "portalSwReload_v243";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
