@@ -26,6 +26,9 @@ try {for(const width of [1280,390,320]) {
  if(process.env.CLUB_QA_OUTPUT){fs.mkdirSync(process.env.CLUB_QA_OUTPUT,{recursive:true});await page.screenshot({path:path.join(process.env.CLUB_QA_OUTPUT,'kitap-yonetimi-'+width+'.png'),fullPage:true});}
  await page.getByRole('button',{name:'Onayla',exact:true}).click();await page.waitForFunction(()=>calls.length===1&&!document.querySelector('[data-refresh]').disabled);
  assert.deepEqual(await page.evaluate(()=>calls[0]),['member','m1','approved']);
+ await page.getByRole('button',{name:'Üyeler',exact:true}).click();
+ await page.locator('[data-member-search]').fill('İKİNCİ');assert.equal(await page.locator('[data-content] article').count(),1);
+ await page.locator('[data-member-search]').fill('');
  await page.locator('[data-member="m1"]').click();await page.waitForFunction(()=>calls.length===2&&!document.querySelector('[data-refresh]').disabled);
  await page.getByRole('button',{name:'Üyeler',exact:true}).click();await fit();
  await page.getByRole('button',{name:'Paylaşımlar',exact:true}).click();assert.equal(await page.locator('[data-content] article').count(),20);

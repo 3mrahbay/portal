@@ -126,7 +126,7 @@ export async function mountClub(root, store) {
       ? list
           .map(
             (p) =>
-              `<article class="kc-post"><div class="kc-post-head"><strong>${esc(p.authorName)}</strong><time>${p.createdAt?.toDate ? esc(dateLabel(p.createdAt.toDate())) : "Gönderiliyor…"}</time></div>${p.deleted ? '<p class="kc-muted">Bu paylaşım kaldırıldı.</p>' : `<p class="kc-text">${esc(p.text)}</p>${p.image && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.image) ? `<img src="${p.image}" alt="${esc(p.authorName)} tarafından paylaşılan kitap kulübü fotoğrafı" loading="lazy">` : ""}${p.image ? `<div data-photo-interactions="${esc(p.id)}"></div>` : ""}${access.manage || p.authorUid === access.uid ? `<button class="kc-text-button" data-remove="${esc(p.id)}">Paylaşımı kaldır</button>` : ""}`}</article>`,
+              `<article class="kc-post" data-post-id="${esc(p.id)}"><div class="kc-post-head"><strong>${esc(p.authorName)}</strong><time>${p.createdAt?.toDate ? esc(dateLabel(p.createdAt.toDate())) : "Gönderiliyor…"}</time></div>${p.deleted ? '<p class="kc-muted">Bu paylaşım kaldırıldı.</p>' : `<p class="kc-text">${esc(p.text)}</p>${p.image && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.image) ? `<img src="${p.image}" alt="${esc(p.authorName)} tarafından paylaşılan kitap kulübü fotoğrafı" loading="lazy">` : ""}${p.image ? `<div data-photo-interactions="${esc(p.id)}"></div>` : ""}${access.manage || p.authorUid === access.uid ? `<button class="kc-text-button" data-remove="${esc(p.id)}">Paylaşımı kaldır</button>` : ""}`}</article>`,
           )
           .join("")
       : '<p class="kc-empty">Bu okumaya ait henüz paylaşım yok. Katılımcıların mesajları ve fotoğrafları burada birikecek.</p>';
@@ -140,6 +140,13 @@ export async function mountClub(root, store) {
   }
   function openTarget() {
     if (targetOpened || selected?.id !== targetBook || !targetPost) return;
+    const article = [...root.querySelectorAll('[data-post-id]')].find(el => el.dataset.postId === targetPost);
+    const post = posts.get(targetPost);
+    if (article && post && !post.deleted && !post.image) {
+      targetOpened = true;
+      article.scrollIntoView?.({behavior:'smooth',block:'center'});
+      return;
+    }
     const slot = [...root.querySelectorAll('[data-photo-interactions]')].find(el => el.dataset.photoInteractions === targetPost);
     const button = slot?.querySelector('[data-open]');
     if (button) {

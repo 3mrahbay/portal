@@ -3,7 +3,7 @@ import { escapeHTML as esc, dateLabel, eventDetails } from './core.mjs';
 import { memberLabels, timestampLabel, requestLabel, summary, localDate, bookData } from './admin-core.mjs';
 
 export async function mountManagement(root, store) {
-  let alive = true, busy = false, data = null, tab = 'requests', filter = 'all', bookFilter = '', shown = 20;
+  let alive = true, busy = false, data = null, tab = 'requests', filter = 'pending', memberSearch = '', bookFilter = '', shown = 20;
   let editId = null, draftId = null;
   const controller = new AbortController();
   const stop = () => {
@@ -11,6 +11,7 @@ export async function mountManagement(root, store) {
     controller.abort();
     root.removeEventListener('click', click);
     root.removeEventListener('change', change);
+    root.removeEventListener('input', input);
     root.removeEventListener('submit', submit);
     data = null;
     root.replaceChildren();
@@ -40,8 +41,9 @@ export async function mountManagement(root, store) {
     root.querySelector('[data-summary]').innerHTML = summary(data).map(([label,n]) => `<article class="kc-summary-card"><strong>${n}</strong><span>${label}</span></article>`).join('');
     root.querySelectorAll('[data-section]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.section === tab)));
     if (tab === 'requests' || tab === 'members') {
-      const rows = data.members.filter(m => filter === 'all' || m.status === filter);
-      content().innerHTML = `<h2>${tab === 'requests' ? 'Katılım Talepleri' : 'Üyeler'}</h2><label>Üyelik durumu<select data-member-filter>${[['all','Tüm durumlar'],...Object.entries(memberLabels)].map(([v,l]) => `<option value="${v}" ${v===filter?'selected':''}>${l}</option>`).join('')}</select></label><p class="kc-muted">Eski kayıtlarda ayrı talep zamanı tutulmamıştır; son güncelleme talep tarihi yerine kullanılmaz. E-posta durum kontrolü, varsa sunucu kayıt oluşturma zamanını ayrıca gösterir.</p>${rows.slice(0,shown).map(m => `<article class="kc-post"><h3>${esc(m.name)}</h3><p><span class="kc-badge">${esc(memberLabels[m.status] || 'Bilinmeyen durum')}</span></p><p>Talep zamanı: ${esc(requestLabel(m))}<br>Son güncelleme: ${esc(timestampLabel(m.updatedAt))}</p><div class="kc-actions">${m.status!=='approved'?`<button data-member="${esc(m.id)}" data-status="approved">Onayla</button>`:`<button data-mail-status="${esc(m.id)}">Hoş geldiniz durumunu kontrol et</button>`}${m.status!=='blocked'?`<button data-member="${esc(m.id)}" data-status="blocked">Paylaşımı kapat</button>`:''}</div><p data-mail-result="${esc(m.id)}" role="status" style="white-space:pre-line"></p></article>`).join('') || '<p class="kc-empty">Bu durumda bir katılım kaydı yok.</p>'}${more(rows)}`;
+      const needle = memberSearch.trim().toLocaleLowerCase('tr-TR');
+      const rows = data.members.filter(m => (filter === 'all' || m.status === filter) && (!needle || String(m.name || '').toLocaleLowerCase('tr-TR').includes(needle)));
+      content().innerHTML = `<h2>${tab === 'requests' ? 'Katılım Talepleri' : 'Üyeler'}</h2><label>Üye adıyla ara<input type="search" data-member-search maxlength="100" value="${esc(memberSearch)}" placeholder="Ad veya soyad"></label><label>Üyelik durumu<select data-member-filter>${[['all','Tüm durumlar'],...Object.entries(memberLabels)].map(([v,l]) => `<option value="${v}" ${v===filter?'selected':''}>${l}</option>`).join('')}</select></label><p role="status" data-member-count>${rows.length} kayıt · ${Math.min(shown, rows.length)} gösteriliyor</p><p class="kc-muted">Eski kayıtlarda ayrı talep zamanı tutulmamıştır; son güncelleme talep tarihi yerine kullanılmaz. E-posta durum kontrolü, varsa sunucu kayıt oluşturma zamanını ayrıca gösterir.</p>${rows.slice(0,shown).map(m => `<article class="kc-post"><h3>${esc(m.name)}</h3><p><span class="kc-badge">${esc(memberLabels[m.status] || 'Bilinmeyen durum')}</span></p><p>Talep zamanı: ${esc(requestLabel(m))}<br>Son güncelleme: ${esc(timestampLabel(m.updatedAt))}</p><div class="kc-actions">${m.status!=='approved'?`<button data-member="${esc(m.id)}" data-status="approved">Onayla</button>`:`<button data-mail-status="${esc(m.id)}">Hoş geldiniz durumunu kontrol et</button>`}${m.status!=='blocked'?`<button data-member="${esc(m.id)}" data-status="blocked">Paylaşımı kapat</button>`:''}</div><p data-mail-result="${esc(m.id)}" role="status" style="white-space:pre-line"></p></article>`).join('') || '<p class="kc-empty">Bu durumda bir katılım kaydı yok.</p>'}${more(rows)}`;
     } else if (tab === 'posts') {
       const rows = data.posts.filter(p => !bookFilter || p.bookId === bookFilter);
       content().innerHTML = `<h2>Paylaşımlar</h2><label>Kitap / buluşma<select data-book-filter><option value="">Tüm kitaplar ve buluşmalar</option>${data.books.map(b => `<option value="${esc(b.id)}" ${bookFilter===b.id?'selected':''}>${esc(b.title)} · ${esc(dateLabel(b.date))}</option>`).join('')}</select></label>${rows.slice(0,shown).map(p => `<article class="kc-post"><p class="kc-muted">${esc(data.books.find(b=>b.id===p.bookId)?.title)}</p><div class="kc-post-head"><strong>${esc(p.authorName)}</strong><time>${esc(timestampLabel(p.createdAt))}</time></div>${p.deleted?'<p class="kc-muted">Bu paylaşım kaldırıldı.</p>':`<p class="kc-text">${esc(p.text)}</p>${/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.image || '')?`<img src="${p.image}" alt="${esc(p.authorName)} tarafından paylaşılan fotoğraf" loading="lazy">`:''}<button data-remove="${esc(p.id)}" data-book="${esc(p.bookId)}">Paylaşımı kaldır</button>`}</article>`).join('') || '<p class="kc-empty">Bu seçime ait paylaşım yok.</p>'}${more(rows)}`;
@@ -97,7 +99,7 @@ export async function mountManagement(root, store) {
     if (!b || busy) return;
     if (b.hasAttribute('data-refresh')) return refresh();
     if (!data) return;
-    if (b.dataset.section) { tab=b.dataset.section; shown=20; render(); }
+    if (b.dataset.section) { tab=b.dataset.section; filter=tab==='requests'?'pending':'all'; memberSearch=''; shown=20; render(); }
     if (b.hasAttribute('data-more')) { shown+=20; render(); }
     if (b.hasAttribute('data-new')) editor();
     if (b.dataset.edit) editor(data.books.find(book => book.id===b.dataset.edit));
@@ -123,6 +125,14 @@ export async function mountManagement(root, store) {
     if (b.dataset.archive) await mutate(() => store.archive(b.dataset.archive,b.dataset.status));
     if (b.dataset.remove && confirm('Bu paylaşımın metni ve fotoğrafı kalıcı olarak kaldırılsın mı?')) await mutate(() => store.remove(b.dataset.book,b.dataset.remove));
   }
+  function input(event) {
+    if (busy || !data || !event.target.matches('[data-member-search]')) return;
+    memberSearch = event.target.value;
+    const position = event.target.selectionStart;
+    shown=20; render();
+    const field=root.querySelector('[data-member-search]');
+    field.focus(); field.setSelectionRange(position,position);
+  }
   function change(event) {
     if (busy || !data) return;
     if (event.target.matches('[data-member-filter]')) { filter=event.target.value; shown=20; render(); }
@@ -140,6 +150,7 @@ export async function mountManagement(root, store) {
   }
   root.addEventListener('click',click);
   root.addEventListener('change',change);
+  root.addEventListener('input',input);
   root.addEventListener('submit',submit);
   // Return cleanup immediately so logout cancels an in-flight paginated load.
   void refresh();

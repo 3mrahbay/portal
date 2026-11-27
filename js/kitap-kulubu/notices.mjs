@@ -1,6 +1,6 @@
 // In-app club notices use the existing recipient-scoped notification stream.
 export function clubTarget(record) {
- if(!['kitap_kulubu_yanit','kitap_kulubu_tepki'].includes(record?.tip)) return '';
+ if(!['kitap_kulubu_yanit','kitap_kulubu_tepki','kitap_kulubu_paylasim'].includes(record?.tip)) return '';
  const ids=[record.kitapId,record.paylasimId];
  if(ids.some(x=>typeof x!=='string'||!x||x.length>1500||/[\x00-\x1f/\\]/.test(x)))return '';
  return 'kitap-kulubu.html?book='+encodeURIComponent(ids[0])+'&post='+encodeURIComponent(ids[1]);

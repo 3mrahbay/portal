@@ -6,6 +6,7 @@ const {JSDOM}=require('jsdom');const assert=require('node:assert/strict');const 
  const dom=new JSDOM('<section></section><main></main>',{url:'https://example.test/kitap-kulubu.html?book=older-book&post=older-photo'});
  const root=dom.window.document.querySelector('section');let clicked='';let active=true;
  const notice={id:'n',tip:'kitap_kulubu_yanit',kitapId:'older-book',paylasimId:'older-photo',baslik:'<img src=x>',metin:'<script>bad</script>',olusturuldu:'2026-11-09T10:00:00Z'};
+ assert.equal(clubTarget({...notice,tip:'kitap_kulubu_paylasim'}),'kitap-kulubu.html?book=older-book&post=older-photo');
  assert.equal(clubTarget({...notice,kitapId:'a/b'}),'');assert.equal(clubTarget({...notice,tip:'duyuru'}),'');
  renderClubNotices(root,[notice],{isActive:()=>active,open:async(r,target)=>{clicked=target;}});
  assert.equal(root.querySelector('img,script'),null);root.querySelector('button').click();await new Promise(r=>setTimeout(r,0));assert.equal(clicked,'kitap-kulubu.html?book=older-book&post=older-photo');
@@ -22,6 +23,9 @@ const {JSDOM}=require('jsdom');const assert=require('node:assert/strict');const 
  assert.equal(main.querySelector('[data-photo-interactions="older-photo"] [data-open]').getAttribute('aria-expanded'),'true');
  feedNext([{id:'newer-photo',image:'data:image/jpeg;base64,YQ=='}]);assert(main.querySelector('[data-photo-interactions="older-photo"]'));
  targetNext(null);assert.match(main.querySelector('[data-error]').textContent,/kaldırılmış/);assert.equal(main.querySelector('[data-photo-interactions="older-photo"]'),null);
- stop();assert.equal(stopped,1);targetNext({id:'older-photo',image:'x'});assert.equal(main.textContent,'');dom.window.close();
+ stop();assert.equal(stopped,1);targetNext({id:'older-photo',image:'x'});assert.equal(main.textContent,'');
+ let scrolled=0;dom.window.HTMLElement.prototype.scrollIntoView=function(){if(this.dataset.postId==='older-photo')scrolled++;};
+ const textStore={...store,postById:(b,p,n)=>{n({id:p,text:'Eski metin paylaşımı',image:''});return()=>{};}};
+ const stopText=await mountClub(main,textStore);assert.match(main.textContent,/Eski metin paylaşımı/);assert.equal(scrolled,1);stopText();dom.window.close();
  console.log('PASS: safe notice DOM, direct older photo, delayed membership, deletion, session cleanup');
 })().catch(e=>{console.error(e);process.exitCode=1;});

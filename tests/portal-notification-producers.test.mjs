@@ -1,3 +1,4 @@
+import {clubTarget} from '../js/kitap-kulubu/notices.mjs';
 import {contentChildIds} from '../js/egitim-gruplari-core.mjs';
 import * as groupAdapter from '../moduller/egitim-gruplari.js';
 // Execute the real inline handlers against a synthetic DOM/Firestore adapter.
@@ -89,6 +90,7 @@ function environment(t,{role='mudur'}={}){
       for(const {ref,data} of pending)await save('transaction',ref,data);
       trace.push('transaction-commit');return result;
     },
+    clubTarget,
     showToast:(...args)=>toasts.push(args),danismaSaltOkunurEngelle:()=>false,ogretmenRolMu:()=>ctx.aktifKullaniciRol==='ogretmen',
     modulYukle:async()=>attachment,closeDuyuruModal(){},renderDuyurular(){},closeEtkinlikModal(){},renderEtkinlikler(){},
     duyuruMailGonder:data=>mails.push(data),etkinlikMailGonder:data=>mails.push(data),galeriBildirimMailGonder:async data=>mails.push(data),
