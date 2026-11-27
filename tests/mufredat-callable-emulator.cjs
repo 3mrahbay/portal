@@ -1,0 +1,31 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const {initializeApp,deleteApp}=require('firebase-admin/app');
+const {getFirestore,FieldValue}=require('firebase-admin/firestore');
+(async()=>{
+ if(!/^127\.0\.0\.1:\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST||''))throw Error('Local emulator only');
+ const app=initializeApp({projectId:'demo-curriculum-callable'}),db=getFirestore(app);
+ const domain=await import('../functions/curriculum/src/domain.mjs');
+ const source=fs.readFileSync('functions/curriculum/src/index.mjs','utf8').replace(/^import .*;\n/gm,'').replace('initializeApp();const db=getFirestore();','').replace('export const mufredatIslemV1=','globalThis.handler=');
+ class HttpsError extends Error{constructor(code,message){super(message);this.code=code;}}
+ const database=new Proxy(db,{get(target,key){if(key==='runTransaction')return fn=>target.runTransaction(tx=>Promise.resolve(fn(tx)));const value=target[key];return typeof value==='function'?value.bind(target):value;}});
+ const context={db:database,FieldValue,HttpsError,isDeepStrictEqual:require('node:util').isDeepStrictEqual,onCall:(_,fn)=>fn,...domain};vm.createContext(context);vm.runInContext(source,context);
+ const email='teacher@example.test',auth={uid:'teacher',token:{email,email_verified:true}};
+ const staff=db.doc('personeller/'+email);await staff.set({rol:'ingilizce_ogretmeni',durum:'aktif',mufredatDuzenleme:true});
+ const base=[{id:'a',ad:'Alan',gruplar:[{ad:'Grup',dersler:['Eski']}]}],after=structuredClone(base);after[0].gruplar[0].dersler=['Yeni'];
+ await db.doc('mufredatlar/ingilizce').set({alanlar:base});
+ const old='a__Grup__Eski',next='a__Grup__Yeni';await db.doc('ogrenciGelisim/student').set({ingilizce:{kayitlar:{[old]:'T'},detay:{[old]:{S:{not:'Not',fotoUrl:'fixture.jpg'}}}},montessori:{kayitlar:{keep:'U'}}});
+ const call=data=>context.handler({auth,data});
+ assert.equal((await call({action:'status'})).protocol,2);
+ await assert.rejects(call({action:'load',disiplin:'montessori'}),e=>e.code==='permission-denied');
+ const c={disiplin:'ingilizce',base,alanlar:after,tasimalar:[{eski:old,yeni:next}]};
+ await assert.rejects(call({action:'save',changes:[c,{...c,disiplin:'montessori'}]}),e=>e.code==='permission-denied');
+ assert.equal((await db.collection('mufredatDenetim/ingilizce/kayitlar').get()).size,0);
+ const result=await call({action:'save',changes:[c]});assert.equal(result.saved,true);assert.equal(result.migrated,1);
+ const student=(await db.doc('ogrenciGelisim/student').get()).data();assert.equal(student.ingilizce.kayitlar[next],'T');assert.equal(student.ingilizce.detay[next].S.fotoUrl,'fixture.jpg');assert.equal(student.montessori.kayitlar.keep,'U');
+ const history=await call({action:'history',disiplin:'ingilizce'});assert.equal(history.entries.length,1);assert.equal(history.entries[0].actor,email);assert.equal(history.entries[0].movedCount,1);
+ const detail=await call({action:'history',disiplin:'ingilizce',entryId:history.entries[0].id});assert.deepEqual(detail.before,base);assert.deepEqual(detail.after,after);
+ await assert.rejects(call({action:'save',changes:[c]}),e=>e.code==='failed-precondition');assert.equal((await db.collection('mufredatDenetim/ingilizce/kayitlar').get()).size,1);
+ await staff.update({rol:'pdr'});assert.equal((await call({action:'status'})).allowed,false);assert.equal((await call({action:'history',disiplin:'ingilizce'})).entries.length,1);await assert.rejects(call({action:'save',changes:[c]}),e=>e.code==='permission-denied');
+ await staff.update({rol:'brans_ogretmeni',egitimProgramlari:['robotik']});await assert.rejects(call({action:'history',disiplin:'ingilizce'}),e=>e.code==='permission-denied');assert.equal((await call({action:'load',disiplin:'robotik'})).alanlar.length,0);
+ await deleteApp(app);console.log('Callable emulator: scope, PDR, branch, atomic rename/history, conflict and detail preservation passed');
+})().catch(e=>{console.error(e);process.exitCode=1});

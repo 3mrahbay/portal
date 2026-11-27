@@ -8,6 +8,8 @@ const click=source.slice(source.indexOf('// Both modes use the same transaction'
 const scopeCode=fs.readFileSync(path.join(root,'js/egitim-gelisim-okuma.mjs'),'utf8').replaceAll('export ','');
 const bootstrap=`
 ${scopeCode}
+${fs.readFileSync(path.join(root,'js/egitim-program-yetki.mjs'),'utf8').replaceAll('export ','')}
+const DISIPLINLER=[{id:'montessori',ad:'Montessori'},{id:'orman',ad:'Orman'},{id:'ingilizce',ad:'İngilizce'}];
 window.calls={writes:0,pushes:0};window.messages=[];window.showToast=(m)=>messages.push(m);
 const escapeHtmlGelisim=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const aktifMufredatlar={montessori:[{id:'area',ad:'Günlük Yaşam',gruplar:[{ad:'Grup',dersler:Array.from({length:60},(_,i)=>'Kazanım '+i)}]}]};
@@ -15,7 +17,7 @@ const ogrenciList=Array.from({length:25},(_,i)=>({id:'child-'+i,ogrenciAdSoyad:'
 window.records={'child-4':{montessori:{kayitlar:{'area__Grup__Kazanım 15':'S'},detay:{'area__Grup__Kazanım 15':{asamalar:{S:{durum:'S',not:'Önceki gözlem',tarih:'2026-11-01'}}}}}}};
 const tumGelisimYukle=async()=>{if(window.failReload)throw Error('synthetic read failure');return records},tumGelisimOnbelleginiTemizle=()=>{};
 window.PortalAPI={state:{currentUser:{uid:'synthetic',email:'synthetic@example.test'},rol:'ogretmen',personel:{sinifAtamalari:['Örnek Sınıf']},ogrenciVerileriHazirMi:true,ogrenciList,ayarListesi,siniflar:['Örnek Sınıf'],aktifDonem:'2026-2027'}};
-window.BCK={db:{},rol:()=>PortalAPI.state.rol,personel:()=>({adSoyad:'Örnek Öğretmen'}),kullanici:()=>PortalAPI.state.currentUser,yoneticiMi:()=>false,
+window.BCK={DISIPLINLER:()=>educationPrograms(window.PortalAPI.state,DISIPLINLER),db:{},rol:()=>PortalAPI.state.rol,personel:()=>({adSoyad:'Örnek Öğretmen'}),kullanici:()=>PortalAPI.state.currentUser,yoneticiMi:()=>false,
  doc:(...x)=>({id:x.at(-1)}),collection:(...x)=>x.at(-1),getDoc:async r=>({exists:()=>!!records[r.id],data:()=>records[r.id]}),serverTimestamp:()=> 'now',setDoc:async()=>{},
  runTransaction:async(db,fn)=>{await fn({get:async r=>({exists:()=>!!records[r.id],data:()=>records[r.id]}),set:(r,v)=>{records[r.id]={...records[r.id],...v};calls.writes++;}});}};
 window.PortalData={mufredatAlanlariGetir:async()=>aktifMufredatlar.montessori,mufredatAciklamalariGetir:async()=>({}),aciklamaCoz:()=>({}),sinifEslesirMi:(a,b)=>a===b};
