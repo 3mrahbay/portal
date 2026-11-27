@@ -31,18 +31,14 @@ let calismaKopyasi = {};   // { disiplin: [alan, ...] } — düzenlenen taslak
 let bekleyenTasima = [];   // { disiplin, eski, yeni, etiket }
 let degisiklikVar  = false;
 let kaydediliyor = false;
+let yukleniyor = false, yuklemeNo = 0;
 
 // ── Yardımcılar ───────────────────────────────────────────────
 
+let sunucuProgramlari = [];
 function disiplinler() {
-  try { const d = B.DISIPLINLER && B.DISIPLINLER(); if (Array.isArray(d) && d.length) return d; }
-  catch (e) {}
-  return [
-    { id:"montessori", ad:"Montessori",      ikon:"🌱", renk:"#2d6a4f" },
-    { id:"orman",      ad:"Orman Okulu",     ikon:"🍂", renk:"#b45309" },
-    { id:"degerler",   ad:"Değerler Eğitimi",ikon:"💎", renk:"#7c3aed" },
-    { id:"ingilizce",  ad:"İngilizce",       ikon:"🇬🇧", renk:"#1d4ed8" }
-  ];
+  const list = B.DISIPLINLER?.() || [];
+  return list.filter(d => sunucuProgramlari === null || sunucuProgramlari.includes(d.id));
 }
 
 // Alan id'si — zeky-data.js'teki mufredatJsonDogrula ile BİREBİR aynı olmalı,
@@ -73,7 +69,9 @@ function tasimaEkle(disiplin, eski, yeni, etiket) {
 // ── Firestore ─────────────────────────────────────────────────
 
 async function mufredatOku(disiplin) {
+  const istek = yuklemeNo;
   const {alanlar} = await mufredatIslem({action:'load',disiplin});
+  if (istek !== yuklemeNo) throw new Error('Yükleme iptal edildi.');
   temelKopyalar[disiplin] = kopyala(alanlar);
   const working = kopyala(alanlar);
   working.forEach((a,i)=>{
@@ -236,9 +234,14 @@ function altButonlar() {
 
 // ── Dışa açılan işlemler ──────────────────────────────────────
 
-export async function ac() {
+export async function ac(ilkProgram) {
+  if (kaydediliyor || yukleniyor) return;
   const izin = await mufredatIslem({action:'status'});
   if (!izin.allowed) throw new Error('Müfredat düzenleme yetkiniz kapalı. Yönetimden yetki isteyebilirsiniz.');
+  if (izin.protocol !== 2) throw new Error('Program yetkileri servisi henüz güncellenmedi. Yönetimle iletişime geçin.');
+  sunucuProgramlari = izin.programs === null ? null : (izin.programs || []);
+  if (!disiplinler().length) throw new Error('Düzenleyebileceğiniz program ataması yok.');
+  if (ilkProgram && disiplinler().some(d=>d.id===ilkProgram)) aktifDisiplin=ilkProgram;
   calismaKopyasi = {}; temelKopyalar = {};
   modalKur().style.display = "flex";
   modalKur().classList.add("active");
@@ -248,26 +251,36 @@ export async function ac() {
   sekmeleriCiz(); uyariCiz();
   document.getElementById("mfIcerik").innerHTML =
     `<div style="padding:30px; text-align:center; color:#9ca3af;">Yükleniyor…</div>`;
-  calismaKopyasi[aktifDisiplin] = await mufredatOku(aktifDisiplin);
-  icerikCiz();
+  await seciliYukle(aktifDisiplin);
 };
 
 window.mufredatEditorKapat = function() {
   if (degisiklikVar && !confirm("Kaydedilmemiş değişiklikler var. Kapatılsın mı?")) return;
+  ++yuklemeNo; yukleniyor=false;
   const m = document.getElementById("mufredatEditorModal");
   if (m) m.style.display = "none";
   calismaKopyasi = {}; bekleyenTasima = []; degisiklikVar = false;
 };
 
+async function seciliYukle(disiplin) {
+  const istek=++yuklemeNo; yukleniyor=true;
+  const save=document.querySelector('#mufredatEditorModal .modal-footer .btn-primary');
+  if(save)save.disabled=true;
+  try {
+    if (!calismaKopyasi[disiplin]) calismaKopyasi[disiplin]=await mufredatOku(disiplin);
+    if(istek===yuklemeNo)icerikCiz();
+  } catch(e) {
+    if(istek===yuklemeNo){
+      const content=document.getElementById('mfIcerik');content.textContent='Müfredat yüklenemedi. '+e.message;
+      const retry=document.createElement('button');retry.className='btn-mini';retry.textContent='Yeniden dene';retry.onclick=()=>seciliYukle(disiplin);content.append(retry);
+    }
+  } finally { if(istek===yuklemeNo){yukleniyor=false;if(save)save.disabled=!calismaKopyasi[disiplin];} }
+}
 window.mufredatEditorDisiplinSec = async function(disiplin) {
-  aktifDisiplin = disiplin;
-  sekmeleriCiz();
-  if (!calismaKopyasi[disiplin]) {
-    document.getElementById("mfIcerik").innerHTML =
-      `<div style="padding:30px; text-align:center; color:#9ca3af;">Yükleniyor…</div>`;
-    calismaKopyasi[disiplin] = await mufredatOku(disiplin);
-  }
-  icerikCiz();
+  if (kaydediliyor || yukleniyor || !disiplinler().some(d=>d.id===disiplin)) return;
+  aktifDisiplin=disiplin;sekmeleriCiz();
+  document.getElementById('mfIcerik').textContent='Yükleniyor…';
+  await seciliYukle(disiplin);
 };
 
 // Ad değiştirme — taşıma kaydı üretir
@@ -391,7 +404,7 @@ window.mufredatJsonIceAktarAc = function() {
 };
 
 window.mufredatKaydetVeKapat = async function() {
-  if (kaydediliyor) return;
+  if (kaydediliyor || yukleniyor || !calismaKopyasi[aktifDisiplin]) return;
   kaydediliyor = true;
   const controls = [...document.querySelectorAll('#mufredatEditorModal button, #mufredatEditorModal input')].map(el=>[el,el.disabled]);
   controls.forEach(([el])=>{el.disabled=true;});

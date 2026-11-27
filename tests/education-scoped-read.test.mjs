@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {canObserveProgram} from '../js/egitim-program-yetki.mjs';
 import {educationReadScope,createEducationReader,watchEducationRecords} from '../js/egitim-gelisim-okuma.mjs';
 const base=()=>({currentUser:{uid:'teacher',email:'t@example.test'},rol:'ogretmen',personel:{sinifAtamalari:['Class A']},ogrenciVerileriHazirMi:true,galeriOturumSurumu:1,aktifDonem:'2026-2027',ogrenciList:[{id:'a',sinif:'Class A'},{id:'b',sinif:'Class B'},{id:'period',sinif:''}],ayarListesi:{period:{kayit:{sinif:'Class A'}}}});
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b});return {promise,resolve,reject}};
@@ -47,7 +48,7 @@ test('matrix click cannot write while loading/error, with stale scope, or as bra
  const code=functionSource('const egitimBekleyenHucreler','// ============ ÖĞRENCİ FOTOĞRAF YÖNETİMİ');
  for(const ready of [false,true]){
  const ctx={window:{PortalAPI:{state:{rol:'brans_ogretmeni'}}},Set,egitimOkumaHazirMi:()=>ready,egitimMatrixVerisi:{ogrenciler:[{id:'a'}]},showToast(){},gelisimDersGuncelle(){assert.fail('write')}};
- vm.createContext(ctx);vm.runInContext(code,ctx);await ctx.window.matrixHucreTikla('a','area','group','lesson',null);
+ ctx.egitimAktifDisiplin='montessori';ctx.canObserveProgram=canObserveProgram;ctx.DISIPLINLER=[{id:'montessori'}];vm.createContext(ctx);vm.runInContext(functionSource('function egitimGozlemYetkisi','function egitimYonetimMi')+code,ctx);await ctx.window.matrixHucreTikla('a','area','group','lesson',null);
  }
 });
 test('failed matrix load shows retry and no zero percent',()=>{

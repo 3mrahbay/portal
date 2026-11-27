@@ -5,6 +5,7 @@ const styles=[...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m=>m[1
 const markup=source.slice(source.indexOf('<div id="egitimMatrixContainer"'),source.indexOf('<!-- YENİ BRANŞ EKLEME MODALI -->'));
 const matrix=source.slice(source.indexOf('const egitimOkuyucu ='),source.indexOf('// ============ ÖĞRENCİ FOTOĞRAF YÖNETİMİ'));
 const bootstrap=`
+import {educationPrograms,canObserveProgram,EDUCATION_TEACHERS} from './js/egitim-program-yetki.mjs?v=1';
 import {educationReadScope,createEducationReader,watchEducationRecords} from './js/egitim-gelisim-okuma.mjs?v=1';
 window.failRead=new URLSearchParams(location.search).has('error');window.calls={reads:0,writes:0};window.showToast=()=>{};
 const escapeHtmlGelisim=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

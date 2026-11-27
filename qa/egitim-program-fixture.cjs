@@ -1,0 +1,22 @@
+// Synthetic local preview of production navigation, never connects to Firebase.
+const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');
+const root=path.resolve(__dirname,'..'),out=path.join(root,'work/preview'),source=fs.readFileSync(path.join(root,'index.html'),'utf8');
+execFileSync(process.execPath,[path.join(__dirname,'education-read-fixture.cjs')]);
+let html=fs.readFileSync(path.join(root,'../fixture.html'),'utf8');
+const start=html.indexOf('<section id="tab-egitim"'),end=html.indexOf('</section>',start);
+const markup=source.slice(source.lastIndexOf('<!-- HERO -->',source.indexOf('<div id="egitimMatrixContainer"')),source.indexOf('<!-- YENİ BRANŞ EKLEME MODALI -->'));
+html=html.slice(0,start)+'<section id="tab-egitim" class="active">'+markup+'</section>'+html.slice(end+10);
+html=html.replace(/const DISIPLINLER=.*?;\n/,'const DISIPLINLER='+JSON.stringify([['montessori','Montessori','#2d6a4f'],['orman','Orman Okulu','#b45309'],['ingilizce','İngilizce','#1d4ed8'],['degerler','Değerler Eğitimi','#7c3aed'],['robotik','Robotik','#374151']].map(([id,ad,renk])=>({id,ad,renk,ikon:'🌱',aciklama:'Örnek müfredat',tip:id==='robotik'?'brans':'program',kod:'ÖRNEK',takvim:'Dönemsel'})))+';\n');
+html=html.replace("const getDocsFromServer=async()=>{throw Error('Teacher must never query collection')};","const getDocsFromServer=async()=>({docs:Object.entries(records).map(([id,data])=>({id,data:()=>data})),forEach:fn=>Object.entries(records).forEach(([id,data])=>fn({id,data:()=>data}))});");
+html=html.replace("await egitimDisiplinAc('montessori');window.ready=true;",`ozelBranslarYuklendi=true;
+const role=new URLSearchParams(location.search).get('role')||'ogretmen';
+PortalAPI.state.rol=role;PortalAPI.state.personel={durum:'aktif',mufredatDuzenleme:true,sinifAtamalari:['Örnek Sınıf'],...(role==='brans_ogretmeni'?{egitimProgramlari:['robotik']}: {})};
+window.BCK={escapeHtml:escapeHtmlGelisim,DISIPLINLER:()=>egitimYetkiliProgramlar(),mufredatCacheAta:()=>{}};
+window.mufredatEditorAc=async()=>{const m=await import('./portal-mufredat.js');await m.ac(egitimAktifDisiplin);};
+window.egitimMufredatGecmisiAc=async()=>{const m=await import('./js/mufredat-gecmisi.js');await m.ac(egitimAktifDisiplin);};
+await egitimSekmesiAcildi();window.ready=true;`);
+html=html.replace('<body>','<body style="padding:16px">').replace('<h2>Örnek verilerle kayıt okuma testi</h2>','<p>Sentetik önizleme · <a href="?role=ogretmen">Sınıf öğretmeni</a> · <a href="?role=ingilizce_ogretmeni">İngilizce</a> · <a href="?role=brans_ogretmeni">Branş</a> · <a href="?role=pdr">PDR</a> · <a href="?role=kurucu_mudur">Yönetim</a></p>');
+fs.mkdirSync(path.join(out,'js'),{recursive:true});fs.writeFileSync(path.join(out,'program.html'),html);
+for(const file of ['egitim-gelisim-okuma.mjs','egitim-program-yetki.mjs','mufredat-gecmisi.js'])fs.copyFileSync(path.join(root,'js',file),path.join(out,'js',file));
+fs.copyFileSync(path.join(root,'portal-mufredat.js'),path.join(out,'portal-mufredat.js'));
+fs.writeFileSync(path.join(out,'js/mufredat-servis.js'),`export async function mufredatIslem(d){if(d.action==='status')return {allowed:PortalAPI.state.rol!=='pdr',protocol:2,programs:BCK.DISIPLINLER().map(x=>x.id)};if(d.action==='load')return {alanlar:[{id:'test',ad:'Örnek alan',gruplar:[{ad:'Örnek grup',dersler:['Örnek kazanım']}]}]};if(d.action==='history')return d.entryId?{before:[],after:[{ad:'Örnek alan'}]}:{entries:[{id:'example',actorName:'Örnek Öğretmen',actor:'teacher@example.test',actorRole:'ogretmen',time:'2026-11-27T12:00:00Z',addedCount:1,removedCount:0,movedCount:0}]};throw Error('Önizlemede kayıt kapalı');}`);

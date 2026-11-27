@@ -3,10 +3,10 @@ const {execFileSync}=require('node:child_process');
 execFileSync(process.execPath,[path.resolve(__dirname,'../qa/education-read-fixture.cjs')]);
 const html=fs.readFileSync(path.resolve(__dirname,'../../fixture.html'),'utf8');
 async function fixture(error){
- const helpers=await import('../js/egitim-gelisim-okuma.mjs');
+ const helpers={...await import('../js/egitim-gelisim-okuma.mjs'),...await import('../js/egitim-program-yetki.mjs')};
  const dom=new JSDOM(html,{url:'http://education.test/'+(error?'?error=1':''),runScripts:'outside-only'});
  Object.assign(dom.window,helpers);dom.window.console={log(){},warn(){},error(){}};
- const script=dom.window.document.querySelector('script[type="module"]').textContent.replace(/^import .*;$/m,'');
+ const script=dom.window.document.querySelector('script[type="module"]').textContent.replace(/^import .*;$/gm,'');
  await dom.window.eval('(async()=>{'+script+'})()');return dom;
 }
 test('failed initial load has no cells or zero percentage; write blocked; retry renders original T/U',async()=>{
