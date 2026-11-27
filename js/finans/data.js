@@ -17,7 +17,7 @@ export async function okulVerisi({fb,db,donem}){
     if(!ds.exists())return null;
     const o=d.data(),v=ds.data();
     if(!aktifDonemKaydi(v,o))return null;
-    return {id:d.id,ad:o.ogrenciAdSoyad||o.ad||d.id,sinif:v.kayit?.sinif||o.sinif||'',kayitTarihi:kayitZamani(v,o),veli:v.anne?.adSoyad||v.baba?.adSoyad||v.veli?.adSoyad||o.veliAdSoyad||o.anneAdSoyad||o.babaAdSoyad||'',veri:v,plan:odemePlani(v)};
+    return {id:d.id,ogrenciKimlik:{adSoyad:o.ogrenciAdSoyad||o.ad||'',tcKimlik:o.tcKimlik||''},ad:o.ogrenciAdSoyad||o.ad||d.id,sinif:v.kayit?.sinif||o.sinif||'',kayitTarihi:kayitZamani(v,o),veli:v.anne?.adSoyad||v.baba?.adSoyad||v.veli?.adSoyad||o.veliAdSoyad||o.anneAdSoyad||o.babaAdSoyad||'',veri:v,plan:odemePlani(v)};
   })).filter(Boolean);
   // Sayım, cariler, sınıflar ve veli bildirimleri aynı öğrenci ID kümesini
   // kullanır. Bu okuma filtresi arşiv veya geçmiş mali kayıtları değiştirmez.
