@@ -1,0 +1,24 @@
+const assert=require('node:assert/strict');
+const {initializeApp}=require('firebase-admin/app');
+const {getFirestore}=require('firebase-admin/firestore');
+(async()=>{
+ if(!process.env.DEVAM_SOURCE_PATH)throw Error('Explicit deployed source snapshot required');
+ if(!/^127\.0\.0\.1:\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST||''))throw Error('Local emulator required');
+ const app=initializeApp({projectId:'demo-ozluk'});const db=getFirestore(app);
+ const {devamKomutuIsle}=await import(require('node:url').pathToFileURL(require('node:path').join(process.env.DEVAM_SOURCE_PATH,'src/devam-komut.mjs')));
+ const {gunuHesapla}=await import('../js/personel-puantaj-core.js');
+ const email='qrteacher@test.example',uid='qrteacher';
+ await db.doc('personeller/'+email).set({rol:'ogretmen',durum:'aktif'});
+ await db.doc('config/okulQR').set({okulId:'test',jeton:'synthetic',enlem:0,boylam:0,yaricapMetre:100});
+ const token={email,email_verified:true};
+ const send=(islem,time)=>devamKomutuIsle({db,uid,token,saat:()=>Date.parse(time),data:{islem,kaynak:'zeky',...(['giris','cikis'].includes(islem)?{qr:'ZEKY-DEVAM:test:synthetic',konum:{enlem:0,boylam:0,dogrulukMetre:10}}:{})}});
+ const results=await Promise.allSettled([send('giris','2026-11-01T05:00:00Z'),send('giris','2026-11-01T05:00:00Z')]);assert.equal(results.filter(x=>x.status==='fulfilled').length,1);
+ await send('mola-basla','2026-11-01T09:00:00Z');
+ await assert.rejects(send('cikis','2026-11-01T09:10:00Z'),/GECIS_MOLADA/);
+ await send('mola-bitir','2026-11-01T09:30:00Z');await send('cikis','2026-11-01T14:00:00Z');
+ const rows=(await db.collection('puantaj').where('personelEmail','==',email).get()).docs.map(x=>x.data());
+ assert.equal(rows.length,4);assert.equal(gunuHesapla(rows,false).net,510);
+ const state=(await db.doc('personelDurum/'+email).get()).data();assert.equal(state.durum,'disarida');assert.equal(state.bugunNetDk,510);
+ assert.equal(rows.find(r=>r.tip==='giris').konum.enlem,undefined);
+ console.log('7 deployed-server transaction/compatibility assertions passed');await app.delete();
+})().catch(e=>{console.error(e.message);process.exit(1)});

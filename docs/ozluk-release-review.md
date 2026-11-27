@@ -57,3 +57,60 @@ ZEKY checkout içinde: `node --test tests/personel*.test.mjs`.
 5. Yeni Firestore kurallarını ayrı, gözden geçirilmiş işlemle etkinleştirin. Onay/ret/audit, düzeltme eşleşmesi ve normal sunucu QR yazımını kontrollü hesaplarla doğrulayın. Başarısızsa karar akışını kapalı tutun; eski gevşek kurallara otomatik dönmeyin.
 6. Bakımı kapatın; izin/audit hatalarını, çift kararları ve QR hatalarını izleyin. Mağaza dağıtımını ayrı onayla kademeli yapın. Eski uygulama karar yollarının artık reddedileceğini açıkça belirtin.
 7. Geri dönüş: veri/audit silmeyin; test edilmiş güvenli istemciye dönün veya yönetim kararlarını geçici durdurun. Güvenliği gevşeten kural geri dönüşü bağımsız değerlendirme gerektirir.
+
+## Ek yayın öncesi kontrol — 28 Kasım 2026
+
+Bu bölüm önceki durum bilgisini günceller. Canlıya/mağazaya yayın, gerçek personel kaydına test yazımı veya canlı kural değişikliği yapılmadı.
+
+### Yeni düzeltmeler
+
+- Aktif olmayan yönetici/muhasebe rolü artık özlük yetkisi üretmez; yalnız aktif personel kabul edilir. Hassas kayıtların sahip ve muhasebe okumalarında da doğrulanmış e-posta gerekir. Yayından önce kullanıcıların e-posta doğrulaması tamamlanmalı.
+- E-posta eşlemeli hesaplarda tekrarlı profil çözümlemesi Firestore'un 1000 ifade sınırını aşıyordu. Profil/rol tek sefer çözülerek azaltıldı; bu senaryo emulator testinden geçti.
+- ZEKY izin formu bitişin başlangıçtan önce olmasını, 366 günü aşan aralığı, sayısal olmayan/24 saati aşan saat süresini yükleme başlamadan reddeder. Dosya adı HTML olarak eklenmez.
+- Capacitor core/android/ios/cli 8.6.3'e sabitlendi. Kilit dosyasının uyumlu bağımlılık güncellemeleri yapıldı; Firebase alt bağımlılığı grpc-js, güvenlik düzeltmesi içeren 1.13.6'ya sabitlendi. `npm audit` sonucu 17 bulgudan sıfıra indi. Bu sonuç npm kilit dosyası kapsamındadır; tüm uygulamanın güvenli olduğu garantisi değildir.
+- Android eklenti bağlantıları `cap sync android` ile güncellendi. macOS /var → /private/var eşlemesinden kaynaklanan test karşılaştırması gerçek yolu kullanacak şekilde düzeltildi.
+
+Kaynaklar: https://github.com/advisories/GHSA-rvm3-566m-v7fv ve https://github.com/advisories/GHSA-m9gg-hp2v-232j .
+
+### Son kanıtlar
+
+- 46 Portal/çapraz depo/dağıtılmış QR çekirdeği testi: tamamı geçti, atlanan yok.
+- 63 aday Firestore kuralı kontrolü: tamamı geçti. Pasif yönetici/muhasebe/öğretmen, veli profili, UID eşleme, doğrulanmamış e-posta ve rol yükseltme girişimi dahil.
+- 1.194 ZEKY JavaScript testi ve gerekli test bağımlılığı sağlandıktan sonra 62 Python testi: tamamı geçti, atlanan yok. Python imza testleri sentetik sertifika/profil kullanır; gerçek imza veya mağaza işlemi değildir.
+- 21 inline script ve ZEKY veri dosyası sözdizimi kontrolü geçti.
+- Android debug APK yerelde başarıyla derlendi. Bir cihaza kurulmadı; bağlı Android cihaz yoktu. Debug imzası yerel geçici klasörde üretildi; mağaza imzası/kaydına dokunulmadı.
+- Xcode 27.2 mevcut. iOS simulator derlemesi tamamlanamadı: CocoaPods komutu yok, Pods tarafından üretilen çalışma alanı hazır değil; CoreSimulator servisi de bu oturumda kullanılabilir değildi. `Podfile.lock` hâlâ eski native Capacitor çözümünü içerir. iOS'ta `pod install`/gerekli yerel pod güncellemesiyle kilit dosyası yeniden üretilip 8.6.3 doğrulanmadan release yapılmamalı. Kilit dosyası elle değiştirilmedi.
+
+### QR sunucusu artık bulundu ve yerelde test edildi
+
+Bağlı Firebase projesinde devam-production kod tabanındaki personelDevamKomutV1 listelendi. Dağıtılmış kaynak paketi yetkili okuma ile alındı; paket veya ortama ait değişkenler herkese açık depoya eklenmedi. Kaynakta App Check zorunluluğu ve tüketilmiş jetonun reddi, sunucu saati, aktif personel kontrolü ve hareket/durumun tek transaction içinde yazımı görüldü.
+
+Dağıtılmış transaction kodu demo-ozluk emulator'ünde sentetik personel, QR ve konumla çalıştırıldı. 7 kontrol geçti: eşzamanlı girişlerden yalnız biri, moladayken çıkış yasağı, 4 hareket, 510 dakika ortak hesap, dışarıda son durum, sunucu toplamı ve tam koordinatın kayda taşınmaması. Üretim callable çağrılmadı. Gerçek App Check sağlayıcısı, GPS/kamera ve fiziksel cihaz çalışması bununla kanıtlanmış sayılmaz.
+
+Yeniden test için açıkça `DEVAM_SOURCE_PATH` ile yerel kaynak paketi verilmelidir. `tests/personel-devam-deployment.test.mjs` kaynak verilmezse atlanır. `tests/personel-devam-server-emulator.cjs` firebase-admin 14.4.0 test bağımlılığıyla yalnız localhost emulator içinde çalışır. Kaynak entry point'i import edilmez ve üretim projesine yazmaz.
+
+### Açık yayın engelleri ve sorumluluk
+
+1. Ayrı test projesi/ortamı henüz doğrulanmadı. Staging ortamı ve sentetik hesaplar hazırlanıp gerçek cihazı oraya bağlayan test paketi üretilmeli. Üretime bağlı debug APK üzerinden deneme giriş/izin/sağlık belgesi oluşturulmamalı.
+2. iOS bağımlılık çözümü ve imzasız derleme, ardından kullanıcı cihazında imzalı yerel test tamamlanmalı. Yeni Capacitor sürümü için gerçek cihaz regresyonu zorunlu.
+3. BCKA-Medya servisinin tam sunucu kaynağı ve özel belge erişim kontrolü henüz bulunamadı. İki uygulama izin belgelerini bu servis üzerinden yükler; Firebase Storage kuralları bu yolun korunduğunu kanıtlamaz. Gerçek sağlık belgesi indirilmedi/yüklenmedi. Sentetik belgeyle yetkisiz kullanıcı ve oturumsuz erişim, erişim iptali, URL ömrü ve saklama/silme işlemleri doğrulanmadan belge akışı yayına hazır değildir.
+4. Eski yönetici uygulamasıyla yeni zorunlu audit kuralının birlikte çalışması desteklenmez. Yönetici cihazlarının sürümü ve doğrulanmış e-posta durumu kontrol edilmeli; kontrollü geçiş önceki sırayla uygulanmalı.
+5. İzin bakiyesi, ücret etkisi, kıdem/sözleşme ve çalışma takvimi eşitliği ayrı iş kuralı doğrulamasını gerektiriyor. Mevcut rapor otomatik bordro onayı değildir.
+
+### Kullanıcının cihazında yapacakları
+
+Şimdi yalnız hazırlık:
+- Kullanacağınız telefonun iPhone mu Android mi olduğunu belirtin; mümkünse iki platformdan birer cihaz seçin.
+- Telefonu bu Mac'e kabloyla bağlayın, kilidini açık tutun. “Bu bilgisayara güven” veya USB hata ayıklama yetkilendirme ekranı gelirse yalnız kendi Mac'iniz için siz onaylayın. Android'de USB hata ayıklama, iPhone'da istenirse Geliştirici Modu gerekir; adımlar cihaz modeline göre birlikte uygulanabilir.
+- Mevcut mağaza uygulamasını silmeyin. Henüz gerçek personelle deneme kaydı veya sağlık belgesi yüklemesi yapmayın. Şifre, doğrulama kodu veya sağlık belgesini bu sohbete göndermeyin.
+
+Test ortamına bağlı paket hazır olduktan sonra birlikte:
+1. Test öğretmeni ve test yöneticisiyle ayrı ayrı giriş; çıkış ve yeniden giriş.
+2. Kamera/konum izni ilk kez reddedildiğinde anlaşılır hata ve sıfır kayıt; izin verildiğinde okul içi geçerli QR ile tek giriş.
+3. Aynı QR'ı art arda okutma, mola başlatma/bitirme ve çıkış: çift kayıt olmaması; Portal ve ZEKY toplamlarının eşleşmesi.
+4. Uçak modunda işlem: sahte başarı olmaması. Bağlantı döndüğünde tek işlem ve açık hata/başarı mesajı.
+5. Sentetik izin talebi → diğer uygulamada gerekçeli ret/onay; bir karar ve bir audit kaydı. İkinci kararın engellenmesi.
+6. Küçük ekran/yatay yön, klavye açıkken kaydet/iptal ve metin okunabilirliği. Fotoğraf gerektiren testlerde yalnız “TEST” yazılı yapay görsel kullanın.
+7. App Check fiziksel cihaz sonuçları ile iOS/Android sürümünü, başarılı/başarısız adımı kaydedin. Gerçek okul kayıtlarının ekran görüntüsünü paylaşmak gerekmez.
+
+Bu testler bitene kadar iki PR taslak kalır; merge, Firebase deploy, TestFlight, Play iç test veya mağaza yayını yapılmaz.

@@ -1,8 +1,25 @@
 // Prototype: existing record fields retained; decision audit is append-only.
 // Rollout requires updated Portal and ZEKY decision clients before enforcement.
-function ozlukYetkili() { return isSignedIn() && request.auth.token.get('email_verified',false) == true && (isAdmin() || isYonetim() || isKoordinator()); }
-function ozlukOkur() { return ozlukYetkili() || isMuhasebe(); }
-function ozlukSahibi(email) { return isPersonel() && (email == userEmail() || email == personelEmail()) && !(get(/databases/$(database)/documents/personeller/$(personelEmail())).data.get('durum','aktif') in ['arsiv','pasif','ayrildi']); }
+function ozlukProfil(email) {
+  return exists(/databases/$(database)/documents/personeller/$(email))
+    ? get(/databases/$(database)/documents/personeller/$(email)).data : {};
+}
+function ozlukAktif(p) { return p.size() > 0 && p.get('durum','aktif') == 'aktif'; }
+function ozlukYetkili() {
+  let p = ozlukProfil(personelEmail());
+  return isSignedIn() && request.auth.token.get('email_verified',false) == true
+    && (isAdmin() || (ozlukAktif(p) && p.get('rol','') in ['kurucu_mudur','mudur','egitim_koordinator']));
+}
+function ozlukOkur() {
+  let p = ozlukProfil(personelEmail());
+  return isSignedIn() && ((request.auth.token.get('email_verified',false) == true
+    && (isAdmin() || (ozlukAktif(p) && p.get('rol','') in ['kurucu_mudur','mudur','egitim_koordinator'])))
+    || (request.auth.token.get('email_verified',false) == true && ozlukAktif(p) && p.get('rol','') == 'muhasebe'));
+}
+function ozlukSahibi(email) {
+  let profilEmail = personelEmail();
+  return isSignedIn() && request.auth.token.get('email_verified',false) == true && ozlukAktif(ozlukProfil(profilEmail)) && (email == userEmail() || email == profilEmail);
+}
 function izinYeniAlanlar(d) {
   return d.keys().hasOnly(['personelEmail', 'tur', 'baslangic', 'durum', 'aciklama', 'gun', 'saat', 'gunlukSaat', 'bakiyedenDuser', 'belgeGerekli', 'personelAd', 'izinTuru', 'turAdi', 'turAd', 'sureTipi', 'bitis', 'baslangicSaat', 'bitisSaat', 'ucretPolitikasi', 'belgeUrl', 'belgeYol', 'belgeAdi', 'belgeTipi', 'kaynak', 'olusturuldu', 'guncellendi', 'tarihMetin', 'miktarMetin', 'etki', 'etkiMetin', 'yakinlik'])
     && d.get('personelAd','') is string && d.get('personelAd','').size() <= 200

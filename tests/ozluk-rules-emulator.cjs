@@ -88,6 +88,27 @@ const fb=require('firebase/firestore'), fs=require('node:fs');
  const staleId='teacher@test.example_2026-11-24_cikis_duzeltme';
  await env.withSecurityRulesDisabled(c=>fb.setDoc(fb.doc(c.firestore(),'puantaj',staleId),{...event,tarih:'2026-11-24'}));
  await no(fb.setDoc(fb.doc(d,'puantajDuzeltmeleri',staleId),{personelEmail:'teacher@test.example',personelAd:'Test',tarih:'2026-11-24',tur:'cikis-eklendi',eklenenSaat:'17:00',aciklama:'Eksik çıkış',duzelten:'manager@test.example',olusturuldu:fb.serverTimestamp()}));
+ // Inactive staff must lose both own-record and role-based access.
+ await env.withSecurityRulesDisabled(async c=>{
+   for(const [name,rol,durum] of [['archived','ogretmen','arsiv'],['departed','mudur','ayrildi'],['inactive','muhasebe','pasif']])await fb.setDoc(fb.doc(c.firestore(),'personeller',name+'@test.example'),{rol,durum});
+   await fb.setDoc(fb.doc(c.firestore(),'kullaniciKimlikleri','alias'),{aktif:true,primaryProfile:'personel',refEmail:'teacher@test.example'});
+   await fb.setDoc(fb.doc(c.firestore(),'kullaniciKimlikleri','disabledAlias'),{aktif:false,primaryProfile:'personel',refEmail:'teacher@test.example'});
+   await fb.setDoc(fb.doc(c.firestore(),'kullaniciKimlikleri','parentProfile'),{aktif:true,primaryProfile:'veli',refEmail:'teacher@test.example'});
+ });
+ for(const name of ['archived','departed','inactive']){
+   await no(fb.getDocs(fb.collection(db(name),'izinTalepleri')));
+   await no(fb.setDoc(ref(db(name),'inactive-'+name),{...sample,personelEmail:name+'@test.example'}));
+   await no(fb.getDocs(fb.collection(db(name),'puantaj')));
+ }
+ for(const name of ['outsider','disabledAlias','parentProfile'])await no(fb.getDoc(ref(db(name),'one')));
+ await ok(fb.getDoc(ref(db('alias'),'one')));
+ await ok(fb.setDoc(ref(db('alias'),'alias-request'),sample));
+ await no(fb.updateDoc(fb.doc(db('teacher'),'personeller','teacher@test.example'),{rol:'mudur'}));
+ await no(izinKararKaydet({db:db('departed'),fb},{id:'alias-request',actor:'departed@test.example',karar:'onaylandi',kaynak:'zeky'}));
+ for(const name of ['teacher','accountant']){
+   const unverifiedReader=env.authenticatedContext('unverified-'+name,{email:name+'@test.example',email_verified:false}).firestore();
+   await no(fb.getDoc(ref(unverifiedReader,'one')));
+ }
  console.log(`${checks} authorization and atomic-audit checks passed`);
  } finally {await env.cleanup();}
 })().catch(e=>{console.error(e);process.exit(1)});
