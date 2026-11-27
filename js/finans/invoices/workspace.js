@@ -1,6 +1,6 @@
 import {esc,para} from '../core.js';
-import {theme,header,recipient,rowTable} from './ui.js';
-import {readDrafts,draftRows,saveDraft,draftIssues,DRAFT_COLLECTION} from './drafts.js';
+import {theme,header,recipient,rowTable} from './ui.js?v=246';
+import {readDrafts,draftRows,saveDraft,draftIssues,DRAFT_COLLECTION} from './drafts.js?v=246';
 export async function invoiceWorkspace(root,ctx,data){
  theme(root);let rows=[],search='',filter='',busy=false;
  const allowed=ctx.isAdmin||['kurucu_mudur','mudur','muhasebe'].includes(ctx.rol);
