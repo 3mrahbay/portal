@@ -1,9 +1,9 @@
-import {candidates,readyIssues,MockInvoiceService,maskedTckn} from './core.js';
+import {candidates,readyIssues,MockInvoiceService,maskedTckn} from './core.js?v=246';
 import {esc,para} from '../core.js';
 export const labels={candidate:"Kaydedilmedi",reviewed:"Kontrol edildi · API bekliyor",source_changed:'Kaynak değişti',draft:'İnceleme gerekli',ready:'Onay bekliyor',approved:'Onaylandı',excluded:'Gerekçeli istisna',sending:'Gönderiliyor',unknown:'Sonuç belirsiz',submitted:'Durum bekleniyor',issued:'Mutabık',rejected:'Reddedildi'};
 export function theme(root){
  root.classList.add('invoice-workspace');
- if(!document.getElementById('invoiceCss')){const link=document.createElement('link');link.id='invoiceCss';link.rel='stylesheet';link.href=new URL('./ui.css',import.meta.url).href;document.head.append(link);}
+ if(!document.getElementById('invoiceCss')){const link=document.createElement('link');link.id='invoiceCss';link.rel='stylesheet';link.href=new URL('./ui.css?v=246',import.meta.url).href;document.head.append(link);}
 }
 export function header(rows,test){return `<header class="invoice-hero"><div><span class="invoice-eyebrow">MUHASEBE / FATURALAR</span><h1>Fatura hazırlığı</h1><p>Tahsilattan taslağa, kontrolünüzde ilerleyen faturalandırma.</p></div><span class="invoice-mode">${test?'Örnek çalışma':'Önizleme'}</span></header><div class="invoice-policy"><span class="invoice-policy-icon" aria-hidden="true">✓</span><div><b>Fatura alıcısı öğrencidir</b><p>Öğrencinin adı ve T.C. kimlik numarası esas alınır. Anne / baba yalnızca ödeme ve iletişim tarafıdır.</p></div></div><div class="invoice-summary"><div><span>Tahsilat adayı</span><strong>${rows.length}</strong></div><div><span>Onay bekleyen</span><strong>${rows.filter(d=>d.status==='ready').length}</strong></div><div><span>İncelenecek</span><strong>${rows.filter(d=>d.status==='draft').length}</strong></div><div><span>Toplam tahsilat</span><strong>${para(rows.reduce((s,d)=>s+d.amountMinor,0)/100)}</strong></div></div>`;}
 export function recipient(d){return `<div class="invoice-recipient"><span class="invoice-avatar" aria-hidden="true">${esc((d.name||'?').slice(0,1))}</span><div><b>${esc(d.recipient?.name||d.name||'Öğrenci adı eksik')}</b><small>T.C. ${esc(maskedTckn(d.recipient?.tckn))}</small><small class="invoice-owner">Öğrenci adına</small></div></div>`;}

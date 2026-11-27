@@ -1,11 +1,11 @@
-import {INVOICE_PREVIEW_ENABLED} from './invoices/config.js';
-import {invoiceWorkspace} from './invoices/workspace.js';
+import {INVOICE_PREVIEW_ENABLED} from './invoices/config.js?v=246';
+import {invoiceWorkspace} from './invoices/workspace.js?v=246';
 import {hesapAc,odemeKontrolAc,benzerBildirimler,benzerBildirimUyarisi} from './payment-workspace.js';
 import {grafikRaporlar} from './analytics.js';
 import {mutabakatEkrani} from './reconciliation.js';
 import {dekontIndir} from './receipts.js';
 import {esc,para,bugun,sirala,basabas,bildirimKalemi,tahsilatiGeriAl} from './core.js';
-import {okulVerisi,toplam,onayla} from './data.js';
+import {okulVerisi,toplam,onayla} from './data.js?v=246';
 const STATUS={odendi:'Ödendi',kismi:'Kısmen ödendi',gecikmis:'Gecikti',bekliyor:'Bekliyor',tanimsiz:'Tanımlanmamış'};
 export function cariOzetleri(data,month){return data.ogrenciler.map(o=>{const rows=o.plan.satirlar;return {ogrenciId:o.id,ogrenci:o.ad,veli:o.veli,sinif:o.sinif,beklenen:o.plan.toplam,odenen:o.plan.odenen,kalan:o.plan.kalan,geciken:o.plan.geciken,buay:toplam(rows.filter(r=>String(r.vade).startsWith(month)),'kalan'),gecikmis:o.plan.geciken>0,durum:o.plan.plansiz||!o.plan.toplam?'tanimsiz':!o.plan.kalan?'odendi':o.plan.odenen>0?'kismi':o.plan.geciken>0?'gecikmis':'bekliyor'};});}
 export async function dashboard(root,ctx){
