@@ -14308,7 +14308,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v245";
+window.PORTAL_SURUM = "v246";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -49605,7 +49605,7 @@ window.mufredatEditorAc = async function() {
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v245";
+          const anahtar = "portalSwReload_v246";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();

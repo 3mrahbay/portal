@@ -1,0 +1,76 @@
+    // Preparation only: no provider payload, parent identity, invoice number or send state.
+    // source IDs immutable; decisions bounded; each revision atomically appends history.
+    match /faturaHazirlik/{draftId} {
+      function staff() { return isAdmin() || isYonetim() || isMuhasebe(); }
+      function shortText(v,n) { return v is string && v.size() <= n; }
+      function decision(p) {
+        return p is map && p.keys().hasAll(['requirement','reason','servicePeriod','productCode','taxRateBps','taxApproved','reviewed'])
+          && p.keys().hasOnly(['requirement','reason','servicePeriod','productCode','taxRateBps','taxApproved','reviewed'])
+          && p.requirement in ['review','required','excluded']
+          && shortText(p.reason,500) && shortText(p.servicePeriod,40) && shortText(p.productCode,80)
+          && (p.taxRateBps == null || (p.taxRateBps is int && p.taxRateBps >= 0 && p.taxRateBps <= 10000))
+          && p.taxApproved is bool && p.reviewed is bool
+          && (p.requirement != 'excluded' || p.reason.size() > 0)
+          && (!p.reviewed || (p.requirement != 'review' && (p.requirement != 'required'
+            || (p.servicePeriod.size() > 0 && p.productCode.size() > 0 && p.taxRateBps != null && p.taxApproved))));
+      }
+      function source(s) {
+        return s is map && s.keys().hasAll(['donem','ogrenciId','kalemId','hareketId'])
+          && s.keys().hasOnly(['donem','ogrenciId','kalemId','hareketId'])
+          && s.donem is string && s.donem.matches('^[0-9]{4}-[0-9]{4}$')
+          && shortText(s.ogrenciId,150) && s.ogrenciId.size() > 0
+          && shortText(s.kalemId,150) && s.kalemId.size() > 0
+          && shortText(s.hareketId,200) && s.hareketId.size() > 0 && s.hareketId != 'devir'
+          && exists(/databases/$(database)/documents/ogrenciler/$(s.ogrenciId)/donemler/$(s.donem));
+      }
+      function studentIdentity(s) {
+        let main = get(/databases/$(database)/documents/ogrenciler/$(s.ogrenciId)).data;
+        let period = get(/databases/$(database)/documents/ogrenciler/$(s.ogrenciId)/donemler/$(s.donem)).data.get('ogrenci',{});
+        let tc = period.get('tcKimlik', main.get('tcKimlik',''));
+        let name = period.get('adSoyad', main.get('ogrenciAdSoyad',main.get('ad','')));
+        return tc is string && tc.matches('^[1-9][0-9]{10}$') && name is string && name.size() > 2
+          && (period.get('tcKimlik','') == '' || main.get('tcKimlik','') == '' || period.tcKimlik == main.tcKimlik);
+      }
+      function valid(d) {
+        return draftId.matches('^[a-f0-9]{64}$')
+          && d.keys().hasAll(['schemaVersion','donem','source','sourceKey','recipientKind','fingerprint','decision','version','createdBy','createdAt','updatedBy','updatedAt'])
+          && d.keys().hasOnly(['schemaVersion','donem','source','sourceKey','recipientKind','fingerprint','decision','version','createdBy','createdAt','updatedBy','updatedAt'])
+          && d.schemaVersion == 1 && d.recipientKind == 'student' && source(d.source)
+          && d.donem == d.source.donem && shortText(d.sourceKey,1000)
+          && d.fingerprint is string && d.fingerprint.matches('^[a-f0-9]{64}$') && decision(d.decision)
+          && (!d.decision.reviewed || studentIdentity(d.source))
+          && d.version is int && d.version > 0 && d.version <= 1000000
+          && shortText(d.createdBy,128) && d.createdBy.size() > 0
+          && d.createdAt is timestamp && d.createdAt <= request.time
+          && d.updatedBy == request.auth.uid && d.updatedAt == request.time;
+      }
+      function historyMatches(d) {
+        let h = getAfter(/databases/$(database)/documents/faturaHazirlik/$(draftId)/history/$(string(d.version))).data;
+        return h.version == d.version && h.actor == d.updatedBy && h.at == request.time
+          && h.decision == d.decision && h.fingerprint == d.fingerprint;
+      }
+      allow read: if staff();
+      allow create: if staff() && valid(request.resource.data)
+        && request.resource.data.version == 1 && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time && historyMatches(request.resource.data);
+      allow update: if staff() && valid(request.resource.data)
+        && request.resource.data.version == resource.data.version + 1
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['decision','fingerprint','version','updatedBy','updatedAt'])
+        && historyMatches(request.resource.data);
+      allow delete: if false;
+      match /history/{versionId} {
+        function historyValid(h) {
+          let p = getAfter(/databases/$(database)/documents/faturaHazirlik/$(draftId)).data;
+          let before = exists(/databases/$(database)/documents/faturaHazirlik/$(draftId))
+            ? get(/databases/$(database)/documents/faturaHazirlik/$(draftId)).data.version : 0;
+          return h.keys().hasAll(['version','actor','at','decision','fingerprint'])
+            && h.keys().hasOnly(['version','actor','at','decision','fingerprint'])
+            && versionId == string(h.version) && h.version == before + 1 && h.version == p.version
+            && h.actor == request.auth.uid && h.actor == p.updatedBy && h.at == request.time
+            && h.decision == p.decision && h.fingerprint == p.fingerprint;
+        }
+        allow read: if staff();
+        allow create: if staff() && historyValid(request.resource.data);
+        allow update, delete: if false;
+      }
+    }
