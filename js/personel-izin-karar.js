@@ -2,8 +2,8 @@
 export async function izinKararKaydet({db, fb}, {id, actor, karar, not = '', onaylananGun = null, inisiyatif = false, kaynak}) {
   if (!id || !actor || !['onaylandi','reddedildi'].includes(karar)) throw Error('Geçersiz izin kararı.');
   const aciklama=String(not).trim();
-  if (aciklama.length>1000 || (karar==='reddedildi' && !aciklama)) throw Error('Ret açıklaması gerekli; not en fazla 1000 karakter olabilir.');
-  if (onaylananGun!=null && (!Number.isInteger(onaylananGun)||onaylananGun<0||onaylananGun>366)) throw Error('Geçerli bir onay gün sayısı girin.');
+  if (aciklama.length>1000 || (karar==='reddedildi' && aciklama.length < 5)) throw Error('Ret açıklaması en az 5; not en fazla 1000 karakter olmalıdır.');
+  if (karar==='onaylandi' && onaylananGun!=null && (!Number.isInteger(onaylananGun)||onaylananGun<0||onaylananGun>366)) throw Error('Geçerli bir onay gün sayısı girin.');
   const ref=fb.doc(db,'izinTalepleri',id), audit=fb.doc(db,'ozlukIslemKayitlari','izin_'+id);
   return fb.runTransaction(db,async tx=>{
     const snap=await tx.get(ref);

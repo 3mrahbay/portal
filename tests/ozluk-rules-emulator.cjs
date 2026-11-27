@@ -51,6 +51,43 @@ const fb=require('firebase/firestore'), fs=require('node:fs');
  await ok(fb.setDoc(ref(db('teacher'),'concurrent'),sample));
  const outcomes=await Promise.allSettled(['onaylandi','reddedildi'].map(karar=>izinKararKaydet({db:db('manager'),fb},{id:'concurrent',actor:'manager@test.example',karar,not:'İncelendi',kaynak:'portal'})));
  require('node:assert/strict').equal(outcomes.filter(r=>r.status==='fulfilled').length,1);checks++;
+ // Exercise the actual Portal create expression, including guncellendi and document metadata.
+ const portal=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
+ const expression=portal.split('await addDoc(collection(db, "izinTalepleri"), ')[1].split('\n    });')[0]+'\n    }';
+ const talep={baslangic:'2026-11-27',bitis:'2026-11-28',baslangicSaat:'',bitisSaat:'',aciklama:'Test'};
+ const payload=new Function('email','aktifPersonel','currentUser','dogrulama','meta','talep','gunlukSaat','belgeUrl','belgeYol','belge','simdi','return '+expression)(
+ 'teacher@test.example',{adSoyad:'Test'},{},{tur:'yillik',gun:2,saat:0},{ad:'Yıllık',sureTipi:'gunluk',alt:'Ücretli'},talep,8,'','',null,new Date().toISOString());
+ await ok(fb.setDoc(ref(db('teacher'),'portal-payload'),payload));
+ // Companion form + create service are exercised when the ZEKY checkout is supplied.
+ if(process.env.ZEKY_REPO_PATH){
+  const path=require('node:path');
+  const screen=fs.readFileSync(path.join(process.env.ZEKY_REPO_PATH,'www/personel-izin-rapor.html'),'utf8');
+  const object=screen.split('const veri = {')[1].split('\n    };')[0];
+  const form=new Function('seciliTur','T','bas','bit','gun','saat','miktarMetin','tarihMetin','etki','etkiMetin','belgeUrl','document','return {'+object+'}')( 'yillik',{ad:'Yıllık'},'2026-11-27','2026-11-28',2,0,'2 gün','27–28 Kasım','yillik','Yıllıktan düşecek','',{getElementById:()=>null});
+  const source=fs.readFileSync(path.join(process.env.ZEKY_REPO_PATH,'www/js/zeky-data.js'),'utf8');
+  const begin=source.indexOf('export async function izinTalebiOlustur');
+  const code=source.slice(begin,source.indexOf('\n}\n',begin)+2).replace('export ','');
+  const create=new Function('aktifKullanici','addDoc','collection','db','yoneticiEmailleri','bildirimYazCoklu',code+';return izinTalebiOlustur;')(()=>({email:'teacher@test.example',ad:'Test'}),fb.addDoc,fb.collection,db('teacher'),async()=>[],async()=>{});
+  const created=await create({...form,personelEmail:'other@test.example',durum:'onaylandi'});checks++;
+  require('node:assert/strict').equal(created.personelEmail,'teacher@test.example');
+  require('node:assert/strict').equal(created.durum,'bekliyor');checks++;
+  await ok(izinKararKaydet({db:db('manager'),fb},{id:created.id,actor:'manager@test.example',karar:'reddedildi',not:'Uygun değil',kaynak:'portal'}));
+ }
+ await no(fb.setDoc(ref(db('teacher'),'timestamp-type'),{...payload,guncellendi:42}));
+ await env.withSecurityRulesDisabled(c=>fb.setDoc(ref(c.firestore(),'legacy-null'),{...sample,onaylananGun:null}));
+ await ok(izinKararKaydet({db:db('manager'),fb},{id:'legacy-null',actor:'manager@test.example',karar:'reddedildi',not:'Uygun değil',kaynak:'zeky'}));
+ const unverified=env.authenticatedContext('unverified',{email:'manager@test.example',email_verified:false}).firestore();
+ await no(izinKararKaydet({db:unverified,fb},{id:'portal-payload',actor:'manager@test.example',karar:'onaylandi',kaynak:'portal'}));
+ await no(izinKararKaydet({db:db('accountant'),fb},{id:'portal-payload',actor:'accountant@test.example',karar:'onaylandi',kaynak:'zeky'}));
+ await ok(izinKararKaydet({db:db('coordinator'),fb},{id:'portal-payload',actor:'coordinator@test.example',karar:'onaylandi',kaynak:'zeky',onaylananGun:0}));
+ for(const [key,value] of [['tarih','2026-11-25'],['duzelten','other@test.example']]){
+   const pairId='teacher@test.example_2026-11-26_cikis_duzeltme';
+   const b=fb.writeBatch(d);b.set(fb.doc(d,'puantaj',pairId),{...event,tarih:'2026-11-26'});
+   b.set(fb.doc(d,'puantajDuzeltmeleri',pairId),{personelEmail:'teacher@test.example',personelAd:'Test',tarih:'2026-11-26',tur:'cikis-eklendi',eklenenSaat:'17:00',aciklama:'Eksik çıkış',duzelten:'manager@test.example',olusturuldu:fb.serverTimestamp(),[key]:value});await no(b.commit());
+ }
+ const staleId='teacher@test.example_2026-11-24_cikis_duzeltme';
+ await env.withSecurityRulesDisabled(c=>fb.setDoc(fb.doc(c.firestore(),'puantaj',staleId),{...event,tarih:'2026-11-24'}));
+ await no(fb.setDoc(fb.doc(d,'puantajDuzeltmeleri',staleId),{personelEmail:'teacher@test.example',personelAd:'Test',tarih:'2026-11-24',tur:'cikis-eklendi',eklenenSaat:'17:00',aciklama:'Eksik çıkış',duzelten:'manager@test.example',olusturuldu:fb.serverTimestamp()}));
  console.log(`${checks} authorization and atomic-audit checks passed`);
  } finally {await env.cleanup();}
 })().catch(e=>{console.error(e);process.exit(1)});
