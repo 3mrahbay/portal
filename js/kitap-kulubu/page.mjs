@@ -1,4 +1,4 @@
-import { auth, db, fb, onAuthStateChanged } from "./adapter.mjs";
+import { auth, db, fb, onAuthStateChanged, callPoll } from "./adapter.mjs";
 import { createStore } from "./store.mjs?v=214";
 import { mountClub } from "./ui.mjs";
 const host = document.getElementById("club");
@@ -21,7 +21,7 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
   root.textContent = "Kitaplığınız hazırlanıyor…";
-  const done = await mountClub(root, createStore(fb, db, auth));
+  const done = await mountClub(root, createStore(fb, db, auth, callPoll));
   if (turn !== epoch) done();
   else cleanup = done;
 });

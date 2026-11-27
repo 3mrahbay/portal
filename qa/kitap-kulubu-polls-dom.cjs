@@ -1,0 +1,28 @@
+const {JSDOM}=require('jsdom'),assert=require('node:assert/strict'),path=require('node:path'),{pathToFileURL}=require('node:url');
+(async()=>{
+ const base=path.resolve(__dirname,'..',process.env.CLUB_WEB_PREFIX||'','js/kitap-kulubu');
+ const {mountPolls,localIso}=await import(pathToFileURL(base+'/polls-ui.mjs'));
+ assert.equal(localIso('2026-12-01T19:00'),'2026-12-01T16:00:00.000Z');assert.throws(()=>localIso('2026-02-30T19:00'));
+ const dom=new JSDOM('<main></main>',{url:'https://fixture.test'});global.FormData=dom.window.FormData;global.confirm=()=>true;
+ const root=dom.window.document.querySelector('main'),tick=()=>new Promise(r=>setTimeout(r,0));
+ let clock=Date.parse('2026-11-28T12:00:00Z'),feed,feedError,fail=false,stops=0;const callbacks=new Map(),calls=[];
+ const stamp=ms=>({toMillis:()=>ms});
+ const p={id:'poll-test-123',title:'<img src=x> Kitap seçimi',type:'book',status:'open',createdAt:stamp(clock),closesAt:stamp(clock+3600000),options:[{id:'o0',label:'Kitap A <script>x</script>'},{id:'o1',label:'Kitap B'}],counts:{o0:0,o1:0},total:0};let ballot=null;
+ const store={polls:(next,error)=>{feed=next;feedError=error;queueMicrotask(()=>next([p],{cached:false}));return()=>stops++;},pollVote:(id,next)=>{callbacks.set(id,next);queueMicrotask(()=>next(ballot));return()=>stops++;},pollCommand:async command=>{calls.push(command);if(fail)throw Error('Bağlantı kesildi');if(command.action==='vote'){if(ballot?.optionId)p.counts[ballot.optionId]--;if(command.optionId)p.counts[command.optionId]++;p.total=Object.values(p.counts).reduce((a,b)=>a+b,0);ballot={...command,revision:command.revision+1};callbacks.get(p.id)(ballot);feed([p],{cached:false});}if(command.action==='close'){p.status='closed';feed([p],{cached:false});}return {pollId:command.pollId};}};
+ const panel=mountPolls(root,store,{manage:true,now:()=>clock});panel.setEnabled(false);assert.match(root.textContent,/üyeliğinizin onaylanması/);panel.setEnabled(true);await tick();
+ assert.equal(root.querySelector('img,script'),null);assert.match(root.textContent,/Henüz oy yok/);
+ const submit=async selector=>{root.querySelector(selector).dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();};
+ await submit('[data-poll-vote]');assert.equal(calls.length,0);assert.match(root.textContent,/Önce bir seçenek/);
+ root.querySelector('input[value=o0]').click();await submit('[data-poll-vote]');assert.equal(p.total,1);assert.match(root.textContent,/Oyunuz/);
+ root.querySelector('input[value=o1]').click();await submit('[data-poll-vote]');assert.deepEqual(p.counts,{o0:0,o1:1});assert.equal(calls.at(-1).revision,1);
+ root.querySelector('[data-poll-withdraw]').click();await tick();assert.equal(p.total,0);
+ fail=true;root.querySelector('input[value=o0]').click();await submit('[data-poll-vote]');const first=calls.at(-1);assert.match(root.textContent,/Bağlantı kesildi/);await submit('[data-poll-vote]');assert.equal(calls.at(-1).requestId,first.requestId);fail=false;await submit('[data-poll-vote]');assert.equal(p.total,1);
+ feed([p],{cached:true});assert(root.querySelector('[data-poll-vote] button[type=submit]').disabled);feed([p],{cached:false});
+ root.querySelector('[data-poll-new]').click();const form=root.querySelector('[data-poll-create]');form.querySelector('[name=title]').value='Sonraki buluşma';form.querySelector('[name=type]').value='time';form.querySelector('[name=type]').dispatchEvent(new dom.window.Event('change',{bubbles:true}));assert.equal(form.querySelector('[name=option0]').type,'datetime-local');
+ for(const [name,value] of Object.entries({closesAt:'2026-12-01T19:00',option0:'2026-12-02T19:00',option1:'2026-12-03T19:00'}))form.querySelector('[name='+name+']').value=value;
+ feed([p],{cached:false});assert.equal(form.querySelector('[name=title]').value,'Sonraki buluşma');await submit('[data-poll-create]');assert.equal(calls.at(-1).options[0],'2026-12-02T16:00:00.000Z');assert.equal(root.querySelector('[data-poll-create]'),null);
+ root.querySelector('[data-poll-close]').click();await tick();assert.match(root.textContent,/Oylama kapandı/);assert.equal(root.querySelector('[data-poll-vote] button'),null);
+ p.status='open';clock+=7200000;feed([p],{cached:false});assert.equal(root.querySelector('[data-poll-vote] button'),null);
+ const staleFeed=feed;panel.setEnabled(false);staleFeed([p],{cached:false});assert.equal(root.querySelector('[data-poll-id]'),null);panel.setEnabled(true);await tick();feedError(Object.assign(Error('denied'),{code:'permission-denied'}));assert.equal(root.querySelector('[data-poll-id]'),null);assert.match(root.textContent,/erişiminiz değişmiş/);panel.stop();staleFeed([p],{cached:false});assert.equal(root.textContent,'');assert(stops>=4);dom.window.close();
+ console.log('PASS poll UI: eligibility, escaping, vote/change/withdraw, retry ID, offline lock, preserved draft, time input, close/expiry, permission loss and cleanup');
+})().catch(e=>{console.error(e);process.exitCode=1});
