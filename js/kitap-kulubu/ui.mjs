@@ -1,3 +1,4 @@
+import {mountPolls} from './polls-ui.mjs';
 import { createPhotoInteractions } from "./interactions-ui.mjs";
 import {
   escapeHTML as esc,
@@ -11,7 +12,7 @@ export async function mountClub(root, store) {
   const params = new URLSearchParams(root.ownerDocument.defaultView?.location.search || '');
   const safeId = value => value && value.length <= 1500 && !/[\x00-\x1f/\\]/.test(value) ? value : '';
   const targetBook = safeId(params.get('book')), targetPost = safeId(params.get('post'));
-  let targetStop = null, targetOpened = false;
+  let targetStop = null, targetOpened = false, pollPanel = null;
   let alive = true,
     access,
     books = [],
@@ -38,6 +39,7 @@ export async function mountClub(root, store) {
   const stop = () => {
     listeners.forEach(([event, fn]) => root.removeEventListener(event, fn));
     interactions.clear();
+    pollPanel?.stop();
     alive = false;
     generation++;
     targetStop?.();
@@ -73,7 +75,8 @@ export async function mountClub(root, store) {
     });
     return stop;
   }
-  root.innerHTML = `<header class="kc-heading kc-heading-illustrated"><a class="kc-hero-poster" href="assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg" target="_blank" rel="noopener" aria-label="Annelerle Kitap Kulübü afişini büyük aç"><img src="assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg" width="1024" height="1536" alt="Annelerle Kitap Kulübü: Bir kitap, birçok duygu, güzel bir buluşma. Ebeveynliği Hissetmek buluşması, 26 Kasım Perşembe saat 19.00, Bir Çiçek’te." fetchpriority="high" decoding="async"></a><div class="kc-hero-copy"><p class="bk-eyebrow">ANNELER İLE · KİTAP & ÇAY</p><h1>Kitap Kulübü</h1><p class="kc-hero-tagline">Bir kitap, birçok duygu,<br>güzel bir buluşma.</p><p>Birlikte okuyalım, deneyimlerimizi paylaşalım.</p><span class="kc-hero-note">Okuduklarımızdan hayatımıza, içten bir sohbet molası.</span></div></header><p role="alert" data-error class="kc-error"></p><nav class="kc-tabs" aria-label="Kitaplık"><button data-tab="active" aria-pressed="true">Buluşmalar</button><button data-tab="archive" aria-pressed="false">Geçmiş okumalar</button>${access.manage ? "<a class=\"kc-admin-link\" href=\"kitap-kulubu-yonetim.html\">Kitap Kulübü Yönetimi</a>" : ""}</nav><div data-library class="kc-library" aria-live="polite">Kitaplar yükleniyor…</div><section data-book hidden></section>`;
+  root.innerHTML = `<header class="kc-heading kc-heading-illustrated"><a class="kc-hero-poster" href="assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg" target="_blank" rel="noopener" aria-label="Annelerle Kitap Kulübü afişini büyük aç"><img src="assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg" width="1024" height="1536" alt="Annelerle Kitap Kulübü: Bir kitap, birçok duygu, güzel bir buluşma. Ebeveynliği Hissetmek buluşması, 26 Kasım Perşembe saat 19.00, Bir Çiçek’te." fetchpriority="high" decoding="async"></a><div class="kc-hero-copy"><p class="bk-eyebrow">ANNELER İLE · KİTAP & ÇAY</p><h1>Kitap Kulübü</h1><p class="kc-hero-tagline">Bir kitap, birçok duygu,<br>güzel bir buluşma.</p><p>Birlikte okuyalım, deneyimlerimizi paylaşalım.</p><span class="kc-hero-note">Okuduklarımızdan hayatımıza, içten bir sohbet molası.</span></div></header><p role="alert" data-error class="kc-error"></p><nav class="kc-tabs" aria-label="Kitaplık"><button data-tab="active" aria-pressed="true">Buluşmalar</button><button data-tab="archive" aria-pressed="false">Geçmiş okumalar</button>${access.manage ? "<a class=\"kc-admin-link\" href=\"kitap-kulubu-yonetim.html\">Kitap Kulübü Yönetimi</a>" : ""}</nav><section data-club-polls></section><div data-library class="kc-library" aria-live="polite">Kitaplar yükleniyor…</div><section data-book hidden></section>`;
+  if(store.polls){pollPanel=mountPolls(root.querySelector('[data-club-polls]'),store);pollPanel.setEnabled(access.staff);}
   let tab = "active";
   function library() {
     if (!alive) return;
@@ -331,6 +334,7 @@ export async function mountClub(root, store) {
   unsubs.push(
     store.member((m) => {
       member = m;
+      pollPanel?.setEnabled(access.staff || m?.status==='approved');
       composer();
       openTarget();
     }, error),

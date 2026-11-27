@@ -19,3 +19,6 @@ const app = getApps()[0] || initializeApp(config);
 const auth = getAuth(app),
   db = fb.getFirestore(app);
 export { auth, db, fb, onAuthStateChanged };
+
+import {getFunctions,httpsCallable} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
+export const callPoll = data => httpsCallable(getFunctions(auth.app,'europe-west3'),'kitapKulubuOylama')(data).then(result=>result.data);

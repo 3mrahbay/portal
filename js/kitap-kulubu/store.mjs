@@ -1,7 +1,8 @@
+import {createPollStore} from './polls-store.mjs';
 import { createInteractionsStore } from "./interactions-store.mjs";
 import { readWelcomeStatus } from "./mail-status.mjs";
 import { accessFor, profileEmail, validatePost } from "./core.mjs";
-export function createStore(fb, db, auth) {
+export function createStore(fb, db, auth, callPoll) {
   const {
     doc,
     collection,
@@ -90,6 +91,7 @@ export function createStore(fb, db, auth) {
   }
   return {
     ...createInteractionsStore(fb, db, auth),
+    ...createPollStore(fb, db, auth, callPoll),
     identity,
     postById: (bookId, postId, next, error) => onSnapshot(
       doc(db, 'kitapKulubu', bookId, 'paylasimlar', postId),

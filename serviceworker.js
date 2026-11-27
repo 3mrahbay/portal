@@ -10,10 +10,12 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v246-fatura-taslak";
+const CACHE_VERSION = "v247-kitap-oylamalari";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/kitap-kulubu/polls-store.mjs",
+  "./js/kitap-kulubu/polls-ui.mjs",
   "./js/egitim-gelisim-okuma.mjs?v=1",
   "./portal-mufredat.js?v=2",
   "./js/egitim-program-yetki.mjs?v=1",
@@ -27,7 +29,7 @@ const PRECACHE = [
   "./js/galeri-toplu-onay.js?v=227",
   "./js/kayit-duyurulari.js?v=222",
   "./assets/kitap-kulubu/annelerle-kitap-kulubu.jpeg",
-  "./js/kitap-kulubu/page.mjs?v=2",
+  "./js/kitap-kulubu/page.mjs?v=247",
   "./js/kitap-kulubu/core.mjs",
   "./js/kitap-kulubu/ui.mjs",
   "./js/kitap-kulubu/photo.mjs",
@@ -38,11 +40,11 @@ const PRECACHE = [
   "./kitap-kulubu.html",
   "./js/kitap-kulubu/mail-status.mjs",
   "./kitap-kulubu-yonetim.html",
-  "./js/kitap-kulubu/admin-page.mjs?v=2",
+  "./js/kitap-kulubu/admin-page.mjs?v=247",
   "./js/kitap-kulubu/store.mjs?v=214",
   "./js/kitap-kulubu.js?v=1",
   "./js/kitap-kulubu.css?v=2",
-  "./js/kitap-kulubu/club.css?v=3",
+  "./js/kitap-kulubu/club.css?v=4",
   "./js/galeri-onay-canli.js?v=186",
   "./js/galeri-onay-bildirimi.js?v=186",
   "./js/portal-google-login.js?v=178",

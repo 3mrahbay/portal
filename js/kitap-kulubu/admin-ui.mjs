@@ -1,14 +1,16 @@
+import {mountPolls} from './polls-ui.mjs';
 import { welcomeStatusText } from './mail-status.mjs';
 import { escapeHTML as esc, dateLabel, eventDetails } from './core.mjs';
 import { memberLabels, timestampLabel, requestLabel, summary, localDate, bookData } from './admin-core.mjs';
 
 export async function mountManagement(root, store) {
   let alive = true, busy = false, data = null, tab = 'requests', filter = 'pending', memberSearch = '', bookFilter = '', shown = 20;
-  let editId = null, draftId = null;
+  let editId = null, draftId = null, pollPanel = null;
   const controller = new AbortController();
   const stop = () => {
     alive = false;
     controller.abort();
+    pollPanel?.stop();
     root.removeEventListener('click', click);
     root.removeEventListener('change', change);
     root.removeEventListener('input', input);
@@ -33,13 +35,17 @@ export async function mountManagement(root, store) {
     <div class="kc-admin-toolbar"><a href="kitap-kulubu.html">← Kulüp alanı</a><button data-refresh>Verileri yenile</button></div>
     <p role="alert" data-error class="kc-error"></p><p role="status" data-status></p>
     <div data-summary class="kc-summary"></div><p class="kc-muted">Toplam paylaşım, kaldırılmamış paylaşımlardır. Sayılar son yenilemede okunan kayıtlara aittir.</p>
-    <nav class="kc-tabs kc-admin-tabs" aria-label="Kulüp yönetimi">${[['requests','Katılım Talepleri'],['members','Üyeler'],['posts','Paylaşımlar'],['books','Kitaplar & Buluşmalar']].map(([id,label]) => `<button data-section="${id}" aria-pressed="${id === tab}">${label}</button>`).join('')}</nav>
-    <section data-content></section>`;
+    <nav class="kc-tabs kc-admin-tabs" aria-label="Kulüp yönetimi">${[['requests','Katılım Talepleri'],['members','Üyeler'],['posts','Paylaşımlar'],['books','Kitaplar & Buluşmalar'],...(store.polls?[["polls","Oylamalar"]]:[])].map(([id,label]) => `<button data-section="${id}" aria-pressed="${id === tab}">${label}</button>`).join('')}</nav>
+    <section data-content></section><section data-poll-panel hidden></section>`;
+  if(store.polls){pollPanel=mountPolls(root.querySelector('[data-poll-panel]'),store,{manage:true});pollPanel.setEnabled(true);}
   const content = () => root.querySelector('[data-content]');
   function render() {
     if (!alive || !data) return;
     root.querySelector('[data-summary]').innerHTML = summary(data).map(([label,n]) => `<article class="kc-summary-card"><strong>${n}</strong><span>${label}</span></article>`).join('');
     root.querySelectorAll('[data-section]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.section === tab)));
+    root.querySelector('[data-content]').hidden=tab==='polls';
+    root.querySelector('[data-poll-panel]').hidden=tab!=='polls';
+    if(tab==='polls')return;
     if (tab === 'requests' || tab === 'members') {
       const needle = memberSearch.trim().toLocaleLowerCase('tr-TR');
       const rows = data.members.filter(m => (filter === 'all' || m.status === filter) && (!needle || String(m.name || '').toLocaleLowerCase('tr-TR').includes(needle)));
