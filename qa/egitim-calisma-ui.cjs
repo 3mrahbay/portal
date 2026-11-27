@@ -2,7 +2,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const {chromium,webkit}=process.env.EDUCATION_QA_PREPARE_ONLY?{}:require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const styles=[...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m=>m[1]).join('\n');
-const markup=source.slice(source.indexOf('<div id="egitimMatrixContainer"'),source.indexOf('<!-- YENİ BRANŞ EKLEME MODALI -->'));
+const markup=source.slice(source.lastIndexOf('<!-- HERO -->',source.indexOf('<div id="egitimMatrixContainer"')),source.indexOf('<!-- YENİ BRANŞ EKLEME MODALI -->'));
 const matrix=source.slice(source.indexOf('let egitimAktifDisiplin ='),source.indexOf('// ============ SINIF RAPORU MODALI ============'));
 const click=source.slice(source.indexOf('// Both modes use the same transaction'),source.indexOf('\n};',source.indexOf('// Both modes use the same transaction'))+4);
 const scopeCode=fs.readFileSync(path.join(root,'js/egitim-gelisim-okuma.mjs'),'utf8').replaceAll('export ','');
@@ -21,7 +21,7 @@ window.BCK={db:{},rol:()=>PortalAPI.state.rol,personel:()=>({adSoyad:'Örnek Ö�
 window.PortalData={mufredatAlanlariGetir:async()=>aktifMufredatlar.montessori,mufredatAciklamalariGetir:async()=>({}),aciklamaCoz:()=>({}),sinifEslesirMi:(a,b)=>a===b};
 `;
 const init=`egitimOkumaDurumu='ready';egitimOkumaKapsami=educationReadScope(PortalAPI.state).key;egitimAktifDisiplin='montessori';egitimAktifSinif='Örnek Sınıf';egitimMatrixVerisi={ogrenciler:ogrenciList.map(o=>({...o,_sinif:o.sinif})),gelisim:records};document.getElementById('egitimMatrixContainer').style.display='block';egitimSinifSeciciDoldur();egitimAlanSeciciDoldur();egitimMatrixRender();window.ready=true;`;
-const html=`<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${styles}</style></head><body><div style="height:150px">Sentetik eğitim testi</div><section id="tab-egitim" class="active">${markup}</section><script>${bootstrap}\n${matrix}\n${click}\n${init}</script></body></html>`;
+const html=`<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${styles}</style></head><body><div style="padding:8px;font-size:12px;color:#64748b">Örnek verilerle eğitim önizlemesi</div><section id="tab-egitim" class="active egitim-matrix-aktif">${markup}</section><script>${bootstrap}\n${matrix}\n${click}\n${init}</script></body></html>`;
 const out=process.env.EDUCATION_QA_OUTPUT||path.resolve(root,'../qa-output');fs.mkdirSync(out,{recursive:true});
 if(process.env.EDUCATION_QA_PREPARE_ONLY){fs.writeFileSync(path.join(out,'fixture.html'),html);process.exit(0);}
 (async()=>{const results=[];for(const [name,type] of (process.env.EDUCATION_QA_WEBKIT_ONLY?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]])){const browser=await type.launch({headless:true});try{for(const size of [{width:1440,height:900},{width:320,height:740},{width:390,height:844},{width:844,height:390},{width:768,height:1024}]){const page=await browser.newPage({viewport:size}),errors=[];page.on('pageerror',e=>errors.push(e.message));
