@@ -1,3 +1,4 @@
+import { personelBelgeButonu } from "../js/personel-belge-client.js?v=1";
 // ══════════════════════════════════════════════════════════════
 // PORTAL · ÖZLÜK & PUANTAJ — PERSONEL GÖRÜNÜMÜ
 // --------------------------------------------------------------
@@ -625,7 +626,7 @@ function izinHtml(p, izinler) {
             ${surer && b ? `<span class="po-izin-surer">${ikon("hourglass", 13)} Sürüyor · ${b.kalan <= 1 ? "bugün bitiyor" : `${b.kalan} gün kaldı`} · dönüş ${esc(tarihYaz(b.donus))}</span>` : ""}
             ${v.aciklama ? `<span class="po-izin-not">${esc(v.aciklama)}</span>` : ""}</div>
           <span class="po-izin-durum" style="color:${dk[1]};background:${dk[2]}">${dk[0]}</span>
-          ${v.belgeUrl ? `<a class="po-izin-belge" href="${esc(v.belgeUrl)}" target="_blank" rel="noopener" aria-label="Belgeyi aç">${ikon("paperclip", 16)}</a>` : ""}
+          ${personelBelgeButonu(v)}
         </div>`; }).join("")}</div>` : `<div class="po-bos po-bos-kucuk">İzin kaydı yok.</div>`}
     </section>`;
 }

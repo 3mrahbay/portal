@@ -1,10 +1,27 @@
 // Prototype: existing record fields retained; decision audit is append-only.
 // Rollout requires updated Portal and ZEKY decision clients before enforcement.
-function ozlukYetkili() { return isSignedIn() && request.auth.token.get('email_verified',false) == true && (isAdmin() || isYonetim() || isKoordinator()); }
-function ozlukOkur() { return ozlukYetkili() || isMuhasebe(); }
-function ozlukSahibi(email) { return isPersonel() && (email == userEmail() || email == personelEmail()) && !(get(/databases/$(database)/documents/personeller/$(personelEmail())).data.get('durum','aktif') in ['arsiv','pasif','ayrildi']); }
+function ozlukProfil(email) {
+  return exists(/databases/$(database)/documents/personeller/$(email))
+    ? get(/databases/$(database)/documents/personeller/$(email)).data : {};
+}
+function ozlukAktif(p) { return p.size() > 0 && p.get('durum','aktif') == 'aktif'; }
+function ozlukYetkili() {
+  let p = ozlukProfil(personelEmail());
+  return isSignedIn() && request.auth.token.get('email_verified',false) == true
+    && (isAdmin() || (ozlukAktif(p) && p.get('rol','') in ['kurucu_mudur','mudur','egitim_koordinator']));
+}
+function ozlukOkur() {
+  let p = ozlukProfil(personelEmail());
+  return isSignedIn() && ((request.auth.token.get('email_verified',false) == true
+    && (isAdmin() || (ozlukAktif(p) && p.get('rol','') in ['kurucu_mudur','mudur','egitim_koordinator'])))
+    || (request.auth.token.get('email_verified',false) == true && ozlukAktif(p) && p.get('rol','') == 'muhasebe'));
+}
+function ozlukSahibi(email) {
+  let profilEmail = personelEmail();
+  return isSignedIn() && request.auth.token.get('email_verified',false) == true && ozlukAktif(ozlukProfil(profilEmail)) && (email == userEmail() || email == profilEmail);
+}
 function izinYeniAlanlar(d) {
-  return d.keys().hasOnly(['personelEmail', 'tur', 'baslangic', 'durum', 'aciklama', 'gun', 'saat', 'gunlukSaat', 'bakiyedenDuser', 'belgeGerekli', 'personelAd', 'izinTuru', 'turAdi', 'turAd', 'sureTipi', 'bitis', 'baslangicSaat', 'bitisSaat', 'ucretPolitikasi', 'belgeUrl', 'belgeYol', 'belgeAdi', 'belgeTipi', 'kaynak', 'olusturuldu', 'tarihMetin', 'miktarMetin', 'etki', 'etkiMetin', 'yakinlik'])
+  return d.keys().hasOnly(['personelEmail', 'tur', 'baslangic', 'durum', 'aciklama', 'gun', 'saat', 'gunlukSaat', 'bakiyedenDuser', 'belgeGerekli', 'personelAd', 'izinTuru', 'turAdi', 'turAd', 'sureTipi', 'bitis', 'baslangicSaat', 'bitisSaat', 'ucretPolitikasi', 'belgeId', 'belgeUrl', 'belgeYol', 'belgeAdi', 'belgeTipi', 'kaynak', 'olusturuldu', 'guncellendi', 'tarihMetin', 'miktarMetin', 'etki', 'etkiMetin', 'yakinlik'])
     && d.get('personelAd','') is string && d.get('personelAd','').size() <= 200
     && d.get('izinTuru','') is string && d.get('izinTuru','').size() <= 50
     && d.get('turAdi','') is string && d.get('turAdi','').size() <= 100
@@ -14,11 +31,13 @@ function izinYeniAlanlar(d) {
     && d.get('baslangicSaat','') is string && d.get('baslangicSaat','').size() <= 5
     && d.get('bitisSaat','') is string && d.get('bitisSaat','').size() <= 5
     && d.get('ucretPolitikasi','') is string && d.get('ucretPolitikasi','').size() <= 200
-    && d.get('belgeUrl','') is string && d.get('belgeUrl','').size() <= 2000
-    && d.get('belgeYol','') is string && d.get('belgeYol','').size() <= 1000
+    && d.get('belgeUrl','') == ''
+    && (d.get('belgeId','') == '' || (d.belgeId is string && d.belgeId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')))
+    && d.get('belgeYol','') == ''
     && d.get('belgeAdi','') is string && d.get('belgeAdi','').size() <= 255
     && d.get('belgeTipi','') is string && d.get('belgeTipi','').size() <= 100
     && d.get('kaynak','') is string && d.get('kaynak','').size() <= 50
+    && d.get('guncellendi','') is string && d.get('guncellendi','').size() <= 35
     && d.get('olusturuldu','') is string && d.get('olusturuldu','').size() <= 35
     && d.get('tarihMetin','') is string && d.get('tarihMetin','').size() <= 150
     && d.get('miktarMetin','') is string && d.get('miktarMetin','').size() <= 150
@@ -51,10 +70,10 @@ match /izinTalepleri/{id} {
     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['durum','kararVeren','kararTarihi','kararNotu','onaylananGun','etki','etkiMetin'])
     && request.resource.data.kararVeren == userEmail()
     && request.resource.data.kararNotu is string && request.resource.data.kararNotu.size() <= 1000
-    && (request.resource.data.durum != 'reddedildi' || request.resource.data.kararNotu.size() > 0)
+    && (request.resource.data.durum != 'reddedildi' || request.resource.data.kararNotu.size() >= 5)
     && request.resource.data.kararTarihi is string && request.resource.data.kararTarihi.size() <= 35
-    && request.resource.data.get('onaylananGun',0) is int
-    && request.resource.data.get('onaylananGun',0) >= 0 && request.resource.data.get('onaylananGun',0) <= 366
+    && (request.resource.data.get('onaylananGun',null) == null || (request.resource.data.onaylananGun is int
+      && request.resource.data.onaylananGun >= 0 && request.resource.data.onaylananGun <= 366))
     && request.resource.data.get('etki','') is string && request.resource.data.get('etki','').size() <= 50
     && request.resource.data.get('etkiMetin','') is string && request.resource.data.get('etkiMetin','').size() <= 200
     && getAfter(/databases/$(database)/documents/ozlukIslemKayitlari/$('izin_' + id)).data.yeniDurum == request.resource.data.durum
@@ -90,6 +109,9 @@ match /puantaj/{id} {
     && id == request.resource.data.personelEmail + '_' + request.resource.data.tarih + '_cikis_duzeltme'
     && request.resource.data.tip == 'cikis' && request.resource.data.yontem == 'duzeltme'
     && request.resource.data.duzelten == userEmail() && request.resource.data.onayli == true
+    && !exists(/databases/$(database)/documents/puantajDuzeltmeleri/$(id))
+    && getAfter(/databases/$(database)/documents/puantajDuzeltmeleri/$(id)).data.tarih == request.resource.data.tarih
+    && getAfter(/databases/$(database)/documents/puantajDuzeltmeleri/$(id)).data.duzelten == request.resource.data.duzelten
     && getAfter(/databases/$(database)/documents/puantajDuzeltmeleri/$(id)).data.personelEmail == request.resource.data.personelEmail
     && getAfter(/databases/$(database)/documents/puantajDuzeltmeleri/$(id)).data.olusturuldu == request.time;
   allow update, delete: if false;
@@ -108,6 +130,10 @@ match /puantajDuzeltmeleri/{id} {
     && ((request.resource.data.get('tur','') == 'cikis-eklendi'
       && request.resource.data.keys().hasOnly(['personelEmail','personelAd','tarih','tur','eklenenSaat','aciklama','duzelten','olusturuldu'])
       && request.resource.data.eklenenSaat.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+      && !exists(/databases/$(database)/documents/puantaj/$(id))
+      && getAfter(/databases/$(database)/documents/puantaj/$(id)).data.tarih == request.resource.data.tarih
+      && getAfter(/databases/$(database)/documents/puantaj/$(id)).data.duzelten == request.resource.data.duzelten
+      && getAfter(/databases/$(database)/documents/puantaj/$(id)).data.yontem == 'duzeltme'
       && getAfter(/databases/$(database)/documents/puantaj/$(id)).data.personelEmail == request.resource.data.personelEmail)
       || (request.resource.data.get('durum','') == 'bekliyor'
       && request.resource.data.keys().hasOnly(['personelEmail','personelAd','tarih','yeniDurum','yeniDurumAd','girisSaat','cikisSaat','aciklama','durum','duzelten','duzeltenAd','olusturuldu'])
