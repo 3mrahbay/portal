@@ -8,33 +8,48 @@ export function localIso(value){
  return d.toISOString();
 }
 export function mountPolls(root,store,{manage=false,now=Date.now}={}){
+ const requested=new URLSearchParams(root.ownerDocument.defaultView?.location.search||'').getAll('poll');
+ const targetPoll=requested.length===1&&/^[A-Za-z0-9_-]{8,100}$/.test(requested[0])?requested[0]:'';
+ let targetState=targetPoll?'loading':requested.length?'invalid':'',targetFocused=false;
  let alive=true,enabled=null,epoch=0,feedStop=null,timer=null,cached=true,loadingOlder=false,cursor=null,hasOlder=false,paged=false;
  const polls=new Map(),votes=new Map(),voteStops=new Map(),pollStops=new Map(),choices=new Map(),busy=new Set(),requests=new Map();
  let createId=null,creating=false;
  root.innerHTML=`<div class="kc-poll-heading"><h2>${manage?'Oylama Yönetimi':'Birlikte seçelim'}</h2><p>Her oylamada tek seçim yapabilirsiniz. Süre dolmadan oyunuzu değiştirebilir veya geri çekebilirsiniz. Kimin hangi seçeneğe oy verdiği paylaşılmaz.</p></div><p data-poll-error role="alert" class="kc-error"></p><p data-poll-status role="status"></p>${manage?'<button type="button" data-poll-new>Yeni oylama oluştur</button><div data-poll-editor></div>':''}<div data-poll-list></div><button type="button" data-poll-more hidden>Geçmiş oylamaları göster</button><button type="button" data-poll-retry hidden>Oylamaları yeniden yükle</button>`;
  const message=text=>{if(alive)root.querySelector('[data-poll-error]').textContent=text;};
+ const targetStatus=root.ownerDocument.createElement('p');targetStatus.setAttribute('role','status');root.querySelector('[data-poll-list]').before(targetStatus);
  const ended=p=>p.status==='closed'||millis(p.closesAt)<=now();
  function render(){
   if(!alive||!enabled)return;
   const focus=root.ownerDocument.activeElement;const focusPoll=focus?.closest('[data-poll-id]')?.dataset.pollId;const focusValue=focus?.value;
   root.querySelector('[data-poll-status]').textContent=cached?'Kayıtlı sonuçlar gösteriliyor; bağlantı doğrulanınca oy verebilirsiniz.':'Sonuçlar canlı güncelleniyor. Tarihler Türkiye saatidir.';
-  root.querySelector('[data-poll-list]').innerHTML=[...polls.values()].sort((a,b)=>millis(b.createdAt)-millis(a.createdAt)).map(p=>{
+  targetStatus.textContent=targetState==='loading'?'Bildirimdeki oylama yükleniyor…':targetState==='missing'?'Bildirimdeki oylama artık bulunamıyor.':targetState==='invalid'?'Oylama bağlantısı geçersiz.':'';
+  root.querySelector('[data-poll-list]').innerHTML=[...polls.values()].sort((a,b)=>(b.id===targetPoll)-(a.id===targetPoll)||millis(b.createdAt)-millis(a.createdAt)).map(p=>{
    const closed=ended(p),v=votes.get(p.id),ready=votes.has(p.id),chosen=choices.has(p.id)?choices.get(p.id):v?.optionId;
    const disabled=closed||cached||!ready||busy.has(p.id),max=Math.max(0,...Object.values(p.counts||{}));
    return `<article class="kc-post kc-poll" data-poll-id="${esc(p.id)}"><span class="kc-badge">${p.type==='time'?'Buluşma zamanı':'Sıradaki kitap'} · ${closed?'Sona erdi':'Oylama açık'}</span><h3>${esc(p.title)}</h3><p>Son oy: ${esc(date(p.closesAt))}</p><form data-poll-vote><fieldset ${disabled?'disabled':''}><legend>Tercihiniz</legend>${p.options.map(o=>`<label class="kc-poll-option"><input type="radio" name="optionId" value="${esc(o.id)}" ${chosen===o.id?'checked':''}><span>${esc(o.label)}${v?.optionId===o.id?' <strong>· Oyunuz</strong>':''}<small>${Number(p.counts?.[o.id]||0)} oy${closed&&max>0&&p.counts?.[o.id]===max?' · En çok oy alan':''}</small><progress max="${Math.max(1,p.total||0)}" value="${Number(p.counts?.[o.id]||0)}" aria-label="${esc(o.label)} oy oranı"></progress></span></label>`).join('')}</fieldset><p>${Number(p.total||0)} katılımcı oy kullandı${!p.total?' · Henüz oy yok.':''}</p>${!closed?`<div class="kc-actions"><button type="submit" ${disabled?'disabled':''}>${busy.has(p.id)?'Kaydediliyor…':v?.optionId?'Oyumu değiştir':'Oy ver'}</button>${v?.optionId?`<button type="button" data-poll-withdraw ${disabled?'disabled':''}>Oyumu geri çek</button>`:''}${manage?`<button type="button" data-poll-close ${cached||busy.has(p.id)?'disabled':''}>Oylamayı bitir</button>`:''}</div>`:'<p>Oylama kapandı. Bu sonuç kitap veya buluşma kaydını kendiliğinden değiştirmez.</p>'}</form></article>`;
   }).join('')||'<p class="kc-empty">Henüz oylama yok. Yeni seçenekler burada görünecek.</p>';
   root.querySelector('[data-poll-more]').hidden=!hasOlder;root.querySelector('[data-poll-more]').disabled=loadingOlder;
+  const target=[...root.querySelectorAll('[data-poll-id]')].find(el=>el.dataset.pollId===targetPoll);
+  if(target){target.setAttribute('tabindex','-1');target.setAttribute('aria-label','Bildirimdeki oylama');target.classList.add('kc-poll-target');if(!targetFocused&&votes.has(targetPoll)){targetFocused=true;target.focus({preventScroll:true});target.scrollIntoView?.({block:'start'});}}
   if(focusPoll&&focus?.matches('input[type=radio]'))[...root.querySelectorAll('[data-poll-id]')].find(el=>el.dataset.pollId===focusPoll)?.querySelector(`input[value="${focusValue}"]`)?.focus();
  }
- function cancelFeeds(){epoch++;feedStop?.();feedStop=null;for(const stop of voteStops.values())stop();voteStops.clear();for(const stop of pollStops.values())stop();pollStops.clear();clearInterval(timer);timer=null;polls.clear();votes.clear();choices.clear();requests.clear();}
+ function cancelFeeds(){epoch++;feedStop?.();feedStop=null;for(const stop of voteStops.values())stop();voteStops.clear();for(const stop of pollStops.values())stop();pollStops.clear();clearInterval(timer);timer=null;polls.clear();votes.clear();choices.clear();requests.clear();targetStatus.textContent='';targetFocused=false;}
  function failure(e){if(!alive)return;cancelFeeds();cached=true;root.querySelector('[data-poll-list]').replaceChildren();root.querySelector('[data-poll-more]').hidden=true;root.querySelector('[data-poll-status]').textContent='Oylamalar yüklenemedi.';root.querySelector('[data-poll-retry]').hidden=false;message(e.code==='permission-denied'?'Kulüp erişiminiz değişmiş olabilir. Hesabınızı kontrol edin.':e.message||'Bağlantı kurulamadı.');}
- function watch(rows,turn){for(const p of rows){polls.set(p.id,p);if(store.pollById&&!pollStops.has(p.id)){pollStops.set(p.id,()=>{});const stop=store.pollById(p.id,value=>{if(alive&&enabled&&turn===epoch){if(value)polls.set(p.id,{...value,cursor:p.cursor});else polls.delete(p.id);render();}},e=>{if(turn===epoch)failure(e);});if(turn===epoch)pollStops.set(p.id,stop);else stop();}if(!voteStops.has(p.id)){
+ function watchOne(id,turn){if(!store.pollById||pollStops.has(id))return;pollStops.set(id,()=>{});const stop=store.pollById(id,value=>{
+  if(!alive||!enabled||turn!==epoch)return;
+  if(id===targetPoll)targetState=value?'found':'missing';
+  if(value)watch([{...value,cursor:polls.get(id)?.cursor}],turn);else polls.delete(id);
+  render();
+ },e=>{if(turn===epoch)failure(e);});if(turn===epoch)pollStops.set(id,stop);else stop();}
+ function watch(rows,turn){for(const p of rows){if(turn!==epoch)return;polls.set(p.id,p);watchOne(p.id,turn);if(turn!==epoch)return;if(!voteStops.has(p.id)){
    voteStops.set(p.id,()=>{});const stop=store.pollVote(p.id,v=>{if(alive&&enabled&&turn===epoch){votes.set(p.id,v);render();}},e=>{if(turn===epoch)failure(e);});
    if(turn===epoch)voteStops.set(p.id,stop);else stop();
   }}}
- function start(){cancelFeeds();message('');root.querySelector('[data-poll-retry]').hidden=true;cached=true;hasOlder=false;paged=false;cursor=null;const turn=epoch;
+ function start(){cancelFeeds();message('');root.querySelector('[data-poll-retry]').hidden=true;cached=true;hasOlder=false;paged=false;cursor=null;if(targetPoll)targetState='loading';const turn=epoch;
   const unsub=store.polls((rows,meta={})=>{if(!alive||!enabled||turn!==epoch)return;cached=!!meta.cached;watch(rows,turn);if(!paged){cursor=rows.at(-1)?.cursor;hasOlder=rows.length===20;}render();},e=>{if(turn===epoch)failure(e);});
   if(turn!==epoch||!alive){unsub();return;}feedStop=unsub;
+  if(targetPoll)watchOne(targetPoll,turn);
+  if(turn!==epoch||!alive)return;
   timer=setInterval(()=>{if(alive&&enabled)render();},30000);
  }
  function setEnabled(value){if(!alive||enabled===value)return;enabled=value;if(enabled)start();else{cancelFeeds();root.querySelector('[data-poll-list]').replaceChildren();root.querySelector('[data-poll-more]').hidden=true;root.querySelector('[data-poll-retry]').hidden=true;root.querySelector('[data-poll-status]').textContent='Oylamalara katılmak için kulüp üyeliğinizin onaylanması gerekiyor.';}}

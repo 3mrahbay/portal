@@ -1,0 +1,24 @@
+const {JSDOM}=require('jsdom'),assert=require('node:assert/strict'),path=require('node:path'),{pathToFileURL}=require('node:url');
+(async()=>{
+ const base=path.resolve(__dirname,'..',process.env.CLUB_WEB_PREFIX||'','js/kitap-kulubu');
+ const {mountPolls}=await import(pathToFileURL(base+'/polls-ui.mjs'));
+ const {clubTarget,renderClubNotices}=await import(pathToFileURL(base+'/notices.mjs'));
+ const record={id:'notice',tip:'kitap_kulubu_oylama',oylamaId:'target-poll-123',baslik:'Yeni oylama',metin:'Katılın',olusturuldu:new Date().toISOString(),okundu:false};
+ assert.equal(clubTarget(record),'kitap-kulubu.html?poll=target-poll-123');
+ for(const value of ['',null,'x/../../x','<script>','a'.repeat(101)])assert.equal(clubTarget({...record,oylamaId:value}), '');
+ const dom=new JSDOM('<aside></aside><main></main>',{url:'https://fixture.test/kitap-kulubu.html?poll=target-poll-123'}),doc=dom.window.document;
+ const tick=()=>new Promise(r=>setTimeout(r,0));let opened;
+ renderClubNotices(doc.querySelector('aside'),[record],{open:async(r,target)=>opened=target});doc.querySelector('aside button').click();await tick();assert.equal(opened,'kitap-kulubu.html?poll=target-poll-123');
+ let enabledCalls=0,stops=0;const snapshots=new Map(),root=doc.querySelector('main');
+ const data={id:record.oylamaId,type:'time',title:'Bildirimdeki eski oylama',status:'closed',createdAt:new Date(0).toISOString(),closesAt:new Date(1).toISOString(),options:[{id:'o0',label:'Birinci'},{id:'o1',label:'İkinci'}],counts:{o0:3,o1:2},total:5};
+ const store={polls:next=>{enabledCalls++;queueMicrotask(()=>next([],{cached:false}));return()=>stops++;},pollById:(id,next,error)=>{snapshots.set(id,{next,error});return()=>stops++;},pollVote:(id,next)=>{queueMicrotask(()=>next(null));return()=>stops++;}};
+ const panel=mountPolls(root,store);panel.setEnabled(false);assert.equal(enabledCalls,0);assert(!snapshots.has(data.id));
+ panel.setEnabled(true);await tick();assert(snapshots.has(data.id));snapshots.get(data.id).next(data);await tick();
+ assert.equal(root.querySelector('[data-poll-id]').dataset.pollId,data.id);assert.match(root.textContent,/Oylama kapandı/);assert.equal(root.querySelector('[data-poll-vote] button'),null);assert.equal(doc.activeElement.getAttribute('aria-label'),'Bildirimdeki oylama');
+ snapshots.get(data.id).next(null);assert.match(root.textContent,/artık bulunamıyor/);assert.equal(root.querySelector('[data-poll-id]'),null);
+ snapshots.get(data.id).next(data);await tick();const stale=snapshots.get(data.id).next;panel.setEnabled(false);stale(data);assert.equal(root.querySelector('[data-poll-id]'),null);
+ panel.setEnabled(true);await tick();snapshots.get(data.id).error(Object.assign(Error('denied'),{code:'permission-denied'}));assert.match(root.textContent,/erişiminiz değişmiş/);assert.equal(root.querySelector('[data-poll-id]'),null);
+ panel.stop();stale(data);assert.equal(root.textContent,'');assert(stops>=4);dom.window.close();
+ const invalid=new JSDOM('<main></main>',{url:'https://fixture.test/kitap-kulubu.html?poll=bad%2Fpath'});const p2=mountPolls(invalid.window.document.querySelector('main'),store);p2.setEnabled(true);await tick();assert.match(invalid.window.document.body.textContent,/bağlantısı geçersiz/);assert(!snapshots.has('bad/path'));p2.stop();invalid.window.close();
+ console.log('PASS poll notification DOM: safe click target, delayed membership, direct older/closed poll, missing poll, revoked access, invalid link, stale callbacks and cleanup');
+})().catch(e=>{console.error(e);process.exitCode=1});

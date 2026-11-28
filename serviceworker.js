@@ -10,10 +10,11 @@
    - Her dağıtımda CACHE_VERSION'ı artır → eski cache otomatik silinir.
    ============================================================ */
 
-const CACHE_VERSION = "v247-kitap-oylamalari";
+const CACHE_VERSION = "v248-kitap-oylama-bildirimleri";
 const CACHE_NAME = `bircicek-portal-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  "./js/kitap-kulubu/notices.mjs",
   "./js/kitap-kulubu/polls-store.mjs",
   "./js/kitap-kulubu/polls-ui.mjs",
   "./js/egitim-gelisim-okuma.mjs?v=1",
