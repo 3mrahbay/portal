@@ -14308,7 +14308,7 @@ const db = getFirestore(app);
 // index.html şişmesin diye yeni özellikler ayrı dosyalarda yazılır.
 // Kullanım (modül içinde):  const { fb, db, state } = window.PortalAPI;
 // ═══════════════════════════════════════════════════════════════════
-window.PORTAL_SURUM = "v246";
+window.PORTAL_SURUM = "v249";
 window.PortalAPI = {
   app, auth, db,
   // Firestore fonksiyonları
@@ -22189,7 +22189,7 @@ function muhasebeHomeBaslat(root) {
   const token = String(++adminHomeRenderSurumu);
   root.dataset.financeRender = token;
   root.innerHTML = '<p>Muhasebe çalışma alanı yükleniyor…</p>';
-  import('./js/finans/portal-entry.js?v=246').then(m => {
+  import('./js/finans/portal-entry.js?v=249').then(m => {
     if (root.dataset.financeRender === token && adminHomeSekmesiAktifMi()) return m.portalMuhasebeAnaSayfa(root);
   }).catch(() => { if(root.dataset.financeRender === token) root.textContent = 'Muhasebe ekranı yüklenemedi. Sayfayı yenileyebilirsiniz.'; });
 }
@@ -25061,7 +25061,7 @@ window.veliOdemeBildirGonder = async function(ayKod, ayAdi, beklenen) {
 
 function veliRenderOdemeler() {
   const el=document.getElementById('veliOdemelerContent');if(!el)return;
-  import('./js/finans/portal-entry.js?v=246').then(m=>m.portalVeli(el)).catch(e=>{el.textContent='Ödeme ekranı yüklenemedi: '+e.message;});
+  import('./js/finans/portal-entry.js?v=249').then(m=>m.portalVeli(el)).catch(e=>{el.textContent='Ödeme ekranı yüklenemedi: '+e.message;});
 }
 
 window.veliKopyaIBAN = function(iban) {
@@ -40514,7 +40514,7 @@ function hesaplaFinansGecikenler() {
 
 function renderFinansalOzet() {
  const el=document.getElementById('finansOzetIcerik');if(!el)return;
- import('./js/finans/portal-entry.js?v=246').then(m=>m.portalFinans(el)).catch(e=>{el.textContent='Finans ekranı yüklenemedi: '+e.message;});
+ import('./js/finans/portal-entry.js?v=249').then(m=>m.portalFinans(el)).catch(e=>{el.textContent='Finans ekranı yüklenemedi: '+e.message;});
 }
 
 // ============ FİNANSAL GRAFİKLER (Chart.js) ============
@@ -49605,7 +49605,7 @@ window.mufredatEditorAc = async function() {
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (yenilendi) return;
           yenilendi = true;
-          const anahtar = "portalSwReload_v246";
+          const anahtar = "portalSwReload_v249";
           if (sessionStorage.getItem(anahtar)) return;
           sessionStorage.setItem(anahtar, "1");
           location.reload();
