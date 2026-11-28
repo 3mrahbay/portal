@@ -7,7 +7,7 @@ const clean = value => String(value ?? '').trim();
 const kind = value => clean(value).toLocaleLowerCase('tr-TR');
 const TYPE_LABELS = Object.freeze({
   kitap_kulubu_yanit: 'Kitap Kulübü', kitap_kulubu_tepki: 'Kitap Kulübü',
-  kitap_kulubu_oylama: 'Kitap Kulübü', kitap_kulubu_talep: 'Kitap Kulübü', kitap_kulubu_paylasim: 'Kitap Kulübü',
+  kitap_kulubu_oylama_sonuc: 'Kitap Kulübü', kitap_kulubu_oylama: 'Kitap Kulübü', kitap_kulubu_talep: 'Kitap Kulübü', kitap_kulubu_paylasim: 'Kitap Kulübü',
   mesaj: 'Mesaj', mesaj_yeni: 'Mesaj', sohbet: 'Mesaj', kapıdanmesaj: 'Mesaj', kapidanmesaj: 'Mesaj',
   duyuru: 'Duyuru', duyuru_yeni: 'Duyuru', simsek: 'Duyuru',
   etkinlik: 'Etkinlik', etkinlik_yeni: 'Etkinlik', takvim: 'Etkinlik',
