@@ -1,5 +1,5 @@
-import {INVOICE_PREVIEW_ENABLED} from './invoices/config.js?v=246';
-import {invoiceWorkspace} from './invoices/workspace.js?v=246';
+import {INVOICE_PREVIEW_ENABLED} from './invoices/config.js?v=249';
+import {invoiceWorkspace} from './invoices/workspace.js?v=249';
 import {hesapAc,odemeKontrolAc,benzerBildirimler,benzerBildirimUyarisi} from './payment-workspace.js';
 import {grafikRaporlar} from './analytics.js';
 import {mutabakatEkrani} from './reconciliation.js';

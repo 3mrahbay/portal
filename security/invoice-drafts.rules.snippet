@@ -38,7 +38,7 @@
           && d.schemaVersion == 1 && d.recipientKind == 'student' && source(d.source)
           && d.donem == d.source.donem && shortText(d.sourceKey,1000)
           && d.fingerprint is string && d.fingerprint.matches('^[a-f0-9]{64}$') && decision(d.decision)
-          && (!d.decision.reviewed || studentIdentity(d.source))
+          && (!d.decision.reviewed || (studentIdentity(d.source) && !(d.source.hareketId in ['legacy-summary','legacy-carry'])))
           && d.version is int && d.version > 0 && d.version <= 1000000
           && shortText(d.createdBy,128) && d.createdBy.size() > 0
           && d.createdAt is timestamp && d.createdAt <= request.time
