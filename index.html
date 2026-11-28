@@ -14163,6 +14163,7 @@ import { createGalleryFolderView } from './js/portal-galeri-klasor-ui.js?v=227';
 import { startGalleryApprovalFeed, galleryApprover, gallerySession, galleryApprovalTarget } from './js/galeri-onay-canli.js?v=186';
 import { gunuHesapla as puantajGunuHesapla, okulGunu } from './js/personel-puantaj-core.js?v=1';
 import { izinKararKaydet } from './js/personel-izin-karar.js?v=1';
+import { personelBelgeServisi, personelBelgeButonu, personelBelgeTiklamalariniBagla } from './js/personel-belge-client.js?v=1';
 import { notifyGalleryApproval } from './js/galeri-onay-bildirimi.js?v=186';
 import { contentChildIds } from "./js/egitim-gruplari-core.mjs";
 import { approveGalleryItem, reviewGalleryItem, notifyGalleryPublication, galleryApprovalScopeKey } from './js/galeri-toplu-onay.js?v=227';
@@ -14301,6 +14302,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+personelBelgeTiklamalariniBagla(auth, mesaj => showToast(mesaj, 'error'));
 const db = getFirestore(app);
 
 // ═══════════════════════════════════════════════════════════════════
@@ -30105,7 +30107,7 @@ async function ozlukIzinCiz() {
           <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12.5px;color:#64748B;margin-top:4px;"><strong style="color:${turMeta?.renk || "#5B4A93"};">${escapeHtml(turAdi)}</strong><span>·</span><span>${escapeHtml(sureOzeti)}</span></div>
           <div style="font-size:11.5px;color:#7B887F;margin-top:4px;">${t.baslangic ? escapeHtml(String(t.baslangic).split("-").reverse().join(".")) : "—"}${t.bitis && t.bitis !== t.baslangic ? " – " + escapeHtml(String(t.bitis).split("-").reverse().join(".")) : ""}${t.baslangicSaat ? " · " + escapeHtml(t.baslangicSaat) + "–" + escapeHtml(t.bitisSaat || "") : ""}</div>
           ${t.aciklama ? `<div style="font-size:13px; color:#475569; margin-top:7px; line-height:1.5;">${escapeHtml(t.aciklama)}</div>` : ""}
-          ${/^https:\/\//i.test(t.belgeUrl || "") ? `<a href="${escapeHtml(t.belgeUrl)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;color:#315F96;font-size:11.5px;font-weight:700;text-decoration:none;"><i data-lucide="paperclip" style="width:13px;height:13px;"></i>${escapeHtml(t.belgeAdi || "Belgeyi görüntüle")}</a>` : ""}
+          ${personelBelgeButonu(t)}
           ${t.kararNotu ? `<div style="font-size:11.5px;color:#64748B;background:#F8FAFC;border-radius:9px;padding:7px 9px;margin-top:8px;"><strong>Yönetim notu:</strong> ${escapeHtml(t.kararNotu)}</div>` : ""}
           <div style="font-size:11.5px; color:#94A3B8; margin-top:6px;">${ozlukTarihSaat(t.olusturuldu)}</div>
         </div>
@@ -30149,7 +30151,7 @@ window.ozlukIzinDetayAc = function(id) {
     <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;"><div style="width:45px;height:45px;border-radius:13px;display:grid;place-items:center;background:${meta.acik};color:${meta.renk};"><i data-lucide="${meta.ikon || "calendar-x"}" style="width:23px;height:23px;"></i></div><div style="flex:1;"><strong style="display:block;font-size:17px;color:#1E293B;">${escapeHtml(meta.ad)}</strong><span style="font-size:12px;color:#64748B;">${escapeHtml(t.personelAd || ozlukPersonelAd(t.personelEmail))}</span></div><button onclick="document.getElementById('ozlukIzinDetayModal').remove()" style="border:0;background:#F1F5F9;border-radius:10px;width:38px;height:38px;font-size:20px;cursor:pointer;">×</button></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px;"><div style="background:#F8FAFC;border-radius:11px;padding:10px;font-size:11.5px;color:#64748B;">Tarih<strong style="display:block;color:#1E293B;font-size:13px;margin-top:3px;">${escapeHtml(t.baslangic || "—")}${t.bitis && t.bitis !== t.baslangic ? " – " + escapeHtml(t.bitis) : ""}</strong></div><div style="background:#F8FAFC;border-radius:11px;padding:10px;font-size:11.5px;color:#64748B;">Süre<strong style="display:block;color:#1E293B;font-size:13px;margin-top:3px;">${escapeHtml(personelIzinSureOzeti(t))}</strong></div></div>
     ${t.aciklama ? `<div style="background:#F8FAFC;border-radius:11px;padding:11px;font-size:12.5px;color:#475569;line-height:1.55;margin-bottom:10px;"><strong style="display:block;color:#1E293B;margin-bottom:4px;">Personel açıklaması</strong>${escapeHtml(t.aciklama)}</div>` : ""}
-    ${/^https:\/\//i.test(t.belgeUrl || "") ? `<a href="${escapeHtml(t.belgeUrl)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;border:1px solid #DCE6DF;border-radius:11px;padding:11px;color:#315F96;text-decoration:none;font-size:12.5px;font-weight:700;margin-bottom:10px;"><i data-lucide="paperclip" style="width:16px;height:16px;"></i>${escapeHtml(t.belgeAdi || "Ekli belgeyi görüntüle")}</a>` : (meta.belgeGerekli ? `<div style="background:#FEF2F2;color:#B91C1C;border-radius:10px;padding:10px;font-size:12px;margin-bottom:10px;">Zorunlu belge eklenmemiş.</div>` : "")}
+          ${personelBelgeButonu(t) || (meta.belgeGerekli ? `<div role="note">Zorunlu belge eklenmemiş.</div>` : "")}
     ${meta.sureTipi === "gunluk" || meta.sureTipi === "saatlik-donem" ? `<label style="display:block;font-size:11px;font-weight:800;color:#64748B;margin-top:11px;">ONAYLANACAK GÜN SAYISI<input id="ozlukIzinOnayGun" type="number" min="0" step="1" value="${varsayilanGun}" style="display:block;width:100%;box-sizing:border-box;margin-top:5px;padding:10px 12px;border:1px solid #D9E1DC;border-radius:10px;font:650 13px inherit;"><small style="display:block;margin-top:4px;color:#94A3B8;font-weight:500;">Hafta sonu veya kurum çalışma düzenine göre yönetim düzeltebilir.</small></label>` : ""}
     <label style="display:block;font-size:11px;font-weight:800;color:#64748B;margin-top:11px;">YÖNETİM NOTU<textarea id="ozlukIzinKararNot" rows="3" maxlength="1000" placeholder="Onay veya ret açıklaması…" style="display:block;width:100%;box-sizing:border-box;margin-top:5px;padding:10px 12px;border:1px solid #D9E1DC;border-radius:10px;font:13px inherit;"></textarea></label>
     <div id="ozlukIzinKararHata" style="display:none;background:#FEF2F2;color:#B91C1C;border-radius:10px;padding:9px 11px;font-size:12px;margin-top:10px;"></div>
@@ -39928,11 +39930,10 @@ window.personelIzinTalepGonder = async function() {
   document.querySelectorAll("#personelIzinModal button,#personelIzinModal input,#personelIzinModal textarea").forEach(x => x.disabled = true);
   if (btn) btn.textContent = belge ? "Belge yükleniyor…" : "Gönderiliyor…";
   try {
-    let belgeUrl = "", belgeYol = "";
+    let belgeId = "";
     if (belge) {
-      const klasorEmail = String(currentUser?.email || "personel").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
-      const sonuc = await medyaYukle(belge, `izin-belgeleri/${klasorEmail}`, false);
-      belgeUrl = sonuc.url; belgeYol = sonuc.yol || "";
+      const sonuc = await personelBelgeServisi(auth).upload(belge);
+      belgeId = sonuc.belgeId;
     }
     const email = String(currentUser?.email || "").toLowerCase();
     const simdi = new Date().toISOString();
@@ -39954,7 +39955,7 @@ window.personelIzinTalepGonder = async function() {
       bakiyedenDuser: meta.bakiyedenDuser === true,
       ucretPolitikasi: meta.alt,
       belgeGerekli: meta.belgeGerekli === true,
-      belgeUrl, belgeYol, belgeAdi: belge?.name || "", belgeTipi: belge?.type || "",
+      belgeId, belgeAdi: belge?.name || "", belgeTipi: belge?.type || "",
       durum: "bekliyor",
       kaynak: "portal-v2",
       olusturuldu: simdi,

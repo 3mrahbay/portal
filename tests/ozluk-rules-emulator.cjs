@@ -55,15 +55,19 @@ const fb=require('firebase/firestore'), fs=require('node:fs');
  const portal=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
  const expression=portal.split('await addDoc(collection(db, "izinTalepleri"), ')[1].split('\n    });')[0]+'\n    }';
  const talep={baslangic:'2026-11-27',bitis:'2026-11-28',baslangicSaat:'',bitisSaat:'',aciklama:'Test'};
- const payload=new Function('email','aktifPersonel','currentUser','dogrulama','meta','talep','gunlukSaat','belgeUrl','belgeYol','belge','simdi','return '+expression)(
- 'teacher@test.example',{adSoyad:'Test'},{},{tur:'yillik',gun:2,saat:0},{ad:'Yıllık',sureTipi:'gunluk',alt:'Ücretli'},talep,8,'','',null,new Date().toISOString());
+ const payload=new Function('email','aktifPersonel','currentUser','dogrulama','meta','talep','gunlukSaat','belgeId','belge','simdi','return '+expression)(
+ 'teacher@test.example',{adSoyad:'Test'},{},{tur:'yillik',gun:2,saat:0},{ad:'Yıllık',sureTipi:'gunluk',alt:'Ücretli'},talep,8,'',null,new Date().toISOString());
  await ok(fb.setDoc(ref(db('teacher'),'portal-payload'),payload));
+ await no(fb.setDoc(ref(db('teacher'),'public-url'),{...payload,belgeUrl:'https://example.com/private.pdf'}));
+ await no(fb.setDoc(ref(db('teacher'),'public-path'),{...payload,belgeYol:'izin-belgeleri/a.pdf'}));
+ await no(fb.setDoc(ref(db('teacher'),'bad-id'),{...payload,belgeId:'../other'}));
+ await ok(fb.setDoc(ref(db('teacher'),'private-ref'),{...payload,belgeId:'08ef781a-a7f7-4fb4-862f-2c52d3dfc9aa'}));
  // Companion form + create service are exercised when the ZEKY checkout is supplied.
  if(process.env.ZEKY_REPO_PATH){
   const path=require('node:path');
   const screen=fs.readFileSync(path.join(process.env.ZEKY_REPO_PATH,'www/personel-izin-rapor.html'),'utf8');
   const object=screen.split('const veri = {')[1].split('\n    };')[0];
-  const form=new Function('seciliTur','T','bas','bit','gun','saat','miktarMetin','tarihMetin','etki','etkiMetin','belgeUrl','document','return {'+object+'}')( 'yillik',{ad:'Yıllık'},'2026-11-27','2026-11-28',2,0,'2 gün','27–28 Kasım','yillik','Yıllıktan düşecek','',{getElementById:()=>null});
+  const form=new Function('seciliTur','T','bas','bit','gun','saat','miktarMetin','tarihMetin','etki','etkiMetin','belgeId','document','return {'+object+'}')( 'yillik',{ad:'Yıllık'},'2026-11-27','2026-11-28',2,0,'2 gün','27–28 Kasım','yillik','Yıllıktan düşecek','',{getElementById:()=>null});
   const source=fs.readFileSync(path.join(process.env.ZEKY_REPO_PATH,'www/js/zeky-data.js'),'utf8');
   const begin=source.indexOf('export async function izinTalebiOlustur');
   const code=source.slice(begin,source.indexOf('\n}\n',begin)+2).replace('export ','');

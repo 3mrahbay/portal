@@ -121,3 +121,8 @@ Bu testler bitene kadar iki PR taslak kalır; merge, Firebase deploy, TestFlight
 GitHub'daki imzasız iOS Release derlemesi başarılı: https://github.com/3mrahbay/zeky-app/actions/runs/46076322353 . Bu kontrol 1a0461b kaynak revizyonunda Node 22 / Xcode 26 ile npm ci, CocoaPods/Capacitor sync ve CODE_SIGNING_ALLOWED=NO derlemesini tamamladı. Sahte Firebase dosyası kullanıldı; Apple hesabı, mağaza imzası veya yayın yapılmadı. Yerel Mac'teki CocoaPods/Simulator engeli devam etse de iOS derlenebilirliği CI'da doğrulandı. Fiziksel iPhone/App Check ve gerçek release paketinin native kilit dosyasını kaydetme adımları açık.
 
 Medya servisine ilişkin ek inceleme yapıldı. Etkin dağıtım ve özel belge erişiminin güvenlik doğrulaması tamamlanmadığından bu alan yayın engeli olarak kalır. Ayrıntılı bulgular özel yerel raporda tutulur; gerçek belge erişimi, canlı ayar değişikliği veya dağıtım yapılmadı.
+
+
+## 2026-11-28: isolated private-document staging
+
+A shared authenticated document client replaces medical upload and direct-link rendering in the draft. Production activation is intentionally disabled pending the reviewed backend and migration. Existing records are preserved. The separate synthetic test environment verifies owner/reviewer access, other-user/accountant/disabled denial, immediate role revocation and private storage. This is a focused browser document harness, not proof of a full native iPhone build or App Check flow. Keep this PR draft; do not merge or publish.

@@ -47,7 +47,8 @@ test('portal basit prompt yerine bagli izin ve yonetim karar akislarini kullanir
   const akis = kaynak.slice(bas, son);
   assert.ok(bas > 0 && son > bas);
   assert.doesNotMatch(akis, /prompt\(/);
-  assert.match(akis, /izin-belgeleri\/\$\{klasorEmail\}/);
+  assert.match(akis, /personelBelgeServisi\(auth\)\.upload\(belge\)/);
+  assert.doesNotMatch(akis, /medyaYukle\(belge/);
   assert.match(akis, /durum: "bekliyor"/);
   assert.match(kaynak, /ozlukIzinDetayAc/);
   assert.match(kaynak, /onaylananGun/);

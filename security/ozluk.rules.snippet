@@ -21,7 +21,7 @@ function ozlukSahibi(email) {
   return isSignedIn() && request.auth.token.get('email_verified',false) == true && ozlukAktif(ozlukProfil(profilEmail)) && (email == userEmail() || email == profilEmail);
 }
 function izinYeniAlanlar(d) {
-  return d.keys().hasOnly(['personelEmail', 'tur', 'baslangic', 'durum', 'aciklama', 'gun', 'saat', 'gunlukSaat', 'bakiyedenDuser', 'belgeGerekli', 'personelAd', 'izinTuru', 'turAdi', 'turAd', 'sureTipi', 'bitis', 'baslangicSaat', 'bitisSaat', 'ucretPolitikasi', 'belgeUrl', 'belgeYol', 'belgeAdi', 'belgeTipi', 'kaynak', 'olusturuldu', 'guncellendi', 'tarihMetin', 'miktarMetin', 'etki', 'etkiMetin', 'yakinlik'])
+  return d.keys().hasOnly(['personelEmail', 'tur', 'baslangic', 'durum', 'aciklama', 'gun', 'saat', 'gunlukSaat', 'bakiyedenDuser', 'belgeGerekli', 'personelAd', 'izinTuru', 'turAdi', 'turAd', 'sureTipi', 'bitis', 'baslangicSaat', 'bitisSaat', 'ucretPolitikasi', 'belgeId', 'belgeUrl', 'belgeYol', 'belgeAdi', 'belgeTipi', 'kaynak', 'olusturuldu', 'guncellendi', 'tarihMetin', 'miktarMetin', 'etki', 'etkiMetin', 'yakinlik'])
     && d.get('personelAd','') is string && d.get('personelAd','').size() <= 200
     && d.get('izinTuru','') is string && d.get('izinTuru','').size() <= 50
     && d.get('turAdi','') is string && d.get('turAdi','').size() <= 100
@@ -31,8 +31,9 @@ function izinYeniAlanlar(d) {
     && d.get('baslangicSaat','') is string && d.get('baslangicSaat','').size() <= 5
     && d.get('bitisSaat','') is string && d.get('bitisSaat','').size() <= 5
     && d.get('ucretPolitikasi','') is string && d.get('ucretPolitikasi','').size() <= 200
-    && d.get('belgeUrl','') is string && d.get('belgeUrl','').size() <= 2000
-    && d.get('belgeYol','') is string && d.get('belgeYol','').size() <= 1000
+    && d.get('belgeUrl','') == ''
+    && (d.get('belgeId','') == '' || (d.belgeId is string && d.belgeId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')))
+    && d.get('belgeYol','') == ''
     && d.get('belgeAdi','') is string && d.get('belgeAdi','').size() <= 255
     && d.get('belgeTipi','') is string && d.get('belgeTipi','').size() <= 100
     && d.get('kaynak','') is string && d.get('kaynak','').size() <= 50

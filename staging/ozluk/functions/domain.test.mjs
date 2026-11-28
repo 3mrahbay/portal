@@ -1,0 +1,13 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {principal,assertRead,assertProject,uploadBody,documentId,MAX_BYTES} from './domain.mjs';
+const now=Date.now();
+const user=(role='staff')=>({uid:'owner',emailVerified:true,customClaims:{ozlukStageActive:true,ozlukStageRole:role,ozlukStageExpires:now+60000}});
+test('production deployment is refused',()=>{assertProject('bcka-site-staging');assert.throws(()=>assertProject('bcka-site'));assert.throws(()=>assertProject(undefined));});
+test('active verified owner and explicit reviewer only',()=>{assertRead(principal(user(),now),'owner');assertRead(principal(user('medicalReviewer'),now),'other');for(const role of ['staff','accountant'])assert.throws(()=>assertRead(principal(user(role),now),'other'));});
+test('revoked, disabled, unverified, expired and arbitrary roles refused',()=>{for(const change of [{disabled:true},{emailVerified:false},{customClaims:{}},{customClaims:{...user().customClaims,ozlukStageActive:false}},{customClaims:{...user().customClaims,ozlukStageExpires:now-1}},{customClaims:{...user().customClaims,ozlukStageRole:'admin'}}])assert.throws(()=>principal({...user(),...change},now));});
+test('document identifiers cannot select paths or URLs',()=>{assert.equal(documentId(randomUUID()).length,36);for(const x of ['../foo','https://example.com','a'.repeat(36),null,{},''])assert.throws(()=>documentId(x));});
+test('valid PNG PDF JPEG signatures accepted',()=>{for(const [type,b] of [['image/png',Buffer.from([137,80,78,71,13,10,26,10])],['application/pdf',Buffer.from('%PDF-1.4 test')],['image/jpeg',Buffer.from([255,216,255,224])]])assert.equal(uploadBody({type,base64:b.toString('base64')}).type,type);});
+test('spoofed type, HTML, malformed base64, oversized and owner injection refused',()=>{const valid={type:'application/pdf',base64:Buffer.from('%PDF-1.4').toString('base64')};for(const x of [{...valid,ownerUid:'other'},{...valid,path:'../a'},{...valid,type:'text/html'},{...valid,type:'image/png'},{...valid,base64:'!!!!'},{...valid,base64:''},{...valid,base64:Buffer.alloc(MAX_BYTES+1).toString('base64')},{...valid,base64:Buffer.from('<html>').toString('base64')}])assert.throws(()=>uploadBody(x));});
+test('maximum accepted file does not exhaust base64 validator stack',()=>{const bytes=Buffer.alloc(MAX_BYTES);bytes.write('%PDF-1.4');assert.equal(uploadBody({type:'application/pdf',base64:bytes.toString('base64')}).bytes.length,MAX_BYTES);});
