@@ -1,4 +1,4 @@
-import {candidates} from './core.js?v=246';
+import {candidates} from './core.js?v=249';
 import {odemePlani} from '../core.js';
 export const DRAFT_COLLECTION='faturaHazirlik';
 export const hashText=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join('');
@@ -20,13 +20,25 @@ export function draftDecision(p){
  if(p.requirement==='excluded'&&!p.reason.trim())throw Error('İstisna gerekçesi gerekli.');
  return {...p};
 }
+// Legacy summaries retain one stable draft per student/period/item; no payment writes.
+export function draftSources(moves){return moves.map(m=>({...m,hareketId:!m.hareketId?'legacy-summary':m.hareketId==='devir'?'legacy-carry':m.hareketId}));}
+export function sourceMovements(plan,source){return plan.satirlar.flatMap(r=>{
+ let moves=r.record.hareketler||[];
+ if(!moves.length&&r.odenen>0)moves=[{tutar:r.odenen,tarih:r.record.odemeTarihi||'',yontem:r.record.odemeYontemi||r.record.yontem||'',eskiKayit:true}];
+ return moves.map(m=>({...m,ogrenciId:source.ogrenciId,donem:source.donem,kalemId:r.id,hareketId:m.id||'',kalem:r.ad}));
+});}
+export function taxBreakdown(gross,rate){
+ if(!Number.isSafeInteger(gross)||gross<0||!Number.isInteger(rate)||rate<0||rate>10000)throw Error('Geçersiz tutar veya KDV oranı.');
+ const net=Number((BigInt(gross)*10000n+BigInt(10000+rate)/2n)/BigInt(10000+rate));
+ return {net,tax:gross-net,gross};
+}
 export async function draftRows(data,saved=[]){
  const map=new Map(saved.map(d=>[d.id,d]));
- const rows=await Promise.all(candidates(data).map(async d=>{
+ const rows=await Promise.all(candidates({...data,gelirler:draftSources(data.gelirler||[])}).map(async d=>{
  const id=await hashText(d.key),fingerprint=await hashText(draftFingerprint(d)),s=map.get(id);
  const decision=s?.decision||{requirement:'review',reason:'',servicePeriod:'',productCode:'',taxRateBps:null,taxApproved:false,reviewed:false};
  const stale=!!s&&s.fingerprint!==fingerprint;
- return {...d,id,fingerprint,saved:s,decision,version:s?.version||0,stale,status:stale?'source_changed':decision.reviewed?'reviewed':s?'draft':'candidate',reason:stale?'Öğrenci veya tahsilat bilgisi değişti; yeniden kontrol edin':decision.requirement==='excluded'?'Gerekçeli istisna · '+decision.reason:undefined};
+ return {...d,id,fingerprint,saved:s,decision,version:s?.version||0,stale,status:stale?'source_changed':decision.reviewed?'reviewed':s?'draft':'candidate',reason:stale?'Öğrenci veya tahsilat bilgisi değişti; yeniden kontrol edin':decision.requirement==='excluded'?'Gerekçeli istisna · '+decision.reason:d.blockers.join(' · ')||undefined};
  }));
  // Retain saved drafts whose source is no longer present; never silently lose them.
  const ids=new Set(rows.map(r=>r.id));
@@ -48,9 +60,12 @@ export async function saveDraft(ctx,d,patch){
  if((prev?.version||0)!==d.version)throw Error('Taslak başka bir kullanıcı tarafından değiştirildi. Listeyi yenileyin.');
  if(!student.exists()||!period.exists())throw Error('Öğrenci veya dönem kaydı bulunamadı.');
  const o=student.data(),v=period.data(),plan=odemePlani(v);
- const movements=plan.satirlar.flatMap(r=>(r.record.hareketler||[]).map(m=>({...m,ogrenciId:d.source.ogrenciId,donem:d.source.donem,kalemId:r.id,hareketId:m.id,kalem:r.ad})));
- const current=candidates({gelirler:movements,ogrenciler:[{id:d.source.ogrenciId,ogrenciKimlik:{adSoyad:o.ogrenciAdSoyad||o.ad||'',tcKimlik:o.tcKimlik||''},veri:v,plan}],mutabakatlar:accounting.docs.map(x=>x.data())}).find(x=>x.key===d.key);
+ const movements=draftSources(sourceMovements(plan,d.source));
+ const currentRows=candidates({gelirler:movements,ogrenciler:[{id:d.source.ogrenciId,ogrenciKimlik:{adSoyad:o.ogrenciAdSoyad||o.ad||'',tcKimlik:o.tcKimlik||''},veri:v,plan}],mutabakatlar:accounting.docs.map(x=>x.data())}).filter(x=>x.key===d.key);
+ if(currentRows.length!==1)throw Error('Kaynak tahsilat tekil değil; mutabakat gerekli.');
+ const current=currentRows[0];
  if(!current||await hashText(draftFingerprint(current))!==d.fingerprint)throw Error('Öğrenci veya tahsilat değişti. Listeyi yenileyip yeniden kontrol edin.');
+ if(p.reviewed&&draftIssues(current,p).length)throw Error(draftIssues(current,p).join(' · '));
  const actor=ctx.uid;if(!actor)throw Error('Oturum kimliği doğrulanamadı.');
  const version=d.version+1,stamp=fb.serverTimestamp();
  const row={schemaVersion:1,donem:d.source.donem,source:d.source,sourceKey:d.key,recipientKind:'student',fingerprint:d.fingerprint,decision:p,version,createdBy:prev?.createdBy||actor,createdAt:prev?.createdAt||stamp,updatedBy:actor,updatedAt:stamp};

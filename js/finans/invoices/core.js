@@ -24,7 +24,7 @@ export function candidates(data, now=new Date()) {
  for(const m of moves) counts.set(sourceKey(m),(counts.get(sourceKey(m))||0)+1);
  return moves.filter(m=>Number(m.tutar)>0).map(m=>{
   const key=sourceKey(m), blockers=[];
-  if(!m.ogrenciId||!m.donem||!m.kalemId||!m.hareketId||m.hareketId==='devir'||m.eskiKayit)blockers.push('Tekil tahsilat kimliği doğrulanmalı');
+  if(!m.ogrenciId||!m.donem||!m.kalemId||!m.hareketId||m.hareketId==='devir'||m.hareketId==='legacy-summary'||m.hareketId==='legacy-carry'||m.eskiKayit)blockers.push('Tekil tahsilat kimliği doğrulanmalı');
   if(!amountOK(m.tutar))blockers.push('Tutar kuruş hassasiyetinde doğrulanmalı');
   if(!gecerliTarih(m.tarih,now))blockers.push('Banka tarihi doğrulanmalı');
   if(counts.get(key)>1)blockers.push('Aynı tahsilat birden fazla kez görünüyor');

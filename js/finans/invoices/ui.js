@@ -1,4 +1,4 @@
-import {candidates,readyIssues,MockInvoiceService,maskedTckn} from './core.js?v=246';
+import {candidates,readyIssues,MockInvoiceService,maskedTckn} from './core.js?v=249';
 import {esc,para} from '../core.js';
 export const labels={candidate:"Kaydedilmedi",reviewed:"Kontrol edildi · API bekliyor",source_changed:'Kaynak değişti',draft:'İnceleme gerekli',ready:'Onay bekliyor',approved:'Onaylandı',excluded:'Gerekçeli istisna',sending:'Gönderiliyor',unknown:'Sonuç belirsiz',submitted:'Durum bekleniyor',issued:'Mutabık',rejected:'Reddedildi'};
 export function theme(root){

@@ -1,8 +1,8 @@
 const {initializeTestEnvironment,assertSucceeds,assertFails}=require('@firebase/rules-unit-testing');
 const fb=require('firebase/firestore'),fs=require('node:fs'),assert=require('node:assert/strict');
 (async()=>{
- if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8086'||!process.env.INVOICE_RULES_FILE)throw Error('Local rules test only');
- const env=await initializeTestEnvironment({projectId:'demo-invoice-drafts',firestore:{host:'127.0.0.1',port:8086,rules:fs.readFileSync(process.env.INVOICE_RULES_FILE,'utf8')}});
+ if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8087'||!process.env.INVOICE_RULES_FILE)throw Error('Local rules test only');
+ const env=await initializeTestEnvironment({projectId:'demo-invoice-drafts',firestore:{host:'127.0.0.1',port:8087,rules:fs.readFileSync(process.env.INVOICE_RULES_FILE,'utf8')}});
  let count=0; const ok=async p=>{await assertSucceeds(p);count++;},no=async p=>{await assertFails(p);count++;};
  const db=role=>env.authenticatedContext(role,{email:role+'@example.test'}).firestore();
  const id='a'.repeat(64),ref=d=>fb.doc(d,'faturaHazirlik',id);
@@ -43,6 +43,16 @@ const fb=require('firebase/firestore'),fs=require('node:fs'),assert=require('nod
  await env.withSecurityRulesDisabled(c=>fb.updateDoc(fb.doc(c.firestore(),'ogrenciler','student'),{tcKimlik:'22222222220'}));
  loaded=await draftRows(data,await readDrafts(context));saved=loaded.find(r=>r.id===candidate.id);
  await assert.rejects(saveDraft(context,saved,decision),/değişti/);count++;
+ // A legacy summary can be saved without modifying the payment; never reviewable.
+ await env.withSecurityRulesDisabled(async c=>{const x=c.firestore();await fb.updateDoc(fb.doc(x,'ogrenciler','student'),{tcKimlik:'11111111110'});await fb.setDoc(fb.doc(x,'ogrenciler','student','donemler','2026-2027'),{aidatAyarlari:{baslangicAyi:'2026-11',taksitSayisi:1,aylikAidat:100},aylikOdemeler:{'2026-11':{odendi:true,odenenTutar:100,odemeTarihi:'2026-11-20'}}});});
+ const paymentRef=fb.doc(d,'ogrenciler','student','donemler','2026-2027');const beforePayment=(await fb.getDoc(paymentRef)).data();
+ const legacyData=await okulVerisi(context);const [legacy]=await draftRows(legacyData);
+ assert.equal(legacy.source.hareketId,'legacy-summary');await ok(saveDraft(context,legacy,{...decision,reviewed:false}));
+ assert.deepEqual((await fb.getDoc(paymentRef)).data(),beforePayment);count++;
+ const [legacySaved]=await draftRows(legacyData,(await readDrafts(context)).filter(x=>x.id===legacy.id));
+ await assert.rejects(saveDraft(context,legacySaved,{...decision,reviewed:true}),/Tekil/);count++;
+ const legacyRef=fb.doc(d,'faturaHazirlik',legacy.id),legacyRow=(await fb.getDoc(legacyRef)).data();
+ const batch=fb.writeBatch(d);batch.update(legacyRef,{version:2,decision:{...decision,reviewed:true},updatedAt:fb.serverTimestamp()});batch.set(fb.doc(legacyRef,'history','2'),{version:2,actor:'muhasebe',at:fb.serverTimestamp(),decision:{...decision,reviewed:true},fingerprint:legacyRow.fingerprint});await no(batch.commit());
  console.log(`Invoice rules: ${count} checks passed`);
  }finally{await env.cleanup();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
