@@ -1,6 +1,6 @@
 // In-app club notices use the existing recipient-scoped notification stream.
 export function clubTarget(record) {
- if(record?.tip==='kitap_kulubu_oylama')return typeof record.oylamaId==='string'&&/^[A-Za-z0-9_-]{8,100}$/.test(record.oylamaId)?'kitap-kulubu.html?poll='+encodeURIComponent(record.oylamaId):'';
+ if(['kitap_kulubu_oylama','kitap_kulubu_oylama_sonuc'].includes(record?.tip))return typeof record.oylamaId==='string'&&/^[A-Za-z0-9_-]{8,100}$/.test(record.oylamaId)?'kitap-kulubu.html?poll='+encodeURIComponent(record.oylamaId):'';
  if(!['kitap_kulubu_yanit','kitap_kulubu_tepki','kitap_kulubu_paylasim'].includes(record?.tip)) return '';
  const ids=[record.kitapId,record.paylasimId];
  if(ids.some(x=>typeof x!=='string'||!x||x.length>1500||/[\x00-\x1f/\\]/.test(x)))return '';

@@ -3,7 +3,7 @@ const {JSDOM}=require('jsdom'),assert=require('node:assert/strict'),path=require
  const base=path.resolve(__dirname,'..',process.env.CLUB_WEB_PREFIX||'','js/kitap-kulubu');
  const {mountPolls}=await import(pathToFileURL(base+'/polls-ui.mjs'));
  const {clubTarget,renderClubNotices}=await import(pathToFileURL(base+'/notices.mjs'));
- const record={id:'notice',tip:'kitap_kulubu_oylama',oylamaId:'target-poll-123',baslik:'Yeni oylama',metin:'Katılın',olusturuldu:new Date().toISOString(),okundu:false};
+ const record={id:'notice',tip:process.env.CLUB_NOTICE_TYPE||'kitap_kulubu_oylama',oylamaId:'target-poll-123',baslik:'Yeni oylama',metin:'Katılın',olusturuldu:new Date().toISOString(),okundu:false};
  assert.equal(clubTarget(record),'kitap-kulubu.html?poll=target-poll-123');
  for(const value of ['',null,'x/../../x','<script>','a'.repeat(101)])assert.equal(clubTarget({...record,oylamaId:value}), '');
  const dom=new JSDOM('<aside></aside><main></main>',{url:'https://fixture.test/kitap-kulubu.html?poll=target-poll-123'}),doc=dom.window.document;
@@ -15,6 +15,7 @@ const {JSDOM}=require('jsdom'),assert=require('node:assert/strict'),path=require
  const panel=mountPolls(root,store);panel.setEnabled(false);assert.equal(enabledCalls,0);assert(!snapshots.has(data.id));
  panel.setEnabled(true);await tick();assert(snapshots.has(data.id));snapshots.get(data.id).next(data);await tick();
  assert.equal(root.querySelector('[data-poll-id]').dataset.pollId,data.id);assert.match(root.textContent,/Oylama kapandı/);assert.equal(root.querySelector('[data-poll-vote] button'),null);assert.equal(doc.activeElement.getAttribute('aria-label'),'Bildirimdeki oylama');
+ snapshots.get(data.id).next({...data,counts:{o0:3,o1:3},total:6});assert.equal((root.textContent.match(/En çok oy alan/g)||[]).length,2);snapshots.get(data.id).next({...data,counts:{o0:0,o1:0},total:0});assert.match(root.textContent,/Henüz oy yok/);assert(!root.textContent.includes('En çok oy alan'));
  snapshots.get(data.id).next(null);assert.match(root.textContent,/artık bulunamıyor/);assert.equal(root.querySelector('[data-poll-id]'),null);
  snapshots.get(data.id).next(data);await tick();const stale=snapshots.get(data.id).next;panel.setEnabled(false);stale(data);assert.equal(root.querySelector('[data-poll-id]'),null);
  panel.setEnabled(true);await tick();snapshots.get(data.id).error(Object.assign(Error('denied'),{code:'permission-denied'}));assert.match(root.textContent,/erişiminiz değişmiş/);assert.equal(root.querySelector('[data-poll-id]'),null);
