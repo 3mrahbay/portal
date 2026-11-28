@@ -32,3 +32,14 @@ test('ZEKY rejection dialog validates, preserves failed reason and retries',{ski
  await form.onsubmit({preventDefault(){}});assert.equal(await done,true);assert.equal(document.querySelector('dialog'),null);
  const cancel=izinRetDialogu(async()=>assert.fail('Cancelled dialog must not write'));document.querySelector('[data-vazgec]').click();assert.equal(await cancel,false);dom.window.close();
 });
+test('ZEKY confirmation keeps malicious document IDs out of executable attributes',{skip:!repo},()=>{
+ const dom=new JSDOM('<body></body>'),{window}=dom,{document}=window;
+ const source=read('www/yonetim-izin-onay.html');const start=source.indexOf('window.onaySheetAc =');const code=source.slice(start,source.indexOf('window.kararUygula =',start));
+ const escaped=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ new Function('window','document','htmlGuvenli',code)(window,document,escaped);
+ const hostile="id');alert('injected');//";let received;
+ window.kararUygula=(...args)=>{received=args;};window.onaySheetAc(hostile,{personelAd:'<img src=x onerror=alert(1)>',etkiMetin:'<script>alert(1)</script>'});
+ assert.equal(document.querySelector('img,script'),null);
+ for(const el of document.querySelectorAll('[onclick]'))assert.doesNotMatch(el.getAttribute('onclick'),/injected/);
+ document.querySelector('[data-onay-etki=false]').click();assert.deepEqual(received,[hostile,'onaylandi',false]);dom.window.close();
+});

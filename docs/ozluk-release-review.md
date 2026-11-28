@@ -1,6 +1,6 @@
 # Özlük / Puantaj son inceleme — 28 Kasım 2026
 
-Durum: yayın onayı değildir. Yeni değişiklikler taslak incelemededir; canlı veri değiştirilmedi.
+Güncel durum: yalnız ayrı sentetik belge test ortamı kuruldu. Canlı veri, canlı yayın ve mağaza dağıtımı değiştirilmedi. Üretim belge etkinleştirmesi kapalıdır; iki PR taslak kalır. Son durum aşağıdaki isolated private-document staging bölümündedir. Önceki bölümler tarihsel kontrol kayıtlarıdır; eski test sayıları ve ortamın bulunamadığı notları güncel durum değildir.
 
 ## Dağıtım durumu
 
